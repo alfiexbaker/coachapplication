@@ -55,3 +55,53 @@ All filters serialize into a `CoachSearchParams` object passed to both list and 
 - **Empty results**: display an illustrated empty state with the message "No coaches match these filters" plus two suggested actions: (1) Clear filters button (resets to defaults), (2) Expand search radius (pre-populated slider). Map shows a neutral grid with no pins and encourages trying a nearby city.
 - **Error state**: show inline alert bar above list with retry button; map shows a full-width snackbar when the tile layer fails.
 - **Detail page sections**: each async sub-section (reviews, gallery) uses localized skeletons and gracefully handles zero-data cases (e.g., "Be the first to review Coach Maya!").
+
+## Booking Flow Specification (Pillar 2)
+- **State machine**
+  - `Available` → `Pending` (parent submits slot) → `Confirmed` (coach auto-accept or manual) → `Completed` or `Cancelled`.
+  - `Cancelled` requires metadata (`actor`, `reasonCode`, `refundEligible`).
+  - `NoShow` sub-state logged if attendance not confirmed within 12 hours post-slot.
+- **Service selection UI**
+  - Services grouped by format (1:1, Group, Virtual) with pill toggles; each card shows duration, price, and capacity.
+  - Selecting a service loads a **calendar strip** (7-day horizontal) plus **slot list** (chips per start time). Disabled slots show reason (booked, cutoff passed, coach hold).
+- **Confirmation screen**
+  - Summarizes child, coach, location map preview, cancellation window, reminders toggle, payment placeholder.
+  - CTA labels: `Confirm Booking` (parents) / `Save Changes` (coaches editing).
+- **Notifications**
+  - Push + email for booking request, confirmation, 24h reminder, 2h reminder, and cancellation/reschedule.
+  - Notification payload fields: `bookingId`, `slotStart`, `coachName`, `childName`, `deepLink`.
+- **Booking details page**
+  - Timeline of status changes, attachments (future), quick actions (message, reschedule, cancel), and attendance toggle.
+
+## Coach Operations (Pillar 3)
+- **Availability builder**
+  - Weekly template: grid (columns days, rows 30-min increments) with drag-to-create blocks; supports repeating rules (e.g., Tue/Thu 16:00-18:00).
+  - Overrides: one-off slot addition/removal, plus `Block time` modal for vacations or personal time.
+  - Capacity controls: numeric stepper per slot; group sessions decrease `capacityRemaining` on booking.
+- **Service Management**
+  - Fields: `title`, `format`, `durationMinutes`, `priceUsd`, `maxAthletes`, `locationType`, `description`, `equipmentProvided`.
+  - Draft vs. published state; drafts hidden from discovery but editable.
+- **Booking management dashboard**
+  - Calendar (agenda + week view) that color-codes statuses; tapping entry opens booking detail with ability to mark attendance or cancel.
+  - Attendance flow: coach marks `present/absent`; triggers parent confirmation push.
+  - Cancellation policy config: default 24h cutoff; show countdown badges on bookings approaching cutoff.
+- **Calendar sync placeholder**
+  - Toggle surfaces explanation (“Coming soon: Google/Apple Calendar sync”); store preference flag for future integration.
+
+## MVP Scope Checklist
+- **Included**
+  - Invite links with role context.
+  - Auth (email + OTP or password) and role selection.
+  - Coach onboarding wizard (profile basics, services, availability).
+  - Parent discovery + booking as described above.
+  - Booking lists for both roles (upcoming, past) with filter chips (status, child, coach).
+  - Basic settings (profile photo, notifications, logout) and support link.
+- **Deferred (but placeholders ready)**
+  - Payments UI elements labelled "Coming soon" with tooltip referencing Stripe rollout.
+  - Messaging entry points disabled until S2; show locked badge after booking with explanatory copy.
+  - Verification badges grayed out; copy states "Verification in progress".
+  - Reviews, performance timeline, and social feed tabs hidden behind feature flags.
+
+## Iteration Notes
+- Every flow must annotate decisions in-line (Decision:, Alt:, Impact:) to keep track of future revisit points.
+- Collect analytics events for MVP KPIs: `CoachProfileViewed`, `BookingInitiated`, `BookingConfirmed`, `AvailabilitySlotCreated`.

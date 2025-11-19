@@ -1,5 +1,23 @@
 # S0 Foundation
 
+## Product North Star
+- **Mission statement**: Deliver a premium, trusted ecosystem that connects parents with elite football coaches while giving coaches a complete operating system for availability, bookings, and long-term performance tracking.
+- **Pillar alignment**: This file anchors the six pillars (Discovery, Bookings, Coach Ops, Messaging, Performance, Trust & Payments) so every sprint-level doc can reference shared principles.
+- **Platform scope**: Native-quality experience on both iOS and Android via React Native + Expo, with backend APIs powered by Next.js API routes (TypeScript + Zod) and Prisma/Supabase for persistence when implemented.
+
+## Experience Principles (Make It Look & Feel Premium)
+- **Athletic visual language**: Dark surfaces with bold accent gradients, hero photography, and motion micro-interactions to convey energy and professionalism.
+- **Calm density**: Show rich data (availability grids, stats) without overwhelm through modular cards, generous spacing, and progressive disclosure.
+- **Trust signals first**: Badges, verification timestamps, testimonials, and safety copy should be surfaced on every relevant screen even before the verification module ships.
+- **Cross-platform polish**: Align navigation patterns (tab layout + stacked modals) while honoring platform idioms (Material ripples vs. iOS blur sheets, platform font defaults) documented below.
+
+## Decision Log Template
+Record key choices directly in sprint docs referencing this template for traceability.
+
+| Decision | Rationale | Alternatives | Pillars Affected | Review Sprint |
+| --- | --- | --- | --- | --- |
+| Example: Expo Router for navigation | URL-like segments work for native + future web builds | React Navigation stacks per tab | Discovery, Bookings, Coach Ops | Revisit S2 |
+
 ## React Native / Expo + TypeScript Guidelines
 - **Project Structure**
   - Keep screens inside `app/(tabs)` with colocated hooks, tests, and stylesheets per feature.
@@ -46,3 +64,18 @@
   - Component guidelines: buttons use `space.md` vertical + `space.xl` horizontal padding; cards use `space.lg` padding with `space.md` corner radius.
 
 These foundations should be mirrored across mobile platforms and web previews to ensure consistent UX from day one.
+
+## Accessibility & Haptics Checklist
+- Support Dynamic Type / Font Scaling up to 130% with graceful layout adjustments.
+- Minimum contrast ratio 4.5:1 for text; use semantic colors for success/warning/error states.
+- Enable VoiceOver/TalkBack focus order testing each sprint; describe imagery (coach hero shots, map pins) with concise accessibility labels.
+- Provide tactile confirmation (Haptic selection/impact) for booking confirmations, slot selections, and drag gestures on availability calendars.
+
+## Offline & Resilience Considerations
+- Cache last-known discoveries and bookings using React Query persisters; stale data clearly timestamped.
+- Queue critical mutations (booking request, availability changes) with optimistic UI; replay when network returns.
+- Graceful degradation for map tiles: fall back to list-only view when Mapbox/Google tiles fail.
+
+## Collaboration Notes
+- Use `/Documents` sprint files as single source; append decisions rather than overwriting to keep iteration history.
+- Cross-link sections (e.g., Booking flow state machine in `S1_MVP_CORE.md`) for faster onboarding of contributors.
