@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
@@ -27,6 +27,9 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
     onPress?.();
   };
 
+  // Show only primary focus for cleaner UI
+  const primaryFocus = coach.footballFocuses[0];
+
   return (
     <Animated.View entering={FadeInDown.duration(300).springify()}>
       <SurfaceCard
@@ -48,24 +51,27 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
               <View style={styles.infoRow}>
                 <Ionicons name="location" size={14} color={palette.icon} />
                 <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-                  {formatDistance(coach.distanceMiles)} away
-                </ThemedText>
-                <View style={styles.dot} />
-                <Ionicons name="star" size={14} color={palette.premium} />
-                <ThemedText style={[styles.infoText, { color: palette.text }]}>
-                  {coach.rating.average.toFixed(1)}
+                  {formatDistance(coach.distanceMiles)}
                 </ThemedText>
               </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.tagRow}>
-                {coach.footballFocuses.slice(0, 3).map((focus) => (
-                  <View key={focus} style={[styles.tag, { backgroundColor: palette.surface }]}>
-                    <ThemedText style={[styles.tagText, { color: palette.text }]}>{focus}</ThemedText>
-                  </View>
-                ))}
-              </ScrollView>
+              <View style={styles.metaRow}>
+                <View style={styles.ratingContainer}>
+                  <Ionicons name="star" size={14} color={palette.premium} />
+                  <ThemedText style={[styles.ratingText, { color: palette.text }]}>
+                    {coach.rating.average.toFixed(1)}
+                  </ThemedText>
+                </View>
+                {primaryFocus && (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={[styles.focusBadge, { backgroundColor: palette.surfaceSecondary }]}>
+                      <ThemedText style={[styles.focusText, { color: palette.muted }]}>
+                        {primaryFocus}
+                      </ThemedText>
+                    </View>
+                  </>
+                )}
+              </View>
             </View>
             <View style={styles.priceColumn}>
               <ThemedText type="defaultSemiBold" style={styles.price}>{formatPriceRange(coach.priceRange)}</ThemedText>
@@ -131,71 +137,82 @@ function InfoRow({ icon, label, color }: InfoRowProps) {
 
 const styles = StyleSheet.create({
   pressable: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   card: {
-    padding: Spacing.lg + 4,
+    padding: Spacing.lg,
   },
   row: {
     flexDirection: 'row',
     gap: Spacing.lg,
+    alignItems: 'center',
   },
   meta: {
     flex: 1,
-    gap: Spacing.sm + 2,
+    gap: Spacing.sm,
     justifyContent: 'center',
   },
   coachName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    letterSpacing: -0.3,
-    marginBottom: 2,
+    letterSpacing: -0.2,
+    marginBottom: -2,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs + 2,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 999,
-    backgroundColor: '#9CA3AF',
-    marginHorizontal: 4,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs + 2,
+  },
+  ratingText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  divider: {
+    width: 1,
+    height: 12,
+    backgroundColor: '#E5E7EB',
+    opacity: 0.5,
+  },
+  focusBadge: {
+    paddingHorizontal: Spacing.md - 2,
+    paddingVertical: Spacing.xs + 1,
+    borderRadius: Radii.sm,
+  },
+  focusText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: Radii.lg,
+    width: 64,
+    height: 64,
+    borderRadius: Radii.md,
   },
   priceColumn: {
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
   price: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '800',
+    letterSpacing: -0.3,
   },
   priceLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    marginTop: 2,
-  },
-  tagRow: {
-    gap: Spacing.sm,
-    marginTop: 2,
-  },
-  tag: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 3,
-    borderRadius: Radii.md,
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '700',
+    marginTop: 1,
   },
 });
