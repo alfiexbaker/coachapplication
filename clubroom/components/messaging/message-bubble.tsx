@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, { FadeInUp, SlideInLeft, SlideInRight } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -34,30 +35,24 @@ function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string 
 function MessageBubbleComponent({ message, isOwnMessage }: MessageBubbleProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const bubbleColor = isOwnMessage ? palette.tint : palette.card;
+  const bubbleColor = isOwnMessage ? palette.tint : palette.surface;
   const textColor = isOwnMessage ? '#FFFFFF' : palette.text;
 
   return (
-    <View style={[styles.wrapper, isOwnMessage ? styles.alignRight : styles.alignLeft]}>
-      <SurfaceCard style={[styles.bubble, { backgroundColor: bubbleColor }]} tactile={false} animateElevation={false}>
+    <Animated.View
+      entering={isOwnMessage ? SlideInRight.springify() : SlideInLeft.springify()}
+      style={[styles.wrapper, isOwnMessage ? styles.alignRight : styles.alignLeft]}
+    >
+      <View style={[styles.bubble, { backgroundColor: bubbleColor }]}>
         <ThemedText style={[styles.body, { color: textColor }]}>{message.body}</ThemedText>
         {message.attachments?.map((attachment) => (
           <AttachmentCard key={attachment.id} title={attachment.title} subtitle={attachment.subtitle} />
         ))}
-        <View style={styles.metaRow}>
-          <ThemedText style={[styles.timestamp, { color: isOwnMessage ? '#E0ECFF' : palette.muted }]}>
-            {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </ThemedText>
-          {isOwnMessage ? (
-            <IconSymbol
-              name={message.status === 'seen' ? 'checkmark.seal.fill' : 'paperplane.fill'}
-              size={14}
-              color={isOwnMessage ? '#E0ECFF' : palette.icon}
-            />
-          ) : null}
-        </View>
-      </SurfaceCard>
-    </View>
+      </View>
+      <ThemedText style={[styles.timestamp, { alignSelf: isOwnMessage ? 'flex-end' : 'flex-start' }]}>
+        {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      </ThemedText>
+    </Animated.View>
   );
 }
 
@@ -65,7 +60,8 @@ export const MessageBubble = memo(MessageBubbleComponent);
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
+    gap: 2,
   },
   alignRight: {
     alignItems: 'flex-end',
@@ -74,24 +70,20 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   bubble: {
-    maxWidth: '90%',
-    borderRadius: Radii.lg,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  body: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    maxWidth: '75%',
+    borderRadius: 18,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     gap: Spacing.xs,
   },
+  body: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
   timestamp: {
-    fontSize: 12,
-    letterSpacing: 0.2,
+    fontSize: 11,
+    opacity: 0.5,
+    marginHorizontal: Spacing.sm,
   },
   attachment: {
     flexDirection: 'row',
@@ -105,7 +97,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   attachmentSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
   },

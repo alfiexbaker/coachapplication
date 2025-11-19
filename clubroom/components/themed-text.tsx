@@ -44,18 +44,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   title: {
-    ...Typography['3xl'],
+    ...Typography['2xl'],
     fontWeight: '700',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    ...Typography.xl,
+    ...Typography.lg,
     fontWeight: '600',
   },
   eyebrow: {
     ...Typography.xs,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: '600',
+    letterSpacing: 0.8,
+    fontWeight: '700',
+    opacity: 0.5,
   },
   link: {
     ...Typography.base,

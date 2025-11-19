@@ -50,26 +50,26 @@ export const Spacing = {
   sm: baseSpacing * 2,
   md: baseSpacing * 3,
   lg: baseSpacing * 4,
-  xl: baseSpacing * 6,
-  '2xl': baseSpacing * 8,
-  '3xl': baseSpacing * 10,
+  xl: baseSpacing * 5,
+  '2xl': baseSpacing * 6,
+  '3xl': baseSpacing * 8,
 } as const;
 
 export const Radii = {
-  sm: 8,
-  md: 12,
-  lg: 20,
+  sm: 6,
+  md: 10,
+  lg: 16,
   pill: 999,
 } as const;
 
 export const Typography = {
-  xs: { fontSize: 12, lineHeight: 16 },
-  sm: { fontSize: 14, lineHeight: 20 },
-  base: { fontSize: 16, lineHeight: 24 },
-  lg: { fontSize: 18, lineHeight: 26 },
-  xl: { fontSize: 20, lineHeight: 26 },
-  '2xl': { fontSize: 24, lineHeight: 30 },
-  '3xl': { fontSize: 30, lineHeight: 36 },
+  xs: { fontSize: 11, lineHeight: 14 },
+  sm: { fontSize: 13, lineHeight: 18 },
+  base: { fontSize: 15, lineHeight: 20 },
+  lg: { fontSize: 17, lineHeight: 22 },
+  xl: { fontSize: 20, lineHeight: 24 },
+  '2xl': { fontSize: 24, lineHeight: 28 },
+  '3xl': { fontSize: 28, lineHeight: 32 },
 } as const;
 
 export const Fonts = Platform.select({

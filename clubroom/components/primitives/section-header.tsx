@@ -9,10 +9,10 @@ interface SectionHeaderProps {
   eyebrow?: string;
 }
 
-export function SectionHeader({ title, subtitle, eyebrow = 'Sprint' }: SectionHeaderProps) {
+export function SectionHeader({ title, subtitle, eyebrow }: SectionHeaderProps) {
   return (
     <View style={styles.container}>
-      <ThemedText type="eyebrow">{eyebrow}</ThemedText>
+      {eyebrow ? <ThemedText type="eyebrow">{eyebrow}</ThemedText> : null}
       <ThemedText type="title">{title}</ThemedText>
       {subtitle ? <ThemedText style={styles.subtitle}>{subtitle}</ThemedText> : null}
     </View>
@@ -21,10 +21,11 @@ export function SectionHeader({ title, subtitle, eyebrow = 'Sprint' }: SectionHe
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
   },
   subtitle: {
-    opacity: 0.9,
+    opacity: 0.6,
+    fontSize: 13,
   },
 });

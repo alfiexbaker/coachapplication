@@ -17,22 +17,30 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: Colors[colorScheme ?? 'light'].surface,
-          borderTopWidth: 0,
+          backgroundColor: Colors[colorScheme ?? 'light'].background,
+          borderTopWidth: 0.5,
+          borderTopColor: 'rgba(0,0,0,0.06)',
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
         },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="map.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
           title: 'Bookings',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -40,7 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'Messages',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
+            <IconSymbol size={22} name="bubble.left.and.bubble.right.fill" color={color} />
           ),
         }}
       />
@@ -48,14 +56,14 @@ export default function TabLayout() {
         name="availability"
         options={{
           title: 'Availability',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="clock" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="clock" color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle" color={color} />,
         }}
       />
     </Tabs>

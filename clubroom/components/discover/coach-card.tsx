@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { CoachProfile } from '@/constants/types';
@@ -27,95 +28,44 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
   };
 
   return (
-    <SurfaceCard
-      accessibilityHint="Focus coach on map"
-      onPress={handlePress}
-      outlineGradient={
-        active ? [palette.tint, palette.secondary] : undefined
-      }
-      style={[styles.card, styles.pressable]}
-      gradientPadding={active ? 3 : 2}>
-        <View style={styles.row}>
-          <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} contentFit="cover" />
-          <View style={styles.meta}>
-            <ThemedText type="subtitle">{coach.fullName}</ThemedText>
-            <InfoRow icon="location-outline" label={`${coach.city}, ${coach.state}`} color={palette.icon} />
-            <InfoRow icon="navigate-outline" label={formatDistance(coach.distanceMiles)} color={palette.icon} />
-            {coach.schoolName ? (
-              <InfoRow icon="school-outline" label={coach.schoolName} color={palette.icon} />
-            ) : null}
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={16} color={palette.secondary} />
-              <ThemedText type="defaultSemiBold" style={styles.ratingValue}>
-                {coach.rating.average.toFixed(1)}
-              </ThemedText>
-              <ThemedText style={styles.ratingMeta}>({coach.rating.reviewCount})</ThemedText>
-            </View>
-          </View>
-          <View style={styles.priceWrapper}>
-            <View
-              style={[
-                styles.pricePill,
-                {
-                  borderColor: `${palette.tint}33`,
-                  backgroundColor: scheme === 'light' ? `${palette.tint}18` : `${palette.tint}30`,
-                  shadowColor: palette.tint,
-                  shadowOpacity: scheme === 'light' ? 0.2 : 0.45,
-                },
-              ]}>
-              <ThemedText type="defaultSemiBold">{formatPriceRange(coach.priceRange)}</ThemedText>
-              <View style={styles.availabilityRow}>
-                <Ionicons name="time-outline" size={12} color={palette.icon} />
-                <ThemedText style={styles.priceHint}>
-                  Next slot {formatNextAvailability(coach.nextAvailability)}
-                </ThemedText>
+    <Animated.View entering={FadeInDown.duration(300).springify()}>
+      <SurfaceCard
+        accessibilityHint="View coach details"
+        onPress={handlePress}
+        outlineGradient={
+          active ? [palette.tint, palette.secondary] : undefined
+        }
+        style={[styles.card, styles.pressable]}
+        gradientPadding={active ? 2 : 0}>
+          <View style={styles.row}>
+            <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} contentFit="cover" />
+            <View style={styles.meta}>
+              <ThemedText type="subtitle">{coach.fullName}</ThemedText>
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={12} color={palette.icon} />
+                <ThemedText style={styles.infoText}>{formatDistance(coach.distanceMiles)} away</ThemedText>
+                <View style={styles.dot} />
+                <Ionicons name="star" size={12} color={palette.secondary} />
+                <ThemedText style={styles.infoText}>{coach.rating.average.toFixed(1)}</ThemedText>
               </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.tagRow}>
+                {coach.footballFocuses.slice(0, 3).map((focus) => (
+                  <View key={focus} style={[styles.tag, { backgroundColor: `${focusColorMap[focus]}20` }]}>
+                    <ThemedText style={[styles.tagText, { color: focusColorMap[focus] }]}>{focus}</ThemedText>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={styles.priceColumn}>
+              <ThemedText type="defaultSemiBold" style={styles.price}>{formatPriceRange(coach.priceRange)}</ThemedText>
+              <ThemedText style={styles.priceLabel}>per session</ThemedText>
             </View>
           </View>
-        </View>
-        <ThemedText style={styles.bio}>{coach.shortBio}</ThemedText>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipScrollContent}
-          style={styles.chipScroller}
-          accessibilityLabel="Football focuses">
-          {coach.footballFocuses.map((focus) => (
-            <View
-              key={focus}
-              style={[
-                styles.focusChip,
-                {
-                  borderColor: focusColorMap[focus],
-                  backgroundColor: `${focusColorMap[focus]}18`,
-                },
-              ]}>
-              <ThemedText style={[styles.chipLabel, { color: focusColorMap[focus] }]}>{focus}</ThemedText>
-            </View>
-          ))}
-        </ScrollView>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipScrollContent}
-          style={styles.chipScroller}>
-          {coach.badges.map((badge) => (
-            <View
-              key={badge.id}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: badgeToneBackground(badge.tone, palette),
-                },
-              ]}>
-              <Ionicons name={badgeToneIcon(badge.tone)} size={14} color={badgeToneColor(badge.tone, palette)} />
-              <ThemedText style={[styles.chipLabel, { color: badgeToneColor(badge.tone, palette) }]}>
-                {badge.label}
-              </ThemedText>
-            </View>
-          ))}
-        </ScrollView>
-    </SurfaceCard>
+      </SurfaceCard>
+    </Animated.View>
   );
 }
 
@@ -173,10 +123,10 @@ function InfoRow({ icon, label, color }: InfoRowProps) {
 
 const styles = StyleSheet.create({
   pressable: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   card: {
-    gap: Spacing.md,
+    padding: Spacing.md,
   },
   row: {
     flexDirection: 'row',
@@ -191,78 +141,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  ratingValue: {
-    marginLeft: 2,
-  },
-  ratingMeta: {
+  infoText: {
+    fontSize: 13,
     opacity: 0.7,
+  },
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: '#94A3B8',
+    marginHorizontal: 2,
   },
   avatar: {
-    width: 72,
-    height: 72,
+    width: 56,
+    height: 56,
     borderRadius: Radii.md,
   },
-  location: {
-    opacity: 0.8,
-  },
-  infoLabel: {
-    flex: 1,
-  },
-  priceWrapper: {
+  priceColumn: {
+    alignItems: 'flex-end',
     justifyContent: 'center',
   },
-  pricePill: {
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    maxWidth: 172,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+  price: {
+    fontSize: 16,
   },
-  availabilityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
+  priceLabel: {
+    fontSize: 11,
+    opacity: 0.5,
+    marginTop: 2,
   },
-  priceHint: {
-    opacity: 0.7,
+  tagRow: {
+    gap: Spacing.xs,
   },
-  bio: {
-    opacity: 0.9,
-  },
-  chipScroller: {
-    marginHorizontal: -Spacing.sm,
-  },
-  chipScrollContent: {
+  tag: {
     paddingHorizontal: Spacing.sm,
-    gap: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
   },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-  },
-  chipLabel: {
+  tagText: {
+    fontSize: 11,
     fontWeight: '600',
-  },
-  focusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-    borderWidth: 1,
   },
 });
