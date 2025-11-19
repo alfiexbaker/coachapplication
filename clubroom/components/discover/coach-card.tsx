@@ -41,6 +41,9 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
             <ThemedText type="subtitle">{coach.fullName}</ThemedText>
             <InfoRow icon="location-outline" label={`${coach.city}, ${coach.state}`} color={palette.icon} />
             <InfoRow icon="navigate-outline" label={formatDistance(coach.distanceMiles)} color={palette.icon} />
+            {coach.schoolName ? (
+              <InfoRow icon="school-outline" label={coach.schoolName} color={palette.icon} />
+            ) : null}
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={16} color={palette.secondary} />
               <ThemedText type="defaultSemiBold" style={styles.ratingValue}>
@@ -71,6 +74,26 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
           </View>
         </View>
         <ThemedText style={styles.bio}>{coach.shortBio}</ThemedText>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipScrollContent}
+          style={styles.chipScroller}
+          accessibilityLabel="Football focuses">
+          {coach.footballFocuses.map((focus) => (
+            <View
+              key={focus}
+              style={[
+                styles.focusChip,
+                {
+                  borderColor: focusColorMap[focus],
+                  backgroundColor: `${focusColorMap[focus]}18`,
+                },
+              ]}>
+              <ThemedText style={[styles.chipLabel, { color: focusColorMap[focus] }]}>{focus}</ThemedText>
+            </View>
+          ))}
+        </ScrollView>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -119,6 +142,15 @@ const formatIconMap: Record<CoachProfile['sessionFormats'][number], IoniconName>
   'In-person': 'walk-outline',
   Virtual: 'videocam-outline',
   'Small group': 'people-outline',
+};
+
+const focusColorMap: Record<CoachProfile['footballFocuses'][number], string> = {
+  Dribbling: '#F97316',
+  Passing: '#0EA5E9',
+  Defending: '#7C3AED',
+  Finishing: '#EF4444',
+  Goalkeeping: '#14B8A6',
+  Conditioning: '#F59E0B',
 };
 
 function badgeToneColor(
@@ -248,5 +280,14 @@ const styles = StyleSheet.create({
   },
   chipLabel: {
     fontWeight: '600',
+  },
+  focusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
   },
 });

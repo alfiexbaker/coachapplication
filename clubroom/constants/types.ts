@@ -1,9 +1,12 @@
-export type SportCategory =
-  | 'Soccer'
-  | 'Football'
-  | 'Basketball'
-  | 'Volleyball'
-  | 'Track';
+export type SportCategory = 'Football';
+
+export type FootballObjective =
+  | 'Dribbling'
+  | 'Passing'
+  | 'Defending'
+  | 'Finishing'
+  | 'Goalkeeping'
+  | 'Conditioning';
 
 export type TrainingFormat = 'In-person' | 'Virtual' | 'Small group';
 
@@ -35,6 +38,8 @@ export interface CoachProfile {
   sessionFormats: TrainingFormat[];
   shortBio: string;
   profilePhotoUrl: string;
+  footballFocuses: FootballObjective[];
+  schoolName?: string;
   location: {
     lat: number;
     lng: number;
@@ -63,6 +68,34 @@ export interface BookingSummary {
   start: string;
   status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
   locationLabel: string;
+}
+
+export interface AthleteObjective {
+  id: string;
+  label: FootballObjective | 'Custom';
+  status: 'active' | 'upcoming' | 'completed';
+  updatedAt: string;
+  note?: string;
+}
+
+export interface SessionHistoryEntry {
+  id: string;
+  date: string;
+  coachName: string;
+  focus: FootballObjective;
+  location: string;
+  highlight: string;
+  resultBadge?: string;
+  clipLabel?: string;
+}
+
+export interface PaymentReminder {
+  id: string;
+  title: string;
+  amountUsd: number;
+  dueDate: string;
+  status: 'placeholder' | 'pending' | 'paid';
+  description: string;
 }
 
 export type ChatSender = 'parent' | 'coach';
@@ -94,4 +127,5 @@ export interface ChatThreadSummary {
   scheduledFor: string;
   unreadCount: number;
   safetyCopy: string;
+  pinnedObjectives?: FootballObjective[];
 }
