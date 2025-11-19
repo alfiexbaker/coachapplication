@@ -1,4 +1,12 @@
-import { BookingSummary, ChatMessage, ChatThreadSummary, CoachProfile } from './types';
+import {
+  AthleteObjective,
+  BookingSummary,
+  ChatMessage,
+  ChatThreadSummary,
+  CoachProfile,
+  PaymentReminder,
+  SessionHistoryEntry,
+} from './types';
 
 const coachPhotos = [
   'https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=800&q=80',
@@ -11,8 +19,8 @@ export const coachProfiles: CoachProfile[] = [
   {
     id: 'coach-1',
     fullName: 'Maya Ellis',
-    primarySport: 'Soccer',
-    sports: ['Soccer'],
+    primarySport: 'Football',
+    sports: ['Football'],
     city: 'Austin',
     state: 'TX',
     distanceMiles: 4.2,
@@ -24,28 +32,34 @@ export const coachProfiles: CoachProfile[] = [
       { id: 'pro', label: 'Pro experience' },
     ],
     sessionFormats: ['In-person', 'Small group'],
-    shortBio: 'USSF A License coach with MLS academy pedigree focusing on elite attacking play.',
+    shortBio:
+      'UEFA B coach building first-touch confidence for wingers and attacking mids with film + GPS data.',
     profilePhotoUrl: coachPhotos[0],
+    schoolName: "Maya's High Press Lab",
+    footballFocuses: ['Dribbling', 'Finishing', 'Passing'],
     location: { lat: 30.27, lng: -97.74 },
   },
   {
     id: 'coach-2',
     fullName: 'Jordan Vega',
-    primarySport: 'Basketball',
-    sports: ['Basketball'],
+    primarySport: 'Football',
+    sports: ['Football'],
     city: 'Dallas',
     state: 'TX',
     distanceMiles: 9.8,
     rating: { average: 4.8, reviewCount: 56 },
-    priceRange: { minUsd: 75, maxUsd: 120, unitLabel: 'session' },
+    priceRange: { minUsd: 95, maxUsd: 135, unitLabel: 'session' },
     nextAvailability: '2024-03-16T17:30:00Z',
     badges: [
       { id: 'verified', label: 'Background check', tone: 'success' },
-      { id: 'ncaa', label: 'NCAA Champ' },
+      { id: 'ncaa', label: 'NWSL Cup', tone: 'default' },
     ],
     sessionFormats: ['In-person', 'Virtual'],
-    shortBio: 'Former D1 guard bringing precision ball-handling progressions and leadership training.',
+    shortBio:
+      'Former NWSL outside back specializing in defensive IQ, pressing triggers, and transition defending.',
     profilePhotoUrl: coachPhotos[1],
+    schoolName: 'North Texas Shield Collective',
+    footballFocuses: ['Defending', 'Passing', 'Conditioning'],
     location: { lat: 32.78, lng: -96.8 },
   },
   {
@@ -61,8 +75,11 @@ export const coachProfiles: CoachProfile[] = [
     nextAvailability: '2024-03-17T20:00:00Z',
     badges: [{ id: 'verified', label: 'Background check', tone: 'success' }],
     sessionFormats: ['In-person'],
-    shortBio: 'QB mechanics coach using film breakdown and wearable sensors for HS + collegiate talent.',
+    shortBio:
+      'Goalkeeper academy director layering reaction drills with neuro training and off-season conditioning.',
     profilePhotoUrl: coachPhotos[2],
+    schoolName: "Cam's Safe Hands Lab",
+    footballFocuses: ['Goalkeeping', 'Conditioning', 'Passing'],
     location: { lat: 29.76, lng: -95.36 },
   },
 ];
@@ -98,6 +115,7 @@ export const primaryChatThread: ChatThreadSummary = {
   scheduledFor: '2024-03-18T15:30:00Z',
   unreadCount: 2,
   safetyCopy: 'Chats unlock once a booking is confirmed. Moderation + read receipts keep families protected.',
+  pinnedObjectives: ['Dribbling', 'Finishing'],
 };
 
 export const chatMessages: ChatMessage[] = [
@@ -150,5 +168,85 @@ export const chatMessages: ChatMessage[] = [
     body: 'Perfect—thanks Maya!',
     createdAt: '2024-03-15T14:11:45Z',
     status: 'sent',
+  },
+];
+
+export const activeObjectives: AthleteObjective[] = [
+  {
+    id: 'obj-1',
+    label: 'Dribbling',
+    status: 'active',
+    updatedAt: '2024-03-14T16:00:00Z',
+    note: 'Beat defenders 1v1 on the wing',
+  },
+  {
+    id: 'obj-2',
+    label: 'Passing',
+    status: 'active',
+    updatedAt: '2024-03-12T16:00:00Z',
+    note: 'Switch the field under pressure',
+  },
+  {
+    id: 'obj-3',
+    label: 'Defending',
+    status: 'upcoming',
+    updatedAt: '2024-03-10T16:00:00Z',
+    note: 'Body shape when jockeying',
+  },
+];
+
+export const sessionHistory: SessionHistoryEntry[] = [
+  {
+    id: 'session-1',
+    date: '2024-03-11T15:30:00Z',
+    coachName: 'Maya Ellis',
+    focus: 'Finishing',
+    location: 'Austin Sports Academy · Pitch 2',
+    highlight: 'Tied finishing gauntlet personal best (8/10).',
+    resultBadge: 'Hat-trick ready',
+    clipLabel: 'Finishing drill clips',
+  },
+  {
+    id: 'session-2',
+    date: '2024-03-04T15:30:00Z',
+    coachName: 'Jordan Vega',
+    focus: 'Defending',
+    location: 'North Texas Shield Collective',
+    highlight: 'Mastered 1v1 delay + angled pressing cues.',
+  },
+  {
+    id: 'session-3',
+    date: '2024-02-26T15:30:00Z',
+    coachName: 'Cam Winters',
+    focus: 'Conditioning',
+    location: "Cam's Safe Hands Lab",
+    highlight: 'VO2 drills logged, recovery HR down 8 bpm.',
+  },
+];
+
+export const paymentReminders: PaymentReminder[] = [
+  {
+    id: 'payment-1',
+    title: '4-pack of finishing sessions',
+    amountUsd: 520,
+    dueDate: '2024-03-20T15:00:00Z',
+    status: 'pending',
+    description: 'Auto-captures after the March 18th session unless cancelled 24h prior.',
+  },
+  {
+    id: 'payment-2',
+    title: 'Cam’s Safe Hands Lab drop-in',
+    amountUsd: 150,
+    dueDate: '2024-03-24T18:00:00Z',
+    status: 'placeholder',
+    description: 'Stripe Connect onboarding gated, but the slot is reserved.',
+  },
+  {
+    id: 'payment-3',
+    title: 'Shield Collective defensive clinic',
+    amountUsd: 260,
+    dueDate: '2024-03-12T15:00:00Z',
+    status: 'paid',
+    description: 'Captured with card ending in ··42. Receipt emailed.',
   },
 ];

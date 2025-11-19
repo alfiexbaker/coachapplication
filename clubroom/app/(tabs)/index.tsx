@@ -9,10 +9,17 @@ import { SectionHeader } from '@/components/primitives/section-header';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
-import { SportCategory, TrainingFormat } from '@/constants/types';
+import { FootballObjective, TrainingFormat } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const SPORT_OPTIONS: SportCategory[] = ['Soccer', 'Basketball', 'Football'];
+const FOCUS_OPTIONS: FootballObjective[] = [
+  'Dribbling',
+  'Passing',
+  'Defending',
+  'Finishing',
+  'Goalkeeping',
+  'Conditioning',
+];
 const FORMAT_OPTIONS: TrainingFormat[] = ['In-person', 'Virtual', 'Small group'];
 
 export default function DiscoverScreen() {
@@ -21,18 +28,20 @@ export default function DiscoverScreen() {
   const { width } = useWindowDimensions();
   const isWide = width > 900;
   const [selectedCoachId, setSelectedCoachId] = useState(coachProfiles[0]?.id);
-  const [sports, setSports] = useState<SportCategory[]>(['Soccer']);
+  const [focuses, setFocuses] = useState<FootballObjective[]>([]);
   const [formats, setFormats] = useState<TrainingFormat[]>([]);
 
   const filteredCoaches = useMemo(() => {
     return coachProfiles.filter((coach) => {
-      const sportMatch = sports.length ? sports.includes(coach.primarySport) : true;
+      const focusMatch = focuses.length
+        ? coach.footballFocuses.some((focus) => focuses.includes(focus))
+        : true;
       const formatMatch = formats.length
         ? coach.sessionFormats.some((format) => formats.includes(format))
         : true;
-      return sportMatch && formatMatch;
+      return focusMatch && formatMatch;
     });
-  }, [sports, formats]);
+  }, [focuses, formats]);
 
   useEffect(() => {
     if (filteredCoaches.length && !filteredCoaches.find((coach) => coach.id === selectedCoachId)) {
@@ -43,15 +52,15 @@ export default function DiscoverScreen() {
   const filterGroups = useMemo(() => {
     return [
       {
-        id: 'sport',
-        label: 'Sports',
-        chips: SPORT_OPTIONS.map((sport) => ({
-          id: sport,
-          label: sport,
-          active: sports.includes(sport),
+        id: 'focuses',
+        label: 'Skill focus (football only)',
+        chips: FOCUS_OPTIONS.map((focus) => ({
+          id: focus,
+          label: focus,
+          active: focuses.includes(focus),
           onPress: () =>
-            setSports((prev) =>
-              prev.includes(sport) ? prev.filter((value) => value !== sport) : [...prev, sport]
+            setFocuses((prev) =>
+              prev.includes(focus) ? prev.filter((value) => value !== focus) : [...prev, focus]
             ),
         })),
       },
@@ -69,20 +78,20 @@ export default function DiscoverScreen() {
         })),
       },
     ];
-  }, [sports, formats]);
+  }, [focuses, formats]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <View style={styles.container}>
         <SectionHeader
-          eyebrow="Sprint 1 · Discovery"
-          title="Coach discovery"
-          subtitle="Dual-pane search pairs a dense list with a responsive map so parents can evaluate context fast."
+          eyebrow="Sprint 2 · Football"
+          title="Find a football coach"
+          subtitle="Filters lean into football focuses (Dribbling, Passing, Defending) so players find the right fit fast."
         />
         <FilterTray
           groups={filterGroups}
           onClear={() => {
-            setSports([]);
+            setFocuses([]);
             setFormats([]);
           }}
         />

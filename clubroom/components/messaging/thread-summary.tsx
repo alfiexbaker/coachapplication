@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
+import { Chip } from '@/components/primitives/chip';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -18,7 +19,8 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
   return (
     <SurfaceCard style={styles.card}>
       <View style={styles.headerRow}>
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}22` }]}
+        <View
+          style={[styles.avatar, { backgroundColor: `${palette.tint}22` }]}
           accessibilityLabel={`Coach ${thread.coachName} avatar placeholder`}>
           <IconSymbol name="person.circle" size={28} color={palette.tint} />
         </View>
@@ -36,13 +38,34 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
       </View>
       <View style={styles.metaRow}>
         <IconSymbol name="calendar" size={18} color={palette.icon} />
-        <ThemedText>{new Date(thread.scheduledFor).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</ThemedText>
+        <ThemedText>
+          {new Date(thread.scheduledFor).toLocaleString([], {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          })}
+        </ThemedText>
       </View>
       <View style={styles.metaRow}>
         <IconSymbol name="map.fill" size={18} color={palette.icon} />
         <ThemedText>{thread.location}</ThemedText>
       </View>
-      <View style={[styles.safetyBanner, { backgroundColor: scheme === 'dark' ? 'rgba(251, 146, 60, 0.2)' : 'rgba(251, 146, 60, 0.15)' }]}
+      {thread.pinnedObjectives?.length ? (
+        <View style={styles.objectivesRow}>
+          {thread.pinnedObjectives.map((objective) => (
+            <Chip key={objective} active>
+              {objective}
+            </Chip>
+          ))}
+        </View>
+      ) : null}
+      <View
+        style={[
+          styles.safetyBanner,
+          { backgroundColor: scheme === 'dark' ? 'rgba(251, 146, 60, 0.2)' : 'rgba(251, 146, 60, 0.15)' },
+        ]}
         accessibilityRole="text">
         <IconSymbol name="shield.checkerboard" size={18} color={palette.secondary} />
         <ThemedText style={styles.safetyCopy}>{thread.safetyCopy}</ThemedText>
@@ -93,5 +116,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  objectivesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: -Spacing.xs,
   },
 });
