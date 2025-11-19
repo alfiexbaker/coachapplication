@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -140,24 +139,10 @@ const athleteProfile = {
 };
 
 const bookingSteps = [
-  {
-    id: 'context',
-    title: 'Plan',
-    description: 'Parents drop goals, footage, and preferred cadence.',
-    status: 'complete' as const,
-  },
-  {
-    id: 'schedule',
-    title: 'Schedule',
-    description: 'Live availability stays in sync with the coach calendar.',
-    status: 'current' as const,
-  },
-  {
-    id: 'confirm',
-    title: 'Confirm',
-    description: 'Secure session + payment, unlock chat + map later.',
-    status: 'upcoming' as const,
-  },
+  { id: 'coach', title: 'Coach' },
+  { id: 'day', title: 'Day' },
+  { id: 'slot', title: 'Slot' },
+  { id: 'confirm', title: 'Confirm' },
 ];
 
 export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
@@ -166,6 +151,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
   const availability = useMemo(() => buildAvailability(), []);
   const [selectedDayId, setSelectedDayId] = useState(availability[0]?.id);
   const [selectedSlotId, setSelectedSlotId] = useState(availability[0]?.slots[0]?.id);
+  const [stage, setStage] = useState<(typeof bookingSteps)[number]['id']>('coach');
 
   useEffect(() => {
     const day = availability.find((entry) => entry.id === selectedDayId);
@@ -187,196 +173,210 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
   const selectedDay = availability.find((entry) => entry.id === selectedDayId);
   const selectedSlot = selectedDay?.slots.find((slot) => slot.id === selectedSlotId);
 
+  const handleAdvance = () => {
+    const currentIndex = bookingSteps.findIndex((step) => step.id === stage);
+    if (currentIndex === -1) return;
+
+    const next = bookingSteps[currentIndex + 1];
+    if (next) {
+      setStage(next.id);
+    }
+  };
+
+  const canContinue = () => {
+    if (stage === 'coach') return Boolean(coach);
+    if (stage === 'day') return Boolean(selectedDay);
+    if (stage === 'slot') return Boolean(selectedSlot);
+    return false;
+  };
+
+  const ctaLabel = stage === 'confirm' ? 'Confirm booking' : 'Continue';
+
   return (
     <View style={styles.column}>
       <SurfaceCard style={styles.flowCard}>
         <View style={styles.flowHeader}>
-          <ThemedText type="eyebrow">Booking flow</ThemedText>
-          <View style={[styles.liveBadge, { backgroundColor: `${palette.tint}12` }]}>
-            <Ionicons name="sparkles-outline" size={16} color={palette.tint} />
-            <ThemedText style={[styles.badgeLabel, { color: palette.tint }]}>Coach-led</ThemedText>
+          <ThemedText type="eyebrow">Booking</ThemedText>
+          <View style={[styles.liveBadge, { borderColor: palette.border }]}>
+            <ThemedText style={[styles.badgeLabel, { color: palette.muted }]}>4 steps</ThemedText>
           </View>
         </View>
-        <ThemedText type="title" style={styles.flowTitle}>
-          A coaching-first journey
-        </ThemedText>
-        <ThemedText style={styles.flowSubtitle}>
-          Instead of generic sports marketplaces, families move through a bespoke coaching intake—context,
-          schedule, and confirmation—so every rep has purpose.
-        </ThemedText>
-        <View style={styles.stepper}>
-          {bookingSteps.map((step, index) => (
-            <View key={step.id} style={styles.stepItem}>
-              <View
-                style={[
-                  styles.stepIcon,
-                  step.status === 'complete' && { backgroundColor: palette.tint },
-                  step.status === 'current' && { borderColor: palette.tint },
-                  step.status === 'upcoming' && { borderColor: palette.border },
-                ]}>
-                {step.status === 'complete' ? (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                ) : (
-                  <ThemedText
-                    style={[
-                      styles.stepCount,
-                      step.status === 'current' && { color: palette.tint },
-                      step.status === 'upcoming' && { color: palette.muted },
-                    ]}>
-                    {index + 1}
-                  </ThemedText>
-                )}
-              </View>
-              <ThemedText type="defaultSemiBold">{step.title}</ThemedText>
-              <ThemedText style={styles.stepDescription}>{step.description}</ThemedText>
-            </View>
-          ))}
-        </View>
-        <View style={styles.contextRow}>
-          <View style={[styles.contextCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-            <ThemedText type="defaultSemiBold">Selected coach</ThemedText>
-            <ThemedText style={styles.contextPrimary}>{coach?.fullName ?? 'Tap a coach to preview'}</ThemedText>
-            <ThemedText style={styles.contextMeta}>
-              {coach ? coach.footballFocuses.slice(0, 2).join(' · ') : 'Focus areas appear here'}
-            </ThemedText>
-          </View>
-          <View style={[styles.contextCard, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-            <ThemedText type="defaultSemiBold">Athlete lane</ThemedText>
-            <ThemedText style={styles.contextPrimary}>{athleteProfile.name}</ThemedText>
-            <ThemedText style={styles.contextMeta}>
-              {athleteProfile.readiness} · {athleteProfile.cadence}
-            </ThemedText>
-          </View>
-        </View>
-        <View style={styles.callout}>
-          <Ionicons name="document-text-outline" size={20} color={palette.secondary} />
-          <View style={styles.calloutCopy}>
-            <ThemedText type="defaultSemiBold">Session blueprint ready</ThemedText>
-            <ThemedText style={styles.flowSubtitle}>
-              Once the slot is locked, Clubroom auto-generates prep docs, checklists, and shareable recaps.
-            </ThemedText>
-          </View>
-        </View>
-      </SurfaceCard>
 
-      <SurfaceCard style={styles.schedulerCard}>
-        <View style={styles.schedulerHeader}>
-          <View>
-            <ThemedText type="subtitle">2 · Schedule a session</ThemedText>
-            <ThemedText style={styles.schedulerSubtitle}>
-              Pick a day that works—live calendar sync keeps cancellations low.
-            </ThemedText>
-          </View>
-          <View style={[styles.liveBadge, { backgroundColor: `${palette.secondary}15` }]}>
-            <Ionicons name="time-outline" size={16} color={palette.secondary} />
-            <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>Live sync</ThemedText>
-          </View>
-        </View>
-        <View style={styles.calendarGrid}>
-          {availability.map((day) => {
-            const isSelected = day.id === selectedDayId;
-            const hasSlots = day.slots.length > 0;
+        <View style={styles.stepper}>
+          {bookingSteps.map((step) => {
+            const isActive = step.id === stage;
             return (
               <Pressable
-                key={day.id}
+                key={step.id}
                 style={({ pressed }) => [
-                  styles.calendarDay,
+                  styles.stepItem,
                   {
-                    borderColor: isSelected ? palette.tint : palette.border,
-                    backgroundColor: isSelected ? `${palette.tint}12` : palette.surface,
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                  !hasSlots && { borderStyle: 'dashed', opacity: 0.55 },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={`Select ${formatFullDate(day.date)}`}
-                onPress={() => setSelectedDayId(day.id)}>
-                <ThemedText style={styles.calendarWeekday}>{formatWeekday(day.date)}</ThemedText>
-                <ThemedText type="defaultSemiBold" style={styles.calendarDate}>
-                  {formatMonthDay(day.date)}
-                </ThemedText>
-                <ThemedText style={styles.calendarMeta}>
-                  {hasSlots ? `${day.slots.length} slots` : 'Coach travel'}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View style={styles.slotList}>
-          {selectedDay && selectedDay.slots.length === 0 ? (
-            <View style={[styles.emptySlots, { borderColor: palette.border, backgroundColor: palette.surface }]}>
-              <Ionicons name="airplane-outline" size={20} color={palette.icon} />
-              <ThemedText type="defaultSemiBold">Coach on the road</ThemedText>
-              <ThemedText style={styles.schedulerSubtitle}>
-                Pick a different day—travel days block scheduling.
-              </ThemedText>
-            </View>
-          ) : null}
-          {selectedDay?.slots.map((slot) => {
-            const isSelected = slot.id === selectedSlotId;
-            return (
-              <Pressable
-                key={slot.id}
-                style={({ pressed }) => [
-                  styles.slotCard,
-                  {
-                    borderColor: isSelected ? palette.tint : palette.border,
-                    backgroundColor: isSelected ? `${palette.tint}12` : palette.surface,
+                    borderColor: isActive ? palette.tint : palette.border,
+                    backgroundColor: isActive ? `${palette.tint}10` : palette.surface,
                     opacity: pressed ? 0.9 : 1,
                   },
                 ]}
                 accessibilityRole="button"
-                onPress={() => setSelectedSlotId(slot.id)}>
-                <View style={styles.slotHeader}>
-                  <ThemedText type="defaultSemiBold">{slot.title}</ThemedText>
-                  <ThemedText style={styles.slotTime}>{formatTimeRange(slot.start, slot.durationMinutes)}</ThemedText>
-                </View>
-                <ThemedText style={styles.slotFocus}>{slot.focus}</ThemedText>
-                <View style={styles.slotTag}>
-                  <Ionicons name="radio-outline" size={14} color={palette.secondary} />
-                  <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>{slot.tag}</ThemedText>
-                </View>
+                onPress={() => setStage(step.id)}>
+                <ThemedText type="defaultSemiBold">{step.title}</ThemedText>
               </Pressable>
             );
           })}
         </View>
-      </SurfaceCard>
 
-      <SurfaceCard style={styles.summaryCard}>
-        <ThemedText type="subtitle">3 · Review & confirm</ThemedText>
-        <ThemedText style={styles.summaryIntro}>
-          This is where payment + safety locks in. Once confirmed, messaging + maps unlock automatically.
-        </ThemedText>
-        <View style={styles.summaryGrid}>
-          <SummaryRow label="Coach" value={coach?.fullName ?? 'Select a coach above'} />
-          <SummaryRow label="Athlete" value={athleteProfile.name} />
-          <SummaryRow
-            label="Focus"
-            value={coach ? coach.footballFocuses.slice(0, 3).join(' · ') : athleteProfile.needs}
-          />
-          <SummaryRow
-            label="Session"
-            value={
-              selectedDay && selectedSlot
-                ? `${formatFullDate(selectedDay.date)} · ${formatTime(selectedSlot.start)}`
-                : 'Select a time to continue'
-            }
-          />
-          <SummaryRow label="Venue" value="Austin Sports Academy · Pitch 2" />
-          <SummaryRow label="Investment" value={coach ? `$${coach.priceRange.minUsd}+ / session` : '$120 / session'} />
-        </View>
+        {stage === 'coach' ? (
+          <View style={styles.contextGroup}>
+            <ThemedText type="title" style={styles.flowTitle}>
+              Tap a coach to preview
+            </ThemedText>
+            <View style={styles.contextRow}>
+              <View style={[styles.contextCard, { borderColor: palette.border }]}>
+                <ThemedText type="defaultSemiBold">Coach</ThemedText>
+                <ThemedText style={styles.contextPrimary}>{coach?.fullName ?? 'Not selected'}</ThemedText>
+                <ThemedText style={styles.contextMeta}>
+                  {coach ? coach.footballFocuses.slice(0, 2).join(' · ') : 'Pick from the list on the left'}
+                </ThemedText>
+              </View>
+              <View style={[styles.contextCard, { borderColor: palette.border }]}>
+                <ThemedText type="defaultSemiBold">Athlete</ThemedText>
+                <ThemedText style={styles.contextPrimary}>{athleteProfile.name}</ThemedText>
+                <ThemedText style={styles.contextMeta}>{athleteProfile.readiness}</ThemedText>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {stage === 'day' ? (
+          <View style={styles.schedulerSection}>
+            <ThemedText type="title" style={styles.flowTitle}>
+              Choose a day
+            </ThemedText>
+            <ThemedText style={styles.flowSubtitle}>Live calendar sync; travel days dimmed.</ThemedText>
+            <View style={styles.calendarGrid}>
+              {availability.map((day) => {
+                const isSelected = day.id === selectedDayId;
+                const hasSlots = day.slots.length > 0;
+                return (
+                  <Pressable
+                    key={day.id}
+                    style={({ pressed }) => [
+                      styles.calendarDay,
+                      {
+                        borderColor: isSelected ? palette.tint : palette.border,
+                        backgroundColor: isSelected ? `${palette.tint}12` : palette.surface,
+                        opacity: pressed ? 0.85 : 1,
+                      },
+                      !hasSlots && { borderStyle: 'dashed', opacity: 0.55 },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select ${formatFullDate(day.date)}`}
+                    onPress={() => setSelectedDayId(day.id)}>
+                    <ThemedText style={styles.calendarWeekday}>{formatWeekday(day.date)}</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={styles.calendarDate}>
+                      {formatMonthDay(day.date)}
+                    </ThemedText>
+                    <ThemedText style={styles.calendarMeta}>
+                      {hasSlots ? `${day.slots.length} slots` : 'Travel'}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
+        {stage === 'slot' ? (
+          <View style={styles.schedulerSection}>
+            <ThemedText type="title" style={styles.flowTitle}>
+              Pick a slot
+            </ThemedText>
+            <ThemedText style={styles.flowSubtitle}>
+              Times update automatically; tags stay monochrome.
+            </ThemedText>
+            <View style={styles.slotList}>
+              {selectedDay && selectedDay.slots.length === 0 ? (
+                <View style={[styles.emptySlots, { borderColor: palette.border }]}>
+                  <ThemedText type="defaultSemiBold">Coach unavailable</ThemedText>
+                  <ThemedText style={styles.schedulerSubtitle}>Select a different day.</ThemedText>
+                </View>
+              ) : null}
+              {selectedDay?.slots.map((slot) => {
+                const isSelected = slot.id === selectedSlotId;
+                return (
+                  <Pressable
+                    key={slot.id}
+                    style={({ pressed }) => [
+                      styles.slotCard,
+                      {
+                        borderColor: isSelected ? palette.tint : palette.border,
+                        backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                        opacity: pressed ? 0.92 : 1,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    onPress={() => setSelectedSlotId(slot.id)}>
+                    <View style={styles.slotHeader}>
+                      <ThemedText type="defaultSemiBold">{slot.title}</ThemedText>
+                      <ThemedText style={styles.slotTime}>{formatTimeRange(slot.start, slot.durationMinutes)}</ThemedText>
+                    </View>
+                    <ThemedText style={styles.slotFocus}>{slot.focus}</ThemedText>
+                    <View style={[styles.slotTag, { borderColor: palette.border }]}>
+                      <ThemedText style={[styles.badgeLabel, { color: palette.muted }]}>{slot.tag}</ThemedText>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
+        {stage === 'confirm' ? (
+          <View style={styles.summaryCard}>
+            <ThemedText type="title" style={styles.flowTitle}>
+              Review
+            </ThemedText>
+            <ThemedText style={styles.summaryIntro}>Minimal summary before payment.</ThemedText>
+            <View style={styles.summaryGrid}>
+              <SummaryRow label="Coach" value={coach?.fullName ?? 'Pick a coach'} />
+              <SummaryRow label="Athlete" value={athleteProfile.name} />
+              <SummaryRow
+                label="Focus"
+                value={coach ? coach.footballFocuses.slice(0, 2).join(' · ') : athleteProfile.needs}
+              />
+              <SummaryRow
+                label="Session"
+                value={
+                  selectedDay && selectedSlot
+                    ? `${formatFullDate(selectedDay.date)} · ${formatTime(selectedSlot.start)}`
+                    : 'Choose a day and slot'
+                }
+              />
+              <SummaryRow label="Venue" value="Austin Sports Academy" />
+              <SummaryRow
+                label="Investment"
+                value={coach ? `$${coach.priceRange.minUsd}+ / session` : '$120 / session'}
+              />
+            </View>
+          </View>
+        ) : null}
+
         <Pressable
           accessibilityRole="button"
           style={({ pressed }) => [
             styles.cta,
             {
-              backgroundColor: selectedSlot ? palette.tint : palette.border,
+              backgroundColor: stage === 'confirm' ? palette.tint : palette.surface,
+              borderColor: palette.tint,
               opacity: pressed ? 0.9 : 1,
             },
           ]}
-          disabled={!selectedSlot}>
-          <ThemedText style={styles.ctaLabel} lightColor="#fff" darkColor="#fff">
-            {selectedSlot ? 'Continue to payment' : 'Pick a slot to continue'}
+          disabled={!canContinue() && stage !== 'confirm'}
+          onPress={stage === 'confirm' ? undefined : handleAdvance}>
+          <ThemedText
+            style={[styles.ctaLabel, { color: stage === 'confirm' ? '#fff' : palette.tint }]}
+            lightColor={stage === 'confirm' ? '#fff' : undefined}
+            darkColor={stage === 'confirm' ? '#fff' : undefined}>
+            {ctaLabel}
           </ThemedText>
         </Pressable>
       </SurfaceCard>
@@ -396,10 +396,11 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   column: {
     flex: 1,
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   flowCard: {
     gap: Spacing.md,
+    padding: Spacing.md,
   },
   flowHeader: {
     flexDirection: 'row',
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   flowTitle: {
-    lineHeight: 32,
+    lineHeight: 28,
   },
   flowSubtitle: {
     opacity: 0.8,
@@ -415,37 +416,43 @@ const styles = StyleSheet.create({
   stepper: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   stepItem: {
     flex: 1,
-    minWidth: 140,
-    gap: Spacing.xs,
-  },
-  stepIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.pill,
+    minWidth: 120,
     borderWidth: 1,
+    borderRadius: Radii.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+  },
+  liveBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: Spacing.xs,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderWidth: 1,
   },
-  stepCount: {
+  badgeLabel: {
     fontWeight: '600',
+    fontSize: 12,
+    textTransform: 'uppercase',
   },
-  stepDescription: {
-    opacity: 0.8,
+  contextGroup: {
+    gap: Spacing.sm,
   },
   contextRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   contextCard: {
     flex: 1,
-    minWidth: 180,
-    padding: Spacing.md,
-    borderRadius: Radii.lg,
+    minWidth: 170,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
     borderWidth: 1,
   },
   contextPrimary: {
@@ -455,53 +462,22 @@ const styles = StyleSheet.create({
   contextMeta: {
     opacity: 0.75,
   },
-  callout: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    borderRadius: Radii.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    backgroundColor: 'rgba(251, 146, 60, 0.1)',
-  },
-  calloutCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-  },
-  badgeLabel: {
-    fontWeight: '600',
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
-  schedulerCard: {
-    gap: Spacing.lg,
-  },
-  schedulerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  schedulerSection: {
+    gap: Spacing.sm,
   },
   schedulerSubtitle: {
-    opacity: 0.75,
-    marginTop: 2,
+    opacity: 0.7,
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   calendarDay: {
     flex: 1,
     minWidth: 90,
     borderWidth: 1,
-    borderRadius: Radii.md,
+    borderRadius: Radii.sm,
     padding: Spacing.sm,
     gap: 2,
   },
@@ -516,13 +492,13 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   slotList: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   slotCard: {
     borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    gap: Spacing.xs,
+    borderRadius: Radii.sm,
+    padding: Spacing.sm,
+    gap: 6,
   },
   slotHeader: {
     flexDirection: 'row',
@@ -536,25 +512,27 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   slotTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
+    marginTop: 4,
+    borderWidth: 1,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
   },
   emptySlots: {
     alignItems: 'center',
     gap: Spacing.xs,
-    padding: Spacing.lg,
-    borderRadius: Radii.md,
+    padding: Spacing.md,
+    borderRadius: Radii.sm,
     borderWidth: 1,
   },
   summaryCard: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   summaryIntro: {
     opacity: 0.75,
   },
   summaryGrid: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -566,9 +544,10 @@ const styles = StyleSheet.create({
   },
   cta: {
     marginTop: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.sm,
     alignItems: 'center',
+    borderWidth: 1,
   },
   ctaLabel: {
     fontWeight: '600',

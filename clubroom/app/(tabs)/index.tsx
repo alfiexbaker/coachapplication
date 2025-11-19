@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Pressable,
@@ -32,18 +32,8 @@ export default function DiscoverScreen() {
   const [selectedCoachId, setSelectedCoachId] = useState(coachProfiles[0]?.id);
   const flowPagerRef = useRef<ScrollView | null>(null);
   const selectedCoach = coachProfiles.find((coach) => coach.id === selectedCoachId);
-  const pulse = useRef(new Animated.Value(0)).current;
 
   const nearbyCoaches = useMemo(() => coachProfiles.filter((coach) => coach.distanceMiles <= 12), []);
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1400, useNativeDriver: true }),
-      ]),
-    ).start();
-  }, [pulse]);
 
   const postcodeRegex = /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/;
 
@@ -82,22 +72,11 @@ export default function DiscoverScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <SectionHeader eyebrow="Discover" title="Join → browse → book" subtitle="No filler, just the flow." />
 
-        <SurfaceCard style={[styles.heroCard, { backgroundColor: `${palette.tint}08` }]}>
+        <SurfaceCard style={[styles.heroCard, { backgroundColor: `${palette.tint}06` }]} animateElevation={false}>
           <View style={styles.heroHeader}>
             <View style={styles.heroIconStack}>
-              <Animated.View
-                style={{
-                  position: 'absolute',
-                  width: 82,
-                  height: 82,
-                  borderRadius: 999,
-                  backgroundColor: `${palette.tint}16`,
-                  transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.05] }) }],
-                  opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.75, 0.25] }),
-                }}
-              />
               <View style={[styles.heroAvatar, { backgroundColor: palette.tint }]}>
-                <Ionicons name="sparkles" size={24} color="#fff" />
+                <Ionicons name="sparkles" size={18} color="#fff" />
               </View>
             </View>
             <View style={styles.heroCopy}>
@@ -108,7 +87,7 @@ export default function DiscoverScreen() {
 
           <View style={styles.joinRow}>
             <View style={[styles.inputShell, { borderColor: hasJoined ? palette.tint : palette.border }]}>
-              <Ionicons name="location" size={18} color={palette.icon} />
+              <Ionicons name="location" size={16} color={palette.icon} />
               <TextInput
                 value={postcode}
                 onChangeText={handlePostcodeChange}
@@ -128,7 +107,6 @@ export default function DiscoverScreen() {
                     opacity: pressed ? 0.9 : 1,
                   },
                 ]}>
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
                 <ThemedText style={styles.joinLabel} lightColor="#fff" darkColor="#fff">
                   Join
                 </ThemedText>
@@ -160,28 +138,13 @@ export default function DiscoverScreen() {
                     {
                       width: pagerWidth - Spacing.md,
                       borderColor: isActive ? palette.tint : palette.border,
-                      backgroundColor: isActive ? `${palette.tint}12` : palette.surface,
+                      backgroundColor: isActive ? `${palette.tint}10` : palette.surface,
                       transform: [{ scale: pressed ? 0.98 : 1 }],
                     },
                   ]}
                   onPress={() => handleStageSnap(shot.id, index)}>
-                  <View
-                    style={[
-                      styles.stageIcon,
-                      {
-                        backgroundColor: isActive ? palette.tint : `${palette.tint}15`,
-                      },
-                    ]}>
-                    <Ionicons
-                      name={isActive ? 'checkmark' : shot.icon}
-                      size={16}
-                      color={isActive ? '#fff' : palette.tint}
-                    />
-                  </View>
-                  <View style={styles.stageCopy}>
-                    <ThemedText type="defaultSemiBold">{shot.title}</ThemedText>
-                    <ThemedText style={styles.stageMeta}>{shot.meta}</ThemedText>
-                  </View>
+                  <ThemedText type="defaultSemiBold">{shot.title}</ThemedText>
+                  <ThemedText style={styles.stageMeta}>{shot.meta}</ThemedText>
                 </Pressable>
               );
             })}
@@ -237,26 +200,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing['3xl'],
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   heroCard: {
-    gap: Spacing.lg,
+    gap: Spacing.md,
     overflow: 'hidden',
   },
   heroHeader: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   heroIconStack: {
-    width: 86,
-    height: 86,
+    width: 64,
+    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 999,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -278,25 +241,25 @@ const styles = StyleSheet.create({
   inputShell: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    borderRadius: 10,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   input: {
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   joinButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 12,
+    paddingVertical: Spacing.xs,
+    borderRadius: 8,
   },
   joinLabel: {
     fontWeight: '700',
@@ -306,9 +269,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    borderRadius: 999,
+    borderRadius: 12,
   },
   signalLabel: {
     fontWeight: '600',
@@ -326,22 +289,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 200,
     borderWidth: 1,
-    borderRadius: 14,
-    padding: Spacing.md,
+    borderRadius: 10,
+    padding: Spacing.sm,
     gap: Spacing.xs,
   },
-  stageIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stageCopy: {
-    gap: 4,
-  },
   stageMeta: {
-    opacity: 0.75,
+    opacity: 0.7,
   },
   nearbyHeader: {
     flexDirection: 'row',

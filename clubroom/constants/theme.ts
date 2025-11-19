@@ -57,8 +57,8 @@ export const Spacing = {
 
 export const Radii = {
   sm: 8,
-  md: 12,
-  lg: 20,
+  md: 10,
+  lg: 12,
   pill: 999,
 } as const;
 
@@ -97,19 +97,19 @@ export const Shadows = {
   light: {
     card: {
       shadowColor: '#0F172A',
-      shadowOpacity: 0.06,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 2,
+      shadowOpacity: 0.025,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 1,
     },
   },
   dark: {
     card: {
       shadowColor: '#000000',
-      shadowOpacity: 0.4,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 2,
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 1,
     },
   },
 } as const;
