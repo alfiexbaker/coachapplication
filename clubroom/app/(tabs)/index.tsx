@@ -18,7 +18,7 @@ export default function DiscoverScreen() {
   const palette = Colors[scheme];
   const { width } = useWindowDimensions();
   const isWide = width > 900;
-  const [postcode, setPostcode] = useState('78704');
+  const [postcode, setPostcode] = useState('');
   const [hasJoined, setHasJoined] = useState(false);
   const [stage, setStage] = useState<'join' | 'browse' | 'book'>('join');
   const [selectedCoachId, setSelectedCoachId] = useState(coachProfiles[0]?.id);
@@ -36,19 +36,19 @@ export default function DiscoverScreen() {
     ).start();
   }, [pulse]);
 
-  useEffect(() => {
-    if (hasJoined) {
-      const timer = setTimeout(() => setStage('browse'), 450);
-      return () => clearTimeout(timer);
-    }
-  }, [hasJoined]);
+  const postcodeRegex = /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/;
 
-  useEffect(() => {
-    if (stage === 'browse') {
-      const timer = setTimeout(() => setStage('book'), 650);
-      return () => clearTimeout(timer);
+  const handlePostcodeChange = (value: string) => {
+    const stripped = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    if (!stripped) {
+      setPostcode('');
+      return;
     }
-  }, [stage]);
+
+    const withSpace =
+      stripped.length > 3 ? `${stripped.slice(0, stripped.length - 3)} ${stripped.slice(-3)}` : stripped;
+    setPostcode(withSpace);
+  };
 
   const handleJoin = () => {
     setHasJoined(true);
@@ -60,8 +60,8 @@ export default function DiscoverScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <SectionHeader
           eyebrow="Discover · Clubroom"
-          title="Join → find a coach → lock a slot"
-          subtitle="One flow, zero noise. Parents drop a postcode, preview nearby pros, and book through a cinematic journey."
+          title="Join → browse → book"
+          subtitle="Minimal flow with Shadcn polish. Postcode first, curated list, instant booking preview."
         />
 
         <SurfaceCard style={[styles.heroCard, { backgroundColor: `${palette.tint}08` }]}>
@@ -73,23 +73,18 @@ export default function DiscoverScreen() {
                   width: 82,
                   height: 82,
                   borderRadius: 999,
-                  backgroundColor: `${palette.tint}20`,
-                  transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.08] }) }],
-                  opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.3] }),
+                  backgroundColor: `${palette.tint}18`,
+                  transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.04] }) }],
+                  opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0.25] }),
                 }}
               />
               <View style={[styles.heroAvatar, { backgroundColor: palette.tint }]}>
-                <Ionicons name="sparkles" size={28} color="#fff" />
+                <Ionicons name="sparkles" size={24} color="#fff" />
               </View>
             </View>
             <View style={styles.heroCopy}>
-              <ThemedText type="eyebrow" style={{ color: palette.tint }}>
-                Instant join · postcode first
-              </ThemedText>
-              <ThemedText type="title">The discover journey, Shadcn-polished</ThemedText>
-              <ThemedText style={styles.heroSubtitle}>
-                Drop your postcode to unlock a curated roster. We animate the steps so families feel the path from join → coach → booking.
-              </ThemedText>
+              <ThemedText type="title">Postcode in, coach out</ThemedText>
+              <ThemedText style={styles.heroSubtitle}>Join with an English postcode, see nearby pros, tap to book.</ThemedText>
             </View>
           </View>
 
@@ -98,22 +93,30 @@ export default function DiscoverScreen() {
               <Ionicons name="location" size={18} color={palette.icon} />
               <TextInput
                 value={postcode}
-                onChangeText={setPostcode}
-                placeholder="Postcode"
+                onChangeText={handlePostcodeChange}
+                placeholder="S33 9GF"
                 placeholderTextColor={palette.muted}
                 keyboardType="default"
                 style={styles.input}
               />
               <Pressable
                 accessibilityRole="button"
+                disabled={!postcodeRegex.test(postcode)}
                 onPress={handleJoin}
-                style={({ pressed }) => [styles.joinButton, { backgroundColor: palette.tint, opacity: pressed ? 0.9 : 1 }]}> 
+                style={({ pressed }) => [
+                  styles.joinButton,
+                  {
+                    backgroundColor: postcodeRegex.test(postcode) ? palette.tint : palette.border,
+                    opacity: pressed ? 0.9 : 1,
+                  },
+                ]}>
                 <Ionicons name="arrow-forward" size={16} color="#fff" />
                 <ThemedText style={styles.joinLabel} lightColor="#fff" darkColor="#fff">
-                  Join & find coaches
+                  Join & browse
                 </ThemedText>
               </Pressable>
             </View>
+            <ThemedText style={styles.helper}>English format only (e.g. S33 9GF). Auto-spaces for you.</ThemedText>
             <View style={styles.signalPills}>
               <View style={[styles.signalPill, { backgroundColor: `${palette.tint}15` }]}>
                 <Ionicons name="flash" size={14} color={palette.tint} />
@@ -128,9 +131,9 @@ export default function DiscoverScreen() {
 
           <View style={styles.stagesRow}>
             {[
-              { id: 'join', label: 'Join with postcode', icon: 'locate' as const },
-              { id: 'browse', label: 'Browse nearby coaches', icon: 'map' as const },
-              { id: 'book', label: 'Book & confirm', icon: 'calendar' as const },
+              { id: 'join', label: 'Join with postcode', icon: 'locate' as const, meta: 'Enter and validate instantly.' },
+              { id: 'browse', label: 'Browse nearby coaches', icon: 'map' as const, meta: 'Curated within 12 miles.' },
+              { id: 'book', label: 'Book & lock a slot', icon: 'calendar' as const, meta: 'Preview the confirm screen.' },
             ].map((step) => {
               const isActive = stage === step.id;
               const isComplete = ['browse', 'book'].includes(stage) && step.id === 'join';
@@ -159,11 +162,7 @@ export default function DiscoverScreen() {
                   </View>
                   <View style={styles.stageCopy}>
                     <ThemedText type="defaultSemiBold">{step.label}</ThemedText>
-                    <ThemedText style={styles.stageMeta}>
-                      {step.id === 'join' && 'Parents join with postcode + player lane.'}
-                      {step.id === 'browse' && 'Map + roster tuned to your postcode.'}
-                      {step.id === 'book' && 'Preview the booking flow before payment.'}
-                    </ThemedText>
+                    <ThemedText style={styles.stageMeta}>{step.meta}</ThemedText>
                   </View>
                 </View>
               );
@@ -176,9 +175,7 @@ export default function DiscoverScreen() {
             <SurfaceCard style={styles.nearbyHeader}>
               <View>
                 <ThemedText type="subtitle">Coaches near {postcode || 'you'}</ThemedText>
-                <ThemedText style={styles.heroSubtitle}>
-                  Tap a card to preview the booking loop families will experience.
-                </ThemedText>
+                <ThemedText style={styles.heroSubtitle}>Tap a card to jump into the booking preview.</ThemedText>
               </View>
               <View style={[styles.signalPill, { backgroundColor: `${palette.tint}15` }]}>
                 <Ionicons name="sparkles-outline" size={16} color={palette.tint} />
@@ -254,6 +251,11 @@ const styles = StyleSheet.create({
   },
   joinRow: {
     gap: Spacing.sm,
+  },
+  helper: {
+    opacity: 0.7,
+    fontSize: 13,
+    paddingHorizontal: Spacing.xs,
   },
   inputShell: {
     flexDirection: 'row',
