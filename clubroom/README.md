@@ -13,8 +13,10 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 2. Start the app
 
    ```bash
-   npx expo start
+   npm run dev
    ```
+
+   > You can also run `npx expo start` directly if you prefer.
 
 In the output, you'll find options to open the app in a
 
