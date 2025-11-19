@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SectionHeader } from '@/components/primitives/section-header';
@@ -6,6 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 
 const ACTIONS = [
   {
@@ -28,6 +29,7 @@ const ACTIONS = [
 export default function ProfileScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser, logout } = useAuth();
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -37,6 +39,35 @@ export default function ProfileScreen() {
           title="Profile & settings"
           subtitle="This tab keeps trust signals surfaced while gating not-yet-built flows behind informative placeholders."
         />
+        <SurfaceCard style={styles.identityCard}>
+          <ThemedText type="defaultSemiBold">Signed in as</ThemedText>
+          <ThemedText type="title" style={styles.username}>
+            {currentUser?.username ?? 'Demo user'}
+          </ThemedText>
+          <View
+            style={[
+              styles.rolePill,
+              { backgroundColor: scheme === 'dark' ? 'rgba(94,234,212,0.15)' : 'rgba(13,148,136,0.15)' },
+            ]}>
+            <ThemedText style={styles.rolePillLabel}>{currentUser?.role ?? 'Guest'}</ThemedText>
+          </View>
+          <ThemedText style={styles.identityHelper}>
+            Authentication is intentionally hardcoded so you can preview how the rest of the build feels from
+            different roles before wiring up a backend.
+          </ThemedText>
+          <Pressable
+            style={({ pressed }) => [
+              styles.signOutButton,
+              {
+                backgroundColor: pressed ? palette.tintPressed : palette.tint,
+              },
+            ]}
+            onPress={logout}>
+            <ThemedText style={styles.signOutLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">
+              Sign out
+            </ThemedText>
+          </Pressable>
+        </SurfaceCard>
         {ACTIONS.map((action) => (
           <SurfaceCard key={action.title}>
             <ThemedText type="defaultSemiBold">{action.title}</ThemedText>
@@ -67,6 +98,36 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing['2xl'],
     gap: Spacing.md,
+  },
+  identityCard: {
+    gap: Spacing.sm,
+  },
+  username: {
+    marginTop: -Spacing.xs,
+  },
+  rolePill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: 999,
+  },
+  rolePillLabel: {
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    fontSize: 12,
+  },
+  identityHelper: {
+    opacity: 0.85,
+  },
+  signOutButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderRadius: 999,
+    alignItems: 'center',
+  },
+  signOutLabel: {
+    fontWeight: '600',
   },
   description: {
     marginTop: Spacing.xs,
