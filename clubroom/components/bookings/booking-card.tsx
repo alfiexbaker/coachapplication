@@ -48,7 +48,10 @@ export function BookingCard({ booking }: BookingCardProps) {
 
   return (
     <Swipeable renderRightActions={renderRightActions} friction={2}>
-      <SurfaceCard style={styles.card}>
+      <SurfaceCard
+        style={styles.card}
+        outlineGradient={[statusMeta.color, withAlpha(statusMeta.color, 0.4)]}
+        onPress={() => console.log('Open booking detail', booking.id)}>
         <View style={styles.row}>
           <Ionicons name={statusMeta.icon} size={22} color={statusMeta.color} />
           <View style={styles.meta}>
