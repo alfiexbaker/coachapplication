@@ -27,30 +27,13 @@ export default function DiscoverScreen() {
   const { width } = useWindowDimensions();
   const isWide = width > 900;
   const [postcode, setPostcode] = useState('');
-  const [hasJoined, setHasJoined] = useState(false);
-  const [stage, setStage] = useState<'join' | 'browse' | 'book'>('join');
-  const [selectedCoachId, setSelectedCoachId] = useState(coachProfiles[0]?.id);
-  const flowPagerRef = useRef<ScrollView | null>(null);
-  const selectedCoach = coachProfiles.find((coach) => coach.id === selectedCoachId);
-  const pulse = useRef(new Animated.Value(0)).current;
+  const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
+  const selectedCoach = selectedCoachId ? coachProfiles.find((coach) => coach.id === selectedCoachId) : null;
 
   const nearbyCoaches = useMemo(() => {
     if (!postcode || postcode.length < 3) return [];
     return coachProfiles.filter((coach) => coach.distanceMiles <= 12);
   }, [postcode]);
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 1400, useNativeDriver: true }),
-      ]),
-    ).start();
-  }, [pulse]);
-
-  const postcodeRegex = /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/;
-
-  const pagerWidth = Math.max(320, width - Spacing.lg * 2);
 
   const handlePostcodeChange = (value: string) => {
     const stripped = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -64,21 +47,21 @@ export default function DiscoverScreen() {
     setPostcode(withSpace);
   };
 
-  const handleJoin = () => {
-    setHasJoined(true);
-    setStage('browse');
-  };
-
-  const handleStageSnap = (targetStage: 'join' | 'browse' | 'book', index: number) => {
-    setStage(targetStage);
-    flowPagerRef.current?.scrollTo({ x: index * pagerWidth, animated: true });
-  };
-
-  const flowShots: { id: 'join' | 'browse' | 'book'; title: string; meta: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: 'join', title: 'Join', meta: 'Drop postcode', icon: 'location' },
-    { id: 'browse', title: 'Browse', meta: 'Pick a coach', icon: 'person-circle' },
-    { id: 'book', title: 'Book', meta: 'Lock the slot', icon: 'flash' },
-  ];
+  if (selectedCoach) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+        <View style={styles.detailHeader}>
+          <Pressable onPress={() => setSelectedCoachId(null)} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={palette.text} />
+          </Pressable>
+          <ThemedText type="title">Book session</ThemedText>
+        </View>
+        <ScrollView>
+          <BookingFlowPreview coach={selectedCoach} />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -125,10 +108,7 @@ export default function DiscoverScreen() {
                       key={coach.id}
                       coach={coach}
                       active={coach.id === selectedCoachId}
-                      onPress={() => {
-                        setSelectedCoachId(coach.id);
-                        setStage('book');
-                      }}
+                      onPress={() => setSelectedCoachId(coach.id)}
                     />
                   ))}
                 </>
@@ -140,11 +120,6 @@ export default function DiscoverScreen() {
                 </View>
               )}
             </View>
-            {isWide && selectedCoach ? (
-              <View style={[styles.bookingColumn, styles.bookingColumnWide]}>
-                <BookingFlowPreview coach={selectedCoach} />
-              </View>
-            ) : null}
           </View>
         )}
       </ScrollView>
@@ -223,5 +198,17 @@ const styles = StyleSheet.create({
   emptyText: {
     opacity: 0.5,
     fontSize: 13,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  backButton: {
+    padding: Spacing.xs,
   },
 });
