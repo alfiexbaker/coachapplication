@@ -80,126 +80,29 @@ export default function DiscoverScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <SectionHeader eyebrow="Discover" title="Join → browse → book" subtitle="No filler, just the flow." />
+        <View style={styles.header}>
+          <ThemedText type="title">Find a coach</ThemedText>
+        </View>
 
-        <SurfaceCard style={[styles.heroCard, { backgroundColor: `${palette.tint}08` }]}>
-          <View style={styles.heroHeader}>
-            <View style={styles.heroIconStack}>
-              <Animated.View
-                style={{
-                  position: 'absolute',
-                  width: 82,
-                  height: 82,
-                  borderRadius: 999,
-                  backgroundColor: `${palette.tint}16`,
-                  transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.05] }) }],
-                  opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.75, 0.25] }),
-                }}
-              />
-              <View style={[styles.heroAvatar, { backgroundColor: palette.tint }]}>
-                <Ionicons name="sparkles" size={24} color="#fff" />
-              </View>
-            </View>
-            <View style={styles.heroCopy}>
-              <ThemedText type="title">Postcode → pros → book</ThemedText>
-              <ThemedText style={styles.heroSubtitle}>Straight line from postcode to slot.</ThemedText>
-            </View>
-          </View>
-
-          <View style={styles.joinRow}>
-            <View style={[styles.inputShell, { borderColor: hasJoined ? palette.tint : palette.border }]}>
-              <Ionicons name="location" size={18} color={palette.icon} />
-              <TextInput
-                value={postcode}
-                onChangeText={handlePostcodeChange}
-                placeholder="S33 9GF"
-                placeholderTextColor={palette.muted}
-                keyboardType="default"
-                style={styles.input}
-              />
-              <Pressable
-                accessibilityRole="button"
-                disabled={!postcodeRegex.test(postcode)}
-                onPress={handleJoin}
-                style={({ pressed }) => [
-                  styles.joinButton,
-                  {
-                    backgroundColor: postcodeRegex.test(postcode) ? palette.tint : palette.border,
-                    opacity: pressed ? 0.9 : 1,
-                  },
-                ]}>
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-                <ThemedText style={styles.joinLabel} lightColor="#fff" darkColor="#fff">
-                  Join
-                </ThemedText>
-              </Pressable>
-            </View>
-            <ThemedText style={styles.helper}>UK format only (e.g. S33 9GF). Auto-spaces for you.</ThemedText>
-          </View>
-
-          <Animated.ScrollView
-            ref={flowPagerRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            scrollEventThrottle={16}
-            onMomentumScrollEnd={(event) => {
-              const index = Math.round(event.nativeEvent.contentOffset.x / pagerWidth);
-              const current = flowShots[index]?.id ?? 'join';
-              setStage(current);
-            }}
-            style={[styles.flowPager, { width: pagerWidth }]}
-            contentContainerStyle={styles.flowPagerContent}>
-            {flowShots.map((shot, index) => {
-              const isActive = stage === shot.id;
-              return (
-                <Pressable
-                  key={shot.id}
-                  style={({ pressed }) => [
-                    styles.stageCard,
-                    {
-                      width: pagerWidth - Spacing.md,
-                      borderColor: isActive ? palette.tint : palette.border,
-                      backgroundColor: isActive ? `${palette.tint}12` : palette.surface,
-                      transform: [{ scale: pressed ? 0.98 : 1 }],
-                    },
-                  ]}
-                  onPress={() => handleStageSnap(shot.id, index)}>
-                  <View
-                    style={[
-                      styles.stageIcon,
-                      {
-                        backgroundColor: isActive ? palette.tint : `${palette.tint}15`,
-                      },
-                    ]}>
-                    <Ionicons
-                      name={isActive ? 'checkmark' : shot.icon}
-                      size={16}
-                      color={isActive ? '#fff' : palette.tint}
-                    />
-                  </View>
-                  <View style={styles.stageCopy}>
-                    <ThemedText type="defaultSemiBold">{shot.title}</ThemedText>
-                    <ThemedText style={styles.stageMeta}>{shot.meta}</ThemedText>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </Animated.ScrollView>
-        </SurfaceCard>
+        <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Ionicons name="search" size={18} color={palette.icon} />
+          <TextInput
+            value={postcode}
+            onChangeText={handlePostcodeChange}
+            placeholder="Enter postcode"
+            placeholderTextColor={palette.muted}
+            keyboardType="default"
+            style={[styles.searchInput, { color: palette.text }]}
+          />
+          {postcode ? (
+            <Pressable onPress={() => setPostcode('')}>
+              <Ionicons name="close-circle" size={18} color={palette.icon} />
+            </Pressable>
+          ) : null}
+        </View>
 
         <View style={[styles.split, isWide && styles.splitWide]}>
           <View style={[styles.listColumn, isWide && styles.listColumnWide]}>
-            <SurfaceCard style={styles.nearbyHeader}>
-              <View>
-                <ThemedText type="subtitle">Coaches near {postcode || 'you'}</ThemedText>
-                <ThemedText style={styles.heroSubtitle}>Tap to jump into booking.</ThemedText>
-              </View>
-              <View style={[styles.signalPill, { backgroundColor: `${palette.tint}15` }]}>
-                <Ionicons name="pulse" size={16} color={palette.tint} />
-                <ThemedText style={[styles.signalLabel, { color: palette.tint }]}>Live</ThemedText>
-              </View>
-            </SurfaceCard>
             {nearbyCoaches.map((coach) => (
               <CoachCard
                 key={coach.id}
@@ -211,17 +114,19 @@ export default function DiscoverScreen() {
                 }}
               />
             ))}
-            {!nearbyCoaches.length ? (
+            {!nearbyCoaches.length && postcode ? (
               <View style={styles.emptyState}>
-                <ThemedText type="subtitle">No coaches yet</ThemedText>
-                <ThemedText>As soon as calendars sync, the roster appears here.</ThemedText>
+                <Ionicons name="location-outline" size={48} color={palette.icon} style={styles.emptyIcon} />
+                <ThemedText type="subtitle">No coaches nearby</ThemedText>
+                <ThemedText style={styles.emptyText}>Try a different postcode</ThemedText>
               </View>
             ) : null}
-            <MapPreview coaches={nearbyCoaches} selectedCoachId={selectedCoachId} onCoachFocus={setSelectedCoachId} />
           </View>
-          <View style={[styles.bookingColumn, isWide && styles.bookingColumnWide]}>
-            <BookingFlowPreview coach={selectedCoach} />
-          </View>
+          {isWide && selectedCoach ? (
+            <View style={[styles.bookingColumn, styles.bookingColumnWide]}>
+              <BookingFlowPreview coach={selectedCoach} />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -235,123 +140,31 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
-    gap: Spacing.lg,
-  },
-  heroCard: {
-    gap: Spacing.lg,
-    overflow: 'hidden',
-  },
-  heroHeader: {
-    flexDirection: 'row',
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing['2xl'],
     gap: Spacing.md,
   },
-  heroIconStack: {
-    width: 86,
-    height: 86,
-    alignItems: 'center',
-    justifyContent: 'center',
+  header: {
+    paddingVertical: Spacing.sm,
   },
-  heroAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroCopy: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  heroSubtitle: {
-    opacity: 0.8,
-  },
-  joinRow: {
-    gap: Spacing.sm,
-  },
-  helper: {
-    opacity: 0.7,
-    fontSize: 13,
-    paddingHorizontal: Spacing.xs,
-  },
-  inputShell: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
   },
-  input: {
+  searchInput: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
     paddingVertical: 4,
-  },
-  joinButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 12,
-  },
-  joinLabel: {
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  signalPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: 999,
-  },
-  signalLabel: {
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  flowPager: {
-    overflow: 'visible',
-  },
-  flowPagerContent: {
-    paddingVertical: Spacing.xs,
-    paddingRight: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  stageCard: {
-    flex: 1,
-    minWidth: 200,
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
-  stageIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stageCopy: {
-    gap: 4,
-  },
-  stageMeta: {
-    opacity: 0.75,
-  },
-  nearbyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
   },
   split: {
     flex: 1,
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   splitWide: {
     flexDirection: 'row',
@@ -359,7 +172,7 @@ const styles = StyleSheet.create({
   },
   listColumn: {
     flex: 1,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   listColumnWide: {
     maxWidth: 520,
@@ -373,6 +186,14 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing['2xl'],
+    paddingVertical: Spacing['3xl'],
+  },
+  emptyIcon: {
+    opacity: 0.3,
+    marginBottom: Spacing.sm,
+  },
+  emptyText: {
+    opacity: 0.5,
+    fontSize: 13,
   },
 });
