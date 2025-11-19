@@ -34,7 +34,10 @@ export default function DiscoverScreen() {
   const selectedCoach = coachProfiles.find((coach) => coach.id === selectedCoachId);
   const pulse = useRef(new Animated.Value(0)).current;
 
-  const nearbyCoaches = useMemo(() => coachProfiles.filter((coach) => coach.distanceMiles <= 12), []);
+  const nearbyCoaches = useMemo(() => {
+    if (!postcode || postcode.length < 3) return [];
+    return coachProfiles.filter((coach) => coach.distanceMiles <= 12);
+  }, [postcode]);
 
   useEffect(() => {
     Animated.loop(
@@ -101,33 +104,49 @@ export default function DiscoverScreen() {
           ) : null}
         </View>
 
-        <View style={[styles.split, isWide && styles.splitWide]}>
-          <View style={[styles.listColumn, isWide && styles.listColumnWide]}>
-            {nearbyCoaches.map((coach) => (
-              <CoachCard
-                key={coach.id}
-                coach={coach}
-                active={coach.id === selectedCoachId}
-                onPress={() => {
-                  setSelectedCoachId(coach.id);
-                  setStage('book');
-                }}
-              />
-            ))}
-            {!nearbyCoaches.length && postcode ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="location-outline" size={48} color={palette.icon} style={styles.emptyIcon} />
-                <ThemedText type="subtitle">No coaches nearby</ThemedText>
-                <ThemedText style={styles.emptyText}>Try a different postcode</ThemedText>
+        {!postcode || postcode.length < 3 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="search" size={48} color={palette.icon} style={styles.emptyIcon} />
+            <ThemedText type="subtitle">Search for coaches</ThemedText>
+            <ThemedText style={styles.emptyText}>Enter your postcode to find coaches near you</ThemedText>
+          </View>
+        ) : (
+          <View style={[styles.split, isWide && styles.splitWide]}>
+            <View style={[styles.listColumn, isWide && styles.listColumnWide]}>
+              {nearbyCoaches.length > 0 ? (
+                <>
+                  <View style={styles.resultsHeader}>
+                    <ThemedText style={styles.resultsText}>
+                      {nearbyCoaches.length} {nearbyCoaches.length === 1 ? 'coach' : 'coaches'} near {postcode}
+                    </ThemedText>
+                  </View>
+                  {nearbyCoaches.map((coach) => (
+                    <CoachCard
+                      key={coach.id}
+                      coach={coach}
+                      active={coach.id === selectedCoachId}
+                      onPress={() => {
+                        setSelectedCoachId(coach.id);
+                        setStage('book');
+                      }}
+                    />
+                  ))}
+                </>
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons name="location-outline" size={48} color={palette.icon} style={styles.emptyIcon} />
+                  <ThemedText type="subtitle">No coaches nearby</ThemedText>
+                  <ThemedText style={styles.emptyText}>Try a different postcode</ThemedText>
+                </View>
+              )}
+            </View>
+            {isWide && selectedCoach ? (
+              <View style={[styles.bookingColumn, styles.bookingColumnWide]}>
+                <BookingFlowPreview coach={selectedCoach} />
               </View>
             ) : null}
           </View>
-          {isWide && selectedCoach ? (
-            <View style={[styles.bookingColumn, styles.bookingColumnWide]}>
-              <BookingFlowPreview coach={selectedCoach} />
-            </View>
-          ) : null}
-        </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -182,6 +201,15 @@ const styles = StyleSheet.create({
   },
   bookingColumnWide: {
     maxWidth: 540,
+  },
+  resultsHeader: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+  },
+  resultsText: {
+    fontSize: 13,
+    opacity: 0.6,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',

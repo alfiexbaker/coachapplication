@@ -105,18 +105,46 @@ export const upcomingBookings: BookingSummary[] = [
   },
 ];
 
-export const primaryChatThread: ChatThreadSummary = {
-  id: 'chat-thread-1',
-  bookingId: 'booking-1',
-  coachName: 'Maya Ellis',
-  childName: 'Eli',
-  serviceName: 'Elite Finishing Session',
-  location: 'Austin Sports Academy · Pitch 2',
-  scheduledFor: '2024-03-18T15:30:00Z',
-  unreadCount: 2,
-  safetyCopy: 'Chats unlock once a booking is confirmed. Moderation + read receipts keep families protected.',
-  pinnedObjectives: ['Dribbling', 'Finishing'],
-};
+export const chatThreads: ChatThreadSummary[] = [
+  {
+    id: 'chat-thread-1',
+    bookingId: 'booking-1',
+    coachName: 'Maya Ellis',
+    childName: 'Eli',
+    serviceName: 'Elite Finishing Session',
+    location: 'Austin Sports Academy · Pitch 2',
+    scheduledFor: '2024-03-18T15:30:00Z',
+    unreadCount: 2,
+    safetyCopy: 'Chats unlock once a booking is confirmed. Moderation + read receipts keep families protected.',
+    pinnedObjectives: ['Dribbling', 'Finishing'],
+  },
+  {
+    id: 'chat-thread-2',
+    bookingId: 'booking-2',
+    coachName: 'Jordan Vega',
+    childName: 'Eli',
+    serviceName: 'Passing Masterclass',
+    location: 'Dallas FC Complex',
+    scheduledFor: '2024-03-20T10:00:00Z',
+    unreadCount: 0,
+    safetyCopy: '',
+    pinnedObjectives: ['Passing'],
+  },
+  {
+    id: 'chat-thread-3',
+    bookingId: 'booking-3',
+    coachName: 'Alex Chen',
+    childName: 'Eli',
+    serviceName: 'GK Positioning Clinic',
+    location: 'Elite Sports Park',
+    scheduledFor: '2024-03-22T16:00:00Z',
+    unreadCount: 1,
+    safetyCopy: '',
+    pinnedObjectives: ['Goalkeeping'],
+  },
+];
+
+export const primaryChatThread: ChatThreadSummary = chatThreads[0];
 
 export const chatMessages: ChatMessage[] = [
   {
