@@ -17,7 +17,7 @@ import { MapPreview } from '@/components/discover/map-preview';
 import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
