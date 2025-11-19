@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeInUp, SlideInLeft, SlideInRight } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -40,7 +40,7 @@ function MessageBubbleComponent({ message, isOwnMessage }: MessageBubbleProps) {
 
   return (
     <Animated.View
-      entering={isOwnMessage ? SlideInRight.springify() : SlideInLeft.springify()}
+      entering={FadeInDown.delay(50).duration(400).springify()}
       style={[styles.wrapper, isOwnMessage ? styles.alignRight : styles.alignLeft]}
     >
       <View style={[styles.bubble, { backgroundColor: bubbleColor }]}>

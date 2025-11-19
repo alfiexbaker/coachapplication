@@ -1,16 +1,16 @@
 import { Platform } from 'react-native';
 
-// Premium Uber-inspired palette
+// Premium Uber x Whoop inspired palette
 const brandPrimary = '#000000';
 const brandAccent = '#00D9A3'; // Premium teal/green
 const brandAccentDark = '#00B589';
 
 export const Colors = {
   light: {
-    text: '#000000',
+    text: '#0A0A0A',
     muted: '#6B7280',
-    background: '#FFFFFF',
-    surface: '#F9FAFB',
+    background: '#F8F9FA',
+    surface: '#FFFFFF',
     card: '#FFFFFF',
     border: '#E5E7EB',
     tint: brandPrimary,
@@ -24,13 +24,14 @@ export const Colors = {
     tabIconSelected: brandPrimary,
     overlay: 'rgba(0, 0, 0, 0.5)',
     premium: brandAccent,
+    surfaceSecondary: '#F3F4F6',
   },
   dark: {
     text: '#FFFFFF',
     muted: '#9CA3AF',
-    background: '#000000',
-    surface: '#111111',
-    card: '#1A1A1A',
+    background: '#0A0A0A',
+    surface: '#1A1A1A',
+    card: '#1F1F1F',
     border: '#2A2A2A',
     tint: '#FFFFFF',
     tintPressed: '#E5E7EB',
@@ -43,6 +44,7 @@ export const Colors = {
     tabIconSelected: '#FFFFFF',
     overlay: 'rgba(0, 0, 0, 0.7)',
     premium: brandAccent,
+    surfaceSecondary: '#141414',
   },
 } as const;
 

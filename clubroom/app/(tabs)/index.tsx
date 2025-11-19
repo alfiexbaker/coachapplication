@@ -73,7 +73,7 @@ export default function DiscoverScreen() {
           </ThemedText>
         </View>
 
-        <View style={[styles.searchBar, { backgroundColor: palette.card, borderColor: palette.border }]}>
+        <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <Ionicons name="search" size={20} color={palette.icon} />
           <TextInput
             value={postcode}
@@ -145,30 +145,31 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
     paddingBottom: Spacing['2xl'],
-    gap: Spacing.lg,
+    gap: Spacing.xl,
   },
   header: {
     gap: Spacing.sm,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.8,
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 16,
     lineHeight: 24,
+    fontWeight: '500',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: Radii.lg,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.md + 2,
   },
   searchInput: {
     flex: 1,

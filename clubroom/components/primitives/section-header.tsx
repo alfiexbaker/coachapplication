@@ -25,22 +25,23 @@ export function SectionHeader({ title, subtitle, eyebrow }: SectionHeaderProps) 
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
     gap: Spacing.sm,
   },
   eyebrow: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.8,
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 16,
     lineHeight: 24,
+    fontWeight: '500',
   },
 });

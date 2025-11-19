@@ -194,12 +194,15 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
     paddingBottom: Spacing['2xl'],
+    gap: Spacing.lg,
   },
   detailCopy: {
     marginTop: Spacing.sm,
-    opacity: 0.85,
+    color: '#6B7280',
+    fontSize: 15,
+    lineHeight: 22,
   },
   objectiveRow: {
     flexDirection: 'row',
@@ -215,7 +218,7 @@ const styles = StyleSheet.create({
   },
   manageButtonLabel: {
     ...Typography.sm,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   historyList: {
     marginTop: Spacing.md,

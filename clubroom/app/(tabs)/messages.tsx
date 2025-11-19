@@ -117,18 +117,19 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
     gap: Spacing.sm,
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.8,
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -1,
   },
   headerSubtitle: {
     fontSize: 16,
     lineHeight: 24,
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
@@ -137,20 +138,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.md,
+    paddingVertical: Spacing.lg + 4,
+    gap: Spacing.lg,
     borderBottomWidth: 1,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '800',
   },
   conversationContent: {
     flex: 1,
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   conversationMeta: {
     flexDirection: 'row',
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   chatHeader: {
     flexDirection: 'row',

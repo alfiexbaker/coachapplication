@@ -96,15 +96,17 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
     paddingBottom: Spacing['2xl'],
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
   identityCard: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   username: {
     marginTop: -Spacing.xs,
+    fontSize: 28,
+    fontWeight: '800',
   },
   rolePill: {
     alignSelf: 'flex-start',
@@ -120,16 +122,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   identityHelper: {
-    opacity: 0.85,
+    color: '#6B7280',
+    fontSize: 15,
+    lineHeight: 22,
   },
   signOutButton: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.md,
     borderRadius: 999,
     alignItems: 'center',
   },
   signOutLabel: {
-    fontWeight: '700',
+    fontWeight: '800',
     fontSize: 15,
   },
   actionTitle: {
@@ -150,7 +154,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   ctaLabel: {
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 13,
   },
 });

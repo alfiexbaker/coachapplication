@@ -131,23 +131,25 @@ function InfoRow({ icon, label, color }: InfoRowProps) {
 
 const styles = StyleSheet.create({
   pressable: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   card: {
-    padding: Spacing.lg,
+    padding: Spacing.lg + 4,
   },
   row: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
   meta: {
     flex: 1,
-    gap: Spacing.sm,
+    gap: Spacing.sm + 2,
+    justifyContent: 'center',
   },
   coachName: {
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.3,
+    marginBottom: 2,
   },
   infoRow: {
     flexDirection: 'row',
@@ -159,40 +161,41 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   dot: {
-    width: 2,
-    height: 2,
+    width: 3,
+    height: 3,
     borderRadius: 999,
     backgroundColor: '#9CA3AF',
-    marginHorizontal: 2,
+    marginHorizontal: 4,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: Radii.md,
+    width: 72,
+    height: 72,
+    borderRadius: Radii.lg,
   },
   priceColumn: {
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
   price: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '800',
   },
   priceLabel: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 2,
   },
   tagRow: {
     gap: Spacing.sm,
+    marginTop: 2,
   },
   tag: {
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: Radii.sm,
+    paddingVertical: Spacing.xs + 3,
+    borderRadius: Radii.md,
   },
   tagText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
