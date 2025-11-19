@@ -1,5 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -22,6 +30,7 @@ export default function DiscoverScreen() {
   const [hasJoined, setHasJoined] = useState(false);
   const [stage, setStage] = useState<'join' | 'browse' | 'book'>('join');
   const [selectedCoachId, setSelectedCoachId] = useState(coachProfiles[0]?.id);
+  const flowPagerRef = useRef<ScrollView | null>(null);
   const selectedCoach = coachProfiles.find((coach) => coach.id === selectedCoachId);
   const pulse = useRef(new Animated.Value(0)).current;
 
@@ -37,6 +46,8 @@ export default function DiscoverScreen() {
   }, [pulse]);
 
   const postcodeRegex = /^[A-Z]{1,2}\d[A-Z\d]? \d[A-Z]{2}$/;
+
+  const pagerWidth = Math.max(320, width - Spacing.lg * 2);
 
   const handlePostcodeChange = (value: string) => {
     const stripped = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -55,14 +66,21 @@ export default function DiscoverScreen() {
     setStage('browse');
   };
 
+  const handleStageSnap = (targetStage: 'join' | 'browse' | 'book', index: number) => {
+    setStage(targetStage);
+    flowPagerRef.current?.scrollTo({ x: index * pagerWidth, animated: true });
+  };
+
+  const flowShots: { id: 'join' | 'browse' | 'book'; title: string; meta: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { id: 'join', title: 'Join', meta: 'Drop postcode', icon: 'location' },
+    { id: 'browse', title: 'Browse', meta: 'Pick a coach', icon: 'person-circle' },
+    { id: 'book', title: 'Book', meta: 'Lock the slot', icon: 'flash' },
+  ];
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <SectionHeader
-          eyebrow="Discover · Clubroom"
-          title="Join → browse → book"
-          subtitle="Minimal flow with Shadcn polish. Postcode first, curated list, instant booking preview."
-        />
+        <SectionHeader eyebrow="Discover" title="Join → browse → book" subtitle="No filler, just the flow." />
 
         <SurfaceCard style={[styles.heroCard, { backgroundColor: `${palette.tint}08` }]}>
           <View style={styles.heroHeader}>
@@ -73,9 +91,9 @@ export default function DiscoverScreen() {
                   width: 82,
                   height: 82,
                   borderRadius: 999,
-                  backgroundColor: `${palette.tint}18`,
-                  transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.04] }) }],
-                  opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 0.25] }),
+                  backgroundColor: `${palette.tint}16`,
+                  transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.05] }) }],
+                  opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.75, 0.25] }),
                 }}
               />
               <View style={[styles.heroAvatar, { backgroundColor: palette.tint }]}>
@@ -83,8 +101,8 @@ export default function DiscoverScreen() {
               </View>
             </View>
             <View style={styles.heroCopy}>
-              <ThemedText type="title">Postcode in, coach out</ThemedText>
-              <ThemedText style={styles.heroSubtitle}>Join with an English postcode, see nearby pros, tap to book.</ThemedText>
+              <ThemedText type="title">Postcode → pros → book</ThemedText>
+              <ThemedText style={styles.heroSubtitle}>Straight line from postcode to slot.</ThemedText>
             </View>
           </View>
 
@@ -112,41 +130,41 @@ export default function DiscoverScreen() {
                 ]}>
                 <Ionicons name="arrow-forward" size={16} color="#fff" />
                 <ThemedText style={styles.joinLabel} lightColor="#fff" darkColor="#fff">
-                  Join & browse
+                  Join
                 </ThemedText>
               </Pressable>
             </View>
-            <ThemedText style={styles.helper}>English format only (e.g. S33 9GF). Auto-spaces for you.</ThemedText>
-            <View style={styles.signalPills}>
-              <View style={[styles.signalPill, { backgroundColor: `${palette.tint}15` }]}>
-                <Ionicons name="flash" size={14} color={palette.tint} />
-                <ThemedText style={styles.signalLabel}>Live availability</ThemedText>
-              </View>
-              <View style={[styles.signalPill, { backgroundColor: `${palette.secondary}15` }]}>
-                <Ionicons name="shield-checkmark" size={14} color={palette.secondary} />
-                <ThemedText style={[styles.signalLabel, { color: palette.secondary }]}>Background checked</ThemedText>
-              </View>
-            </View>
+            <ThemedText style={styles.helper}>UK format only (e.g. S33 9GF). Auto-spaces for you.</ThemedText>
           </View>
 
-          <View style={styles.stagesRow}>
-            {[
-              { id: 'join', label: 'Join with postcode', icon: 'locate' as const, meta: 'Enter and validate instantly.' },
-              { id: 'browse', label: 'Browse nearby coaches', icon: 'map' as const, meta: 'Curated within 12 miles.' },
-              { id: 'book', label: 'Book & lock a slot', icon: 'calendar' as const, meta: 'Preview the confirm screen.' },
-            ].map((step) => {
-              const isActive = stage === step.id;
-              const isComplete = ['browse', 'book'].includes(stage) && step.id === 'join';
+          <Animated.ScrollView
+            ref={flowPagerRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onMomentumScrollEnd={(event) => {
+              const index = Math.round(event.nativeEvent.contentOffset.x / pagerWidth);
+              const current = flowShots[index]?.id ?? 'join';
+              setStage(current);
+            }}
+            style={[styles.flowPager, { width: pagerWidth }]}
+            contentContainerStyle={styles.flowPagerContent}>
+            {flowShots.map((shot, index) => {
+              const isActive = stage === shot.id;
               return (
-                <View
-                  key={step.id}
-                  style={[
+                <Pressable
+                  key={shot.id}
+                  style={({ pressed }) => [
                     styles.stageCard,
                     {
-                      borderColor: isActive || isComplete ? palette.tint : palette.border,
+                      width: pagerWidth - Spacing.md,
+                      borderColor: isActive ? palette.tint : palette.border,
                       backgroundColor: isActive ? `${palette.tint}12` : palette.surface,
+                      transform: [{ scale: pressed ? 0.98 : 1 }],
                     },
-                  ]}>
+                  ]}
+                  onPress={() => handleStageSnap(shot.id, index)}>
                   <View
                     style={[
                       styles.stageIcon,
@@ -155,19 +173,19 @@ export default function DiscoverScreen() {
                       },
                     ]}>
                     <Ionicons
-                      name={isComplete ? 'checkmark' : step.icon}
+                      name={isActive ? 'checkmark' : shot.icon}
                       size={16}
-                      color={isActive || isComplete ? '#fff' : palette.tint}
+                      color={isActive ? '#fff' : palette.tint}
                     />
                   </View>
                   <View style={styles.stageCopy}>
-                    <ThemedText type="defaultSemiBold">{step.label}</ThemedText>
-                    <ThemedText style={styles.stageMeta}>{step.meta}</ThemedText>
+                    <ThemedText type="defaultSemiBold">{shot.title}</ThemedText>
+                    <ThemedText style={styles.stageMeta}>{shot.meta}</ThemedText>
                   </View>
-                </View>
+                </Pressable>
               );
             })}
-          </View>
+          </Animated.ScrollView>
         </SurfaceCard>
 
         <View style={[styles.split, isWide && styles.splitWide]}>
@@ -175,11 +193,11 @@ export default function DiscoverScreen() {
             <SurfaceCard style={styles.nearbyHeader}>
               <View>
                 <ThemedText type="subtitle">Coaches near {postcode || 'you'}</ThemedText>
-                <ThemedText style={styles.heroSubtitle}>Tap a card to jump into the booking preview.</ThemedText>
+                <ThemedText style={styles.heroSubtitle}>Tap to jump into booking.</ThemedText>
               </View>
               <View style={[styles.signalPill, { backgroundColor: `${palette.tint}15` }]}>
-                <Ionicons name="sparkles-outline" size={16} color={palette.tint} />
-                <ThemedText style={[styles.signalLabel, { color: palette.tint }]}>Curated</ThemedText>
+                <Ionicons name="pulse" size={16} color={palette.tint} />
+                <ThemedText style={[styles.signalLabel, { color: palette.tint }]}>Live</ThemedText>
               </View>
             </SurfaceCard>
             {nearbyCoaches.map((coach) => (
@@ -284,11 +302,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.2,
   },
-  signalPills: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    flexWrap: 'wrap',
-  },
   signalPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -301,9 +314,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 12,
   },
-  stagesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  flowPager: {
+    overflow: 'visible',
+  },
+  flowPagerContent: {
+    paddingVertical: Spacing.xs,
+    paddingRight: Spacing.sm,
     gap: Spacing.sm,
   },
   stageCard: {
