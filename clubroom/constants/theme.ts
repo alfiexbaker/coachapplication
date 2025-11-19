@@ -102,6 +102,20 @@ export const Shadows = {
       shadowOffset: { width: 0, height: 8 },
       elevation: 2,
     },
+    elevated: {
+      shadowColor: '#0F172A',
+      shadowOpacity: 0.12,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 12 },
+      elevation: 4,
+    },
+    hero: {
+      shadowColor: '#0F172A',
+      shadowOpacity: 0.2,
+      shadowRadius: 32,
+      shadowOffset: { width: 0, height: 16 },
+      elevation: 8,
+    },
   },
   dark: {
     card: {
@@ -111,5 +125,35 @@ export const Shadows = {
       shadowOffset: { width: 0, height: 8 },
       elevation: 2,
     },
+    elevated: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.6,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 12 },
+      elevation: 4,
+    },
+    hero: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.8,
+      shadowRadius: 32,
+      shadowOffset: { width: 0, height: 16 },
+      elevation: 8,
+    },
+  },
+} as const;
+
+// Gradient definitions for hero images and overlays
+export const Gradients = {
+  hero: {
+    // Warm diffusion overlay (12% gradient) for Discover hero
+    warmOverlay: ['rgba(249, 115, 22, 0.12)', 'rgba(29, 78, 216, 0.08)'],
+    // Dark bottom gradient for text readability on images
+    darkBottom: ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.7)'],
+    // Premium shimmer for loading states
+    shimmer: ['rgba(255, 255, 255, 0.0)', 'rgba(255, 255, 255, 0.3)', 'rgba(255, 255, 255, 0.0)'],
+  },
+  card: {
+    // Subtle gradient for premium cards
+    subtle: ['rgba(29, 78, 216, 0.03)', 'rgba(249, 115, 22, 0.03)'],
   },
 } as const;

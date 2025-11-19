@@ -16,10 +16,15 @@ import { BookingFlowPreview } from '@/components/discover/booking-flow';
 import { MapPreview } from '@/components/discover/map-preview';
 import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { FootballObjective, TrainingFormat } from '@/constants/types';
+
+const FOOTBALL_OBJECTIVES: FootballObjective[] = ['Dribbling', 'Passing', 'Defending', 'Finishing', 'Goalkeeping', 'Conditioning'];
+const TRAINING_FORMATS: TrainingFormat[] = ['In-person', 'Virtual', 'Small group'];
 
 export default function DiscoverScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -28,12 +33,40 @@ export default function DiscoverScreen() {
   const isWide = width > 900;
   const [postcode, setPostcode] = useState('');
   const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
+  const [selectedObjectives, setSelectedObjectives] = useState<FootballObjective[]>([]);
+  const [selectedFormats, setSelectedFormats] = useState<TrainingFormat[]>([]);
   const selectedCoach = selectedCoachId ? coachProfiles.find((coach) => coach.id === selectedCoachId) : null;
+
+  const toggleObjective = (objective: FootballObjective) => {
+    setSelectedObjectives((prev) =>
+      prev.includes(objective) ? prev.filter((o) => o !== objective) : [...prev, objective]
+    );
+  };
+
+  const toggleFormat = (format: TrainingFormat) => {
+    setSelectedFormats((prev) =>
+      prev.includes(format) ? prev.filter((f) => f !== format) : [...prev, format]
+    );
+  };
 
   const nearbyCoaches = useMemo(() => {
     if (!postcode || postcode.length < 3) return [];
-    return coachProfiles.filter((coach) => coach.distanceMiles <= 12);
-  }, [postcode]);
+    let filtered = coachProfiles.filter((coach) => coach.distanceMiles <= 12);
+
+    if (selectedObjectives.length > 0) {
+      filtered = filtered.filter((coach) =>
+        selectedObjectives.some((obj) => coach.footballFocuses.includes(obj))
+      );
+    }
+
+    if (selectedFormats.length > 0) {
+      filtered = filtered.filter((coach) =>
+        selectedFormats.some((fmt) => coach.sessionFormats.includes(fmt))
+      );
+    }
+
+    return filtered;
+  }, [postcode, selectedObjectives, selectedFormats]);
 
   const handlePostcodeChange = (value: string) => {
     const stripped = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -87,6 +120,40 @@ export default function DiscoverScreen() {
           ) : null}
         </View>
 
+        {/* Filter Chips Section */}
+        {postcode && postcode.length >= 3 && (
+          <View style={styles.filtersSection}>
+            <View style={styles.filterGroup}>
+              <ThemedText style={styles.filterLabel}>Focus areas</ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                {FOOTBALL_OBJECTIVES.map((objective) => (
+                  <Chip
+                    key={objective}
+                    active={selectedObjectives.includes(objective)}
+                    onPress={() => toggleObjective(objective)}
+                  >
+                    {objective}
+                  </Chip>
+                ))}
+              </ScrollView>
+            </View>
+            <View style={styles.filterGroup}>
+              <ThemedText style={styles.filterLabel}>Format</ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+                {TRAINING_FORMATS.map((format) => (
+                  <Chip
+                    key={format}
+                    active={selectedFormats.includes(format)}
+                    onPress={() => toggleFormat(format)}
+                  >
+                    {format}
+                  </Chip>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        )}
+
         {!postcode || postcode.length < 3 ? (
           <View style={styles.emptyState}>
             <Ionicons name="search" size={48} color={palette.icon} style={styles.emptyIcon} />
@@ -116,10 +183,19 @@ export default function DiscoverScreen() {
                 <View style={styles.emptyState}>
                   <Ionicons name="location-outline" size={48} color={palette.icon} style={styles.emptyIcon} />
                   <ThemedText type="subtitle">No coaches nearby</ThemedText>
-                  <ThemedText style={styles.emptyText}>Try a different postcode</ThemedText>
+                  <ThemedText style={styles.emptyText}>Try adjusting your filters or postcode</ThemedText>
                 </View>
               )}
             </View>
+            {isWide && nearbyCoaches.length > 0 && (
+              <View style={styles.mapColumn}>
+                <MapPreview
+                  coaches={nearbyCoaches}
+                  selectedCoachId={selectedCoachId || undefined}
+                  onCoachFocus={setSelectedCoachId}
+                />
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
@@ -156,6 +232,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     paddingVertical: 4,
   },
+  filtersSection: {
+    gap: Spacing.md,
+  },
+  filterGroup: {
+    gap: Spacing.sm,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    opacity: 0.7,
+    paddingHorizontal: Spacing.xs,
+  },
+  chipRow: {
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+  },
   split: {
     flex: 1,
     gap: Spacing.md,
@@ -163,6 +255,7 @@ const styles = StyleSheet.create({
   splitWide: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    gap: Spacing.lg,
   },
   listColumn: {
     flex: 1,
@@ -170,6 +263,10 @@ const styles = StyleSheet.create({
   },
   listColumnWide: {
     maxWidth: 520,
+  },
+  mapColumn: {
+    flex: 1,
+    maxWidth: 480,
   },
   bookingColumn: {
     flex: 1,

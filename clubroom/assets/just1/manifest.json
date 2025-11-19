@@ -1,0 +1,94 @@
+{
+  "$schema": "./manifest-schema.json",
+  "version": "1.0.0",
+  "assets": {
+    "photos": {
+      "hero_pitch": {
+        "slug": "hero_pitch",
+        "path": "photos/hero_pitch.jpg",
+        "usage": ["discover-hero", "onboarding"],
+        "altText": "Elite football training session on professional pitch",
+        "credits": "Just1 Elite Football Pack",
+        "aspectRatio": "16:9"
+      }
+    },
+    "illustrations": {
+      "empty_state_search": {
+        "slug": "empty_state_search",
+        "path": "illustrations/empty_state_search.svg",
+        "usage": ["discover-empty", "search-empty"],
+        "altText": "Illustration of magnifying glass with motion stripes",
+        "credits": "Just1 Motion Stripe Set",
+        "tintToken": "color.muted"
+      },
+      "safeguarding_banner": {
+        "slug": "safeguarding_banner",
+        "path": "illustrations/safeguarding_banner.svg",
+        "usage": ["messaging-header", "booking-confirmation"],
+        "altText": "Shield with checkmark representing safety and verification",
+        "credits": "Just1 Motion Stripe Set",
+        "tintToken": "color.success"
+      }
+    },
+    "icons": {
+      "badge_verified": {
+        "slug": "badge_verified",
+        "path": "icons/badge_verified.svg",
+        "usage": ["coach-card", "coach-profile"],
+        "altText": "Verified coach badge",
+        "credits": "Just1 Linear Sport Set",
+        "size": "font.sm"
+      },
+      "location_pin": {
+        "slug": "location_pin",
+        "path": "icons/location_pin.svg",
+        "usage": ["map-preview", "coach-card"],
+        "altText": "Location pin icon",
+        "credits": "Just1 Linear Sport Set",
+        "size": "font.sm"
+      }
+    },
+    "animations": {
+      "hero_pitch": {
+        "slug": "hero_pitch",
+        "path": "animations/hero_pitch.json",
+        "usage": ["app-launch", "discover-refresh"],
+        "trigger": "App launch + pull-to-refresh",
+        "duration": 600,
+        "easing": "ease-out",
+        "haptic": "Light",
+        "voiceoverAnnouncement": "Loading coaches"
+      },
+      "pin_pulse": {
+        "slug": "pin_pulse",
+        "path": "animations/pin_pulse.json",
+        "usage": ["map-pin-activation"],
+        "trigger": "List item focus",
+        "duration": 400,
+        "easing": "ease-in-out",
+        "haptic": "Selection",
+        "voiceoverAnnouncement": null
+      },
+      "check_mint": {
+        "slug": "check_mint",
+        "path": "animations/check_mint.json",
+        "usage": ["booking-success"],
+        "trigger": "Booking confirmed",
+        "duration": 750,
+        "easing": "ease-out",
+        "haptic": "Success",
+        "voiceoverAnnouncement": "Booking confirmed"
+      },
+      "message_whoosh": {
+        "slug": "message_whoosh",
+        "path": "animations/message_whoosh.json",
+        "usage": ["chat-send"],
+        "trigger": "Message send",
+        "duration": 320,
+        "easing": "ease-out",
+        "haptic": "Light",
+        "voiceoverAnnouncement": "Message sent"
+      }
+    }
+  }
+}
