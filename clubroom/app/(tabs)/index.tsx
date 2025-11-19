@@ -1,98 +1,160 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { FlatList, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { CoachCard } from '@/components/discover/coach-card';
+import { FilterTray } from '@/components/discover/filter-tray';
+import { MapPreview } from '@/components/discover/map-preview';
+import { SectionHeader } from '@/components/primitives/section-header';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Colors, Spacing } from '@/constants/theme';
+import { coachProfiles } from '@/constants/mock-data';
+import { SportCategory, TrainingFormat } from '@/constants/types';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export default function HomeScreen() {
+const SPORT_OPTIONS: SportCategory[] = ['Soccer', 'Basketball', 'Football'];
+const FORMAT_OPTIONS: TrainingFormat[] = ['In-person', 'Virtual', 'Small group'];
+
+export default function DiscoverScreen() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const { width } = useWindowDimensions();
+  const isWide = width > 900;
+  const [selectedCoachId, setSelectedCoachId] = useState(coachProfiles[0]?.id);
+  const [sports, setSports] = useState<SportCategory[]>(['Soccer']);
+  const [formats, setFormats] = useState<TrainingFormat[]>([]);
+
+  const filteredCoaches = useMemo(() => {
+    return coachProfiles.filter((coach) => {
+      const sportMatch = sports.length ? sports.includes(coach.primarySport) : true;
+      const formatMatch = formats.length
+        ? coach.sessionFormats.some((format) => formats.includes(format))
+        : true;
+      return sportMatch && formatMatch;
+    });
+  }, [sports, formats]);
+
+  useEffect(() => {
+    if (filteredCoaches.length && !filteredCoaches.find((coach) => coach.id === selectedCoachId)) {
+      setSelectedCoachId(filteredCoaches[0].id);
+    }
+  }, [filteredCoaches, selectedCoachId]);
+
+  const filterGroups = useMemo(() => {
+    return [
+      {
+        id: 'sport',
+        label: 'Sports',
+        chips: SPORT_OPTIONS.map((sport) => ({
+          id: sport,
+          label: sport,
+          active: sports.includes(sport),
+          onPress: () =>
+            setSports((prev) =>
+              prev.includes(sport) ? prev.filter((value) => value !== sport) : [...prev, sport]
+            ),
+        })),
+      },
+      {
+        id: 'formats',
+        label: 'Training format',
+        chips: FORMAT_OPTIONS.map((format) => ({
+          id: format,
+          label: format,
+          active: formats.includes(format),
+          onPress: () =>
+            setFormats((prev) =>
+              prev.includes(format) ? prev.filter((value) => value !== format) : [...prev, format]
+            ),
+        })),
+      },
+    ];
+  }, [sports, formats]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <View style={styles.container}>
+        <SectionHeader
+          eyebrow="Sprint 1 · Discovery"
+          title="Coach discovery"
+          subtitle="Dual-pane search pairs a dense list with a responsive map so parents can evaluate context fast."
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
+        <FilterTray
+          groups={filterGroups}
+          onClear={() => {
+            setSports([]);
+            setFormats([]);
+          }}
+        />
+        <View style={[styles.split, isWide && styles.splitWide]}>
+          <View style={[styles.listColumn, isWide && styles.listColumnWide]}>
+            <FlatList
+              data={filteredCoaches}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <CoachCard
+                  coach={item}
+                  active={item.id === selectedCoachId}
+                  onPress={() => setSelectedCoachId(item.id)}
+                />
+              )}
+              contentContainerStyle={styles.listContent}
+              ListEmptyComponent={() => (
+                <View style={styles.emptyState}>
+                  <ThemedText type="subtitle">No coaches match these filters</ThemedText>
+                  <ThemedText>Try clearing filters or expanding the radius.</ThemedText>
+                </View>
+              )}
             />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+          </View>
+          <View style={[styles.mapColumn, isWide && styles.mapColumnWide]}>
+            <MapPreview
+              coaches={filteredCoaches.length ? filteredCoaches : coachProfiles}
+              selectedCoachId={selectedCoachId}
+              onCoachFocus={setSelectedCoachId}
+            />
+          </View>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safeArea: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+  split: {
+    flex: 1,
+  },
+  splitWide: {
     flexDirection: 'row',
+    gap: Spacing.lg,
+  },
+  listColumn: {
+    flex: 1,
+  },
+  listColumnWide: {
+    maxWidth: 540,
+  },
+  listContent: {
+    paddingBottom: Spacing['3xl'],
+  },
+  mapColumn: {
+    flex: 1,
+    marginTop: Spacing.lg,
+  },
+  mapColumnWide: {
+    marginTop: 0,
+  },
+  emptyState: {
     alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+    gap: Spacing.sm,
+    paddingVertical: Spacing['2xl'],
   },
 });
