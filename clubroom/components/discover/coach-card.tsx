@@ -1,8 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { CoachProfile } from '@/constants/types';
@@ -10,8 +8,6 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { formatDistance, formatNextAvailability, formatPriceRange } from '@/utils/format';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface CoachCardProps {
   coach: CoachProfile;
@@ -25,39 +21,20 @@ type IoniconName = keyof typeof Ionicons.glyphMap;
 export function CoachCard({ coach, active, onPress }: CoachCardProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const scale = useSharedValue(1);
-
-  const animatedCardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.97, { damping: 15, stiffness: 220 });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 220 });
-  };
 
   const handlePress = () => {
     onPress?.();
   };
 
   return (
-    <AnimatedPressable
+    <SurfaceCard
       accessibilityHint="Focus coach on map"
       onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      style={[styles.pressable, animatedCardStyle]}>
-      <SurfaceCard
-        style={[
-          styles.card,
-          active && {
-            borderColor: palette.tint,
-          },
-        ]}>
+      outlineGradient={
+        active ? [palette.tint, palette.secondary] : undefined
+      }
+      style={[styles.card, styles.pressable]}
+      gradientPadding={active ? 3 : 2}>
         <View style={styles.row}>
           <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} contentFit="cover" />
           <View style={styles.meta}>
@@ -134,8 +111,7 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
             </View>
           ))}
         </ScrollView>
-      </SurfaceCard>
-    </AnimatedPressable>
+    </SurfaceCard>
   );
 }
 

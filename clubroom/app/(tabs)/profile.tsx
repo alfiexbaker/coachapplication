@@ -69,7 +69,11 @@ export default function ProfileScreen() {
           </Pressable>
         </SurfaceCard>
         {ACTIONS.map((action) => (
-          <SurfaceCard key={action.title}>
+          <SurfaceCard
+            key={action.title}
+            onPress={() => console.log('Navigate to', action.title)}
+            outlineGradient={[palette.tint, palette.secondary]}
+            gradientPadding={2}>
             <ThemedText type="defaultSemiBold">{action.title}</ThemedText>
             <ThemedText style={styles.description}>{action.description}</ThemedText>
             <View
