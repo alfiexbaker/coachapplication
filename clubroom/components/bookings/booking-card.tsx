@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -14,23 +15,93 @@ interface BookingCardProps {
 export function BookingCard({ booking }: BookingCardProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const statusMeta = getStatusMeta(booking.status, palette);
+  const startDate = new Date(booking.start);
+  const dateLabel = startDate.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+  const timeLabel = startDate.toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+  const renderRightActions = () => (
+    <View style={styles.actionsContainer}>
+      <Pressable
+        accessibilityLabel="Reschedule booking"
+        onPress={() => console.log('Reschedule booking', booking.id)}
+        style={[styles.actionButton, { backgroundColor: palette.tint }]}>
+        <Ionicons name="refresh" size={18} color={Colors.light.background} />
+        <ThemedText style={styles.actionLabel}>Reschedule</ThemedText>
+      </Pressable>
+      <Pressable
+        accessibilityLabel="Cancel booking"
+        onPress={() => console.log('Cancel booking', booking.id)}
+        style={[styles.actionButton, { backgroundColor: palette.error }]}>
+        <Ionicons name="close" size={18} color={Colors.light.background} />
+        <ThemedText style={styles.actionLabel}>Cancel</ThemedText>
+      </Pressable>
+    </View>
+  );
 
   return (
-    <SurfaceCard style={styles.card}>
-      <View style={styles.row}>
-        <Ionicons name="calendar" size={22} color={palette.tint} />
-        <View style={styles.meta}>
-          <ThemedText type="defaultSemiBold">{booking.service}</ThemedText>
-          <ThemedText style={styles.subtitle}>with {booking.coachName}</ThemedText>
+    <Swipeable renderRightActions={renderRightActions} friction={2}>
+      <SurfaceCard style={styles.card}>
+        <View style={styles.row}>
+          <Ionicons name={statusMeta.icon} size={22} color={statusMeta.color} />
+          <View style={styles.meta}>
+            <ThemedText type="defaultSemiBold">{booking.service}</ThemedText>
+            <ThemedText style={styles.subtitle}>with {booking.coachName}</ThemedText>
+          </View>
+          <View
+            style={[
+              styles.statusPill,
+              {
+                backgroundColor: withAlpha(statusMeta.color, 0.12),
+              },
+            ]}>
+            <ThemedText
+              style={[Typography.sm, styles.statusLabel, { color: statusMeta.color }]}>
+              {booking.status}
+            </ThemedText>
+          </View>
         </View>
-        <View style={[styles.statusPill, { backgroundColor: `${palette.tint}12` }]}>
-          <ThemedText style={[Typography.sm, styles.statusLabel]}>{booking.status}</ThemedText>
+        <View>
+          <ThemedText style={[Typography.xl, styles.dateText]}>{dateLabel}</ThemedText>
+          <ThemedText style={[Typography.lg, styles.timeText]}>{timeLabel}</ThemedText>
         </View>
-      </View>
-      <ThemedText style={styles.detail}>{new Date(booking.start).toLocaleString()}</ThemedText>
-      <ThemedText style={styles.detail}>{booking.locationLabel}</ThemedText>
-    </SurfaceCard>
+        <View style={styles.locationRow}>
+          <Ionicons name="location-outline" size={16} color={palette.icon} />
+          <ThemedText style={styles.locationText}>{booking.locationLabel}</ThemedText>
+        </View>
+      </SurfaceCard>
+    </Swipeable>
   );
+}
+
+function getStatusMeta(status: BookingSummary['status'], palette: (typeof Colors)['light']) {
+  switch (status) {
+    case 'Pending':
+      return { icon: 'alert-circle-outline', color: palette.warning } as const;
+    case 'Completed':
+      return { icon: 'checkmark-circle-outline', color: palette.success } as const;
+    case 'Cancelled':
+      return { icon: 'close-circle-outline', color: palette.error } as const;
+    case 'Confirmed':
+    default:
+      return { icon: 'time-outline', color: palette.tint } as const;
+  }
+}
+
+function withAlpha(hexColor: string, alpha: number) {
+  const hex = hexColor.replace('#', '');
+  const bigint = parseInt(hex, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 const styles = StyleSheet.create({
@@ -49,15 +120,42 @@ const styles = StyleSheet.create({
   subtitle: {
     opacity: 0.7,
   },
-  detail: {
-    opacity: 0.8,
-  },
   statusPill: {
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
   statusLabel: {
+    fontWeight: '600',
+  },
+  dateText: {
+    fontWeight: '600',
+  },
+  timeText: {
+    opacity: 0.8,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  locationText: {
+    opacity: 0.85,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  actionButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  actionLabel: {
+    ...Typography.sm,
+    color: Colors.light.background,
     fontWeight: '600',
   },
 });
