@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: Radii.lg,
     padding: Spacing.lg,
-    borderWidth: 1,
+    borderWidth: 0.75,
     overflow: 'hidden',
   },
   shimmerOverlay: {

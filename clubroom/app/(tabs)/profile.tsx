@@ -35,9 +35,8 @@ export default function ProfileScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <SectionHeader
-          eyebrow="Sprint 1 · Trust"
-          title="Profile & settings"
-          subtitle="This tab keeps trust signals surfaced while gating not-yet-built flows behind informative placeholders."
+          title="Profile & Settings"
+          subtitle="Manage your account and preferences"
         />
         <SurfaceCard style={styles.identityCard}>
           <ThemedText type="defaultSemiBold">Signed in as</ThemedText>
@@ -47,9 +46,9 @@ export default function ProfileScreen() {
           <View
             style={[
               styles.rolePill,
-              { backgroundColor: scheme === 'dark' ? 'rgba(94,234,212,0.15)' : 'rgba(13,148,136,0.15)' },
+              { backgroundColor: `${palette.premium}20`, borderColor: palette.premium },
             ]}>
-            <ThemedText style={styles.rolePillLabel}>{currentUser?.role ?? 'Guest'}</ThemedText>
+            <ThemedText style={[styles.rolePillLabel, { color: palette.premium }]}>{currentUser?.role ?? 'Guest'}</ThemedText>
           </View>
           <ThemedText style={styles.identityHelper}>
             Authentication is intentionally hardcoded so you can preview how the rest of the build feels from
@@ -71,20 +70,18 @@ export default function ProfileScreen() {
         {ACTIONS.map((action) => (
           <SurfaceCard
             key={action.title}
-            onPress={() => console.log('Navigate to', action.title)}
-            outlineGradient={[palette.tint, palette.secondary]}
-            gradientPadding={2}>
-            <ThemedText type="defaultSemiBold">{action.title}</ThemedText>
-            <ThemedText style={styles.description}>{action.description}</ThemedText>
+            onPress={() => console.log('Navigate to', action.title)}>
+            <ThemedText type="defaultSemiBold" style={styles.actionTitle}>{action.title}</ThemedText>
+            <ThemedText style={[styles.description, { color: palette.muted }]}>{action.description}</ThemedText>
             <View
               style={[
                 styles.ctaPill,
                 {
-                  backgroundColor:
-                    scheme === 'dark' ? 'rgba(99,102,241,0.35)' : 'rgba(99,102,241,0.15)',
+                  backgroundColor: palette.surface,
+                  borderColor: palette.border,
                 },
               ]}>
-              <ThemedText style={styles.ctaLabel}>{action.cta}</ThemedText>
+              <ThemedText style={[styles.ctaLabel, { color: palette.text }]}>{action.cta}</ThemedText>
             </View>
           </SurfaceCard>
         ))}
@@ -99,52 +96,65 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
     paddingBottom: Spacing['2xl'],
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
   identityCard: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   username: {
     marginTop: -Spacing.xs,
+    fontSize: 28,
+    fontWeight: '800',
   },
   rolePill: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 999,
+    borderWidth: 1.5,
   },
   rolePillLabel: {
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    fontSize: 12,
+    fontSize: 11,
   },
   identityHelper: {
-    opacity: 0.85,
+    color: '#6B7280',
+    fontSize: 15,
+    lineHeight: 22,
   },
   signOutButton: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.md,
     borderRadius: 999,
     alignItems: 'center',
   },
   signOutLabel: {
-    fontWeight: '600',
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  actionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
   },
   description: {
-    marginTop: Spacing.xs,
-    opacity: 0.85,
+    marginTop: Spacing.sm,
+    fontSize: 15,
+    lineHeight: 22,
   },
   ctaPill: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.xs + 2,
     borderRadius: 999,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
+    borderWidth: 1,
   },
   ctaLabel: {
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });

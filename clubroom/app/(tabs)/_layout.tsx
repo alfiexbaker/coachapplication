@@ -8,25 +8,32 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const palette = Colors[colorScheme ?? 'light'];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+        tabBarActiveTintColor: palette.tint,
+        tabBarInactiveTintColor: palette.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: Colors[colorScheme ?? 'light'].background,
-          borderTopWidth: 0.5,
-          borderTopColor: 'rgba(0,0,0,0.06)',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          backgroundColor: palette.background,
+          borderTopWidth: 1,
+          borderTopColor: palette.border,
+          height: 72,
+          paddingBottom: 20,
+          paddingTop: 12,
+          paddingHorizontal: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
+          letterSpacing: 0.2,
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
         },
       }}>
       <Tabs.Screen

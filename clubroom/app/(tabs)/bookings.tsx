@@ -19,9 +19,8 @@ export default function BookingsScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <SectionHeader
-          eyebrow="Sprint 1 · Bookings"
           title="Bookings"
-          subtitle="Parents and coaches stay aligned with a clear state machine and tactile confirmations."
+          subtitle="Manage your upcoming sessions and track your progress"
         />
         <View>
           {upcomingBookings.map((booking) => (
@@ -195,12 +194,15 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
     paddingBottom: Spacing['2xl'],
+    gap: Spacing.lg,
   },
   detailCopy: {
     marginTop: Spacing.sm,
-    opacity: 0.85,
+    color: '#6B7280',
+    fontSize: 15,
+    lineHeight: 22,
   },
   objectiveRow: {
     flexDirection: 'row',
@@ -216,7 +218,7 @@ const styles = StyleSheet.create({
   },
   manageButtonLabel: {
     ...Typography.sm,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   historyList: {
     marginTop: Spacing.md,
