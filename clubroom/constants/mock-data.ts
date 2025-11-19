@@ -1,4 +1,4 @@
-import { BookingSummary, CoachProfile } from './types';
+import { BookingSummary, ChatMessage, ChatThreadSummary, CoachProfile } from './types';
 
 const coachPhotos = [
   'https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=800&q=80',
@@ -85,5 +85,70 @@ export const upcomingBookings: BookingSummary[] = [
     start: '2024-03-21T00:30:00Z',
     status: 'Pending',
     locationLabel: 'Dallas Elite Gym',
+  },
+];
+
+export const primaryChatThread: ChatThreadSummary = {
+  id: 'chat-thread-1',
+  bookingId: 'booking-1',
+  coachName: 'Maya Ellis',
+  childName: 'Eli',
+  serviceName: 'Elite Finishing Session',
+  location: 'Austin Sports Academy · Pitch 2',
+  scheduledFor: '2024-03-18T15:30:00Z',
+  unreadCount: 2,
+  safetyCopy: 'Chats unlock once a booking is confirmed. Moderation + read receipts keep families protected.',
+};
+
+export const chatMessages: ChatMessage[] = [
+  {
+    id: 'msg-1',
+    sender: 'coach',
+    body: 'Hey team! Pumped to work with Eli again. Drop any updates from the last match?',
+    createdAt: '2024-03-15T14:02:00Z',
+    status: 'seen',
+  },
+  {
+    id: 'msg-2',
+    sender: 'parent',
+    body: 'He’s still buzzing from districts. We want to sharpen first-touch + composure under pressure.',
+    createdAt: '2024-03-15T14:05:00Z',
+    status: 'seen',
+  },
+  {
+    id: 'msg-3',
+    sender: 'coach',
+    body: 'Love it. I’ll set up a rondo ladder + finishing gauntlet. Sharing the prep doc now.',
+    createdAt: '2024-03-15T14:08:00Z',
+    status: 'seen',
+    attachments: [
+      {
+        id: 'att-1',
+        type: 'pdf',
+        title: 'Session blueprint · Match sharpness',
+        subtitle: 'PDF · 2.1 MB',
+      },
+    ],
+  },
+  {
+    id: 'msg-4',
+    sender: 'parent',
+    body: 'Legend. Eli will hydrate + arrive 15 early. Need anything signed ahead of time?',
+    createdAt: '2024-03-15T14:10:00Z',
+    status: 'seen',
+  },
+  {
+    id: 'msg-5',
+    sender: 'coach',
+    body: 'All set. I’ll push footage + progress tags here after the session so you can log it in the performance hub.',
+    createdAt: '2024-03-15T14:11:00Z',
+    status: 'delivered',
+  },
+  {
+    id: 'msg-6',
+    sender: 'parent',
+    body: 'Perfect—thanks Maya!',
+    createdAt: '2024-03-15T14:11:45Z',
+    status: 'sent',
   },
 ];

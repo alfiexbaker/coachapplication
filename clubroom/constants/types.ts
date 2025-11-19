@@ -64,3 +64,34 @@ export interface BookingSummary {
   status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
   locationLabel: string;
 }
+
+export type ChatSender = 'parent' | 'coach';
+
+export interface ChatAttachment {
+  id: string;
+  type: 'photo' | 'video' | 'pdf';
+  title: string;
+  subtitle?: string;
+  thumbnailUrl?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: ChatSender;
+  body: string;
+  createdAt: string;
+  status: 'sent' | 'delivered' | 'seen' | 'pending';
+  attachments?: ChatAttachment[];
+}
+
+export interface ChatThreadSummary {
+  id: string;
+  bookingId: string;
+  coachName: string;
+  childName: string;
+  serviceName: string;
+  location: string;
+  scheduledFor: string;
+  unreadCount: number;
+  safetyCopy: string;
+}
