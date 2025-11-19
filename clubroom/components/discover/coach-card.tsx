@@ -115,34 +115,9 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
             </View>
           ))}
         </ScrollView>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipScrollContent}
-          style={styles.chipScroller}>
-          {coach.sessionFormats.map((format) => (
-            <View
-              key={format}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: `${palette.icon}18`,
-                },
-              ]}>
-              <Ionicons name={formatIconMap[format]} size={14} color={palette.text} />
-              <ThemedText style={[styles.chipLabel, { color: palette.text }]}>{format}</ThemedText>
-            </View>
-          ))}
-        </ScrollView>
     </SurfaceCard>
   );
 }
-
-const formatIconMap: Record<CoachProfile['sessionFormats'][number], IoniconName> = {
-  'In-person': 'walk-outline',
-  Virtual: 'videocam-outline',
-  'Small group': 'people-outline',
-};
 
 const focusColorMap: Record<CoachProfile['footballFocuses'][number], string> = {
   Dribbling: '#F97316',
