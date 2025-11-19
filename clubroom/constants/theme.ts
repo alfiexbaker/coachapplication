@@ -1,43 +1,48 @@
 import { Platform } from 'react-native';
 
-const brandPrimary = '#1D4ED8';
-const brandPrimaryDark = '#153EAE';
-const brandSecondary = '#F97316';
+// Premium Uber-inspired palette
+const brandPrimary = '#000000';
+const brandAccent = '#00D9A3'; // Premium teal/green
+const brandAccentDark = '#00B589';
 
 export const Colors = {
   light: {
-    text: '#0F172A',
-    muted: '#475569',
+    text: '#000000',
+    muted: '#6B7280',
     background: '#FFFFFF',
-    surface: '#F4F6FB',
+    surface: '#F9FAFB',
     card: '#FFFFFF',
-    border: '#E2E8F0',
+    border: '#E5E7EB',
     tint: brandPrimary,
-    tintPressed: brandPrimaryDark,
-    icon: '#64748B',
-    success: '#10B981',
-    warning: '#FACC15',
+    tintPressed: '#1F2937',
+    icon: '#9CA3AF',
+    success: '#00D9A3',
+    warning: '#F59E0B',
     error: '#EF4444',
-    secondary: brandSecondary,
-    tabIconDefault: '#94A3B8',
+    secondary: brandAccent,
+    tabIconDefault: '#9CA3AF',
     tabIconSelected: brandPrimary,
+    overlay: 'rgba(0, 0, 0, 0.5)',
+    premium: brandAccent,
   },
   dark: {
-    text: '#E2E8F0',
-    muted: '#94A3B8',
-    background: '#06080F',
-    surface: '#111828',
-    card: '#111828',
-    border: '#1F2937',
-    tint: '#7EA6FF',
-    tintPressed: '#5479CA',
-    icon: '#9BA1A6',
-    success: '#34D399',
-    warning: '#FDE047',
-    error: '#F87171',
-    secondary: '#FB923C',
-    tabIconDefault: '#64748B',
-    tabIconSelected: '#7EA6FF',
+    text: '#FFFFFF',
+    muted: '#9CA3AF',
+    background: '#000000',
+    surface: '#111111',
+    card: '#1A1A1A',
+    border: '#2A2A2A',
+    tint: '#FFFFFF',
+    tintPressed: '#E5E7EB',
+    icon: '#6B7280',
+    success: '#00D9A3',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    secondary: brandAccent,
+    tabIconDefault: '#6B7280',
+    tabIconSelected: '#FFFFFF',
+    overlay: 'rgba(0, 0, 0, 0.7)',
+    premium: brandAccent,
   },
 } as const;
 
@@ -48,28 +53,29 @@ const baseSpacing = 4;
 export const Spacing = {
   xs: baseSpacing,
   sm: baseSpacing * 2,
-  md: baseSpacing * 3,
-  lg: baseSpacing * 4,
-  xl: baseSpacing * 5,
-  '2xl': baseSpacing * 6,
-  '3xl': baseSpacing * 8,
+  md: baseSpacing * 4,
+  lg: baseSpacing * 5,
+  xl: baseSpacing * 6,
+  '2xl': baseSpacing * 8,
+  '3xl': baseSpacing * 12,
 } as const;
 
 export const Radii = {
-  sm: 6,
-  md: 10,
+  sm: 8,
+  md: 12,
   lg: 16,
+  xl: 24,
   pill: 999,
 } as const;
 
 export const Typography = {
-  xs: { fontSize: 11, lineHeight: 14 },
-  sm: { fontSize: 13, lineHeight: 18 },
-  base: { fontSize: 15, lineHeight: 20 },
-  lg: { fontSize: 17, lineHeight: 22 },
-  xl: { fontSize: 20, lineHeight: 24 },
-  '2xl': { fontSize: 24, lineHeight: 28 },
-  '3xl': { fontSize: 28, lineHeight: 32 },
+  xs: { fontSize: 11, lineHeight: 16, letterSpacing: 0.1 },
+  sm: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },
+  base: { fontSize: 15, lineHeight: 22, letterSpacing: -0.1 },
+  lg: { fontSize: 17, lineHeight: 24, letterSpacing: -0.2 },
+  xl: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
+  '2xl': { fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
+  '3xl': { fontSize: 34, lineHeight: 40, letterSpacing: -0.5 },
 } as const;
 
 export const Fonts = Platform.select({
@@ -96,20 +102,48 @@ export const Fonts = Platform.select({
 export const Shadows = {
   light: {
     card: {
-      shadowColor: '#0F172A',
-      shadowOpacity: 0.06,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 8 },
+      shadowColor: '#000000',
+      shadowOpacity: 0.04,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 2 },
       elevation: 2,
+    },
+    cardHover: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.08,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
+    subtle: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.02,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 1,
     },
   },
   dark: {
     card: {
       shadowColor: '#000000',
-      shadowOpacity: 0.4,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.6,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 2 },
       elevation: 2,
+    },
+    cardHover: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.8,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
+    subtle: {
+      shadowColor: '#000000',
+      shadowOpacity: 0.4,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 1 },
+      elevation: 1,
     },
   },
 } as const;

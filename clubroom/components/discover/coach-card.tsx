@@ -33,35 +33,43 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
         accessibilityHint="View coach details"
         onPress={handlePress}
         outlineGradient={
-          active ? [palette.tint, palette.secondary] : undefined
+          active ? [palette.premium, palette.premium] : undefined
         }
-        style={[styles.card, styles.pressable]}
+        style={[styles.card, styles.pressable, active && { borderColor: palette.premium }]}
         gradientPadding={active ? 2 : 0}>
           <View style={styles.row}>
-            <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} contentFit="cover" />
+            <Image
+              source={{ uri: coach.profilePhotoUrl }}
+              style={styles.avatar}
+              contentFit="cover"
+            />
             <View style={styles.meta}>
-              <ThemedText type="subtitle">{coach.fullName}</ThemedText>
+              <ThemedText type="subtitle" style={styles.coachName}>{coach.fullName}</ThemedText>
               <View style={styles.infoRow}>
-                <Ionicons name="location-outline" size={12} color={palette.icon} />
-                <ThemedText style={styles.infoText}>{formatDistance(coach.distanceMiles)} away</ThemedText>
+                <Ionicons name="location" size={14} color={palette.icon} />
+                <ThemedText style={[styles.infoText, { color: palette.muted }]}>
+                  {formatDistance(coach.distanceMiles)} away
+                </ThemedText>
                 <View style={styles.dot} />
-                <Ionicons name="star" size={12} color={palette.secondary} />
-                <ThemedText style={styles.infoText}>{coach.rating.average.toFixed(1)}</ThemedText>
+                <Ionicons name="star" size={14} color={palette.premium} />
+                <ThemedText style={[styles.infoText, { color: palette.text }]}>
+                  {coach.rating.average.toFixed(1)}
+                </ThemedText>
               </View>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.tagRow}>
                 {coach.footballFocuses.slice(0, 3).map((focus) => (
-                  <View key={focus} style={[styles.tag, { backgroundColor: `${focusColorMap[focus]}20` }]}>
-                    <ThemedText style={[styles.tagText, { color: focusColorMap[focus] }]}>{focus}</ThemedText>
+                  <View key={focus} style={[styles.tag, { backgroundColor: palette.surface }]}>
+                    <ThemedText style={[styles.tagText, { color: palette.text }]}>{focus}</ThemedText>
                   </View>
                 ))}
               </ScrollView>
             </View>
             <View style={styles.priceColumn}>
               <ThemedText type="defaultSemiBold" style={styles.price}>{formatPriceRange(coach.priceRange)}</ThemedText>
-              <ThemedText style={styles.priceLabel}>per session</ThemedText>
+              <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>per session</ThemedText>
             </View>
           </View>
       </SurfaceCard>
@@ -123,10 +131,10 @@ function InfoRow({ icon, label, color }: InfoRowProps) {
 
 const styles = StyleSheet.create({
   pressable: {
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   card: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   row: {
     flexDirection: 'row',
@@ -134,27 +142,32 @@ const styles = StyleSheet.create({
   },
   meta: {
     flex: 1,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
+  },
+  coachName: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   infoText: {
-    fontSize: 13,
-    opacity: 0.7,
+    fontSize: 14,
+    fontWeight: '500',
   },
   dot: {
-    width: 3,
-    height: 3,
+    width: 2,
+    height: 2,
     borderRadius: 999,
-    backgroundColor: '#94A3B8',
+    backgroundColor: '#9CA3AF',
     marginHorizontal: 2,
   },
   avatar: {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64,
     borderRadius: Radii.md,
   },
   priceColumn: {
@@ -162,23 +175,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   price: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '700',
   },
   priceLabel: {
-    fontSize: 11,
-    opacity: 0.5,
+    fontSize: 12,
+    fontWeight: '500',
     marginTop: 2,
   },
   tagRow: {
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   tag: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs + 2,
     borderRadius: Radii.sm,
   },
   tagText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
 });

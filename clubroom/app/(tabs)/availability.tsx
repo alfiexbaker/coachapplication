@@ -18,9 +18,8 @@ export default function AvailabilityScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <SectionHeader
-          eyebrow="Sprint 1 · Coach Ops"
-          title="Availability builder"
-          subtitle="Drag-to-create blocks with haptics plus overrides for vacations keep coaches in control."
+          title="Availability"
+          subtitle="Manage your coaching schedule and time slots"
         />
         <SurfaceCard>
           <View style={styles.gridHeader}>
@@ -37,16 +36,16 @@ export default function AvailabilityScreen() {
                   key={`${day}-${slot}`}
                   style={[
                     styles.cell,
-                    { borderColor: palette.border },
+                    { borderColor: palette.border, backgroundColor: palette.background },
                     index % 2 === 0 && slot === '4p'
                       ? {
-                          backgroundColor: `${palette.tint}15`,
-                          borderColor: palette.tint,
+                          backgroundColor: `${palette.premium}15`,
+                          borderColor: palette.premium,
                         }
                       : null,
                   ]}>
                   {index % 2 === 0 && slot === '4p' ? (
-                    <ThemedText style={styles.cellLabel}>Group · 4 seats</ThemedText>
+                    <ThemedText style={[styles.cellLabel, { color: palette.premium }]}>Group · 4 seats</ThemedText>
                   ) : null}
                 </View>
               ))}
@@ -76,7 +75,8 @@ const styles = StyleSheet.create({
   gridHeaderText: {
     flex: 1,
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 13,
   },
   row: {
     flexDirection: 'row',
@@ -85,13 +85,14 @@ const styles = StyleSheet.create({
   },
   cell: {
     flex: 1,
-    height: 56,
-    borderRadius: Radii.sm,
-    borderWidth: 1,
+    height: 60,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cellLabel: {
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 11,
   },
 });

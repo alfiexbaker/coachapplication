@@ -50,11 +50,11 @@ export default function DiscoverScreen() {
   if (selectedCoach) {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.detailHeader}>
+        <View style={[styles.detailHeader, { borderBottomColor: palette.border }]}>
           <Pressable onPress={() => setSelectedCoachId(null)} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Pressable>
-          <ThemedText type="title">Book session</ThemedText>
+          <ThemedText type="title" style={styles.detailHeaderTitle}>Book session</ThemedText>
         </View>
         <ScrollView>
           <BookingFlowPreview coach={selectedCoach} />
@@ -67,31 +67,38 @@ export default function DiscoverScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <ThemedText type="title">Find a coach</ThemedText>
+          <ThemedText type="title" style={styles.title}>Find a coach</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+            Discover expert football coaches near you
+          </ThemedText>
         </View>
 
-        <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Ionicons name="search" size={18} color={palette.icon} />
+        <View style={[styles.searchBar, { backgroundColor: palette.card, borderColor: palette.border }]}>
+          <Ionicons name="search" size={20} color={palette.icon} />
           <TextInput
             value={postcode}
             onChangeText={handlePostcodeChange}
-            placeholder="Enter postcode"
+            placeholder="Enter your postcode"
             placeholderTextColor={palette.muted}
             keyboardType="default"
             style={[styles.searchInput, { color: palette.text }]}
           />
           {postcode ? (
-            <Pressable onPress={() => setPostcode('')}>
-              <Ionicons name="close-circle" size={18} color={palette.icon} />
+            <Pressable onPress={() => setPostcode('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={20} color={palette.icon} />
             </Pressable>
           ) : null}
         </View>
 
         {!postcode || postcode.length < 3 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="search" size={48} color={palette.icon} style={styles.emptyIcon} />
-            <ThemedText type="subtitle">Search for coaches</ThemedText>
-            <ThemedText style={styles.emptyText}>Enter your postcode to find coaches near you</ThemedText>
+            <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
+              <Ionicons name="search" size={32} color={palette.icon} />
+            </View>
+            <ThemedText type="subtitle" style={styles.emptyTitle}>Search for coaches</ThemedText>
+            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+              Enter your postcode to discover expert coaches in your area
+            </ThemedText>
           </View>
         ) : (
           <View style={[styles.split, isWide && styles.splitWide]}>
@@ -114,9 +121,13 @@ export default function DiscoverScreen() {
                 </>
               ) : (
                 <View style={styles.emptyState}>
-                  <Ionicons name="location-outline" size={48} color={palette.icon} style={styles.emptyIcon} />
-                  <ThemedText type="subtitle">No coaches nearby</ThemedText>
-                  <ThemedText style={styles.emptyText}>Try a different postcode</ThemedText>
+                  <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
+                    <Ionicons name="location-outline" size={32} color={palette.icon} />
+                  </View>
+                  <ThemedText type="subtitle" style={styles.emptyTitle}>No coaches nearby</ThemedText>
+                  <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+                    Try searching with a different postcode
+                  </ThemedText>
                 </View>
               )}
             </View>
@@ -134,27 +145,36 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing['2xl'],
-    gap: Spacing.md,
+    gap: Spacing.lg,
   },
   header: {
-    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    letterSpacing: -0.8,
+  },
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 24,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    gap: Spacing.md,
+    borderWidth: 1.5,
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   split: {
     flex: 1,
@@ -178,37 +198,54 @@ const styles = StyleSheet.create({
     maxWidth: 540,
   },
   resultsHeader: {
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.xs,
   },
   resultsText: {
-    fontSize: 13,
-    opacity: 0.6,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
+    opacity: 0.5,
   },
   emptyState: {
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.md,
     paddingVertical: Spacing['3xl'],
+    paddingHorizontal: Spacing.xl,
   },
-  emptyIcon: {
-    opacity: 0.3,
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
   emptyText: {
-    opacity: 0.5,
-    fontSize: 13,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   detailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    paddingVertical: Spacing.lg,
+    borderBottomWidth: 1,
+  },
+  detailHeaderTitle: {
+    fontSize: 24,
+    fontWeight: '700',
   },
   backButton: {
-    padding: Spacing.xs,
+    padding: Spacing.sm,
+    marginLeft: -Spacing.sm,
   },
 });

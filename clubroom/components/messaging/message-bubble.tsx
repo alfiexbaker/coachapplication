@@ -36,7 +36,7 @@ function MessageBubbleComponent({ message, isOwnMessage }: MessageBubbleProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const bubbleColor = isOwnMessage ? palette.tint : palette.surface;
-  const textColor = isOwnMessage ? '#FFFFFF' : palette.text;
+  const textColor = isOwnMessage ? (scheme === 'dark' ? palette.text : '#FFFFFF') : palette.text;
 
   return (
     <Animated.View
@@ -49,7 +49,10 @@ function MessageBubbleComponent({ message, isOwnMessage }: MessageBubbleProps) {
           <AttachmentCard key={attachment.id} title={attachment.title} subtitle={attachment.subtitle} />
         ))}
       </View>
-      <ThemedText style={[styles.timestamp, { alignSelf: isOwnMessage ? 'flex-end' : 'flex-start' }]}>
+      <ThemedText style={[styles.timestamp, {
+        alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
+        color: palette.muted
+      }]}>
         {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </ThemedText>
     </Animated.View>
@@ -60,8 +63,8 @@ export const MessageBubble = memo(MessageBubbleComponent);
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: Spacing.sm,
-    gap: 2,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
   },
   alignRight: {
     alignItems: 'flex-end',
@@ -70,20 +73,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   bubble: {
-    maxWidth: '75%',
-    borderRadius: 18,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.xs,
+    maxWidth: '80%',
+    borderRadius: Radii.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
   },
   body: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '500',
   },
   timestamp: {
-    fontSize: 11,
-    opacity: 0.5,
-    marginHorizontal: Spacing.sm,
+    fontSize: 12,
+    fontWeight: '500',
+    marginHorizontal: Spacing.md,
   },
   attachment: {
     flexDirection: 'row',

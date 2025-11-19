@@ -19,9 +19,8 @@ export default function BookingsScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <SectionHeader
-          eyebrow="Sprint 1 · Bookings"
           title="Bookings"
-          subtitle="Parents and coaches stay aligned with a clear state machine and tactile confirmations."
+          subtitle="Manage your upcoming sessions and track your progress"
         />
         <View>
           {upcomingBookings.map((booking) => (
