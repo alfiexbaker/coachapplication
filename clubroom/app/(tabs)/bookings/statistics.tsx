@@ -7,7 +7,7 @@ import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { sessionHistory } from '@/constants/mock-data';
+import { sessionHistory, athleteSkillLevels } from '@/constants/mock-data';
 
 export default function StatisticsScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -52,12 +52,6 @@ export default function StatisticsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <ThemedView style={styles.header}>
-          <ThemedText type="subtitle" style={styles.subtitle}>
-            Track your coaching journey and achievements
-          </ThemedText>
-        </ThemedView>
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
@@ -77,33 +71,38 @@ export default function StatisticsScreen() {
         {/* Recent Activity */}
         <View style={styles.section}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Recent Activity
+            Recent Sessions
           </ThemedText>
           <SurfaceCard style={styles.activityCard}>
             {sessionHistory.slice(0, 5).map((session, index) => (
               <View key={session.id}>
                 <View style={styles.activityItem}>
-                  <View style={[styles.activityDot, { backgroundColor: palette.tint }]} />
                   <View style={styles.activityContent}>
-                    <ThemedText style={styles.activityTitle}>{session.sessionType}</ThemedText>
-                    <ThemedText style={styles.activitySubtext}>
-                      with {session.coachName} · {session.dateCompleted}
-                    </ThemedText>
-                    <View style={styles.ratingRow}>
-                      {[...Array(5)].map((_, i) => (
-                        <Ionicons
-                          key={i}
-                          name={i < session.rating ? 'star' : 'star-outline'}
-                          size={14}
-                          color="#F59E0B"
-                        />
-                      ))}
-                      <ThemedText style={styles.ratingText}>
-                        {session.rating}.0
-                      </ThemedText>
+                    <View style={styles.sessionRow}>
+                      <View style={[styles.activityDot, { backgroundColor: palette.tint }]} />
+                      <View style={{ flex: 1 }}>
+                        <ThemedText style={styles.activityTitle}>{session.focus}</ThemedText>
+                        <ThemedText style={styles.activitySubtext}>
+                          {session.coachName} · {session.durationMinutes}m
+                        </ThemedText>
+                      </View>
+                      <View style={styles.ratingRow}>
+                        {[...Array(5)].map((_, i) => (
+                          <Ionicons
+                            key={i}
+                            name={i < (session.rating || 0) ? 'star' : 'star-outline'}
+                            size={14}
+                            color="#F59E0B"
+                          />
+                        ))}
+                      </View>
                     </View>
+                    {session.coachFeedback && (
+                      <View style={[styles.feedbackBox, { backgroundColor: palette.surface }]}>
+                        <ThemedText style={styles.feedbackText}>{session.coachFeedback}</ThemedText>
+                      </View>
+                    )}
                   </View>
-                  <ThemedText style={styles.duration}>{session.durationMinutes}m</ThemedText>
                 </View>
                 {index < 4 && <View style={[styles.divider, { backgroundColor: palette.border }]} />}
               </View>
@@ -114,41 +113,32 @@ export default function StatisticsScreen() {
         {/* Skills Progress */}
         <View style={styles.section}>
           <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Skills Progress
+            Skills
           </ThemedText>
           <SurfaceCard style={styles.skillsCard}>
-            {[
-              { skill: 'Dribbling', level: 75 },
-              { skill: 'Passing', level: 60 },
-              { skill: 'Shooting', level: 45 },
-              { skill: 'Defending', level: 30 },
-            ].map((item, index) => (
-              <View key={item.skill} style={styles.skillItem}>
-                <View style={styles.skillHeader}>
-                  <ThemedText style={styles.skillName}>{item.skill}</ThemedText>
-                  <ThemedText style={styles.skillLevel}>{item.level}%</ThemedText>
+            {athleteSkillLevels
+              .sort((a, b) => b.level - a.level)
+              .slice(0, 6)
+              .map((item, index) => (
+                <View key={item.skill} style={styles.skillItem}>
+                  <View style={styles.skillHeader}>
+                    <ThemedText style={styles.skillName}>{item.skill}</ThemedText>
+                    <ThemedText style={styles.skillLevel}>{item.level}</ThemedText>
+                  </View>
+                  <View style={[styles.skillBar, { backgroundColor: palette.border }]}>
+                    <View
+                      style={[
+                        styles.skillFill,
+                        { backgroundColor: palette.tint, width: `${item.level}%` },
+                      ]}
+                    />
+                  </View>
+                  {index < 5 && <View style={[styles.divider, { backgroundColor: palette.border }]} />}
                 </View>
-                <View style={[styles.skillBar, { backgroundColor: palette.border }]}>
-                  <View
-                    style={[
-                      styles.skillFill,
-                      { backgroundColor: palette.tint, width: `${item.level}%` },
-                    ]}
-                  />
-                </View>
-                {index < 3 && <View style={[styles.divider, { backgroundColor: palette.border }]} />}
-              </View>
-            ))}
+              ))}
           </SurfaceCard>
         </View>
 
-        {/* Placeholder for charts */}
-        <SurfaceCard style={styles.chartPlaceholder}>
-          <Ionicons name="bar-chart" size={48} color={palette.muted} />
-          <ThemedText style={styles.placeholderText}>
-            Detailed charts and analytics coming soon
-          </ThemedText>
-        </SurfaceCard>
       </ScrollView>
     </SafeAreaView>
   );
@@ -207,20 +197,22 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   activityItem: {
+    paddingVertical: Spacing.xs,
+  },
+  activityContent: {
+    flex: 1,
+    gap: Spacing.sm,
+  },
+  sessionRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.md,
-    paddingVertical: Spacing.xs,
+    gap: Spacing.sm,
   },
   activityDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     marginTop: 6,
-  },
-  activityContent: {
-    flex: 1,
-    gap: 4,
   },
   activityTitle: {
     fontSize: 15,
@@ -229,22 +221,22 @@ const styles = StyleSheet.create({
   activitySubtext: {
     fontSize: 13,
     opacity: 0.6,
+    marginTop: 2,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    marginTop: 4,
   },
-  ratingText: {
-    fontSize: 12,
-    opacity: 0.6,
-    marginLeft: 4,
+  feedbackBox: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    marginLeft: Spacing.lg,
   },
-  duration: {
+  feedbackText: {
     fontSize: 13,
-    opacity: 0.6,
-    fontWeight: '600',
+    lineHeight: 18,
   },
   divider: {
     height: 1,

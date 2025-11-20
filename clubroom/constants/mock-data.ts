@@ -9,6 +9,9 @@ import {
   School,
   InviteCode,
   CoachReview,
+  UserProfile,
+  CoachFeedback,
+  SkillLevel,
 } from './types';
 
 const coachPhotos = [
@@ -457,6 +460,11 @@ export const activeObjectives: AthleteObjective[] = [
     status: 'active',
     updatedAt: '2024-03-14T16:00:00Z',
     note: 'Beat defenders 1v1 on the wing',
+    coachName: 'Maya Ellis',
+    progress: 65,
+    sessionsCompleted: 8,
+    startDate: '2024-01-15T00:00:00Z',
+    targetSessions: 12,
   },
   {
     id: 'obj-2',
@@ -464,6 +472,11 @@ export const activeObjectives: AthleteObjective[] = [
     status: 'active',
     updatedAt: '2024-03-12T16:00:00Z',
     note: 'Switch the field under pressure',
+    coachName: 'Jordan Vega',
+    progress: 45,
+    sessionsCompleted: 5,
+    startDate: '2024-02-01T00:00:00Z',
+    targetSessions: 10,
   },
   {
     id: 'obj-3',
@@ -471,6 +484,10 @@ export const activeObjectives: AthleteObjective[] = [
     status: 'upcoming',
     updatedAt: '2024-03-10T16:00:00Z',
     note: 'Body shape when jockeying',
+    coachName: 'Jordan Vega',
+    progress: 0,
+    sessionsCompleted: 0,
+    startDate: '2024-03-20T00:00:00Z',
   },
 ];
 
@@ -484,6 +501,11 @@ export const sessionHistory: SessionHistoryEntry[] = [
     highlight: 'Tied finishing gauntlet personal best (8/10).',
     resultBadge: 'Hat-trick ready',
     clipLabel: 'Finishing drill clips',
+    durationMinutes: 60,
+    sessionType: '1-on-1',
+    dateCompleted: '2024-03-11T16:30:00Z',
+    rating: 5,
+    coachFeedback: 'Exceptional focus today. Shot accuracy improving consistently.',
   },
   {
     id: 'session-2',
@@ -492,6 +514,11 @@ export const sessionHistory: SessionHistoryEntry[] = [
     focus: 'Defending',
     location: 'North Texas Shield Collective',
     highlight: 'Mastered 1v1 delay + angled pressing cues.',
+    durationMinutes: 90,
+    sessionType: 'Small group',
+    dateCompleted: '2024-03-04T17:00:00Z',
+    rating: 5,
+    coachFeedback: 'Great positioning. Keep working on reaction speed.',
   },
   {
     id: 'session-3',
@@ -500,6 +527,11 @@ export const sessionHistory: SessionHistoryEntry[] = [
     focus: 'Conditioning',
     location: "Cam's Safe Hands Lab",
     highlight: 'VO2 drills logged, recovery HR down 8 bpm.',
+    durationMinutes: 75,
+    sessionType: '1-on-1',
+    dateCompleted: '2024-02-26T16:45:00Z',
+    rating: 4,
+    coachFeedback: 'Strong improvement in stamina. Maintain the intensity.',
   },
 ];
 
@@ -514,7 +546,7 @@ export const paymentReminders: PaymentReminder[] = [
   },
   {
     id: 'payment-2',
-    title: 'Cam’s Safe Hands Lab drop-in',
+    title: 'Cam's Safe Hands Lab drop-in',
     amountUsd: 150,
     dueDate: '2024-03-24T18:00:00Z',
     status: 'placeholder',
@@ -528,4 +560,62 @@ export const paymentReminders: PaymentReminder[] = [
     status: 'paid',
     description: 'Captured with card ending in ··42. Receipt emailed.',
   },
+];
+
+export const mockUserProfile: UserProfile = {
+  id: 'user-1',
+  fullName: 'Sarah Johnson',
+  email: 'sarah.johnson@example.com',
+  phone: '+1 (512) 555-9876',
+  profilePhotoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=400&q=80',
+  bio: 'Parent of two young athletes passionate about football development',
+  role: 'Parent',
+  joinedDate: '2024-01-05T00:00:00Z',
+  children: [
+    { name: 'Eli', age: 14 },
+    { name: 'Ivy', age: 12 },
+  ],
+};
+
+export const coachFeedbackHistory: CoachFeedback[] = [
+  {
+    id: 'feedback-1',
+    sessionId: 'session-1',
+    coachId: 'coach-1',
+    athleteId: 'user-1',
+    rating: 5,
+    notes: 'Exceptional focus today. Shot accuracy improving consistently. Eli is showing great composure in finishing situations.',
+    highlights: ['8/10 on finishing gauntlet', 'Improved weak foot accuracy', 'Great decision-making in box'],
+    areasToImprove: ['First touch consistency', 'Movement off the ball'],
+    skillsWorked: ['Finishing', 'Dribbling'],
+    skillUpdates: [
+      { skill: 'Finishing', previousLevel: 60, newLevel: 68 },
+      { skill: 'Dribbling', previousLevel: 62, newLevel: 65 },
+    ],
+    createdAt: '2024-03-11T16:30:00Z',
+  },
+  {
+    id: 'feedback-2',
+    sessionId: 'session-2',
+    coachId: 'coach-2',
+    athleteId: 'user-1',
+    rating: 5,
+    notes: 'Great positioning work today. Keep working on reaction speed in 1v1 situations.',
+    highlights: ['Excellent body positioning', 'Quick recovery runs', 'Reading attacker movements'],
+    areasToImprove: ['Reaction speed', 'Communication with teammates'],
+    skillsWorked: ['Defending'],
+    skillUpdates: [
+      { skill: 'Defending', previousLevel: 40, newLevel: 48 },
+    ],
+    createdAt: '2024-03-04T17:00:00Z',
+  },
+];
+
+export const athleteSkillLevels: SkillLevel[] = [
+  { skill: 'Dribbling', level: 65, lastUpdated: '2024-03-11T16:30:00Z' },
+  { skill: 'Passing', level: 55, lastUpdated: '2024-03-04T17:00:00Z' },
+  { skill: 'Defending', level: 48, lastUpdated: '2024-03-04T17:00:00Z' },
+  { skill: 'Finishing', level: 68, lastUpdated: '2024-03-11T16:30:00Z' },
+  { skill: 'Goalkeeping', level: 30, lastUpdated: '2024-02-15T00:00:00Z' },
+  { skill: 'Conditioning', level: 52, lastUpdated: '2024-02-26T16:45:00Z' },
 ];

@@ -1,4 +1,5 @@
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList, Pressable, StyleSheet, View, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,20 +9,98 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { activeObjectives } from '@/constants/mock-data';
+import { AthleteObjective, FootballObjective } from '@/constants/types';
+
+const FOOTBALL_OBJECTIVES: FootballObjective[] = [
+  'Dribbling',
+  'Passing',
+  'Defending',
+  'Finishing',
+  'Goalkeeping',
+  'Conditioning',
+];
 
 export default function ObjectivesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
+  const [objectives, setObjectives] = useState(activeObjectives);
+  const [showModal, setShowModal] = useState(false);
+  const [editingObjective, setEditingObjective] = useState<AthleteObjective | null>(null);
+  const [selectedSkill, setSelectedSkill] = useState<FootballObjective>('Dribbling');
+  const [note, setNote] = useState('');
+  const [targetSessions, setTargetSessions] = useState('10');
+
+  const openAddModal = () => {
+    setEditingObjective(null);
+    setSelectedSkill('Dribbling');
+    setNote('');
+    setTargetSessions('10');
+    setShowModal(true);
+  };
+
+  const openEditModal = (objective: AthleteObjective) => {
+    setEditingObjective(objective);
+    setSelectedSkill(objective.label as FootballObjective);
+    setNote(objective.note || '');
+    setTargetSessions(objective.targetSessions?.toString() || '10');
+    setShowModal(true);
+  };
+
+  const saveObjective = () => {
+    if (editingObjective) {
+      // Edit existing
+      setObjectives(
+        objectives.map((obj) =>
+          obj.id === editingObjective.id
+            ? { ...obj, label: selectedSkill, note, targetSessions: parseInt(targetSessions) }
+            : obj
+        )
+      );
+    } else {
+      // Add new
+      const newObjective: AthleteObjective = {
+        id: `obj-${Date.now()}`,
+        label: selectedSkill,
+        status: 'active',
+        updatedAt: new Date().toISOString(),
+        note,
+        coachName: 'Assigned in sessions',
+        progress: 0,
+        sessionsCompleted: 0,
+        startDate: new Date().toISOString().split('T')[0],
+        targetSessions: parseInt(targetSessions) || 10,
+      };
+      setObjectives([...objectives, newObjective]);
+    }
+    setShowModal(false);
+  };
+
+  const deleteObjective = (id: string) => {
+    Alert.alert('Delete Goal', 'Remove this goal from your list?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => setObjectives(objectives.filter((obj) => obj.id !== id)),
+      },
+    ]);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
       <FlatList
-        data={activeObjectives}
+        data={objectives}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
           <ThemedView style={styles.header}>
             <ThemedText type="subtitle" style={styles.subtitle}>
-              Track your football development goals and progress
+              Track your football development goals
             </ThemedText>
           </ThemedView>
         }
@@ -32,8 +111,16 @@ export default function ObjectivesScreen() {
                 <Ionicons name="football" size={24} color={palette.tint} />
               </View>
               <View style={styles.objectiveInfo}>
-                <ThemedText type="subtitle">{item.objective}</ThemedText>
-                <ThemedText style={styles.coachText}>with {item.coachName}</ThemedText>
+                <ThemedText type="subtitle">{item.label}</ThemedText>
+                {item.note && <ThemedText style={styles.noteText}>{item.note}</ThemedText>}
+              </View>
+              <View style={styles.actions}>
+                <Pressable onPress={() => openEditModal(item)} hitSlop={8}>
+                  <Ionicons name="create-outline" size={22} color={palette.tint} />
+                </Pressable>
+                <Pressable onPress={() => deleteObjective(item.id)} hitSlop={8}>
+                  <Ionicons name="trash-outline" size={22} color={palette.destructive} />
+                </Pressable>
               </View>
             </View>
 
@@ -57,11 +144,13 @@ export default function ObjectivesScreen() {
             <View style={styles.stats}>
               <View style={styles.stat}>
                 <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
-                <ThemedText style={styles.statText}>{item.sessionsCompleted} sessions</ThemedText>
+                <ThemedText style={styles.statText}>
+                  {item.sessionsCompleted}/{item.targetSessions || 10}
+                </ThemedText>
               </View>
               <View style={styles.stat}>
                 <Ionicons name="calendar-outline" size={16} color={palette.muted} />
-                <ThemedText style={styles.statText}>Started {item.startDate}</ThemedText>
+                <ThemedText style={styles.statText}>{formatDate(item.startDate)}</ThemedText>
               </View>
             </View>
           </SurfaceCard>
@@ -75,19 +164,19 @@ export default function ObjectivesScreen() {
               <Ionicons name="football-outline" size={48} color={palette.muted} />
             </View>
             <ThemedText type="subtitle" style={styles.emptyTitle}>
-              No active objectives
+              No goals yet
             </ThemedText>
             <ThemedText style={styles.emptyDescription}>
-              Set goals with your coach during sessions to track your progress
+              Start by adding your first development goal
             </ThemedText>
           </View>
         }
       />
 
-      {/* Add Objective Button */}
+      {/* Add Button */}
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
         <Pressable
-          onPress={() => alert('Add objective - coming soon!')}
+          onPress={openAddModal}
           style={({ pressed }) => [
             styles.addButton,
             { backgroundColor: palette.tint },
@@ -95,10 +184,85 @@ export default function ObjectivesScreen() {
           ]}>
           <Ionicons name="add" size={24} color="#FFFFFF" />
           <ThemedText style={styles.addButtonText} lightColor="#FFFFFF" darkColor="#000000">
-            Add New Objective
+            Add Goal
           </ThemedText>
         </Pressable>
       </View>
+
+      {/* Modal */}
+      <Modal visible={showModal} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: palette.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: palette.border }]}>
+            <Pressable onPress={() => setShowModal(false)}>
+              <Ionicons name="close" size={28} color={palette.foreground} />
+            </Pressable>
+            <ThemedText type="subtitle">{editingObjective ? 'Edit Goal' : 'New Goal'}</ThemedText>
+            <Pressable onPress={saveObjective}>
+              <ThemedText style={[styles.saveButton, { color: palette.tint }]}>Save</ThemedText>
+            </Pressable>
+          </View>
+
+          <View style={styles.modalContent}>
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold">Skill</ThemedText>
+              <View style={styles.skillGrid}>
+                {FOOTBALL_OBJECTIVES.map((skill) => (
+                  <Pressable
+                    key={skill}
+                    onPress={() => setSelectedSkill(skill)}
+                    style={[
+                      styles.skillChip,
+                      {
+                        backgroundColor: selectedSkill === skill ? palette.tint : palette.card,
+                        borderColor: selectedSkill === skill ? palette.tint : palette.border,
+                      },
+                    ]}>
+                    <ThemedText
+                      style={styles.skillText}
+                      lightColor={selectedSkill === skill ? '#FFFFFF' : undefined}
+                      darkColor={selectedSkill === skill ? '#000000' : undefined}>
+                      {skill}
+                    </ThemedText>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold">Goal</ThemedText>
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                placeholder="What do you want to improve?"
+                placeholderTextColor={palette.muted}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                style={[
+                  styles.textInput,
+                  styles.textArea,
+                  { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground },
+                ]}
+              />
+            </View>
+
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold">Target Sessions</ThemedText>
+              <TextInput
+                value={targetSessions}
+                onChangeText={setTargetSessions}
+                placeholder="10"
+                keyboardType="number-pad"
+                placeholderTextColor={palette.muted}
+                style={[
+                  styles.textInput,
+                  { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground },
+                ]}
+              />
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -140,9 +304,14 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  coachText: {
-    fontSize: 14,
+  noteText: {
+    fontSize: 13,
     opacity: 0.6,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    alignItems: 'center',
   },
   progressSection: {
     gap: Spacing.xs,
@@ -222,5 +391,53 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  saveButton: {
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  modalContent: {
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+  },
+  section: {
+    gap: Spacing.sm,
+  },
+  skillGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  skillChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  skillText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: 16,
+  },
+  textArea: {
+    minHeight: 80,
+    paddingTop: Spacing.sm,
   },
 });

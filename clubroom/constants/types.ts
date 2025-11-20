@@ -161,6 +161,11 @@ export interface AthleteObjective {
   status: 'active' | 'upcoming' | 'completed';
   updatedAt: string;
   note?: string;
+  coachName: string;
+  progress: number; // 0-100
+  sessionsCompleted: number;
+  startDate: string;
+  targetSessions?: number;
 }
 
 export interface SessionHistoryEntry {
@@ -172,6 +177,11 @@ export interface SessionHistoryEntry {
   highlight: string;
   resultBadge?: string;
   clipLabel?: string;
+  durationMinutes: number;
+  sessionType: string;
+  dateCompleted: string;
+  rating?: number; // 1-5
+  coachFeedback?: string;
 }
 
 export interface PaymentReminder {
@@ -213,4 +223,43 @@ export interface ChatThreadSummary {
   unreadCount: number;
   safetyCopy: string;
   pinnedObjectives?: FootballObjective[];
+}
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  profilePhotoUrl?: string;
+  bio?: string;
+  role: 'User' | 'Parent' | 'Coach' | 'Admin';
+  joinedDate: string;
+  children?: Array<{
+    name: string;
+    age: number;
+  }>;
+}
+
+export interface CoachFeedback {
+  id: string;
+  sessionId: string;
+  coachId: string;
+  athleteId: string;
+  rating: number; // 1-5
+  notes: string;
+  highlights: string[];
+  areasToImprove: string[];
+  skillsWorked: FootballObjective[];
+  skillUpdates: Array<{
+    skill: FootballObjective;
+    previousLevel: number;
+    newLevel: number;
+  }>;
+  createdAt: string;
+}
+
+export interface SkillLevel {
+  skill: FootballObjective;
+  level: number; // 0-100
+  lastUpdated: string;
 }
