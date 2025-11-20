@@ -18,12 +18,23 @@ export const HapticTab = forwardRef<View, TabButtonProps>(function HapticTab(
       accessibilityState={accessibilityState}
       hitSlop={8}
       onPress={(ev) => {
+        if (__DEV__ && typeof console !== 'undefined') {
+          console.debug('[HapticTab] onPress', {
+            label: accessibilityLabel,
+            state: accessibilityState,
+          });
+        }
         onPress?.(ev);
       }}
       onPressIn={(ev) => {
         if (process.env.EXPO_OS === 'ios') {
           // Add a soft haptic feedback when pressing down on the tabs.
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          if (__DEV__ && typeof console !== 'undefined') {
+            console.debug('[HapticTab] haptic impact', {
+              label: accessibilityLabel,
+            });
+          }
         }
         onPressIn?.(ev);
       }}

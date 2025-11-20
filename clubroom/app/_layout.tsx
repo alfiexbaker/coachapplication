@@ -44,8 +44,12 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontError) {
       console.error('Failed to load icon fonts', fontError);
+    } else if (fontsLoaded) {
+      console.debug('[RootLayout] icon fonts loaded');
+    } else {
+      console.debug('[RootLayout] waiting for icon fonts');
     }
-  }, [fontError]);
+  }, [fontError, fontsLoaded]);
 
   if (!fontsLoaded && !fontError) {
     return null;

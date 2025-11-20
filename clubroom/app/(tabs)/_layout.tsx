@@ -18,8 +18,106 @@ export default function TabLayout() {
   const tabIcon = (name: React.ComponentProps<typeof Ionicons>['name']) => {
     const Icon = ({ color }: { color: string }) => <Ionicons name={name} size={24} color={color} />;
     Icon.displayName = `TabIcon(${name})`;
+    if (__DEV__ && typeof console !== 'undefined') {
+      console.debug('[TabLayout] create tab icon component', { name });
+    }
     return Icon;
   };
+
+  if (__DEV__ && typeof console !== 'undefined') {
+    console.debug('[TabLayout] render', {
+      colorScheme,
+      palette,
+      userRole: currentUser?.role ?? 'unknown',
+      isCoach,
+      isUser,
+    });
+  }
+
+  const screens: React.ReactElement[] = [];
+
+  if (isUser) {
+    screens.push(
+      <Tabs.Screen
+        key="index"
+        name="index"
+        options={{
+          title: 'Discover',
+          tabBarIcon: tabIcon('search'),
+        }}
+      />,
+    );
+  }
+
+  if (isCoach) {
+    screens.push(
+      <Tabs.Screen
+        key="availability"
+        name="availability"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: tabIcon('calendar'),
+        }}
+      />,
+    );
+  }
+
+  screens.push(
+    <Tabs.Screen
+      key="bookings"
+      name="bookings"
+      options={{
+        title: 'Bookings',
+        tabBarIcon: tabIcon('time-outline'),
+      }}
+    />,
+  );
+
+  screens.push(
+    <Tabs.Screen
+      key="messages"
+      name="messages"
+      options={{
+        title: 'Messages',
+        tabBarIcon: tabIcon('chatbubble-ellipses'),
+      }}
+    />,
+  );
+
+  screens.push(
+    <Tabs.Screen
+      key="profile"
+      name="profile"
+      options={{
+        title: 'Profile',
+        tabBarIcon: tabIcon('person'),
+      }}
+    />,
+  );
+
+  if (isCoach) {
+    screens.push(
+      <Tabs.Screen
+        key="hidden-index"
+        name="index"
+        options={{
+          href: null, // Hides from tab bar
+        }}
+      />,
+    );
+  }
+
+  if (isUser) {
+    screens.push(
+      <Tabs.Screen
+        key="hidden-availability"
+        name="availability"
+        options={{
+          href: null, // Hides from tab bar
+        }}
+      />,
+    );
+  }
 
   return (
     <Tabs
@@ -46,75 +144,9 @@ export default function TabLayout() {
         tabBarIconStyle: {
           marginTop: 4,
         },
-      }}>
-      {/* User/Parent tabs: Discover coaches */}
-      {isUser && (
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Discover',
-            tabBarIcon: tabIcon('search'),
-          }}
-        />
-      )}
-
-      {/* Coach tabs: Calendar/Availability is their home */}
-      {isCoach && (
-        <Tabs.Screen
-          name="availability"
-          options={{
-            title: 'Calendar',
-            tabBarIcon: tabIcon('calendar'),
-          }}
-        />
-      )}
-
-      {/* Bookings - shown to everyone but different meaning */}
-      <Tabs.Screen
-        name="bookings"
-        options={{
-          title: 'Bookings',
-          tabBarIcon: tabIcon('time-outline'),
-        }}
-      />
-
-      {/* Messages - shown to everyone */}
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarIcon: tabIcon('chatbubble-ellipses'),
-        }}
-      />
-
-      {/* Profile - shown to everyone */}
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: tabIcon('person'),
-        }}
-      />
-
-      {/* Hide index from coaches */}
-      {isCoach && (
-        <Tabs.Screen
-          name="index"
-          options={{
-            href: null, // Hides from tab bar
-          }}
-        />
-      )}
-
-      {/* Hide availability from users */}
-      {isUser && (
-        <Tabs.Screen
-          name="availability"
-          options={{
-            href: null, // Hides from tab bar
-          }}
-        />
-      )}
+      }}
+    >
+      {screens}
     </Tabs>
   );
 }
