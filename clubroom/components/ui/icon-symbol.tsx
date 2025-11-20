@@ -24,6 +24,7 @@ const MAPPING = {
   'clock': 'access-time',
   'person.circle': 'person',
   'person.circle.fill': 'account-circle',
+  'person.2.fill': 'group',
   'bubble.left.and.bubble.right.fill': 'chat-bubble',
   'photo.on.rectangle': 'photo',
   'shield.checkerboard': 'shield',
@@ -31,6 +32,8 @@ const MAPPING = {
   'paperclip': 'attach-file',
   'mic.fill': 'mic',
   'checkmark.seal.fill': 'verified',
+  'exclamationmark.triangle.fill': 'warning',
+  'gearshape.fill': 'settings',
 } as IconMapping;
 
 /**

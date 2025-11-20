@@ -31,22 +31,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const login = (username: string, password: string) => {
+    console.log('[Auth] Login attempt:', username);
     const normalizedUsername = username.trim().toLowerCase();
     const match = DEMO_USERS.find(
       (user) => user.username.toLowerCase() === normalizedUsername && user.password === password.trim()
     );
 
     if (match) {
+      console.log('[Auth] Login successful:', match.username, 'Role:', match.role);
       setCurrentUser(match);
       setError(null);
       return true;
     }
 
+    console.log('[Auth] Login failed: Invalid credentials');
     setError('Invalid username or password.');
     return false;
   };
 
   const logout = () => {
+    console.log('[Auth] Logout:', currentUser?.username);
     setCurrentUser(null);
     setError(null);
   };

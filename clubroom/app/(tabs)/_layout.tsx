@@ -12,9 +12,25 @@ export default function TabLayout() {
   const palette = Colors[colorScheme ?? 'light'];
   const { currentUser } = useAuth();
 
+  // DEBUG: Log current user and role
+  console.log('[TabLayout] Current user:', currentUser?.username, 'Role:', currentUser?.role);
+
   const isCoach = currentUser?.role === 'Coach';
   const isUser = currentUser?.role === 'User' || currentUser?.role === 'Parent';
   const isAdmin = currentUser?.role === 'Admin';
+
+  console.log('[TabLayout] Role flags:', { isCoach, isUser, isAdmin });
+
+  // DEBUG: Log which tab group is rendering
+  if (isAdmin) {
+    console.log('[TabLayout] Rendering ADMIN tabs');
+  } else if (isUser) {
+    console.log('[TabLayout] Rendering USER/PARENT tabs');
+  } else if (isCoach) {
+    console.log('[TabLayout] Rendering COACH tabs');
+  } else {
+    console.log('[TabLayout] WARNING: No role matched! Tabs may not render correctly');
+  }
 
   return (
     <Tabs
