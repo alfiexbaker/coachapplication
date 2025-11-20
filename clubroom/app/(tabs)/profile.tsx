@@ -1,6 +1,7 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -9,6 +10,10 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachProfileScreen from './coach-profile';
+import { mockUserProfile } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ProfileScreen');
 
 const ACTIONS = [
   {
@@ -57,56 +62,128 @@ export default function ProfileScreen() {
   const palette = Colors[scheme];
   const { currentUser, logout } = useAuth();
 
+  logger.debug('ProfileScreen rendered', {
+    userRole: currentUser?.role,
+    username: currentUser?.username,
+    isCoach: currentUser?.role === 'COACH'
+  });
+
   // If user is a coach, show the coach profile page
-  if (currentUser?.role === 'Coach') {
+  // Fixed: was checking 'Coach' (capitalized), now checking 'COACH' (uppercase)
+  if (currentUser?.role === 'COACH') {
+    logger.info('Showing coach profile screen');
     return <CoachProfileScreen />;
   }
 
   // Get actions based on role
-  const actions = currentUser?.role === 'Admin' ? ADMIN_ACTIONS : ACTIONS;
+  // Fixed: was checking 'Admin' (capitalized), now checking 'ADMIN' (uppercase)
+  const actions = currentUser?.role === 'ADMIN' ? ADMIN_ACTIONS : ACTIONS;
+
+  logger.debug('Actions loaded', {
+    actionsCount: actions.length,
+    isAdmin: currentUser?.role === 'ADMIN'
+  });
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            {currentUser?.role === 'Admin' ? 'Admin Settings' : 'Profile'}
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            {currentUser?.role === 'Admin'
-              ? 'Manage platform settings and configurations'
-              : 'Manage your account and preferences'}
-          </ThemedText>
-        </View>
-
-        <SurfaceCard style={styles.identityCard}>
-          <ThemedText type="defaultSemiBold">Signed in as</ThemedText>
-          <ThemedText type="title" style={styles.username}>
-            {currentUser?.username ?? 'Demo user'}
-          </ThemedText>
-          <View
-            style={[
-              styles.rolePill,
-              { backgroundColor: `${palette.premium}20`, borderColor: palette.premium },
-            ]}>
-            <ThemedText style={[styles.rolePillLabel, { color: palette.premium }]}>
-              {currentUser?.role ?? 'Guest'}
-            </ThemedText>
+        {/* User Profile Card */}
+        <SurfaceCard style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            {mockUserProfile.profilePhotoUrl ? (
+              <Image source={{ uri: mockUserProfile.profilePhotoUrl }} style={styles.profilePhoto} />
+            ) : (
+              <View style={[styles.profilePhoto, { backgroundColor: palette.border }]}>
+                <Ionicons name="person" size={40} color={palette.muted} />
+              </View>
+            )}
+            <View style={styles.profileInfo}>
+              <ThemedText type="subtitle" style={styles.profileName}>
+                {mockUserProfile.fullName}
+              </ThemedText>
+              <ThemedText style={[styles.profileEmail, { color: palette.muted }]}>
+                {mockUserProfile.email}
+              </ThemedText>
+              {mockUserProfile.phone && (
+                <ThemedText style={[styles.profilePhone, { color: palette.muted }]}>
+                  {mockUserProfile.phone}
+                </ThemedText>
+              )}
+            </View>
           </View>
-          <ThemedText style={styles.identityHelper}>
-            Authentication is intentionally hardcoded so you can preview how the rest of the build feels
-            from different roles before wiring up a backend.
-          </ThemedText>
+
+          {mockUserProfile.bio && (
+            <ThemedText style={[styles.profileBio, { color: palette.muted }]}>
+              {mockUserProfile.bio}
+            </ThemedText>
+          )}
+
+          {mockUserProfile.children && mockUserProfile.children.length > 0 && (
+            <View style={styles.childrenSection}>
+              <ThemedText type="defaultSemiBold" style={styles.childrenLabel}>
+                Children
+              </ThemedText>
+              {mockUserProfile.children.map((child, index) => (
+                <View key={index} style={styles.childItem}>
+                  <Ionicons name="person-circle-outline" size={20} color={palette.muted} />
+                  <ThemedText style={{ color: palette.foreground }}>
+                    {child.name}, {child.age}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          )}
+
           <Pressable
             style={({ pressed }) => [
-              styles.signOutButton,
+              styles.editButton,
               {
                 backgroundColor: pressed ? palette.tintPressed : palette.tint,
               },
             ]}
-            onPress={logout}>
-            <ThemedText style={styles.signOutLabel} lightColor="#FFFFFF" darkColor="#000000">
-              Sign out
+            onPress={() => {
+              logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-user-profile' });
+              router.push('/(tabs)/edit-user-profile');
+            }}>
+            <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+            <ThemedText style={styles.editButtonLabel} lightColor="#FFFFFF" darkColor="#000000">
+              Edit Profile
+            </ThemedText>
+          </Pressable>
+        </SurfaceCard>
+
+        {/* Role & Sign Out */}
+        <SurfaceCard style={styles.identityCard}>
+          <View style={styles.roleRow}>
+            <ThemedText type="defaultSemiBold">Account Type</ThemedText>
+            <View
+              style={[
+                styles.rolePill,
+                { backgroundColor: `${palette.premium}20`, borderColor: palette.premium },
+              ]}>
+              <ThemedText style={[styles.rolePillLabel, { color: palette.premium }]}>
+                {currentUser?.role ?? 'Guest'}
+              </ThemedText>
+            </View>
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.signOutButton,
+              {
+                backgroundColor: pressed ? `${palette.destructive}20` : 'transparent',
+                borderColor: palette.destructive,
+              },
+            ]}
+            onPress={() => {
+              logger.press('SignOutButton', {
+                username: currentUser?.username,
+                role: currentUser?.role
+              });
+              logout();
+            }}>
+            <ThemedText style={[styles.signOutLabel, { color: palette.destructive }]}>
+              Sign Out
             </ThemedText>
           </Pressable>
         </SurfaceCard>
@@ -114,10 +191,16 @@ export default function ProfileScreen() {
           <SurfaceCard
             key={action.title}
             onPress={() => {
+              logger.press('ActionCard', {
+                title: action.title,
+                route: action.route,
+                hasRoute: !!action.route
+              });
               if (action.route) {
+                logger.navigate('ProfileScreen', action.route);
                 router.push(action.route as any);
               } else {
-                console.log('Navigate to', action.title);
+                logger.warn('Action card pressed but no route defined', { title: action.title });
               }
             }}>
             <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
@@ -153,30 +236,71 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['2xl'],
     gap: Spacing.lg,
   },
-  header: {
-    gap: Spacing.xs + 2,
-    marginBottom: Spacing.sm,
+  profileCard: {
+    gap: Spacing.lg,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
   },
-  subtitle: {
+  profilePhoto: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInfo: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  profileEmail: {
+    fontSize: 15,
+  },
+  profilePhone: {
+    fontSize: 14,
+  },
+  profileBio: {
     fontSize: 15,
     lineHeight: 22,
-    fontWeight: '500',
+  },
+  childrenSection: {
+    gap: Spacing.sm,
+  },
+  childrenLabel: {
+    fontSize: 15,
+  },
+  childItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  editButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: 999,
+  },
+  editButtonLabel: {
+    fontWeight: '700',
+    fontSize: 16,
   },
   identityCard: {
     gap: Spacing.md,
   },
-  username: {
-    marginTop: -Spacing.xs,
-    fontSize: 28,
-    fontWeight: '800',
+  roleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   rolePill: {
-    alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: 999,
@@ -188,19 +312,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontSize: 11,
   },
-  identityHelper: {
-    color: '#6B7280',
-    fontSize: 15,
-    lineHeight: 22,
-  },
   signOutButton: {
-    marginTop: Spacing.md,
     paddingVertical: Spacing.md,
     borderRadius: 999,
     alignItems: 'center',
+    borderWidth: 2,
   },
   signOutLabel: {
-    fontWeight: '800',
+    fontWeight: '700',
     fontSize: 15,
   },
   actionTitle: {

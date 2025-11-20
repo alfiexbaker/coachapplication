@@ -1,531 +1,850 @@
-import {
-  AthleteObjective,
-  BookingSummary,
-  ChatMessage,
-  ChatThreadSummary,
+import type {
+  User,
+  UserRole,
   CoachProfile,
-  PaymentReminder,
-  SessionHistoryEntry,
-  School,
-  InviteCode,
-  CoachReview,
+  UserProfile,
+  Relationship,
+  Booking,
+  Session,
+  Goal,
+  Conversation,
+  Message,
+  Post,
+  Review,
+  SkillLevel,
+  BookingStatus,
+  GoalStatus,
+} from './app-types';
+
+import type {
+  ChatThreadSummary,
+  ChatMessage,
+  UserProfile as EnhancedUserProfile,
+  CoachProfile as EnhancedCoachProfile,
+  BookingSummary,
+  ChatSender,
 } from './types';
 
-const coachPhotos = [
-  'https://images.unsplash.com/photo-1544717302-de2939b7ef71?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1508174432729-1d8663b438c1?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=800&q=80',
-];
+// ===== USERS =====
+export const MOCK_USERS: User[] = [
+  // Coaches
+  {
+    id: 'coach1',
+    email: 'sarah.mitchell@coach.com',
+    role: 'COACH',
+    name: 'Sarah Mitchell',
+    avatar: '🧤',
+    postcode: 'SW1A 1AA',
+    dateOfBirth: '1988-03-15',
+  },
+  {
+    id: 'coach2',
+    email: 'mike.thompson@coach.com',
+    role: 'COACH',
+    name: 'Mike Thompson',
+    avatar: '⚽',
+    postcode: 'SW1A 2AA',
+    dateOfBirth: '1985-07-22',
+  },
+  {
+    id: 'coach3',
+    email: 'david.roberts@coach.com',
+    role: 'COACH',
+    name: 'David Roberts',
+    avatar: '🥅',
+    postcode: 'SW2A 1BB',
+    dateOfBirth: '1990-11-08',
+  },
 
-const coverPhotos = [
-  'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=1200&q=80',
-];
+  // Users (Athletes)
+  {
+    id: 'user1',
+    email: 'tom.henderson@email.com',
+    role: 'USER',
+    name: 'Tom Henderson',
+    avatar: '👦',
+    postcode: 'SW1A 3CC',
+    dateOfBirth: '2008-05-12',
+  },
+  {
+    id: 'user2',
+    email: 'emma.henderson@email.com',
+    role: 'USER',
+    name: 'Emma Henderson',
+    avatar: '👧',
+    postcode: 'SW1A 3CC',
+    dateOfBirth: '2009-08-20',
+  },
+  {
+    id: 'user3',
+    email: 'james.wilson@email.com',
+    role: 'USER',
+    name: 'James Wilson',
+    avatar: '🧑',
+    postcode: 'SW1A 4DD',
+    dateOfBirth: '2007-12-03',
+  },
 
-// Schools
-export const schools: School[] = [
+  // Parents
   {
-    id: 'school-1',
-    name: "Maya's High Press Lab",
-    address: '123 Football Drive',
-    city: 'Austin',
-    state: 'TX',
-    zipCode: '78701',
-    photoUrl: 'https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=800&q=80',
-    description: 'Elite football training facility focused on attacking play and technical development.',
-    activeCoachesCount: 8,
-    createdAt: '2024-01-15T00:00:00Z',
+    id: 'parent1',
+    email: 'john.henderson@email.com',
+    role: 'PARENT',
+    name: 'John Henderson',
+    avatar: '👨',
+    postcode: 'SW1A 3CC',
+    dateOfBirth: '1980-02-14',
   },
   {
-    id: 'school-2',
-    name: 'North Texas Shield Collective',
-    address: '456 Defense Boulevard',
-    city: 'Dallas',
-    state: 'TX',
-    zipCode: '75201',
-    photoUrl: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=800&q=80',
-    description: 'Defensive excellence and tactical awareness training center.',
-    activeCoachesCount: 12,
-    createdAt: '2024-01-10T00:00:00Z',
-  },
-  {
-    id: 'school-3',
-    name: "Cam's Safe Hands Lab",
-    address: '789 Goalkeeper Way',
-    city: 'Houston',
-    state: 'TX',
-    zipCode: '77002',
-    photoUrl: 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?auto=format&fit=crop&w=800&q=80',
-    description: 'Premier goalkeeper academy with state-of-the-art training equipment.',
-    activeCoachesCount: 5,
-    createdAt: '2024-01-20T00:00:00Z',
-  },
-];
-
-// Invite Codes
-export const inviteCodes: InviteCode[] = [
-  {
-    id: 'invite-1',
-    code: 'HIGHPRESS2024',
-    schoolId: 'school-1',
-    schoolName: "Maya's High Press Lab",
-    createdBy: 'admin-1',
-    createdAt: '2024-03-01T00:00:00Z',
-    expiresAt: '2024-12-31T23:59:59Z',
-    maxUses: 20,
-    currentUses: 8,
-    status: 'active',
-  },
-  {
-    id: 'invite-2',
-    code: 'SHIELD2024',
-    schoolId: 'school-2',
-    schoolName: 'North Texas Shield Collective',
-    createdBy: 'admin-1',
-    createdAt: '2024-03-01T00:00:00Z',
-    expiresAt: '2024-12-31T23:59:59Z',
-    maxUses: 30,
-    currentUses: 12,
-    status: 'active',
-  },
-  {
-    id: 'invite-3',
-    code: 'SAFEHANDS2024',
-    schoolId: 'school-3',
-    schoolName: "Cam's Safe Hands Lab",
-    createdBy: 'admin-1',
-    createdAt: '2024-03-01T00:00:00Z',
-    expiresAt: '2024-12-31T23:59:59Z',
-    maxUses: 15,
-    currentUses: 5,
-    status: 'active',
+    id: 'parent2',
+    email: 'lisa.wilson@email.com',
+    role: 'PARENT',
+    name: 'Lisa Wilson',
+    avatar: '👩',
+    postcode: 'SW1A 4DD',
+    dateOfBirth: '1982-09-25',
   },
 ];
 
-export const coachProfiles: CoachProfile[] = [
+// ===== COACH PROFILES =====
+export const MOCK_COACH_PROFILES: CoachProfile[] = [
   {
-    id: 'coach-1',
-    fullName: 'Maya Ellis',
+    userId: 'coach1',
+    bio: '15 years experience coaching goalkeepers at all levels. Former professional goalkeeper with expertise in shot-stopping, positioning, and distribution.',
+    qualifications: ['UEFA B License', 'FA Level 3', 'Advanced Goalkeeping Coach'],
+    specialties: ['Goalkeeping', 'Shot Stopping', 'Positioning', 'Distribution'],
+    yearsExperience: 15,
+    sessionRate: 50,
+    availability: [
+      { id: 'av1', dayOfWeek: 1, startTime: '16:00', endTime: '19:00', location: 'Hyde Park' },
+      { id: 'av2', dayOfWeek: 3, startTime: '16:00', endTime: '19:00', location: 'Hyde Park' },
+      { id: 'av3', dayOfWeek: 5, startTime: '15:00', endTime: '18:00', location: 'Regent\'s Park' },
+    ],
+    rating: 4.9,
+    totalReviews: 47,
+    totalSessions: 230,
+  },
+  {
+    userId: 'coach2',
+    bio: 'Specialist in striker development with focus on finishing, movement, and clinical goal-scoring. Worked with academy players at Championship level.',
+    qualifications: ['UEFA A License', 'FA Level 4', 'Sports Science Degree'],
+    specialties: ['Striker Training', 'Finishing', 'Movement', 'First Touch'],
+    yearsExperience: 12,
+    sessionRate: 45,
+    availability: [
+      { id: 'av4', dayOfWeek: 2, startTime: '17:00', endTime: '20:00', location: 'Victoria Park' },
+      { id: 'av5', dayOfWeek: 4, startTime: '17:00', endTime: '20:00', location: 'Victoria Park' },
+      { id: 'av6', dayOfWeek: 6, startTime: '10:00', endTime: '14:00', location: 'Hackney Marshes' },
+    ],
+    rating: 4.7,
+    totalReviews: 38,
+    totalSessions: 185,
+  },
+  {
+    userId: 'coach3',
+    bio: 'Youth development coach focusing on technical skills, ball control, and game intelligence for midfielders and attackers.',
+    qualifications: ['FA Level 2', 'Youth Development Certificate'],
+    specialties: ['Ball Control', 'Passing', 'Tactical Awareness', 'Dribbling'],
+    yearsExperience: 8,
+    sessionRate: 40,
+    availability: [
+      { id: 'av7', dayOfWeek: 1, startTime: '16:30', endTime: '19:30', location: 'Clapham Common' },
+      { id: 'av8', dayOfWeek: 3, startTime: '16:30', endTime: '19:30', location: 'Clapham Common' },
+      { id: 'av9', dayOfWeek: 0, startTime: '09:00', endTime: '12:00', location: 'Battersea Park' },
+    ],
+    rating: 4.8,
+    totalReviews: 29,
+    totalSessions: 142,
+  },
+];
+
+// ===== USER PROFILES =====
+export const MOCK_USER_PROFILES: UserProfile[] = [
+  {
+    userId: 'user1',
+    bio: 'Striker looking to make the school team. Love scoring goals and working on my finishing.',
+    skillLevel: 'INTERMEDIATE',
+    position: 'Striker',
+    goals: [], // Will be populated from MOCK_GOALS
+    parentId: 'parent1',
+  },
+  {
+    userId: 'user2',
+    bio: 'Midfielder who enjoys passing and creating chances. Want to improve my game vision.',
+    skillLevel: 'BEGINNER',
+    position: 'Midfielder',
+    goals: [],
+    parentId: 'parent1',
+  },
+  {
+    userId: 'user3',
+    bio: 'Determined to play at a higher level. Working hard on all aspects of my game.',
+    skillLevel: 'ADVANCED',
+    position: 'Winger',
+    goals: [],
+    parentId: 'parent2',
+  },
+];
+
+// ===== RELATIONSHIPS =====
+export const MOCK_RELATIONSHIPS: Relationship[] = [
+  {
+    id: 'rel1',
+    parentId: 'parent1',
+    childId: 'user1',
+    relationshipType: 'PARENT_CHILD',
+  },
+  {
+    id: 'rel2',
+    parentId: 'parent1',
+    childId: 'user2',
+    relationshipType: 'PARENT_CHILD',
+  },
+  {
+    id: 'rel3',
+    parentId: 'parent2',
+    childId: 'user3',
+    relationshipType: 'PARENT_CHILD',
+  },
+];
+
+// ===== BOOKINGS =====
+const today = new Date();
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+const nextWeek = new Date(today);
+nextWeek.setDate(nextWeek.getDate() + 7);
+const lastWeek = new Date(today);
+lastWeek.setDate(lastWeek.getDate() - 7);
+
+export const MOCK_BOOKINGS: Booking[] = [
+  // Upcoming bookings
+  {
+    id: 'book1',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    bookedById: 'parent1',
+    status: 'CONFIRMED',
+    scheduledAt: tomorrow.toISOString(),
+    duration: 60,
+    location: 'Hyde Park',
+    notes: 'Focus on positioning and shot-stopping',
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'book2',
+    coachId: 'coach2',
+    athleteId: 'user1',
+    bookedById: 'parent1',
+    status: 'PENDING',
+    scheduledAt: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    duration: 60,
+    location: 'Victoria Park',
+    notes: 'Work on finishing with weak foot',
+    coachName: 'Mike Thompson',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'book3',
+    coachId: 'coach3',
+    athleteId: 'user2',
+    bookedById: 'parent1',
+    status: 'CONFIRMED',
+    scheduledAt: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    duration: 60,
+    location: 'Clapham Common',
+    notes: 'First session - assess current ability',
+    coachName: 'David Roberts',
+    athleteName: 'Emma Henderson',
+  },
+  {
+    id: 'book4',
+    coachId: 'coach2',
+    athleteId: 'user3',
+    bookedById: 'user3',
+    status: 'CONFIRMED',
+    scheduledAt: nextWeek.toISOString(),
+    duration: 60,
+    location: 'Hackney Marshes',
+    coachName: 'Mike Thompson',
+    athleteName: 'James Wilson',
+  },
+];
+
+// ===== SESSIONS (Past completed bookings) =====
+export const MOCK_SESSIONS: Session[] = [
+  {
+    id: 'sess1',
+    bookingId: 'book_past1',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    completedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: 'Tom showed great improvement today. His positioning has gotten much better, and he\'s starting to read the game well. We worked on diving technique and he\'s becoming more confident coming off his line.',
+    skillsWorkedOn: ['Positioning', 'Shot Stopping', 'Diving Technique'],
+    performanceRating: 4,
+    nextFocusAreas: ['Distribution', 'One-on-one situations'],
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'sess2',
+    bookingId: 'book_past2',
+    coachId: 'coach2',
+    athleteId: 'user1',
+    completedAt: new Date(today.getTime() - 9 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: 'Excellent session focusing on finishing. Tom is getting more power in his shots and his weak foot is improving rapidly. Needs to work on composure in front of goal.',
+    skillsWorkedOn: ['Finishing', 'Weak Foot', 'Shot Power'],
+    performanceRating: 5,
+    nextFocusAreas: ['Composure', 'First touch in the box'],
+    coachName: 'Mike Thompson',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'sess3',
+    bookingId: 'book_past3',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    completedAt: new Date(today.getTime() - 16 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: 'Good session but Tom seemed a bit tired. We kept it light and focused on technique rather than intensity. His handling is solid.',
+    skillsWorkedOn: ['Handling', 'Footwork', 'Communication'],
+    performanceRating: 3,
+    nextFocusAreas: ['Build fitness', 'Reaction speed'],
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'sess4',
+    bookingId: 'book_past4',
+    coachId: 'coach3',
+    athleteId: 'user2',
+    completedAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: 'First session with Emma. She has good basic technique and is eager to learn. We focused on passing accuracy and receiving the ball under pressure.',
+    skillsWorkedOn: ['Passing', 'First Touch', 'Ball Control'],
+    performanceRating: 4,
+    nextFocusAreas: ['Vision', 'Decision making'],
+    coachName: 'David Roberts',
+    athleteName: 'Emma Henderson',
+  },
+  {
+    id: 'sess5',
+    bookingId: 'book_past5',
+    coachId: 'coach2',
+    athleteId: 'user3',
+    completedAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: 'James is very talented and works extremely hard. We did advanced finishing drills and he picked everything up quickly. His movement off the ball is exceptional.',
+    skillsWorkedOn: ['Finishing', 'Movement', 'Positioning'],
+    performanceRating: 5,
+    nextFocusAreas: ['Hold-up play', 'Link-up with teammates'],
+    coachName: 'Mike Thompson',
+    athleteName: 'James Wilson',
+  },
+  // More sessions for analytics
+  {
+    id: 'sess6',
+    bookingId: 'book_past6',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    completedAt: new Date(today.getTime() - 23 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: 'Introduction session. Tom has good natural ability and is very coachable.',
+    skillsWorkedOn: ['Basic Technique', 'Positioning', 'Handling'],
+    performanceRating: 4,
+    nextFocusAreas: ['Shot stopping', 'Footwork'],
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'sess7',
+    bookingId: 'book_past7',
+    coachId: 'coach2',
+    athleteId: 'user3',
+    completedAt: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: 'Great progress from James. His finishing is clinical now.',
+    skillsWorkedOn: ['Finishing', 'First Touch', 'Composure'],
+    performanceRating: 5,
+    nextFocusAreas: ['Headers', 'Weak foot'],
+    coachName: 'Mike Thompson',
+    athleteName: 'James Wilson',
+  },
+  // Additional sessions for coach analytics
+  {
+    id: 'sess8',
+    bookingId: 'book_past8',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    completedAt: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: 'Second session. Building on basics.',
+    skillsWorkedOn: ['Shot Stopping', 'Distribution'],
+    performanceRating: 4,
+    nextFocusAreas: ['Command of box'],
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Tom Henderson',
+  },
+];
+
+// ===== GOALS =====
+export const MOCK_GOALS: Goal[] = [
+  {
+    id: 'goal1',
+    userId: 'user1',
+    title: 'Make School Team',
+    description: 'Get selected for the school football team tryouts in January',
+    targetDate: '2026-01-15',
+    status: 'ACTIVE',
+    progress: 60,
+    createdAt: new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'goal2',
+    userId: 'user1',
+    title: 'Improve Weak Foot',
+    description: 'Be comfortable shooting and passing with my left foot',
+    status: 'ACTIVE',
+    progress: 45,
+    createdAt: new Date(today.getTime() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'goal3',
+    userId: 'user2',
+    title: 'Complete 10 Sessions',
+    description: 'Attend 10 coaching sessions to build fundamentals',
+    targetDate: '2026-03-01',
+    status: 'ACTIVE',
+    progress: 20,
+    createdAt: new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'goal4',
+    userId: 'user3',
+    title: 'Join Academy',
+    description: 'Trial for a professional academy',
+    targetDate: '2026-06-01',
+    status: 'ACTIVE',
+    progress: 75,
+    createdAt: new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ===== CONVERSATIONS =====
+export const MOCK_CONVERSATIONS: Conversation[] = [
+  {
+    id: 'conv1',
+    participants: ['coach1', 'parent1'],
+    relatedAthleteId: 'user1',
+    lastMessageAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    lastMessage: 'See you tomorrow at 3!',
+    unreadCount: 0,
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'conv2',
+    participants: ['coach2', 'parent1'],
+    relatedAthleteId: 'user1',
+    lastMessageAt: new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    lastMessage: 'Tom is making great progress with his finishing!',
+    unreadCount: 1,
+    coachName: 'Mike Thompson',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'conv3',
+    participants: ['coach3', 'parent1'],
+    relatedAthleteId: 'user2',
+    lastMessageAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    lastMessage: 'Emma did really well in her first session',
+    unreadCount: 0,
+    coachName: 'David Roberts',
+    athleteName: 'Emma Henderson',
+  },
+  {
+    id: 'conv4',
+    participants: ['coach2', 'user3'],
+    relatedAthleteId: 'user3',
+    lastMessageAt: new Date(today.getTime() - 3 * 60 * 60 * 1000).toISOString(),
+    lastMessage: 'Thanks for the session coach!',
+    unreadCount: 0,
+    coachName: 'Mike Thompson',
+    athleteName: 'James Wilson',
+  },
+];
+
+// ===== MESSAGES =====
+export const MOCK_MESSAGES: Message[] = [
+  // Conversation 1 (coach1 <-> parent1 about user1)
+  {
+    id: 'msg1',
+    conversationId: 'conv1',
+    senderId: 'parent1',
+    senderName: 'John Henderson',
+    content: 'Hi Sarah, can we book a session for tomorrow at 3pm?',
+    sentAt: new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+  {
+    id: 'msg2',
+    conversationId: 'conv1',
+    senderId: 'coach1',
+    senderName: 'Sarah Mitchell',
+    content: 'Yes that works perfectly! Hyde Park as usual?',
+    sentAt: new Date(today.getTime() - 3 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+  {
+    id: 'msg3',
+    conversationId: 'conv1',
+    senderId: 'parent1',
+    senderName: 'John Henderson',
+    content: 'Perfect, yes please. Tom is really looking forward to it.',
+    sentAt: new Date(today.getTime() - 2.5 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+  {
+    id: 'msg4',
+    conversationId: 'conv1',
+    senderId: 'coach1',
+    senderName: 'Sarah Mitchell',
+    content: 'See you tomorrow at 3!',
+    sentAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+
+  // Conversation 2 (coach2 <-> parent1 about user1)
+  {
+    id: 'msg5',
+    conversationId: 'conv2',
+    senderId: 'coach2',
+    senderName: 'Mike Thompson',
+    content: 'Tom is making great progress with his finishing!',
+    sentAt: new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    read: false,
+  },
+];
+
+// ===== POSTS =====
+export const MOCK_POSTS: Post[] = [
+  {
+    id: 'post1',
+    authorId: 'user3',
+    authorName: 'James Wilson',
+    authorAvatar: '🧑',
+    content: 'Just achieved my goal of scoring 20 goals this season! Thanks to Coach Mike for all the help! 🎉⚽',
+    likes: ['user1', 'parent1', 'coach2'],
+    createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'post2',
+    authorId: 'coach2',
+    authorName: 'Mike Thompson',
+    authorAvatar: '⚽',
+    content: '5 essential drills to improve your first touch:\n1. Wall passes\n2. Close control circles\n3. Cushion control\n4. Directional first touch\n5. Game situations',
+    likes: ['user1', 'user2', 'user3', 'parent1', 'parent2'],
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'post3',
+    authorId: 'user1',
+    authorName: 'Tom Henderson',
+    authorAvatar: '👦',
+    content: 'Great session today working on positioning. Feeling more confident! 💪',
+    likes: ['parent1', 'coach1', 'user3'],
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ===== REVIEWS =====
+export const MOCK_REVIEWS: Review[] = [
+  {
+    id: 'rev1',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    rating: 5,
+    comment: 'Amazing coach! Sarah has really helped Tom develop his goalkeeping skills. He\'s so much more confident now.',
+    createdAt: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'rev2',
+    coachId: 'coach2',
+    athleteId: 'user1',
+    rating: 5,
+    comment: 'Mike is excellent at teaching finishing techniques. Tom\'s goal-scoring has improved dramatically.',
+    createdAt: new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'rev3',
+    coachId: 'coach2',
+    athleteId: 'user3',
+    rating: 5,
+    comment: 'Outstanding coach. Very professional and knows how to get the best out of players.',
+    createdAt: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    athleteName: 'James Wilson',
+  },
+];
+
+// ===== HELPER FUNCTIONS =====
+
+export function getUserById(id: string): User | undefined {
+  return MOCK_USERS.find((u) => u.id === id);
+}
+
+export function getCoachProfile(userId: string): CoachProfile | undefined {
+  return MOCK_COACH_PROFILES.find((cp) => cp.userId === userId);
+}
+
+export function getUserProfile(userId: string): UserProfile | undefined {
+  return MOCK_USER_PROFILES.find((up) => up.userId === userId);
+}
+
+export function getChildrenForParent(parentId: string): User[] {
+  const childIds = MOCK_RELATIONSHIPS.filter((r) => r.parentId === parentId).map((r) => r.childId);
+  return MOCK_USERS.filter((u) => childIds.includes(u.id));
+}
+
+export function getBookingsForCoach(coachId: string): Booking[] {
+  return MOCK_BOOKINGS.filter((b) => b.coachId === coachId);
+}
+
+export function getBookingsForAthlete(athleteId: string): Booking[] {
+  return MOCK_BOOKINGS.filter((b) => b.athleteId === athleteId);
+}
+
+export function getSessionsForCoach(coachId: string): Session[] {
+  return MOCK_SESSIONS.filter((s) => s.coachId === coachId);
+}
+
+export function getSessionsForAthlete(athleteId: string): Session[] {
+  return MOCK_SESSIONS.filter((s) => s.athleteId === athleteId);
+}
+
+export function getGoalsForUser(userId: string): Goal[] {
+  return MOCK_GOALS.filter((g) => g.userId === userId);
+}
+
+export function getConversationsForUser(userId: string): Conversation[] {
+  return MOCK_CONVERSATIONS.filter((c) => c.participants.includes(userId));
+}
+
+export function getMessagesForConversation(conversationId: string): Message[] {
+  return MOCK_MESSAGES.filter((m) => m.conversationId === conversationId);
+}
+
+export function getReviewsForCoach(coachId: string): Review[] {
+  return MOCK_REVIEWS.filter((r) => r.coachId === coachId);
+}
+
+// Get all coaches with their profiles (for search/discover)
+export function getAllCoachesWithProfiles(): Array<User & { profile: CoachProfile }> {
+  return MOCK_USERS.filter((u) => u.role === 'COACH').map((coach) => ({
+    ...coach,
+    profile: getCoachProfile(coach.id)!,
+  }));
+}
+
+// Calculate distance between postcodes (mock - just returns random for now)
+export function getDistanceBetweenPostcodes(postcode1: string, postcode2: string): number {
+  // Mock: return a distance between 0.1 and 5 miles
+  return Math.random() * 4.9 + 0.1;
+}
+
+// Format currency in GBP
+export function formatGBP(amount: number): string {
+  return `£${amount.toFixed(0)}`;
+}
+
+// Format date/time helpers
+export function formatTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+export function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+export function formatDateTime(date: Date | string): string {
+  return `${formatDate(date)}, ${formatTime(date)}`;
+}
+
+// ===== ADDITIONAL EXPORTS FOR COMPATIBILITY =====
+
+// Chat threads for MessagesScreen
+export const chatThreads: ChatThreadSummary[] = MOCK_CONVERSATIONS.map((conv) => ({
+  id: conv.id,
+  bookingId: 'book1', // Mock booking ID
+  coachName: conv.coachName,
+  childName: conv.athleteName,
+  serviceName: 'Coaching Session',
+  location: 'Hyde Park',
+  scheduledFor: conv.lastMessageAt,
+  unreadCount: conv.unreadCount,
+  safetyCopy: 'All conversations are monitored for safety',
+  pinnedObjectives: ['Finishing', 'Passing'],
+}));
+
+// Chat messages for MessagesScreen
+export const chatMessages: ChatMessage[] = MOCK_MESSAGES.map((msg) => ({
+  id: msg.id,
+  sender: msg.senderId.startsWith('coach') ? 'coach' : 'parent',
+  body: msg.content,
+  createdAt: msg.sentAt,
+  status: msg.read ? 'seen' : 'delivered',
+}));
+
+// Mock user profile for ProfileScreen
+export const mockUserProfile: EnhancedUserProfile = {
+  id: 'user1',
+  fullName: 'John Henderson',
+  email: 'john.henderson@email.com',
+  phone: '+1 (555) 123-4567',
+  profilePhotoUrl: 'https://i.pravatar.cc/150?u=john',
+  bio: 'Proud parent of two young athletes. Love supporting my kids in their football journey!',
+  role: 'Parent',
+  joinedDate: new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+  children: [
+    { name: 'Tom Henderson', age: 15 },
+    { name: 'Emma Henderson', age: 14 },
+  ],
+};
+
+// Enhanced coach profiles for CoachProfileScreen
+export const coachProfiles: EnhancedCoachProfile[] = [
+  {
+    id: 'coach1',
+    fullName: 'Sarah Mitchell',
     primarySport: 'Football',
     sports: ['Football'],
-    city: 'Austin',
-    state: 'TX',
-    distanceMiles: 4.2,
-    rating: { average: 4.9, reviewCount: 86 },
-    priceRange: { minUsd: 90, maxUsd: 140, unitLabel: 'session' },
-    nextAvailability: '2024-03-16T15:00:00Z',
+    city: 'London',
+    state: 'England',
+    distanceMiles: 2.3,
+    rating: {
+      average: 4.9,
+      reviewCount: 47,
+    },
+    priceRange: {
+      minUsd: 50,
+      maxUsd: 80,
+      unitLabel: 'per session',
+    },
+    nextAvailability: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
     badges: [
-      { id: 'verified', label: 'Background check', tone: 'success' },
-      { id: 'pro', label: 'Pro experience' },
+      { id: 'b1', label: 'Verified', tone: 'success' },
+      { id: 'b2', label: 'Background Check', tone: 'success' },
+      { id: 'b3', label: 'Top Rated', tone: 'warning' },
     ],
     sessionFormats: ['In-person', 'Small group'],
-    shortBio:
-      'UEFA B coach building first-touch confidence for wingers and attacking mids with film + GPS data.',
-    profilePhotoUrl: coachPhotos[0],
-    coverPhotoUrl: coverPhotos[0],
-    schoolName: "Maya's High Press Lab",
-    schoolId: 'school-1',
-    footballFocuses: ['Dribbling', 'Finishing', 'Passing'],
-    location: { lat: 30.27, lng: -97.74 },
-    bio: 'Passionate football coach with 10+ years of experience developing young athletes. I specialize in attacking play, technical skills, and building player confidence. My coaching philosophy centers on creating a positive, challenging environment where players can unlock their full potential through structured training, video analysis, and personalized feedback.',
-    phone: '+1 (512) 555-0123',
-    email: 'maya@highpresslab.com',
-    website: 'https://highpresslab.com',
-    joinedDate: '2024-01-15T00:00:00Z',
-    totalSessions: 342,
-    languages: ['English', 'Spanish'],
-    achievements: [
-      'UEFA B Licensed Coach',
-      '5x Regional Coach of the Year',
-      'Developed 12 players to collegiate level',
-      '100+ 5-star reviews',
-    ],
+    shortBio: '15 years experience coaching goalkeepers at all levels.',
+    profilePhotoUrl: 'https://i.pravatar.cc/300?u=sarah',
+    coverPhotoUrl: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800',
+    footballFocuses: ['Goalkeeping', 'Defending'],
+    schoolName: 'Premier Football Academy',
+    schoolId: 'school1',
+    location: {
+      lat: 51.5074,
+      lng: -0.1278,
+    },
+    bio: '15 years experience coaching goalkeepers at all levels. Former professional goalkeeper with expertise in shot-stopping, positioning, and distribution. Passionate about developing young talent and building confidence.',
+    phone: '+44 20 1234 5678',
+    email: 'sarah.mitchell@coach.com',
+    website: 'https://sarahmitchellcoaching.com',
+    joinedDate: new Date(today.getTime() - 365 * 3 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 230,
     experiences: [
       {
-        id: 'exp-1',
-        title: 'Head Coach',
-        organization: "Maya's High Press Lab",
-        startDate: '2024-01-15T00:00:00Z',
+        id: 'exp1',
+        title: 'Head Goalkeeping Coach',
+        organization: 'Premier Football Academy',
+        startDate: '2018-01-01',
         current: true,
-        description: 'Founded and lead elite football training facility focused on technical development.',
+        description: 'Lead goalkeeper development program for youth players',
       },
       {
-        id: 'exp-2',
-        title: 'Technical Director',
-        organization: 'Austin Youth Soccer Academy',
-        startDate: '2020-06-01T00:00:00Z',
-        endDate: '2024-01-01T00:00:00Z',
+        id: 'exp2',
+        title: 'Professional Goalkeeper',
+        organization: 'London United FC',
+        startDate: '2005-01-01',
+        endDate: '2015-12-31',
         current: false,
-        description: 'Developed curriculum and coached competitive youth teams ages 12-18.',
-      },
-      {
-        id: 'exp-3',
-        title: 'Professional Player',
-        organization: 'NWSL - Portland Thorns',
-        startDate: '2016-01-01T00:00:00Z',
-        endDate: '2019-12-31T00:00:00Z',
-        current: false,
-        description: 'Midfielder/Forward - 3 seasons professional experience.',
+        description: 'Professional career spanning 10 years',
       },
     ],
     certifications: [
       {
-        id: 'cert-1',
-        name: 'UEFA B Coaching License',
+        id: 'cert1',
+        name: 'UEFA B License',
         issuer: 'UEFA',
-        issueDate: '2020-08-15T00:00:00Z',
+        issueDate: '2016-06-15',
       },
       {
-        id: 'cert-2',
-        name: 'USSF National C License',
-        issuer: 'US Soccer Federation',
-        issueDate: '2019-03-20T00:00:00Z',
-      },
-      {
-        id: 'cert-3',
-        name: 'SafeSport Certified',
-        issuer: 'U.S. Center for SafeSport',
-        issueDate: '2024-01-01T00:00:00Z',
-        expiryDate: '2025-01-01T00:00:00Z',
+        id: 'cert2',
+        name: 'FA Level 3 Goalkeeping',
+        issuer: 'The FA',
+        issueDate: '2015-03-20',
       },
     ],
     posts: [
       {
-        id: 'post-1',
-        coachId: 'coach-1',
-        content: 'Incredible session with the U14 squad today! Working on quick combination play and finishing under pressure. So proud of the progress! 🔥⚽',
-        mediaUrls: [
-          'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
-          'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?auto=format&fit=crop&w=800&q=80',
-        ],
-        mediaType: 'photo',
-        createdAt: '2024-03-14T18:30:00Z',
-        likes: 42,
+        id: 'post1',
+        coachId: 'coach1',
+        content: 'Great training session today with the academy goalkeepers! Proud of their progress. 🧤⚽',
+        createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        likes: 45,
         comments: 8,
       },
       {
-        id: 'post-2',
-        coachId: 'coach-1',
-        content: 'New training video series dropping soon! Breaking down 1v1 attacking moves that actually work in game situations. Stay tuned! 🎥',
-        createdAt: '2024-03-12T10:15:00Z',
-        likes: 67,
+        id: 'post2',
+        coachId: 'coach1',
+        content: '5 essential tips for young goalkeepers:\n1. Always stay on your toes\n2. Communicate with your defense\n3. Practice distribution daily\n4. Study the game\n5. Stay confident!',
+        createdAt: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        likes: 89,
         comments: 15,
       },
     ],
     photoGallery: [
-      'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=400',
+      'https://images.unsplash.com/photo-1556817411-31ae72fa3ea0?w=400',
+      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400',
     ],
     videoGallery: [],
-  },
-  {
-    id: 'coach-2',
-    fullName: 'Jordan Vega',
-    primarySport: 'Football',
-    sports: ['Football'],
-    city: 'Dallas',
-    state: 'TX',
-    distanceMiles: 9.8,
-    rating: { average: 4.8, reviewCount: 56 },
-    priceRange: { minUsd: 95, maxUsd: 135, unitLabel: 'session' },
-    nextAvailability: '2024-03-16T17:30:00Z',
-    badges: [
-      { id: 'verified', label: 'Background check', tone: 'success' },
-      { id: 'ncaa', label: 'NWSL Cup', tone: 'default' },
-    ],
-    sessionFormats: ['In-person', 'Virtual'],
-    shortBio:
-      'Former NWSL outside back specializing in defensive IQ, pressing triggers, and transition defending.',
-    profilePhotoUrl: coachPhotos[1],
-    coverPhotoUrl: coverPhotos[1],
-    schoolName: 'North Texas Shield Collective',
-    schoolId: 'school-2',
-    footballFocuses: ['Defending', 'Passing', 'Conditioning'],
-    location: { lat: 32.78, lng: -96.8 },
-    bio: 'Former professional defender turned coach. I help players master the art of defending through tactical awareness, positioning, and reading the game. My training combines modern defensive concepts with traditional fundamentals.',
-    phone: '+1 (214) 555-0456',
-    email: 'jordan@shieldcollective.com',
-    website: 'https://shieldcollective.com',
-    joinedDate: '2024-01-10T00:00:00Z',
-    totalSessions: 256,
-    languages: ['English'],
-    achievements: ['NWSL Championship Winner', 'All-Star Selection 2x', '50+ players to competitive teams'],
-    experiences: [
-      {
-        id: 'exp-4',
-        title: 'Defensive Coach',
-        organization: 'North Texas Shield Collective',
-        startDate: '2024-01-10T00:00:00Z',
-        current: true,
-      },
-      {
-        id: 'exp-5',
-        title: 'Professional Player',
-        organization: 'NWSL - FC Dallas',
-        startDate: '2018-01-01T00:00:00Z',
-        endDate: '2023-12-31T00:00:00Z',
-        current: false,
-      },
-    ],
-    certifications: [
-      {
-        id: 'cert-4',
-        name: 'USSF B License',
-        issuer: 'US Soccer Federation',
-        issueDate: '2023-06-15T00:00:00Z',
-      },
-    ],
-    posts: [],
-    photoGallery: [],
-    videoGallery: [],
-  },
-  {
-    id: 'coach-3',
-    fullName: 'Cam Winters',
-    primarySport: 'Football',
-    sports: ['Football'],
-    city: 'Houston',
-    state: 'TX',
-    distanceMiles: 11.1,
-    rating: { average: 5.0, reviewCount: 42 },
-    priceRange: { minUsd: 110, maxUsd: 180, unitLabel: 'session' },
-    nextAvailability: '2024-03-17T20:00:00Z',
-    badges: [{ id: 'verified', label: 'Background check', tone: 'success' }],
-    sessionFormats: ['In-person'],
-    shortBio:
-      'Goalkeeper academy director layering reaction drills with neuro training and off-season conditioning.',
-    profilePhotoUrl: coachPhotos[2],
-    coverPhotoUrl: coverPhotos[2],
-    schoolName: "Cam's Safe Hands Lab",
-    schoolId: 'school-3',
-    footballFocuses: ['Goalkeeping', 'Conditioning', 'Passing'],
-    location: { lat: 29.76, lng: -95.36 },
-    bio: 'Elite goalkeeper coach specializing in reaction training, positioning, and mental preparation. I use cutting-edge technology and proven methods to develop confident, commanding goalkeepers.',
-    phone: '+1 (713) 555-0789',
-    email: 'cam@safehandslab.com',
-    website: 'https://safehandslab.com',
-    joinedDate: '2024-01-20T00:00:00Z',
-    totalSessions: 189,
-    languages: ['English', 'Portuguese'],
-    achievements: ['Goalkeeper Coach of the Year 2023', '15+ goalkeepers to collegiate programs', 'International coaching certification'],
-    experiences: [
-      {
-        id: 'exp-6',
-        title: 'Academy Director',
-        organization: "Cam's Safe Hands Lab",
-        startDate: '2024-01-20T00:00:00Z',
-        current: true,
-      },
-    ],
-    certifications: [
-      {
-        id: 'cert-5',
-        name: 'Goalkeeper Specialist License',
-        issuer: 'USSF',
-        issueDate: '2022-09-01T00:00:00Z',
-      },
-    ],
-    posts: [],
-    photoGallery: [],
-    videoGallery: [],
-  },
-];
-
-export const upcomingBookings: BookingSummary[] = [
-  {
-    id: 'booking-1',
-    coachName: 'Maya Ellis',
-    childName: 'Eli',
-    service: 'Elite Finishing Session',
-    start: '2024-03-18T15:30:00Z',
-    status: 'Confirmed',
-    locationLabel: 'Austin Sports Academy',
-  },
-  {
-    id: 'booking-2',
-    coachName: 'Jordan Vega',
-    childName: 'Ivy',
-    service: 'Ball-Handling Intensive',
-    start: '2024-03-21T00:30:00Z',
-    status: 'Pending',
-    locationLabel: 'Dallas Elite Gym',
-  },
-];
-
-export const chatThreads: ChatThreadSummary[] = [
-  {
-    id: 'chat-thread-1',
-    bookingId: 'booking-1',
-    coachName: 'Maya Ellis',
-    childName: 'Eli',
-    serviceName: 'Elite Finishing Session',
-    location: 'Austin Sports Academy · Pitch 2',
-    scheduledFor: '2024-03-18T15:30:00Z',
-    unreadCount: 2,
-    safetyCopy: 'Chats unlock once a booking is confirmed. Moderation + read receipts keep families protected.',
-    pinnedObjectives: ['Dribbling', 'Finishing'],
-  },
-  {
-    id: 'chat-thread-2',
-    bookingId: 'booking-2',
-    coachName: 'Jordan Vega',
-    childName: 'Eli',
-    serviceName: 'Passing Masterclass',
-    location: 'Dallas FC Complex',
-    scheduledFor: '2024-03-20T10:00:00Z',
-    unreadCount: 0,
-    safetyCopy: '',
-    pinnedObjectives: ['Passing'],
-  },
-  {
-    id: 'chat-thread-3',
-    bookingId: 'booking-3',
-    coachName: 'Alex Chen',
-    childName: 'Eli',
-    serviceName: 'GK Positioning Clinic',
-    location: 'Elite Sports Park',
-    scheduledFor: '2024-03-22T16:00:00Z',
-    unreadCount: 1,
-    safetyCopy: '',
-    pinnedObjectives: ['Goalkeeping'],
-  },
-];
-
-export const primaryChatThread: ChatThreadSummary = chatThreads[0];
-
-export const chatMessages: ChatMessage[] = [
-  {
-    id: 'msg-1',
-    sender: 'coach',
-    body: 'Hey team! Pumped to work with Eli again. Drop any updates from the last match?',
-    createdAt: '2024-03-15T14:02:00Z',
-    status: 'seen',
-  },
-  {
-    id: 'msg-2',
-    sender: 'parent',
-    body: 'He’s still buzzing from districts. We want to sharpen first-touch + composure under pressure.',
-    createdAt: '2024-03-15T14:05:00Z',
-    status: 'seen',
-  },
-  {
-    id: 'msg-3',
-    sender: 'coach',
-    body: 'Love it. I’ll set up a rondo ladder + finishing gauntlet. Sharing the prep doc now.',
-    createdAt: '2024-03-15T14:08:00Z',
-    status: 'seen',
-    attachments: [
-      {
-        id: 'att-1',
-        type: 'pdf',
-        title: 'Session blueprint · Match sharpness',
-        subtitle: 'PDF · 2.1 MB',
-      },
+    languages: ['English', 'Spanish'],
+    achievements: [
+      'UEFA B Licensed Coach',
+      'Former Professional Goalkeeper',
+      'Over 230 successful training sessions',
+      'Helped 15+ athletes join academy programs',
     ],
   },
-  {
-    id: 'msg-4',
-    sender: 'parent',
-    body: 'Legend. Eli will hydrate + arrive 15 early. Need anything signed ahead of time?',
-    createdAt: '2024-03-15T14:10:00Z',
-    status: 'seen',
-  },
-  {
-    id: 'msg-5',
-    sender: 'coach',
-    body: 'All set. I’ll push footage + progress tags here after the session so you can log it in the performance hub.',
-    createdAt: '2024-03-15T14:11:00Z',
-    status: 'delivered',
-  },
-  {
-    id: 'msg-6',
-    sender: 'parent',
-    body: 'Perfect—thanks Maya!',
-    createdAt: '2024-03-15T14:11:45Z',
-    status: 'sent',
-  },
 ];
 
-export const activeObjectives: AthleteObjective[] = [
-  {
-    id: 'obj-1',
-    label: 'Dribbling',
-    status: 'active',
-    updatedAt: '2024-03-14T16:00:00Z',
-    note: 'Beat defenders 1v1 on the wing',
+// Upcoming bookings for BookingsScreen
+export const upcomingBookings: BookingSummary[] = MOCK_BOOKINGS.filter(
+  (b) => new Date(b.scheduledAt) > today
+).map((booking) => ({
+  id: booking.id,
+  coachName: booking.coachName,
+  childName: booking.athleteName,
+  service: 'Football Coaching',
+  start: booking.scheduledAt,
+  status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
+  locationLabel: booking.location,
+  coach: {
+    name: booking.coachName,
+    photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
   },
-  {
-    id: 'obj-2',
-    label: 'Passing',
-    status: 'active',
-    updatedAt: '2024-03-12T16:00:00Z',
-    note: 'Switch the field under pressure',
+  client: {
+    name: booking.athleteName,
+    photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
   },
-  {
-    id: 'obj-3',
-    label: 'Defending',
-    status: 'upcoming',
-    updatedAt: '2024-03-10T16:00:00Z',
-    note: 'Body shape when jockeying',
-  },
-];
-
-export const sessionHistory: SessionHistoryEntry[] = [
-  {
-    id: 'session-1',
-    date: '2024-03-11T15:30:00Z',
-    coachName: 'Maya Ellis',
-    focus: 'Finishing',
-    location: 'Austin Sports Academy · Pitch 2',
-    highlight: 'Tied finishing gauntlet personal best (8/10).',
-    resultBadge: 'Hat-trick ready',
-    clipLabel: 'Finishing drill clips',
-  },
-  {
-    id: 'session-2',
-    date: '2024-03-04T15:30:00Z',
-    coachName: 'Jordan Vega',
-    focus: 'Defending',
-    location: 'North Texas Shield Collective',
-    highlight: 'Mastered 1v1 delay + angled pressing cues.',
-  },
-  {
-    id: 'session-3',
-    date: '2024-02-26T15:30:00Z',
-    coachName: 'Cam Winters',
-    focus: 'Conditioning',
-    location: "Cam's Safe Hands Lab",
-    highlight: 'VO2 drills logged, recovery HR down 8 bpm.',
-  },
-];
-
-export const paymentReminders: PaymentReminder[] = [
-  {
-    id: 'payment-1',
-    title: '4-pack of finishing sessions',
-    amountUsd: 520,
-    dueDate: '2024-03-20T15:00:00Z',
-    status: 'pending',
-    description: 'Auto-captures after the March 18th session unless cancelled 24h prior.',
-  },
-  {
-    id: 'payment-2',
-    title: 'Cam’s Safe Hands Lab drop-in',
-    amountUsd: 150,
-    dueDate: '2024-03-24T18:00:00Z',
-    status: 'placeholder',
-    description: 'Stripe Connect onboarding gated, but the slot is reserved.',
-  },
-  {
-    id: 'payment-3',
-    title: 'Shield Collective defensive clinic',
-    amountUsd: 260,
-    dueDate: '2024-03-12T15:00:00Z',
-    status: 'paid',
-    description: 'Captured with card ending in ··42. Receipt emailed.',
-  },
-];
+  coachId: booking.coachId,
+  clientId: booking.athleteId,
+}));
