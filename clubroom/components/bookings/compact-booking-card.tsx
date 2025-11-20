@@ -1,5 +1,5 @@
 import { Image, Pressable, StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -64,14 +64,8 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
     console.log('🔵 [CompactBookingCard] router.push() called');
   };
 
-  return (
-    <TouchableOpacity
-      onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      activeOpacity={0.7}
-      style={[styles.touchable, Platform.OS === 'web' && { cursor: 'pointer' }]}>
-      <SurfaceCard style={styles.card}>
+  const CardContent = () => (
+    <SurfaceCard style={styles.card}>
         <View style={styles.content}>
           {/* Coach Avatar */}
           <Image source={{ uri: coachPhotoUrl }} style={styles.avatar} />
@@ -103,6 +97,29 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
           </View>
         </View>
       </SurfaceCard>
+  );
+
+  // Web uses View with onClick, Native uses TouchableOpacity
+  if (Platform.OS === 'web') {
+    return (
+      <View
+        onClick={handlePress as any}
+        onMouseDown={handlePressIn as any}
+        onMouseUp={handlePressOut as any}
+        style={[styles.touchable, { cursor: 'pointer' }]}>
+        <CardContent />
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={0.7}
+      style={styles.touchable}>
+      <CardContent />
     </TouchableOpacity>
   );
 }
