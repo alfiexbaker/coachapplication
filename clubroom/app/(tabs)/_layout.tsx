@@ -14,6 +14,7 @@ export default function TabLayout() {
 
   const isCoach = currentUser?.role === 'Coach';
   const isUser = currentUser?.role === 'User' || currentUser?.role === 'Parent';
+  const isAdmin = currentUser?.role === 'Admin';
 
   return (
     <Tabs
@@ -41,75 +42,128 @@ export default function TabLayout() {
           marginTop: 4,
         },
       }}>
-      {/* User/Parent tabs: Discover coaches */}
+      {/* ADMIN TABS - Full access to all screens for moderation */}
+      {isAdmin && (
+        <>
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: 'Users',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="bookings"
+            options={{
+              title: 'Bookings',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="messages"
+            options={{
+              title: 'Reports',
+              tabBarIcon: ({ color }) => <IconSymbol size={22} name="exclamationmark.triangle.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="profile"
+            options={{
+              title: 'Settings',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="availability"
+            options={{
+              href: null, // Admins don't need calendar view
+            }}
+          />
+        </>
+      )}
+
+      {/* USER/PARENT TABS - Discover coaches and book sessions */}
       {isUser && (
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Discover',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
-          }}
-        />
+        <>
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: 'Discover',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="bookings"
+            options={{
+              title: 'Bookings',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="messages"
+            options={{
+              title: 'Messages',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={22} name="bubble.left.and.bubble.right.fill" color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="profile"
+            options={{
+              title: 'Profile',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="availability"
+            options={{
+              href: null, // Users don't have availability calendar
+            }}
+          />
+        </>
       )}
 
-      {/* Coach tabs: Calendar/Availability is their home */}
+      {/* COACH TABS - Manage availability and bookings */}
       {isCoach && (
-        <Tabs.Screen
-          name="availability"
-          options={{
-            title: 'Calendar',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} />,
-          }}
-        />
-      )}
-
-      {/* Bookings - shown to everyone but different meaning */}
-      <Tabs.Screen
-        name="bookings"
-        options={{
-          title: 'Bookings',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
-        }}
-      />
-
-      {/* Messages - shown to everyone */}
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={22} name="bubble.left.and.bubble.right.fill" color={color} />
-          ),
-        }}
-      />
-
-      {/* Profile - shown to everyone */}
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
-        }}
-      />
-
-      {/* Hide index from coaches */}
-      {isCoach && (
-        <Tabs.Screen
-          name="index"
-          options={{
-            href: null, // Hides from tab bar
-          }}
-        />
-      )}
-
-      {/* Hide availability from users */}
-      {isUser && (
-        <Tabs.Screen
-          name="availability"
-          options={{
-            href: null, // Hides from tab bar
-          }}
-        />
+        <>
+          <Tabs.Screen
+            name="availability"
+            options={{
+              title: 'Calendar',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="bookings"
+            options={{
+              title: 'Bookings',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="messages"
+            options={{
+              title: 'Messages',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={22} name="bubble.left.and.bubble.right.fill" color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="profile"
+            options={{
+              title: 'Profile',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="index"
+            options={{
+              href: null, // Coaches don't need discover page
+            }}
+          />
+        </>
       )}
     </Tabs>
   );
