@@ -1,14 +1,10 @@
 import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { PlatformPressable } from '@react-navigation/elements';
 import * as Haptics from 'expo-haptics';
-import { Link } from 'expo-router';
 import { forwardRef } from 'react';
 import { Platform, type View } from 'react-native';
 
-export const HapticTab = forwardRef<View, BottomTabBarButtonProps>(function HapticTab(
-  { href, ...props },
-  ref
-) {
+export const HapticTab = forwardRef<View, BottomTabBarButtonProps>(function HapticTab(props, ref) {
   const content = (
     <PlatformPressable
       ref={ref}
@@ -29,23 +25,13 @@ export const HapticTab = forwardRef<View, BottomTabBarButtonProps>(function Hapt
 
   if (__DEV__ && Platform.OS === 'web') {
     console.debug('[HapticTab] render', {
-      href,
       label: props.accessibilityLabel,
       hasChildren: Boolean(props.children),
     });
   }
 
-  if (Platform.OS === 'web' && href) {
-    try {
-      return (
-        <Link href={href} asChild>
-          {content}
-        </Link>
-      );
-    } catch (error) {
-      console.error('[HapticTab] failed to render Link wrapper', error);
-    }
-  }
-
+  // Expo Router already wires up tab presses to navigation; avoid extra
+  // Link wrappers on web to prevent DOM render errors while keeping the
+  // same pressable element across platforms.
   return content;
 });
