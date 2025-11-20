@@ -16,6 +16,22 @@ export default function TabLayout() {
   const isUser = currentUser?.role === 'User' || currentUser?.role === 'Parent';
   const isAdmin = currentUser?.role === 'Admin';
 
+  // Debug logging to track role detection and tab rendering
+  console.log('[TabLayout] Current user:', currentUser ? { username: currentUser.username, role: currentUser.role } : 'Not logged in');
+  console.log('[TabLayout] Role flags:', { isAdmin, isCoach, isUser });
+
+  if (!currentUser) {
+    console.log('[TabLayout] WARNING: No user logged in - tabs may not render correctly');
+  }
+
+  if (!isAdmin && !isCoach && !isUser && currentUser) {
+    console.log('[TabLayout] WARNING: No role matched! Role:', currentUser.role);
+  } else if (currentUser) {
+    if (isAdmin) console.log('[TabLayout] Rendering ADMIN tabs');
+    if (isUser) console.log('[TabLayout] Rendering USER/PARENT tabs');
+    if (isCoach) console.log('[TabLayout] Rendering COACH tabs');
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -161,6 +177,48 @@ export default function TabLayout() {
             name="index"
             options={{
               href: null, // Coaches don't need discover page
+            }}
+          />
+        </>
+      )}
+
+      {/* FALLBACK - Default to user tabs if no role matches or not logged in */}
+      {!isAdmin && !isCoach && !isUser && (
+        <>
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: 'Discover',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="bookings"
+            options={{
+              title: 'Bookings',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="messages"
+            options={{
+              title: 'Messages',
+              tabBarIcon: ({ color }) => (
+                <IconSymbol size={22} name="bubble.left.and.bubble.right.fill" color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="profile"
+            options={{
+              title: 'Profile',
+              tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="availability"
+            options={{
+              href: null,
             }}
           />
         </>

@@ -31,6 +31,10 @@ const MAPPING = {
   'paperclip': 'attach-file',
   'mic.fill': 'mic',
   'checkmark.seal.fill': 'verified',
+  // Admin-specific icons
+  'person.2.fill': 'people',
+  'exclamationmark.triangle.fill': 'warning',
+  'gearshape.fill': 'settings',
 } as IconMapping;
 
 /**
