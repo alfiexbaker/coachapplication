@@ -31,6 +31,10 @@ const MAPPING = {
   'paperclip': 'attach-file',
   'mic.fill': 'mic',
   'checkmark.seal.fill': 'verified',
+  // Admin-specific icons
+  'person.2.fill': 'people',
+  'exclamationmark.triangle.fill': 'warning',
+  'gearshape.fill': 'settings',
 } as IconMapping;
 
 /**
@@ -50,5 +54,17 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const mappedName = MAPPING[name];
+
+  // Debug logging for icon rendering - helps catch missing mappings
+  if (!mappedName) {
+    console.error('[IconSymbol] ❌ ERROR: No mapping found for:', name);
+    // Fallback to a default icon if mapping is missing
+    return <MaterialIcons color={color} size={size} name="help-outline" style={style} />;
+  }
+
+  // Log icon mappings to verify they're working
+  console.log('[IconSymbol] ✓ Rendering:', name, '→', mappedName);
+
+  return <MaterialIcons color={color} size={size} name={mappedName} style={style} />;
 }
