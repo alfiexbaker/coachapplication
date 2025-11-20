@@ -27,12 +27,24 @@ export const HapticTab = forwardRef<View, BottomTabBarButtonProps>(function Hapt
     </PlatformPressable>
   );
 
+  if (__DEV__ && Platform.OS === 'web') {
+    console.debug('[HapticTab] render', {
+      href,
+      label: props.accessibilityLabel,
+      hasChildren: Boolean(props.children),
+    });
+  }
+
   if (Platform.OS === 'web' && href) {
-    return (
-      <Link href={href} asChild>
-        {content}
-      </Link>
-    );
+    try {
+      return (
+        <Link href={href} asChild>
+          {content}
+        </Link>
+      );
+    } catch (error) {
+      console.error('[HapticTab] failed to render Link wrapper', error);
+    }
   }
 
   return content;
