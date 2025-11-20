@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -65,11 +65,12 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   };
 
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+      activeOpacity={0.7}
+      style={[styles.touchable, Platform.OS === 'web' && { cursor: 'pointer' }]}>
       <SurfaceCard style={styles.card}>
         <View style={styles.content}>
           {/* Coach Avatar */}
@@ -102,11 +103,14 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
           </View>
         </View>
       </SurfaceCard>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
+  touchable: {
+    // No styles needed, just for structure
+  },
   card: {
     padding: Spacing.md,
   },
