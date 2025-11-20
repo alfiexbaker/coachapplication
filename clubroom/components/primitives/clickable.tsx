@@ -20,7 +20,7 @@ export function Clickable({ onPress, style, children, disabled, hitSlop }: Click
 
     return (
       <View
-        onMouseUp={disabled ? undefined : (onPress as any)}
+        onMouseUp={disabled ? undefined : ((e: any) => onPress())}
         style={[
           webStyle,
           { cursor: disabled ? 'default' : 'pointer' },
