@@ -1,8 +1,8 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -14,6 +14,12 @@ export default function TabLayout() {
 
   const isCoach = currentUser?.role === 'Coach';
   const isUser = currentUser?.role === 'User' || currentUser?.role === 'Parent';
+
+  const tabIcon = (name: React.ComponentProps<typeof Ionicons>['name']) => {
+    const Icon = ({ color }: { color: string }) => <Ionicons name={name} size={24} color={color} />;
+    Icon.displayName = `TabIcon(${name})`;
+    return Icon;
+  };
 
   return (
     <Tabs
@@ -47,9 +53,7 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Discover',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={24} name="magnifyingglass.circle.fill" color={color} />
-            ),
+            tabBarIcon: tabIcon('search'),
           }}
         />
       )}
@@ -60,7 +64,7 @@ export default function TabLayout() {
           name="availability"
           options={{
             title: 'Calendar',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.circle.fill" color={color} />,
+            tabBarIcon: tabIcon('calendar'),
           }}
         />
       )}
@@ -70,7 +74,7 @@ export default function TabLayout() {
         name="bookings"
         options={{
           title: 'Bookings',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
+          tabBarIcon: tabIcon('time-outline'),
         }}
       />
 
@@ -79,7 +83,7 @@ export default function TabLayout() {
         name="messages"
         options={{
           title: 'Messages',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="bubble.left.fill" color={color} />,
+          tabBarIcon: tabIcon('chatbubble-ellipses'),
         }}
       />
 
@@ -88,7 +92,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} />,
+          tabBarIcon: tabIcon('person'),
         }}
       />
 
