@@ -546,7 +546,7 @@ export const paymentReminders: PaymentReminder[] = [
   },
   {
     id: 'payment-2',
-    title: 'Cam's Safe Hands Lab drop-in',
+    title: "Cam's Safe Hands Lab drop-in",
     amountUsd: 150,
     dueDate: '2024-03-24T18:00:00Z',
     status: 'placeholder',
