@@ -13,6 +13,8 @@ type CompactBookingCardProps = {
 };
 
 export function CompactBookingCard({ booking }: CompactBookingCardProps) {
+  console.log('🔵🔵🔵 [CompactBookingCard] COMPONENT RENDERING - Booking ID:', booking.id, 'Service:', booking.service);
+
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
@@ -41,9 +43,32 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   // Get coach photo from the extended booking data
   const coachPhotoUrl = (booking as any).coach?.photoUrl || 'https://i.pravatar.cc/100';
 
+  const handlePressIn = () => {
+    console.log('🔵 [CompactBookingCard] PRESS IN detected for booking:', booking.id);
+  };
+
+  const handlePressOut = () => {
+    console.log('🔵 [CompactBookingCard] PRESS OUT detected for booking:', booking.id);
+  };
+
+  const handlePress = () => {
+    const route = `/bookings/${booking.id}`;
+    console.log('🔵🔵🔵 [CompactBookingCard] PRESS FIRED! Navigating to:', route);
+    console.log('🔵 [CompactBookingCard] Booking details:', {
+      id: booking.id,
+      service: booking.service,
+      coachName: booking.coachName,
+      status: booking.status
+    });
+    router.push(route);
+    console.log('🔵 [CompactBookingCard] router.push() called');
+  };
+
   return (
     <Pressable
-      onPress={() => router.push(`/bookings/${booking.id}`)}
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
       <SurfaceCard style={styles.card}>
         <View style={styles.content}>

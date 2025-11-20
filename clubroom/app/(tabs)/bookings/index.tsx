@@ -102,6 +102,17 @@ export default function BookingsScreen() {
     hasBookings
   });
 
+  console.log('🟢🟢🟢 [BookingsScreen] RENDERING with', filteredBookings.length, 'bookings');
+  console.log('🟢 [BookingsScreen] Booking IDs:', filteredBookings.map(b => b.id));
+  filteredBookings.forEach((booking, index) => {
+    console.log(`🟢 [BookingsScreen] Booking ${index}:`, {
+      id: booking.id,
+      service: booking.service,
+      coachName: booking.coachName,
+      status: booking.status
+    });
+  });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
