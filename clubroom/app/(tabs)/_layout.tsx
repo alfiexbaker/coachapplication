@@ -203,10 +203,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="more"
+        options={{
+          title: 'More',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="line.3.horizontal" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+          href: null, // Hide from tab bar - accessible via More menu
         }}
       />
       <Tabs.Screen
