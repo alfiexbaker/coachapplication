@@ -14,14 +14,16 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
 
 export default function LoginScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const { login, error, availableUsers } = useAuth();
+  const { login, error, availableUsers, registerCoach } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showSignup, setShowSignup] = useState(false);
 
   const handleSubmit = () => {
     if (!username || !password) {
@@ -31,7 +33,24 @@ export default function LoginScreen() {
     login(username, password);
   };
 
+  const handleSignupComplete = (data: CoachSignupData) => {
+    const success = registerCoach(data);
+    if (success) {
+      setShowSignup(false);
+    }
+  };
+
   const disabled = !username || !password;
+
+  // Show signup screen if requested
+  if (showSignup) {
+    return (
+      <CoachSignupScreen
+        onSignupComplete={handleSignupComplete}
+        onBackToLogin={() => setShowSignup(false)}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -102,11 +121,25 @@ export default function LoginScreen() {
           </Pressable>
         </SurfaceCard>
 
+        <Pressable
+          style={[styles.coachSignupCard, { backgroundColor: palette.card }]}
+          onPress={() => setShowSignup(true)}>
+          <ThemedText type="subtitle" style={styles.coachSignupTitle}>
+            Are you a coach?
+          </ThemedText>
+          <ThemedText style={styles.coachSignupText}>
+            Join your school with an invite code
+          </ThemedText>
+          <ThemedText style={[styles.coachSignupCTA, { color: palette.tint }]}>
+            Create Coach Account →
+          </ThemedText>
+        </Pressable>
+
         <SurfaceCard style={styles.credentialsCard}>
           <ThemedText type="subtitle" style={styles.credentialsTitle}>
             Preloaded accounts
           </ThemedText>
-          {availableUsers.map((user) => (
+          {availableUsers.slice(0, 4).map((user) => (
             <View key={user.username} style={styles.credentialsRow}>
               <View style={styles.roleBadge}>
                 <ThemedText style={styles.roleBadgeText}>{user.role}</ThemedText>
@@ -169,6 +202,21 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     fontWeight: '600',
+  },
+  coachSignupCard: {
+    padding: Spacing.lg,
+    borderRadius: Radii.lg,
+    gap: Spacing.xs,
+  },
+  coachSignupTitle: {
+    textAlign: 'left',
+  },
+  coachSignupText: {
+    opacity: 0.8,
+  },
+  coachSignupCTA: {
+    fontWeight: '700',
+    marginTop: Spacing.xs,
   },
   credentialsCard: {
     gap: Spacing.sm,
