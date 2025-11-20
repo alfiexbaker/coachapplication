@@ -87,14 +87,14 @@ export function BookingCard({ booking }: BookingCardProps) {
 function getStatusMeta(status: BookingSummary['status'], palette: (typeof Colors)['light']) {
   switch (status) {
     case 'Pending':
-      return { icon: 'alert-circle-outline', color: palette.warning } as const;
+      return { icon: 'time-outline', color: palette.warning } as const;
     case 'Completed':
       return { icon: 'checkmark-circle-outline', color: palette.success } as const;
     case 'Cancelled':
       return { icon: 'close-circle-outline', color: palette.error } as const;
     case 'Confirmed':
     default:
-      return { icon: 'time-outline', color: palette.tint } as const;
+      return { icon: 'checkmark-circle', color: palette.tint } as const;
   }
 }
 
