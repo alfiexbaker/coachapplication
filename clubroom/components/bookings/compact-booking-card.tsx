@@ -43,14 +43,6 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   // Get coach photo from the extended booking data
   const coachPhotoUrl = (booking as any).coach?.photoUrl || 'https://i.pravatar.cc/100';
 
-  const handlePressIn = () => {
-    console.log('🔵 [CompactBookingCard] PRESS IN detected for booking:', booking.id);
-  };
-
-  const handlePressOut = () => {
-    console.log('🔵 [CompactBookingCard] PRESS OUT detected for booking:', booking.id);
-  };
-
   const handlePress = () => {
     const route = `/bookings/${booking.id}`;
     console.log('🔵🔵🔵 [CompactBookingCard] PRESS FIRED! Navigating to:', route);
@@ -62,6 +54,21 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
     });
     router.push(route);
     console.log('🔵 [CompactBookingCard] router.push() called');
+  };
+
+  const handlePressIn = () => {
+    console.log('🔵 [CompactBookingCard] PRESS IN detected for booking:', booking.id);
+  };
+
+  const handlePressOut = () => {
+    console.log('🔵 [CompactBookingCard] PRESS OUT detected for booking:', booking.id);
+  };
+
+  // Web-specific: onMouseUp triggers navigation since onClick doesn't work on RN View
+  const handleWebClick = (e: any) => {
+    console.log('🔵 [CompactBookingCard] WEB CLICK detected for booking:', booking.id);
+    handlePressOut();
+    handlePress();
   };
 
   const CardContent = () => (
@@ -99,13 +106,12 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
       </SurfaceCard>
   );
 
-  // Web uses View with onClick, Native uses TouchableOpacity
+  // Web uses View with onMouseUp (onClick doesn't work on RN View), Native uses TouchableOpacity
   if (Platform.OS === 'web') {
     return (
       <View
-        onClick={handlePress as any}
         onMouseDown={handlePressIn as any}
-        onMouseUp={handlePressOut as any}
+        onMouseUp={handleWebClick as any}
         style={[styles.touchable, { cursor: 'pointer' }]}>
         <CardContent />
       </View>
