@@ -37,7 +37,7 @@ export function ChatInput() {
         disabled={!value}
         onPress={() => setValue('')}>
         {value ? (
-          <IconSymbol name="paperplane.fill" size={18} color="#FFFFFF" />
+          <IconSymbol name="paperplane.fill" size={18} color={scheme === 'light' ? '#FFFFFF' : '#000000'} />
         ) : (
           <IconSymbol name="mic.fill" size={20} color={palette.icon} />
         )}
