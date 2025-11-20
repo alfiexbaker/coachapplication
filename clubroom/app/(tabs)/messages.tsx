@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
 import { MessageBubble } from '@/components/messaging/message-bubble';
 import { ChatInput } from '@/components/messaging/chat-input';
 import { TypingIndicator } from '@/components/messaging/typing-indicator';
@@ -21,7 +22,7 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
-      <Pressable
+      <Clickable
         onPress={onPress}
         style={({ pressed }) => [
           styles.conversationRow,
@@ -58,7 +59,7 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
             )}
           </View>
         </View>
-      </Pressable>
+      </Clickable>
     </Animated.View>
   );
 }
@@ -87,9 +88,9 @@ export default function MessagesScreen() {
     return (
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
         <View style={[styles.chatHeader, { borderBottomWidth: 1, borderBottomColor: palette.border }]}>
-          <Pressable onPress={() => setOpenThreadId(null)} style={styles.backButton}>
+          <Clickable onPress={() => setOpenThreadId(null)} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Pressable>
+          </Clickable>
           <View style={styles.chatHeaderInfo}>
             <ThemedText type="subtitle" style={styles.chatHeaderName}>{openThread.coachName}</ThemedText>
             <ThemedText style={[styles.chatSubtitle, { color: palette.muted }]}>{openThread.serviceName}</ThemedText>
