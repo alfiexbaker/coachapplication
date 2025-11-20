@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -65,7 +66,20 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
 export default function MessagesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const params = useLocalSearchParams<{ coachId?: string }>();
   const [openThreadId, setOpenThreadId] = useState<string | null>(null);
+
+  // Auto-open thread if coachId param is provided
+  useEffect(() => {
+    if (params.coachId) {
+      // Find thread with matching coach ID - in production, match by actual coachId
+      // For now, just open the first thread as a demo
+      const thread = chatThreads[0];
+      if (thread) {
+        setOpenThreadId(thread.id);
+      }
+    }
+  }, [params.coachId]);
 
   const openThread = openThreadId ? chatThreads.find(t => t.id === openThreadId) : null;
 
