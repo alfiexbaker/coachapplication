@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -109,26 +109,53 @@ export function CoachDevelopmentScreen() {
           </View>
         ) : (
           <View style={styles.athleteList}>
-            {athletesWithSessions.map(({ athlete, sessionCount, lastSession, averageRating }) => (
-              <Clickable
-                key={athlete.id}
-                onPress={() => {
-                  logger.press('AthleteCard', {
-                    athleteId: athlete.id,
-                    athleteName: athlete.name,
-                    sessionCount
-                  });
-                  logger.warn('Athlete detail screen not implemented yet', {
-                    athleteId: athlete.id
-                  });
-                  // TODO: Navigate to athlete detail screen
-                }}
-                style={({ pressed }) => [
-                  styles.athleteCard,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <SurfaceCard style={styles.cardContent}>
+            {athletesWithSessions.map(({ athlete, sessionCount, lastSession, averageRating }) => {
+              // Get all sessions for this athlete
+              const athleteSessions = getSessionsForCoach(currentUser.id).filter(
+                s => s.athleteId === athlete.id
+              );
+
+              return (
+                <Clickable
+                  key={athlete.id}
+                  onPress={() => {
+                    logger.press('AthleteCard', {
+                      athleteId: athlete.id,
+                      athleteName: athlete.name,
+                      sessionCount
+                    });
+
+                    // Show athlete details with their recent sessions
+                    const recentSessions = athleteSessions
+                      .slice(0, 3)
+                      .map(s => `• ${s.skillsWorkedOn.join(', ')} (${s.performanceRating}/5 ⭐)`)
+                      .join('\n');
+
+                    Alert.alert(
+                      `${athlete.name}`,
+                      `📊 Total Sessions: ${sessionCount}\n⭐ Average Rating: ${averageRating.toFixed(1)}/5\n📅 Last Session: ${formatDate(lastSession)}\n\n🎯 Recent Focus Areas:\n${recentSessions || 'No sessions yet'}`,
+                      [
+                        {
+                          text: 'View All Sessions',
+                          onPress: () => {
+                            logger.info('Navigate to athlete sessions', { athleteId: athlete.id });
+                            // Navigate to bookings filtered by this athlete
+                            router.push('/(tabs)/bookings');
+                          }
+                        },
+                        {
+                          text: 'Close',
+                          style: 'cancel'
+                        }
+                      ]
+                    );
+                  }}
+                  style={({ pressed }) => [
+                    styles.athleteCard,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                >
+                  <SurfaceCard style={styles.cardContent}>
                   <View style={styles.athleteInfo}>
                     <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
@@ -170,7 +197,8 @@ export function CoachDevelopmentScreen() {
                   <Ionicons name="chevron-forward" size={20} color={palette.icon} />
                 </SurfaceCard>
               </Clickable>
-            ))}
+            );
+            })}
           </View>
         )}
       </ScrollView>
