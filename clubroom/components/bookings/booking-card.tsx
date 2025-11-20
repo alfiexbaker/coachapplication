@@ -33,8 +33,8 @@ export function BookingCard({ booking }: BookingCardProps) {
         accessibilityLabel="Reschedule booking"
         onPress={() => console.log('Reschedule booking', booking.id)}
         style={[styles.actionButton, { backgroundColor: palette.tint }]}>
-        <Ionicons name="refresh" size={18} color={Colors.light.background} />
-        <ThemedText style={styles.actionLabel}>Reschedule</ThemedText>
+        <Ionicons name="refresh" size={18} color={scheme === 'light' ? Colors.light.background : Colors.dark.background} />
+        <ThemedText style={[styles.actionLabel, { color: scheme === 'light' ? Colors.light.background : Colors.dark.background }]}>Reschedule</ThemedText>
       </Pressable>
       <Pressable
         accessibilityLabel="Cancel booking"
@@ -158,7 +158,6 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     ...Typography.sm,
-    color: Colors.light.background,
     fontWeight: '600',
   },
 });

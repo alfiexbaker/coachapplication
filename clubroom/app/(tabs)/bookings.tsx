@@ -45,7 +45,7 @@ export default function BookingsScreen() {
               { backgroundColor: pressed ? palette.tintPressed : palette.tint },
             ]}
             onPress={() => console.log('Update objectives') }>
-            <ThemedText style={styles.manageButtonLabel} lightColor="#ffffff" darkColor="#ffffff">
+            <ThemedText style={styles.manageButtonLabel} lightColor="#ffffff" darkColor="#000000">
               Update objectives
             </ThemedText>
           </Pressable>

@@ -96,7 +96,7 @@ export default function LoginScreen() {
             ]}
             disabled={disabled}
             onPress={handleSubmit}>
-            <ThemedText style={styles.buttonLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">
+            <ThemedText style={styles.buttonLabel} lightColor="#FFFFFF" darkColor="#000000">
               Continue
             </ThemedText>
           </Pressable>
