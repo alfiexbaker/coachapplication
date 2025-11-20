@@ -7,6 +7,7 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -117,8 +118,10 @@ export function UserFindCoachScreen() {
               <Pressable
                 key={coach.id}
                 onPress={() => {
-                  // TODO: Navigate to coach profile
-                  console.log('View coach:', coach.id);
+                  router.push({
+                    pathname: '/book-coach',
+                    params: { coachId: coach.id },
+                  });
                 }}
                 style={({ pressed }) => [
                   styles.coachCard,

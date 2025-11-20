@@ -30,13 +30,16 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   };
 
   const formatDateTime = () => {
-    const date = new Date(booking.dateTime);
+    const date = new Date(booking.start);
     const day = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
     return { day, time };
   };
 
   const { day, time } = formatDateTime();
+
+  // Get coach photo from the extended booking data
+  const coachPhotoUrl = (booking as any).coach?.photoUrl || 'https://i.pravatar.cc/100';
 
   return (
     <Pressable
@@ -45,12 +48,12 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
       <SurfaceCard style={styles.card}>
         <View style={styles.content}>
           {/* Coach Avatar */}
-          <Image source={{ uri: booking.coachPhotoUrl }} style={styles.avatar} />
+          <Image source={{ uri: coachPhotoUrl }} style={styles.avatar} />
 
           {/* Booking Info */}
           <View style={styles.info}>
             <ThemedText style={styles.sessionType} numberOfLines={1}>
-              {booking.sessionType}
+              {booking.service}
             </ThemedText>
             <ThemedText style={styles.coachName} numberOfLines={1}>
               with {booking.coachName}

@@ -1,7 +1,9 @@
+import { useState, useEffect, useCallback } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,6 +13,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { upcomingBookings } from '@/constants/mock-data';
+import { BookingSummary } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BookingsScreen');
@@ -19,19 +22,66 @@ export default function BookingsScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const [sessionBookings, setSessionBookings] = useState<BookingSummary[]>([]);
 
   const userRole = currentUser?.role;
+
+  // Load session bookings from AsyncStorage
+  const loadSessionBookings = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem('session_bookings');
+      if (stored) {
+        const bookings = JSON.parse(stored);
+        // Convert to BookingSummary format
+        const summaries: BookingSummary[] = bookings.map((booking: any) => ({
+          id: booking.id,
+          coachName: booking.coachName,
+          childName: booking.athleteName,
+          service: booking.service,
+          start: booking.scheduledAt,
+          status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
+          locationLabel: booking.location,
+          coach: {
+            name: booking.coachName,
+            photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
+          },
+          client: {
+            name: booking.athleteName,
+            photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
+          },
+          coachId: booking.coachId,
+          clientId: booking.athleteId,
+        }));
+        setSessionBookings(summaries);
+        logger.debug('Loaded session bookings', { count: summaries.length });
+      }
+    } catch (error) {
+      logger.error('Failed to load session bookings', error);
+    }
+  }, []);
+
+  // Reload bookings when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadSessionBookings();
+    }, [loadSessionBookings])
+  );
+
+  // Merge mock bookings with session bookings
+  const allBookings = [...upcomingBookings, ...sessionBookings];
 
   logger.debug('BookingsScreen rendered', {
     userRole,
     username: currentUser?.username,
-    totalBookings: upcomingBookings.length
+    totalBookings: allBookings.length,
+    sessionBookings: sessionBookings.length,
+    mockBookings: upcomingBookings.length
   });
 
   // Filter bookings based on user role
   // Fixed: was checking 'Coach', 'User', 'Parent', 'Admin' (capitalized)
   // Now checking 'COACH', 'USER', 'PARENT', 'ADMIN' (uppercase)
-  const filteredBookings = upcomingBookings.filter((booking) => {
+  const filteredBookings = allBookings.filter((booking) => {
     if (userRole === 'COACH') {
       // Coaches see bookings where they are the coach
       return booking.coachId === currentUser?.id || booking.coach.name === currentUser?.fullName;
