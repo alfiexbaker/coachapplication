@@ -62,7 +62,7 @@ export default function ProfileScreen() {
               },
             ]}
             onPress={logout}>
-            <ThemedText style={styles.signOutLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">
+            <ThemedText style={styles.signOutLabel} lightColor="#FFFFFF" darkColor="#000000">
               Sign out
             </ThemedText>
           </Pressable>
