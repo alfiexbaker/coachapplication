@@ -16,6 +16,74 @@ export interface CoachBadge {
   tone?: 'success' | 'warning' | 'default';
 }
 
+// School & Invite System
+export interface School {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  photoUrl?: string;
+  description?: string;
+  activeCoachesCount: number;
+  createdAt: string;
+}
+
+export interface InviteCode {
+  id: string;
+  code: string;
+  schoolId: string;
+  schoolName: string;
+  createdBy: string; // admin user id
+  createdAt: string;
+  expiresAt: string;
+  maxUses: number;
+  currentUses: number;
+  status: 'active' | 'expired' | 'exhausted';
+}
+
+// Enhanced Coach Profile (Facebook-style)
+export interface CoachExperience {
+  id: string;
+  title: string;
+  organization: string;
+  startDate: string;
+  endDate?: string;
+  description?: string;
+  current: boolean;
+}
+
+export interface CoachCertification {
+  id: string;
+  name: string;
+  issuer: string;
+  issueDate: string;
+  expiryDate?: string;
+  credentialUrl?: string;
+}
+
+export interface CoachPost {
+  id: string;
+  coachId: string;
+  content: string;
+  mediaUrls?: string[];
+  mediaType?: 'photo' | 'video';
+  createdAt: string;
+  likes: number;
+  comments: number;
+}
+
+export interface CoachReview {
+  id: string;
+  parentName: string;
+  parentPhotoUrl?: string;
+  rating: number;
+  content: string;
+  createdAt: string;
+  sessionDate: string;
+}
+
 export interface CoachProfile {
   id: string;
   fullName: string;
@@ -38,12 +106,29 @@ export interface CoachProfile {
   sessionFormats: TrainingFormat[];
   shortBio: string;
   profilePhotoUrl: string;
+  coverPhotoUrl?: string;
   footballFocuses: FootballObjective[];
   schoolName?: string;
+  schoolId?: string;
   location: {
     lat: number;
     lng: number;
   };
+
+  // Facebook-style additions
+  bio?: string; // Full bio (longer than shortBio)
+  phone?: string;
+  email?: string;
+  website?: string;
+  joinedDate: string;
+  totalSessions: number;
+  experiences: CoachExperience[];
+  certifications: CoachCertification[];
+  posts: CoachPost[];
+  photoGallery: string[];
+  videoGallery: string[];
+  languages: string[];
+  achievements: string[];
 }
 
 export interface CoachSearchParams {

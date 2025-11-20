@@ -1,0 +1,659 @@
+import { useState } from 'react';
+import {
+  FlatList,
+  Image,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Radii, Spacing } from '@/constants/theme';
+import { coachProfiles } from '@/constants/mock-data';
+import { CoachPost, CoachExperience, CoachCertification } from '@/constants/types';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+
+type TabType = 'posts' | 'about' | 'photos' | 'reviews';
+
+export default function CoachProfileScreen() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const { currentUser } = useAuth();
+
+  // For demo, use first coach profile - in production, use currentUser.id
+  const coach = coachProfiles[0];
+
+  const [activeTab, setActiveTab] = useState<TabType>('posts');
+
+  const renderTabButton = (tab: TabType, label: string) => (
+    <Pressable
+      onPress={() => setActiveTab(tab)}
+      style={[
+        styles.tabButton,
+        activeTab === tab && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
+      ]}>
+      <ThemedText
+        style={[styles.tabText, activeTab === tab && { fontWeight: '700', color: palette.tint }]}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+
+  const renderPost = ({ item }: { item: CoachPost }) => (
+    <SurfaceCard style={styles.postCard}>
+      <View style={styles.postHeader}>
+        <Image source={{ uri: coach.profilePhotoUrl }} style={styles.postAvatar} />
+        <View style={styles.postHeaderText}>
+          <ThemedText type="subtitle">{coach.fullName}</ThemedText>
+          <ThemedText style={styles.postDate}>
+            {new Date(item.createdAt).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </ThemedText>
+        </View>
+      </View>
+
+      <ThemedText style={styles.postContent}>{item.content}</ThemedText>
+
+      {item.mediaUrls && item.mediaUrls.length > 0 && (
+        <View style={styles.postMedia}>
+          {item.mediaType === 'photo' &&
+            item.mediaUrls.map((url, index) => (
+              <Image key={index} source={{ uri: url }} style={styles.postImage} />
+            ))}
+        </View>
+      )}
+
+      <View style={styles.postActions}>
+        <Pressable style={styles.actionButton}>
+          <Ionicons name="heart-outline" size={20} color={palette.foreground} />
+          <ThemedText style={styles.actionText}>{item.likes}</ThemedText>
+        </Pressable>
+        <Pressable style={styles.actionButton}>
+          <Ionicons name="chatbubble-outline" size={20} color={palette.foreground} />
+          <ThemedText style={styles.actionText}>{item.comments}</ThemedText>
+        </Pressable>
+        <Pressable style={styles.actionButton}>
+          <Ionicons name="share-outline" size={20} color={palette.foreground} />
+        </Pressable>
+      </View>
+    </SurfaceCard>
+  );
+
+  const renderExperience = (exp: CoachExperience) => (
+    <View key={exp.id} style={styles.experienceItem}>
+      <View style={styles.experienceIcon}>
+        <Ionicons name="briefcase" size={20} color={palette.tint} />
+      </View>
+      <View style={styles.experienceContent}>
+        <ThemedText type="subtitle">{exp.title}</ThemedText>
+        <ThemedText style={styles.experienceOrg}>{exp.organization}</ThemedText>
+        <ThemedText style={styles.experienceDate}>
+          {new Date(exp.startDate).getFullYear()} -{' '}
+          {exp.current ? 'Present' : new Date(exp.endDate!).getFullYear()}
+        </ThemedText>
+        {exp.description && <ThemedText style={styles.experienceDesc}>{exp.description}</ThemedText>}
+      </View>
+    </View>
+  );
+
+  const renderCertification = (cert: CoachCertification) => (
+    <View key={cert.id} style={styles.certItem}>
+      <View style={styles.certIcon}>
+        <Ionicons name="ribbon" size={20} color={palette.success} />
+      </View>
+      <View style={styles.certContent}>
+        <ThemedText type="subtitle">{cert.name}</ThemedText>
+        <ThemedText style={styles.certIssuer}>{cert.issuer}</ThemedText>
+        <ThemedText style={styles.certDate}>
+          Issued {new Date(cert.issueDate).toLocaleDateString()}
+          {cert.expiryDate && ` • Expires ${new Date(cert.expiryDate).toLocaleDateString()}`}
+        </ThemedText>
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Cover Photo */}
+        <View style={styles.coverContainer}>
+          {coach.coverPhotoUrl ? (
+            <Image source={{ uri: coach.coverPhotoUrl }} style={styles.coverPhoto} />
+          ) : (
+            <View style={[styles.coverPhoto, { backgroundColor: palette.border }]} />
+          )}
+        </View>
+
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
+            <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} />
+            {currentUser?.role === 'Coach' && (
+              <Pressable style={[styles.editAvatarButton, { backgroundColor: palette.tint }]}>
+                <Ionicons name="camera" size={16} color="#FFFFFF" />
+              </Pressable>
+            )}
+          </View>
+
+          <View style={styles.profileInfo}>
+            <ThemedText type="title">{coach.fullName}</ThemedText>
+            <ThemedText style={styles.schoolName}>{coach.schoolName}</ThemedText>
+            <ThemedText style={styles.location}>
+              {coach.city}, {coach.state}
+            </ThemedText>
+
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <ThemedText type="subtitle">{coach.totalSessions}</ThemedText>
+                <ThemedText style={styles.statLabel}>Sessions</ThemedText>
+              </View>
+              <View style={styles.statItem}>
+                <ThemedText type="subtitle">{coach.rating.average.toFixed(1)}</ThemedText>
+                <ThemedText style={styles.statLabel}>Rating</ThemedText>
+              </View>
+              <View style={styles.statItem}>
+                <ThemedText type="subtitle">{coach.rating.reviewCount}</ThemedText>
+                <ThemedText style={styles.statLabel}>Reviews</ThemedText>
+              </View>
+            </View>
+
+            {coach.badges && coach.badges.length > 0 && (
+              <View style={styles.badgesRow}>
+                {coach.badges.map((badge) => (
+                  <View
+                    key={badge.id}
+                    style={[
+                      styles.badge,
+                      {
+                        backgroundColor:
+                          badge.tone === 'success'
+                            ? `${palette.success}20`
+                            : badge.tone === 'warning'
+                              ? `${palette.warning}20`
+                              : `${palette.tint}20`,
+                      },
+                    ]}>
+                    <ThemedText
+                      style={[
+                        styles.badgeText,
+                        {
+                          color:
+                            badge.tone === 'success'
+                              ? palette.success
+                              : badge.tone === 'warning'
+                                ? palette.warning
+                                : palette.tint,
+                        },
+                      ]}>
+                      {badge.label}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {currentUser?.role === 'Coach' && (
+              <Pressable
+                style={[styles.editProfileButton, { backgroundColor: palette.tint }]}
+                onPress={() => router.push('/(tabs)/edit-profile')}>
+                <ThemedText style={styles.editProfileText} lightColor="#FFFFFF" darkColor="#000000">
+                  Edit Profile
+                </ThemedText>
+              </Pressable>
+            )}
+          </View>
+        </View>
+
+        {/* Tabs */}
+        <View style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
+          {renderTabButton('posts', 'Posts')}
+          {renderTabButton('about', 'About')}
+          {renderTabButton('photos', 'Photos')}
+          {renderTabButton('reviews', 'Reviews')}
+        </View>
+
+        {/* Tab Content */}
+        <View style={styles.tabContent}>
+          {activeTab === 'posts' && (
+            <>
+              {currentUser?.role === 'Coach' && (
+                <Pressable
+                  style={[styles.createPostButton, { backgroundColor: palette.card }]}
+                  onPress={() => alert('Create post coming soon!')}>
+                  <Ionicons name="add-circle" size={24} color={palette.tint} />
+                  <ThemedText style={styles.createPostText}>Share an update...</ThemedText>
+                </Pressable>
+              )}
+
+              {coach.posts && coach.posts.length > 0 ? (
+                coach.posts.map((post) => <View key={post.id}>{renderPost({ item: post })}</View>)
+              ) : (
+                <SurfaceCard style={styles.emptyState}>
+                  <ThemedText style={styles.emptyStateText}>No posts yet</ThemedText>
+                </SurfaceCard>
+              )}
+            </>
+          )}
+
+          {activeTab === 'about' && (
+            <View style={styles.aboutContent}>
+              {/* Bio */}
+              <SurfaceCard style={styles.section}>
+                <ThemedText type="subtitle">About</ThemedText>
+                <ThemedText style={styles.bio}>{coach.bio || coach.shortBio}</ThemedText>
+              </SurfaceCard>
+
+              {/* Contact Info */}
+              <SurfaceCard style={styles.section}>
+                <ThemedText type="subtitle">Contact Information</ThemedText>
+                {coach.email && (
+                  <Pressable
+                    style={styles.contactItem}
+                    onPress={() => Linking.openURL(`mailto:${coach.email}`)}>
+                    <Ionicons name="mail" size={20} color={palette.tint} />
+                    <ThemedText style={styles.contactText}>{coach.email}</ThemedText>
+                  </Pressable>
+                )}
+                {coach.phone && (
+                  <Pressable
+                    style={styles.contactItem}
+                    onPress={() => Linking.openURL(`tel:${coach.phone}`)}>
+                    <Ionicons name="call" size={20} color={palette.tint} />
+                    <ThemedText style={styles.contactText}>{coach.phone}</ThemedText>
+                  </Pressable>
+                )}
+                {coach.website && (
+                  <Pressable
+                    style={styles.contactItem}
+                    onPress={() => Linking.openURL(coach.website!)}>
+                    <Ionicons name="globe" size={20} color={palette.tint} />
+                    <ThemedText style={styles.contactText}>{coach.website}</ThemedText>
+                  </Pressable>
+                )}
+              </SurfaceCard>
+
+              {/* Experience */}
+              {coach.experiences && coach.experiences.length > 0 && (
+                <SurfaceCard style={styles.section}>
+                  <ThemedText type="subtitle">Experience</ThemedText>
+                  {coach.experiences.map(renderExperience)}
+                </SurfaceCard>
+              )}
+
+              {/* Certifications */}
+              {coach.certifications && coach.certifications.length > 0 && (
+                <SurfaceCard style={styles.section}>
+                  <ThemedText type="subtitle">Certifications</ThemedText>
+                  {coach.certifications.map(renderCertification)}
+                </SurfaceCard>
+              )}
+
+              {/* Achievements */}
+              {coach.achievements && coach.achievements.length > 0 && (
+                <SurfaceCard style={styles.section}>
+                  <ThemedText type="subtitle">Achievements</ThemedText>
+                  {coach.achievements.map((achievement, index) => (
+                    <View key={index} style={styles.achievementItem}>
+                      <Ionicons name="trophy" size={18} color={palette.warning} />
+                      <ThemedText style={styles.achievementText}>{achievement}</ThemedText>
+                    </View>
+                  ))}
+                </SurfaceCard>
+              )}
+
+              {/* Languages */}
+              {coach.languages && coach.languages.length > 0 && (
+                <SurfaceCard style={styles.section}>
+                  <ThemedText type="subtitle">Languages</ThemedText>
+                  <View style={styles.languagesRow}>
+                    {coach.languages.map((lang, index) => (
+                      <View
+                        key={index}
+                        style={[styles.languageTag, { backgroundColor: `${palette.tint}20` }]}>
+                        <ThemedText style={[styles.languageText, { color: palette.tint }]}>
+                          {lang}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                </SurfaceCard>
+              )}
+
+              {/* Specialties */}
+              <SurfaceCard style={styles.section}>
+                <ThemedText type="subtitle">Coaching Specialties</ThemedText>
+                <View style={styles.specialtiesRow}>
+                  {coach.footballFocuses.map((focus) => (
+                    <View
+                      key={focus}
+                      style={[styles.specialtyTag, { backgroundColor: palette.card }]}>
+                      <ThemedText style={styles.specialtyText}>{focus}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </SurfaceCard>
+            </View>
+          )}
+
+          {activeTab === 'photos' && (
+            <View style={styles.photosGrid}>
+              {coach.photoGallery && coach.photoGallery.length > 0 ? (
+                coach.photoGallery.map((url, index) => (
+                  <Image key={index} source={{ uri: url }} style={styles.gridPhoto} />
+                ))
+              ) : (
+                <SurfaceCard style={styles.emptyState}>
+                  <ThemedText style={styles.emptyStateText}>No photos yet</ThemedText>
+                </SurfaceCard>
+              )}
+            </View>
+          )}
+
+          {activeTab === 'reviews' && (
+            <SurfaceCard style={styles.emptyState}>
+              <ThemedText style={styles.emptyStateText}>Reviews coming soon</ThemedText>
+            </SurfaceCard>
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
+  coverContainer: {
+    position: 'relative',
+  },
+  coverPhoto: {
+    width: '100%',
+    height: 200,
+  },
+  profileHeader: {
+    padding: Spacing.lg,
+    paddingTop: 0,
+    gap: Spacing.md,
+  },
+  avatarContainer: {
+    marginTop: -50,
+    position: 'relative',
+    alignSelf: 'flex-start',
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+  },
+  editAvatarButton: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  profileInfo: {
+    gap: Spacing.xs,
+  },
+  schoolName: {
+    fontSize: 16,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  location: {
+    opacity: 0.6,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.xl,
+    marginTop: Spacing.sm,
+  },
+  statItem: {
+    gap: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  badge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  editProfileButton: {
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  editProfileText: {
+    fontWeight: '600',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  tabContent: {
+    padding: Spacing.lg,
+    gap: Spacing.md,
+  },
+  createPostButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radii.lg,
+    gap: Spacing.sm,
+  },
+  createPostText: {
+    opacity: 0.6,
+  },
+  postCard: {
+    gap: Spacing.md,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  postAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  postHeaderText: {
+    flex: 1,
+    gap: 2,
+  },
+  postDate: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  postContent: {
+    lineHeight: 20,
+  },
+  postMedia: {
+    gap: Spacing.xs,
+  },
+  postImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: Radii.md,
+  },
+  postActions: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+    paddingTop: Spacing.xs,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  actionText: {
+    fontSize: 14,
+  },
+  aboutContent: {
+    gap: Spacing.md,
+  },
+  section: {
+    gap: Spacing.md,
+  },
+  bio: {
+    lineHeight: 20,
+    opacity: 0.8,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  contactText: {
+    flex: 1,
+  },
+  experienceItem: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingTop: Spacing.md,
+  },
+  experienceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(99,102,241,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  experienceContent: {
+    flex: 1,
+    gap: 2,
+  },
+  experienceOrg: {
+    fontWeight: '500',
+    opacity: 0.8,
+  },
+  experienceDate: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  experienceDesc: {
+    fontSize: 14,
+    opacity: 0.7,
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  certItem: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingTop: Spacing.md,
+  },
+  certIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,217,163,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  certContent: {
+    flex: 1,
+    gap: 2,
+  },
+  certIssuer: {
+    fontWeight: '500',
+    opacity: 0.8,
+  },
+  certDate: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  achievementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  achievementText: {
+    flex: 1,
+  },
+  languagesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  languageTag: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+  },
+  languageText: {
+    fontWeight: '600',
+  },
+  specialtiesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  specialtyTag: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  specialtyText: {
+    fontWeight: '600',
+  },
+  photosGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 2,
+  },
+  gridPhoto: {
+    width: '32.5%',
+    aspectRatio: 1,
+  },
+  emptyState: {
+    paddingVertical: Spacing.xl,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    opacity: 0.6,
+  },
+});

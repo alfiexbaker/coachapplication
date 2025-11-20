@@ -1,5 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -7,22 +8,47 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import CoachProfileScreen from './coach-profile';
 
 const ACTIONS = [
   {
     title: 'Verification badges',
     description: 'Background check, pro experience, credential uploads.',
     cta: 'In progress',
+    route: null,
   },
   {
     title: 'Messaging & notifications',
     description: 'Placeholder toggles until the real-time messaging stack lands in S2.',
     cta: 'Coming soon',
+    route: null,
   },
   {
     title: 'Payments & payouts',
     description: 'Stripe onboarding is staged for S3; keep UI hooks discoverable.',
     cta: 'Waiting on Trust sprint',
+    route: null,
+  },
+];
+
+const ADMIN_ACTIONS = [
+  {
+    title: 'School Invite Codes',
+    description: 'Generate and manage invite codes for schools to onboard coaches.',
+    cta: 'Manage Codes',
+    route: '/(tabs)/admin/invite-codes',
+  },
+  {
+    title: 'User Management',
+    description: 'View and moderate all users, coaches, and parents on the platform.',
+    cta: 'Coming soon',
+    route: null,
+  },
+  {
+    title: 'Platform Analytics',
+    description: 'Track bookings, revenue, and platform usage statistics.',
+    cta: 'Coming soon',
+    route: null,
   },
 ];
 
@@ -31,13 +57,25 @@ export default function ProfileScreen() {
   const palette = Colors[scheme];
   const { currentUser, logout } = useAuth();
 
+  // If user is a coach, show the coach profile page
+  if (currentUser?.role === 'Coach') {
+    return <CoachProfileScreen />;
+  }
+
+  // Get actions based on role
+  const actions = currentUser?.role === 'Admin' ? ADMIN_ACTIONS : ACTIONS;
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>Profile</ThemedText>
+          <ThemedText type="title" style={styles.title}>
+            {currentUser?.role === 'Admin' ? 'Admin Settings' : 'Profile'}
+          </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Manage your account and preferences
+            {currentUser?.role === 'Admin'
+              ? 'Manage platform settings and configurations'
+              : 'Manage your account and preferences'}
           </ThemedText>
         </View>
 
@@ -51,11 +89,13 @@ export default function ProfileScreen() {
               styles.rolePill,
               { backgroundColor: `${palette.premium}20`, borderColor: palette.premium },
             ]}>
-            <ThemedText style={[styles.rolePillLabel, { color: palette.premium }]}>{currentUser?.role ?? 'Guest'}</ThemedText>
+            <ThemedText style={[styles.rolePillLabel, { color: palette.premium }]}>
+              {currentUser?.role ?? 'Guest'}
+            </ThemedText>
           </View>
           <ThemedText style={styles.identityHelper}>
-            Authentication is intentionally hardcoded so you can preview how the rest of the build feels from
-            different roles before wiring up a backend.
+            Authentication is intentionally hardcoded so you can preview how the rest of the build feels
+            from different roles before wiring up a backend.
           </ThemedText>
           <Pressable
             style={({ pressed }) => [
@@ -70,12 +110,22 @@ export default function ProfileScreen() {
             </ThemedText>
           </Pressable>
         </SurfaceCard>
-        {ACTIONS.map((action) => (
+        {actions.map((action) => (
           <SurfaceCard
             key={action.title}
-            onPress={() => console.log('Navigate to', action.title)}>
-            <ThemedText type="defaultSemiBold" style={styles.actionTitle}>{action.title}</ThemedText>
-            <ThemedText style={[styles.description, { color: palette.muted }]}>{action.description}</ThemedText>
+            onPress={() => {
+              if (action.route) {
+                router.push(action.route as any);
+              } else {
+                console.log('Navigate to', action.title);
+              }
+            }}>
+            <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
+              {action.title}
+            </ThemedText>
+            <ThemedText style={[styles.description, { color: palette.muted }]}>
+              {action.description}
+            </ThemedText>
             <View
               style={[
                 styles.ctaPill,

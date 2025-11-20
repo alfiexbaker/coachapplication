@@ -92,6 +92,24 @@ export default function TabLayout() {
             href: null, // Admins don't need calendar view
           }}
         />
+        <Tabs.Screen
+          name="coach-profile"
+          options={{
+            href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="edit-profile"
+          options={{
+            href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="admin/invite-codes"
+          options={{
+            href: null, // Hide from tab bar - access via settings
+          }}
+        />
       </Tabs>
     );
   }
@@ -136,6 +154,24 @@ export default function TabLayout() {
             href: null, // Coaches don't need discover page
           }}
         />
+        <Tabs.Screen
+          name="coach-profile"
+          options={{
+            href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="edit-profile"
+          options={{
+            href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="admin/invite-codes"
+          options={{
+            href: null, // Hide from tab bar
+          }}
+        />
       </Tabs>
     );
   }
@@ -177,6 +213,24 @@ export default function TabLayout() {
         name="availability"
         options={{
           href: null, // Users don't have availability calendar
+        }}
+      />
+      <Tabs.Screen
+        name="coach-profile"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="admin/invite-codes"
+        options={{
+          href: null, // Hide from tab bar
         }}
       />
     </Tabs>
