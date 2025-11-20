@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { BookingSummary } from '@/constants/types';
@@ -29,20 +30,18 @@ export function BookingCard({ booking }: BookingCardProps) {
 
   const renderRightActions = () => (
     <View style={styles.actionsContainer}>
-      <Pressable
-        accessibilityLabel="Reschedule booking"
+      <Clickable
         onPress={() => console.log('Reschedule booking', booking.id)}
         style={[styles.actionButton, { backgroundColor: palette.tint }]}>
         <Ionicons name="refresh" size={18} color={scheme === 'light' ? '#FFFFFF' : '#000000'} />
         <ThemedText style={styles.actionLabel} lightColor="#FFFFFF" darkColor="#000000">Reschedule</ThemedText>
-      </Pressable>
-      <Pressable
-        accessibilityLabel="Cancel booking"
+      </Clickable>
+      <Clickable
         onPress={() => console.log('Cancel booking', booking.id)}
         style={[styles.actionButton, { backgroundColor: palette.error }]}>
         <Ionicons name="close" size={18} color="#FFFFFF" />
         <ThemedText style={styles.actionLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">Cancel</ThemedText>
-      </Pressable>
+      </Clickable>
     </View>
   );
 

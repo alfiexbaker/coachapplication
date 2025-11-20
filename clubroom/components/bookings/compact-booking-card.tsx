@@ -1,5 +1,5 @@
-import { Image, Pressable, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { Image, Pressable, StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
+import { Link, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +13,8 @@ type CompactBookingCardProps = {
 };
 
 export function CompactBookingCard({ booking }: CompactBookingCardProps) {
+  console.log('🔵🔵🔵 [CompactBookingCard] COMPONENT RENDERING - Booking ID:', booking.id, 'Service:', booking.service);
+
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
@@ -41,11 +43,36 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   // Get coach photo from the extended booking data
   const coachPhotoUrl = (booking as any).coach?.photoUrl || 'https://i.pravatar.cc/100';
 
-  return (
-    <Pressable
-      onPress={() => router.push(`/bookings/${booking.id}`)}
-      style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
-      <SurfaceCard style={styles.card}>
+  const handlePress = () => {
+    const route = `/bookings/${booking.id}`;
+    console.log('🔵🔵🔵 [CompactBookingCard] PRESS FIRED! Navigating to:', route);
+    console.log('🔵 [CompactBookingCard] Booking details:', {
+      id: booking.id,
+      service: booking.service,
+      coachName: booking.coachName,
+      status: booking.status
+    });
+    router.push(route);
+    console.log('🔵 [CompactBookingCard] router.push() called');
+  };
+
+  const handlePressIn = () => {
+    console.log('🔵 [CompactBookingCard] PRESS IN detected for booking:', booking.id);
+  };
+
+  const handlePressOut = () => {
+    console.log('🔵 [CompactBookingCard] PRESS OUT detected for booking:', booking.id);
+  };
+
+  // Web-specific: onMouseUp triggers navigation since onClick doesn't work on RN View
+  const handleWebClick = (e: any) => {
+    console.log('🔵 [CompactBookingCard] WEB CLICK detected for booking:', booking.id);
+    handlePressOut();
+    handlePress();
+  };
+
+  const CardContent = () => (
+    <SurfaceCard style={styles.card}>
         <View style={styles.content}>
           {/* Coach Avatar */}
           <Image source={{ uri: coachPhotoUrl }} style={styles.avatar} />
@@ -77,11 +104,36 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
           </View>
         </View>
       </SurfaceCard>
-    </Pressable>
+  );
+
+  // Web uses View with onMouseUp (onClick doesn't work on RN View), Native uses TouchableOpacity
+  if (Platform.OS === 'web') {
+    return (
+      <View
+        onMouseDown={handlePressIn as any}
+        onMouseUp={handleWebClick as any}
+        style={[styles.touchable, { cursor: 'pointer' }]}>
+        <CardContent />
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={handlePress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={0.7}
+      style={styles.touchable}>
+      <CardContent />
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
+  touchable: {
+    // No styles needed, just for structure
+  },
   card: {
     padding: Spacing.md,
   },

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View, Platform, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,34 @@ import { BookingSummary } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BookingsScreen');
+
+// Web-compatible clickable wrapper
+type ClickableProps = {
+  onPress: () => void;
+  style?: any;
+  children: React.ReactNode;
+};
+
+function Clickable({ onPress, style, children }: ClickableProps) {
+  if (Platform.OS === 'web') {
+    return (
+      <View
+        onMouseUp={onPress as any}
+        style={[style, { cursor: 'pointer' }]}>
+        {children}
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      style={style}>
+      {children}
+    </TouchableOpacity>
+  );
+}
 
 export default function BookingsScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -102,6 +130,17 @@ export default function BookingsScreen() {
     hasBookings
   });
 
+  console.log('🟢🟢🟢 [BookingsScreen] RENDERING with', filteredBookings.length, 'bookings');
+  console.log('🟢 [BookingsScreen] Booking IDs:', filteredBookings.map(b => b.id));
+  filteredBookings.forEach((booking, index) => {
+    console.log(`🟢 [BookingsScreen] Booking ${index}:`, {
+      id: booking.id,
+      service: booking.service,
+      coachName: booking.coachName,
+      status: booking.status
+    });
+  });
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
@@ -113,57 +152,53 @@ export default function BookingsScreen() {
       {/* Fixed: was checking 'User' and 'Parent', now checking 'USER' and 'PARENT' */}
       {(userRole === 'USER' || userRole === 'PARENT') && (
         <View style={styles.quickActions}>
-          <Pressable
+          <Clickable
             onPress={() => {
               logger.press('MyGoalsButton', { route: '/bookings/objectives' });
               router.push('/bookings/objectives');
-            }}
-            style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            }}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="football-outline" size={24} color={palette.tint} />
               <ThemedText style={styles.actionText}>My Goals</ThemedText>
             </SurfaceCard>
-          </Pressable>
+          </Clickable>
 
-          <Pressable
+          <Clickable
             onPress={() => {
               logger.press('ProgressButton', { route: '/bookings/statistics' });
               router.push('/bookings/statistics');
-            }}
-            style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            }}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="stats-chart-outline" size={24} color={palette.tint} />
               <ThemedText style={styles.actionText}>Progress</ThemedText>
             </SurfaceCard>
-          </Pressable>
+          </Clickable>
         </View>
       )}
       {/* Fixed: was checking 'Coach', now checking 'COACH' */}
       {userRole === 'COACH' && (
         <View style={styles.quickActions}>
-          <Pressable
+          <Clickable
             onPress={() => {
               logger.press('CalendarButton', { route: '/(tabs)/availability' });
               router.push('/(tabs)/availability');
-            }}
-            style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            }}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="calendar-outline" size={24} color={palette.tint} />
               <ThemedText style={styles.actionText}>Calendar</ThemedText>
             </SurfaceCard>
-          </Pressable>
+          </Clickable>
 
-          <Pressable
+          <Clickable
             onPress={() => {
               logger.press('ProfileButton', { route: '/(tabs)/profile' });
               router.push('/(tabs)/profile');
-            }}
-            style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            }}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="person-outline" size={24} color={palette.tint} />
               <ThemedText style={styles.actionText}>Profile</ThemedText>
             </SurfaceCard>
-          </Pressable>
+          </Clickable>
         </View>
       )}
 
@@ -192,37 +227,29 @@ export default function BookingsScreen() {
           </ThemedText>
           {/* Fixed: was checking 'User' and 'Parent', now checking 'USER' and 'PARENT' */}
           {(userRole === 'USER' || userRole === 'PARENT') && (
-            <Pressable
+            <Clickable
               onPress={() => {
                 logger.press('FindCoachButton', { route: '/(tabs)/index' });
                 router.push('/(tabs)/index');
               }}
-              style={({ pressed }) => [
-                styles.ctaButton,
-                { backgroundColor: palette.tint },
-                pressed && { opacity: 0.8 },
-              ]}>
+              style={[styles.ctaButton, { backgroundColor: palette.tint }]}>
               <ThemedText style={styles.ctaText} lightColor="#FFFFFF" darkColor="#000000">
                 Find a Coach
               </ThemedText>
-            </Pressable>
+            </Clickable>
           )}
           {/* Fixed: was checking 'Coach', now checking 'COACH' */}
           {userRole === 'COACH' && (
-            <Pressable
+            <Clickable
               onPress={() => {
                 logger.press('ManageAvailabilityButton', { route: '/(tabs)/availability' });
                 router.push('/(tabs)/availability');
               }}
-              style={({ pressed }) => [
-                styles.ctaButton,
-                { backgroundColor: palette.tint },
-                pressed && { opacity: 0.8 },
-              ]}>
+              style={[styles.ctaButton, { backgroundColor: palette.tint }]}>
               <ThemedText style={styles.ctaText} lightColor="#FFFFFF" darkColor="#000000">
                 Manage Availability
               </ThemedText>
-            </Pressable>
+            </Clickable>
           )}
         </View>
       )}

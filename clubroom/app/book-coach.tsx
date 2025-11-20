@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  Pressable,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,10 +12,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { getUserById, formatGBP } from '@/constants/mock-data';
+import { getUserById, getCoachProfile, formatGBP } from '@/constants/mock-data';
 
 interface SlotTemplate {
   id: string;
@@ -121,6 +121,7 @@ export default function BookCoachScreen() {
   const coachId = params.coachId as string;
 
   const coach = getUserById(coachId);
+  const coachProfile = coach ? getCoachProfile(coach.id) : null;
   const availability = useMemo(() => buildAvailability(), []);
   const [selectedDayId, setSelectedDayId] = useState(availability[0]?.id);
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(
@@ -148,7 +149,7 @@ export default function BookCoachScreen() {
   const selectedSlot = selectedDay?.slots.find((slot) => slot.id === selectedSlotId);
 
   const handleBooking = async () => {
-    if (!selectedSlot || !coach || !currentUser) {
+    if (!selectedSlot || !coach || !coachProfile || !currentUser) {
       Alert.alert('Error', 'Please select a time slot');
       return;
     }
@@ -164,18 +165,18 @@ export default function BookCoachScreen() {
         slotFocus: selectedSlot.focus,
         slotStart: selectedSlot.start.toISOString(),
         slotDuration: selectedSlot.durationMinutes.toString(),
-        price: coach.profile.sessionRate.toString(),
+        price: coachProfile.sessionRate.toString(),
       },
     });
   };
 
-  if (!coach) {
+  if (!coach || !coachProfile) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Pressable>
+          </Clickable>
         </View>
         <View style={styles.errorContainer}>
           <ThemedText>Coach not found</ThemedText>
@@ -189,9 +190,9 @@ export default function BookCoachScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Pressable>
+          </Clickable>
           <ThemedText type="subtitle">Book Session</ThemedText>
           <View style={{ width: 24 }} />
         </View>
@@ -211,12 +212,12 @@ export default function BookCoachScreen() {
               <View style={styles.coachMeta}>
                 <Ionicons name="star" size={14} color="#fbbf24" />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                  {coach.profile.rating.toFixed(1)} ({coach.profile.totalReviews} reviews)
+                  {coachProfile.rating.toFixed(1)} ({coachProfile.totalReviews} reviews)
                 </ThemedText>
               </View>
             </View>
             <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
-              {formatGBP(coach.profile.sessionRate)}
+              {formatGBP(coachProfile.sessionRate)}
             </ThemedText>
           </View>
         </SurfaceCard>
@@ -235,7 +236,7 @@ export default function BookCoachScreen() {
               const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
 
               return (
-                <Pressable
+                <Clickable
                   key={day.id}
                   onPress={() => setSelectedDayId(day.id)}
                   style={({ pressed }) => [
@@ -271,7 +272,7 @@ export default function BookCoachScreen() {
                   >
                     {month}
                   </ThemedText>
-                </Pressable>
+                </Clickable>
               );
             })}
           </ScrollView>
@@ -297,7 +298,7 @@ export default function BookCoachScreen() {
                 });
 
                 return (
-                  <Pressable
+                  <Clickable
                     key={slot.id}
                     onPress={() => setSelectedSlotId(slot.id)}
                     style={({ pressed }) => [
@@ -328,7 +329,7 @@ export default function BookCoachScreen() {
                         <Ionicons name="checkmark-circle" size={24} color={palette.tint} />
                       )}
                     </View>
-                  </Pressable>
+                  </Clickable>
                 );
               })}
             </View>
@@ -338,7 +339,7 @@ export default function BookCoachScreen() {
 
       {/* Book Button */}
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
-        <Pressable
+        <Clickable
           onPress={handleBooking}
           disabled={!selectedSlot}
           style={({ pressed }) => [
@@ -352,7 +353,7 @@ export default function BookCoachScreen() {
           <ThemedText style={styles.bookButtonText}>
             Continue to Payment
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
     </SafeAreaView>
   );

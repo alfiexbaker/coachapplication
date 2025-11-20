@@ -1,10 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, View, Image } from 'react-native';
+import { ScrollView, StyleSheet, View, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -134,7 +135,7 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          <Pressable
+          <Clickable
             style={({ pressed }) => [
               styles.editButton,
               {
@@ -149,7 +150,7 @@ export default function ProfileScreen() {
             <ThemedText style={styles.editButtonLabel} lightColor="#FFFFFF" darkColor="#000000">
               Edit Profile
             </ThemedText>
-          </Pressable>
+          </Clickable>
         </SurfaceCard>
 
         {/* Role & Sign Out */}
@@ -167,7 +168,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <Pressable
+          <Clickable
             style={({ pressed }) => [
               styles.signOutButton,
               {
@@ -185,7 +186,7 @@ export default function ProfileScreen() {
             <ThemedText style={[styles.signOutLabel, { color: palette.destructive }]}>
               Sign Out
             </ThemedText>
-          </Pressable>
+          </Clickable>
         </SurfaceCard>
         {actions.map((action) => (
           <SurfaceCard
