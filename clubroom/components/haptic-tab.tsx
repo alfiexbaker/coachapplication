@@ -22,7 +22,9 @@ export const HapticTab = forwardRef<View, BottomTabBarButtonProps>(function Hapt
         }
         props.onPressIn?.(ev);
       }}
-    />
+    >
+      {props.children}
+    </PlatformPressable>
   );
 
   if (Platform.OS === 'web' && href) {
