@@ -34,10 +34,13 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <SectionHeader
-          title="Profile & Settings"
-          subtitle="Manage your account and preferences"
-        />
+        <View style={styles.header}>
+          <ThemedText type="title" style={styles.title}>Profile</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+            Manage your account and preferences
+          </ThemedText>
+        </View>
+
         <SurfaceCard style={styles.identityCard}>
           <ThemedText type="defaultSemiBold">Signed in as</ThemedText>
           <ThemedText type="title" style={styles.username}>
@@ -95,10 +98,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.lg + 4,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing['2xl'],
     gap: Spacing.lg,
+  },
+  header: {
+    gap: Spacing.xs + 2,
+    marginBottom: Spacing.sm,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+  },
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '500',
   },
   identityCard: {
     gap: Spacing.md,

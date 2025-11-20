@@ -5,10 +5,15 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
+  const { currentUser } = useAuth();
+
+  const isCoach = currentUser?.role === 'Coach';
+  const isUser = currentUser?.role === 'User' || currentUser?.role === 'Parent';
 
   return (
     <Tabs
@@ -36,20 +41,38 @@ export default function TabLayout() {
           marginTop: 4,
         },
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Discover',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
-        }}
-      />
+      {/* User/Parent tabs: Discover coaches */}
+      {isUser && (
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Discover',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
+          }}
+        />
+      )}
+
+      {/* Coach tabs: Calendar/Availability is their home */}
+      {isCoach && (
+        <Tabs.Screen
+          name="availability"
+          options={{
+            title: 'Calendar',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} />,
+          }}
+        />
+      )}
+
+      {/* Bookings - shown to everyone but different meaning */}
       <Tabs.Screen
         name="bookings"
         options={{
           title: 'Bookings',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
         }}
       />
+
+      {/* Messages - shown to everyone */}
       <Tabs.Screen
         name="messages"
         options={{
@@ -59,20 +82,35 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="availability"
-        options={{
-          title: 'Availability',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="clock" color={color} />,
-        }}
-      />
+
+      {/* Profile - shown to everyone */}
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
         }}
       />
+
+      {/* Hide index from coaches */}
+      {isCoach && (
+        <Tabs.Screen
+          name="index"
+          options={{
+            href: null, // Hides from tab bar
+          }}
+        />
+      )}
+
+      {/* Hide availability from users */}
+      {isUser && (
+        <Tabs.Screen
+          name="availability"
+          options={{
+            href: null, // Hides from tab bar
+          }}
+        />
+      )}
     </Tabs>
   );
 }
