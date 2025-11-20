@@ -20,20 +20,35 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+import { router } from 'expo-router';
 
 export default function DiscoverScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { width } = useWindowDimensions();
   const isWide = width > 900;
+  const { currentUser } = useAuth();
   const [postcode, setPostcode] = useState('');
   const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
   const selectedCoach = selectedCoachId ? coachProfiles.find((coach) => coach.id === selectedCoachId) : null;
 
+  const userRole = currentUser?.role;
+
   const nearbyCoaches = useMemo(() => {
     if (!postcode || postcode.length < 3) return [];
-    return coachProfiles.filter((coach) => coach.distanceMiles <= 12);
-  }, [postcode]);
+    // Filter by distance first
+    let filtered = coachProfiles.filter((coach) => coach.distanceMiles <= 12);
+
+    // Role-based filtering: Coaches shouldn't see other coaches (only Users/Parents book coaches)
+    // Admins can see everyone for management purposes
+    if (userRole === 'Coach') {
+      // Coaches shouldn't be using the Discover tab - they have their own Calendar tab
+      return [];
+    }
+
+    return filtered;
+  }, [postcode, userRole]);
 
   const handlePostcodeChange = (value: string) => {
     const stripped = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();

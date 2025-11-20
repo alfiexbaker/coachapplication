@@ -21,7 +21,7 @@ type MenuItem = {
 export default function MoreScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const { currentUser, signOut } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   const menuItems: MenuItem[] = [
     {
@@ -69,7 +69,7 @@ export default function MoreScreen() {
       id: 'logout',
       icon: 'log-out-outline',
       label: 'Log Out',
-      onPress: () => signOut(),
+      onPress: () => logout(),
       showChevron: false,
     },
   ];

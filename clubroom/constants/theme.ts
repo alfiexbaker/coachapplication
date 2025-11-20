@@ -8,6 +8,7 @@ const brandAccentDark = '#00B589';
 export const Colors = {
   light: {
     text: '#0A0A0A',
+    foreground: '#0A0A0A', // Primary text/icon color (same as text for consistency)
     muted: '#6B7280',
     background: '#FAFAFA',
     surface: '#FFFFFF',
@@ -28,6 +29,7 @@ export const Colors = {
   },
   dark: {
     text: '#FFFFFF',
+    foreground: '#FFFFFF', // Primary text/icon color (same as text for consistency)
     muted: '#9CA3AF',
     background: '#0A0A0A',
     surface: '#1A1A1A',

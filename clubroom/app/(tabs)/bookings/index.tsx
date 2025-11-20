@@ -9,13 +9,32 @@ import { CompactBookingCard } from '@/components/bookings/compact-booking-card';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 import { upcomingBookings } from '@/constants/mock-data';
 
 export default function BookingsScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser } = useAuth();
 
-  const hasBookings = upcomingBookings.length > 0;
+  const userRole = currentUser?.role;
+
+  // Filter bookings based on user role
+  const filteredBookings = upcomingBookings.filter((booking) => {
+    if (userRole === 'Coach') {
+      // Coaches see bookings where they are the coach
+      return booking.coachId === currentUser?.id || booking.coach.name === currentUser?.fullName;
+    } else if (userRole === 'User' || userRole === 'Parent') {
+      // Users/Parents see their own bookings
+      return booking.clientId === currentUser?.id || booking.client.name === currentUser?.fullName;
+    } else if (userRole === 'Admin') {
+      // Admins see all bookings
+      return true;
+    }
+    return true; // Default: show all
+  });
+
+  const hasBookings = filteredBookings.length > 0;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -24,31 +43,54 @@ export default function BookingsScreen() {
         <ThemedText type="title">Bookings</ThemedText>
       </ThemedView>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        <Pressable
-          onPress={() => router.push('/bookings/objectives')}
-          style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
-          <SurfaceCard style={styles.actionCard}>
-            <Ionicons name="football-outline" size={24} color={palette.tint} />
-            <ThemedText style={styles.actionText}>My Goals</ThemedText>
-          </SurfaceCard>
-        </Pressable>
+      {/* Quick Actions - Role-based */}
+      {(userRole === 'User' || userRole === 'Parent') && (
+        <View style={styles.quickActions}>
+          <Pressable
+            onPress={() => router.push('/bookings/objectives')}
+            style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            <SurfaceCard style={styles.actionCard}>
+              <Ionicons name="football-outline" size={24} color={palette.tint} />
+              <ThemedText style={styles.actionText}>My Goals</ThemedText>
+            </SurfaceCard>
+          </Pressable>
 
-        <Pressable
-          onPress={() => router.push('/bookings/statistics')}
-          style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
-          <SurfaceCard style={styles.actionCard}>
-            <Ionicons name="stats-chart-outline" size={24} color={palette.tint} />
-            <ThemedText style={styles.actionText}>Progress</ThemedText>
-          </SurfaceCard>
-        </Pressable>
-      </View>
+          <Pressable
+            onPress={() => router.push('/bookings/statistics')}
+            style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            <SurfaceCard style={styles.actionCard}>
+              <Ionicons name="stats-chart-outline" size={24} color={palette.tint} />
+              <ThemedText style={styles.actionText}>Progress</ThemedText>
+            </SurfaceCard>
+          </Pressable>
+        </View>
+      )}
+      {userRole === 'Coach' && (
+        <View style={styles.quickActions}>
+          <Pressable
+            onPress={() => router.push('/(tabs)/availability')}
+            style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            <SurfaceCard style={styles.actionCard}>
+              <Ionicons name="calendar-outline" size={24} color={palette.tint} />
+              <ThemedText style={styles.actionText}>Calendar</ThemedText>
+            </SurfaceCard>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/(tabs)/profile')}
+            style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
+            <SurfaceCard style={styles.actionCard}>
+              <Ionicons name="person-outline" size={24} color={palette.tint} />
+              <ThemedText style={styles.actionText}>Profile</ThemedText>
+            </SurfaceCard>
+          </Pressable>
+        </View>
+      )}
 
       {/* Bookings List */}
       {hasBookings ? (
         <FlatList
-          data={upcomingBookings}
+          data={filteredBookings}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <CompactBookingCard booking={item} />}
           contentContainerStyle={styles.list}
@@ -64,19 +106,36 @@ export default function BookingsScreen() {
             No upcoming sessions
           </ThemedText>
           <ThemedText style={styles.emptyDescription}>
-            Book your first coaching session to get started
+            {userRole === 'Coach'
+              ? 'You have no upcoming coaching sessions scheduled'
+              : 'Book your first coaching session to get started'}
           </ThemedText>
-          <Pressable
-            onPress={() => router.push('/(tabs)/index')}
-            style={({ pressed }) => [
-              styles.ctaButton,
-              { backgroundColor: palette.tint },
-              pressed && { opacity: 0.8 },
-            ]}>
-            <ThemedText style={styles.ctaText} lightColor="#FFFFFF" darkColor="#000000">
-              Find a Coach
-            </ThemedText>
-          </Pressable>
+          {(userRole === 'User' || userRole === 'Parent') && (
+            <Pressable
+              onPress={() => router.push('/(tabs)/index')}
+              style={({ pressed }) => [
+                styles.ctaButton,
+                { backgroundColor: palette.tint },
+                pressed && { opacity: 0.8 },
+              ]}>
+              <ThemedText style={styles.ctaText} lightColor="#FFFFFF" darkColor="#000000">
+                Find a Coach
+              </ThemedText>
+            </Pressable>
+          )}
+          {userRole === 'Coach' && (
+            <Pressable
+              onPress={() => router.push('/(tabs)/availability')}
+              style={({ pressed }) => [
+                styles.ctaButton,
+                { backgroundColor: palette.tint },
+                pressed && { opacity: 0.8 },
+              ]}>
+              <ThemedText style={styles.ctaText} lightColor="#FFFFFF" darkColor="#000000">
+                Manage Availability
+              </ThemedText>
+            </Pressable>
+          )}
         </View>
       )}
     </SafeAreaView>
