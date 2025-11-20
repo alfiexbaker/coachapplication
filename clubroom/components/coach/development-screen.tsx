@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -131,24 +131,38 @@ export function CoachDevelopmentScreen() {
                       .map(s => `• ${s.skillsWorkedOn.join(', ')} (${s.performanceRating}/5 ⭐)`)
                       .join('\n');
 
-                    Alert.alert(
-                      `${athlete.name}`,
-                      `📊 Total Sessions: ${sessionCount}\n⭐ Average Rating: ${averageRating.toFixed(1)}/5\n📅 Last Session: ${formatDate(lastSession)}\n\n🎯 Recent Focus Areas:\n${recentSessions || 'No sessions yet'}`,
-                      [
-                        {
-                          text: 'View All Sessions',
-                          onPress: () => {
-                            logger.info('Navigate to athlete sessions', { athleteId: athlete.id });
-                            // Navigate to bookings filtered by this athlete
-                            router.push('/(tabs)/bookings');
+                    const message = `📊 Total Sessions: ${sessionCount}\n⭐ Average Rating: ${averageRating.toFixed(1)}/5\n📅 Last Session: ${formatDate(lastSession)}\n\n🎯 Recent Focus Areas:\n${recentSessions || 'No sessions yet'}`;
+
+                    if (Platform.OS === 'web') {
+                      // Use native browser confirm for web
+                      const shouldNavigate = window.confirm(
+                        `${athlete.name}\n\n${message}\n\nClick OK to view all sessions`
+                      );
+                      if (shouldNavigate) {
+                        logger.info('Navigate to athlete sessions', { athleteId: athlete.id });
+                        router.push('/(tabs)/bookings');
+                      }
+                    } else {
+                      // Use React Native Alert for mobile
+                      Alert.alert(
+                        `${athlete.name}`,
+                        message,
+                        [
+                          {
+                            text: 'View All Sessions',
+                            onPress: () => {
+                              logger.info('Navigate to athlete sessions', { athleteId: athlete.id });
+                              // Navigate to bookings filtered by this athlete
+                              router.push('/(tabs)/bookings');
+                            }
+                          },
+                          {
+                            text: 'Close',
+                            style: 'cancel'
                           }
-                        },
-                        {
-                          text: 'Close',
-                          style: 'cancel'
-                        }
-                      ]
-                    );
+                        ]
+                      );
+                    }
                   }}
                   style={({ pressed }) => [
                     styles.athleteCard,
