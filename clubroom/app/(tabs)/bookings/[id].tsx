@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,81 +9,14 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { upcomingBookings } from '@/constants/mock-data';
-import { BookingSummary } from '@/constants/types';
-import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('SessionDetailScreen');
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const [booking, setBooking] = useState<BookingSummary | undefined>();
-  const [loading, setLoading] = useState(true);
 
-  // Load booking from both mock data and AsyncStorage
-  useEffect(() => {
-    const loadBooking = async () => {
-      logger.debug('Loading booking', { id });
-
-      // First check mock data
-      let foundBooking = upcomingBookings.find((b) => b.id === id);
-
-      // If not found, check session bookings
-      if (!foundBooking) {
-        try {
-          const stored = await AsyncStorage.getItem('session_bookings');
-          if (stored) {
-            const sessionBookings = JSON.parse(stored);
-            const sessionBooking = sessionBookings.find((b: any) => b.id === id);
-
-            if (sessionBooking) {
-              // Convert to BookingSummary format
-              foundBooking = {
-                id: sessionBooking.id,
-                coachName: sessionBooking.coachName,
-                childName: sessionBooking.athleteName,
-                service: sessionBooking.service,
-                start: sessionBooking.scheduledAt,
-                status: sessionBooking.status === 'CONFIRMED' ? 'Confirmed' : sessionBooking.status === 'PENDING' ? 'Pending' : 'Completed',
-                locationLabel: sessionBooking.location,
-                coach: {
-                  name: sessionBooking.coachName,
-                  photoUrl: 'https://i.pravatar.cc/100?u=' + sessionBooking.coachId,
-                },
-                client: {
-                  name: sessionBooking.athleteName,
-                  photoUrl: 'https://i.pravatar.cc/100?u=' + sessionBooking.athleteId,
-                },
-                coachId: sessionBooking.coachId,
-                clientId: sessionBooking.athleteId,
-              };
-              logger.debug('Found booking in session storage', { id });
-            }
-          }
-        } catch (error) {
-          logger.error('Failed to load session bookings', error);
-        }
-      } else {
-        logger.debug('Found booking in mock data', { id });
-      }
-
-      setBooking(foundBooking);
-      setLoading(false);
-    };
-
-    loadBooking();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={styles.errorState}>
-          <ThemedText>Loading...</ThemedText>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Find the booking by ID
+  const booking = upcomingBookings.find((b) => b.id === id);
 
   if (!booking) {
     return (
@@ -98,7 +29,7 @@ export default function SessionDetailScreen() {
   }
 
   const formatDateTime = () => {
-    const date = new Date(booking.start);
+    const date = new Date(booking.dateTime);
     const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
     const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -106,9 +37,6 @@ export default function SessionDetailScreen() {
   };
 
   const { weekday, dateStr, time } = formatDateTime();
-
-  // Get coach photo from booking data
-  const coachPhotoUrl = booking.coach?.photoUrl || 'https://i.pravatar.cc/100';
 
   const handleMessageCoach = () => {
     // Navigate to messages tab and open thread with this coach
@@ -127,7 +55,7 @@ export default function SessionDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Session Type Header */}
         <ThemedView style={styles.headerSection}>
-          <ThemedText type="title">{booking.service}</ThemedText>
+          <ThemedText type="title">{booking.sessionType}</ThemedText>
           <View style={[styles.statusBadge, { backgroundColor: palette.tint + '20' }]}>
             <ThemedText style={[styles.statusText, { color: palette.tint }]}>
               {booking.status}
@@ -160,7 +88,7 @@ export default function SessionDetailScreen() {
             <View style={styles.cardContent}>
               <ThemedText style={styles.cardTitle}>Location</ThemedText>
               <ThemedText type="subtitle" style={styles.cardValue}>
-                {booking.locationLabel}
+                {booking.location}
               </ThemedText>
             </View>
           </View>
@@ -175,7 +103,7 @@ export default function SessionDetailScreen() {
         <Pressable onPress={() => router.push('/(tabs)/coach-profile')}>
           <SurfaceCard style={styles.card}>
             <View style={styles.iconRow}>
-              <Image source={{ uri: coachPhotoUrl }} style={styles.coachAvatar} />
+              <Image source={{ uri: booking.coachPhotoUrl }} style={styles.coachAvatar} />
               <View style={styles.cardContent}>
                 <ThemedText style={styles.cardTitle}>Your Coach</ThemedText>
                 <ThemedText type="subtitle" style={styles.cardValue}>
