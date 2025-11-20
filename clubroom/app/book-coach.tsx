@@ -16,7 +16,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { getUserById, formatGBP } from '@/constants/mock-data';
+import { getUserById, getCoachProfile, formatGBP } from '@/constants/mock-data';
 
 interface SlotTemplate {
   id: string;
@@ -121,6 +121,7 @@ export default function BookCoachScreen() {
   const coachId = params.coachId as string;
 
   const coach = getUserById(coachId);
+  const coachProfile = coach ? getCoachProfile(coach.id) : null;
   const availability = useMemo(() => buildAvailability(), []);
   const [selectedDayId, setSelectedDayId] = useState(availability[0]?.id);
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(
@@ -148,7 +149,7 @@ export default function BookCoachScreen() {
   const selectedSlot = selectedDay?.slots.find((slot) => slot.id === selectedSlotId);
 
   const handleBooking = async () => {
-    if (!selectedSlot || !coach || !currentUser) {
+    if (!selectedSlot || !coach || !coachProfile || !currentUser) {
       Alert.alert('Error', 'Please select a time slot');
       return;
     }
@@ -164,12 +165,12 @@ export default function BookCoachScreen() {
         slotFocus: selectedSlot.focus,
         slotStart: selectedSlot.start.toISOString(),
         slotDuration: selectedSlot.durationMinutes.toString(),
-        price: coach.profile.sessionRate.toString(),
+        price: coachProfile.sessionRate.toString(),
       },
     });
   };
 
-  if (!coach) {
+  if (!coach || !coachProfile) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <View style={styles.header}>
@@ -211,12 +212,12 @@ export default function BookCoachScreen() {
               <View style={styles.coachMeta}>
                 <Ionicons name="star" size={14} color="#fbbf24" />
                 <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                  {coach.profile.rating.toFixed(1)} ({coach.profile.totalReviews} reviews)
+                  {coachProfile.rating.toFixed(1)} ({coachProfile.totalReviews} reviews)
                 </ThemedText>
               </View>
             </View>
             <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
-              {formatGBP(coach.profile.sessionRate)}
+              {formatGBP(coachProfile.sessionRate)}
             </ThemedText>
           </View>
         </SurfaceCard>

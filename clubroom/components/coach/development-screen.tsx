@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -109,7 +110,7 @@ export function CoachDevelopmentScreen() {
         ) : (
           <View style={styles.athleteList}>
             {athletesWithSessions.map(({ athlete, sessionCount, lastSession, averageRating }) => (
-              <Pressable
+              <Clickable
                 key={athlete.id}
                 onPress={() => {
                   logger.press('AthleteCard', {
@@ -168,7 +169,7 @@ export function CoachDevelopmentScreen() {
 
                   <Ionicons name="chevron-forward" size={20} color={palette.icon} />
                 </SurfaceCard>
-              </Pressable>
+              </Clickable>
             ))}
           </View>
         )}
