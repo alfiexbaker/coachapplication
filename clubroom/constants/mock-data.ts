@@ -16,6 +16,15 @@ import type {
   GoalStatus,
 } from './app-types';
 
+import type {
+  ChatThreadSummary,
+  ChatMessage,
+  UserProfile as EnhancedUserProfile,
+  CoachProfile as EnhancedCoachProfile,
+  BookingSummary,
+  ChatSender,
+} from './types';
+
 // ===== USERS =====
 export const MOCK_USERS: User[] = [
   // Coaches
@@ -666,3 +675,176 @@ export function formatDate(date: Date | string): string {
 export function formatDateTime(date: Date | string): string {
   return `${formatDate(date)}, ${formatTime(date)}`;
 }
+
+// ===== ADDITIONAL EXPORTS FOR COMPATIBILITY =====
+
+// Chat threads for MessagesScreen
+export const chatThreads: ChatThreadSummary[] = MOCK_CONVERSATIONS.map((conv) => ({
+  id: conv.id,
+  bookingId: 'book1', // Mock booking ID
+  coachName: conv.coachName,
+  childName: conv.athleteName,
+  serviceName: 'Coaching Session',
+  location: 'Hyde Park',
+  scheduledFor: conv.lastMessageAt,
+  unreadCount: conv.unreadCount,
+  safetyCopy: 'All conversations are monitored for safety',
+  pinnedObjectives: ['Finishing', 'Passing'],
+}));
+
+// Chat messages for MessagesScreen
+export const chatMessages: ChatMessage[] = MOCK_MESSAGES.map((msg) => ({
+  id: msg.id,
+  sender: msg.senderId.startsWith('coach') ? 'coach' : 'parent',
+  body: msg.content,
+  createdAt: msg.sentAt,
+  status: msg.read ? 'seen' : 'delivered',
+}));
+
+// Mock user profile for ProfileScreen
+export const mockUserProfile: EnhancedUserProfile = {
+  id: 'user1',
+  fullName: 'John Henderson',
+  email: 'john.henderson@email.com',
+  phone: '+1 (555) 123-4567',
+  profilePhotoUrl: 'https://i.pravatar.cc/150?u=john',
+  bio: 'Proud parent of two young athletes. Love supporting my kids in their football journey!',
+  role: 'Parent',
+  joinedDate: new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString(),
+  children: [
+    { name: 'Tom Henderson', age: 15 },
+    { name: 'Emma Henderson', age: 14 },
+  ],
+};
+
+// Enhanced coach profiles for CoachProfileScreen
+export const coachProfiles: EnhancedCoachProfile[] = [
+  {
+    id: 'coach1',
+    fullName: 'Sarah Mitchell',
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'London',
+    state: 'England',
+    distanceMiles: 2.3,
+    rating: {
+      average: 4.9,
+      reviewCount: 47,
+    },
+    priceRange: {
+      minUsd: 50,
+      maxUsd: 80,
+      unitLabel: 'per session',
+    },
+    nextAvailability: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    badges: [
+      { id: 'b1', label: 'Verified', tone: 'success' },
+      { id: 'b2', label: 'Background Check', tone: 'success' },
+      { id: 'b3', label: 'Top Rated', tone: 'warning' },
+    ],
+    sessionFormats: ['In-person', 'Small group'],
+    shortBio: '15 years experience coaching goalkeepers at all levels.',
+    profilePhotoUrl: 'https://i.pravatar.cc/300?u=sarah',
+    coverPhotoUrl: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800',
+    footballFocuses: ['Goalkeeping', 'Defending'],
+    schoolName: 'Premier Football Academy',
+    schoolId: 'school1',
+    location: {
+      lat: 51.5074,
+      lng: -0.1278,
+    },
+    bio: '15 years experience coaching goalkeepers at all levels. Former professional goalkeeper with expertise in shot-stopping, positioning, and distribution. Passionate about developing young talent and building confidence.',
+    phone: '+44 20 1234 5678',
+    email: 'sarah.mitchell@coach.com',
+    website: 'https://sarahmitchellcoaching.com',
+    joinedDate: new Date(today.getTime() - 365 * 3 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 230,
+    experiences: [
+      {
+        id: 'exp1',
+        title: 'Head Goalkeeping Coach',
+        organization: 'Premier Football Academy',
+        startDate: '2018-01-01',
+        current: true,
+        description: 'Lead goalkeeper development program for youth players',
+      },
+      {
+        id: 'exp2',
+        title: 'Professional Goalkeeper',
+        organization: 'London United FC',
+        startDate: '2005-01-01',
+        endDate: '2015-12-31',
+        current: false,
+        description: 'Professional career spanning 10 years',
+      },
+    ],
+    certifications: [
+      {
+        id: 'cert1',
+        name: 'UEFA B License',
+        issuer: 'UEFA',
+        issueDate: '2016-06-15',
+      },
+      {
+        id: 'cert2',
+        name: 'FA Level 3 Goalkeeping',
+        issuer: 'The FA',
+        issueDate: '2015-03-20',
+      },
+    ],
+    posts: [
+      {
+        id: 'post1',
+        coachId: 'coach1',
+        content: 'Great training session today with the academy goalkeepers! Proud of their progress. 🧤⚽',
+        createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        likes: 45,
+        comments: 8,
+      },
+      {
+        id: 'post2',
+        coachId: 'coach1',
+        content: '5 essential tips for young goalkeepers:\n1. Always stay on your toes\n2. Communicate with your defense\n3. Practice distribution daily\n4. Study the game\n5. Stay confident!',
+        createdAt: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        likes: 89,
+        comments: 15,
+      },
+    ],
+    photoGallery: [
+      'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=400',
+      'https://images.unsplash.com/photo-1556817411-31ae72fa3ea0?w=400',
+      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400',
+    ],
+    videoGallery: [],
+    languages: ['English', 'Spanish'],
+    achievements: [
+      'UEFA B Licensed Coach',
+      'Former Professional Goalkeeper',
+      'Over 230 successful training sessions',
+      'Helped 15+ athletes join academy programs',
+    ],
+  },
+];
+
+// Upcoming bookings for BookingsScreen
+export const upcomingBookings: BookingSummary[] = MOCK_BOOKINGS.filter(
+  (b) => new Date(b.scheduledAt) > today
+).map((booking) => ({
+  id: booking.id,
+  coachName: booking.coachName,
+  childName: booking.athleteName,
+  service: 'Football Coaching',
+  start: booking.scheduledAt,
+  status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
+  locationLabel: booking.location,
+  coach: {
+    name: booking.coachName,
+    photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
+  },
+  client: {
+    name: booking.athleteName,
+    photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
+  },
+  coachId: booking.coachId,
+  clientId: booking.athleteId,
+}));
