@@ -19,6 +19,8 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'map.fill': 'explore',
+  'magnifyingglass.circle.fill': 'manage-search',
+  'calendar.circle.fill': 'event-available',
   'calendar': 'event',
   'calendar.badge.clock': 'schedule',
   'clock': 'access-time',

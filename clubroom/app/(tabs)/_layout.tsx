@@ -47,7 +47,9 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Discover',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={24} name="magnifyingglass.circle.fill" color={color} />
+            ),
           }}
         />
       )}
@@ -58,7 +60,7 @@ export default function TabLayout() {
           name="availability"
           options={{
             title: 'Calendar',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} />,
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.circle.fill" color={color} />,
           }}
         />
       )}
