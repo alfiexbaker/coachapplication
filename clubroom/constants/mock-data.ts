@@ -848,3 +848,29 @@ export const upcomingBookings: BookingSummary[] = MOCK_BOOKINGS.filter(
   coachId: booking.coachId,
   clientId: booking.athleteId,
 }));
+
+// Session history for StatisticsScreen
+export const sessionHistory = MOCK_SESSIONS.map((session) => ({
+  id: session.id,
+  coachName: session.coachName,
+  athleteName: session.athleteName,
+  focus: session.skillsWorkedOn[0] || 'General Training',
+  durationMinutes: 60, // Standard session duration
+  rating: session.performanceRating,
+  coachFeedback: session.notes,
+  completedAt: session.completedAt,
+}));
+
+// Athlete skill levels for StatisticsScreen
+export const athleteSkillLevels = [
+  { skill: 'Shot Stopping', level: 85 },
+  { skill: 'Positioning', level: 78 },
+  { skill: 'Distribution', level: 72 },
+  { skill: 'Handling', level: 88 },
+  { skill: 'Diving Technique', level: 80 },
+  { skill: 'Communication', level: 75 },
+  { skill: 'Footwork', level: 70 },
+  { skill: 'One-on-ones', level: 68 },
+  { skill: 'Command of Box', level: 73 },
+  { skill: 'Reaction Speed', level: 82 },
+];
