@@ -33,15 +33,15 @@ export function BookingCard({ booking }: BookingCardProps) {
         accessibilityLabel="Reschedule booking"
         onPress={() => console.log('Reschedule booking', booking.id)}
         style={[styles.actionButton, { backgroundColor: palette.tint }]}>
-        <Ionicons name="refresh" size={18} color="#FFFFFF" />
-        <ThemedText style={[styles.actionLabel, { color: '#FFFFFF' }]}>Reschedule</ThemedText>
+        <Ionicons name="refresh" size={18} color={scheme === 'light' ? '#FFFFFF' : '#000000'} />
+        <ThemedText style={styles.actionLabel} lightColor="#FFFFFF" darkColor="#000000">Reschedule</ThemedText>
       </Pressable>
       <Pressable
         accessibilityLabel="Cancel booking"
         onPress={() => console.log('Cancel booking', booking.id)}
         style={[styles.actionButton, { backgroundColor: palette.error }]}>
         <Ionicons name="close" size={18} color="#FFFFFF" />
-        <ThemedText style={[styles.actionLabel, { color: '#FFFFFF' }]}>Cancel</ThemedText>
+        <ThemedText style={styles.actionLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">Cancel</ThemedText>
       </Pressable>
     </View>
   );
