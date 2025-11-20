@@ -35,8 +35,16 @@ function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string 
 function MessageBubbleComponent({ message, isOwnMessage }: MessageBubbleProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const bubbleColor = isOwnMessage ? palette.tint : palette.surface;
-  const textColor = isOwnMessage ? (scheme === 'dark' ? palette.text : '#FFFFFF') : palette.text;
+  const bubbleColor = isOwnMessage
+    ? scheme === 'dark'
+      ? palette.secondary
+      : palette.tint
+    : palette.surface;
+  const textColor = isOwnMessage
+    ? scheme === 'dark'
+      ? '#FFFFFF'
+      : '#FFFFFF'
+    : palette.text;
 
   return (
     <Animated.View
