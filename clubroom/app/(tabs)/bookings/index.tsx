@@ -11,6 +11,9 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { upcomingBookings } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('BookingsScreen');
 
 export default function BookingsScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -19,15 +22,23 @@ export default function BookingsScreen() {
 
   const userRole = currentUser?.role;
 
+  logger.debug('BookingsScreen rendered', {
+    userRole,
+    username: currentUser?.username,
+    totalBookings: upcomingBookings.length
+  });
+
   // Filter bookings based on user role
+  // Fixed: was checking 'Coach', 'User', 'Parent', 'Admin' (capitalized)
+  // Now checking 'COACH', 'USER', 'PARENT', 'ADMIN' (uppercase)
   const filteredBookings = upcomingBookings.filter((booking) => {
-    if (userRole === 'Coach') {
+    if (userRole === 'COACH') {
       // Coaches see bookings where they are the coach
       return booking.coachId === currentUser?.id || booking.coach.name === currentUser?.fullName;
-    } else if (userRole === 'User' || userRole === 'Parent') {
+    } else if (userRole === 'USER' || userRole === 'PARENT') {
       // Users/Parents see their own bookings
       return booking.clientId === currentUser?.id || booking.client.name === currentUser?.fullName;
-    } else if (userRole === 'Admin') {
+    } else if (userRole === 'ADMIN') {
       // Admins see all bookings
       return true;
     }
@@ -35,6 +46,11 @@ export default function BookingsScreen() {
   });
 
   const hasBookings = filteredBookings.length > 0;
+
+  logger.debug('Bookings filtered', {
+    filteredCount: filteredBookings.length,
+    hasBookings
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -44,10 +60,14 @@ export default function BookingsScreen() {
       </ThemedView>
 
       {/* Quick Actions - Role-based */}
-      {(userRole === 'User' || userRole === 'Parent') && (
+      {/* Fixed: was checking 'User' and 'Parent', now checking 'USER' and 'PARENT' */}
+      {(userRole === 'USER' || userRole === 'PARENT') && (
         <View style={styles.quickActions}>
           <Pressable
-            onPress={() => router.push('/bookings/objectives')}
+            onPress={() => {
+              logger.press('MyGoalsButton', { route: '/bookings/objectives' });
+              router.push('/bookings/objectives');
+            }}
             style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="football-outline" size={24} color={palette.tint} />
@@ -56,7 +76,10 @@ export default function BookingsScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => router.push('/bookings/statistics')}
+            onPress={() => {
+              logger.press('ProgressButton', { route: '/bookings/statistics' });
+              router.push('/bookings/statistics');
+            }}
             style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="stats-chart-outline" size={24} color={palette.tint} />
@@ -65,10 +88,14 @@ export default function BookingsScreen() {
           </Pressable>
         </View>
       )}
-      {userRole === 'Coach' && (
+      {/* Fixed: was checking 'Coach', now checking 'COACH' */}
+      {userRole === 'COACH' && (
         <View style={styles.quickActions}>
           <Pressable
-            onPress={() => router.push('/(tabs)/availability')}
+            onPress={() => {
+              logger.press('CalendarButton', { route: '/(tabs)/availability' });
+              router.push('/(tabs)/availability');
+            }}
             style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="calendar-outline" size={24} color={palette.tint} />
@@ -77,7 +104,10 @@ export default function BookingsScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => router.push('/(tabs)/profile')}
+            onPress={() => {
+              logger.press('ProfileButton', { route: '/(tabs)/profile' });
+              router.push('/(tabs)/profile');
+            }}
             style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="person-outline" size={24} color={palette.tint} />
@@ -106,13 +136,17 @@ export default function BookingsScreen() {
             No upcoming sessions
           </ThemedText>
           <ThemedText style={styles.emptyDescription}>
-            {userRole === 'Coach'
+            {userRole === 'COACH'
               ? 'You have no upcoming coaching sessions scheduled'
               : 'Book your first coaching session to get started'}
           </ThemedText>
-          {(userRole === 'User' || userRole === 'Parent') && (
+          {/* Fixed: was checking 'User' and 'Parent', now checking 'USER' and 'PARENT' */}
+          {(userRole === 'USER' || userRole === 'PARENT') && (
             <Pressable
-              onPress={() => router.push('/(tabs)/index')}
+              onPress={() => {
+                logger.press('FindCoachButton', { route: '/(tabs)/index' });
+                router.push('/(tabs)/index');
+              }}
               style={({ pressed }) => [
                 styles.ctaButton,
                 { backgroundColor: palette.tint },
@@ -123,9 +157,13 @@ export default function BookingsScreen() {
               </ThemedText>
             </Pressable>
           )}
-          {userRole === 'Coach' && (
+          {/* Fixed: was checking 'Coach', now checking 'COACH' */}
+          {userRole === 'COACH' && (
             <Pressable
-              onPress={() => router.push('/(tabs)/availability')}
+              onPress={() => {
+                logger.press('ManageAvailabilityButton', { route: '/(tabs)/availability' });
+                router.push('/(tabs)/availability');
+              }}
               style={({ pressed }) => [
                 styles.ctaButton,
                 { backgroundColor: palette.tint },

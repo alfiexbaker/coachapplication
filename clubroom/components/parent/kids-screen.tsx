@@ -8,15 +8,26 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getBookingsForAthlete, getUserProfile, formatDate } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ParentKidsScreen');
 
 export function ParentKidsScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
 
-  if (!currentUser) return null;
+  if (!currentUser) {
+    logger.warn('No current user found');
+    return null;
+  }
 
   const children = getChildrenForParent(currentUser.id);
+
+  logger.debug('Parent kids screen rendered', {
+    childrenCount: children.length,
+    parentId: currentUser.id
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -55,8 +66,15 @@ export function ParentKidsScreen() {
                 <Pressable
                   key={child.id}
                   onPress={() => {
+                    logger.press('KidCard', {
+                      childId: child.id,
+                      childName: child.name,
+                      hasUpcomingSession: !!nextSession
+                    });
+                    logger.warn('Kid detail screen not implemented yet', {
+                      childId: child.id
+                    });
                     // TODO: Navigate to kid detail screen
-                    console.log('Navigate to kid:', child.id);
                   }}
                   style={({ pressed }) => [
                     styles.kidCard,

@@ -16,6 +16,9 @@ import {
   formatDate,
 } from '@/constants/mock-data';
 import type { Session, User } from '@/constants/app-types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CoachDevelopmentScreen');
 
 interface AthleteWithSessions {
   athlete: User;
@@ -70,8 +73,14 @@ export function CoachDevelopmentScreen() {
   }, [currentUser]);
 
   if (!currentUser) {
+    logger.warn('No current user found');
     return null;
   }
+
+  logger.debug('Coach development screen rendered', {
+    athleteCount: athletesWithSessions.length,
+    coachId: currentUser.id
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -103,8 +112,15 @@ export function CoachDevelopmentScreen() {
               <Pressable
                 key={athlete.id}
                 onPress={() => {
+                  logger.press('AthleteCard', {
+                    athleteId: athlete.id,
+                    athleteName: athlete.name,
+                    sessionCount
+                  });
+                  logger.warn('Athlete detail screen not implemented yet', {
+                    athleteId: athlete.id
+                  });
                   // TODO: Navigate to athlete detail screen
-                  console.log('Navigate to athlete:', athlete.id);
                 }}
                 style={({ pressed }) => [
                   styles.athleteCard,

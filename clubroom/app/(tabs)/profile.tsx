@@ -11,6 +11,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachProfileScreen from './coach-profile';
 import { mockUserProfile } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ProfileScreen');
 
 const ACTIONS = [
   {
@@ -59,13 +62,27 @@ export default function ProfileScreen() {
   const palette = Colors[scheme];
   const { currentUser, logout } = useAuth();
 
+  logger.debug('ProfileScreen rendered', {
+    userRole: currentUser?.role,
+    username: currentUser?.username,
+    isCoach: currentUser?.role === 'COACH'
+  });
+
   // If user is a coach, show the coach profile page
-  if (currentUser?.role === 'Coach') {
+  // Fixed: was checking 'Coach' (capitalized), now checking 'COACH' (uppercase)
+  if (currentUser?.role === 'COACH') {
+    logger.info('Showing coach profile screen');
     return <CoachProfileScreen />;
   }
 
   // Get actions based on role
-  const actions = currentUser?.role === 'Admin' ? ADMIN_ACTIONS : ACTIONS;
+  // Fixed: was checking 'Admin' (capitalized), now checking 'ADMIN' (uppercase)
+  const actions = currentUser?.role === 'ADMIN' ? ADMIN_ACTIONS : ACTIONS;
+
+  logger.debug('Actions loaded', {
+    actionsCount: actions.length,
+    isAdmin: currentUser?.role === 'ADMIN'
+  });
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -124,7 +141,10 @@ export default function ProfileScreen() {
                 backgroundColor: pressed ? palette.tintPressed : palette.tint,
               },
             ]}
-            onPress={() => router.push('/(tabs)/edit-user-profile')}>
+            onPress={() => {
+              logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-user-profile' });
+              router.push('/(tabs)/edit-user-profile');
+            }}>
             <Ionicons name="create-outline" size={20} color="#FFFFFF" />
             <ThemedText style={styles.editButtonLabel} lightColor="#FFFFFF" darkColor="#000000">
               Edit Profile
@@ -155,7 +175,13 @@ export default function ProfileScreen() {
                 borderColor: palette.destructive,
               },
             ]}
-            onPress={logout}>
+            onPress={() => {
+              logger.press('SignOutButton', {
+                username: currentUser?.username,
+                role: currentUser?.role
+              });
+              logout();
+            }}>
             <ThemedText style={[styles.signOutLabel, { color: palette.destructive }]}>
               Sign Out
             </ThemedText>
@@ -165,10 +191,16 @@ export default function ProfileScreen() {
           <SurfaceCard
             key={action.title}
             onPress={() => {
+              logger.press('ActionCard', {
+                title: action.title,
+                route: action.route,
+                hasRoute: !!action.route
+              });
               if (action.route) {
+                logger.navigate('ProfileScreen', action.route);
                 router.push(action.route as any);
               } else {
-                console.log('Navigate to', action.title);
+                logger.warn('Action card pressed but no route defined', { title: action.title });
               }
             }}>
             <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
