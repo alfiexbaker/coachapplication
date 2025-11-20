@@ -74,18 +74,19 @@ export default function DiscoverScreen() {
         </View>
 
         <View style={[styles.searchBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <Ionicons name="search" size={20} color={palette.icon} />
+          <Ionicons name="search" size={22} color={palette.icon} />
           <TextInput
             value={postcode}
             onChangeText={handlePostcodeChange}
-            placeholder="Enter your postcode"
+            placeholder="Search by postcode (e.g., SW1A 1AA)"
             placeholderTextColor={palette.muted}
             keyboardType="default"
+            autoCapitalize="characters"
             style={[styles.searchInput, { color: palette.text }]}
           />
           {postcode ? (
             <Pressable onPress={() => setPostcode('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={20} color={palette.icon} />
+              <Ionicons name="close-circle" size={22} color={palette.icon} />
             </Pressable>
           ) : null}
         </View>
@@ -166,17 +167,23 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    borderWidth: 1.5,
-    borderRadius: Radii.md + 2,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md + 4,
+    gap: Spacing.md + 2,
+    borderWidth: 2,
+    borderRadius: Radii.md + 4,
+    paddingHorizontal: Spacing.lg + 2,
+    paddingVertical: Spacing.md + 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     fontWeight: '500',
     paddingVertical: 0,
+    letterSpacing: 0.2,
   },
   split: {
     flex: 1,

@@ -18,11 +18,14 @@ export default function BookingsScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <SectionHeader
-          title="Bookings"
-          subtitle="Manage your upcoming sessions and track your progress"
-        />
-        <View>
+        <View style={styles.header}>
+          <ThemedText type="title" style={styles.title}>Bookings</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+            Manage your upcoming sessions and track your progress
+          </ThemedText>
+        </View>
+
+        <View style={styles.upcomingSection}>
           {upcomingBookings.map((booking) => (
             <BookingCard key={booking.id} booking={booking} />
           ))}
@@ -45,7 +48,7 @@ export default function BookingsScreen() {
               { backgroundColor: pressed ? palette.tintPressed : palette.tint },
             ]}
             onPress={() => console.log('Update objectives') }>
-            <ThemedText style={styles.manageButtonLabel} lightColor="#ffffff" darkColor="#000000">
+            <ThemedText style={[styles.manageButtonLabel, { color: '#FFFFFF' }]}>
               Update objectives
             </ThemedText>
           </Pressable>
@@ -193,10 +196,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.lg + 4,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing['2xl'],
     gap: Spacing.lg,
+  },
+  header: {
+    gap: Spacing.xs + 2,
+    marginBottom: Spacing.sm,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+  },
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '500',
+  },
+  upcomingSection: {
+    gap: Spacing.md,
   },
   detailCopy: {
     marginTop: Spacing.sm,
