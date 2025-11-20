@@ -4,7 +4,6 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
-  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -12,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -78,9 +78,9 @@ export function UserFindCoachScreen() {
             style={[styles.searchInput, { color: palette.text }]}
           />
           {postcode ? (
-            <Pressable onPress={() => setPostcode('')} hitSlop={8}>
+            <Clickable onPress={() => setPostcode('')} hitSlop={8}>
               <Ionicons name="close-circle" size={22} color={palette.icon} />
-            </Pressable>
+            </Clickable>
           ) : null}
         </View>
 
@@ -115,7 +115,7 @@ export function UserFindCoachScreen() {
             </ThemedText>
 
             {nearbyCoaches.map((coach) => (
-              <Pressable
+              <Clickable
                 key={coach.id}
                 onPress={() => {
                   router.push({
@@ -178,7 +178,7 @@ export function UserFindCoachScreen() {
                     )}
                   </View>
                 </SurfaceCard>
-              </Pressable>
+              </Clickable>
             ))}
           </View>
         )}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,8 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 import { upcomingBookings } from '@/constants/mock-data';
 import { BookingSummary } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -22,8 +24,11 @@ export default function SessionDetailScreen() {
 
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser } = useAuth();
   const [booking, setBooking] = useState<BookingSummary | undefined>();
   const [loading, setLoading] = useState(true);
+
+  const isCoach = currentUser?.role === 'COACH';
 
   // Load booking from both mock data and AsyncStorage
   useEffect(() => {
@@ -123,6 +128,44 @@ export default function SessionDetailScreen() {
     });
   };
 
+  const handleCancelBooking = () => {
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking? This action cannot be undone.',
+      [
+        { text: 'Keep Booking', style: 'cancel' },
+        {
+          text: 'Cancel Booking',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Success', 'Booking cancelled successfully');
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRefund = () => {
+    Alert.alert(
+      'Issue Refund',
+      'Process a refund for this booking?',
+      [
+        { text: 'Back', style: 'cancel' },
+        {
+          text: 'Process Refund',
+          onPress: () => {
+            Alert.alert('Success', 'Refund processed successfully');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReschedule = () => {
+    Alert.alert('Reschedule', 'Rescheduling feature coming soon');
+  };
+
   const handleReportProblem = () => {
     router.push('/bookings/report-problem');
   };
@@ -177,7 +220,7 @@ export default function SessionDetailScreen() {
         </SurfaceCard>
 
         {/* Coach Card */}
-        <Pressable onPress={() => router.push('/(tabs)/coach-profile')}>
+        <Clickable onPress={() => router.push('/(tabs)/coach-profile')}>
           <SurfaceCard style={styles.card}>
             <View style={styles.iconRow}>
               <Image source={{ uri: coachPhotoUrl }} style={styles.coachAvatar} />
@@ -194,7 +237,7 @@ export default function SessionDetailScreen() {
               <Ionicons name="chevron-forward" size={20} color={palette.muted} />
             </View>
           </SurfaceCard>
-        </Pressable>
+        </Clickable>
 
         {/* Session Notes */}
         <SurfaceCard style={styles.card}>
@@ -205,31 +248,87 @@ export default function SessionDetailScreen() {
         </SurfaceCard>
 
         {/* Action Buttons */}
-        <View style={styles.actions}>
-          <Pressable
-            onPress={handleMessageCoach}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              { backgroundColor: palette.tint },
-              pressed && { opacity: 0.8 },
-            ]}>
-            <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
-            <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
-              Message Coach
-            </ThemedText>
-          </Pressable>
+        {isCoach ? (
+          /* Coach Management Options */
+          <View style={styles.actions}>
+            <Clickable
+              onPress={handleMessageCoach}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                { backgroundColor: palette.tint },
+                pressed && { opacity: 0.8 },
+              ]}>
+              <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
+              <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
+                Message Client
+              </ThemedText>
+            </Clickable>
 
-          <Pressable
-            onPress={handleReportProblem}
-            style={({ pressed }) => [
-              styles.secondaryButton,
-              { borderColor: palette.border },
-              pressed && { backgroundColor: palette.border, opacity: 0.7 },
-            ]}>
-            <Ionicons name="warning-outline" size={20} color={palette.foreground} />
-            <ThemedText style={styles.secondaryButtonText}>Report Problem</ThemedText>
-          </Pressable>
-        </View>
+            <View style={styles.buttonRow}>
+              <Clickable
+                onPress={handleReschedule}
+                style={({ pressed }) => [
+                  styles.halfButton,
+                  { borderColor: palette.border },
+                  pressed && { backgroundColor: palette.border, opacity: 0.7 },
+                ]}>
+                <Ionicons name="calendar-outline" size={18} color={palette.foreground} />
+                <ThemedText style={styles.secondaryButtonText}>Reschedule</ThemedText>
+              </Clickable>
+
+              <Clickable
+                onPress={handleRefund}
+                style={({ pressed }) => [
+                  styles.halfButton,
+                  { borderColor: palette.border },
+                  pressed && { backgroundColor: palette.border, opacity: 0.7 },
+                ]}>
+                <Ionicons name="cash-outline" size={18} color={palette.foreground} />
+                <ThemedText style={styles.secondaryButtonText}>Refund</ThemedText>
+              </Clickable>
+            </View>
+
+            <Clickable
+              onPress={handleCancelBooking}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                { borderColor: '#EF4444' },
+                pressed && { backgroundColor: '#FEE2E2', opacity: 0.7 },
+              ]}>
+              <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
+              <ThemedText style={[styles.secondaryButtonText, { color: '#EF4444' }]}>
+                Cancel Booking
+              </ThemedText>
+            </Clickable>
+          </View>
+        ) : (
+          /* User/Parent Options */
+          <View style={styles.actions}>
+            <Clickable
+              onPress={handleMessageCoach}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                { backgroundColor: palette.tint },
+                pressed && { opacity: 0.8 },
+              ]}>
+              <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
+              <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
+                Message Coach
+              </ThemedText>
+            </Clickable>
+
+            <Clickable
+              onPress={handleReportProblem}
+              style={({ pressed }) => [
+                styles.secondaryButton,
+                { borderColor: palette.border },
+                pressed && { backgroundColor: palette.border, opacity: 0.7 },
+              ]}>
+              <Ionicons name="warning-outline" size={20} color={palette.foreground} />
+              <ThemedText style={styles.secondaryButtonText}>Report Problem</ThemedText>
+            </Clickable>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -327,6 +426,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginTop: Spacing.md,
   },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,6 +447,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  halfButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,

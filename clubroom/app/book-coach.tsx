@@ -3,7 +3,6 @@ import {
   View,
   StyleSheet,
   ScrollView,
-  Pressable,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -173,9 +173,9 @@ export default function BookCoachScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Pressable>
+          </Clickable>
         </View>
         <View style={styles.errorContainer}>
           <ThemedText>Coach not found</ThemedText>
@@ -189,9 +189,9 @@ export default function BookCoachScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
+          <Clickable onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Pressable>
+          </Clickable>
           <ThemedText type="subtitle">Book Session</ThemedText>
           <View style={{ width: 24 }} />
         </View>
@@ -235,7 +235,7 @@ export default function BookCoachScreen() {
               const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
 
               return (
-                <Pressable
+                <Clickable
                   key={day.id}
                   onPress={() => setSelectedDayId(day.id)}
                   style={({ pressed }) => [
@@ -271,7 +271,7 @@ export default function BookCoachScreen() {
                   >
                     {month}
                   </ThemedText>
-                </Pressable>
+                </Clickable>
               );
             })}
           </ScrollView>
@@ -297,7 +297,7 @@ export default function BookCoachScreen() {
                 });
 
                 return (
-                  <Pressable
+                  <Clickable
                     key={slot.id}
                     onPress={() => setSelectedSlotId(slot.id)}
                     style={({ pressed }) => [
@@ -328,7 +328,7 @@ export default function BookCoachScreen() {
                         <Ionicons name="checkmark-circle" size={24} color={palette.tint} />
                       )}
                     </View>
-                  </Pressable>
+                  </Clickable>
                 );
               })}
             </View>
@@ -338,7 +338,7 @@ export default function BookCoachScreen() {
 
       {/* Book Button */}
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
-        <Pressable
+        <Clickable
           onPress={handleBooking}
           disabled={!selectedSlot}
           style={({ pressed }) => [
@@ -352,7 +352,7 @@ export default function BookCoachScreen() {
           <ThemedText style={styles.bookButtonText}>
             Continue to Payment
           </ThemedText>
-        </Pressable>
+        </Clickable>
       </View>
     </SafeAreaView>
   );
