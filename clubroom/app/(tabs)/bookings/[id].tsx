@@ -26,20 +26,27 @@ export default function SessionDetailScreen() {
   // Load booking from both mock data and AsyncStorage
   useEffect(() => {
     const loadBooking = async () => {
+      console.log('🔴 [SessionDetailScreen] Loading booking for ID:', id);
       logger.debug('Loading booking', { id });
 
       // First check mock data
       let foundBooking = upcomingBookings.find((b) => b.id === id);
+      console.log('🔴 [SessionDetailScreen] Mock data search result:', foundBooking ? 'FOUND' : 'NOT FOUND');
 
       // If not found, check session bookings
       if (!foundBooking) {
+        console.log('🔴 [SessionDetailScreen] Not in mock data, checking AsyncStorage...');
         try {
           const stored = await AsyncStorage.getItem('session_bookings');
+          console.log('🔴 [SessionDetailScreen] AsyncStorage raw data:', stored ? `${stored.length} chars` : 'NULL');
           if (stored) {
             const sessionBookings = JSON.parse(stored);
+            console.log('🔴 [SessionDetailScreen] Session bookings count:', sessionBookings.length);
             const sessionBooking = sessionBookings.find((b: any) => b.id === id);
+            console.log('🔴 [SessionDetailScreen] Session booking search result:', sessionBooking ? 'FOUND' : 'NOT FOUND');
 
             if (sessionBooking) {
+              console.log('🔴 [SessionDetailScreen] Converting session booking to BookingSummary format');
               // Convert to BookingSummary format
               foundBooking = {
                 id: sessionBooking.id,
@@ -70,10 +77,12 @@ export default function SessionDetailScreen() {
         logger.debug('Found booking in mock data', { id });
       }
 
+      console.log('🔴 [SessionDetailScreen] Final booking result:', foundBooking ? 'FOUND' : 'NOT FOUND');
       setBooking(foundBooking);
       setLoading(false);
     };
 
+    console.log('🔴 [SessionDetailScreen] useEffect triggered for ID:', id);
     loadBooking();
   }, [id]);
 

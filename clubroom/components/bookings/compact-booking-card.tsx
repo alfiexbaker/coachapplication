@@ -7,6 +7,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { BookingSummary } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CompactBookingCard');
 
 type CompactBookingCardProps = {
   booking: BookingSummary;
@@ -15,6 +18,13 @@ type CompactBookingCardProps = {
 export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+
+  logger.debug('CompactBookingCard rendering', {
+    bookingId: booking.id,
+    service: booking.service,
+    coachName: booking.coachName,
+    status: booking.status
+  });
 
   const getStatusColor = () => {
     switch (booking.status) {
@@ -41,9 +51,21 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   // Get coach photo from the extended booking data
   const coachPhotoUrl = (booking as any).coach?.photoUrl || 'https://i.pravatar.cc/100';
 
+  const handlePress = () => {
+    const route = `/bookings/${booking.id}`;
+    logger.press('BookingCard', {
+      bookingId: booking.id,
+      route,
+      coachName: booking.coachName,
+      service: booking.service
+    });
+    console.log('🔵 [CompactBookingCard] CLICKED - Navigating to:', route);
+    router.push(route);
+  };
+
   return (
     <Pressable
-      onPress={() => router.push(`/bookings/${booking.id}`)}
+      onPress={handlePress}
       style={({ pressed }) => [pressed && { opacity: 0.7 }]}>
       <SurfaceCard style={styles.card}>
         <View style={styles.content}>

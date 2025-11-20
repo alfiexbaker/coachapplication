@@ -102,6 +102,13 @@ export default function BookingsScreen() {
     hasBookings
   });
 
+  console.log('🟢 [BookingsScreen] Filtered bookings:', filteredBookings.map(b => ({
+    id: b.id,
+    service: b.service,
+    coachName: b.coachName,
+    status: b.status
+  })));
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
