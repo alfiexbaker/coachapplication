@@ -83,6 +83,7 @@ export interface Session {
   skillsWorkedOn: string[];
   performanceRating: number; // 1-5
   nextFocusAreas: string[];
+  videoUrls?: string[]; // Session videos uploaded by coach
   coachName?: string; // Denormalized
   athleteName?: string; // Denormalized
 }

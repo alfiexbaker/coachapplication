@@ -115,6 +115,9 @@ export function CoachDevelopmentScreen() {
                 s => s.athleteId === athlete.id
               );
 
+              // Check if any sessions need notes
+              const needsNotes = athleteSessions.some(s => !s.notes || s.notes.trim() === '');
+
               return (
                 <Clickable
                   key={athlete.id}
@@ -125,44 +128,8 @@ export function CoachDevelopmentScreen() {
                       sessionCount
                     });
 
-                    // Show athlete details with their recent sessions
-                    const recentSessions = athleteSessions
-                      .slice(0, 3)
-                      .map(s => `• ${s.skillsWorkedOn.join(', ')} (${s.performanceRating}/5 ⭐)`)
-                      .join('\n');
-
-                    const message = `📊 Total Sessions: ${sessionCount}\n⭐ Average Rating: ${averageRating.toFixed(1)}/5\n📅 Last Session: ${formatDate(lastSession)}\n\n🎯 Recent Focus Areas:\n${recentSessions || 'No sessions yet'}`;
-
-                    if (Platform.OS === 'web') {
-                      // Use native browser confirm for web
-                      const shouldNavigate = window.confirm(
-                        `${athlete.name}\n\n${message}\n\nClick OK to view all sessions`
-                      );
-                      if (shouldNavigate) {
-                        logger.info('Navigate to athlete sessions', { athleteId: athlete.id });
-                        router.push('/(tabs)/bookings');
-                      }
-                    } else {
-                      // Use React Native Alert for mobile
-                      Alert.alert(
-                        `${athlete.name}`,
-                        message,
-                        [
-                          {
-                            text: 'View All Sessions',
-                            onPress: () => {
-                              logger.info('Navigate to athlete sessions', { athleteId: athlete.id });
-                              // Navigate to bookings filtered by this athlete
-                              router.push('/(tabs)/bookings');
-                            }
-                          },
-                          {
-                            text: 'Close',
-                            style: 'cancel'
-                          }
-                        ]
-                      );
-                    }
+                    // Navigate to athlete detail screen
+                    router.push(`/development/athlete/${athlete.id}`);
                   }}
                   style={({ pressed }) => [
                     styles.athleteCard,
@@ -175,6 +142,9 @@ export function CoachDevelopmentScreen() {
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                         {athlete.avatar || athlete.name.charAt(0)}
                       </ThemedText>
+                      {needsNotes && (
+                        <View style={[styles.badge, { backgroundColor: Colors.light.error }]} />
+                      )}
                     </View>
                     <View style={styles.athleteDetails}>
                       <ThemedText type="defaultSemiBold" style={styles.athleteName}>
@@ -329,5 +299,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
     maxWidth: 260,
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
 });
