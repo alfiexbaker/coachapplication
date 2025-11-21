@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { upcomingBookings, getChildrenForParent } from '@/constants/mock-data';
 import { BookingSummary, SessionOffering, FootballObjective } from '@/constants/types';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
+import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BookingsScreen');
@@ -62,6 +63,8 @@ export default function BookingsScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('list');
   const [sessionType, setSessionType] = useState<SessionType>('1on1');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
+  const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Form state for creating session offerings
   const [sessionTitle, setSessionTitle] = useState('');
@@ -420,8 +423,8 @@ export default function BookingsScreen() {
                       showCoach={userRole !== 'COACH'}
                       showCapacity={userRole === 'COACH'}
                       onPress={() => {
-                        // TODO: Open session detail modal
-                        console.log('Clicked offering', item.id);
+                        setSelectedOffering(item);
+                        setShowDetailModal(true);
                       }}
                     />
                   );
@@ -825,6 +828,20 @@ export default function BookingsScreen() {
           </Clickable>
         </ScrollView>
       )}
+
+      {/* Session Detail Modal */}
+      <SessionDetailModal
+        visible={showDetailModal}
+        offering={selectedOffering}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedOffering(null);
+        }}
+        onUpdate={() => {
+          loadSessionOfferings();
+          loadSessionBookings();
+        }}
+      />
     </SafeAreaView>
   );
 }
