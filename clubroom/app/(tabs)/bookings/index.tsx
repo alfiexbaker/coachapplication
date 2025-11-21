@@ -14,13 +14,14 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { upcomingBookings, getChildrenForParent } from '@/constants/mock-data';
-import { BookingSummary } from '@/constants/types';
+import { BookingSummary, SessionOffering } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BookingsScreen');
 
 type TabType = 'list' | 'create';
 type SessionType = '1on1' | 'group';
+type RecurrenceType = 'none' | 'weekly';
 
 // Web-compatible clickable wrapper
 type ClickableProps = {
@@ -55,16 +56,18 @@ export default function BookingsScreen() {
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
   const [sessionBookings, setSessionBookings] = useState<BookingSummary[]>([]);
+  const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('list');
   const [sessionType, setSessionType] = useState<SessionType>('1on1');
 
-  // Form state for creating bookings
-  const [athleteName, setAthleteName] = useState('');
-  const [service, setService] = useState('');
+  // Form state for creating session offerings
+  const [sessionTitle, setSessionTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('');
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none');
 
   const userRole = currentUser?.role;
 
@@ -102,76 +105,104 @@ export default function BookingsScreen() {
     }
   }, []);
 
+  // Load session offerings from AsyncStorage
+  const loadSessionOfferings = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem('session_offerings');
+      if (stored) {
+        const offerings = JSON.parse(stored);
+        setSessionOfferings(offerings);
+        logger.debug('Loaded session offerings', { count: offerings.length });
+      }
+    } catch (error) {
+      logger.error('Failed to load session offerings', error);
+    }
+  }, []);
+
   // Reload bookings when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadSessionBookings();
-    }, [loadSessionBookings])
+      loadSessionOfferings();
+    }, [loadSessionBookings, loadSessionOfferings])
   );
 
-  // Create a new booking
-  const createBooking = async () => {
+  // Create a new session offering
+  const createSessionOffering = async () => {
     // Validation
-    if (!athleteName.trim()) {
-      Alert.alert('Error', 'Please enter athlete name');
-      return;
-    }
-    if (!service.trim()) {
-      Alert.alert('Error', 'Please enter service/session type');
+    if (!sessionTitle.trim()) {
+      Alert.alert('Error', 'Please enter session title');
       return;
     }
     if (!location.trim()) {
       Alert.alert('Error', 'Please enter location');
       return;
     }
-    if (sessionType === 'group' && !maxParticipants.trim()) {
-      Alert.alert('Error', 'Please enter max participants for group session');
-      return;
+
+    // Validate max participants is a valid integer
+    const maxParticipantsNum = sessionType === 'group' ? parseInt(maxParticipants) : 1;
+    if (sessionType === 'group') {
+      if (!maxParticipants.trim()) {
+        Alert.alert('Error', 'Please enter max participants for group session');
+        return;
+      }
+      if (isNaN(maxParticipantsNum) || maxParticipantsNum < 2) {
+        Alert.alert('Error', 'Max participants must be a number greater than 1');
+        return;
+      }
     }
 
     try {
-      // Generate new booking
-      const newBooking = {
-        id: `booking_${Date.now()}`,
+      // Generate new session offering
+      const newOffering: SessionOffering = {
+        id: `offering_${Date.now()}`,
         coachId: currentUser?.id || 'unknown',
         coachName: currentUser?.fullName || 'Unknown Coach',
-        athleteId: `athlete_${Date.now()}`,
-        athleteName: athleteName.trim(),
-        service: sessionType === 'group' ? `${service} (Group - Max ${maxParticipants})` : service.trim(),
-        scheduledAt: selectedDate.toISOString(),
-        status: 'CONFIRMED',
-        location: location.trim(),
+        title: sessionTitle.trim(),
+        description: description.trim() || undefined,
         sessionType: sessionType,
-        maxParticipants: sessionType === 'group' ? parseInt(maxParticipants) : 1,
+        maxParticipants: maxParticipantsNum,
+        location: location.trim(),
+        scheduledAt: selectedDate.toISOString(),
+        isRecurring: recurrenceType === 'weekly',
+        recurrenceType: recurrenceType,
+        dayOfWeek: recurrenceType === 'weekly' ? selectedDate.getDay() : undefined,
+        timeOfDay: recurrenceType === 'weekly'
+          ? selectedDate.toTimeString().slice(0, 5)
+          : undefined,
+        status: 'active',
+        registrations: [],
+        createdAt: new Date().toISOString(),
       };
 
-      // Load existing bookings
-      const stored = await AsyncStorage.getItem('session_bookings');
-      const existingBookings = stored ? JSON.parse(stored) : [];
+      // Load existing offerings
+      const stored = await AsyncStorage.getItem('session_offerings');
+      const existingOfferings = stored ? JSON.parse(stored) : [];
 
-      // Add new booking
-      const updatedBookings = [...existingBookings, newBooking];
-      await AsyncStorage.setItem('session_bookings', JSON.stringify(updatedBookings));
+      // Add new offering
+      const updatedOfferings = [...existingOfferings, newOffering];
+      await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
 
-      logger.debug('Created new booking', newBooking);
+      logger.debug('Created new session offering', newOffering);
 
       // Reset form
-      setAthleteName('');
-      setService('');
+      setSessionTitle('');
+      setDescription('');
       setLocation('');
       setSelectedDate(new Date());
       setMaxParticipants('');
+      setRecurrenceType('none');
 
-      // Reload bookings
-      await loadSessionBookings();
+      // Reload offerings
+      await loadSessionOfferings();
 
       // Switch back to list tab
       setActiveTab('list');
 
-      Alert.alert('Success', 'Booking created successfully!');
+      Alert.alert('Success', 'Session offering created successfully!');
     } catch (error) {
-      logger.error('Failed to create booking', error);
-      Alert.alert('Error', 'Failed to create booking. Please try again.');
+      logger.error('Failed to create session offering', error);
+      Alert.alert('Error', 'Failed to create session offering. Please try again.');
     }
   };
 
@@ -447,10 +478,68 @@ export default function BookingsScreen() {
             </Clickable>
           </View>
 
+          {/* Recurrence Type Selector */}
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Schedule Type
+          </ThemedText>
+          <View style={styles.sessionTypeContainer}>
+            <Clickable
+              onPress={() => setRecurrenceType('none')}
+              style={[
+                styles.sessionTypeButton,
+                {
+                  backgroundColor: recurrenceType === 'none' ? palette.tint : palette.card,
+                  borderColor: recurrenceType === 'none' ? palette.tint : palette.border,
+                },
+              ]}>
+              <Ionicons
+                name="calendar-outline"
+                size={24}
+                color={recurrenceType === 'none' ? (scheme === 'light' ? '#FFFFFF' : '#000000') : palette.icon}
+              />
+              <ThemedText
+                style={[
+                  styles.sessionTypeText,
+                  recurrenceType === 'none' && {
+                    color: scheme === 'light' ? '#FFFFFF' : '#000000',
+                    fontWeight: '700',
+                  },
+                ]}>
+                One-time
+              </ThemedText>
+            </Clickable>
+
+            <Clickable
+              onPress={() => setRecurrenceType('weekly')}
+              style={[
+                styles.sessionTypeButton,
+                {
+                  backgroundColor: recurrenceType === 'weekly' ? palette.tint : palette.card,
+                  borderColor: recurrenceType === 'weekly' ? palette.tint : palette.border,
+                },
+              ]}>
+              <Ionicons
+                name="repeat-outline"
+                size={24}
+                color={recurrenceType === 'weekly' ? (scheme === 'light' ? '#FFFFFF' : '#000000') : palette.icon}
+              />
+              <ThemedText
+                style={[
+                  styles.sessionTypeText,
+                  recurrenceType === 'weekly' && {
+                    color: scheme === 'light' ? '#FFFFFF' : '#000000',
+                    fontWeight: '700',
+                  },
+                ]}>
+                Weekly Recurring
+              </ThemedText>
+            </Clickable>
+          </View>
+
           {/* Form Fields */}
           <View style={styles.formFields}>
             <View style={styles.fieldContainer}>
-              <ThemedText style={styles.label}>Athlete Name</ThemedText>
+              <ThemedText style={styles.label}>Session Title *</ThemedText>
               <TextInput
                 style={[
                   styles.input,
@@ -460,28 +549,31 @@ export default function BookingsScreen() {
                     color: palette.text,
                   },
                 ]}
-                placeholder={sessionType === 'group' ? "Primary athlete or group name" : "Enter athlete name"}
+                placeholder="e.g., Advanced Dribbling Skills, Goalkeeper Training"
                 placeholderTextColor={palette.muted}
-                value={athleteName}
-                onChangeText={setAthleteName}
+                value={sessionTitle}
+                onChangeText={setSessionTitle}
               />
             </View>
 
             <View style={styles.fieldContainer}>
-              <ThemedText style={styles.label}>Service / Session Type</ThemedText>
+              <ThemedText style={styles.label}>Description (Optional)</ThemedText>
               <TextInput
                 style={[
                   styles.input,
+                  styles.multilineInput,
                   {
                     backgroundColor: palette.card,
                     borderColor: palette.border,
                     color: palette.text,
                   },
                 ]}
-                placeholder="e.g., Technical Skills Training, Dribbling"
+                placeholder="Add details about the session..."
                 placeholderTextColor={palette.muted}
-                value={service}
-                onChangeText={setService}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={3}
               />
             </View>
 
@@ -566,7 +658,7 @@ export default function BookingsScreen() {
 
           {/* Create Button */}
           <Clickable
-            onPress={createBooking}
+            onPress={createSessionOffering}
             style={[styles.createButton, { backgroundColor: palette.tint }]}>
             <Ionicons
               name="checkmark-circle-outline"
@@ -577,7 +669,7 @@ export default function BookingsScreen() {
               style={styles.createButtonText}
               lightColor="#FFFFFF"
               darkColor="#000000">
-              Create Booking
+              Create Session Offering
             </ThemedText>
           </Clickable>
         </ScrollView>
@@ -720,6 +812,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: 15,
+  },
+  multilineInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+    paddingTop: Spacing.md,
   },
   dateButton: {
     flexDirection: 'row',

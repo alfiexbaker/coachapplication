@@ -449,23 +449,6 @@ export default function CoachProfileScreen() {
 
             <SurfaceCard
               style={styles.quickAccessCard}
-              onPress={() => router.push('/(tabs)/feed')}>
-              <View style={styles.quickAccessRow}>
-                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.accent}15` }]}>
-                  <Ionicons name="newspaper" size={24} color={palette.accent} />
-                </View>
-                <View style={styles.quickAccessText}>
-                  <ThemedText type="defaultSemiBold">Community Feed</ThemedText>
-                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
-                    Share updates and connect with athletes
-                  </ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-              </View>
-            </SurfaceCard>
-
-            <SurfaceCard
-              style={styles.quickAccessCard}
               onPress={() => router.push('/(tabs)/more')}>
               <View style={styles.quickAccessRow}>
                 <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.success}15` }]}>
