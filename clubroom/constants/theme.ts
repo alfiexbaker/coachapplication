@@ -1,59 +1,70 @@
 import { Platform } from 'react-native';
 
-// Uber-inspired minimal palette + Football identity
-const brandPrimary = '#000000'; // Primary Black
-const softBlack = '#1A1A1A'; // Soft Black
-const offWhite = '#F5F5F5'; // Off-White Background
+// Premium dark palette inspired by modern fintech/lifestyle apps
+// Off-black backgrounds with purple-tinted surfaces for depth
+const offBlack = '#0E0E10'; // Main background
+const darkSurface = '#17171B'; // Elevated surface layer
+const cardSurface = '#1F2025'; // Card/interactive layer
 
-// Accent Colours - Use SPARINGLY (max 1 per screen)
-const warmCoral = '#FF6A6A'; // Brand Accent (Airbnb-inspired)
-const mintGreen = '#4CE1A0'; // Success
-const neonGreen = '#A1FF4B'; // Football Identity
+// Brand colors - restrained, sophisticated accent palette
+const primaryBlue = '#5C7CFA'; // Primary CTA - vibrant but not harsh
+const successGreen = '#2BD17E'; // Positive trends/actions
+const warningOrange = '#FFB545'; // Warnings/notifications
+const errorPink = '#FF5C8A'; // Errors/destructive actions
+
+// Text hierarchy - high contrast with subtle warmth
+const primaryText = '#F6F7FB'; // Almost white, slightly warm
+const secondaryText = '#AEB3C7'; // Muted purple-gray for secondary info
+
+// Border with transparency for layering
+const subtleBorder = 'rgba(255, 255, 255, 0.06)'; // Barely visible separation
+const mediumBorder = 'rgba(255, 255, 255, 0.1)'; // Visible but soft
 
 export const Colors = {
   light: {
-    text: '#000000', // Primary Black - strong hierarchy
-    foreground: '#000000', // Primary text/icon color
-    muted: '#6B7280', // Dark grey for secondary text
-    background: '#F5F5F5', // Off-white for screen backgrounds
-    surface: '#FFFFFF', // Pure white for cards/surfaces
+    text: '#0E0E10', // Dark text for light mode
+    foreground: '#0E0E10',
+    muted: '#6B7280',
+    background: '#F6F7FB', // Light background
+    surface: '#FFFFFF',
     card: '#FFFFFF',
-    border: '#E5E5E5', // Subtle borders
-    tint: brandPrimary,
-    tintPressed: softBlack,
+    border: '#E5E7EB',
+    tint: primaryBlue,
+    tintPressed: '#4C6AE8',
     icon: '#6B7280',
-    success: mintGreen, // Mint Green
-    warning: '#F59E0B',
-    error: warmCoral, // Warm Coral for errors
-    secondary: neonGreen, // Football Identity
-    accent: warmCoral, // Primary accent - USE SPARINGLY
+    success: successGreen,
+    warning: warningOrange,
+    error: errorPink,
+    secondary: successGreen,
+    accent: primaryBlue,
     tabIconDefault: '#9CA3AF',
-    tabIconSelected: brandPrimary,
-    overlay: 'rgba(0, 0, 0, 0.12)', // Warm subtle overlay
-    premium: warmCoral,
-    surfaceSecondary: offWhite, // Off-white for sections
+    tabIconSelected: primaryBlue,
+    overlay: 'rgba(0, 0, 0, 0.12)',
+    premium: primaryBlue,
+    surfaceSecondary: '#F6F7FB',
   },
   dark: {
-    text: '#FFFFFF',
-    foreground: '#FFFFFF', // Primary text/icon color
-    muted: '#9CA3AF',
-    background: '#0A0A0A',
-    surface: '#1A1A1A',
-    card: '#1F1F1F',
-    border: '#2A2A2A',
-    tint: '#FFFFFF',
-    tintPressed: '#E5E7EB',
-    icon: '#6B7280',
-    success: mintGreen, // Mint Green
-    warning: '#F59E0B',
-    error: warmCoral, // Warm Coral for errors
-    secondary: neonGreen, // Football Identity
-    accent: warmCoral, // Primary accent - USE SPARINGLY
-    tabIconDefault: '#6B7280',
-    tabIconSelected: '#FFFFFF',
+    text: primaryText, // #F6F7FB - high contrast, slightly warm
+    foreground: primaryText,
+    muted: secondaryText, // #AEB3C7 - muted purple-gray
+    background: offBlack, // #0E0E10 - deepest layer
+    surface: darkSurface, // #17171B - elevated section backgrounds
+    card: cardSurface, // #1F2025 - interactive cards/components
+    border: subtleBorder, // rgba(255,255,255,0.06) - subtle separation
+    borderMedium: mediumBorder, // rgba(255,255,255,0.1) - more visible
+    tint: primaryBlue, // #5C7CFA - primary actions
+    tintPressed: '#4C6AE8', // Slightly darker on press
+    icon: secondaryText,
+    success: successGreen, // #2BD17E - positive states
+    warning: warningOrange, // #FFB545 - warning states
+    error: errorPink, // #FF5C8A - error/destructive
+    secondary: successGreen,
+    accent: primaryBlue,
+    tabIconDefault: secondaryText,
+    tabIconSelected: primaryBlue,
     overlay: 'rgba(0, 0, 0, 0.7)',
-    premium: warmCoral,
-    surfaceSecondary: '#141414',
+    premium: primaryBlue,
+    surfaceSecondary: darkSurface,
   },
 } as const;
 
@@ -83,12 +94,20 @@ export const Radii = {
   pill: 999,
 } as const;
 
-// Typography system - clean hierarchy
+// Typography system - refined, light, modern
+// Inspired by premium apps: lighter weights, generous spacing, smooth hierarchy
 export const Typography = {
-  caption: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },      // Captions, small labels
-  body: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1 },      // Body text (1.5 line height)
-  heading: { fontSize: 22, lineHeight: 30, letterSpacing: -0.3 },   // Section headers
-  display: { fontSize: 32, lineHeight: 44, letterSpacing: -0.5 },   // Display titles
+  // Semantic type scale - lighter weights for elegance
+  display: { fontSize: 32, lineHeight: 44, letterSpacing: -0.6, fontWeight: '600' as const },   // H1 - Page titles
+  title: { fontSize: 24, lineHeight: 32, letterSpacing: -0.4, fontWeight: '600' as const },     // H2 - Section titles
+  heading: { fontSize: 20, lineHeight: 28, letterSpacing: -0.3, fontWeight: '500' as const },   // H3 - Card headers
+  subheading: { fontSize: 18, lineHeight: 26, letterSpacing: -0.2, fontWeight: '500' as const }, // H4 - Sub-sections
+  body: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '400' as const },      // Body text - 150% line height
+  bodySemiBold: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '500' as const }, // Medium, not semi-bold
+  small: { fontSize: 14, lineHeight: 20, letterSpacing: 0, fontWeight: '400' as const },        // Small text
+  caption: { fontSize: 13, lineHeight: 18, letterSpacing: 0, fontWeight: '400' as const },      // Captions, metadata
+  micro: { fontSize: 11, lineHeight: 16, letterSpacing: 0.6, fontWeight: '500' as const, textTransform: 'uppercase' as const }, // Pills, tags - lighter
+
   // Legacy sizes for compatibility
   xs: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },
   sm: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
@@ -120,6 +139,7 @@ export const Fonts = Platform.select({
   },
 });
 
+// Elevation system with soft shadows for depth hierarchy
 export const Shadows = {
   light: {
     card: {
@@ -145,26 +165,67 @@ export const Shadows = {
     },
   },
   dark: {
+    // Soft, diffused shadows for dark surfaces - creates depth without harshness
     card: {
       shadowColor: '#000000',
-      shadowOpacity: 0.5,
+      shadowOpacity: 0.3,
       shadowRadius: 12,
-      shadowOffset: { width: 0, height: 1 },
-      elevation: 1,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
     },
     cardHover: {
       shadowColor: '#000000',
-      shadowOpacity: 0.7,
+      shadowOpacity: 0.5,
       shadowRadius: 20,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 3,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 4,
     },
     subtle: {
       shadowColor: '#000000',
-      shadowOpacity: 0.3,
-      shadowRadius: 6,
-      shadowOffset: { width: 0, height: 1 },
-      elevation: 0,
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 1,
     },
+  },
+} as const;
+
+// Component-specific design tokens - Uber-minimal sizing
+export const Components = {
+  button: {
+    height: 44,  // Reduced from 52 - more minimal
+    borderRadius: Radii.md,
+    minWidth: 100,
+  },
+  buttonCompact: {
+    height: 32,  // Reduced from 40 - sleeker
+    borderRadius: Radii.sm,
+    minWidth: 64,
+  },
+  card: {
+    borderRadius: Radii.card,
+    padding: Spacing.md,  // Reduced from lg - tighter
+    gap: Spacing.sm,      // Reduced from md - more compact
+  },
+  input: {
+    height: 44,  // Reduced from 52
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+  },
+  pill: {
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,  // Reduced from md
+    paddingVertical: Spacing.xs / 2,
+  },
+  chip: {
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+  },
+  icon: {
+    sm: 16,
+    md: 20,
+    lg: 24,
+    xl: 32,
   },
 } as const;
