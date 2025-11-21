@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMemo } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { PageContainer } from '@/components/primitives/page-container';
+import { PageHeader } from '@/components/primitives/page-header';
+import { StatCard } from '@/components/primitives/stat-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -13,7 +15,6 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   getSessionsForCoach,
   getUserById,
-  MOCK_SESSIONS,
   formatDate,
 } from '@/constants/mock-data';
 import type { Session, User } from '@/constants/app-types';
@@ -78,72 +79,111 @@ export function CoachDevelopmentScreen() {
     return null;
   }
 
+  // Calculate key stats
+  const allSessions = getSessionsForCoach(currentUser.id);
+  const activeAthletes = athletesWithSessions.length;
+  const totalSessions = allSessions.length;
+  const avgRating = allSessions.length > 0
+    ? (allSessions.reduce((sum, s) => sum + s.performanceRating, 0) / allSessions.length).toFixed(1)
+    : '0';
+
   logger.debug('Coach development screen rendered', {
     athleteCount: athletesWithSessions.length,
-    coachId: currentUser.id
+    coachId: currentUser.id,
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Development
+    <PageContainer
+      gap={Spacing.md}
+      header={
+        <PageHeader
+          title="Development"
+          subtitle="Track your athletes' progress"
+          action="Add Session"
+          actionIcon="add"
+          onActionPress={() => {
+            logger.press('AddSession');
+            // TODO: Navigate to add session screen
+          }}
+        />
+      }
+    >
+      {/* Key Stats Strip */}
+      <SurfaceCard style={styles.statsCard}>
+        <View style={styles.statsRow}>
+          <StatCard
+            value={activeAthletes}
+            label="Active Athletes"
+            variant="compact"
+          />
+          <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+          <StatCard
+            value={totalSessions}
+            label="Sessions This Week"
+            variant="compact"
+            trend="+4"
+          />
+          <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+          <StatCard
+            value={avgRating}
+            label="Avg Rating"
+            variant="compact"
+            icon={<Ionicons name="star" size={16} color={palette.tint} />}
+          />
+        </View>
+      </SurfaceCard>
+
+      {/* Section Header */}
+      <View style={styles.sectionHeader}>
+        <ThemedText type="heading" style={styles.sectionTitle}>
+          Athletes
+        </ThemedText>
+      </View>
+
+      {/* Athletes List or Empty State */}
+      {athletesWithSessions.length === 0 ? (
+        <View style={styles.emptyState}>
+          <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
+            <Ionicons name="people-outline" size={32} color={palette.icon} />
+          </View>
+          <ThemedText type="subtitle" style={styles.emptyTitle}>
+            No sessions yet
           </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Track your athletes' progress
+          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+            Complete your first session to start tracking athlete development
           </ThemedText>
         </View>
+      ) : (
+        <View style={styles.athleteList}>
+          {athletesWithSessions.map(({ athlete, sessionCount, lastSession, averageRating }) => {
+            // Get all sessions for this athlete
+            const athleteSessions = getSessionsForCoach(currentUser.id).filter(
+              (s) => s.athleteId === athlete.id
+            );
 
-        {athletesWithSessions.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
-              <Ionicons name="people-outline" size={32} color={palette.icon} />
-            </View>
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              No sessions yet
-            </ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              Complete your first session to start tracking athlete development
-            </ThemedText>
-          </View>
-        ) : (
-          <View style={styles.athleteList}>
-            {athletesWithSessions.map(({ athlete, sessionCount, lastSession, averageRating }) => {
-              // Get all sessions for this athlete
-              const athleteSessions = getSessionsForCoach(currentUser.id).filter(
-                s => s.athleteId === athlete.id
-              );
+            // Check if any sessions need notes
+            const needsNotes = athleteSessions.some((s) => !s.notes || s.notes.trim() === '');
 
-              // Check if any sessions need notes
-              const needsNotes = athleteSessions.some(s => !s.notes || s.notes.trim() === '');
-
-              return (
-                <Clickable
-                  key={athlete.id}
-                  onPress={() => {
-                    logger.press('AthleteCard', {
-                      athleteId: athlete.id,
-                      athleteName: athlete.name,
-                      sessionCount
-                    });
-
-                    // Navigate to athlete detail screen
-                    router.push(`/development/athlete/${athlete.id}`);
-                  }}
-                  style={({ pressed }) => [
-                    styles.athleteCard,
-                    { opacity: pressed ? 0.7 : 1 },
-                  ]}
-                >
-                  <SurfaceCard style={styles.cardContent}>
+            return (
+              <Clickable
+                key={athlete.id}
+                onPress={() => {
+                  logger.press('AthleteCard', {
+                    athleteId: athlete.id,
+                    athleteName: athlete.name,
+                    sessionCount,
+                  });
+                  router.push(`/development/athlete/${athlete.id}`);
+                }}
+              >
+                <SurfaceCard style={styles.cardContent}>
                   <View style={styles.athleteInfo}>
                     <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                         {athlete.avatar || athlete.name.charAt(0)}
                       </ThemedText>
                       {needsNotes && (
-                        <View style={[styles.badge, { backgroundColor: Colors.light.error }]} />
+                        <View style={[styles.badge, { backgroundColor: palette.error }]} />
                       )}
                     </View>
                     <View style={styles.athleteDetails}>
@@ -156,7 +196,7 @@ export function CoachDevelopmentScreen() {
                     </View>
                   </View>
 
-                  <View style={styles.stats}>
+                  <View style={styles.statsGroup}>
                     <View style={styles.stat}>
                       <ThemedText type="defaultSemiBold" style={styles.statValue}>
                         {sessionCount}
@@ -182,56 +222,55 @@ export function CoachDevelopmentScreen() {
                 </SurfaceCard>
               </Clickable>
             );
-            })}
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          })}
+        </View>
+      )}
+    </PageContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  // Stats card at top
+  statsCard: {
+    padding: Spacing.md,
   },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-    gap: Spacing.lg,
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
   },
-  header: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
+  statDivider: {
+    width: 1,
+    height: 40,
+    opacity: 0.5,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
+
+  // Section header
+  sectionHeader: {
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.xs / 2,
   },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: -0.3,
   },
+
+  // Athlete list
   athleteList: {
-    gap: Spacing.md,
-  },
-  athleteCard: {
-    borderRadius: Radii.lg,
+    gap: Spacing.sm,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: Spacing.md,
     gap: Spacing.md,
   },
   athleteInfo: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   avatar: {
     width: 48,
@@ -239,46 +278,67 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   avatarText: {
-    fontSize: 24,
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#1F2025',
   },
   athleteDetails: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   athleteName: {
     fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   athleteMetadata: {
     fontSize: 13,
+    lineHeight: 18,
   },
-  stats: {
+
+  // Stats in athlete cards
+  statsGroup: {
     flexDirection: 'row',
-    gap: Spacing.xl,
+    gap: Spacing.md,
   },
   stat: {
     alignItems: 'center',
-    gap: 4,
+    gap: 2,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     textTransform: 'uppercase',
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
+
+  // Empty state
   emptyState: {
     alignItems: 'center',
     gap: Spacing.md,
-    paddingVertical: Spacing['2xl'] + Spacing.lg,
+    paddingVertical: Spacing['2xl'],
     paddingHorizontal: Spacing.xl,
   },
   emptyIconCircle: {
@@ -299,15 +359,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
     maxWidth: 260,
-  },
-  badge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
   },
 });

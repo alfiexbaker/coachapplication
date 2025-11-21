@@ -1,12 +1,13 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { PageContainer } from '@/components/primitives/page-container';
+import { StatCard } from '@/components/primitives/stat-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
@@ -70,204 +71,210 @@ export default function AthleteDetailScreen() {
     athleteId,
     sessionCount: sessions.length,
     trend,
-    level: level.name
+    level: level.name,
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
+    <PageContainer
+      gap={Spacing.lg}
+      header={
         <View style={styles.header}>
-          <Clickable onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-          </Clickable>
-          <ThemedText type="title" style={styles.title}>
+          </TouchableOpacity>
+          <ThemedText type="title" style={styles.headerTitle}>
             Athlete Progress
           </ThemedText>
           <View style={{ width: 24 }} />
         </View>
+      }
+    >
 
-        {/* Athlete Info Card */}
-        <SurfaceCard style={styles.athleteCard}>
-          <View style={styles.athleteHeader}>
-            <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
-              <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                {athlete.avatar || athlete.name.charAt(0)}
-              </ThemedText>
-            </View>
-            <View style={styles.athleteInfo}>
-              <ThemedText type="subtitle" style={styles.athleteName}>
-                {athlete.name}
-              </ThemedText>
-              <View style={styles.badges}>
-                <View style={[styles.trendBadge, { backgroundColor: trendColor + '20' }]}>
-                  <ThemedText style={[styles.trendText, { color: trendColor }]}>
-                    {trendIcon} {trendText}
-                  </ThemedText>
-                </View>
-                <View style={[styles.levelBadge, { backgroundColor: level.color + '20' }]}>
-                  <ThemedText style={[styles.levelText, { color: level.color }]}>
-                    {level.icon} {level.name}
-                  </ThemedText>
-                </View>
+      {/* Hero Card - Athlete Overview */}
+      <SurfaceCard style={styles.heroCard}>
+        <View style={styles.heroHeader}>
+          <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+            <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+              {athlete.avatar || athlete.name.charAt(0)}
+            </ThemedText>
+          </View>
+          <View style={styles.heroInfo}>
+            <ThemedText type="heading" style={styles.athleteName}>
+              {athlete.name}
+            </ThemedText>
+            <View style={styles.badges}>
+              <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
+                <ThemedText style={[styles.badgeText, { color: trendColor }]}>
+                  {trendIcon} {trendText}
+                </ThemedText>
+              </View>
+              <View style={[styles.levelBadge, { backgroundColor: level.color + '15' }]}>
+                <ThemedText style={[styles.badgeText, { color: level.color }]}>
+                  {level.icon} {level.name}
+                </ThemedText>
               </View>
             </View>
           </View>
-
-          {/* Stats */}
-          <View style={styles.stats}>
-            <View style={styles.stat}>
-              <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                {sessions.length}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Total Sessions
-              </ThemedText>
-            </View>
-            <View style={styles.stat}>
-              <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                {(sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)}⭐
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Avg Rating
-              </ThemedText>
-            </View>
-            <View style={styles.stat}>
-              <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                {sessions.length > 0 ? formatDate(sortedSessions[0].completedAt).split(' ')[0] : '-'}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                Last Session
-              </ThemedText>
-            </View>
-          </View>
-        </SurfaceCard>
-
-        {/* Sessions List */}
-        <View style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Session History
-          </ThemedText>
-          <ThemedText style={[styles.sectionSubtitle, { color: palette.muted }]}>
-            {sortedSessions.length} sessions completed
-          </ThemedText>
+          <TouchableOpacity
+            style={[styles.ctaButton, { backgroundColor: palette.tint }]}
+            onPress={() => {
+              logger.press('LogSession');
+              // TODO: Navigate to log session
+            }}
+          >
+            <ThemedText style={styles.ctaText}>Log Session</ThemedText>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.sessionList}>
-          {sortedSessions.map((session) => {
-            const needsNotes = !session.notes || session.notes.trim() === '';
+        {/* Stats Divider */}
+        <View style={[styles.divider, { backgroundColor: palette.border }]} />
 
-            return (
-              <Clickable
-                key={session.id}
-                onPress={() => {
-                  logger.press('SessionCard', { sessionId: session.id });
-                  router.push(`/development/session/${session.id}`);
-                }}
-                style={({ pressed }) => [
-                  styles.sessionCard,
-                  { opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <SurfaceCard style={styles.sessionContent}>
-                  <View style={styles.sessionHeader}>
-                    <View style={styles.sessionHeaderLeft}>
-                      <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
-                        {formatDate(session.completedAt)}
-                      </ThemedText>
-                      {needsNotes && (
-                        <View style={[styles.needsNotesBadge, { backgroundColor: Colors.light.error }]}>
-                          <ThemedText style={styles.needsNotesText}>Needs Notes</ThemedText>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.ratingRow}>
-                      <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
-                      <Ionicons name="star" size={16} color={palette.tint} />
-                    </View>
-                  </View>
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <StatCard
+            value={sessions.length}
+            label="Total Sessions"
+            variant="compact"
+          />
+          <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+          <StatCard
+            value={(sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)}
+            label="Avg Rating"
+            variant="compact"
+            icon={<Ionicons name="star" size={16} color={palette.tint} />}
+          />
+          <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+          <StatCard
+            value={sessions.length > 0 ? formatDate(sortedSessions[0].completedAt).split(' ')[0] : '-'}
+            label="Last Session"
+            variant="compact"
+          />
+        </View>
+      </SurfaceCard>
 
-                  {/* Skills worked on */}
-                  {session.skillsWorkedOn.length > 0 && (
-                    <View style={styles.skillsRow}>
-                      {session.skillsWorkedOn.map((skill, index) => (
-                        <View key={index} style={[styles.skillChip, { backgroundColor: palette.tint + '10' }]}>
-                          <ThemedText style={[styles.skillText, { color: palette.tint }]}>
-                            {skill}
-                          </ThemedText>
-                        </View>
-                      ))}
-                    </View>
-                  )}
+      {/* Section Header */}
+      <View style={styles.sectionHeader}>
+        <ThemedText type="heading" style={styles.sectionTitle}>
+          Session History
+        </ThemedText>
+        <ThemedText style={[styles.sectionSubtitle, { color: palette.muted }]}>
+          {sortedSessions.length} sessions completed
+        </ThemedText>
+      </View>
 
-                  {/* Notes preview */}
-                  {session.notes && session.notes.trim() !== '' && (
-                    <ThemedText
-                      style={[styles.notesPreview, { color: palette.muted }]}
-                      numberOfLines={2}
-                    >
-                      {session.notes}
+      {/* Session Cards */}
+      <View style={styles.sessionList}>
+        {sortedSessions.map((session) => {
+          const needsNotes = !session.notes || session.notes.trim() === '';
+
+          return (
+            <Clickable
+              key={session.id}
+              onPress={() => {
+                logger.press('SessionCard', { sessionId: session.id });
+                router.push(`/development/session/${session.id}`);
+              }}
+            >
+              <SurfaceCard style={styles.sessionCard}>
+                <View style={styles.sessionHeader}>
+                  <View style={styles.sessionHeaderLeft}>
+                    <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
+                      {formatDate(session.completedAt)}
                     </ThemedText>
-                  )}
+                    {needsNotes && (
+                      <View style={[styles.needsNotesBadge, { backgroundColor: palette.error }]}>
+                        <ThemedText style={styles.needsNotesText}>Needs Notes</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.ratingRow}>
+                    <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
+                    <Ionicons name="star" size={16} color={palette.tint} />
+                  </View>
+                </View>
 
-                  {/* Video indicator */}
-                  {session.videoUrls && session.videoUrls.length > 0 && (
-                    <View style={styles.videoIndicator}>
-                      <Ionicons name="videocam" size={14} color={palette.tint} />
-                      <ThemedText style={[styles.videoText, { color: palette.tint }]}>
-                        {session.videoUrls.length} {session.videoUrls.length === 1 ? 'video' : 'videos'}
-                      </ThemedText>
-                    </View>
-                  )}
+                {/* Skills worked on */}
+                {session.skillsWorkedOn.length > 0 && (
+                  <View style={styles.skillsRow}>
+                    {session.skillsWorkedOn.map((skill, index) => (
+                      <View
+                        key={index}
+                        style={[styles.skillChip, { backgroundColor: palette.tint + '15' }]}
+                      >
+                        <ThemedText style={[styles.skillText, { color: palette.tint }]}>
+                          {skill}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                )}
 
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={palette.icon}
-                    style={styles.chevron}
-                  />
-                </SurfaceCard>
-              </Clickable>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+                {/* Notes preview */}
+                {session.notes && session.notes.trim() !== '' && (
+                  <ThemedText
+                    style={[styles.notesPreview, { color: palette.muted }]}
+                    numberOfLines={2}
+                  >
+                    {session.notes}
+                  </ThemedText>
+                )}
+
+                {/* Video indicator */}
+                {session.videoUrls && session.videoUrls.length > 0 && (
+                  <View style={styles.videoIndicator}>
+                    <Ionicons name="videocam" size={14} color={palette.tint} />
+                    <ThemedText style={[styles.videoText, { color: palette.tint }]}>
+                      {session.videoUrls.length}{' '}
+                      {session.videoUrls.length === 1 ? 'video' : 'videos'}
+                    </ThemedText>
+                  </View>
+                )}
+
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={palette.icon}
+                  style={styles.chevron}
+                />
+              </SurfaceCard>
+            </Clickable>
+          );
+        })}
+      </View>
+    </PageContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['2xl'],
-    gap: Spacing.lg,
-  },
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
   backButton: {
     padding: Spacing.xs,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    letterSpacing: -0.4,
   },
-  athleteCard: {
+
+  // Hero Card
+  heroCard: {
     padding: Spacing.lg,
     gap: Spacing.md,
   },
-  athleteHeader: {
+  heroHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.md,
   },
   avatar: {
@@ -278,9 +285,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 28,
+    fontWeight: '700',
   },
-  athleteInfo: {
+  heroInfo: {
     flex: 1,
     gap: Spacing.xs,
   },
@@ -292,63 +300,73 @@ const styles = StyleSheet.create({
   badges: {
     flexDirection: 'row',
     gap: Spacing.xs,
+    flexWrap: 'wrap',
   },
   trendBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs / 2,
     borderRadius: Radii.sm,
   },
-  trendText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   levelBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs / 2,
     borderRadius: Radii.sm,
   },
-  levelText: {
+  badgeText: {
     fontSize: 12,
     fontWeight: '600',
+    letterSpacing: -0.1,
   },
-  stats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+  ctaButton: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Components.buttonCompact.borderRadius,
+    height: 36,
+    justifyContent: 'center',
   },
-  stat: {
-    alignItems: 'center',
-    gap: Spacing.xs / 2,
-  },
-  statValue: {
-    fontSize: 18,
-  },
-  statLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
+  ctaText: {
+    fontSize: 13,
     fontWeight: '600',
-    letterSpacing: 0.5,
+    color: '#fff',
+    letterSpacing: -0.2,
   },
-  section: {
+
+  // Stats in hero card
+  divider: {
+    height: 1,
+    opacity: 0.5,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    opacity: 0.5,
+  },
+
+  // Section header
+  sectionHeader: {
     gap: Spacing.xs / 2,
+    marginTop: Spacing.xs,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: -0.3,
   },
   sectionSubtitle: {
     fontSize: 13,
+    lineHeight: 18,
   },
+
+  // Session list
   sessionList: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   sessionCard: {
-    borderRadius: Radii.lg,
-  },
-  sessionContent: {
     padding: Spacing.md,
     gap: Spacing.sm,
     position: 'relative',
@@ -357,6 +375,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: Spacing.xs / 2,
   },
   sessionHeaderLeft: {
     flexDirection: 'row',
@@ -366,16 +385,20 @@ const styles = StyleSheet.create({
   },
   sessionDate: {
     fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   needsNotesBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
-    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   needsNotesText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -385,11 +408,12 @@ const styles = StyleSheet.create({
   rating: {
     fontSize: 16,
     fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
   skillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
   skillChip: {
     paddingHorizontal: Spacing.sm,
@@ -398,7 +422,8 @@ const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: -0.1,
   },
   notesPreview: {
     fontSize: 13,
@@ -416,7 +441,6 @@ const styles = StyleSheet.create({
   chevron: {
     position: 'absolute',
     right: Spacing.md,
-    top: '50%',
-    marginTop: -10,
+    top: Spacing.md,
   },
 });
