@@ -10,6 +10,7 @@ import type {
   Conversation,
   Message,
   Post,
+  Comment,
   Review,
   SkillLevel,
   BookingStatus,
@@ -553,7 +554,8 @@ export const MOCK_POSTS: Post[] = [
     authorName: 'James Wilson',
     authorAvatar: '🧑',
     content: 'Just achieved my goal of scoring 20 goals this season! Thanks to Coach Mike for all the help! 🎉⚽',
-    likes: ['user1', 'parent1', 'coach2'],
+    likes: ['user1', 'parent1', 'coach2', 'coach1', 'user2'],
+    commentCount: 4,
     createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -562,7 +564,8 @@ export const MOCK_POSTS: Post[] = [
     authorName: 'Mike Thompson',
     authorAvatar: '⚽',
     content: '5 essential drills to improve your first touch:\n1. Wall passes\n2. Close control circles\n3. Cushion control\n4. Directional first touch\n5. Game situations',
-    likes: ['user1', 'user2', 'user3', 'parent1', 'parent2'],
+    likes: ['user1', 'user2', 'user3', 'parent1', 'parent2', 'coach1', 'coach3'],
+    commentCount: 6,
     createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
   },
   {
@@ -572,7 +575,295 @@ export const MOCK_POSTS: Post[] = [
     authorAvatar: '👦',
     content: 'Great session today working on positioning. Feeling more confident! 💪',
     likes: ['parent1', 'coach1', 'user3'],
+    commentCount: 2,
     createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'post4',
+    authorId: 'coach1',
+    authorName: 'Sarah Mitchell',
+    authorAvatar: '🧤',
+    content: 'Reminder: Consistency is key! Even 15 minutes of daily practice can make a huge difference. Keep pushing! 💪',
+    likes: ['user1', 'user2', 'parent1', 'coach3'],
+    commentCount: 3,
+    createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'post5',
+    authorId: 'user2',
+    authorName: 'Emma Henderson',
+    authorAvatar: '👧',
+    content: 'First session with Coach David was amazing! Learned so much about ball control 🙌',
+    likes: ['parent1', 'coach3', 'user1'],
+    commentCount: 1,
+    createdAt: new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'post6',
+    authorId: 'coach3',
+    authorName: 'David Roberts',
+    authorAvatar: '🥅',
+    content: 'The best players are the ones who practice with purpose. Set clear goals for each training session!',
+    likes: ['user1', 'user2', 'user3', 'coach2'],
+    commentCount: 2,
+    createdAt: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'post7',
+    authorId: 'parent1',
+    authorName: 'John Henderson',
+    authorAvatar: '👨',
+    content: 'So proud of Tom and Emma\'s progress! The coaches here are fantastic 👏',
+    likes: ['user1', 'user2', 'coach1', 'coach2', 'coach3', 'parent2'],
+    commentCount: 5,
+    createdAt: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ===== COMMENTS =====
+export const MOCK_COMMENTS: Comment[] = [
+  // Comments for post1 (James Wilson's achievement)
+  {
+    id: 'comment1',
+    postId: 'post1',
+    authorId: 'coach2',
+    authorName: 'Mike Thompson',
+    authorAvatar: '⚽',
+    content: 'So proud of you James! Your hard work really paid off 🌟',
+    likes: ['user3', 'user1'],
+    createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment2',
+    postId: 'post1',
+    authorId: 'user1',
+    authorName: 'Tom Henderson',
+    authorAvatar: '👦',
+    content: 'Congrats James! That\'s amazing! 🎉',
+    likes: ['user3'],
+    createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment3',
+    postId: 'post1',
+    authorId: 'parent1',
+    authorName: 'John Henderson',
+    authorAvatar: '👨',
+    content: 'Well done! Keep up the great work!',
+    likes: [],
+    createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment4',
+    postId: 'post1',
+    authorId: 'coach1',
+    authorName: 'Sarah Mitchell',
+    authorAvatar: '🧤',
+    content: 'Fantastic achievement James! 👏',
+    likes: ['user3', 'coach2'],
+    createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // Comments for post2 (Mike's training tips)
+  {
+    id: 'comment5',
+    postId: 'post2',
+    authorId: 'user1',
+    authorName: 'Tom Henderson',
+    authorAvatar: '👦',
+    content: 'Thanks Coach! Going to try these today',
+    likes: ['coach2', 'user2'],
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment6',
+    postId: 'post2',
+    authorId: 'user3',
+    authorName: 'James Wilson',
+    authorAvatar: '🧑',
+    content: 'Wall passes are my favorite! So effective',
+    likes: ['coach2', 'user1', 'user2'],
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment7',
+    postId: 'post2',
+    authorId: 'parent1',
+    authorName: 'John Henderson',
+    authorAvatar: '👨',
+    content: 'Great tips! Will work on these with the kids',
+    likes: ['coach2'],
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment8',
+    postId: 'post2',
+    authorId: 'coach1',
+    authorName: 'Sarah Mitchell',
+    authorAvatar: '🧤',
+    content: 'Excellent drills Mike! I use these with my goalkeepers too',
+    likes: ['coach2', 'user1'],
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment9',
+    postId: 'post2',
+    authorId: 'user2',
+    authorName: 'Emma Henderson',
+    authorAvatar: '👧',
+    content: 'Can\'t wait to practice these! 💪',
+    likes: ['parent1', 'coach2'],
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 6 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment10',
+    postId: 'post2',
+    authorId: 'coach3',
+    authorName: 'David Roberts',
+    authorAvatar: '🥅',
+    content: 'Perfect fundamentals! These are game-changers',
+    likes: ['coach2'],
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000 + 7 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // Comments for post3 (Tom's positioning session)
+  {
+    id: 'comment11',
+    postId: 'post3',
+    authorId: 'coach1',
+    authorName: 'Sarah Mitchell',
+    authorAvatar: '🧤',
+    content: 'You did great today Tom! Keep it up 👍',
+    likes: ['user1', 'parent1'],
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment12',
+    postId: 'post3',
+    authorId: 'parent1',
+    authorName: 'John Henderson',
+    authorAvatar: '👨',
+    content: 'Proud of you son! 😊',
+    likes: ['user1'],
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // Comments for post4 (Sarah's consistency reminder)
+  {
+    id: 'comment13',
+    postId: 'post4',
+    authorId: 'user1',
+    authorName: 'Tom Henderson',
+    authorAvatar: '👦',
+    content: 'This is so true! Been practicing every day this week',
+    likes: ['coach1', 'parent1'],
+    createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment14',
+    postId: 'post4',
+    authorId: 'user2',
+    authorName: 'Emma Henderson',
+    authorAvatar: '👧',
+    content: 'Thanks for the motivation Coach! ⚽',
+    likes: ['coach1'],
+    createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment15',
+    postId: 'post4',
+    authorId: 'coach3',
+    authorName: 'David Roberts',
+    authorAvatar: '🥅',
+    content: 'Absolutely! Small consistent steps = big results',
+    likes: ['coach1', 'user1', 'user2'],
+    createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // Comments for post5 (Emma's first session)
+  {
+    id: 'comment16',
+    postId: 'post5',
+    authorId: 'coach3',
+    authorName: 'David Roberts',
+    authorAvatar: '🥅',
+    content: 'You were a star student Emma! Great first session 🌟',
+    likes: ['user2', 'parent1'],
+    createdAt: new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+  },
+
+  // Comments for post6 (David's training purpose)
+  {
+    id: 'comment17',
+    postId: 'post6',
+    authorId: 'user3',
+    authorName: 'James Wilson',
+    authorAvatar: '🧑',
+    content: 'This has helped me so much! Always have a plan now',
+    likes: ['coach3', 'user1'],
+    createdAt: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment18',
+    postId: 'post6',
+    authorId: 'coach2',
+    authorName: 'Mike Thompson',
+    authorAvatar: '⚽',
+    content: 'Spot on David! Purpose drives progress',
+    likes: ['coach3'],
+    createdAt: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+  },
+
+  // Comments for post7 (John's proud parent post)
+  {
+    id: 'comment19',
+    postId: 'post7',
+    authorId: 'coach1',
+    authorName: 'Sarah Mitchell',
+    authorAvatar: '🧤',
+    content: 'Thank you John! Tom and Emma are wonderful to work with',
+    likes: ['parent1', 'user1', 'user2'],
+    createdAt: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment20',
+    postId: 'post7',
+    authorId: 'coach2',
+    authorName: 'Mike Thompson',
+    authorAvatar: '⚽',
+    content: 'They\'re both doing fantastic! Great to have such supportive parents',
+    likes: ['parent1', 'coach1'],
+    createdAt: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment21',
+    postId: 'post7',
+    authorId: 'user1',
+    authorName: 'Tom Henderson',
+    authorAvatar: '👦',
+    content: 'Thanks Dad! Love the coaching sessions',
+    likes: ['parent1', 'user2'],
+    createdAt: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment22',
+    postId: 'post7',
+    authorId: 'user2',
+    authorName: 'Emma Henderson',
+    authorAvatar: '👧',
+    content: 'Best dad ever! ❤️',
+    likes: ['parent1', 'user1'],
+    createdAt: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000 + 4 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'comment23',
+    postId: 'post7',
+    authorId: 'parent2',
+    authorName: 'Lisa Wilson',
+    authorAvatar: '👩',
+    content: 'Couldn\'t agree more! The coaching quality here is outstanding',
+    likes: ['parent1', 'coach1', 'coach2'],
+    createdAt: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000 + 5 * 60 * 60 * 1000).toISOString(),
   },
 ];
 
@@ -656,6 +947,14 @@ export function getMessagesForConversation(conversationId: string): Message[] {
 
 export function getReviewsForCoach(coachId: string): Review[] {
   return MOCK_REVIEWS.filter((r) => r.coachId === coachId);
+}
+
+export function getCommentsForPost(postId: string): Comment[] {
+  return MOCK_COMMENTS.filter((c) => c.postId === postId);
+}
+
+export function getPostById(postId: string): Post | undefined {
+  return MOCK_POSTS.find((p) => p.id === postId);
 }
 
 // Get all coaches with their profiles (for search/discover)

@@ -33,6 +33,36 @@ function RootNavigation() {
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            <Stack.Screen
+              name="(modal)/post-detail"
+              options={{
+                presentation: 'modal',
+                headerShown: false,
+                animation: 'slide_from_bottom'
+              }}
+            />
+            <Stack.Screen
+              name="(modal)/create-post"
+              options={{
+                presentation: 'modal',
+                headerShown: false,
+                animation: 'slide_from_bottom'
+              }}
+            />
+            <Stack.Screen
+              name="book-coach"
+              options={{
+                presentation: 'modal',
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="confirm-booking"
+              options={{
+                presentation: 'modal',
+                headerShown: false,
+              }}
+            />
           </Stack>
           <StatusBar style="auto" />
         </>

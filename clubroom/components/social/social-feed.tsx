@@ -1,5 +1,6 @@
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -22,37 +23,63 @@ export function SocialFeed({ title = 'Community Feed', limit }: SocialFeedProps)
 
   const posts = limit ? MOCK_POSTS.slice(0, limit) : MOCK_POSTS;
 
+  const handleLike = (postId: string) => {
+    // Mock implementation - in production would call API
+    const post = MOCK_POSTS.find((p) => p.id === postId);
+    if (!post) return;
+
+    const userIndex = post.likes.indexOf(currentUser.id);
+    if (userIndex > -1) {
+      post.likes.splice(userIndex, 1);
+    } else {
+      post.likes.push(currentUser.id);
+    }
+  };
+
+  const handleViewPost = (postId: string) => {
+    router.push(`/(modal)/post-detail?postId=${postId}`);
+  };
+
   return (
     <View style={styles.section}>
       <ThemedText type="subtitle" style={styles.sectionTitle}>
         {title}
       </ThemedText>
-      {posts.map((post) => (
-        <SurfaceCard key={post.id} style={styles.post}>
-          <View style={styles.postHeader}>
-            <View style={styles.postAuthor}>
-              <ThemedText style={styles.authorAvatar}>{post.authorAvatar}</ThemedText>
-              <View>
-                <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
-                <ThemedText style={[styles.postDate, { color: palette.muted }]}>
-                  {formatDate(post.createdAt)}
-                </ThemedText>
+      {posts.map((post) => {
+        const isLiked = post.likes.includes(currentUser.id);
+        const commentCount = post.commentCount || 0;
+
+        return (
+          <SurfaceCard key={post.id} style={styles.post}>
+            <View style={styles.postHeader}>
+              <View style={styles.postAuthor}>
+                <ThemedText style={styles.authorAvatar}>{post.authorAvatar}</ThemedText>
+                <View>
+                  <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
+                  <ThemedText style={[styles.postDate, { color: palette.muted }]}>
+                    {formatDate(post.createdAt)}
+                  </ThemedText>
+                </View>
               </View>
             </View>
-          </View>
-          <ThemedText style={styles.postContent}>{post.content}</ThemedText>
-          <View style={styles.postActions}>
-            <View style={styles.postAction}>
-              <Ionicons
-                name={post.likes.includes(currentUser.id) ? 'heart' : 'heart-outline'}
-                size={18}
-                color={post.likes.includes(currentUser.id) ? '#ef4444' : palette.icon}
-              />
-              <ThemedText style={{ color: palette.muted }}>{post.likes.length}</ThemedText>
+            <ThemedText style={styles.postContent}>{post.content}</ThemedText>
+            <View style={styles.postActions}>
+              <TouchableOpacity style={styles.postAction} onPress={() => handleLike(post.id)}>
+                <Ionicons
+                  name={isLiked ? 'heart' : 'heart-outline'}
+                  size={18}
+                  color={isLiked ? '#ef4444' : palette.icon}
+                />
+                <ThemedText style={{ color: palette.muted }}>{post.likes.length}</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.postAction} onPress={() => handleViewPost(post.id)}>
+                <Ionicons name="chatbubble-outline" size={18} color={palette.icon} />
+                <ThemedText style={{ color: palette.muted }}>{commentCount}</ThemedText>
+              </TouchableOpacity>
             </View>
-          </View>
-        </SurfaceCard>
-      ))}
+          </SurfaceCard>
+        );
+      })}
     </View>
   );
 }
