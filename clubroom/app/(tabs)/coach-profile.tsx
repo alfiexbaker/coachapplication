@@ -423,6 +423,23 @@ export default function CoachProfileScreen() {
                 <Ionicons name="chevron-forward" size={20} color={palette.muted} />
               </View>
             </SurfaceCard>
+
+            <SurfaceCard
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/(tabs)/settings')}>
+              <View style={styles.quickAccessRow}>
+                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.accent}15` }]}>
+                  <Ionicons name="settings" size={24} color={palette.accent} />
+                </View>
+                <View style={styles.quickAccessText}>
+                  <ThemedText type="defaultSemiBold">Settings & Preferences</ThemedText>
+                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
+                    Manage account, privacy, notifications & more
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
           </View>
         )}
       </ScrollView>
