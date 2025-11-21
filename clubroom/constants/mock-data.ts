@@ -1517,7 +1517,7 @@ export function getTemplatesForCoach(coachId: string): SessionTemplate[] {
   return MOCK_SESSION_TEMPLATES.filter((t) => t.coachId === coachId);
 }
 
-export function getSessionsForCoach(coachId: string): CoachSession[] {
+export function getCoachSessionsForCoach(coachId: string): CoachSession[] {
   return MOCK_COACH_SESSIONS.filter((s) => s.coachId === coachId);
 }
 
