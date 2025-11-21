@@ -153,6 +153,16 @@ export interface BookingSummary {
   start: string;
   status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
   locationLabel: string;
+  coach?: {
+    name: string;
+    photoUrl: string;
+  };
+  client?: {
+    name: string;
+    photoUrl: string;
+  };
+  coachId?: string;
+  clientId?: string;
 }
 
 export interface AthleteObjective {
