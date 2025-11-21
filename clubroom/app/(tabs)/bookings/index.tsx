@@ -14,7 +14,8 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { upcomingBookings, getChildrenForParent } from '@/constants/mock-data';
-import { BookingSummary, SessionOffering } from '@/constants/types';
+import { BookingSummary, SessionOffering, FootballObjective } from '@/constants/types';
+import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BookingsScreen');
@@ -22,6 +23,7 @@ const logger = createLogger('BookingsScreen');
 type TabType = 'list' | 'create';
 type SessionType = '1on1' | 'group';
 type RecurrenceType = 'none' | 'weekly';
+type TimeFilter = 'upcoming' | 'past';
 
 // Web-compatible clickable wrapper
 type ClickableProps = {
@@ -59,6 +61,7 @@ export default function BookingsScreen() {
   const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('list');
   const [sessionType, setSessionType] = useState<SessionType>('1on1');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
 
   // Form state for creating session offerings
   const [sessionTitle, setSessionTitle] = useState('');
@@ -68,6 +71,10 @@ export default function BookingsScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('');
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none');
+  const [price, setPrice] = useState('');
+  const [ageMin, setAgeMin] = useState('');
+  const [ageMax, setAgeMax] = useState('');
+  const [footballSkill, setFootballSkill] = useState<FootballObjective | ''>('');
 
   const userRole = currentUser?.role;
 
@@ -153,6 +160,11 @@ export default function BookingsScreen() {
     }
 
     try {
+      // Parse optional fields
+      const priceNum = price.trim() ? parseFloat(price) : undefined;
+      const ageMinNum = ageMin.trim() ? parseInt(ageMin) : undefined;
+      const ageMaxNum = ageMax.trim() ? parseInt(ageMax) : undefined;
+
       // Generate new session offering
       const newOffering: SessionOffering = {
         id: `offering_${Date.now()}`,
@@ -173,6 +185,10 @@ export default function BookingsScreen() {
         status: 'active',
         registrations: [],
         createdAt: new Date().toISOString(),
+        priceUsd: priceNum,
+        ageMin: ageMinNum,
+        ageMax: ageMaxNum,
+        footballSkill: footballSkill || undefined,
       };
 
       // Load existing offerings
@@ -192,6 +208,10 @@ export default function BookingsScreen() {
       setSelectedDate(new Date());
       setMaxParticipants('');
       setRecurrenceType('none');
+      setPrice('');
+      setAgeMin('');
+      setAgeMax('');
+      setFootballSkill('');
 
       // Reload offerings
       await loadSessionOfferings();
@@ -206,54 +226,45 @@ export default function BookingsScreen() {
     }
   };
 
-  // Merge mock bookings with session bookings
-  const allBookings = [...upcomingBookings, ...sessionBookings];
+  // For COACHES: show their session offerings
+  // For ATHLETES/PARENTS: show sessions they're registered for
+  const now = new Date();
 
-  logger.debug('BookingsScreen rendered', {
-    userRole,
-    username: currentUser?.username,
-    totalBookings: allBookings.length,
-    sessionBookings: sessionBookings.length,
-    mockBookings: upcomingBookings.length
-  });
+  let displayItems: (SessionOffering | BookingSummary)[] = [];
 
-  // Filter bookings based on user role (following DATA_ARCHITECTURE.md principles)
-  const filteredBookings = allBookings.filter((booking) => {
-    if (userRole === 'COACH') {
-      // Coaches see bookings where they are the coach
-      return booking.coachId === currentUser?.id || booking.coach.name === currentUser?.fullName;
-    } else if (userRole === 'USER') {
-      // Athletes see their own bookings (where they are the athlete)
-      return booking.clientId === currentUser?.id || booking.client.name === currentUser?.fullName;
-    } else if (userRole === 'PARENT') {
-      // Parents see bookings for their children (athleteId = child's ID)
-      const children = getChildrenForParent(currentUser?.id || '');
-      const childrenIds = children.map(c => c.id);
-      return childrenIds.includes(booking.clientId || '');
-    } else if (userRole === 'ADMIN') {
-      // Admins see all bookings
+  if (userRole === 'COACH') {
+    // Coaches see their session offerings
+    const myOfferings = sessionOfferings.filter(o => o.coachId === currentUser?.id);
+    displayItems = timeFilter === 'upcoming'
+      ? myOfferings.filter(o => new Date(o.scheduledAt) >= now || o.isRecurring)
+      : myOfferings.filter(o => new Date(o.scheduledAt) < now && !o.isRecurring);
+  } else {
+    // Athletes/Parents see sessions they're registered for
+    const myRegisteredOfferings = sessionOfferings.filter(offering =>
+      offering.registrations.some(reg =>
+        reg.userId === currentUser?.id && reg.status === 'confirmed'
+      )
+    );
+
+    // Also show old bookings
+    const allBookings = [...upcomingBookings, ...sessionBookings];
+    const filteredBookings = allBookings.filter((booking) => {
+      if (userRole === 'USER') {
+        return booking.clientId === currentUser?.id || booking.client?.name === currentUser?.fullName;
+      } else if (userRole === 'PARENT') {
+        const children = getChildrenForParent(currentUser?.id || '');
+        const childrenIds = children.map(c => c.id);
+        return childrenIds.includes(booking.clientId || '');
+      }
       return true;
-    }
-    return true; // Default: show all
-  });
-
-  const hasBookings = filteredBookings.length > 0;
-
-  logger.debug('Bookings filtered', {
-    filteredCount: filteredBookings.length,
-    hasBookings
-  });
-
-  console.log('🟢🟢🟢 [BookingsScreen] RENDERING with', filteredBookings.length, 'bookings');
-  console.log('🟢 [BookingsScreen] Booking IDs:', filteredBookings.map(b => b.id));
-  filteredBookings.forEach((booking, index) => {
-    console.log(`🟢 [BookingsScreen] Booking ${index}:`, {
-      id: booking.id,
-      service: booking.service,
-      coachName: booking.coachName,
-      status: booking.status
     });
-  });
+
+    displayItems = timeFilter === 'upcoming'
+      ? [...myRegisteredOfferings.filter(o => new Date(o.scheduledAt) >= now || o.isRecurring), ...filteredBookings]
+      : myRegisteredOfferings.filter(o => new Date(o.scheduledAt) < now && !o.isRecurring);
+  }
+
+  const hasItems = displayItems.length > 0;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -364,14 +375,62 @@ export default function BookingsScreen() {
       {/* Bookings List - Show for all users, or coaches on 'list' tab */}
       {(userRole !== 'COACH' || activeTab === 'list') && (
         <>
-          {hasBookings ? (
+          {/* Time Filter Toggle */}
+          <View style={styles.timeFilterContainer}>
+            <Clickable
+              onPress={() => setTimeFilter('upcoming')}
+              style={[
+                styles.filterButton,
+                timeFilter === 'upcoming' && { ...styles.filterButtonActive, backgroundColor: palette.tint },
+              ]}>
+              <ThemedText
+                style={[
+                  styles.filterButtonText,
+                  timeFilter === 'upcoming' && { color: scheme === 'light' ? '#FFFFFF' : '#000000', fontWeight: '700' },
+                ]}>
+                Upcoming
+              </ThemedText>
+            </Clickable>
+            <Clickable
+              onPress={() => setTimeFilter('past')}
+              style={[
+                styles.filterButton,
+                timeFilter === 'past' && { ...styles.filterButtonActive, backgroundColor: palette.tint },
+              ]}>
+              <ThemedText
+                style={[
+                  styles.filterButtonText,
+                  timeFilter === 'past' && { color: scheme === 'light' ? '#FFFFFF' : '#000000', fontWeight: '700' },
+                ]}>
+                Past
+              </ThemedText>
+            </Clickable>
+          </View>
+
+          {hasItems ? (
             <FlatList
-              data={filteredBookings}
+              data={displayItems}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <CompactBookingCard booking={item} />}
+              renderItem={({ item }) => {
+                // Check if item is SessionOffering
+                if ('registrations' in item) {
+                  return (
+                    <SessionOfferingCard
+                      offering={item}
+                      showCoach={userRole !== 'COACH'}
+                      showCapacity={userRole === 'COACH'}
+                      onPress={() => {
+                        // TODO: Open session detail modal
+                        console.log('Clicked offering', item.id);
+                      }}
+                    />
+                  );
+                }
+                // Old booking
+                return <CompactBookingCard booking={item} />;
+              }}
               contentContainerStyle={styles.list}
               showsVerticalScrollIndicator={false}
-              ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
             />
           ) : (
             <View style={styles.emptyState}>
@@ -379,15 +438,18 @@ export default function BookingsScreen() {
                 <Ionicons name="calendar-outline" size={48} color={palette.muted} />
               </View>
               <ThemedText type="subtitle" style={styles.emptyTitle}>
-                No upcoming sessions
+                No {timeFilter} sessions
               </ThemedText>
               <ThemedText style={styles.emptyDescription}>
                 {userRole === 'COACH'
-                  ? 'You have no upcoming coaching sessions scheduled'
-                  : 'Book your first coaching session to get started'}
+                  ? timeFilter === 'upcoming'
+                    ? 'Create your first session offering'
+                    : 'No past sessions yet'
+                  : timeFilter === 'upcoming'
+                    ? 'Book your first coaching session to get started'
+                    : 'No past sessions yet'}
               </ThemedText>
-              {/* Fixed: was checking 'User' and 'Parent', now checking 'USER' and 'PARENT' */}
-              {(userRole === 'USER' || userRole === 'PARENT') && (
+              {(userRole === 'USER' || userRole === 'PARENT') && timeFilter === 'upcoming' && (
                 <Clickable
                   onPress={() => {
                     logger.press('FindCoachButton', { route: '/(tabs)/index' });
@@ -399,13 +461,12 @@ export default function BookingsScreen() {
                   </ThemedText>
                 </Clickable>
               )}
-              {/* Fixed: was checking 'Coach', now checking 'COACH' */}
-              {userRole === 'COACH' && (
+              {userRole === 'COACH' && timeFilter === 'upcoming' && (
                 <Clickable
                   onPress={() => setActiveTab('create')}
                   style={[styles.ctaButton, { backgroundColor: palette.tint }]}>
                   <ThemedText style={styles.ctaText} lightColor="#FFFFFF" darkColor="#000000">
-                    Create Your First Booking
+                    Create Session Offering
                   </ThemedText>
                 </Clickable>
               )}

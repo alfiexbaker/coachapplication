@@ -179,6 +179,7 @@ export interface SessionOffering {
   id: string;
   coachId: string;
   coachName: string;
+  coachPhotoUrl?: string;
   title: string; // Session name/title
   description?: string;
   sessionType: '1on1' | 'group';
@@ -193,6 +194,9 @@ export interface SessionOffering {
   registrations: SessionRegistration[];
   createdAt: string;
   priceUsd?: number;
+  ageMin?: number; // Minimum age (e.g., 10 for U12)
+  ageMax?: number; // Maximum age (e.g., 12 for U12)
+  footballSkill?: FootballObjective; // Primary skill focus
 }
 
 export interface AthleteObjective {
