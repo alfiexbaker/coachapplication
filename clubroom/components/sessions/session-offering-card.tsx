@@ -143,9 +143,9 @@ export function SessionOfferingCard({
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: scale(16),
-    padding: scale(20),
-    gap: scale(14),
+    marginBottom: 16,
+    padding: 20,
+    gap: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -153,12 +153,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   header: {
-    gap: scale(10),
+    gap: 10,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(10),
+    gap: 10,
     flexWrap: 'wrap',
   },
   title: {
@@ -173,15 +173,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontWeight: '500',
     lineHeight: scaleFont(21),
-    marginTop: scale(2),
+    marginTop: 2,
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(4),
-    paddingHorizontal: scale(10),
-    paddingVertical: scale(5),
-    borderRadius: scale(8),
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
   typeBadgeText: {
     fontSize: scaleFont(12),
@@ -192,18 +192,18 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(15),
     opacity: 0.7,
     lineHeight: scaleFont(22),
-    marginTop: scale(4),
+    marginTop: 4,
   },
   detailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(14),
-    marginTop: scale(6),
+    gap: 14,
+    marginTop: 6,
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(8),
+    gap: 8,
     flex: 1,
   },
   detailText: {
@@ -215,14 +215,14 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: scale(10),
-    marginTop: scale(10),
+    gap: 10,
+    marginTop: 10,
     flexWrap: 'wrap',
   },
   ageBadge: {
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(6),
-    borderRadius: scale(8),
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   ageText: {
     fontSize: scaleFont(13),
@@ -230,9 +230,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   capacityBadge: {
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(6),
-    borderRadius: scale(8),
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   capacityText: {
     fontSize: scaleFont(13),
@@ -249,11 +249,11 @@ const styles = StyleSheet.create({
   },
   fullOverlay: {
     position: 'absolute',
-    top: scale(16),
-    right: scale(16),
-    paddingHorizontal: scale(12),
-    paddingVertical: scale(6),
-    borderRadius: scale(8),
+    top: 16,
+    right: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   fullText: {
     fontSize: scaleFont(12),
