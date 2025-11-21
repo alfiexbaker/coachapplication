@@ -715,6 +715,96 @@ export default function BookingsScreen() {
                 />
               )}
             </View>
+
+            {/* Price */}
+            <View style={styles.fieldContainer}>
+              <ThemedText style={styles.label}>Price (USD) - Optional</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: palette.card,
+                    borderColor: palette.border,
+                    color: palette.text,
+                  },
+                ]}
+                placeholder="e.g., 50"
+                placeholderTextColor={palette.muted}
+                value={price}
+                onChangeText={setPrice}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            {/* Age Range */}
+            <View style={styles.fieldContainer}>
+              <ThemedText style={styles.label}>Age Range - Optional</ThemedText>
+              <View style={styles.ageRangeRow}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.ageInput,
+                    {
+                      backgroundColor: palette.card,
+                      borderColor: palette.border,
+                      color: palette.text,
+                    },
+                  ]}
+                  placeholder="Min"
+                  placeholderTextColor={palette.muted}
+                  value={ageMin}
+                  onChangeText={setAgeMin}
+                  keyboardType="number-pad"
+                />
+                <ThemedText style={styles.ageSeparator}>to</ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.ageInput,
+                    {
+                      backgroundColor: palette.card,
+                      borderColor: palette.border,
+                      color: palette.text,
+                    },
+                  ]}
+                  placeholder="Max"
+                  placeholderTextColor={palette.muted}
+                  value={ageMax}
+                  onChangeText={setAgeMax}
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
+
+            {/* Football Skill Focus */}
+            <View style={styles.fieldContainer}>
+              <ThemedText style={styles.label}>Skill Focus - Optional</ThemedText>
+              <View style={styles.skillPicker}>
+                {(['Dribbling', 'Passing', 'Defending', 'Finishing', 'Goalkeeping', 'Conditioning'] as FootballObjective[]).map((skill) => (
+                  <Clickable
+                    key={skill}
+                    onPress={() => setFootballSkill(footballSkill === skill ? '' : skill)}
+                    style={[
+                      styles.skillButton,
+                      {
+                        backgroundColor: footballSkill === skill ? palette.tint : palette.card,
+                        borderColor: footballSkill === skill ? palette.tint : palette.border,
+                      },
+                    ]}>
+                    <ThemedText
+                      style={[
+                        styles.skillButtonText,
+                        footballSkill === skill && {
+                          color: scheme === 'light' ? '#FFFFFF' : '#000000',
+                          fontWeight: '700',
+                        },
+                      ]}>
+                      {skill}
+                    </ThemedText>
+                  </Clickable>
+                ))}
+              </View>
+            </View>
           </View>
 
           {/* Create Button */}
@@ -904,5 +994,53 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: 17,
     fontWeight: '700',
+  },
+  // Time Filter Styles
+  timeFilterContainer: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: 'transparent',
+  },
+  filterButtonActive: {
+    // Applied inline
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // New Form Field Styles
+  ageRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  ageInput: {
+    flex: 1,
+  },
+  ageSeparator: {
+    fontSize: 14,
+    paddingHorizontal: Spacing.xs,
+  },
+  skillPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  skillButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  skillButtonText: {
+    fontSize: 13,
   },
 });
