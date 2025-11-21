@@ -133,6 +133,18 @@ export interface Post {
   content: string;
   images?: string[];
   likes: string[]; // User IDs who liked
+  commentCount?: number;
+  createdAt: string;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName?: string;
+  authorAvatar?: string;
+  content: string;
+  likes: string[]; // User IDs who liked
   createdAt: string;
 }
 

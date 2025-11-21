@@ -61,6 +61,13 @@ export default function TabLayout() {
     return (
       <Tabs screenOptions={tabBarOptions}>
         <Tabs.Screen
+          name="feed"
+          options={{
+            title: 'Feed',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="square.stack.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="index"
           options={{
             title: 'Users',
@@ -75,17 +82,22 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Reports',
-            tabBarIcon: ({ color }) => <IconSymbol size={22} name="exclamationmark.triangle.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
           name="profile"
           options={{
             title: 'Settings',
             tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="messages"
+          options={{
+            href: null, // Hide reports from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="more"
+          options={{
+            href: null, // Hide from tab bar
           }}
         />
         <Tabs.Screen
@@ -107,6 +119,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="edit-user-profile"
+          options={{
+            href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
           name="admin/invite-codes"
           options={{
             href: null, // Hide from tab bar - access via settings
@@ -116,10 +134,17 @@ export default function TabLayout() {
     );
   }
 
-  // COACH TABS - Messages, Bookings, Development, Analytics, Profile
+  // COACH TABS - Feed, Messages, Bookings, Development, Profile
   if (userRole === 'COACH') {
     return (
       <Tabs screenOptions={tabBarOptions}>
+        <Tabs.Screen
+          name="feed"
+          options={{
+            title: 'Feed',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="square.stack.fill" color={color} />,
+          }}
+        />
         <Tabs.Screen
           name="messages"
           options={{
@@ -144,17 +169,16 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="more"
-          options={{
-            title: 'Analytics',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.bar.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
           name="profile"
           options={{
             title: 'Profile',
             tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="more"
+          options={{
+            href: null, // Hide Analytics from tab bar
           }}
         />
         <Tabs.Screen
@@ -233,6 +257,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="feed"
+          options={{
+            href: null, // Hidden - feed is in Home for users
+          }}
+        />
+        <Tabs.Screen
           name="availability"
           options={{
             href: null, // Hide from tab bar
@@ -266,10 +296,17 @@ export default function TabLayout() {
     );
   }
 
-  // PARENT TABS - Discover, Bookings, Development, Messages, Profile
+  // PARENT TABS - Feed, Discover, Bookings, Development, Profile
   if (userRole === 'PARENT') {
     return (
       <Tabs screenOptions={tabBarOptions}>
+        <Tabs.Screen
+          name="feed"
+          options={{
+            title: 'Feed',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="square.stack.fill" color={color} />,
+          }}
+        />
         <Tabs.Screen
           name="index"
           options={{
@@ -292,19 +329,16 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={22} name="bubble.left.and.bubble.right.fill" color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="profile"
           options={{
             title: 'Profile',
             tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="messages"
+          options={{
+            href: null, // Hide Messages from tab bar for parents
           }}
         />
         <Tabs.Screen
