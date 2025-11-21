@@ -209,7 +209,30 @@ export default function ProfileScreen() {
           </Clickable>
         </SurfaceCard>
 
-        {/* Role & Sign Out */}
+        {/* Settings Card */}
+        <SurfaceCard
+          style={styles.settingsCard}
+          onPress={() => {
+            logger.press('SettingsButton');
+            router.push('/(tabs)/settings');
+          }}>
+          <View style={styles.settingsRow}>
+            <View style={[styles.settingsIcon, { backgroundColor: `${palette.accent}15` }]}>
+              <Ionicons name="settings" size={24} color={palette.accent} />
+            </View>
+            <View style={styles.settingsText}>
+              <ThemedText type="defaultSemiBold" style={styles.settingsTitle}>
+                Settings & Preferences
+              </ThemedText>
+              <ThemedText style={[styles.settingsSubtitle, { color: palette.muted }]}>
+                Manage account, privacy, notifications & more
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={palette.muted} />
+          </View>
+        </SurfaceCard>
+
+        {/* Account Type */}
         <SurfaceCard style={styles.identityCard}>
           <View style={styles.roleRow}>
             <ThemedText type="defaultSemiBold">Account Type</ThemedText>
@@ -223,26 +246,6 @@ export default function ProfileScreen() {
               </ThemedText>
             </View>
           </View>
-
-          <Clickable
-            style={({ pressed }) => [
-              styles.signOutButton,
-              {
-                backgroundColor: pressed ? `${palette.destructive}20` : 'transparent',
-                borderColor: palette.destructive,
-              },
-            ]}
-            onPress={() => {
-              logger.press('SignOutButton', {
-                username: currentUser?.username,
-                role: currentUser?.role
-              });
-              logout();
-            }}>
-            <ThemedText style={[styles.signOutLabel, { color: palette.destructive }]}>
-              Sign Out
-            </ThemedText>
-          </Clickable>
         </SurfaceCard>
         {/* Quick Access Cards */}
         {actions.length > 0 && (
@@ -371,6 +374,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  settingsCard: {
+    padding: Spacing.sm,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  settingsIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingsText: {
+    flex: 1,
+    gap: 4,
+  },
+  settingsTitle: {
+    fontSize: 17,
+  },
+  settingsSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   identityCard: {
     gap: Spacing.md,
   },
@@ -390,16 +419,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     fontSize: 11,
-  },
-  signOutButton: {
-    paddingVertical: Spacing.md,
-    borderRadius: 999,
-    alignItems: 'center',
-    borderWidth: 2,
-  },
-  signOutLabel: {
-    fontWeight: '700',
-    fontSize: 15,
   },
   sectionContainer: {
     gap: Spacing.sm,

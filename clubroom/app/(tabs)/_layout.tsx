@@ -129,6 +129,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="settings"
+          options={{
+            href: null, // Hide from tab bar - access via Profile
+          }}
+        />
+        <Tabs.Screen
           name="admin/invite-codes"
           options={{
             href: null, // Hide from tab bar - access via settings
@@ -206,6 +212,12 @@ export default function TabLayout() {
           name="edit-user-profile"
           options={{
             href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            href: null, // Hide from tab bar - access via Profile
           }}
         />
         <Tabs.Screen
@@ -289,6 +301,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="settings"
+          options={{
+            href: null, // Hide from tab bar - access via Profile
+          }}
+        />
+        <Tabs.Screen
           name="admin/invite-codes"
           options={{
             href: null, // Hide from tab bar
@@ -367,6 +385,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="settings"
+          options={{
+            href: null, // Hide from tab bar - access via Profile
+          }}
+        />
+        <Tabs.Screen
           name="admin/invite-codes"
           options={{
             href: null, // Hide from tab bar
@@ -431,6 +455,12 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="edit-user-profile"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
         options={{
           href: null,
         }}
