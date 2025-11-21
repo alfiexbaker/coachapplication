@@ -73,6 +73,7 @@ export default function BookingsScreen() {
   const [location, setLocation] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('');
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none');
   const [price, setPrice] = useState('');
@@ -684,7 +685,15 @@ export default function BookingsScreen() {
             <View style={styles.fieldContainer}>
               <ThemedText style={styles.label}>Date & Time</ThemedText>
               <Clickable
-                onPress={() => setShowDatePicker(true)}
+                onPress={() => {
+                  if (Platform.OS === 'android') {
+                    // On Android, show date picker first
+                    setShowDatePicker(true);
+                  } else {
+                    // On iOS/web, show combined datetime picker
+                    setShowDatePicker(true);
+                  }
+                }}
                 style={[
                   styles.dateButton,
                   {
@@ -707,16 +716,59 @@ export default function BookingsScreen() {
                   })}
                 </ThemedText>
               </Clickable>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={selectedDate}
-                  mode="datetime"
-                  display="default"
-                  onChange={(event, date) => {
-                    setShowDatePicker(Platform.OS === 'ios');
-                    if (date) setSelectedDate(date);
-                  }}
-                />
+
+              {/* Platform-specific date/time picker */}
+              {Platform.OS === 'android' ? (
+                <>
+                  {/* Android: Separate date and time pickers */}
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={selectedDate}
+                      mode="date"
+                      display="default"
+                      onChange={(event, date) => {
+                        setShowDatePicker(false);
+                        if (date && event.type === 'set') {
+                          // Preserve the time from selectedDate
+                          const updatedDate = new Date(date);
+                          updatedDate.setHours(selectedDate.getHours());
+                          updatedDate.setMinutes(selectedDate.getMinutes());
+                          setSelectedDate(updatedDate);
+                          // After date is selected, show time picker
+                          setShowTimePicker(true);
+                        }
+                      }}
+                    />
+                  )}
+                  {showTimePicker && (
+                    <DateTimePicker
+                      value={selectedDate}
+                      mode="time"
+                      display="default"
+                      onChange={(event, date) => {
+                        setShowTimePicker(false);
+                        if (date && event.type === 'set') {
+                          setSelectedDate(date);
+                        }
+                      }}
+                    />
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* iOS/Web: Combined datetime picker */}
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={selectedDate}
+                      mode="datetime"
+                      display="default"
+                      onChange={(event, date) => {
+                        setShowDatePicker(Platform.OS === 'ios');
+                        if (date) setSelectedDate(date);
+                      }}
+                    />
+                  )}
+                </>
               )}
             </View>
 
