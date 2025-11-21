@@ -991,6 +991,564 @@ export function formatDateTime(date: Date | string): string {
   return `${formatDate(date)}, ${formatTime(date)}`;
 }
 
+// ===== SESSION MANAGEMENT DATA =====
+
+import type {
+  SessionTemplate,
+  CoachSession,
+  SessionState,
+  GuestAthlete,
+  SessionRequest,
+  AthleteDirectoryEntry,
+  SessionPlan,
+  SessionRecap,
+  AppNotification,
+  PaymentInfo,
+  TeamInviteCode,
+} from './app-types';
+
+// Session Templates
+export const MOCK_SESSION_TEMPLATES: SessionTemplate[] = [
+  {
+    id: 'template1',
+    coachId: 'coach1',
+    name: 'Goalkeeper Development Session',
+    type: '1-to-1',
+    duration: 60,
+    capacity: 1,
+    defaultPrice: 50,
+    description: 'Intensive 1-to-1 goalkeeper training covering shot-stopping, positioning, and distribution.',
+    defaultLocation: 'Hyde Park',
+    skillsFocus: ['Goalkeeping', 'Shot Stopping', 'Positioning', 'Distribution'],
+    createdAt: new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'template2',
+    coachId: 'coach1',
+    name: 'Small Group Goalkeeper Clinic',
+    type: 'small-group',
+    duration: 90,
+    capacity: 6,
+    defaultPrice: 30,
+    description: 'Small group training for up to 6 goalkeepers. Focus on fundamentals and match situations.',
+    defaultLocation: 'Hyde Park',
+    skillsFocus: ['Goalkeeping', 'Game Intelligence', 'Communication'],
+    createdAt: new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'template3',
+    coachId: 'coach2',
+    name: 'Finishing Masterclass',
+    type: '1-to-1',
+    duration: 60,
+    capacity: 1,
+    defaultPrice: 45,
+    description: 'Individual striker training focused on finishing techniques, movement, and composure.',
+    defaultLocation: 'Victoria Park',
+    skillsFocus: ['Finishing', 'Movement', 'Composure'],
+    createdAt: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'template4',
+    coachId: 'coach2',
+    name: 'Striker Workshop',
+    type: 'small-group',
+    duration: 90,
+    capacity: 8,
+    defaultPrice: 25,
+    description: 'Group session for strikers. Competitive drills and game scenarios.',
+    defaultLocation: 'Hackney Marshes',
+    skillsFocus: ['Finishing', 'First Touch', 'Link-up Play'],
+    createdAt: new Date(today.getTime() - 40 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// UK Venues/Locations
+export const UK_VENUES = [
+  'Hyde Park',
+  'Regent\'s Park',
+  'Victoria Park',
+  'Clapham Common',
+  'Battersea Park',
+  'Hackney Marshes',
+  'Primrose Hill',
+  'Hampstead Heath',
+  'Richmond Park',
+  'Wandsworth Common',
+];
+
+// Coach Sessions
+export const MOCK_COACH_SESSIONS: CoachSession[] = [
+  // Draft session
+  {
+    id: 'session1',
+    coachId: 'coach1',
+    templateId: 'template1',
+    type: '1-to-1',
+    state: 'DRAFT',
+    title: 'Goalkeeper Assessment',
+    description: 'Initial assessment session for new goalkeeper',
+    scheduledAt: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    duration: 60,
+    location: 'Hyde Park',
+    capacity: 1,
+    roster: [],
+    isPrivate: false,
+    isOpenToRequests: true,
+    price: 50,
+    createdAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  // Open session (available for booking)
+  {
+    id: 'session2',
+    coachId: 'coach1',
+    templateId: 'template2',
+    type: 'small-group',
+    state: 'OPEN',
+    title: 'Weekend Goalkeeper Clinic',
+    description: 'Small group training for goalkeepers of all levels',
+    scheduledAt: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000).toISOString(), // Next Saturday 10am
+    duration: 90,
+    location: 'Regent\'s Park',
+    capacity: 6,
+    roster: [
+      {
+        id: 'roster1',
+        sessionId: 'session2',
+        participantType: 'athlete',
+        athleteId: 'user1',
+        confirmedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ],
+    isPrivate: false,
+    isOpenToRequests: true,
+    price: 30,
+    createdAt: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  // Requested session (has pending requests)
+  {
+    id: 'session3',
+    coachId: 'coach2',
+    templateId: 'template3',
+    type: '1-to-1',
+    state: 'REQUESTED',
+    title: 'Finishing Masterclass',
+    description: 'Advanced finishing techniques for strikers',
+    scheduledAt: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000 + 15 * 60 * 60 * 1000).toISOString(),
+    duration: 60,
+    location: 'Victoria Park',
+    capacity: 1,
+    roster: [],
+    isPrivate: false,
+    isOpenToRequests: true,
+    price: 45,
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  // Confirmed session
+  {
+    id: 'session4',
+    coachId: 'coach1',
+    templateId: 'template1',
+    type: '1-to-1',
+    state: 'CONFIRMED',
+    title: 'Goalkeeper Training - Tom Henderson',
+    description: 'Focus on shot-stopping and positioning',
+    scheduledAt: new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000 + 15 * 60 * 60 * 1000).toISOString(), // Tomorrow 3pm
+    duration: 60,
+    location: 'Hyde Park',
+    capacity: 1,
+    roster: [
+      {
+        id: 'roster2',
+        sessionId: 'session4',
+        participantType: 'athlete',
+        athleteId: 'user1',
+        confirmedAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ],
+    isPrivate: true,
+    isOpenToRequests: false,
+    price: 50,
+    planId: 'plan1',
+    createdAt: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  // Completed session
+  {
+    id: 'session5',
+    coachId: 'coach2',
+    templateId: 'template3',
+    type: '1-to-1',
+    state: 'COMPLETED',
+    title: 'Finishing Session - James Wilson',
+    description: 'Worked on weak foot finishing',
+    scheduledAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000 + 16 * 60 * 60 * 1000).toISOString(),
+    duration: 60,
+    location: 'Victoria Park',
+    capacity: 1,
+    roster: [
+      {
+        id: 'roster3',
+        sessionId: 'session5',
+        participantType: 'athlete',
+        athleteId: 'user3',
+        confirmedAt: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        attendanceStatus: 'ATTENDED',
+      },
+    ],
+    isPrivate: true,
+    isOpenToRequests: false,
+    price: 45,
+    recapId: 'recap1',
+    createdAt: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  // Cancelled session
+  {
+    id: 'session6',
+    coachId: 'coach1',
+    type: 'small-group',
+    state: 'CANCELLED',
+    title: 'Goalkeeper Clinic - Weather Cancellation',
+    description: 'Outdoor training session',
+    scheduledAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000).toISOString(),
+    duration: 90,
+    location: 'Hampstead Heath',
+    capacity: 6,
+    roster: [],
+    isPrivate: false,
+    isOpenToRequests: true,
+    price: 30,
+    cancelledAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    cancellationReason: 'Poor weather conditions - heavy rain. Full refunds issued.',
+    createdAt: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Guest Athletes
+export const MOCK_GUEST_ATHLETES: GuestAthlete[] = [
+  {
+    id: 'guest1',
+    coachId: 'coach1',
+    name: 'Oliver Smith',
+    ageBand: 'Under 12',
+    guardianName: 'Rachel Smith',
+    guardianContact: '+44 7700 900123',
+    notes: 'Showing good potential in goal. Needs to work on distribution.',
+    isVerified: true,
+    createdAt: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'guest2',
+    coachId: 'coach2',
+    name: 'Charlie Brown',
+    ageBand: '13-15',
+    guardianName: 'David Brown',
+    guardianContact: '+44 7700 900456',
+    notes: 'Natural striker. Very fast and eager to learn.',
+    isVerified: true,
+    createdAt: new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'guest3',
+    coachId: 'coach1',
+    name: 'Lily Johnson',
+    ageBand: '13-15',
+    guardianName: 'Sarah Johnson',
+    guardianContact: '+44 7700 900789',
+    notes: 'Invited to trial session. Guardian yet to confirm.',
+    isVerified: false,
+    createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Session Requests
+export const MOCK_SESSION_REQUESTS: SessionRequest[] = [
+  {
+    id: 'req1',
+    sessionId: 'session3',
+    athleteId: 'user1',
+    requestedById: 'parent1',
+    status: 'PENDING',
+    message: 'Tom is keen to work on his finishing skills. Would this session be suitable for him?',
+    createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'req2',
+    sessionId: 'session2',
+    athleteId: 'user2',
+    requestedById: 'parent1',
+    status: 'APPROVED',
+    message: 'Emma would love to join this clinic.',
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    respondedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    responseMessage: 'Great! Emma is confirmed for the clinic. Looking forward to it!',
+  },
+];
+
+// Athlete Directory Entries
+export const MOCK_ATHLETE_DIRECTORY: AthleteDirectoryEntry[] = [
+  {
+    id: 'dir1',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    tags: ['Goalkeeper', 'U16', 'Regular'],
+    notes: 'Making excellent progress. Very coachable and dedicated.',
+    firstSessionDate: new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    lastSessionDate: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 12,
+    addedAt: new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'dir2',
+    coachId: 'coach2',
+    athleteId: 'user3',
+    tags: ['Striker', 'U17', 'Academy Prospect'],
+    notes: 'Exceptional talent. Has trials coming up with professional academies.',
+    firstSessionDate: new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+    lastSessionDate: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 18,
+    addedAt: new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'dir3',
+    coachId: 'coach2',
+    athleteId: 'user1',
+    tags: ['Finishing', 'U16'],
+    notes: 'Works well on finishing drills. Good attitude.',
+    firstSessionDate: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    lastSessionDate: new Date(today.getTime() - 9 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 5,
+    addedAt: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Session Plans
+export const MOCK_SESSION_PLANS: SessionPlan[] = [
+  {
+    id: 'plan1',
+    sessionId: 'session4',
+    coachId: 'coach1',
+    objectives: [
+      'Improve shot-stopping technique',
+      'Work on positioning for crosses',
+      'Practice distribution under pressure',
+    ],
+    warmUp: '10 mins: Dynamic stretching and agility ladder drills',
+    mainActivities: [
+      {
+        id: 'act1',
+        name: 'Shot Stopping Drill',
+        duration: 20,
+        description: 'Repetitive shots from various angles to improve reaction time and technique',
+        focusAreas: ['Shot Stopping', 'Diving Technique'],
+      },
+      {
+        id: 'act2',
+        name: 'Positioning for Crosses',
+        duration: 15,
+        description: 'Practice coming off the line to claim crosses, judging flight and timing',
+        focusAreas: ['Positioning', 'Command of Area'],
+      },
+      {
+        id: 'act3',
+        name: 'Distribution Under Pressure',
+        duration: 15,
+        description: 'Passing drills with defenders closing down quickly',
+        focusAreas: ['Distribution', 'Decision Making'],
+      },
+    ],
+    coolDown: '10 mins: Static stretching and reflection on key points',
+    equipment: ['Cones', 'Training balls', 'Goals', 'Agility ladder', 'Gloves'],
+    notes: 'Tom has been working hard. Focus on building confidence with crosses today.',
+    sharedWithAthletes: true,
+    createdAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Session Recaps
+export const MOCK_SESSION_RECAPS: SessionRecap[] = [
+  {
+    id: 'recap1',
+    sessionId: 'session5',
+    coachId: 'coach2',
+    summary:
+      'Excellent session with James. Focused on weak foot finishing and he made tremendous progress. His confidence has grown significantly.',
+    highlightsPerAthlete: [
+      {
+        athleteId: 'user3',
+        athleteName: 'James Wilson',
+        strengths: ['Quick learning', 'Strong work ethic', 'Natural finishing ability'],
+        areasToImprove: ['Weak foot accuracy', 'First touch control'],
+        performanceRating: 5,
+        notes: 'James is ready for more advanced techniques. Consider 1-on-1 scenarios next.',
+      },
+    ],
+    skillsWorked: ['Finishing', 'Weak Foot', 'Composure'],
+    overallPerformance: 5,
+    nextSteps: 'Continue weak foot development. Introduce more game-realistic scenarios.',
+    photoUrls: [],
+    videoUrls: ['https://example.com/james-finishing-drill.mp4'],
+    sharedWithAthletes: true,
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Notifications
+export const MOCK_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'notif1',
+    userId: 'coach2',
+    type: 'SESSION_REQUEST',
+    title: 'New Session Request',
+    body: 'John Henderson has requested a place for Tom in your Finishing Masterclass.',
+    deepLink: '/(tabs)/bookings/session3',
+    relatedEntityId: 'req1',
+    isRead: false,
+    createdAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'notif2',
+    userId: 'user1',
+    type: 'SESSION_CONFIRMED',
+    title: 'Session Confirmed',
+    body: 'Your session with Sarah Mitchell on ' + formatDateTime(new Date(today.getTime() + 1 * 24 * 60 * 60 * 1000 + 15 * 60 * 60 * 1000)) + ' is confirmed.',
+    deepLink: '/(tabs)/bookings/session4',
+    relatedEntityId: 'session4',
+    isRead: true,
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'notif3',
+    userId: 'coach1',
+    type: 'CERTIFICATION_EXPIRING',
+    title: 'Certification Expiring Soon',
+    body: 'Your FA Safeguarding Children Certificate expires in 45 days. Please renew.',
+    deepLink: '/(tabs)/coach-profile',
+    relatedEntityId: 'cert3',
+    isRead: false,
+    createdAt: new Date(today.getTime() - 5 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'notif4',
+    userId: 'parent1',
+    type: 'RECAP_SHARED',
+    title: 'Session Recap Available',
+    body: 'Mike Thompson has shared the session recap for James\'s latest training.',
+    deepLink: '/(tabs)/bookings/session5',
+    relatedEntityId: 'recap1',
+    isRead: false,
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Payment Information
+export const MOCK_PAYMENTS: PaymentInfo[] = [
+  {
+    id: 'pay1',
+    sessionId: 'session4',
+    athleteId: 'user1',
+    payerId: 'parent1',
+    amount: 50,
+    finalAmount: 50,
+    status: 'PAID',
+    paidAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    notes: 'Paid via bank transfer',
+  },
+  {
+    id: 'pay2',
+    sessionId: 'session2',
+    athleteId: 'user1',
+    payerId: 'parent1',
+    amount: 30,
+    finalAmount: 30,
+    status: 'PENDING',
+    dueDate: new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+    notes: 'Payment due before session',
+  },
+  {
+    id: 'pay3',
+    sessionId: 'session6',
+    athleteId: 'user1',
+    payerId: 'parent1',
+    amount: 30,
+    finalAmount: 0,
+    status: 'REFUNDED',
+    refundedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    notes: 'Full refund issued due to weather cancellation',
+  },
+];
+
+// Team Invite Codes
+export const MOCK_INVITE_CODES: TeamInviteCode[] = [
+  {
+    id: 'invite1',
+    coachId: 'coach1',
+    code: 'GK-SQUAD-2025',
+    teamName: 'Goalkeeper Development Squad',
+    description: 'Join my goalkeeper training programme',
+    maxUses: 20,
+    currentUses: 3,
+    expiresAt: new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+    createdAt: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'invite2',
+    coachId: 'coach2',
+    code: 'STRIKER-CAMP',
+    teamName: 'Summer Striker Camp',
+    description: 'Elite striker training - limited spaces',
+    maxUses: 12,
+    currentUses: 8,
+    expiresAt: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+    createdAt: new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// Helper functions for session management
+export function getTemplatesForCoach(coachId: string): SessionTemplate[] {
+  return MOCK_SESSION_TEMPLATES.filter((t) => t.coachId === coachId);
+}
+
+export function getSessionsForCoach(coachId: string): CoachSession[] {
+  return MOCK_COACH_SESSIONS.filter((s) => s.coachId === coachId);
+}
+
+export function getOpenSessions(): CoachSession[] {
+  return MOCK_COACH_SESSIONS.filter((s) => s.state === 'OPEN' && s.isOpenToRequests);
+}
+
+export function getGuestAthletesForCoach(coachId: string): GuestAthlete[] {
+  return MOCK_GUEST_ATHLETES.filter((g) => g.coachId === coachId);
+}
+
+export function getRequestsForSession(sessionId: string): SessionRequest[] {
+  return MOCK_SESSION_REQUESTS.filter((r) => r.sessionId === sessionId);
+}
+
+export function getDirectoryForCoach(coachId: string): AthleteDirectoryEntry[] {
+  return MOCK_ATHLETE_DIRECTORY.filter((d) => d.coachId === coachId);
+}
+
+export function getNotificationsForUser(userId: string): AppNotification[] {
+  return MOCK_NOTIFICATIONS.filter((n) => n.userId === userId);
+}
+
+export function getPaymentsForUser(userId: string): PaymentInfo[] {
+  return MOCK_PAYMENTS.filter((p) => p.payerId === userId);
+}
+
+export function getInviteCodesForCoach(coachId: string): TeamInviteCode[] {
+  return MOCK_INVITE_CODES.filter((i) => i.coachId === coachId);
+}
+
 // ===== ADDITIONAL EXPORTS FOR COMPATIBILITY =====
 
 // Chat threads for MessagesScreen
@@ -1081,30 +1639,81 @@ export const coachProfiles: EnhancedCoachProfile[] = [
         organization: 'Premier Football Academy',
         startDate: '2018-01-01',
         current: true,
-        description: 'Lead goalkeeper development program for youth players',
+        description: 'Leading goalkeeper development programme for youth players aged 8-18. Developed bespoke training curriculum focusing on shot-stopping, distribution, and game intelligence.',
       },
       {
         id: 'exp2',
-        title: 'Professional Goalkeeper',
-        organization: 'London United FC',
-        startDate: '2005-01-01',
-        endDate: '2015-12-31',
+        title: 'Academy Goalkeeping Coach',
+        organization: 'Chelsea FC Foundation',
+        startDate: '2015-06-01',
+        endDate: '2017-12-31',
         current: false,
-        description: 'Professional career spanning 10 years',
+        description: 'Coached goalkeepers in the foundation programme, delivering sessions across South London community venues. Worked with players from grassroots to regional academy level.',
+      },
+      {
+        id: 'exp3',
+        title: 'Professional Goalkeeper',
+        organization: 'Millwall FC Women',
+        startDate: '2005-08-01',
+        endDate: '2015-05-31',
+        current: false,
+        description: 'Professional playing career spanning 10 years. First team goalkeeper making over 150 appearances across all competitions. Club captain for 3 seasons.',
+      },
+      {
+        id: 'exp4',
+        title: 'Youth Goalkeeper Coach',
+        organization: 'Charlton Athletic Community Trust',
+        startDate: '2012-01-01',
+        endDate: '2015-05-31',
+        current: false,
+        description: 'Delivered specialist goalkeeper coaching sessions during off-season. Ran holiday camps and weekend clinics across South East London.',
       },
     ],
     certifications: [
       {
         id: 'cert1',
-        name: 'UEFA B License',
-        issuer: 'UEFA',
+        name: 'UEFA B Licence',
+        issuer: 'The FA',
         issueDate: '2016-06-15',
+        expiryDate: undefined,
+        credentialUrl: 'https://example.com/uefa-b-cert',
       },
       {
         id: 'cert2',
-        name: 'FA Level 3 Goalkeeping',
+        name: 'FA Level 3 Certificate in Coaching Goalkeepers',
         issuer: 'The FA',
         issueDate: '2015-03-20',
+        expiryDate: undefined,
+        credentialUrl: 'https://example.com/fa-level-3-gk',
+      },
+      {
+        id: 'cert3',
+        name: 'FA Safeguarding Children Certificate',
+        issuer: 'The FA',
+        issueDate: '2023-09-10',
+        expiryDate: '2026-09-10',
+        credentialUrl: 'https://example.com/safeguarding',
+      },
+      {
+        id: 'cert4',
+        name: 'FA Youth Award Module 1',
+        issuer: 'The FA',
+        issueDate: '2014-11-05',
+        expiryDate: undefined,
+      },
+      {
+        id: 'cert5',
+        name: 'First Aid Qualified',
+        issuer: 'St John Ambulance',
+        issueDate: '2024-01-15',
+        expiryDate: '2027-01-15',
+      },
+      {
+        id: 'cert6',
+        name: 'DBS Enhanced Disclosure',
+        issuer: 'Disclosure and Barring Service',
+        issueDate: '2024-03-20',
+        expiryDate: '2027-03-20',
       },
     ],
     posts: [

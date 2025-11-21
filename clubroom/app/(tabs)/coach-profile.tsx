@@ -89,38 +89,80 @@ export default function CoachProfileScreen() {
     </SurfaceCard>
   );
 
-  const renderExperience = (exp: CoachExperience) => (
-    <View key={exp.id} style={styles.experienceItem}>
-      <View style={styles.experienceIcon}>
-        <Ionicons name="briefcase" size={20} color={palette.tint} />
-      </View>
-      <View style={styles.experienceContent}>
-        <ThemedText type="subtitle">{exp.title}</ThemedText>
-        <ThemedText style={styles.experienceOrg}>{exp.organization}</ThemedText>
-        <ThemedText style={styles.experienceDate}>
-          {new Date(exp.startDate).getFullYear()} -{' '}
-          {exp.current ? 'Present' : new Date(exp.endDate!).getFullYear()}
-        </ThemedText>
-        {exp.description && <ThemedText style={styles.experienceDesc}>{exp.description}</ThemedText>}
-      </View>
-    </View>
-  );
+  const renderExperience = (exp: CoachExperience) => {
+    const formatDate = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+    };
 
-  const renderCertification = (cert: CoachCertification) => (
-    <View key={cert.id} style={styles.certItem}>
-      <View style={styles.certIcon}>
-        <Ionicons name="ribbon" size={20} color={palette.success} />
+    return (
+      <View key={exp.id} style={styles.experienceItem}>
+        <View style={styles.experienceIcon}>
+          <Ionicons name="briefcase" size={20} color={palette.tint} />
+        </View>
+        <View style={styles.experienceContent}>
+          <ThemedText type="subtitle">{exp.title}</ThemedText>
+          <ThemedText style={styles.experienceOrg}>{exp.organization}</ThemedText>
+          <ThemedText style={styles.experienceDate}>
+            {formatDate(exp.startDate)} - {exp.current ? 'Present' : formatDate(exp.endDate!)}
+          </ThemedText>
+          {exp.description && (
+            <ThemedText style={styles.experienceDesc}>{exp.description}</ThemedText>
+          )}
+        </View>
+        {currentUser?.role === 'COACH' && (
+          <Pressable
+            onPress={() => alert('Edit experience: ' + exp.title)}
+            style={styles.editButton}>
+            <Ionicons name="pencil" size={16} color={palette.muted} />
+          </Pressable>
+        )}
       </View>
-      <View style={styles.certContent}>
-        <ThemedText type="subtitle">{cert.name}</ThemedText>
-        <ThemedText style={styles.certIssuer}>{cert.issuer}</ThemedText>
-        <ThemedText style={styles.certDate}>
-          Issued {new Date(cert.issueDate).toLocaleDateString()}
-          {cert.expiryDate && ` • Expires ${new Date(cert.expiryDate).toLocaleDateString()}`}
-        </ThemedText>
+    );
+  };
+
+  const renderCertification = (cert: CoachCertification) => {
+    const formatDate = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    const isExpiring = cert.expiryDate
+      ? new Date(cert.expiryDate).getTime() - Date.now() < 90 * 24 * 60 * 60 * 1000
+      : false;
+
+    return (
+      <View key={cert.id} style={styles.certItem}>
+        <View style={styles.certIcon}>
+          <Ionicons
+            name={isExpiring ? 'warning' : 'ribbon'}
+            size={20}
+            color={isExpiring ? palette.warning : palette.success}
+          />
+        </View>
+        <View style={styles.certContent}>
+          <ThemedText type="subtitle">{cert.name}</ThemedText>
+          <ThemedText style={styles.certIssuer}>{cert.issuer}</ThemedText>
+          <ThemedText style={styles.certDate}>
+            Issued {formatDate(cert.issueDate)}
+            {cert.expiryDate && ` • Expires ${formatDate(cert.expiryDate)}`}
+          </ThemedText>
+          {isExpiring && (
+            <ThemedText style={[styles.certWarning, { color: palette.warning }]}>
+              Expiring soon - renewal required
+            </ThemedText>
+          )}
+        </View>
+        {currentUser?.role === 'COACH' && (
+          <Pressable
+            onPress={() => alert('Edit certification: ' + cert.name)}
+            style={styles.editButton}>
+            <Ionicons name="pencil" size={16} color={palette.muted} />
+          </Pressable>
+        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -283,20 +325,52 @@ export default function CoachProfileScreen() {
               </SurfaceCard>
 
               {/* Experience */}
-              {coach.experiences && coach.experiences.length > 0 && (
-                <SurfaceCard style={styles.section}>
+              <SurfaceCard style={styles.section}>
+                <View style={styles.sectionHeader}>
                   <ThemedText type="subtitle">Experience</ThemedText>
-                  {coach.experiences.map(renderExperience)}
-                </SurfaceCard>
-              )}
+                  {currentUser?.role === 'COACH' && (
+                    <Pressable
+                      onPress={() => alert('Add new experience')}
+                      style={styles.addButton}>
+                      <Ionicons name="add-circle" size={20} color={palette.tint} />
+                      <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
+                        Add
+                      </ThemedText>
+                    </Pressable>
+                  )}
+                </View>
+                {coach.experiences && coach.experiences.length > 0 ? (
+                  coach.experiences.map(renderExperience)
+                ) : (
+                  <ThemedText style={styles.emptyText}>
+                    No experience added yet. Share your coaching and playing background.
+                  </ThemedText>
+                )}
+              </SurfaceCard>
 
               {/* Certifications */}
-              {coach.certifications && coach.certifications.length > 0 && (
-                <SurfaceCard style={styles.section}>
-                  <ThemedText type="subtitle">Certifications</ThemedText>
-                  {coach.certifications.map(renderCertification)}
-                </SurfaceCard>
-              )}
+              <SurfaceCard style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText type="subtitle">Certifications & Licences</ThemedText>
+                  {currentUser?.role === 'COACH' && (
+                    <Pressable
+                      onPress={() => alert('Add new certification')}
+                      style={styles.addButton}>
+                      <Ionicons name="add-circle" size={20} color={palette.tint} />
+                      <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
+                        Add
+                      </ThemedText>
+                    </Pressable>
+                  )}
+                </View>
+                {coach.certifications && coach.certifications.length > 0 ? (
+                  coach.certifications.map(renderCertification)
+                ) : (
+                  <ThemedText style={styles.emptyText}>
+                    No certifications added yet. Add your FA, UEFA, or other coaching qualifications.
+                  </ThemedText>
+                )}
+              </SurfaceCard>
 
               {/* Achievements */}
               {coach.achievements && coach.achievements.length > 0 && (
@@ -680,6 +754,37 @@ const styles = StyleSheet.create({
   certDate: {
     fontSize: 12,
     opacity: 0.6,
+  },
+  certWarning: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  editButton: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.xs,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+  },
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyText: {
+    fontSize: 14,
+    opacity: 0.6,
+    fontStyle: 'italic',
   },
   achievementItem: {
     flexDirection: 'row',
