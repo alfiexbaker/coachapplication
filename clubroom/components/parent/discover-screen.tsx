@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { SocialFeed } from '@/components/social/social-feed';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -250,11 +249,6 @@ export function ParentDiscoverScreen() {
             ))}
           </View>
         )}
-
-        {/* Social Feed - shown to all parents */}
-        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg }}>
-          <SocialFeed title="Community Feed" limit={3} />
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

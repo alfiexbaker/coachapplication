@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { SocialFeed } from '@/components/social/social-feed';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_USERS } from '@/constants/mock-data';
@@ -56,9 +55,6 @@ export function AdminUsersScreen() {
             <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Parents</ThemedText>
           </SurfaceCard>
         </View>
-
-        {/* Social Feed */}
-        <SocialFeed title="Platform Activity" limit={5} />
       </ScrollView>
     </SafeAreaView>
   );
