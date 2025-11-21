@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -364,6 +365,66 @@ export default function CoachProfileScreen() {
             </SurfaceCard>
           )}
         </View>
+
+        {/* Coach Quick Access - Only visible to coach viewing their own profile */}
+        {currentUser?.role === 'COACH' && (
+          <View style={styles.quickAccessSection}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Quick Access
+            </ThemedText>
+
+            <SurfaceCard
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/(tabs)/feed')}>
+              <View style={styles.quickAccessRow}>
+                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.accent}15` }]}>
+                  <Ionicons name="newspaper" size={24} color={palette.accent} />
+                </View>
+                <View style={styles.quickAccessText}>
+                  <ThemedText type="defaultSemiBold">Community Feed</ThemedText>
+                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
+                    Share updates and connect with athletes
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
+
+            <SurfaceCard
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/(tabs)/more')}>
+              <View style={styles.quickAccessRow}>
+                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.success}15` }]}>
+                  <Ionicons name="analytics" size={24} color={palette.success} />
+                </View>
+                <View style={styles.quickAccessText}>
+                  <ThemedText type="defaultSemiBold">Analytics & Development</ThemedText>
+                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
+                    View athlete progress and session data
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
+
+            <SurfaceCard
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/(tabs)/availability')}>
+              <View style={styles.quickAccessRow}>
+                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.tint}15` }]}>
+                  <Ionicons name="calendar" size={24} color={palette.tint} />
+                </View>
+                <View style={styles.quickAccessText}>
+                  <ThemedText type="defaultSemiBold">Set Availability</ThemedText>
+                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
+                    Manage your coaching schedule
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -655,5 +716,39 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     opacity: 0.6,
+  },
+  // Quick Access Styles
+  quickAccessSection: {
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+  },
+  quickAccessCard: {
+    padding: 0,
+  },
+  quickAccessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+  },
+  quickAccessIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickAccessText: {
+    flex: 1,
+    gap: 4,
+  },
+  quickAccessDesc: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
