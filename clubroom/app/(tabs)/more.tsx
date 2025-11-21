@@ -1,14 +1,12 @@
 import { useAuth } from '@/hooks/use-auth';
 import { CoachAnalyticsScreen } from '@/components/coach/analytics-screen';
 import { UserFindCoachScreen } from '@/components/user/find-coach-screen';
+import { ParentDevelopmentScreen } from '@/components/parent/development-screen';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
-// Note: PARENT role doesn't use the "more" tab, so we don't need a specific screen for them
-// ADMIN also doesn't use it in current nav structure
 
 export default function MoreScreen() {
   const { currentUser } = useAuth();
@@ -23,6 +21,9 @@ export default function MoreScreen() {
     case 'USER':
       // Find Coach screen for users
       return <UserFindCoachScreen />;
+    case 'PARENT':
+      // Development/Progress screen for parents
+      return <ParentDevelopmentScreen />;
     default:
       return (
         <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>

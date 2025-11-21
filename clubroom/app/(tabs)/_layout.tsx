@@ -266,15 +266,15 @@ export default function TabLayout() {
     );
   }
 
-  // PARENT TABS - Kids, Bookings, Messages, Profile
+  // PARENT TABS - Discover, Bookings, Development, Messages, Profile
   if (userRole === 'PARENT') {
     return (
       <Tabs screenOptions={tabBarOptions}>
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Kids',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
+            title: 'Discover',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -282,6 +282,13 @@ export default function TabLayout() {
           options={{
             title: 'Bookings',
             tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="more"
+          options={{
+            title: 'Development',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.line.uptrend.xyaxis" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -298,12 +305,6 @@ export default function TabLayout() {
           options={{
             title: 'Profile',
             tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="more"
-          options={{
-            href: null, // Hide from tab bar
           }}
         />
         <Tabs.Screen

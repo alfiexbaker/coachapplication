@@ -1,7 +1,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import { CoachDevelopmentScreen } from '@/components/coach/development-screen';
 import { UserHomeScreen } from '@/components/user/home-screen';
-import { ParentKidsScreen } from '@/components/parent/kids-screen';
+import { ParentDiscoverScreen } from '@/components/parent/discover-screen';
 import { AdminUsersScreen } from '@/components/admin/users-screen';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
@@ -21,7 +21,7 @@ export default function IndexScreen() {
     case 'USER':
       return <UserHomeScreen />;
     case 'PARENT':
-      return <ParentKidsScreen />;
+      return <ParentDiscoverScreen />;
     case 'ADMIN':
       return <AdminUsersScreen />;
     default:
