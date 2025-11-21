@@ -7,7 +7,7 @@ import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachProfileScreen from './coach-profile';
@@ -16,24 +16,71 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ProfileScreen');
 
-const ACTIONS = [
+// USER/ATHLETE quick actions - access to all features
+const USER_ACTIONS = [
+  {
+    title: 'My Progress & Goals',
+    description: 'Track your development, view session history, and manage objectives.',
+    cta: 'View Progress',
+    route: '/(tabs)/bookings',
+    icon: 'trending-up',
+  },
+  {
+    title: 'Feed & Community',
+    description: 'Connect with coaches and other athletes in the community.',
+    cta: 'View Feed',
+    route: '/(tabs)/feed',
+    icon: 'newspaper',
+  },
+];
+
+// PARENT quick actions - access to all features
+const PARENT_ACTIONS = [
+  {
+    title: 'Child Development',
+    description: 'Track progress, goals, and session feedback for each child.',
+    cta: 'View Progress',
+    route: '/(tabs)/more',
+    icon: 'trending-up',
+  },
+  {
+    title: 'Feed & Community',
+    description: 'Stay connected with coaches and community updates.',
+    cta: 'View Feed',
+    route: '/(tabs)/feed',
+    icon: 'newspaper',
+  },
+  {
+    title: 'Messages',
+    description: 'Chat with coaches and receive session updates.',
+    cta: 'Open Messages',
+    route: '/(tabs)/messages',
+    icon: 'chatbubbles',
+  },
+];
+
+// COACH settings actions
+const COACH_SETTINGS = [
   {
     title: 'Verification badges',
     description: 'Background check, pro experience, credential uploads.',
     cta: 'In progress',
     route: null,
+    icon: 'shield-checkmark',
   },
   {
     title: 'Messaging & notifications',
     description: 'Placeholder toggles until the real-time messaging stack lands in S2.',
     cta: 'Coming soon',
     route: null,
+    icon: 'notifications',
   },
   {
     title: 'Payments & payouts',
     description: 'Stripe onboarding is staged for S3; keep UI hooks discoverable.',
     cta: 'Waiting on Trust sprint',
     route: null,
+    icon: 'card',
   },
 ];
 
@@ -76,9 +123,18 @@ export default function ProfileScreen() {
     return <CoachProfileScreen />;
   }
 
-  // Get actions based on role
-  // Fixed: was checking 'Admin' (capitalized), now checking 'ADMIN' (uppercase)
-  const actions = currentUser?.role === 'ADMIN' ? ADMIN_ACTIONS : ACTIONS;
+  // Get actions based on role - each role gets their specific quick access
+  let actions: typeof USER_ACTIONS = [];
+  if (currentUser?.role === 'ADMIN') {
+    actions = ADMIN_ACTIONS;
+  } else if (currentUser?.role === 'USER') {
+    actions = USER_ACTIONS;
+  } else if (currentUser?.role === 'PARENT') {
+    actions = PARENT_ACTIONS;
+  } else if (currentUser?.role === 'COACH') {
+    // Coaches don't see this screen, they see CoachProfileScreen
+    actions = [];
+  }
 
   logger.debug('Actions loaded', {
     actionsCount: actions.length,
@@ -153,7 +209,30 @@ export default function ProfileScreen() {
           </Clickable>
         </SurfaceCard>
 
-        {/* Role & Sign Out */}
+        {/* Settings Card */}
+        <SurfaceCard
+          style={styles.settingsCard}
+          onPress={() => {
+            logger.press('SettingsButton');
+            router.push('/(tabs)/settings');
+          }}>
+          <View style={styles.settingsRow}>
+            <View style={[styles.settingsIcon, { backgroundColor: `${palette.accent}15` }]}>
+              <Ionicons name="settings" size={24} color={palette.accent} />
+            </View>
+            <View style={styles.settingsText}>
+              <ThemedText type="defaultSemiBold" style={styles.settingsTitle}>
+                Settings & Preferences
+              </ThemedText>
+              <ThemedText style={[styles.settingsSubtitle, { color: palette.muted }]}>
+                Manage account, privacy, notifications & more
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={palette.muted} />
+          </View>
+        </SurfaceCard>
+
+        {/* Account Type */}
         <SurfaceCard style={styles.identityCard}>
           <View style={styles.roleRow}>
             <ThemedText type="defaultSemiBold">Account Type</ThemedText>
@@ -167,61 +246,63 @@ export default function ProfileScreen() {
               </ThemedText>
             </View>
           </View>
-
-          <Clickable
-            style={({ pressed }) => [
-              styles.signOutButton,
-              {
-                backgroundColor: pressed ? `${palette.destructive}20` : 'transparent',
-                borderColor: palette.destructive,
-              },
-            ]}
-            onPress={() => {
-              logger.press('SignOutButton', {
-                username: currentUser?.username,
-                role: currentUser?.role
-              });
-              logout();
-            }}>
-            <ThemedText style={[styles.signOutLabel, { color: palette.destructive }]}>
-              Sign Out
-            </ThemedText>
-          </Clickable>
         </SurfaceCard>
-        {actions.map((action) => (
-          <SurfaceCard
-            key={action.title}
-            onPress={() => {
-              logger.press('ActionCard', {
-                title: action.title,
-                route: action.route,
-                hasRoute: !!action.route
-              });
-              if (action.route) {
-                logger.navigate('ProfileScreen', action.route);
-                router.push(action.route as any);
-              } else {
-                logger.warn('Action card pressed but no route defined', { title: action.title });
-              }
-            }}>
-            <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
-              {action.title}
-            </ThemedText>
-            <ThemedText style={[styles.description, { color: palette.muted }]}>
-              {action.description}
-            </ThemedText>
-            <View
-              style={[
-                styles.ctaPill,
-                {
-                  backgroundColor: palette.surface,
-                  borderColor: palette.border,
-                },
-              ]}>
-              <ThemedText style={[styles.ctaLabel, { color: palette.text }]}>{action.cta}</ThemedText>
-            </View>
-          </SurfaceCard>
-        ))}
+        {/* Quick Access Cards */}
+        {actions.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <SectionHeader title="Quick Access" />
+            {actions.map((action) => (
+              <SurfaceCard
+                key={action.title}
+                onPress={() => {
+                  logger.press('ActionCard', {
+                    title: action.title,
+                    route: action.route,
+                    hasRoute: !!action.route
+                  });
+                  if (action.route) {
+                    logger.navigate('ProfileScreen', action.route);
+                    router.push(action.route as any);
+                  } else {
+                    logger.warn('Action card pressed but no route defined', { title: action.title });
+                  }
+                }}
+                style={styles.actionCard}>
+                <View style={styles.actionHeader}>
+                  {action.icon && (
+                    <View style={[styles.iconContainer, { backgroundColor: `${palette.accent}15` }]}>
+                      <Ionicons name={action.icon as any} size={24} color={palette.accent} />
+                    </View>
+                  )}
+                  <View style={styles.actionTextContainer}>
+                    <ThemedText type="defaultSemiBold" style={styles.actionTitle}>
+                      {action.title}
+                    </ThemedText>
+                    <ThemedText style={[styles.description, { color: palette.muted }]}>
+                      {action.description}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View
+                  style={[
+                    styles.ctaPill,
+                    {
+                      backgroundColor: action.route ? palette.tint : palette.surface,
+                      borderColor: action.route ? palette.tint : palette.border,
+                    },
+                  ]}>
+                  <ThemedText
+                    style={[
+                      styles.ctaLabel,
+                      { color: action.route ? '#FFFFFF' : palette.muted }
+                    ]}>
+                    {action.cta}
+                  </ThemedText>
+                </View>
+              </SurfaceCard>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -293,6 +374,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  settingsCard: {
+    padding: Spacing.sm,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  settingsIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingsText: {
+    flex: 1,
+    gap: 4,
+  },
+  settingsTitle: {
+    fontSize: 17,
+  },
+  settingsSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   identityCard: {
     gap: Spacing.md,
   },
@@ -313,32 +420,43 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontSize: 11,
   },
-  signOutButton: {
-    paddingVertical: Spacing.md,
-    borderRadius: 999,
-    alignItems: 'center',
-    borderWidth: 2,
+  sectionContainer: {
+    gap: Spacing.sm,
   },
-  signOutLabel: {
-    fontWeight: '700',
-    fontSize: 15,
+  actionCard: {
+    gap: Spacing.sm,
+  },
+  actionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionTextContainer: {
+    flex: 1,
+    gap: Spacing.xs,
   },
   actionTitle: {
     fontSize: 17,
     fontWeight: '700',
   },
   description: {
-    marginTop: Spacing.sm,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
   },
   ctaPill: {
     alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: 999,
-    marginTop: Spacing.md,
-    borderWidth: 1,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.button,
+    marginTop: Spacing.xs,
+    borderWidth: 1.5,
   },
   ctaLabel: {
     fontWeight: '700',

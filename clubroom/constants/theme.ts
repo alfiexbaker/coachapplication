@@ -1,35 +1,41 @@
 import { Platform } from 'react-native';
 
-// Premium Uber x Whoop inspired palette
-const brandPrimary = '#000000';
-const brandAccent = '#00D9A3'; // Premium teal/green
-const brandAccentDark = '#00B589';
+// Uber-inspired minimal palette + Football identity
+const brandPrimary = '#000000'; // Primary Black
+const softBlack = '#1A1A1A'; // Soft Black
+const offWhite = '#F5F5F5'; // Off-White Background
+
+// Accent Colours - Use SPARINGLY (max 1 per screen)
+const warmCoral = '#FF6A6A'; // Brand Accent (Airbnb-inspired)
+const mintGreen = '#4CE1A0'; // Success
+const neonGreen = '#A1FF4B'; // Football Identity
 
 export const Colors = {
   light: {
-    text: '#0A0A0A',
-    foreground: '#0A0A0A', // Primary text/icon color (same as text for consistency)
-    muted: '#6B7280',
-    background: '#FAFAFA',
-    surface: '#FFFFFF',
+    text: '#000000', // Primary Black - strong hierarchy
+    foreground: '#000000', // Primary text/icon color
+    muted: '#6B7280', // Dark grey for secondary text
+    background: '#F5F5F5', // Off-white for screen backgrounds
+    surface: '#FFFFFF', // Pure white for cards/surfaces
     card: '#FFFFFF',
-    border: '#EFEFEF',
+    border: '#E5E5E5', // Subtle borders
     tint: brandPrimary,
-    tintPressed: '#1F2937',
-    icon: '#9CA3AF',
-    success: '#00D9A3',
+    tintPressed: softBlack,
+    icon: '#6B7280',
+    success: mintGreen, // Mint Green
     warning: '#F59E0B',
-    error: '#EF4444',
-    secondary: brandAccent,
+    error: warmCoral, // Warm Coral for errors
+    secondary: neonGreen, // Football Identity
+    accent: warmCoral, // Primary accent - USE SPARINGLY
     tabIconDefault: '#9CA3AF',
     tabIconSelected: brandPrimary,
-    overlay: 'rgba(0, 0, 0, 0.5)',
-    premium: brandAccent,
-    surfaceSecondary: '#F5F5F5',
+    overlay: 'rgba(0, 0, 0, 0.12)', // Warm subtle overlay
+    premium: warmCoral,
+    surfaceSecondary: offWhite, // Off-white for sections
   },
   dark: {
     text: '#FFFFFF',
-    foreground: '#FFFFFF', // Primary text/icon color (same as text for consistency)
+    foreground: '#FFFFFF', // Primary text/icon color
     muted: '#9CA3AF',
     background: '#0A0A0A',
     surface: '#1A1A1A',
@@ -38,33 +44,38 @@ export const Colors = {
     tint: '#FFFFFF',
     tintPressed: '#E5E7EB',
     icon: '#6B7280',
-    success: '#00D9A3',
+    success: mintGreen, // Mint Green
     warning: '#F59E0B',
-    error: '#EF4444',
-    secondary: brandAccent,
+    error: warmCoral, // Warm Coral for errors
+    secondary: neonGreen, // Football Identity
+    accent: warmCoral, // Primary accent - USE SPARINGLY
     tabIconDefault: '#6B7280',
     tabIconSelected: '#FFFFFF',
     overlay: 'rgba(0, 0, 0, 0.7)',
-    premium: brandAccent,
+    premium: warmCoral,
     surfaceSecondary: '#141414',
   },
 } as const;
 
 export type ThemeName = keyof typeof Colors;
 
-const baseSpacing = 4;
+// Uber-discipline spacing system: 8/16/24/32 rhythm
+const baseSpacing = 8;
 
 export const Spacing = {
-  xs: baseSpacing,
-  sm: baseSpacing * 2,
-  md: baseSpacing * 4,
-  lg: baseSpacing * 5,
-  xl: baseSpacing * 6,
-  '2xl': baseSpacing * 8,
-  '3xl': baseSpacing * 12,
+  xs: 8,   // Micro spacing between text and small UI elements
+  sm: 16,  // Inside cards, buttons, list items
+  md: 24,  // Between components
+  lg: 32,  // Major sections, top of screen, hero blocks
+  xl: 40,  // Extra large spacing
+  '2xl': 48, // Massive spacing
+  '3xl': 64, // Hero sections
 } as const;
 
+// Border radius system - Uber minimalism
 export const Radii = {
+  button: 16, // All buttons: 16px
+  card: 16,   // All cards: 16px
   sm: 8,
   md: 12,
   lg: 16,
@@ -72,14 +83,20 @@ export const Radii = {
   pill: 999,
 } as const;
 
+// Typography system - clean hierarchy
 export const Typography = {
-  xs: { fontSize: 11, lineHeight: 16, letterSpacing: 0.1 },
-  sm: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },
-  base: { fontSize: 15, lineHeight: 22, letterSpacing: -0.1 },
-  lg: { fontSize: 17, lineHeight: 24, letterSpacing: -0.2 },
-  xl: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
-  '2xl': { fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
-  '3xl': { fontSize: 34, lineHeight: 40, letterSpacing: -0.5 },
+  caption: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },      // Captions, small labels
+  body: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1 },      // Body text (1.5 line height)
+  heading: { fontSize: 22, lineHeight: 30, letterSpacing: -0.3 },   // Section headers
+  display: { fontSize: 32, lineHeight: 44, letterSpacing: -0.5 },   // Display titles
+  // Legacy sizes for compatibility
+  xs: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },
+  sm: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
+  base: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1 },
+  lg: { fontSize: 18, lineHeight: 26, letterSpacing: -0.2 },
+  xl: { fontSize: 22, lineHeight: 30, letterSpacing: -0.3 },
+  '2xl': { fontSize: 28, lineHeight: 38, letterSpacing: -0.4 },
+  '3xl': { fontSize: 32, lineHeight: 44, letterSpacing: -0.5 },
 } as const;
 
 export const Fonts = Platform.select({
@@ -107,24 +124,24 @@ export const Shadows = {
   light: {
     card: {
       shadowColor: '#000000',
-      shadowOpacity: 0.03,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 1 },
-      elevation: 1,
+      shadowOpacity: 0.04,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
     },
     cardHover: {
       shadowColor: '#000000',
-      shadowOpacity: 0.06,
-      shadowRadius: 20,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 3,
+      shadowOpacity: 0.08,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
     },
     subtle: {
       shadowColor: '#000000',
-      shadowOpacity: 0.015,
-      shadowRadius: 6,
+      shadowOpacity: 0.02,
+      shadowRadius: 8,
       shadowOffset: { width: 0, height: 1 },
-      elevation: 0,
+      elevation: 1,
     },
   },
   dark: {

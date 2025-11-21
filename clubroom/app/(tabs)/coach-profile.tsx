@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -88,38 +89,80 @@ export default function CoachProfileScreen() {
     </SurfaceCard>
   );
 
-  const renderExperience = (exp: CoachExperience) => (
-    <View key={exp.id} style={styles.experienceItem}>
-      <View style={styles.experienceIcon}>
-        <Ionicons name="briefcase" size={20} color={palette.tint} />
-      </View>
-      <View style={styles.experienceContent}>
-        <ThemedText type="subtitle">{exp.title}</ThemedText>
-        <ThemedText style={styles.experienceOrg}>{exp.organization}</ThemedText>
-        <ThemedText style={styles.experienceDate}>
-          {new Date(exp.startDate).getFullYear()} -{' '}
-          {exp.current ? 'Present' : new Date(exp.endDate!).getFullYear()}
-        </ThemedText>
-        {exp.description && <ThemedText style={styles.experienceDesc}>{exp.description}</ThemedText>}
-      </View>
-    </View>
-  );
+  const renderExperience = (exp: CoachExperience) => {
+    const formatDate = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+    };
 
-  const renderCertification = (cert: CoachCertification) => (
-    <View key={cert.id} style={styles.certItem}>
-      <View style={styles.certIcon}>
-        <Ionicons name="ribbon" size={20} color={palette.success} />
+    return (
+      <View key={exp.id} style={styles.experienceItem}>
+        <View style={styles.experienceIcon}>
+          <Ionicons name="briefcase" size={20} color={palette.tint} />
+        </View>
+        <View style={styles.experienceContent}>
+          <ThemedText type="subtitle">{exp.title}</ThemedText>
+          <ThemedText style={styles.experienceOrg}>{exp.organization}</ThemedText>
+          <ThemedText style={styles.experienceDate}>
+            {formatDate(exp.startDate)} - {exp.current ? 'Present' : formatDate(exp.endDate!)}
+          </ThemedText>
+          {exp.description && (
+            <ThemedText style={styles.experienceDesc}>{exp.description}</ThemedText>
+          )}
+        </View>
+        {currentUser?.role === 'COACH' && (
+          <Pressable
+            onPress={() => alert('Edit experience: ' + exp.title)}
+            style={styles.editButton}>
+            <Ionicons name="pencil" size={16} color={palette.muted} />
+          </Pressable>
+        )}
       </View>
-      <View style={styles.certContent}>
-        <ThemedText type="subtitle">{cert.name}</ThemedText>
-        <ThemedText style={styles.certIssuer}>{cert.issuer}</ThemedText>
-        <ThemedText style={styles.certDate}>
-          Issued {new Date(cert.issueDate).toLocaleDateString()}
-          {cert.expiryDate && ` • Expires ${new Date(cert.expiryDate).toLocaleDateString()}`}
-        </ThemedText>
+    );
+  };
+
+  const renderCertification = (cert: CoachCertification) => {
+    const formatDate = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    const isExpiring = cert.expiryDate
+      ? new Date(cert.expiryDate).getTime() - Date.now() < 90 * 24 * 60 * 60 * 1000
+      : false;
+
+    return (
+      <View key={cert.id} style={styles.certItem}>
+        <View style={styles.certIcon}>
+          <Ionicons
+            name={isExpiring ? 'warning' : 'ribbon'}
+            size={20}
+            color={isExpiring ? palette.warning : palette.success}
+          />
+        </View>
+        <View style={styles.certContent}>
+          <ThemedText type="subtitle">{cert.name}</ThemedText>
+          <ThemedText style={styles.certIssuer}>{cert.issuer}</ThemedText>
+          <ThemedText style={styles.certDate}>
+            Issued {formatDate(cert.issueDate)}
+            {cert.expiryDate && ` • Expires ${formatDate(cert.expiryDate)}`}
+          </ThemedText>
+          {isExpiring && (
+            <ThemedText style={[styles.certWarning, { color: palette.warning }]}>
+              Expiring soon - renewal required
+            </ThemedText>
+          )}
+        </View>
+        {currentUser?.role === 'COACH' && (
+          <Pressable
+            onPress={() => alert('Edit certification: ' + cert.name)}
+            style={styles.editButton}>
+            <Ionicons name="pencil" size={16} color={palette.muted} />
+          </Pressable>
+        )}
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -282,20 +325,52 @@ export default function CoachProfileScreen() {
               </SurfaceCard>
 
               {/* Experience */}
-              {coach.experiences && coach.experiences.length > 0 && (
-                <SurfaceCard style={styles.section}>
+              <SurfaceCard style={styles.section}>
+                <View style={styles.sectionHeader}>
                   <ThemedText type="subtitle">Experience</ThemedText>
-                  {coach.experiences.map(renderExperience)}
-                </SurfaceCard>
-              )}
+                  {currentUser?.role === 'COACH' && (
+                    <Pressable
+                      onPress={() => alert('Add new experience')}
+                      style={styles.addButton}>
+                      <Ionicons name="add-circle" size={20} color={palette.tint} />
+                      <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
+                        Add
+                      </ThemedText>
+                    </Pressable>
+                  )}
+                </View>
+                {coach.experiences && coach.experiences.length > 0 ? (
+                  coach.experiences.map(renderExperience)
+                ) : (
+                  <ThemedText style={styles.emptyText}>
+                    No experience added yet. Share your coaching and playing background.
+                  </ThemedText>
+                )}
+              </SurfaceCard>
 
               {/* Certifications */}
-              {coach.certifications && coach.certifications.length > 0 && (
-                <SurfaceCard style={styles.section}>
-                  <ThemedText type="subtitle">Certifications</ThemedText>
-                  {coach.certifications.map(renderCertification)}
-                </SurfaceCard>
-              )}
+              <SurfaceCard style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText type="subtitle">Certifications & Licences</ThemedText>
+                  {currentUser?.role === 'COACH' && (
+                    <Pressable
+                      onPress={() => alert('Add new certification')}
+                      style={styles.addButton}>
+                      <Ionicons name="add-circle" size={20} color={palette.tint} />
+                      <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
+                        Add
+                      </ThemedText>
+                    </Pressable>
+                  )}
+                </View>
+                {coach.certifications && coach.certifications.length > 0 ? (
+                  coach.certifications.map(renderCertification)
+                ) : (
+                  <ThemedText style={styles.emptyText}>
+                    No certifications added yet. Add your FA, UEFA, or other coaching qualifications.
+                  </ThemedText>
+                )}
+              </SurfaceCard>
 
               {/* Achievements */}
               {coach.achievements && coach.achievements.length > 0 && (
@@ -364,6 +439,83 @@ export default function CoachProfileScreen() {
             </SurfaceCard>
           )}
         </View>
+
+        {/* Coach Quick Access - Only visible to coach viewing their own profile */}
+        {currentUser?.role === 'COACH' && (
+          <View style={styles.quickAccessSection}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Quick Access
+            </ThemedText>
+
+            <SurfaceCard
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/(tabs)/feed')}>
+              <View style={styles.quickAccessRow}>
+                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.accent}15` }]}>
+                  <Ionicons name="newspaper" size={24} color={palette.accent} />
+                </View>
+                <View style={styles.quickAccessText}>
+                  <ThemedText type="defaultSemiBold">Community Feed</ThemedText>
+                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
+                    Share updates and connect with athletes
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
+
+            <SurfaceCard
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/(tabs)/more')}>
+              <View style={styles.quickAccessRow}>
+                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.success}15` }]}>
+                  <Ionicons name="analytics" size={24} color={palette.success} />
+                </View>
+                <View style={styles.quickAccessText}>
+                  <ThemedText type="defaultSemiBold">Analytics & Development</ThemedText>
+                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
+                    View athlete progress and session data
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
+
+            <SurfaceCard
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/(tabs)/availability')}>
+              <View style={styles.quickAccessRow}>
+                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.tint}15` }]}>
+                  <Ionicons name="calendar" size={24} color={palette.tint} />
+                </View>
+                <View style={styles.quickAccessText}>
+                  <ThemedText type="defaultSemiBold">Set Availability</ThemedText>
+                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
+                    Manage your coaching schedule
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
+
+            <SurfaceCard
+              style={styles.quickAccessCard}
+              onPress={() => router.push('/(tabs)/settings')}>
+              <View style={styles.quickAccessRow}>
+                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.accent}15` }]}>
+                  <Ionicons name="settings" size={24} color={palette.accent} />
+                </View>
+                <View style={styles.quickAccessText}>
+                  <ThemedText type="defaultSemiBold">Settings & Preferences</ThemedText>
+                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
+                    Manage account, privacy, notifications & more
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -603,6 +755,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
   },
+  certWarning: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  editButton: {
+    padding: Spacing.xs,
+    marginLeft: Spacing.xs,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+  },
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyText: {
+    fontSize: 14,
+    opacity: 0.6,
+    fontStyle: 'italic',
+  },
   achievementItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -655,5 +838,39 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     opacity: 0.6,
+  },
+  // Quick Access Styles
+  quickAccessSection: {
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: Spacing.xs,
+  },
+  quickAccessCard: {
+    padding: 0,
+  },
+  quickAccessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+  },
+  quickAccessIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickAccessText: {
+    flex: 1,
+    gap: 4,
+  },
+  quickAccessDesc: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

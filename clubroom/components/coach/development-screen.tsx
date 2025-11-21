@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   athleteDetails: {
     flex: 1,
-    gap: Spacing.xs / 2,
+    gap: 4,
   },
   athleteName: {
     fontSize: 16,
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   stat: {
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: 4,
   },
   statValue: {
     fontSize: 18,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: 4,
   },
   emptyState: {
     alignItems: 'center',

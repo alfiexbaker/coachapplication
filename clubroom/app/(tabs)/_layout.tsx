@@ -37,22 +37,26 @@ export default function TabLayout() {
     headerShown: false,
     tabBarButton: (props: any) => <HapticTab {...props} />,
     tabBarStyle: {
-      backgroundColor: palette.background,
-      borderTopWidth: 1,
-      borderTopColor: palette.border,
-      height: 72,
-      paddingBottom: 20,
-      paddingTop: 12,
-      paddingHorizontal: 8,
+      backgroundColor: palette.surface, // Use surface for cleaner white
+      borderTopWidth: 0, // Remove border for sleeker look
+      height: 60, // Reduced from 72px for modern feel
+      paddingBottom: 8, // Reduced padding
+      paddingTop: 8,
+      paddingHorizontal: 16, // More horizontal breathing room
+      shadowColor: '#000000',
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: -2 },
+      elevation: 8, // Subtle shadow instead of border
     },
     tabBarLabelStyle: {
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: '600' as const,
-      letterSpacing: 0.2,
-      marginTop: 4,
+      letterSpacing: 0.3,
+      marginTop: 2,
     },
     tabBarIconStyle: {
-      marginTop: 4,
+      marginTop: 0,
     },
   };
 
@@ -125,6 +129,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="settings"
+          options={{
+            href: null, // Hide from tab bar - access via Profile
+          }}
+        />
+        <Tabs.Screen
           name="admin/invite-codes"
           options={{
             href: null, // Hide from tab bar - access via settings
@@ -134,15 +144,22 @@ export default function TabLayout() {
     );
   }
 
-  // COACH TABS - Feed, Messages, Bookings, Development, Profile
+  // COACH TABS - 4 tabs: Home, Calendar, Messages, Profile
   if (userRole === 'COACH') {
     return (
       <Tabs screenOptions={tabBarOptions}>
         <Tabs.Screen
-          name="feed"
+          name="index"
           options={{
-            title: 'Feed',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="square.stack.fill" color={color} />,
+            title: 'Home',
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="bookings"
+          options={{
+            title: 'Calendar',
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.badge.clock" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -150,41 +167,33 @@ export default function TabLayout() {
           options={{
             title: 'Messages',
             tabBarIcon: ({ color }) => (
-              <IconSymbol size={22} name="bubble.left.and.bubble.right.fill" color={color} />
+              <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
             ),
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            title: 'Bookings',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Development',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.line.uptrend.xyaxis" color={color} />,
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="feed"
+          options={{
+            href: null, // Hide - feed integrated into Home
           }}
         />
         <Tabs.Screen
           name="more"
           options={{
-            href: null, // Hide Analytics from tab bar
+            href: null, // Hide - Analytics/Development moved to Profile
           }}
         />
         <Tabs.Screen
           name="availability"
           options={{
-            href: null, // Hide from tab bar
+            href: null, // Hide - integrated into Calendar tab
           }}
         />
         <Tabs.Screen
@@ -206,6 +215,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="settings"
+          options={{
+            href: null, // Hide from tab bar - access via Profile
+          }}
+        />
+        <Tabs.Screen
           name="admin/invite-codes"
           options={{
             href: null, // Hide from tab bar
@@ -215,7 +230,7 @@ export default function TabLayout() {
     );
   }
 
-  // USER TABS - Home/Feed, Find Coach, Progress, Messages, Profile
+  // USER TABS - 4 tabs: Home, Discover, Messages, Profile
   if (userRole === 'USER') {
     return (
       <Tabs screenOptions={tabBarOptions}>
@@ -223,21 +238,14 @@ export default function TabLayout() {
           name="index"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
           }}
         />
         <Tabs.Screen
           name="more"
           options={{
-            title: 'Find Coach',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            title: 'Progress',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.line.uptrend.xyaxis" color={color} />,
+            title: 'Discover',
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="magnifyingglass" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -245,7 +253,7 @@ export default function TabLayout() {
           options={{
             title: 'Messages',
             tabBarIcon: ({ color }) => (
-              <IconSymbol size={22} name="bubble.left.and.bubble.right.fill" color={color} />
+              <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
             ),
           }}
         />
@@ -253,13 +261,19 @@ export default function TabLayout() {
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="bookings"
+          options={{
+            href: null, // Hide - Progress/Bookings moved to Profile
           }}
         />
         <Tabs.Screen
           name="feed"
           options={{
-            href: null, // Hidden - feed is in Home for users
+            href: null, // Hidden - feed integrated into Home
           }}
         />
         <Tabs.Screen
@@ -284,6 +298,12 @@ export default function TabLayout() {
           name="edit-user-profile"
           options={{
             href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            href: null, // Hide from tab bar - access via Profile
           }}
         />
         <Tabs.Screen
@@ -296,49 +316,48 @@ export default function TabLayout() {
     );
   }
 
-  // PARENT TABS - Feed, Discover, Bookings, Development, Profile
+  // PARENT TABS - 4 tabs: Home, Discover, Calendar, Profile
   if (userRole === 'PARENT') {
     return (
       <Tabs screenOptions={tabBarOptions}>
         <Tabs.Screen
-          name="feed"
-          options={{
-            title: 'Feed',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="square.stack.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
           name="index"
           options={{
-            title: 'Discover',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="magnifyingglass" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            title: 'Bookings',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
+            title: 'Home',
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
           }}
         />
         <Tabs.Screen
           name="more"
           options={{
-            title: 'Development',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.line.uptrend.xyaxis" color={color} />,
+            title: 'Discover',
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="magnifyingglass" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="bookings"
+          options={{
+            title: 'Calendar',
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.badge.clock" color={color} />,
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: 'Profile',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="feed"
+          options={{
+            href: null, // Hide - Feed integrated into Home
           }}
         />
         <Tabs.Screen
           name="messages"
           options={{
-            href: null, // Hide Messages from tab bar for parents
+            href: null, // Hide - Messages accessible from Home
           }}
         />
         <Tabs.Screen
@@ -363,6 +382,12 @@ export default function TabLayout() {
           name="edit-user-profile"
           options={{
             href: null, // Hide from tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            href: null, // Hide from tab bar - access via Profile
           }}
         />
         <Tabs.Screen
@@ -430,6 +455,12 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="edit-user-profile"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
         options={{
           href: null,
         }}
