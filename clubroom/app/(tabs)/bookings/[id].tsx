@@ -239,6 +239,70 @@ export default function SessionDetailScreen() {
           </SurfaceCard>
         </Clickable>
 
+        {/* Participants Card (Group Bookings Only) */}
+        {booking.isGroupSession && booking.participants && booking.participants.length > 0 && (
+          <SurfaceCard style={styles.card}>
+            <View style={styles.participantsHeader}>
+              <ThemedText style={styles.cardTitle}>Participants</ThemedText>
+              <ThemedText style={[styles.capacityBadge, { color: palette.tint }]}>
+                {booking.currentParticipants}/{booking.maxParticipants} spots
+              </ThemedText>
+            </View>
+            <View style={styles.participantsList}>
+              {booking.participants.map((participant) => (
+                <View key={participant.id} style={styles.participantRow}>
+                  <View style={styles.participantInfo}>
+                    <View style={[styles.participantAvatar, { backgroundColor: palette.tint + '20' }]}>
+                      <ThemedText style={[styles.participantAvatarText, { color: palette.tint }]}>
+                        {participant.avatar}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.participantDetails}>
+                      <ThemedText type="defaultSemiBold">{participant.name}</ThemedText>
+                      <View style={[
+                        styles.participantStatus,
+                        {
+                          backgroundColor: participant.status === 'confirmed'
+                            ? Colors.light.success + '20'
+                            : participant.status === 'pending'
+                            ? Colors.light.warning + '20'
+                            : Colors.light.error + '20',
+                        },
+                      ]}>
+                        <ThemedText style={[
+                          styles.participantStatusText,
+                          {
+                            color: participant.status === 'confirmed'
+                              ? Colors.light.success
+                              : participant.status === 'pending'
+                              ? Colors.light.warning
+                              : Colors.light.error,
+                          },
+                        ]}>
+                          {participant.status.charAt(0).toUpperCase() + participant.status.slice(1)}
+                        </ThemedText>
+                      </View>
+                    </View>
+                  </View>
+                  {isCoach && (
+                    <Clickable
+                      onPress={() => {
+                        router.push({
+                          pathname: '/(tabs)/messages',
+                          params: { coachId: booking.coachId, athleteId: participant.id },
+                        });
+                      }}
+                      style={[styles.messageParticipantButton, { backgroundColor: palette.tint + '10' }]}
+                    >
+                      <Ionicons name="chatbubble-outline" size={18} color={palette.tint} />
+                    </Clickable>
+                  )}
+                </View>
+              ))}
+            </View>
+          </SurfaceCard>
+        )}
+
         {/* Session Notes */}
         <SurfaceCard style={styles.card}>
           <ThemedText style={styles.cardTitle}>Session Focus</ThemedText>
@@ -469,5 +533,65 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // Participants section
+  participantsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  capacityBadge: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  participantsList: {
+    gap: Spacing.sm,
+  },
+  participantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.light.border + '30',
+  },
+  participantInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  participantAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  participantAvatarText: {
+    fontSize: 18,
+  },
+  participantDetails: {
+    flex: 1,
+    gap: 4,
+  },
+  participantStatus: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  participantStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  messageParticipantButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
