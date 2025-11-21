@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { SocialFeed } from '@/components/social/social-feed';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -185,6 +186,9 @@ export function CoachDevelopmentScreen() {
             })}
           </View>
         )}
+
+        {/* Social Feed */}
+        <SocialFeed title="Community Updates" limit={3} />
       </ScrollView>
     </SafeAreaView>
   );
