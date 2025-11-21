@@ -35,7 +35,7 @@ export const Colors = {
   },
   dark: {
     text: '#FFFFFF',
-    foreground: '#FFFFFF', // Primary text/icon color (same as text for consistency)
+    foreground: '#FFFFFF', // Primary text/icon color
     muted: '#9CA3AF',
     background: '#0A0A0A',
     surface: '#1A1A1A',
@@ -44,14 +44,15 @@ export const Colors = {
     tint: '#FFFFFF',
     tintPressed: '#E5E7EB',
     icon: '#6B7280',
-    success: '#00D9A3',
+    success: mintGreen, // Mint Green
     warning: '#F59E0B',
-    error: '#EF4444',
-    secondary: brandAccent,
+    error: warmCoral, // Warm Coral for errors
+    secondary: neonGreen, // Football Identity
+    accent: warmCoral, // Primary accent - USE SPARINGLY
     tabIconDefault: '#6B7280',
     tabIconSelected: '#FFFFFF',
     overlay: 'rgba(0, 0, 0, 0.7)',
-    premium: brandAccent,
+    premium: warmCoral,
     surfaceSecondary: '#141414',
   },
 } as const;
