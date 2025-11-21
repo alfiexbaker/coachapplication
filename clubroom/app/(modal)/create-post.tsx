@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Image, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { router } from 'expo-router';
@@ -15,9 +16,28 @@ export default function CreatePostScreen() {
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
   const [content, setContent] = useState('');
+  const [imageUri, setImageUri] = useState<string | null>(null);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const removeImage = () => {
+    setImageUri(null);
+  };
 
   const handlePost = () => {
-    if (!content.trim() || !currentUser) return;
+    if (!content.trim() && !imageUri) return;
+    if (!currentUser) return;
 
     // Mock implementation - create new post
     const newPost: Post = {
@@ -29,6 +49,7 @@ export default function CreatePostScreen() {
       likes: [],
       commentCount: 0,
       createdAt: new Date().toISOString(),
+      imageUrl: imageUri || undefined,
     };
 
     // Add to beginning of posts array
@@ -38,62 +59,88 @@ export default function CreatePostScreen() {
     router.back();
   };
 
-  const canPost = content.trim().length > 0;
+  const canPost = content.trim().length > 0 || imageUri !== null;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor: palette.background, borderBottomColor: palette.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.cancelButton}>
-          <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
+      {/* Header - Twitter/Facebook style */}
+      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="close" size={24} color={palette.foreground} />
         </TouchableOpacity>
-        <ThemedText type="subtitle">New Post</ThemedText>
         <TouchableOpacity
           onPress={handlePost}
           disabled={!canPost}
-          style={styles.postButton}
+          style={[
+            styles.postButton,
+            {
+              backgroundColor: canPost ? palette.tint : palette.border,
+              opacity: canPost ? 1 : 0.5,
+            },
+          ]}
         >
-          <ThemedText
-            type="defaultSemibold"
-            style={{ color: canPost ? palette.tint : palette.muted }}
-          >
-            Post
-          </ThemedText>
+          <ThemedText style={styles.postButtonText}>Post</ThemedText>
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.content}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.authorSection}>
-          <View style={[styles.avatar, { backgroundColor: palette.tintAlt }]}>
-            <ThemedText style={{ fontSize: 28 }}>{currentUser?.avatar || '👤'}</ThemedText>
+        {/* Author section - minimal like Twitter */}
+        <View style={styles.composerRow}>
+          <View style={[styles.avatar, { backgroundColor: palette.tint + '15' }]}>
+            <ThemedText style={styles.avatarEmoji}>{currentUser?.avatar || '👤'}</ThemedText>
           </View>
-          <View style={styles.authorInfo}>
-            <ThemedText type="defaultSemibold">{currentUser?.name}</ThemedText>
-            <ThemedText style={[styles.role, { color: palette.muted }]}>
-              {currentUser?.role === 'COACH' ? 'Coach' : currentUser?.role === 'PARENT' ? 'Parent' : 'Athlete'}
+
+          <View style={styles.composerContent}>
+            <TextInput
+              style={[styles.input, { color: palette.text }]}
+              placeholder="What's happening?"
+              placeholderTextColor={palette.muted}
+              value={content}
+              onChangeText={setContent}
+              multiline
+              autoFocus
+              maxLength={280}
+            />
+
+            {/* Image preview */}
+            {imageUri && (
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+                <TouchableOpacity
+                  style={[styles.removeImageButton, { backgroundColor: palette.background }]}
+                  onPress={removeImage}
+                >
+                  <Ionicons name="close" size={16} color={palette.foreground} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Character count */}
+        {content.length > 0 && (
+          <View style={styles.charCountContainer}>
+            <ThemedText style={[styles.charCount, { color: content.length > 280 ? palette.error : palette.muted }]}>
+              {content.length}/280
             </ThemedText>
           </View>
-        </View>
+        )}
+      </ScrollView>
 
-        <TextInput
-          style={[styles.input, { color: palette.text }]}
-          placeholder="What's on your mind?"
-          placeholderTextColor={palette.muted}
-          value={content}
-          onChangeText={setContent}
-          multiline
-          autoFocus
-          textAlignVertical="top"
-        />
-
-        <View style={styles.footer}>
-          <ThemedText style={[styles.hint, { color: palette.muted }]}>
-            Share your training tips, achievements, or ask questions!
-          </ThemedText>
-        </View>
-      </KeyboardAvoidingView>
+      {/* Footer toolbar - like Twitter/Facebook */}
+      <View style={[styles.toolbar, { borderTopColor: palette.border, backgroundColor: palette.background }]}>
+        <TouchableOpacity
+          style={styles.toolbarButton}
+          onPress={pickImage}
+        >
+          <Ionicons name="image-outline" size={22} color={palette.tint} />
+        </TouchableOpacity>
+        <View style={styles.toolbarSpacer} />
+      </View>
     </SafeAreaView>
   );
 }
@@ -102,54 +149,120 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // Header - minimal Twitter/Facebook style
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  cancelButton: {
-    paddingVertical: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 0.5,
   },
   postButton: {
-    paddingVertical: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: Radii.pill,
+    height: 32,
+    justifyContent: 'center',
+    minWidth: 64,
   },
-  content: {
+  postButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+  },
+
+  // Content area
+  scrollView: {
     flex: 1,
-    padding: 20,
   },
-  authorSection: {
+  scrollContent: {
+    flexGrow: 1,
+  },
+
+  // Composer - Twitter layout with avatar on left
+  composerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
   },
-  authorInfo: {
+  avatarEmoji: {
+    fontSize: 20,
+  },
+  composerContent: {
     flex: 1,
-  },
-  role: {
-    fontSize: 12,
-    marginTop: 2,
+    gap: Spacing.sm,
   },
   input: {
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '400',
+    minHeight: 100,
+    paddingTop: 2,
   },
-  footer: {
-    paddingVertical: 12,
+
+  // Image preview
+  imagePreviewContainer: {
+    position: 'relative',
+    marginTop: Spacing.sm,
+    borderRadius: Radii.md,
+    overflow: 'hidden',
   },
-  hint: {
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: Radii.md,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: Spacing.xs,
+    right: Spacing.xs,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+
+  // Character count
+  charCountContainer: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.xs,
+    alignItems: 'flex-end',
+  },
+  charCount: {
     fontSize: 12,
-    fontStyle: 'italic',
+    fontWeight: '500',
+  },
+
+  // Footer toolbar - like Twitter
+  toolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 0.5,
+  },
+  toolbarButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toolbarSpacer: {
+    flex: 1,
   },
 });
