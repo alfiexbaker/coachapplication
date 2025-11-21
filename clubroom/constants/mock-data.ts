@@ -285,6 +285,7 @@ export const MOCK_SESSIONS: Session[] = [
     skillsWorkedOn: ['Positioning', 'Shot Stopping', 'Diving Technique'],
     performanceRating: 4,
     nextFocusAreas: ['Distribution', 'One-on-one situations'],
+    videoUrls: ['https://example.com/diving_drill_1.mp4', 'https://example.com/positioning_practice.mp4'],
     coachName: 'Sarah Mitchell',
     athleteName: 'Tom Henderson',
   },
@@ -343,6 +344,21 @@ export const MOCK_SESSIONS: Session[] = [
     nextFocusAreas: ['Hold-up play', 'Link-up with teammates'],
     coachName: 'Mike Thompson',
     athleteName: 'James Wilson',
+  },
+  // Session needing notes (for demo)
+  {
+    id: 'sess_needs_notes',
+    bookingId: 'book_past_new',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    completedAt: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    attendance: 'ATTENDED',
+    notes: '',
+    skillsWorkedOn: [],
+    performanceRating: 3,
+    nextFocusAreas: [],
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Tom Henderson',
   },
   // More sessions for analytics
   {

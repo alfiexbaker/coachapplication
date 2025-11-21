@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { upcomingBookings } from '@/constants/mock-data';
 import { BookingSummary } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { AthleteProgressScreen } from '@/components/athlete/progress-screen';
 
 const logger = createLogger('BookingsScreen');
 
@@ -53,6 +54,11 @@ export default function BookingsScreen() {
   const [sessionBookings, setSessionBookings] = useState<BookingSummary[]>([]);
 
   const userRole = currentUser?.role;
+
+  // For USER role, show progress/development screen instead of bookings
+  if (userRole === 'USER') {
+    return <AthleteProgressScreen />;
+  }
 
   // Load session bookings from AsyncStorage
   const loadSessionBookings = useCallback(async () => {

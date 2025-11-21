@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -115,6 +115,9 @@ export function CoachDevelopmentScreen() {
                 s => s.athleteId === athlete.id
               );
 
+              // Check if any sessions need notes
+              const needsNotes = athleteSessions.some(s => !s.notes || s.notes.trim() === '');
+
               return (
                 <Clickable
                   key={athlete.id}
@@ -125,30 +128,8 @@ export function CoachDevelopmentScreen() {
                       sessionCount
                     });
 
-                    // Show athlete details with their recent sessions
-                    const recentSessions = athleteSessions
-                      .slice(0, 3)
-                      .map(s => `• ${s.skillsWorkedOn.join(', ')} (${s.performanceRating}/5 ⭐)`)
-                      .join('\n');
-
-                    Alert.alert(
-                      `${athlete.name}`,
-                      `📊 Total Sessions: ${sessionCount}\n⭐ Average Rating: ${averageRating.toFixed(1)}/5\n📅 Last Session: ${formatDate(lastSession)}\n\n🎯 Recent Focus Areas:\n${recentSessions || 'No sessions yet'}`,
-                      [
-                        {
-                          text: 'View All Sessions',
-                          onPress: () => {
-                            logger.info('Navigate to athlete sessions', { athleteId: athlete.id });
-                            // Navigate to bookings filtered by this athlete
-                            router.push('/(tabs)/bookings');
-                          }
-                        },
-                        {
-                          text: 'Close',
-                          style: 'cancel'
-                        }
-                      ]
-                    );
+                    // Navigate to athlete detail screen
+                    router.push(`/development/athlete/${athlete.id}`);
                   }}
                   style={({ pressed }) => [
                     styles.athleteCard,
@@ -161,6 +142,9 @@ export function CoachDevelopmentScreen() {
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                         {athlete.avatar || athlete.name.charAt(0)}
                       </ThemedText>
+                      {needsNotes && (
+                        <View style={[styles.badge, { backgroundColor: Colors.light.error }]} />
+                      )}
                     </View>
                     <View style={styles.athleteDetails}>
                       <ThemedText type="defaultSemiBold" style={styles.athleteName}>
@@ -315,5 +299,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
     maxWidth: 260,
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
 });
