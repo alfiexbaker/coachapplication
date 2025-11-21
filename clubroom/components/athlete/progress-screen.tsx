@@ -8,7 +8,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getSessionsForAthlete, formatDate } from '@/constants/mock-data';
+import { getSessionsForAthlete, getUserById, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
@@ -20,6 +20,11 @@ export function AthleteProgressScreen() {
   const { currentUser } = useAuth();
 
   if (!currentUser) {
+    return null;
+  }
+
+  const athlete = getUserById(currentUser.id);
+  if (!athlete) {
     return null;
   }
 
@@ -87,12 +92,12 @@ export function AthleteProgressScreen() {
           <View style={styles.progressHeader}>
             <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
               <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                {currentUser.avatar || currentUser.name.charAt(0)}
+                {athlete.avatar || athlete.name.charAt(0)}
               </ThemedText>
             </View>
             <View style={styles.progressInfo}>
               <ThemedText type="subtitle" style={styles.name}>
-                {currentUser.name}
+                {athlete.name}
               </ThemedText>
               <View style={styles.badges}>
                 <View style={[styles.trendBadge, { backgroundColor: trendColor + '20' }]}>
