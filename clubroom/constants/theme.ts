@@ -7,13 +7,13 @@ const brandAccentDark = '#00B589';
 
 export const Colors = {
   light: {
-    text: '#0A0A0A',
-    foreground: '#0A0A0A', // Primary text/icon color (same as text for consistency)
+    text: '#111827', // Slightly softer black
+    foreground: '#111827', // Primary text/icon color
     muted: '#6B7280',
-    background: '#FAFAFA',
+    background: '#FFFFFF', // Pure white for ultra-clean look
     surface: '#FFFFFF',
     card: '#FFFFFF',
-    border: '#EFEFEF',
+    border: '#F3F4F6', // Lighter, barely-there border
     tint: brandPrimary,
     tintPressed: '#1F2937',
     icon: '#9CA3AF',
@@ -23,9 +23,9 @@ export const Colors = {
     secondary: brandAccent,
     tabIconDefault: '#9CA3AF',
     tabIconSelected: brandPrimary,
-    overlay: 'rgba(0, 0, 0, 0.5)',
+    overlay: 'rgba(0, 0, 0, 0.4)', // Slightly lighter overlay
     premium: brandAccent,
-    surfaceSecondary: '#F5F5F5',
+    surfaceSecondary: '#F9FAFB', // Ultra-light gray for sections
   },
   dark: {
     text: '#FFFFFF',
@@ -55,13 +55,13 @@ export type ThemeName = keyof typeof Colors;
 const baseSpacing = 4;
 
 export const Spacing = {
-  xs: baseSpacing,
-  sm: baseSpacing * 2,
-  md: baseSpacing * 4,
-  lg: baseSpacing * 5,
-  xl: baseSpacing * 6,
-  '2xl': baseSpacing * 8,
-  '3xl': baseSpacing * 12,
+  xs: baseSpacing,      // 4px
+  sm: baseSpacing * 2,  // 8px
+  md: baseSpacing * 4,  // 16px
+  lg: baseSpacing * 6,  // 24px - increased for more breathing room
+  xl: baseSpacing * 8,  // 32px - increased
+  '2xl': baseSpacing * 10, // 40px - increased
+  '3xl': baseSpacing * 12, // 48px
 } as const;
 
 export const Radii = {
@@ -107,24 +107,24 @@ export const Shadows = {
   light: {
     card: {
       shadowColor: '#000000',
-      shadowOpacity: 0.03,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 1 },
-      elevation: 1,
+      shadowOpacity: 0.04,
+      shadowRadius: 16,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
     },
     cardHover: {
       shadowColor: '#000000',
-      shadowOpacity: 0.06,
-      shadowRadius: 20,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 3,
+      shadowOpacity: 0.08,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
     },
     subtle: {
       shadowColor: '#000000',
-      shadowOpacity: 0.015,
-      shadowRadius: 6,
+      shadowOpacity: 0.02,
+      shadowRadius: 8,
       shadowOffset: { width: 0, height: 1 },
-      elevation: 0,
+      elevation: 1,
     },
   },
   dark: {
