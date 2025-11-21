@@ -70,6 +70,17 @@ export function BookingCard({ booking }: BookingCardProps) {
             </ThemedText>
           </View>
         </View>
+        {/* Child Name Badge */}
+        {booking.childName && (
+          <View style={styles.childBadgeRow}>
+            <View style={[styles.childBadge, { backgroundColor: palette.tint + '15' }]}>
+              <Ionicons name="person" size={14} color={palette.tint} />
+              <ThemedText style={[styles.childBadgeText, { color: palette.tint }]}>
+                For: {booking.childName}
+              </ThemedText>
+            </View>
+          </View>
+        )}
         <View>
           <ThemedText style={[Typography.xl, styles.dateText]}>{dateLabel}</ThemedText>
           <ThemedText style={[Typography.lg, styles.timeText]}>{timeLabel}</ThemedText>
@@ -143,6 +154,22 @@ const styles = StyleSheet.create({
   },
   locationText: {
     opacity: 0.85,
+  },
+  childBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  childBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs - 2,
+    borderRadius: Radii.pill,
+  },
+  childBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   actionsContainer: {
     flexDirection: 'row',

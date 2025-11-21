@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,10 +15,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ChildSelector } from '@/components/bookings/child-selector';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { formatGBP } from '@/constants/mock-data';
+import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
+import { User } from '@/constants/app-types';
 
 export default function ConfirmBookingScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -40,6 +42,15 @@ export default function ConfirmBookingScreen() {
   const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Child selection state for parents
+  const [children, setChildren] = useState<User[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string | undefined>();
+  const [athleteInfo, setAthleteInfo] = useState<{
+    id: string;
+    name: string;
+    avatar?: string;
+  } | null>(null);
+
   const slotDate = new Date(slotStart);
   const formattedDate = slotDate.toLocaleDateString('en-US', {
     weekday: 'short',
@@ -51,6 +62,57 @@ export default function ConfirmBookingScreen() {
     minute: '2-digit',
     hour12: true,
   });
+
+  // Determine athlete based on user role
+  useEffect(() => {
+    if (!currentUser) return;
+
+    if (currentUser.role === 'PARENT') {
+      // Parent: need to select child
+      const parentChildren = getChildrenForParent(currentUser.id);
+      setChildren(parentChildren);
+
+      if (parentChildren.length === 0) {
+        Alert.alert('No Children Found', 'Please add children to your account before booking sessions.', [
+          {
+            text: 'Go Back',
+            onPress: () => router.back(),
+          },
+        ]);
+      } else if (parentChildren.length === 1) {
+        // Auto-select single child
+        const child = parentChildren[0];
+        setSelectedChildId(child.id);
+        setAthleteInfo({
+          id: child.id,
+          name: child.name,
+          avatar: child.avatar,
+        });
+      }
+      // For multiple children, user will select manually
+    } else if (currentUser.role === 'USER') {
+      // User: they ARE the athlete
+      setAthleteInfo({
+        id: currentUser.id,
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+      });
+    }
+  }, [currentUser]);
+
+  // Update athlete info when child selection changes
+  useEffect(() => {
+    if (selectedChildId && children.length > 0) {
+      const selectedChild = children.find((c) => c.id === selectedChildId);
+      if (selectedChild) {
+        setAthleteInfo({
+          id: selectedChild.id,
+          name: selectedChild.name,
+          avatar: selectedChild.avatar,
+        });
+      }
+    }
+  }, [selectedChildId, children]);
 
   const handleCardNumberChange = (value: string) => {
     // Remove non-digits
@@ -77,6 +139,17 @@ export default function ConfirmBookingScreen() {
   };
 
   const handleConfirmBooking = async () => {
+    // Validate child selection for parents with multiple children
+    if (currentUser?.role === 'PARENT' && children.length > 1 && !selectedChildId) {
+      Alert.alert('Error', 'Please select which child this session is for');
+      return;
+    }
+
+    if (!athleteInfo) {
+      Alert.alert('Error', 'Unable to determine athlete information. Please try again.');
+      return;
+    }
+
     if (!cardNumber || !expiryDate || !cvv) {
       Alert.alert('Error', 'Please fill in all payment details');
       return;
@@ -107,8 +180,9 @@ export default function ConfirmBookingScreen() {
           id: `booking-${Date.now()}`,
           coachId,
           coachName,
-          athleteId: currentUser?.id,
-          athleteName: currentUser?.name || 'User',
+          athleteId: athleteInfo.id, // The child or user themselves
+          athleteName: athleteInfo.name,
+          bookedById: currentUser?.id, // Who made the booking (parent or user)
           scheduledAt: slotStart,
           status: 'CONFIRMED',
           duration: slotDuration,
@@ -211,6 +285,20 @@ export default function ConfirmBookingScreen() {
             </ThemedText>
           </View>
         </SurfaceCard>
+
+        {/* Child Selector for Parents */}
+        {currentUser?.role === 'PARENT' && children.length > 0 && (
+          <View style={styles.section}>
+            <SurfaceCard style={styles.childSelectorCard}>
+              <ChildSelector
+                children={children}
+                selectedChildId={selectedChildId}
+                onSelectChild={setSelectedChildId}
+                autoSelected={children.length === 1}
+              />
+            </SurfaceCard>
+          </View>
+        )}
 
         {/* Payment Form */}
         <View style={styles.section}>
@@ -334,6 +422,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     padding: Spacing.lg,
     gap: Spacing.md,
+  },
+  childSelectorCard: {
+    padding: Spacing.lg,
   },
   summaryHeader: {
     flexDirection: 'row',

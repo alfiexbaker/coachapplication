@@ -85,6 +85,14 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
             <ThemedText style={styles.coachName} numberOfLines={1}>
               with {booking.coachName}
             </ThemedText>
+            {booking.childName && (
+              <View style={styles.childRow}>
+                <Ionicons name="person" size={14} color={palette.tint} />
+                <ThemedText style={[styles.childName, { color: palette.tint }]} numberOfLines={1}>
+                  For: {booking.childName}
+                </ThemedText>
+              </View>
+            )}
             <View style={styles.dateTimeRow}>
               <Ionicons name="calendar-outline" size={14} color={palette.muted} />
               <ThemedText style={styles.dateTime}>
@@ -158,6 +166,15 @@ const styles = StyleSheet.create({
   coachName: {
     fontSize: 14,
     opacity: 0.7,
+  },
+  childRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  childName: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   dateTimeRow: {
     flexDirection: 'row',
