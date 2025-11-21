@@ -144,7 +144,7 @@ export default function TabLayout() {
     );
   }
 
-  // COACH TABS - 4 tabs: Home, Calendar, Messages, Profile
+  // COACH TABS - 5 tabs: Home, Calendar, Feed, Messages, Profile
   if (userRole === 'COACH') {
     return (
       <Tabs screenOptions={tabBarOptions}>
@@ -163,6 +163,13 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="feed"
+          options={{
+            title: 'Feed',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="square.stack.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="messages"
           options={{
             title: 'Messages',
@@ -176,12 +183,6 @@ export default function TabLayout() {
           options={{
             title: 'Profile',
             tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="feed"
-          options={{
-            href: null, // Hide - feed integrated into Home
           }}
         />
         <Tabs.Screen

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   FlatList,
   Image,
@@ -11,16 +11,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
-import { CoachPost, CoachExperience, CoachCertification } from '@/constants/types';
+import { CoachPost, CoachExperience, CoachCertification, SessionOffering } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
+import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 
-type TabType = 'posts' | 'about' | 'photos' | 'reviews';
+type TabType = 'posts' | 'about' | 'photos' | 'sessions' | 'reviews';
 
 export default function CoachProfileScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -31,6 +34,26 @@ export default function CoachProfileScreen() {
   const coach = coachProfiles[0];
 
   const [activeTab, setActiveTab] = useState<TabType>('posts');
+  const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
+  const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Load coach's session offerings
+  useEffect(() => {
+    const loadSessionOfferings = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('session_offerings');
+        if (stored) {
+          const offerings: SessionOffering[] = JSON.parse(stored);
+          const coachOfferings = offerings.filter(o => o.coachId === coach.id && o.status === 'active');
+          setSessionOfferings(coachOfferings);
+        }
+      } catch (error) {
+        console.error('Failed to load session offerings', error);
+      }
+    };
+    loadSessionOfferings();
+  }, [coach.id]);
 
   const renderTabButton = (tab: TabType, label: string) => (
     <Pressable
@@ -260,6 +283,7 @@ export default function CoachProfileScreen() {
         <View style={[styles.tabsContainer, { borderBottomColor: palette.border }]}>
           {renderTabButton('posts', 'Posts')}
           {renderTabButton('about', 'About')}
+          {renderTabButton('sessions', 'Sessions')}
           {renderTabButton('photos', 'Photos')}
           {renderTabButton('reviews', 'Reviews')}
         </View>
@@ -433,6 +457,29 @@ export default function CoachProfileScreen() {
             </View>
           )}
 
+          {activeTab === 'sessions' && (
+            <>
+              {sessionOfferings.length > 0 ? (
+                sessionOfferings.map((offering) => (
+                  <SessionOfferingCard
+                    key={offering.id}
+                    offering={offering}
+                    showCoach={false}
+                    showCapacity={true}
+                    onPress={() => {
+                      setSelectedOffering(offering);
+                      setShowDetailModal(true);
+                    }}
+                  />
+                ))
+              ) : (
+                <SurfaceCard style={styles.emptyState}>
+                  <ThemedText style={styles.emptyStateText}>No active sessions available</ThemedText>
+                </SurfaceCard>
+              )}
+            </>
+          )}
+
           {activeTab === 'reviews' && (
             <SurfaceCard style={styles.emptyState}>
               <ThemedText style={styles.emptyStateText}>Reviews coming soon</ThemedText>
@@ -440,29 +487,31 @@ export default function CoachProfileScreen() {
           )}
         </View>
 
+        {/* Session Detail Modal */}
+        <SessionDetailModal
+          visible={showDetailModal}
+          offering={selectedOffering}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedOffering(null);
+          }}
+          onUpdate={async () => {
+            // Reload offerings after booking
+            const stored = await AsyncStorage.getItem('session_offerings');
+            if (stored) {
+              const offerings: SessionOffering[] = JSON.parse(stored);
+              const coachOfferings = offerings.filter(o => o.coachId === coach.id && o.status === 'active');
+              setSessionOfferings(coachOfferings);
+            }
+          }}
+        />
+
         {/* Coach Quick Access - Only visible to coach viewing their own profile */}
         {currentUser?.role === 'COACH' && (
           <View style={styles.quickAccessSection}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               Quick Access
             </ThemedText>
-
-            <SurfaceCard
-              style={styles.quickAccessCard}
-              onPress={() => router.push('/(tabs)/feed')}>
-              <View style={styles.quickAccessRow}>
-                <View style={[styles.quickAccessIcon, { backgroundColor: `${palette.accent}15` }]}>
-                  <Ionicons name="newspaper" size={24} color={palette.accent} />
-                </View>
-                <View style={styles.quickAccessText}>
-                  <ThemedText type="defaultSemiBold">Community Feed</ThemedText>
-                  <ThemedText style={[styles.quickAccessDesc, { color: palette.muted }]}>
-                    Share updates and connect with athletes
-                  </ThemedText>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-              </View>
-            </SurfaceCard>
 
             <SurfaceCard
               style={styles.quickAccessCard}

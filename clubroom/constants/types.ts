@@ -153,6 +153,50 @@ export interface BookingSummary {
   start: string;
   status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
   locationLabel: string;
+  coach?: {
+    name: string;
+    photoUrl: string;
+  };
+  client?: {
+    name: string;
+    photoUrl: string;
+  };
+  coachId?: string;
+  clientId?: string;
+}
+
+// Session Offering System
+export interface SessionRegistration {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhotoUrl?: string;
+  bookedAt: string;
+  status: 'confirmed' | 'cancelled' | 'completed';
+}
+
+export interface SessionOffering {
+  id: string;
+  coachId: string;
+  coachName: string;
+  coachPhotoUrl?: string;
+  title: string; // Session name/title
+  description?: string;
+  sessionType: '1on1' | 'group';
+  maxParticipants: number;
+  location: string;
+  scheduledAt: string; // ISO date string
+  isRecurring: boolean;
+  recurrenceType: 'none' | 'weekly';
+  dayOfWeek?: number; // 0-6 (Sunday-Saturday) for recurring sessions
+  timeOfDay?: string; // "18:00" format for recurring sessions
+  status: 'active' | 'cancelled' | 'completed' | 'full';
+  registrations: SessionRegistration[];
+  createdAt: string;
+  priceUsd?: number;
+  ageMin?: number; // Minimum age (e.g., 10 for U12)
+  ageMax?: number; // Maximum age (e.g., 12 for U12)
+  footballSkill?: FootballObjective; // Primary skill focus
 }
 
 export interface AthleteObjective {
