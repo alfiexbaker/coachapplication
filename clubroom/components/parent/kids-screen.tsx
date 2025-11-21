@@ -1,5 +1,6 @@
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -71,10 +72,7 @@ export function ParentKidsScreen() {
                       childName: child.name,
                       hasUpcomingSession: !!nextSession
                     });
-                    logger.warn('Kid detail screen not implemented yet', {
-                      childId: child.id
-                    });
-                    // TODO: Navigate to kid detail screen
+                    router.push(`/child-progress/${child.id}`);
                   }}
                   style={({ pressed }) => [
                     styles.kidCard,

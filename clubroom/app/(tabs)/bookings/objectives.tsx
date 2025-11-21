@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View, Modal, TextInput, Alert } from 'react-native';
+import { useState, useMemo } from 'react';
+import { FlatList, Pressable, StyleSheet, View, Modal, TextInput, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,7 +8,8 @@ import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { activeObjectives } from '@/constants/mock-data';
+import { useAuth } from '@/hooks/use-auth';
+import { activeObjectives, getChildrenForParent } from '@/constants/mock-data';
 import { AthleteObjective, FootballObjective } from '@/constants/types';
 
 const FOOTBALL_OBJECTIVES: FootballObjective[] = [
@@ -23,6 +24,7 @@ const FOOTBALL_OBJECTIVES: FootballObjective[] = [
 export default function ObjectivesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser } = useAuth();
 
   const [objectives, setObjectives] = useState(activeObjectives);
   const [showModal, setShowModal] = useState(false);
@@ -30,6 +32,29 @@ export default function ObjectivesScreen() {
   const [selectedSkill, setSelectedSkill] = useState<FootballObjective>('Dribbling');
   const [note, setNote] = useState('');
   const [targetSessions, setTargetSessions] = useState('10');
+
+  // Parent-specific: child selection
+  const children = useMemo(() => {
+    if (currentUser?.role === 'PARENT') {
+      return getChildrenForParent(currentUser.id);
+    }
+    return [];
+  }, [currentUser]);
+
+  const [selectedChildId, setSelectedChildId] = useState<string>(
+    children.length > 0 ? children[0].id : ''
+  );
+
+  // Filter objectives by selected child for parents
+  const filteredObjectives = useMemo(() => {
+    if (currentUser?.role === 'PARENT' && selectedChildId) {
+      // For parents, filter by child (in real DB, objectives would have athleteId)
+      // For now, showing all objectives but would filter by athleteId === selectedChildId
+      return objectives;
+    }
+    // For USER, show their own objectives
+    return objectives;
+  }, [objectives, currentUser, selectedChildId]);
 
   const openAddModal = () => {
     setEditingObjective(null);
@@ -95,12 +120,53 @@ export default function ObjectivesScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
       <FlatList
-        data={objectives}
+        data={filteredObjectives}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
           <ThemedView style={styles.header}>
+            {/* Child Selector for Parents */}
+            {currentUser?.role === 'PARENT' && children.length > 0 && (
+              <View style={styles.childSelector}>
+                <ThemedText style={[styles.childLabel, { color: palette.muted }]}>
+                  ATHLETE
+                </ThemedText>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.childTabs}>
+                    {children.map((child) => {
+                      const isSelected = child.id === selectedChildId;
+                      return (
+                        <Pressable
+                          key={child.id}
+                          onPress={() => setSelectedChildId(child.id)}
+                          style={[
+                            styles.childTab,
+                            {
+                              backgroundColor: isSelected ? palette.tint : palette.surface,
+                              borderColor: isSelected ? palette.tint : palette.border,
+                            },
+                          ]}>
+                          <ThemedText
+                            style={[
+                              styles.childTabText,
+                              {
+                                color: isSelected ? '#fff' : palette.text,
+                                fontWeight: isSelected ? '700' : '600',
+                              },
+                            ]}>
+                            {child.name}
+                          </ThemedText>
+                          {isSelected && (
+                            <Ionicons name="checkmark" size={16} color="#fff" />
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
             <ThemedText type="subtitle" style={styles.subtitle}>
-              Track your football development goals
+              Track {currentUser?.role === 'PARENT' ? 'development' : 'your'} football goals
             </ThemedText>
           </ThemedView>
         }
@@ -275,6 +341,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.lg,
+    gap: Spacing.md,
+  },
+  childSelector: {
+    gap: Spacing.xs,
+  },
+  childLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  childTabs: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  childTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  childTabText: {
+    fontSize: 15,
+    letterSpacing: -0.2,
   },
   subtitle: {
     fontSize: 14,

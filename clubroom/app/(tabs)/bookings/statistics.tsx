@@ -1,22 +1,46 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useState, useMemo } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { sessionHistory, athleteSkillLevels } from '@/constants/mock-data';
+import { useAuth } from '@/hooks/use-auth';
+import { sessionHistory, athleteSkillLevels, getChildrenForParent, getSessionsForAthlete } from '@/constants/mock-data';
 
 export default function StatisticsScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser } = useAuth();
+
+  // Parent-specific: child selection
+  const children = useMemo(() => {
+    if (currentUser?.role === 'PARENT') {
+      return getChildrenForParent(currentUser.id);
+    }
+    return [];
+  }, [currentUser]);
+
+  const [selectedChildId, setSelectedChildId] = useState<string>(
+    children.length > 0 ? children[0].id : ''
+  );
+
+  // Get sessions filtered by selected child for parents
+  const sessions = useMemo(() => {
+    if (currentUser?.role === 'PARENT' && selectedChildId) {
+      return getSessionsForAthlete(selectedChildId);
+    }
+    // For USER, show their own sessions
+    return sessionHistory;
+  }, [currentUser, selectedChildId]);
 
   // Calculate stats
-  const totalSessions = sessionHistory.length;
-  const totalHours = sessionHistory.reduce((sum, session) => sum + session.durationMinutes, 0) / 60;
-  const uniqueCoaches = new Set(sessionHistory.map((s) => s.coachName)).size;
+  const totalSessions = sessions.length;
+  const totalHours = sessions.reduce((sum, session) => sum + session.durationMinutes, 0) / 60;
+  const uniqueCoaches = new Set(sessions.map((s) => s.coachName)).size;
 
   const stats = [
     {
@@ -53,6 +77,48 @@ export default function StatisticsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['bottom']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
+        {/* Child Selector for Parents */}
+        {currentUser?.role === 'PARENT' && children.length > 0 && (
+          <View style={styles.childSelector}>
+            <ThemedText style={[styles.childLabel, { color: palette.muted }]}>
+              ATHLETE
+            </ThemedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.childTabs}>
+                {children.map((child) => {
+                  const isSelected = child.id === selectedChildId;
+                  return (
+                    <Pressable
+                      key={child.id}
+                      onPress={() => setSelectedChildId(child.id)}
+                      style={[
+                        styles.childTab,
+                        {
+                          backgroundColor: isSelected ? palette.tint : palette.surface,
+                          borderColor: isSelected ? palette.tint : palette.border,
+                        },
+                      ]}>
+                      <ThemedText
+                        style={[
+                          styles.childTabText,
+                          {
+                            color: isSelected ? '#fff' : palette.text,
+                            fontWeight: isSelected ? '700' : '600',
+                          },
+                        ]}>
+                        {child.name}
+                      </ThemedText>
+                      {isSelected && (
+                        <Ionicons name="checkmark" size={16} color="#fff" />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           {stats.map((stat) => (
@@ -74,7 +140,7 @@ export default function StatisticsScreen() {
             Recent Sessions
           </ThemedText>
           <SurfaceCard style={styles.activityCard}>
-            {sessionHistory.slice(0, 5).map((session, index) => (
+            {sessions.slice(0, 5).map((session, index) => (
               <View key={session.id}>
                 <View style={styles.activityItem}>
                   <View style={styles.activityContent}>
@@ -151,6 +217,32 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     gap: Spacing.lg,
+  },
+  childSelector: {
+    gap: Spacing.xs,
+  },
+  childLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  childTabs: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  childTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  childTabText: {
+    fontSize: 15,
+    letterSpacing: -0.2,
   },
   header: {
     gap: Spacing.xs,

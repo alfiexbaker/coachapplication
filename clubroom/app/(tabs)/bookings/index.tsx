@@ -12,10 +12,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { upcomingBookings } from '@/constants/mock-data';
+import { upcomingBookings, getChildrenForParent } from '@/constants/mock-data';
 import { BookingSummary } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
-import { AthleteProgressScreen } from '@/components/athlete/progress-screen';
 
 const logger = createLogger('BookingsScreen');
 
@@ -54,11 +53,6 @@ export default function BookingsScreen() {
   const [sessionBookings, setSessionBookings] = useState<BookingSummary[]>([]);
 
   const userRole = currentUser?.role;
-
-  // For USER role, show progress/development screen instead of bookings
-  if (userRole === 'USER') {
-    return <AthleteProgressScreen />;
-  }
 
   // Load session bookings from AsyncStorage
   const loadSessionBookings = useCallback(async () => {
@@ -112,16 +106,19 @@ export default function BookingsScreen() {
     mockBookings: upcomingBookings.length
   });
 
-  // Filter bookings based on user role
-  // Fixed: was checking 'Coach', 'User', 'Parent', 'Admin' (capitalized)
-  // Now checking 'COACH', 'USER', 'PARENT', 'ADMIN' (uppercase)
+  // Filter bookings based on user role (following DATA_ARCHITECTURE.md principles)
   const filteredBookings = allBookings.filter((booking) => {
     if (userRole === 'COACH') {
       // Coaches see bookings where they are the coach
       return booking.coachId === currentUser?.id || booking.coach.name === currentUser?.fullName;
-    } else if (userRole === 'USER' || userRole === 'PARENT') {
-      // Users/Parents see their own bookings
+    } else if (userRole === 'USER') {
+      // Athletes see their own bookings (where they are the athlete)
       return booking.clientId === currentUser?.id || booking.client.name === currentUser?.fullName;
+    } else if (userRole === 'PARENT') {
+      // Parents see bookings for their children (athleteId = child's ID)
+      const children = getChildrenForParent(currentUser?.id || '');
+      const childrenIds = children.map(c => c.id);
+      return childrenIds.includes(booking.clientId || '');
     } else if (userRole === 'ADMIN') {
       // Admins see all bookings
       return true;
