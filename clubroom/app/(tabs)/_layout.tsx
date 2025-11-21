@@ -144,21 +144,21 @@ export default function TabLayout() {
     );
   }
 
-  // COACH TABS - 5 tabs: Home, Calendar, Feed, Messages, Profile
+  // COACH TABS - 5 tabs: Development, Bookings, Feed, Messages, Profile
   if (userRole === 'COACH') {
     return (
       <Tabs screenOptions={tabBarOptions}>
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
+            title: 'Development',
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="chart.line.uptrend.xyaxis" color={color} />,
           }}
         />
         <Tabs.Screen
           name="bookings"
           options={{
-            title: 'Calendar',
+            title: 'Bookings',
             tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.badge.clock" color={color} />,
           }}
         />

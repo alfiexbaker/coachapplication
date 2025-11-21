@@ -103,7 +103,7 @@ export function CoachDevelopmentScreen() {
           actionIcon="add"
           onActionPress={() => {
             logger.press('AddSession');
-            // TODO: Navigate to add session screen
+            router.push('/development/log-session');
           }}
         />
       }

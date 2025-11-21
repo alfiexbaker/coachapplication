@@ -121,8 +121,8 @@ export default function AthleteDetailScreen() {
           <TouchableOpacity
             style={[styles.ctaButton, { backgroundColor: palette.tint }]}
             onPress={() => {
-              logger.press('LogSession');
-              // TODO: Navigate to log session
+              logger.press('LogSession', { athleteId });
+              router.push(`/development/log-session?athleteId=${athleteId}`);
             }}
           >
             <ThemedText style={styles.ctaText}>Log Session</ThemedText>
