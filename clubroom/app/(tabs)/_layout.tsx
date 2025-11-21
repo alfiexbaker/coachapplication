@@ -231,7 +231,7 @@ export default function TabLayout() {
     );
   }
 
-  // USER TABS - 4 tabs: Home, Discover, Messages, Profile
+  // USER TABS - 5 tabs: Home, Find Coach, Bookings, Messages, Profile
   if (userRole === 'USER') {
     return (
       <Tabs screenOptions={tabBarOptions}>
@@ -245,8 +245,15 @@ export default function TabLayout() {
         <Tabs.Screen
           name="more"
           options={{
-            title: 'Discover',
+            title: 'Find Coach',
             tabBarIcon: ({ color }) => <IconSymbol size={26} name="magnifyingglass" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="bookings"
+          options={{
+            title: 'Bookings',
+            tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.badge.clock" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -263,12 +270,6 @@ export default function TabLayout() {
           options={{
             title: 'Profile',
             tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            href: null, // Hide - Progress/Bookings moved to Profile
           }}
         />
         <Tabs.Screen
