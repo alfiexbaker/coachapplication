@@ -116,23 +116,24 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    fontWeight: '600',
+    letterSpacing: -0.4,
   },
   valueCompact: {
     fontSize: 20,
+    fontWeight: '500',
   },
   label: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   labelCompact: {
     fontSize: 13,
     textTransform: 'none',
     letterSpacing: 0,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   trendBadge: {
     paddingHorizontal: Spacing.xs,
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   },
   trendText: {
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: -0.1,
+    fontWeight: '600',
+    letterSpacing: 0,
   },
 });

@@ -94,19 +94,19 @@ export const Radii = {
   pill: 999,
 } as const;
 
-// Typography system - 1.25 modular scale with generous line-height
-// Using tabular numbers for stats and consistent letter-spacing
+// Typography system - refined, light, modern
+// Inspired by premium apps: lighter weights, generous spacing, smooth hierarchy
 export const Typography = {
-  // Semantic type scale
-  display: { fontSize: 32, lineHeight: 44, letterSpacing: -0.8, fontWeight: '700' as const },   // H1 - Page titles
-  title: { fontSize: 24, lineHeight: 32, letterSpacing: -0.5, fontWeight: '700' as const },     // H2 - Section titles
-  heading: { fontSize: 20, lineHeight: 28, letterSpacing: -0.4, fontWeight: '600' as const },   // H3 - Card headers
-  subheading: { fontSize: 18, lineHeight: 26, letterSpacing: -0.3, fontWeight: '600' as const }, // H4 - Sub-sections
+  // Semantic type scale - lighter weights for elegance
+  display: { fontSize: 32, lineHeight: 44, letterSpacing: -0.6, fontWeight: '600' as const },   // H1 - Page titles
+  title: { fontSize: 24, lineHeight: 32, letterSpacing: -0.4, fontWeight: '600' as const },     // H2 - Section titles
+  heading: { fontSize: 20, lineHeight: 28, letterSpacing: -0.3, fontWeight: '500' as const },   // H3 - Card headers
+  subheading: { fontSize: 18, lineHeight: 26, letterSpacing: -0.2, fontWeight: '500' as const }, // H4 - Sub-sections
   body: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '400' as const },      // Body text - 150% line height
-  bodySemiBold: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '600' as const },
+  bodySemiBold: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '500' as const }, // Medium, not semi-bold
   small: { fontSize: 14, lineHeight: 20, letterSpacing: 0, fontWeight: '400' as const },        // Small text
   caption: { fontSize: 13, lineHeight: 18, letterSpacing: 0, fontWeight: '400' as const },      // Captions, metadata
-  micro: { fontSize: 11, lineHeight: 16, letterSpacing: 0.4, fontWeight: '600' as const, textTransform: 'uppercase' as const }, // Pills, tags
+  micro: { fontSize: 11, lineHeight: 16, letterSpacing: 0.6, fontWeight: '500' as const, textTransform: 'uppercase' as const }, // Pills, tags - lighter
 
   // Legacy sizes for compatibility
   xs: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },
@@ -190,32 +190,32 @@ export const Shadows = {
   },
 } as const;
 
-// Component-specific design tokens
+// Component-specific design tokens - Uber-minimal sizing
 export const Components = {
   button: {
-    height: 52,
-    borderRadius: Radii.card,
-    minWidth: 120,
+    height: 44,  // Reduced from 52 - more minimal
+    borderRadius: Radii.md,
+    minWidth: 100,
   },
   buttonCompact: {
-    height: 40,
-    borderRadius: Radii.md,
-    minWidth: 80,
+    height: 32,  // Reduced from 40 - sleeker
+    borderRadius: Radii.sm,
+    minWidth: 64,
   },
   card: {
     borderRadius: Radii.card,
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    padding: Spacing.md,  // Reduced from lg - tighter
+    gap: Spacing.sm,      // Reduced from md - more compact
   },
   input: {
-    height: 52,
+    height: 44,  // Reduced from 52
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
   },
   pill: {
     borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,  // Reduced from md
+    paddingVertical: Spacing.xs / 2,
   },
   chip: {
     borderRadius: Radii.sm,

@@ -251,9 +251,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs / 2,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: -0.3,
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
 
   // Athlete list
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.md,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
   },
   athleteInfo: {
     flex: 1,
@@ -273,16 +273,16 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   avatarText: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '500',
   },
   badge: {
     position: 'absolute',
@@ -299,13 +299,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   athleteName: {
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    fontSize: 15,
+    fontWeight: '500',
+    letterSpacing: -0.1,
   },
   athleteMetadata: {
     fontSize: 13,
     lineHeight: 18,
+    fontWeight: '400',
   },
 
   // Stats in athlete cards
@@ -318,15 +319,15 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   statValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
     fontVariant: ['tabular-nums'],
   },
   statLabel: {
     fontSize: 10,
     textTransform: 'uppercase',
-    fontWeight: '600',
-    letterSpacing: 0.4,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -350,9 +351,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   emptyText: {
     fontSize: 14,

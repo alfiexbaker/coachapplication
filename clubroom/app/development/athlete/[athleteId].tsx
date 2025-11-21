@@ -262,15 +262,15 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: -0.4,
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.3,
   },
 
   // Hero Card
   heroCard: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
   heroHeader: {
     flexDirection: 'row',
@@ -278,24 +278,24 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '500',
   },
   heroInfo: {
     flex: 1,
     gap: Spacing.xs,
   },
   athleteName: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.4,
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: -0.3,
   },
   badges: {
     flexDirection: 'row',
@@ -313,22 +313,22 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: -0.1,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0,
   },
   ctaButton: {
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs / 2,
+    paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
-    height: 36,
+    height: Components.buttonCompact.height,
     justifyContent: 'center',
   },
   ctaText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#fff',
-    letterSpacing: -0.2,
+    letterSpacing: -0.1,
   },
 
   // Stats in hero card
@@ -353,9 +353,9 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: -0.3,
+    fontSize: 17,
+    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   sectionSubtitle: {
     fontSize: 13,
@@ -367,8 +367,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sessionCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
     position: 'relative',
   },
   sessionHeader: {
@@ -384,9 +384,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sessionDate: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: -0.1,
   },
   needsNotesBadge: {
     paddingHorizontal: Spacing.xs,
@@ -394,11 +394,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   needsNotesText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '600',
     color: '#fff',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -406,8 +406,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   rating: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '500',
     fontVariant: ['tabular-nums'],
   },
   skillsRow: {
@@ -421,9 +421,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   skillText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: -0.1,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0,
   },
   notesPreview: {
     fontSize: 13,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   },
   chevron: {
     position: 'absolute',
-    right: Spacing.md,
-    top: Spacing.md,
+    right: Spacing.sm,
+    top: Spacing.sm,
   },
 });

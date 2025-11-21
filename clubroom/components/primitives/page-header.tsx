@@ -121,28 +121,28 @@ export function PageHeader({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   titleContainer: {
     flex: 1,
     gap: Spacing.xs / 2,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.7,
+    fontSize: 24,
+    fontWeight: '600',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
   },
   rightContainer: {
     flexDirection: 'row',
@@ -151,16 +151,15 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.sm - 2,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
     gap: Spacing.xs / 2,
     height: Components.buttonCompact.height,
   },
   actionText: {
     fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    fontWeight: '500',
+    letterSpacing: -0.1,
   },
   actionTextOnly: {
     paddingHorizontal: Spacing.xs / 2,
