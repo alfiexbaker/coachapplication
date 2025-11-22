@@ -171,9 +171,40 @@ export default function AthleteDetailScreen() {
           </View>
           <TouchableOpacity
             style={[styles.ctaButton, { backgroundColor: palette.tint }]}
-            onPress={() => {
+            onPress={async () => {
               logger.press('LogSession');
-              // TODO: Navigate to log session
+
+              try {
+                // Create new session
+                const sessionId = `session-${Date.now()}`;
+                const sessionRecord = {
+                  id: sessionId,
+                  athleteId,
+                  athleteName: athlete.name,
+                  coachId: currentUser.id,
+                  bookingId: `manual-${Date.now()}`,
+                  completedAt: new Date().toISOString(),
+                  performanceRating: 3,
+                  skillsWorkedOn: [],
+                  notes: '',
+                  videoUrls: [],
+                  imageUrls: [],
+                  attendance: 'ATTENDED',
+                };
+
+                // Save to AsyncStorage
+                const existingSessions = await AsyncStorage.getItem('coach_sessions');
+                const sessions = existingSessions ? JSON.parse(existingSessions) : [];
+                sessions.push(sessionRecord);
+                await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
+
+                logger.info('Session created', { sessionId, athleteId });
+
+                // Navigate to session detail
+                router.push(`/development/session/${sessionId}` as any);
+              } catch (error) {
+                logger.error('Failed to create session', error);
+              }
             }}
           >
             <ThemedText style={styles.ctaText}>Log Session</ThemedText>
