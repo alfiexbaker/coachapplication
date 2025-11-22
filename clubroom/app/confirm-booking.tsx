@@ -203,7 +203,9 @@ export default function ConfirmBookingScreen() {
           duration: slotDuration,
           location: 'Training Ground',
           service: slotTitle,
+          serviceType, // Added service type
           focus: slotFocus,
+          objectives, // Added athlete objectives
           price,
           paymentMethod: `Card ending in ${cardNumber.slice(-4)}`,
           createdAt: new Date().toISOString(),

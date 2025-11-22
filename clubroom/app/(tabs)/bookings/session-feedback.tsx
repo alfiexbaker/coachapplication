@@ -33,9 +33,19 @@ export default function SessionFeedbackScreen() {
   const palette = Colors[scheme];
   const params = useLocalSearchParams();
 
+  // Get athlete's objectives from params (what they wanted to work on)
+  const athleteObjectivesParam = params.athleteObjectives as string;
+  const athleteObjectives: FootballObjective[] = athleteObjectivesParam
+    ? JSON.parse(athleteObjectivesParam)
+    : [];
+  const athleteName = (params.athleteName as string) || 'the athlete';
+
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState('');
-  const [selectedSkills, setSelectedSkills] = useState<FootballObjective[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<FootballObjective[]>(
+    // Pre-select athlete's objectives
+    athleteObjectives.length > 0 ? athleteObjectives : []
+  );
 
   const toggleSkill = (skill: FootballObjective) => {
     if (selectedSkills.includes(skill)) {
@@ -75,6 +85,34 @@ export default function SessionFeedbackScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.wrapper}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {/* Athlete's Objectives */}
+          {athleteObjectives.length > 0 && (
+            <SurfaceCard style={styles.section}>
+              <View style={styles.objectivesHeader}>
+                <Ionicons name="flag-outline" size={20} color={palette.tint} />
+                <ThemedText type="defaultSemiBold">
+                  What {athleteName} wanted to work on
+                </ThemedText>
+              </View>
+              <View style={styles.objectivesRow}>
+                {athleteObjectives.map((objective, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.objectiveChip,
+                      { backgroundColor: palette.tint + '15', borderColor: palette.tint },
+                    ]}
+                  >
+                    <Ionicons name="football" size={14} color={palette.tint} />
+                    <ThemedText style={[styles.objectiveChipText, { color: palette.tint }]}>
+                      {objective}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </SurfaceCard>
+          )}
+
           {/* Rating */}
           <SurfaceCard style={styles.section}>
             <ThemedText type="defaultSemiBold">Session Rating</ThemedText>
@@ -202,6 +240,29 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: Spacing.md,
+  },
+  objectivesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  objectivesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  objectiveChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  objectiveChipText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   ratingRow: {
     flexDirection: 'row',
