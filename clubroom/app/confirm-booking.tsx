@@ -36,6 +36,21 @@ export default function ConfirmBookingScreen() {
   const slotStart = params.slotStart as string;
   const slotDuration = parseInt(params.slotDuration as string);
   const price = parseFloat(params.price as string);
+  const serviceType = params.serviceType as string;
+  const objectivesParam = params.objectives as string;
+  const objectives = objectivesParam ? JSON.parse(objectivesParam) : [];
+
+  // Mock group participants for group sessions
+  const isGroupSession = serviceType === 'Small Group';
+  const groupParticipants = isGroupSession
+    ? [
+        { id: '1', name: 'Emma W.' },
+        { id: '2', name: 'Jack T.' },
+        { id: '3', name: 'Sarah M.' },
+        { id: '4', name: 'Liam P.' },
+        { id: '5', name: 'Olivia K.' },
+      ]
+    : [];
 
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -276,6 +291,50 @@ export default function ConfirmBookingScreen() {
             </ThemedText>
           </View>
 
+          {objectives.length > 0 && (
+            <View style={styles.objectivesSection}>
+              <ThemedText style={{ color: palette.muted }}>Focus Areas</ThemedText>
+              <View style={styles.objectivesChips}>
+                {objectives.map((objective: string, index: number) => (
+                  <View
+                    key={index}
+                    style={[styles.objectiveChip, { backgroundColor: palette.tint + '15', borderColor: palette.tint }]}
+                  >
+                    <Ionicons name="football" size={14} color={palette.tint} />
+                    <ThemedText style={[styles.objectiveText, { color: palette.tint }]}>
+                      {objective}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {isGroupSession && groupParticipants.length > 0 && (
+            <View style={styles.participantsSection}>
+              <View style={styles.participantsHeader}>
+                <Ionicons name="people" size={16} color={palette.muted} />
+                <ThemedText style={{ color: palette.muted }}>
+                  Group Participants ({groupParticipants.length + 1}/8)
+                </ThemedText>
+              </View>
+              <View style={styles.participantsList}>
+                {athleteInfo && (
+                  <View style={[styles.participantBubble, { backgroundColor: palette.tint + '15' }]}>
+                    <ThemedText style={[styles.participantName, { color: palette.tint }]}>
+                      {athleteInfo.name.split(' ')[0]} (You)
+                    </ThemedText>
+                  </View>
+                )}
+                {groupParticipants.map((participant) => (
+                  <View key={participant.id} style={[styles.participantBubble, { backgroundColor: palette.surface }]}>
+                    <ThemedText style={styles.participantName}>{participant.name}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           <View style={[styles.divider, { backgroundColor: palette.border }]} />
 
           <View style={styles.summaryRow}>
@@ -443,6 +502,51 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     marginVertical: Spacing.xs,
+  },
+  objectivesSection: {
+    gap: Spacing.sm,
+  },
+  objectivesChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  objectiveChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  objectiveText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  participantsSection: {
+    gap: Spacing.sm,
+  },
+  participantsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+  },
+  participantsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  participantBubble: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  participantName: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   totalPrice: {
     fontSize: 22,

@@ -4,11 +4,11 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -17,6 +17,26 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getUserById, getCoachProfile, formatGBP } from '@/constants/mock-data';
+import { FootballObjective } from '@/constants/types';
+
+const FOOTBALL_OBJECTIVES: FootballObjective[] = [
+  'Dribbling',
+  'Passing',
+  'Defending',
+  'Finishing',
+  'Goalkeeping',
+  'Conditioning',
+];
+
+interface ServiceType {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  capacity?: number; // For group sessions
+  spotsLeft?: number; // For group sessions
+  icon: keyof typeof Ionicons.glyphMap;
+}
 
 interface SlotTemplate {
   id: string;
@@ -26,6 +46,7 @@ interface SlotTemplate {
   startMinute: number;
   durationMinutes: number;
   tag: string;
+  serviceType: string; // Links to ServiceType id
 }
 
 interface SlotInstance {
@@ -36,6 +57,7 @@ interface SlotInstance {
   start: Date;
   durationMinutes: number;
   tag: string;
+  serviceType: string;
 }
 
 interface DayAvailability {
@@ -44,44 +66,93 @@ interface DayAvailability {
   slots: SlotInstance[];
 }
 
+const SERVICES: ServiceType[] = [
+  {
+    id: '1-on-1',
+    title: '1-on-1 Training',
+    description: 'Personalized coaching session',
+    price: 50,
+    icon: 'person',
+  },
+  {
+    id: 'small-group',
+    title: 'Small Group',
+    description: 'Train with others (max 8)',
+    price: 30,
+    capacity: 8,
+    spotsLeft: 5, // Mock data
+    icon: 'people',
+  },
+  {
+    id: 'team',
+    title: 'Team Session',
+    description: 'Full pitch team training',
+    price: 150,
+    icon: 'football',
+  },
+];
+
 const SLOT_LIBRARY: Record<string, SlotTemplate> = {
-  morning_session: {
-    id: 'morning_session',
+  morning_1on1: {
+    id: 'morning_1on1',
     title: '1-on-1 Training',
     focus: 'Personalized skill development',
     startHour: 9,
     startMinute: 0,
     durationMinutes: 60,
     tag: 'Popular',
+    serviceType: '1-on-1',
   },
-  afternoon_session: {
-    id: 'afternoon_session',
-    title: 'Technical Training',
+  morning_group: {
+    id: 'morning_group',
+    title: 'Small Group Training',
     focus: 'Ball control & passing',
+    startHour: 10,
+    startMinute: 30,
+    durationMinutes: 90,
+    tag: '5/8 spots',
+    serviceType: 'small-group',
+  },
+  afternoon_1on1: {
+    id: 'afternoon_1on1',
+    title: '1-on-1 Training',
+    focus: 'Technical skills',
     startHour: 14,
     startMinute: 0,
     durationMinutes: 90,
     tag: 'Extended',
+    serviceType: '1-on-1',
   },
-  evening_session: {
-    id: 'evening_session',
-    title: 'Match Prep',
-    focus: 'Game strategy & tactics',
+  evening_1on1: {
+    id: 'evening_1on1',
+    title: '1-on-1 Training',
+    focus: 'Match preparation',
     startHour: 18,
     startMinute: 0,
     durationMinutes: 60,
-    tag: 'Match Day',
+    tag: 'Match Prep',
+    serviceType: '1-on-1',
+  },
+  evening_group: {
+    id: 'evening_group',
+    title: 'Group Session',
+    focus: 'Passing & positioning drills',
+    startHour: 19,
+    startMinute: 0,
+    durationMinutes: 60,
+    tag: '3/8 spots',
+    serviceType: 'small-group',
   },
 };
 
 const WEEK_BLUEPRINT: (keyof typeof SLOT_LIBRARY)[][] = [
-  ['morning_session', 'afternoon_session'],
-  ['morning_session', 'evening_session'],
-  ['afternoon_session'],
-  ['morning_session', 'afternoon_session', 'evening_session'],
-  ['morning_session', 'evening_session'],
-  ['afternoon_session', 'evening_session'],
-  ['morning_session'],
+  ['morning_1on1', 'afternoon_1on1'],
+  ['morning_1on1', 'morning_group', 'evening_1on1'],
+  ['afternoon_1on1'],
+  ['morning_1on1', 'afternoon_1on1', 'evening_group'],
+  ['morning_1on1', 'evening_1on1'],
+  ['afternoon_1on1', 'evening_group'],
+  ['morning_group'],
 ];
 
 function buildAvailability(): DayAvailability[] {
@@ -106,6 +177,7 @@ function buildAvailability(): DayAvailability[] {
         start,
         durationMinutes: template.durationMinutes,
         tag: template.tag,
+        serviceType: template.serviceType,
       } satisfies SlotInstance;
     });
 
@@ -123,16 +195,26 @@ export default function BookCoachScreen() {
   const coach = getUserById(coachId);
   const coachProfile = coach ? getCoachProfile(coach.id) : null;
   const availability = useMemo(() => buildAvailability(), []);
+
+  // Wizard steps: 1 = Service, 2 = Date/Time, 3 = Objectives
+  const [step, setStep] = useState(1);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
   const [selectedDayId, setSelectedDayId] = useState(availability[0]?.id);
-  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(
-    availability[0]?.slots[0]?.id
-  );
+  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
+  const [selectedObjectives, setSelectedObjectives] = useState<FootballObjective[]>([]);
+
+  // Filter slots by selected service type
+  const filteredAvailability = useMemo(() => {
+    if (!selectedServiceId) return availability;
+    return availability.map((day) => ({
+      ...day,
+      slots: day.slots.filter((slot) => slot.serviceType === selectedServiceId),
+    }));
+  }, [availability, selectedServiceId]);
 
   useEffect(() => {
-    const day = availability.find((entry) => entry.id === selectedDayId);
-    if (!day) {
-      return;
-    }
+    const day = filteredAvailability.find((entry) => entry.id === selectedDayId);
+    if (!day) return;
 
     if (!day.slots.length) {
       setSelectedSlotId(undefined);
@@ -143,18 +225,59 @@ export default function BookCoachScreen() {
     if (!hasSelected) {
       setSelectedSlotId(day.slots[0]?.id);
     }
-  }, [availability, selectedDayId, selectedSlotId]);
+  }, [filteredAvailability, selectedDayId, selectedSlotId]);
 
-  const selectedDay = availability.find((entry) => entry.id === selectedDayId);
+  const selectedService = SERVICES.find((s) => s.id === selectedServiceId);
+  const selectedDay = filteredAvailability.find((entry) => entry.id === selectedDayId);
   const selectedSlot = selectedDay?.slots.find((slot) => slot.id === selectedSlotId);
 
+  const toggleObjective = (objective: FootballObjective) => {
+    if (selectedObjectives.includes(objective)) {
+      setSelectedObjectives(selectedObjectives.filter((o) => o !== objective));
+    } else {
+      if (selectedObjectives.length >= 3) {
+        Alert.alert('Maximum 3 objectives', 'Please select up to 3 focus areas');
+        return;
+      }
+      setSelectedObjectives([...selectedObjectives, objective]);
+    }
+  };
+
+  const handleContinue = () => {
+    if (step === 1) {
+      if (!selectedServiceId) {
+        Alert.alert('Select a service', 'Please choose a session type');
+        return;
+      }
+      setStep(2);
+    } else if (step === 2) {
+      if (!selectedSlot) {
+        Alert.alert('Select a time', 'Please choose a time slot');
+        return;
+      }
+      setStep(3);
+    } else if (step === 3) {
+      if (selectedObjectives.length === 0) {
+        Alert.alert('Select objectives', 'Please choose at least 1 focus area');
+        return;
+      }
+      handleBooking();
+    }
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    } else {
+      router.back();
+    }
+  };
+
   const handleBooking = async () => {
-    if (!selectedSlot || !coach || !coachProfile || !currentUser) {
-      Alert.alert('Error', 'Please select a time slot');
+    if (!selectedSlot || !coach || !coachProfile || !currentUser || !selectedService) {
       return;
     }
 
-    // Navigate to payment confirmation
     router.push({
       pathname: '/confirm-booking',
       params: {
@@ -165,7 +288,9 @@ export default function BookCoachScreen() {
         slotFocus: selectedSlot.focus,
         slotStart: selectedSlot.start.toISOString(),
         slotDuration: selectedSlot.durationMinutes.toString(),
-        price: coachProfile.sessionRate.toString(),
+        price: selectedService.price.toString(),
+        serviceType: selectedService.title,
+        objectives: JSON.stringify(selectedObjectives),
       },
     });
   };
@@ -187,16 +312,38 @@ export default function BookCoachScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="subtitle">Book Session</ThemedText>
-          <View style={{ width: 24 }} />
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Clickable onPress={handleBack} hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color={palette.text} />
+        </Clickable>
+        <ThemedText type="subtitle">
+          {step === 1 ? 'Choose Service' : step === 2 ? 'Select Time' : 'Set Objectives'}
+        </ThemedText>
+        <View style={{ width: 24 }} />
+      </View>
 
+      {/* Progress indicator */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
+          {[1, 2, 3].map((num) => (
+            <View
+              key={num}
+              style={[
+                styles.progressDot,
+                {
+                  backgroundColor: num <= step ? palette.tint : palette.border,
+                },
+              ]}
+            />
+          ))}
+        </View>
+        <ThemedText style={[styles.progressText, { color: palette.muted }]}>
+          Step {step} of 3
+        </ThemedText>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
         {/* Coach Info */}
         <SurfaceCard style={styles.coachCard}>
           <View style={styles.coachHeader}>
@@ -216,93 +363,24 @@ export default function BookCoachScreen() {
                 </ThemedText>
               </View>
             </View>
-            <ThemedText type="defaultSemiBold" style={[styles.price, { color: palette.tint }]}>
-              {formatGBP(coachProfile.sessionRate)}
-            </ThemedText>
           </View>
         </SurfaceCard>
 
-        {/* Date Selection */}
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Select Date
-          </ThemedText>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateList}>
-            {availability.map((day) => {
-              const isSelected = day.id === selectedDayId;
-              const dateObj = new Date(day.date);
-              const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-              const dayNum = dateObj.getDate();
-              const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
-
-              return (
-                <Clickable
-                  key={day.id}
-                  onPress={() => setSelectedDayId(day.id)}
-                  style={({ pressed }) => [
-                    styles.dateCard,
-                    {
-                      backgroundColor: isSelected ? palette.tint : palette.surface,
-                      borderColor: isSelected ? palette.tint : palette.border,
-                      opacity: pressed ? 0.7 : 1,
-                    },
-                  ]}
-                >
-                  <ThemedText
-                    style={[
-                      styles.dayName,
-                      { color: isSelected ? '#fff' : palette.text },
-                    ]}
-                  >
-                    {dayName}
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.dayNum,
-                      { color: isSelected ? '#fff' : palette.text },
-                    ]}
-                  >
-                    {dayNum}
-                  </ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.monthText,
-                      { color: isSelected ? '#fff' : palette.muted },
-                    ]}
-                  >
-                    {month}
-                  </ThemedText>
-                </Clickable>
-              );
-            })}
-          </ScrollView>
-        </View>
-
-        {/* Time Slot Selection */}
-        <View style={styles.section}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Available Times
-          </ThemedText>
-          {selectedDay?.slots.length === 0 ? (
-            <View style={styles.noSlotsContainer}>
-              <ThemedText style={{ color: palette.muted }}>No available slots for this date</ThemedText>
-            </View>
-          ) : (
-            <View style={styles.slotList}>
-              {selectedDay?.slots.map((slot) => {
-                const isSelected = slot.id === selectedSlotId;
-                const timeString = slot.start.toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                });
-
+        {/* STEP 1: Service Type Selection */}
+        {step === 1 && (
+          <View style={styles.section}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              Select Session Type
+            </ThemedText>
+            <View style={styles.serviceList}>
+              {SERVICES.map((service) => {
+                const isSelected = service.id === selectedServiceId;
                 return (
                   <Clickable
-                    key={slot.id}
-                    onPress={() => setSelectedSlotId(slot.id)}
+                    key={service.id}
+                    onPress={() => setSelectedServiceId(service.id)}
                     style={({ pressed }) => [
-                      styles.slotCard,
+                      styles.serviceCard,
                       {
                         backgroundColor: isSelected ? palette.tint + '15' : palette.surface,
                         borderColor: isSelected ? palette.tint : palette.border,
@@ -310,48 +388,233 @@ export default function BookCoachScreen() {
                       },
                     ]}
                   >
-                    <View style={styles.slotContent}>
-                      <View style={styles.slotLeft}>
-                        <ThemedText type="defaultSemiBold" style={styles.slotTitle}>
-                          {slot.title}
-                        </ThemedText>
-                        <ThemedText style={[styles.slotFocus, { color: palette.muted }]}>
-                          {slot.focus}
-                        </ThemedText>
-                        <View style={styles.slotMeta}>
-                          <Ionicons name="time-outline" size={14} color={palette.muted} />
-                          <ThemedText style={[styles.slotTime, { color: palette.muted }]}>
-                            {timeString} · {slot.durationMinutes} min
-                          </ThemedText>
-                        </View>
+                    <View style={styles.serviceContent}>
+                      <View style={[styles.serviceIcon, { backgroundColor: palette.tint + '20' }]}>
+                        <Ionicons name={service.icon} size={28} color={palette.tint} />
                       </View>
-                      {isSelected && (
-                        <Ionicons name="checkmark-circle" size={24} color={palette.tint} />
-                      )}
+                      <View style={styles.serviceInfo}>
+                        <ThemedText type="defaultSemiBold" style={styles.serviceTitle}>
+                          {service.title}
+                        </ThemedText>
+                        <ThemedText style={[styles.serviceDescription, { color: palette.muted }]}>
+                          {service.description}
+                        </ThemedText>
+                        {service.capacity && service.spotsLeft !== undefined && (
+                          <View style={styles.capacityRow}>
+                            <Ionicons name="people-outline" size={14} color={palette.muted} />
+                            <ThemedText style={[styles.capacityText, { color: palette.muted }]}>
+                              {service.spotsLeft}/{service.capacity} spots left
+                            </ThemedText>
+                          </View>
+                        )}
+                      </View>
+                      <ThemedText type="defaultSemiBold" style={[styles.servicePrice, { color: palette.tint }]}>
+                        {formatGBP(service.price)}
+                        {service.id !== 'team' && <ThemedText style={styles.priceUnit}>/hr</ThemedText>}
+                      </ThemedText>
                     </View>
+                    {isSelected && (
+                      <View style={styles.selectedBadge}>
+                        <Ionicons name="checkmark-circle" size={24} color={palette.tint} />
+                      </View>
+                    )}
                   </Clickable>
                 );
               })}
             </View>
-          )}
-        </View>
+          </View>
+        )}
+
+        {/* STEP 2: Date & Time Selection */}
+        {step === 2 && (
+          <>
+            {/* Date Selection */}
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                Select Date
+              </ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateList}>
+                {filteredAvailability.map((day) => {
+                  const isSelected = day.id === selectedDayId;
+                  const dateObj = new Date(day.date);
+                  const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                  const dayNum = dateObj.getDate();
+                  const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
+
+                  return (
+                    <Clickable
+                      key={day.id}
+                      onPress={() => setSelectedDayId(day.id)}
+                      style={({ pressed }) => [
+                        styles.dateCard,
+                        {
+                          backgroundColor: isSelected ? palette.tint : palette.surface,
+                          borderColor: isSelected ? palette.tint : palette.border,
+                          opacity: pressed ? 0.7 : 1,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.dayName,
+                          { color: isSelected ? '#fff' : palette.text },
+                        ]}
+                      >
+                        {dayName}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.dayNum,
+                          { color: isSelected ? '#fff' : palette.text },
+                        ]}
+                      >
+                        {dayNum}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.monthText,
+                          { color: isSelected ? '#fff' : palette.muted },
+                        ]}
+                      >
+                        {month}
+                      </ThemedText>
+                    </Clickable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Time Slot Selection */}
+            <View style={styles.section}>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                Available Times
+              </ThemedText>
+              {selectedDay?.slots.length === 0 ? (
+                <View style={styles.noSlotsContainer}>
+                  <ThemedText style={{ color: palette.muted }}>
+                    No {selectedService?.title} slots available for this date
+                  </ThemedText>
+                </View>
+              ) : (
+                <View style={styles.slotList}>
+                  {selectedDay?.slots.map((slot) => {
+                    const isSelected = slot.id === selectedSlotId;
+                    const timeString = slot.start.toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                    });
+
+                    return (
+                      <Clickable
+                        key={slot.id}
+                        onPress={() => setSelectedSlotId(slot.id)}
+                        style={({ pressed }) => [
+                          styles.slotCard,
+                          {
+                            backgroundColor: isSelected ? palette.tint + '15' : palette.surface,
+                            borderColor: isSelected ? palette.tint : palette.border,
+                            opacity: pressed ? 0.7 : 1,
+                          },
+                        ]}
+                      >
+                        <View style={styles.slotContent}>
+                          <View style={styles.slotLeft}>
+                            <ThemedText type="defaultSemiBold" style={styles.slotTitle}>
+                              {slot.title}
+                            </ThemedText>
+                            <ThemedText style={[styles.slotFocus, { color: palette.muted }]}>
+                              {slot.focus}
+                            </ThemedText>
+                            <View style={styles.slotMeta}>
+                              <Ionicons name="time-outline" size={14} color={palette.muted} />
+                              <ThemedText style={[styles.slotTime, { color: palette.muted }]}>
+                                {timeString} · {slot.durationMinutes} min
+                              </ThemedText>
+                            </View>
+                          </View>
+                          {isSelected && (
+                            <Ionicons name="checkmark-circle" size={24} color={palette.tint} />
+                          )}
+                        </View>
+                      </Clickable>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
+        {/* STEP 3: Objectives Selection */}
+        {step === 3 && (
+          <View style={styles.section}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              What do you want to work on?
+            </ThemedText>
+            <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+              Select up to 3 focus areas
+            </ThemedText>
+            <View style={styles.objectivesGrid}>
+              {FOOTBALL_OBJECTIVES.map((objective) => {
+                const isSelected = selectedObjectives.includes(objective);
+                return (
+                  <Pressable
+                    key={objective}
+                    onPress={() => toggleObjective(objective)}
+                    style={[
+                      styles.objectiveChip,
+                      {
+                        backgroundColor: isSelected ? palette.tint : palette.surface,
+                        borderColor: isSelected ? palette.tint : palette.border,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={isSelected ? 'checkmark-circle' : 'radio-button-off-outline'}
+                      size={20}
+                      color={isSelected ? '#fff' : palette.muted}
+                    />
+                    <ThemedText
+                      style={[
+                        styles.objectiveText,
+                        { color: isSelected ? '#fff' : palette.text },
+                      ]}
+                    >
+                      {objective}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
       </ScrollView>
 
-      {/* Book Button */}
+      {/* Footer Button */}
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
         <Clickable
-          onPress={handleBooking}
-          disabled={!selectedSlot}
+          onPress={handleContinue}
+          disabled={
+            (step === 1 && !selectedServiceId) ||
+            (step === 2 && !selectedSlot) ||
+            (step === 3 && selectedObjectives.length === 0)
+          }
           style={({ pressed }) => [
-            styles.bookButton,
+            styles.continueButton,
             {
-              backgroundColor: selectedSlot ? palette.tint : palette.border,
+              backgroundColor:
+                (step === 1 && selectedServiceId) ||
+                (step === 2 && selectedSlot) ||
+                (step === 3 && selectedObjectives.length > 0)
+                  ? palette.tint
+                  : palette.border,
               opacity: pressed ? 0.8 : 1,
             },
           ]}
         >
-          <ThemedText style={styles.bookButtonText}>
-            Continue to Payment
+          <ThemedText style={styles.continueButtonText}>
+            {step === 3 ? 'Review Booking' : 'Continue'}
           </ThemedText>
         </Clickable>
       </View>
@@ -373,6 +636,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
+  },
+  progressContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  progressBar: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  progressDot: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   errorContainer: {
     flex: 1,
@@ -414,9 +696,6 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 13,
   },
-  price: {
-    fontSize: 18,
-  },
   section: {
     marginBottom: Spacing.lg,
   },
@@ -424,6 +703,63 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: Spacing.md,
     paddingHorizontal: Spacing.lg,
+  },
+  helperText: {
+    fontSize: 13,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  serviceList: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  serviceCard: {
+    padding: Spacing.lg,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+  },
+  serviceContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  serviceIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  serviceInfo: {
+    flex: 1,
+    gap: Spacing.xs / 2,
+  },
+  serviceTitle: {
+    fontSize: 16,
+  },
+  serviceDescription: {
+    fontSize: 14,
+  },
+  capacityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+    marginTop: Spacing.xs / 2,
+  },
+  capacityText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  servicePrice: {
+    fontSize: 20,
+  },
+  priceUnit: {
+    fontSize: 14,
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
   },
   dateList: {
     paddingHorizontal: Spacing.lg,
@@ -487,17 +823,34 @@ const styles = StyleSheet.create({
   slotTime: {
     fontSize: 13,
   },
+  objectivesGrid: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  objectiveChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+  },
+  objectiveText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   footer: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderTopWidth: 1,
   },
-  bookButton: {
+  continueButton: {
     paddingVertical: Spacing.md + 4,
     borderRadius: Radii.md,
     alignItems: 'center',
   },
-  bookButtonText: {
+  continueButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
