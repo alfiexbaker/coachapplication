@@ -15,12 +15,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { ChildSelector } from '@/components/bookings/child-selector';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
-import { User } from '@/constants/app-types';
 
 export default function ConfirmBookingScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -39,6 +37,8 @@ export default function ConfirmBookingScreen() {
   const serviceType = params.serviceType as string;
   const objectivesParam = params.objectives as string;
   const objectives = objectivesParam ? JSON.parse(objectivesParam) : [];
+  const athleteIdsParam = params.athleteIds as string;
+  const athleteIds = athleteIdsParam ? JSON.parse(athleteIdsParam) : [];
 
   // Mock group participants for group sessions
   const isGroupSession = serviceType === 'Small Group';
@@ -57,14 +57,8 @@ export default function ConfirmBookingScreen() {
   const [cvv, setCvv] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Child selection state for parents
-  const [children, setChildren] = useState<User[]>([]);
-  const [selectedChildId, setSelectedChildId] = useState<string | undefined>();
-  const [athleteInfo, setAthleteInfo] = useState<{
-    id: string;
-    name: string;
-    avatar?: string;
-  } | null>(null);
+  // Get athlete info from athleteIds
+  const [athletesInfo, setAthletesInfo] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
 
   const slotDate = new Date(slotStart);
   const formattedDate = slotDate.toLocaleDateString('en-US', {
@@ -78,56 +72,27 @@ export default function ConfirmBookingScreen() {
     hour12: true,
   });
 
-  // Determine athlete based on user role
+  // Fetch athlete info based on athleteIds
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || athleteIds.length === 0) return;
 
     if (currentUser.role === 'PARENT') {
-      // Parent: need to select child
       const parentChildren = getChildrenForParent(currentUser.id);
-      setChildren(parentChildren);
-
-      if (parentChildren.length === 0) {
-        Alert.alert('No Children Found', 'Please add children to your account before booking sessions.', [
-          {
-            text: 'Go Back',
-            onPress: () => router.back(),
-          },
-        ]);
-      } else if (parentChildren.length === 1) {
-        // Auto-select single child
-        const child = parentChildren[0];
-        setSelectedChildId(child.id);
-        setAthleteInfo({
-          id: child.id,
-          name: child.name,
-          avatar: child.avatar,
-        });
-      }
-      // For multiple children, user will select manually
-    } else if (currentUser.role === 'USER') {
+      const selectedChildren = parentChildren.filter((child) => athleteIds.includes(child.id));
+      setAthletesInfo(selectedChildren.map((child) => ({
+        id: child.id,
+        name: child.name,
+        avatar: child.avatar,
+      })));
+    } else {
       // User: they ARE the athlete
-      setAthleteInfo({
+      setAthletesInfo([{
         id: currentUser.id,
         name: currentUser.name,
         avatar: currentUser.avatar,
-      });
+      }]);
     }
-  }, [currentUser]);
-
-  // Update athlete info when child selection changes
-  useEffect(() => {
-    if (selectedChildId && children.length > 0) {
-      const selectedChild = children.find((c) => c.id === selectedChildId);
-      if (selectedChild) {
-        setAthleteInfo({
-          id: selectedChild.id,
-          name: selectedChild.name,
-          avatar: selectedChild.avatar,
-        });
-      }
-    }
-  }, [selectedChildId, children]);
+  }, [currentUser, athleteIds]);
 
   const handleCardNumberChange = (value: string) => {
     // Remove non-digits
@@ -154,13 +119,7 @@ export default function ConfirmBookingScreen() {
   };
 
   const handleConfirmBooking = async () => {
-    // Validate child selection for parents with multiple children
-    if (currentUser?.role === 'PARENT' && children.length > 1 && !selectedChildId) {
-      Alert.alert('Error', 'Please select which child this session is for');
-      return;
-    }
-
-    if (!athleteInfo) {
+    if (athletesInfo.length === 0) {
       Alert.alert('Error', 'Unable to determine athlete information. Please try again.');
       return;
     }
@@ -190,39 +149,43 @@ export default function ConfirmBookingScreen() {
     // Simulate payment processing
     setTimeout(async () => {
       try {
-        // Create booking object
-        const newBooking = {
-          id: `booking-${Date.now()}`,
+        // Create one booking for each athlete
+        const existingBookings = await AsyncStorage.getItem('session_bookings');
+        const bookings = existingBookings ? JSON.parse(existingBookings) : [];
+
+        const newBookings = athletesInfo.map((athleteInfo, index) => ({
+          id: `booking-${Date.now()}-${index}`,
           coachId,
           coachName,
-          athleteId: athleteInfo.id, // The child or user themselves
+          athleteId: athleteInfo.id,
           athleteName: athleteInfo.name,
-          bookedById: currentUser?.id, // Who made the booking (parent or user)
+          bookedById: currentUser?.id,
           scheduledAt: slotStart,
           status: 'CONFIRMED',
           duration: slotDuration,
           location: 'Training Ground',
           service: slotTitle,
-          serviceType, // Added service type
+          serviceType,
           focus: slotFocus,
-          objectives, // Added athlete objectives
+          objectives,
           price,
           paymentMethod: `Card ending in ${cardNumber.slice(-4)}`,
           createdAt: new Date().toISOString(),
-        };
+        }));
 
-        // Store in AsyncStorage for this session
-        const existingBookings = await AsyncStorage.getItem('session_bookings');
-        const bookings = existingBookings ? JSON.parse(existingBookings) : [];
-        bookings.push(newBooking);
+        bookings.push(...newBookings);
         await AsyncStorage.setItem('session_bookings', JSON.stringify(bookings));
 
         setIsProcessing(false);
 
-        // Show success and navigate
+        const athleteNames = athletesInfo.map((a) => a.name).join(', ');
+        const message = athletesInfo.length === 1
+          ? `Your session with ${coachName} has been booked for ${formattedDate} at ${formattedTime}`
+          : `${athletesInfo.length} sessions booked for ${athleteNames} with ${coachName} on ${formattedDate} at ${formattedTime}`;
+
         Alert.alert(
           'Booking Confirmed! 🎉',
-          `Your session with ${coachName} has been booked for ${formattedDate} at ${formattedTime}`,
+          message,
           [
             {
               text: 'View Bookings',
@@ -242,7 +205,7 @@ export default function ConfirmBookingScreen() {
         setIsProcessing(false);
         Alert.alert('Error', 'Failed to process booking. Please try again.');
       }
-    }, 2000); // Simulate 2 second processing time
+    }, 2000);
   };
 
   return (
@@ -270,6 +233,17 @@ export default function ConfirmBookingScreen() {
             <ThemedText style={{ color: palette.muted }}>Coach</ThemedText>
             <ThemedText type="defaultSemiBold">{coachName}</ThemedText>
           </View>
+
+          {athletesInfo.length > 0 && (
+            <View style={styles.summaryRow}>
+              <ThemedText style={{ color: palette.muted }}>
+                {athletesInfo.length === 1 ? 'Athlete' : 'Athletes'}
+              </ThemedText>
+              <ThemedText type="defaultSemiBold">
+                {athletesInfo.map((a) => a.name).join(', ')}
+              </ThemedText>
+            </View>
+          )}
 
           <View style={styles.summaryRow}>
             <ThemedText style={{ color: palette.muted }}>Session</ThemedText>
@@ -312,27 +286,13 @@ export default function ConfirmBookingScreen() {
             </View>
           )}
 
-          {isGroupSession && groupParticipants.length > 0 && (
+          {isGroupSession && (
             <View style={styles.participantsSection}>
               <View style={styles.participantsHeader}>
                 <Ionicons name="people" size={16} color={palette.muted} />
                 <ThemedText style={{ color: palette.muted }}>
-                  Group Participants ({groupParticipants.length + 1}/8)
+                  Group Session: {groupParticipants.length + 1}/8 spots filled
                 </ThemedText>
-              </View>
-              <View style={styles.participantsList}>
-                {athleteInfo && (
-                  <View style={[styles.participantBubble, { backgroundColor: palette.tint + '15' }]}>
-                    <ThemedText style={[styles.participantName, { color: palette.tint }]}>
-                      {athleteInfo.name.split(' ')[0]} (You)
-                    </ThemedText>
-                  </View>
-                )}
-                {groupParticipants.map((participant) => (
-                  <View key={participant.id} style={[styles.participantBubble, { backgroundColor: palette.surface }]}>
-                    <ThemedText style={styles.participantName}>{participant.name}</ThemedText>
-                  </View>
-                ))}
               </View>
             </View>
           )}
@@ -340,26 +300,14 @@ export default function ConfirmBookingScreen() {
           <View style={[styles.divider, { backgroundColor: palette.border }]} />
 
           <View style={styles.summaryRow}>
-            <ThemedText type="defaultSemiBold">Total</ThemedText>
+            <ThemedText type="defaultSemiBold">
+              {athletesInfo.length > 1 ? `Total (${athletesInfo.length} × ${formatGBP(price)})` : 'Total'}
+            </ThemedText>
             <ThemedText type="subtitle" style={[styles.totalPrice, { color: palette.tint }]}>
-              {formatGBP(price)}
+              {formatGBP(price * athletesInfo.length)}
             </ThemedText>
           </View>
         </SurfaceCard>
-
-        {/* Child Selector for Parents */}
-        {currentUser?.role === 'PARENT' && children.length > 0 && (
-          <View style={styles.section}>
-            <SurfaceCard style={styles.childSelectorCard}>
-              <ChildSelector
-                children={children}
-                selectedChildId={selectedChildId}
-                onSelectChild={setSelectedChildId}
-                autoSelected={children.length === 1}
-              />
-            </SurfaceCard>
-          </View>
-        )}
 
         {/* Payment Form */}
         <View style={styles.section}>
@@ -454,7 +402,7 @@ export default function ConfirmBookingScreen() {
             </View>
           ) : (
             <ThemedText style={styles.confirmButtonText}>
-              Confirm & Pay {formatGBP(price)}
+              Confirm & Pay {formatGBP(price * athletesInfo.length)}
             </ThemedText>
           )}
         </Pressable>

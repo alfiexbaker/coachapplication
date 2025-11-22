@@ -196,8 +196,20 @@ export default function BookCoachScreen() {
   const coachProfile = coach ? getCoachProfile(coach.id) : null;
   const availability = useMemo(() => buildAvailability(), []);
 
-  // Wizard steps: 1 = Service, 2 = Date/Time, 3 = Objectives
-  const [step, setStep] = useState(1);
+  // Parent child selection
+  const [children, setChildren] = useState<any[]>([]);
+  const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (currentUser?.role === 'PARENT') {
+      const parentChildren = require('@/constants/mock-data').getChildrenForParent(currentUser.id);
+      setChildren(parentChildren);
+    }
+  }, [currentUser]);
+
+  // Wizard steps: 0 = Children (for parents), 1 = Service, 2 = Date/Time, 3 = Objectives
+  const isParent = currentUser?.role === 'PARENT';
+  const [step, setStep] = useState(isParent ? 0 : 1);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
   const [selectedDayId, setSelectedDayId] = useState(availability[0]?.id);
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
@@ -243,8 +255,23 @@ export default function BookCoachScreen() {
     }
   };
 
+  const toggleChild = (childId: string) => {
+    if (selectedChildIds.includes(childId)) {
+      setSelectedChildIds(selectedChildIds.filter((id) => id !== childId));
+    } else {
+      setSelectedChildIds([...selectedChildIds, childId]);
+    }
+  };
+
   const handleContinue = () => {
-    if (step === 1) {
+    if (step === 0) {
+      // Parent child selection
+      if (selectedChildIds.length === 0) {
+        Alert.alert('Select children', 'Please select at least one child');
+        return;
+      }
+      setStep(1);
+    } else if (step === 1) {
       if (!selectedServiceId) {
         Alert.alert('Select a service', 'Please choose a session type');
         return;
@@ -266,7 +293,8 @@ export default function BookCoachScreen() {
   };
 
   const handleBack = () => {
-    if (step > 1) {
+    const minStep = isParent ? 0 : 1;
+    if (step > minStep) {
       setStep(step - 1);
     } else {
       router.back();
@@ -277,6 +305,11 @@ export default function BookCoachScreen() {
     if (!selectedSlot || !coach || !coachProfile || !currentUser || !selectedService) {
       return;
     }
+
+    // For parents, pass selected child IDs; for users, pass their own ID
+    const athleteIds = isParent && selectedChildIds.length > 0
+      ? selectedChildIds
+      : [currentUser.id];
 
     router.push({
       pathname: '/confirm-booking',
@@ -291,6 +324,7 @@ export default function BookCoachScreen() {
         price: selectedService.price.toString(),
         serviceType: selectedService.title,
         objectives: JSON.stringify(selectedObjectives),
+        athleteIds: JSON.stringify(athleteIds), // Multiple children for parents
       },
     });
   };
@@ -318,7 +352,7 @@ export default function BookCoachScreen() {
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
         <ThemedText type="subtitle">
-          {step === 1 ? 'Choose Service' : step === 2 ? 'Select Time' : 'Set Objectives'}
+          {step === 0 ? 'Select Children' : step === 1 ? 'Choose Service' : step === 2 ? 'Select Time' : 'Set Objectives'}
         </ThemedText>
         <View style={{ width: 24 }} />
       </View>
@@ -326,7 +360,7 @@ export default function BookCoachScreen() {
       {/* Progress indicator */}
       <View style={styles.progressContainer}>
         <View style={styles.progressBar}>
-          {[1, 2, 3].map((num) => (
+          {(isParent ? [0, 1, 2, 3] : [1, 2, 3]).map((num) => (
             <View
               key={num}
               style={[
@@ -339,7 +373,7 @@ export default function BookCoachScreen() {
           ))}
         </View>
         <ThemedText style={[styles.progressText, { color: palette.muted }]}>
-          Step {step} of 3
+          Step {isParent ? step + 1 : step} of {isParent ? 4 : 3}
         </ThemedText>
       </View>
 
@@ -365,6 +399,52 @@ export default function BookCoachScreen() {
             </View>
           </View>
         </SurfaceCard>
+
+        {/* STEP 0: Child Selection (Parents Only) */}
+        {step === 0 && isParent && (
+          <View style={styles.section}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+              Who is this session for?
+            </ThemedText>
+            <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+              Select one or more children
+            </ThemedText>
+            <View style={styles.childrenGrid}>
+              {children.map((child) => {
+                const isSelected = selectedChildIds.includes(child.id);
+                return (
+                  <Pressable
+                    key={child.id}
+                    onPress={() => toggleChild(child.id)}
+                    style={[
+                      styles.childCard,
+                      {
+                        backgroundColor: isSelected ? palette.tint + '15' : palette.surface,
+                        borderColor: isSelected ? palette.tint : palette.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.childCardContent}>
+                      <Ionicons
+                        name={isSelected ? 'checkmark-circle' : 'radio-button-off-outline'}
+                        size={24}
+                        color={isSelected ? palette.tint : palette.muted}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.childName,
+                          { color: isSelected ? palette.tint : palette.text },
+                        ]}
+                      >
+                        {child.name}
+                      </ThemedText>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* STEP 1: Service Type Selection */}
         {step === 1 && (
@@ -596,6 +676,7 @@ export default function BookCoachScreen() {
         <Clickable
           onPress={handleContinue}
           disabled={
+            (step === 0 && selectedChildIds.length === 0) ||
             (step === 1 && !selectedServiceId) ||
             (step === 2 && !selectedSlot) ||
             (step === 3 && selectedObjectives.length === 0)
@@ -604,6 +685,7 @@ export default function BookCoachScreen() {
             styles.continueButton,
             {
               backgroundColor:
+                (step === 0 && selectedChildIds.length > 0) ||
                 (step === 1 && selectedServiceId) ||
                 (step === 2 && selectedSlot) ||
                 (step === 3 && selectedObjectives.length > 0)
@@ -837,6 +919,24 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   objectiveText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  childrenGrid: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  childCard: {
+    padding: Spacing.lg,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+  },
+  childCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  childName: {
     fontSize: 16,
     fontWeight: '600',
   },
