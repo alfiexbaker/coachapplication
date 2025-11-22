@@ -98,11 +98,11 @@ export default function AddSessionScreen() {
         athleteName: athlete!.name,
       };
 
-      // Store session in AsyncStorage
-      const existingSessionsJson = await AsyncStorage.getItem('manual_sessions');
+      // Store session in AsyncStorage (same location as booking feedback)
+      const existingSessionsJson = await AsyncStorage.getItem('coach_sessions');
       const existingSessions = existingSessionsJson ? JSON.parse(existingSessionsJson) : [];
       existingSessions.push(newSession);
-      await AsyncStorage.setItem('manual_sessions', JSON.stringify(existingSessions));
+      await AsyncStorage.setItem('coach_sessions', JSON.stringify(existingSessions));
 
       logger.info('Session added successfully', { sessionId: newSession.id });
 
