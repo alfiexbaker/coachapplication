@@ -163,6 +163,16 @@ export interface BookingSummary {
   };
   coachId?: string;
   clientId?: string;
+  // Group booking fields
+  isGroupSession?: boolean;
+  maxParticipants?: number;
+  currentParticipants?: number;
+  participants?: Array<{
+    id: string;
+    name: string;
+    avatar: string;
+    status: 'confirmed' | 'pending' | 'cancelled';
+  }>;
 }
 
 // Session Offering System

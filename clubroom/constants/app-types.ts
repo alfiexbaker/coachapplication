@@ -68,6 +68,16 @@ export interface Booking {
   notes?: string;
   coachName?: string; // Denormalized for easy display
   athleteName?: string; // Denormalized for easy display
+  // Group booking fields
+  isGroupSession?: boolean;
+  maxParticipants?: number;
+  currentParticipants?: number;
+  participants?: Array<{
+    id: string;
+    name: string;
+    avatar: string;
+    status: 'confirmed' | 'pending' | 'cancelled';
+  }>;
 }
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';

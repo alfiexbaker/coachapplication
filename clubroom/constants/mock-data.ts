@@ -85,6 +85,33 @@ export const MOCK_USERS: User[] = [
     postcode: 'SW1A 4DD',
     dateOfBirth: '2007-12-03',
   },
+  {
+    id: 'user4',
+    email: 'sophie.taylor@email.com',
+    role: 'USER',
+    name: 'Sophie Taylor',
+    avatar: '👧',
+    postcode: 'SW2A 1EE',
+    dateOfBirth: '2008-04-18',
+  },
+  {
+    id: 'user5',
+    email: 'liam.davies@email.com',
+    role: 'USER',
+    name: 'Liam Davies',
+    avatar: '🧒',
+    postcode: 'SW3A 2FF',
+    dateOfBirth: '2009-06-22',
+  },
+  {
+    id: 'user6',
+    email: 'ella.martinez@email.com',
+    role: 'USER',
+    name: 'Ella Martinez',
+    avatar: '👧',
+    postcode: 'SW1A 5GG',
+    dateOfBirth: '2008-11-09',
+  },
 
   // Parents
   {
@@ -232,6 +259,30 @@ export const MOCK_BOOKINGS: Booking[] = [
     notes: 'Focus on positioning and shot-stopping',
     coachName: 'Sarah Mitchell',
     athleteName: 'Tom Henderson',
+  },
+  // Group booking with multiple participants
+  {
+    id: 'book_group1',
+    coachId: 'coach2',
+    athleteId: 'user1', // Primary booker
+    bookedById: 'parent1',
+    status: 'CONFIRMED',
+    scheduledAt: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000).toISOString(), // 5 days from now at 10am
+    duration: 90,
+    location: 'Hackney Marshes',
+    notes: 'Group striker training - Advanced finishing clinic',
+    coachName: 'Mike Thompson',
+    athleteName: 'Tom Henderson',
+    isGroupSession: true,
+    maxParticipants: 8,
+    currentParticipants: 5,
+    participants: [
+      { id: 'user1', name: 'Tom Henderson', avatar: '👦', status: 'confirmed' },
+      { id: 'user3', name: 'James Wilson', avatar: '🧑', status: 'confirmed' },
+      { id: 'user4', name: 'Sophie Taylor', avatar: '👧', status: 'confirmed' },
+      { id: 'user5', name: 'Liam Davies', avatar: '🧒', status: 'confirmed' },
+      { id: 'user6', name: 'Ella Martinez', avatar: '👧', status: 'pending' },
+    ],
   },
   {
     id: 'book2',
@@ -492,6 +543,40 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     coachName: 'Mike Thompson',
     athleteName: 'James Wilson',
   },
+  // Group booking conversations
+  {
+    id: 'conv5',
+    participants: ['coach2', 'user4'],
+    relatedAthleteId: 'user4',
+    relatedBookingId: 'book_group1',
+    lastMessageAt: new Date(today.getTime() - 1 * 60 * 60 * 1000).toISOString(),
+    lastMessage: 'Looking forward to the group session on Saturday!',
+    unreadCount: 0,
+    coachName: 'Mike Thompson',
+    athleteName: 'Sophie Taylor',
+  },
+  {
+    id: 'conv6',
+    participants: ['coach2', 'user5'],
+    relatedAthleteId: 'user5',
+    relatedBookingId: 'book_group1',
+    lastMessageAt: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString(),
+    lastMessage: 'Should I bring my own ball?',
+    unreadCount: 0,
+    coachName: 'Mike Thompson',
+    athleteName: 'Liam Davies',
+  },
+  {
+    id: 'conv7',
+    participants: ['coach2', 'user6'],
+    relatedAthleteId: 'user6',
+    relatedBookingId: 'book_group1',
+    lastMessageAt: new Date(today.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+    lastMessage: 'Can you confirm my spot for the clinic?',
+    unreadCount: 1,
+    coachName: 'Mike Thompson',
+    athleteName: 'Ella Martinez',
+  },
 ];
 
 // ===== MESSAGES =====
@@ -542,6 +627,66 @@ export const MOCK_MESSAGES: Message[] = [
     senderName: 'Mike Thompson',
     content: 'Tom is making great progress with his finishing!',
     sentAt: new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    read: false,
+  },
+
+  // Group booking messages - Sophie Taylor
+  {
+    id: 'msg6',
+    conversationId: 'conv5',
+    senderId: 'user4',
+    senderName: 'Sophie Taylor',
+    content: 'Hi Coach Mike! I\'m really excited about the group clinic this weekend.',
+    sentAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+  {
+    id: 'msg7',
+    conversationId: 'conv5',
+    senderId: 'coach2',
+    senderName: 'Mike Thompson',
+    content: 'Great to hear Sophie! We\'ll be working on advanced finishing techniques. See you Saturday!',
+    sentAt: new Date(today.getTime() - 1.5 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+  {
+    id: 'msg8',
+    conversationId: 'conv5',
+    senderId: 'user4',
+    senderName: 'Sophie Taylor',
+    content: 'Looking forward to the group session on Saturday!',
+    sentAt: new Date(today.getTime() - 1 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+
+  // Group booking messages - Liam Davies
+  {
+    id: 'msg9',
+    conversationId: 'conv6',
+    senderId: 'user5',
+    senderName: 'Liam Davies',
+    content: 'Hi Coach! This is my first group session. Should I bring my own ball?',
+    sentAt: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+  {
+    id: 'msg10',
+    conversationId: 'conv6',
+    senderId: 'coach2',
+    senderName: 'Mike Thompson',
+    content: 'Hi Liam! No need to bring a ball, I\'ll have plenty for the whole group. Just bring your boots and water!',
+    sentAt: new Date(today.getTime() - 5.5 * 60 * 60 * 1000).toISOString(),
+    read: true,
+  },
+
+  // Group booking messages - Ella Martinez (pending confirmation)
+  {
+    id: 'msg11',
+    conversationId: 'conv7',
+    senderId: 'user6',
+    senderName: 'Ella Martinez',
+    content: 'Hi Coach Mike, I\'m interested in joining the striker clinic this Saturday. Can you confirm my spot for the clinic?',
+    sentAt: new Date(today.getTime() - 12 * 60 * 60 * 1000).toISOString(),
     read: false,
   },
 ];
@@ -1757,7 +1902,7 @@ export const upcomingBookings: BookingSummary[] = MOCK_BOOKINGS.filter(
   id: booking.id,
   coachName: booking.coachName,
   childName: booking.athleteName,
-  service: 'Football Coaching',
+  service: booking.isGroupSession ? 'Group Coaching Session' : 'Football Coaching',
   start: booking.scheduledAt,
   status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
   locationLabel: booking.location,
@@ -1771,6 +1916,11 @@ export const upcomingBookings: BookingSummary[] = MOCK_BOOKINGS.filter(
   },
   coachId: booking.coachId,
   clientId: booking.athleteId,
+  // Group booking fields
+  isGroupSession: booking.isGroupSession,
+  maxParticipants: booking.maxParticipants,
+  currentParticipants: booking.currentParticipants,
+  participants: booking.participants,
 }));
 
 // Session history for StatisticsScreen
