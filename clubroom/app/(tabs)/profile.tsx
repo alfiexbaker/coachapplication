@@ -247,6 +247,27 @@ export default function ProfileScreen() {
             </View>
           </View>
         </SurfaceCard>
+
+        {/* Sign Out Button */}
+        <Clickable
+          style={({ pressed }) => [
+            styles.signOutButton,
+            {
+              borderColor: Colors.light.error,
+              backgroundColor: pressed ? `${Colors.light.error}10` : 'transparent',
+            },
+          ]}
+          onPress={async () => {
+            logger.press('SignOutButton');
+            await logout();
+            router.replace('/');
+          }}>
+          <Ionicons name="log-out-outline" size={20} color={Colors.light.error} />
+          <ThemedText style={[styles.signOutText, { color: Colors.light.error }]}>
+            Sign Out
+          </ThemedText>
+        </Clickable>
+
         {/* Quick Access Cards */}
         {actions.length > 0 && (
           <View style={styles.sectionContainer}>
@@ -419,6 +440,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     fontSize: 11,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.button,
+    borderWidth: 1.5,
+  },
+  signOutText: {
+    fontWeight: '600',
+    fontSize: 16,
   },
   sectionContainer: {
     gap: Spacing.sm,
