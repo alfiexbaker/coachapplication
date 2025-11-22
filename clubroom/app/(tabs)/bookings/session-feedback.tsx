@@ -12,12 +12,17 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { FootballObjective } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SessionFeedbackScreen');
 
 const FOOTBALL_SKILLS: FootballObjective[] = [
   'Dribbling',
@@ -32,6 +37,7 @@ export default function SessionFeedbackScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const params = useLocalSearchParams();
+  const { currentUser } = useAuth();
 
   // Get athlete's objectives from params (what they wanted to work on)
   const athleteObjectivesParam = params.athleteObjectives as string;
@@ -39,6 +45,8 @@ export default function SessionFeedbackScreen() {
     ? JSON.parse(athleteObjectivesParam)
     : [];
   const athleteName = (params.athleteName as string) || 'the athlete';
+  const athleteId = params.athleteId as string;
+  const bookingId = params.bookingId as string;
 
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState('');
@@ -55,7 +63,7 @@ export default function SessionFeedbackScreen() {
     }
   };
 
-  const submitFeedback = () => {
+  const submitFeedback = async () => {
     if (rating === 0) {
       Alert.alert('Rating required', 'Please rate the session');
       return;
@@ -65,8 +73,52 @@ export default function SessionFeedbackScreen() {
       return;
     }
 
-    Alert.alert('Feedback submitted', 'Session feedback saved successfully');
-    router.back();
+    try {
+      // Create session record for development hub
+      const sessionRecord = {
+        id: `session-${Date.now()}`,
+        athleteId,
+        athleteName,
+        coachId: currentUser?.id,
+        bookingId,
+        completedAt: new Date().toISOString(),
+        performanceRating: rating,
+        skillsWorkedOn: selectedSkills,
+        notes: notes.trim(),
+        videoUrls: [],
+      };
+
+      // Save to AsyncStorage for development hub
+      const existingSessions = await AsyncStorage.getItem('coach_sessions');
+      const sessions = existingSessions ? JSON.parse(existingSessions) : [];
+      sessions.push(sessionRecord);
+      await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
+
+      logger.success('Session feedback saved', {
+        sessionId: sessionRecord.id,
+        athleteId,
+        rating,
+        skillsCount: selectedSkills.length,
+      });
+
+      // Update booking status to completed if not already
+      const existingBookings = await AsyncStorage.getItem('session_bookings');
+      if (existingBookings) {
+        const bookings = JSON.parse(existingBookings);
+        const updatedBookings = bookings.map((booking: any) =>
+          booking.id === bookingId
+            ? { ...booking, status: 'COMPLETED', feedbackAdded: true }
+            : booking
+        );
+        await AsyncStorage.setItem('session_bookings', JSON.stringify(updatedBookings));
+      }
+
+      Alert.alert('Feedback submitted', 'Session feedback saved successfully');
+      router.back();
+    } catch (error) {
+      logger.error('Failed to save session feedback', error);
+      Alert.alert('Error', 'Failed to save feedback. Please try again.');
+    }
   };
 
   return (
