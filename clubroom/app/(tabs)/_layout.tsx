@@ -22,13 +22,13 @@ export default function TabLayout() {
 
   // Log which tabs will render
   if (userRole === 'ADMIN') {
-    console.log('[TabLayout] ✓ Rendering ADMIN tabs (Users, Bookings, Reports, Settings)');
+    console.log('[TabLayout] ✓ Rendering ADMIN tabs (Feed, Users, Bookings, Settings)');
   } else if (userRole === 'COACH') {
-    console.log('[TabLayout] ✓ Rendering COACH tabs (Messages, Bookings, Development, Analytics, Profile)');
+    console.log('[TabLayout] ✓ Rendering COACH tabs (Home, Calendar, Feed, Messages, Settings)');
   } else if (userRole === 'USER') {
-    console.log('[TabLayout] ✓ Rendering USER tabs (Home, Find Coach, Progress, Messages, Profile)');
+    console.log('[TabLayout] ✓ Rendering USER tabs (Home, Find Coach, Bookings, Messages, Settings)');
   } else if (userRole === 'PARENT') {
-    console.log('[TabLayout] ✓ Rendering PARENT tabs (Kids, Bookings, Messages, Profile)');
+    console.log('[TabLayout] ✓ Rendering PARENT tabs (Home, Discover, Calendar, Settings)');
   } else {
     console.log('[TabLayout] ⚠️  Unknown/no role - defaulting to USER tabs');
   }
@@ -88,14 +88,7 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="notifications"
-          options={{
-            title: 'Alerts',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="bell.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
+          name="settings"
           options={{
             title: 'Settings',
             tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
@@ -144,9 +137,9 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="settings"
+          name="profile"
           options={{
-            href: null, // Hide from tab bar - access via Profile
+            href: null, // Profile hub is folded into Settings
           }}
         />
         <Tabs.Screen
@@ -159,7 +152,7 @@ export default function TabLayout() {
     );
   }
 
-  // COACH TABS - 5 tabs: Home, Calendar, Feed, Messages, Profile
+  // COACH TABS - 5 tabs: Home, Calendar, Feed, Messages, Settings
   if (userRole === 'COACH') {
     return (
       <Tabs screenOptions={tabBarOptions}>
@@ -195,10 +188,10 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="profile"
+          name="settings"
           options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
+            title: 'Settings',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -232,9 +225,9 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="settings"
+          name="profile"
           options={{
-            href: null, // Hide from tab bar - access via Profile
+            href: null, // Folded into Settings tab
           }}
         />
         <Tabs.Screen
@@ -247,7 +240,7 @@ export default function TabLayout() {
     );
   }
 
-  // USER TABS - 5 tabs: Home, Find Coach, Bookings, Messages, Profile
+  // USER TABS - 5 tabs: Home, Find Coach, Bookings, Messages, Settings
   if (userRole === 'USER') {
     return (
       <Tabs screenOptions={tabBarOptions}>
@@ -283,10 +276,10 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="profile"
+          name="settings"
           options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
+            title: 'Settings',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -320,9 +313,9 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="settings"
+          name="profile"
           options={{
-            href: null, // Hide from tab bar - access via Profile
+            href: null, // Folded into Settings tab
           }}
         />
         <Tabs.Screen
@@ -335,7 +328,7 @@ export default function TabLayout() {
     );
   }
 
-  // PARENT TABS - 4 tabs: Home, Discover, Calendar, Profile
+  // PARENT TABS - 4 tabs: Home, Discover, Calendar, Settings
   if (userRole === 'PARENT') {
     return (
       <Tabs screenOptions={tabBarOptions}>
@@ -361,10 +354,10 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="profile"
+          name="settings"
           options={{
-            title: 'Profile',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.circle.fill" color={color} />,
+            title: 'Settings',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -405,12 +398,6 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="settings"
-          options={{
-            href: null, // Hide from tab bar - access via Profile
-          }}
-        />
-        <Tabs.Screen
           name="admin/invite-codes"
           options={{
             href: null, // Hide from tab bar
@@ -431,10 +418,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.circle.fill" color={color} />,
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -476,12 +463,6 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="edit-user-profile"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
         options={{
           href: null,
         }}

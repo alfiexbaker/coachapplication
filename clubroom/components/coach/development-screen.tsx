@@ -99,12 +99,6 @@ export function CoachDevelopmentScreen() {
         <PageHeader
           title="Development"
           subtitle="Track your athletes' progress"
-          action="Add Session"
-          actionIcon="add"
-          onActionPress={() => {
-            logger.press('AddSession');
-            router.push('/development/add-session');
-          }}
         />
       }
     >

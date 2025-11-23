@@ -16,17 +16,28 @@ const seedNotifications: NotificationItem[] = [
   { id: 'n3', type: 'review', title: 'Review request', body: 'Rate your last session with Mike', timeLabel: '1d ago', read: false },
 ];
 
-export default function NotificationsScreen() {
+export function NotificationsPanel({
+  limit = 0,
+  seedOnMount = true,
+  refreshToken = 0,
+}: {
+  limit?: number;
+  seedOnMount?: boolean;
+  refreshToken?: number;
+}) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    notificationService.clearAll();
-    seedNotifications.forEach((n) => notificationService.create(n));
+    if (seedOnMount) {
+      notificationService.clearAll();
+      seedNotifications.forEach((n) => notificationService.create(n));
+    }
     refresh();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedOnMount, refreshToken]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -40,24 +51,62 @@ export default function NotificationsScreen() {
     refresh();
   };
 
+  const visibleItems = limit > 0 ? items.slice(0, limit) : items;
+
+  if (limit > 0) {
+    return (
+      <View style={styles.content}>
+        {visibleItems.length === 0 ? (
+          <ThemedText style={{ color: palette.muted }}>You are all caught up</ThemedText>
+        ) : (
+          visibleItems.map((item) => (
+            <Clickable key={item.id} onPress={() => markAsRead(item.id)}>
+              <NotificationCard item={item} />
+            </Clickable>
+          ))
+        )}
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
+    >
+      {visibleItems.length === 0 ? (
+        <ThemedText style={{ color: palette.muted }}>You are all caught up</ThemedText>
+      ) : (
+        visibleItems.map((item) => (
+          <Clickable key={item.id} onPress={() => markAsRead(item.id)}>
+            <NotificationCard item={item} />
+          </Clickable>
+        ))
+      )}
+    </ScrollView>
+  );
+}
+
+export default function NotificationsScreen() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [seedOnMount, setSeedOnMount] = useState(true);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <View style={styles.header}>
         <ThemedText type="title">Notifications</ThemedText>
-        <Clickable onPress={() => notificationService.clearAll().then(refresh)}>
+        <Clickable
+          onPress={() => {
+            setSeedOnMount(false);
+            notificationService.clearAll().then(() => setRefreshToken((token) => token + 1));
+          }}
+        >
           <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Clear all</ThemedText>
         </Clickable>
       </View>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-      >
-        {items.map((item) => (
-          <Clickable key={item.id} onPress={() => markAsRead(item.id)}>
-            <NotificationCard item={item} />
-          </Clickable>
-        ))}
-      </ScrollView>
+      <NotificationsPanel seedOnMount={seedOnMount} refreshToken={refreshToken} />
     </SafeAreaView>
   );
 }
