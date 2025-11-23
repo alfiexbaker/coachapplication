@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -11,6 +13,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_SESSIONS, getUserById, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
+import type { Session } from '@/constants/types';
 
 const logger = createLogger('SessionDetailScreen');
 
@@ -36,46 +39,119 @@ export default function SessionDetailScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const session = MOCK_SESSIONS.find(s => s.id === sessionId);
-  const athlete = session ? getUserById(session.athleteId) : null;
+  const [session, setSession] = useState<Session | null>(null);
+  const [athlete, setAthlete] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState('');
+  const [rating, setRating] = useState(3);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  const [notes, setNotes] = useState(session?.notes || '');
-  const [rating, setRating] = useState(session?.performanceRating || 3);
-  const [selectedSkills, setSelectedSkills] = useState<string[]>(session?.skillsWorkedOn || []);
-  const [videoUrls, setVideoUrls] = useState<string[]>(session?.videoUrls || []);
+  // Load session from AsyncStorage
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        // Try AsyncStorage first
+        const storedSessions = await AsyncStorage.getItem('coach_sessions');
+        let foundSession: Session | undefined;
 
-  if (!session || !athlete) {
-    return null;
+        if (storedSessions) {
+          const sessions = JSON.parse(storedSessions);
+          foundSession = sessions.find((s: any) => s.id === sessionId);
+        }
+
+        // Fallback to mock data if not in AsyncStorage
+        if (!foundSession) {
+          foundSession = MOCK_SESSIONS.find(s => s.id === sessionId);
+        }
+
+        if (foundSession) {
+          setSession(foundSession);
+          setNotes(foundSession.notes || '');
+          setRating(foundSession.performanceRating || 3);
+          setSelectedSkills(foundSession.skillsWorkedOn || []);
+          setVideoUrls(foundSession.videoUrls || []);
+          setImageUrls((foundSession as any).imageUrls || []);
+
+          const athleteData = getUserById(foundSession.athleteId);
+          setAthlete(athleteData);
+        }
+      } catch (error) {
+        logger.error('Failed to load session', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSession();
+  }, [sessionId]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <View style={styles.loadingContainer}>
+          <ThemedText>Loading session...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
   }
 
-  const handleSave = () => {
-    // Update session in mock data (in a real app, this would call an API)
-    const sessionIndex = MOCK_SESSIONS.findIndex(s => s.id === sessionId);
-    if (sessionIndex !== -1) {
-      MOCK_SESSIONS[sessionIndex] = {
-        ...MOCK_SESSIONS[sessionIndex],
-        notes,
-        performanceRating: rating,
-        skillsWorkedOn: selectedSkills,
-        videoUrls,
-      };
+  if (!session || !athlete) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <View style={styles.loadingContainer}>
+          <ThemedText>Session not found</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const handleSave = async () => {
+    try {
+      // Load existing sessions
+      const storedSessions = await AsyncStorage.getItem('coach_sessions');
+      const sessions = storedSessions ? JSON.parse(storedSessions) : [];
+
+      // Find and update the session
+      const sessionIndex = sessions.findIndex((s: any) => s.id === sessionId);
+      if (sessionIndex !== -1) {
+        sessions[sessionIndex] = {
+          ...sessions[sessionIndex],
+          notes,
+          performanceRating: rating,
+          skillsWorkedOn: selectedSkills,
+          videoUrls,
+          imageUrls,
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Save back to AsyncStorage
+        await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
+
+        logger.info('Session updated', {
+          sessionId,
+          hasNotes: notes.length > 0,
+          rating,
+          skillCount: selectedSkills.length,
+          videoCount: videoUrls.length,
+          imageCount: imageUrls.length,
+        });
+
+        Alert.alert('Success', 'Session updated successfully!', [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ]);
+      } else {
+        logger.error('Session not found in AsyncStorage', { sessionId });
+        Alert.alert('Error', 'Failed to save session. Please try again.');
+      }
+    } catch (error) {
+      logger.error('Failed to save session', error);
+      Alert.alert('Error', 'Failed to save session. Please try again.');
     }
-
-    logger.info('Session updated', {
-      sessionId,
-      hasNotes: notes.length > 0,
-      rating,
-      skillCount: selectedSkills.length,
-      videoCount: videoUrls.length,
-    });
-
-    if (Platform.OS === 'web') {
-      window.alert('Session updated successfully!');
-    } else {
-      Alert.alert('Success', 'Session updated successfully!');
-    }
-
-    router.back();
   };
 
   const toggleSkill = (skill: string) => {
@@ -84,6 +160,37 @@ export default function SessionDetailScreen() {
         ? prev.filter(s => s !== skill)
         : [...prev, skill]
     );
+  };
+
+  const handleAddImage = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your photos');
+        return;
+      }
+
+      // Pick image
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        setImageUrls(prev => [...prev, imageUri]);
+        logger.info('Image added', { imageUri });
+      }
+    } catch (error) {
+      logger.error('Failed to pick image', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImageUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleAddVideo = () => {
@@ -224,6 +331,46 @@ export default function SessionDetailScreen() {
           </SurfaceCard>
         </View>
 
+        {/* Images */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Session Photos
+            </ThemedText>
+            <Clickable onPress={handleAddImage} style={styles.addButton}>
+              <Ionicons name="add-circle" size={24} color={palette.tint} />
+            </Clickable>
+          </View>
+
+          {imageUrls.length > 0 ? (
+            <View style={styles.mediaList}>
+              {imageUrls.map((url, index) => (
+                <SurfaceCard key={index} style={styles.mediaCard}>
+                  <View style={styles.mediaInfo}>
+                    <Ionicons name="image" size={20} color={palette.tint} />
+                    <ThemedText style={styles.mediaName} numberOfLines={1}>
+                      Photo {index + 1}
+                    </ThemedText>
+                  </View>
+                  <Clickable onPress={() => handleRemoveImage(index)}>
+                    <Ionicons name="trash-outline" size={20} color={Colors.light.error} />
+                  </Clickable>
+                </SurfaceCard>
+              ))}
+            </View>
+          ) : (
+            <SurfaceCard style={styles.emptyMedia}>
+              <Ionicons name="image-outline" size={32} color={palette.muted} />
+              <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+                No photos uploaded yet
+              </ThemedText>
+              <ThemedText style={[styles.emptySubtext, { color: palette.muted }]}>
+                Tap the + to add session photos
+              </ThemedText>
+            </SurfaceCard>
+          )}
+        </View>
+
         {/* Videos */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -236,12 +383,12 @@ export default function SessionDetailScreen() {
           </View>
 
           {videoUrls.length > 0 ? (
-            <View style={styles.videoList}>
+            <View style={styles.mediaList}>
               {videoUrls.map((url, index) => (
-                <SurfaceCard key={index} style={styles.videoCard}>
-                  <View style={styles.videoInfo}>
+                <SurfaceCard key={index} style={styles.mediaCard}>
+                  <View style={styles.mediaInfo}>
                     <Ionicons name="videocam" size={20} color={palette.tint} />
-                    <ThemedText style={styles.videoName} numberOfLines={1}>
+                    <ThemedText style={styles.mediaName} numberOfLines={1}>
                       Video {index + 1}
                     </ThemedText>
                   </View>
@@ -252,7 +399,7 @@ export default function SessionDetailScreen() {
               ))}
             </View>
           ) : (
-            <SurfaceCard style={styles.emptyVideos}>
+            <SurfaceCard style={styles.emptyMedia}>
               <Ionicons name="videocam-outline" size={32} color={palette.muted} />
               <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
                 No videos uploaded yet
@@ -399,26 +546,26 @@ const styles = StyleSheet.create({
     minHeight: 120,
     padding: 0,
   },
-  videoList: {
+  mediaList: {
     gap: Spacing.sm,
   },
-  videoCard: {
+  mediaCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.md,
   },
-  videoInfo: {
+  mediaInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     flex: 1,
   },
-  videoName: {
+  mediaName: {
     fontSize: 14,
     flex: 1,
   },
-  emptyVideos: {
+  emptyMedia: {
     padding: Spacing.xl,
     alignItems: 'center',
     gap: Spacing.sm,
@@ -429,6 +576,11 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 13,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   saveButton: {
     padding: Spacing.lg,

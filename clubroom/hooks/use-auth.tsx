@@ -38,7 +38,7 @@ type AuthContextValue = {
   currentUser: DemoUser | null;
   isAuthenticated: boolean;
   login: (username: string, password: string) => boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
   registerCoach: (data: CoachSignupData) => boolean;
   error: string | null;
   availableUsers: DemoUser[];
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
     if (currentUser) {
       logger.info('User logged out', {
         username: currentUser.username,
@@ -118,8 +118,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       logger.warn('Logout called but no user was logged in');
     }
+
+    // Clear user state
     setCurrentUser(null);
     setError(null);
+
+    // Clear any persisted session data
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      await AsyncStorage.removeItem('session_bookings');
+      logger.info('Session data cleared');
+    } catch (error) {
+      logger.error('Failed to clear session data', error);
+    }
   };
 
   const value = useMemo(

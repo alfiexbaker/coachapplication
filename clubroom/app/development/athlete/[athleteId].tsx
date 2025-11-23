@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -12,6 +14,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import type { Session } from '@/constants/types';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -20,14 +23,62 @@ export default function AthleteDetailScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const athlete = getUserById(athleteId!);
-  const sessions = getSessionsForCoach(currentUser!.id).filter(
-    s => s.athleteId === athleteId
-  );
+
+  // Load sessions from both mock data and AsyncStorage
+  useEffect(() => {
+    const loadSessions = async () => {
+      if (!currentUser) return;
+
+      try {
+        // Get mock data sessions
+        const mockSessions = getSessionsForCoach(currentUser.id).filter(
+          s => s.athleteId === athleteId
+        );
+
+        // Get AsyncStorage sessions
+        const storedSessions = await AsyncStorage.getItem('coach_sessions');
+        const asyncSessions = storedSessions ? JSON.parse(storedSessions) : [];
+        const athleteAsyncSessions = asyncSessions.filter(
+          (s: any) => s.athleteId === athleteId && s.coachId === currentUser.id
+        );
+
+        // Combine both sources
+        const allSessions = [...mockSessions, ...athleteAsyncSessions];
+        setSessions(allSessions);
+        logger.debug('Sessions loaded', {
+          mockCount: mockSessions.length,
+          asyncCount: athleteAsyncSessions.length,
+          total: allSessions.length,
+        });
+      } catch (error) {
+        logger.error('Failed to load sessions', error);
+        // Fallback to mock data only
+        const mockSessions = getSessionsForCoach(currentUser.id).filter(
+          s => s.athleteId === athleteId
+        );
+        setSessions(mockSessions);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSessions();
+  }, [athleteId, currentUser]);
 
   if (!athlete || !currentUser) {
     return null;
+  }
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <ThemedText>Loading...</ThemedText>
+      </PageContainer>
+    );
   }
 
   // Calculate progress trend based on last 3 sessions vs previous 3
@@ -120,9 +171,40 @@ export default function AthleteDetailScreen() {
           </View>
           <TouchableOpacity
             style={[styles.ctaButton, { backgroundColor: palette.tint }]}
-            onPress={() => {
+            onPress={async () => {
               logger.press('LogSession');
-              // TODO: Navigate to log session
+
+              try {
+                // Create new session
+                const sessionId = `session-${Date.now()}`;
+                const sessionRecord = {
+                  id: sessionId,
+                  athleteId,
+                  athleteName: athlete.name,
+                  coachId: currentUser.id,
+                  bookingId: `manual-${Date.now()}`,
+                  completedAt: new Date().toISOString(),
+                  performanceRating: 3,
+                  skillsWorkedOn: [],
+                  notes: '',
+                  videoUrls: [],
+                  imageUrls: [],
+                  attendance: 'ATTENDED',
+                };
+
+                // Save to AsyncStorage
+                const existingSessions = await AsyncStorage.getItem('coach_sessions');
+                const sessions = existingSessions ? JSON.parse(existingSessions) : [];
+                sessions.push(sessionRecord);
+                await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
+
+                logger.info('Session created', { sessionId, athleteId });
+
+                // Navigate to session detail
+                router.push(`/development/session/${sessionId}` as any);
+              } catch (error) {
+                logger.error('Failed to create session', error);
+              }
             }}
           >
             <ThemedText style={styles.ctaText}>Log Session</ThemedText>
