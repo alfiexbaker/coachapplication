@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, ScrollView, StyleSheet, View, Alert } from 'react-native';
+import { Image, ScrollView, StyleSheet, View, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -239,6 +239,27 @@ export default function SessionDetailScreen() {
           </SurfaceCard>
         </Clickable>
 
+        {/* Athlete Card (for single sessions) */}
+        {!booking.isGroupSession && booking.childName && booking.clientId && isCoach && (
+          <Clickable onPress={() => router.push(`/development/athlete/${booking.clientId}` as any)}>
+            <SurfaceCard style={styles.card}>
+              <View style={styles.iconRow}>
+                <Image
+                  source={{ uri: booking.client?.photoUrl || 'https://i.pravatar.cc/100' }}
+                  style={styles.coachAvatar}
+                />
+                <View style={styles.cardContent}>
+                  <ThemedText style={styles.cardTitle}>Athlete</ThemedText>
+                  <ThemedText type="subtitle" style={styles.cardValue}>
+                    {booking.childName}
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+              </View>
+            </SurfaceCard>
+          </Clickable>
+        )}
+
         {/* Participants Card (Group Bookings Only) */}
         {booking.isGroupSession && booking.participants && booking.participants.length > 0 && (
           <SurfaceCard style={styles.card}>
@@ -251,14 +272,23 @@ export default function SessionDetailScreen() {
             <View style={styles.participantsList}>
               {booking.participants.map((participant) => (
                 <View key={participant.id} style={styles.participantRow}>
-                  <View style={styles.participantInfo}>
+                  <Pressable
+                    onPress={isCoach ? () => router.push(`/development/athlete/${participant.id}` as any) : undefined}
+                    style={styles.participantInfo}
+                    disabled={!isCoach}
+                  >
                     <View style={[styles.participantAvatar, { backgroundColor: palette.tint + '20' }]}>
                       <ThemedText style={[styles.participantAvatarText, { color: palette.tint }]}>
                         {participant.avatar}
                       </ThemedText>
                     </View>
                     <View style={styles.participantDetails}>
-                      <ThemedText type="defaultSemiBold">{participant.name}</ThemedText>
+                      <View style={styles.participantNameRow}>
+                        <ThemedText type="defaultSemiBold" style={isCoach && styles.clickableText}>
+                          {participant.name}
+                        </ThemedText>
+                        {isCoach && <Ionicons name="arrow-forward" size={14} color={palette.tint} />}
+                      </View>
                       <View style={[
                         styles.participantStatus,
                         {
@@ -283,7 +313,7 @@ export default function SessionDetailScreen() {
                         </ThemedText>
                       </View>
                     </View>
-                  </View>
+                  </Pressable>
                   {isCoach && (
                     <Clickable
                       onPress={() => {
@@ -315,55 +345,89 @@ export default function SessionDetailScreen() {
         {isCoach ? (
           /* Coach Management Options */
           <View style={styles.actions}>
-            <Clickable
-              onPress={handleMessageCoach}
-              style={({ pressed }) => [
-                styles.primaryButton,
-                { backgroundColor: palette.tint },
-                pressed && { opacity: 0.8 },
-              ]}>
-              <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
-              <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
-                Message Client
-              </ThemedText>
-            </Clickable>
-
-            <View style={styles.buttonRow}>
+            {booking.status === 'Completed' ? (
+              /* Add Feedback Button for Completed Sessions */
               <Clickable
-                onPress={handleReschedule}
-                style={({ pressed }) => [
-                  styles.halfButton,
-                  { borderColor: palette.border },
-                  pressed && { backgroundColor: palette.border, opacity: 0.7 },
-                ]}>
-                <Ionicons name="calendar-outline" size={18} color={palette.foreground} />
-                <ThemedText style={styles.secondaryButtonText}>Reschedule</ThemedText>
-              </Clickable>
+                onPress={() => {
+                  const athleteId = booking.clientId;
+                  const athleteName = booking.childName;
+                  // Extract objectives from booking if stored
+                  const objectives = (booking as any).objectives || [];
 
-              <Clickable
-                onPress={handleRefund}
+                  router.push({
+                    pathname: '/bookings/session-feedback' as any,
+                    params: {
+                      bookingId: booking.id,
+                      athleteId,
+                      athleteName,
+                      athleteObjectives: JSON.stringify(objectives),
+                    },
+                  });
+                }}
                 style={({ pressed }) => [
-                  styles.halfButton,
-                  { borderColor: palette.border },
-                  pressed && { backgroundColor: palette.border, opacity: 0.7 },
+                  styles.primaryButton,
+                  { backgroundColor: palette.tint },
+                  pressed && { opacity: 0.8 },
                 ]}>
-                <Ionicons name="cash-outline" size={18} color={palette.foreground} />
-                <ThemedText style={styles.secondaryButtonText}>Refund</ThemedText>
+                <Ionicons name="create" size={20} color="#FFFFFF" />
+                <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
+                  Add Session Feedback
+                </ThemedText>
               </Clickable>
-            </View>
+            ) : (
+              /* Regular buttons for upcoming sessions */
+              <>
+                <Clickable
+                  onPress={handleMessageCoach}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    { backgroundColor: palette.tint },
+                    pressed && { opacity: 0.8 },
+                  ]}>
+                  <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
+                  <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
+                    Message Client
+                  </ThemedText>
+                </Clickable>
 
-            <Clickable
-              onPress={handleCancelBooking}
-              style={({ pressed }) => [
-                styles.secondaryButton,
-                { borderColor: '#EF4444' },
-                pressed && { backgroundColor: '#FEE2E2', opacity: 0.7 },
-              ]}>
-              <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
-              <ThemedText style={[styles.secondaryButtonText, { color: '#EF4444' }]}>
-                Cancel Booking
-              </ThemedText>
-            </Clickable>
+                <View style={styles.buttonRow}>
+                  <Clickable
+                    onPress={handleReschedule}
+                    style={({ pressed }) => [
+                      styles.halfButton,
+                      { borderColor: palette.border },
+                      pressed && { backgroundColor: palette.border, opacity: 0.7 },
+                    ]}>
+                    <Ionicons name="calendar-outline" size={18} color={palette.foreground} />
+                    <ThemedText style={styles.secondaryButtonText}>Reschedule</ThemedText>
+                  </Clickable>
+
+                  <Clickable
+                    onPress={handleRefund}
+                    style={({ pressed }) => [
+                      styles.halfButton,
+                      { borderColor: palette.border },
+                      pressed && { backgroundColor: palette.border, opacity: 0.7 },
+                    ]}>
+                    <Ionicons name="cash-outline" size={18} color={palette.foreground} />
+                    <ThemedText style={styles.secondaryButtonText}>Refund</ThemedText>
+                  </Clickable>
+                </View>
+
+                <Clickable
+                  onPress={handleCancelBooking}
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    { borderColor: '#EF4444' },
+                    pressed && { backgroundColor: '#FEE2E2', opacity: 0.7 },
+                  ]}>
+                  <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
+                  <ThemedText style={[styles.secondaryButtonText, { color: '#EF4444' }]}>
+                    Cancel Booking
+                  </ThemedText>
+                </Clickable>
+              </>
+            )}
           </View>
         ) : (
           /* User/Parent Options */
@@ -575,6 +639,14 @@ const styles = StyleSheet.create({
   participantDetails: {
     flex: 1,
     gap: 4,
+  },
+  participantNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  clickableText: {
+    textDecorationLine: 'underline',
   },
   participantStatus: {
     alignSelf: 'flex-start',

@@ -28,7 +28,7 @@ type TabType = 'posts' | 'about' | 'photos' | 'sessions' | 'reviews';
 export default function CoachProfileScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   // For demo, use first coach profile - in production, use currentUser.id
   const coach = coachProfiles[0];
@@ -563,6 +563,25 @@ export default function CoachProfileScreen() {
                 <Ionicons name="chevron-forward" size={20} color={palette.muted} />
               </View>
             </SurfaceCard>
+
+            {/* Sign Out Button */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.signOutButton,
+                {
+                  borderColor: Colors.light.error,
+                  backgroundColor: pressed ? `${Colors.light.error}10` : 'transparent',
+                },
+              ]}
+              onPress={async () => {
+                await logout();
+                router.replace('/');
+              }}>
+              <Ionicons name="log-out-outline" size={20} color={Colors.light.error} />
+              <ThemedText style={[styles.signOutText, { color: Colors.light.error }]}>
+                Sign Out
+              </ThemedText>
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -921,5 +940,19 @@ const styles = StyleSheet.create({
   quickAccessDesc: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.button,
+    borderWidth: 1.5,
+    marginTop: Spacing.sm,
+  },
+  signOutText: {
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
