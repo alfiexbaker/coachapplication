@@ -4,6 +4,34 @@
 
 ---
 
+## Copy/paste prompt for an AI to execute Sprint 1
+
+Use this verbatim (adjust role/account names if needed) to keep the agent anchored to the current repo, the spines, and the existing components. It assumes front-end only with mock data and that nothing net-new is invented when an existing pattern can be extended.
+
+```text
+You are working in the Clubroom repo (football-first coaching marketplace) at /workspace/coachapplication.
+Before coding:
+- Read AGENTS.md at repo root for collaboration rules (reuse existing flows, map work to spines, keep diffs scoped).
+- Read docs/SOURCE_OF_TRUTH.md, docs/SPINE_CATEGORIES.md, docs/sprints/SPRINT_1_UX_POLISH.md, and docs/sprints/SPRINTS_TO_99_DETAIL.md (Sprint 1 sections) to align scope and acceptance criteria.
+- Stay frontend/mock-data only; do NOT add backend calls.
+
+Goal (Sprint 1): Polish UX/UI for all roles by extending existing screens/components—no parallel implementations. Prioritize: discovery filters/search, booking status management + detail screen, enhanced messaging with attachments, role-specific profiles, settings, onboarding, loading/empty/error states, and coach availability polish.
+
+Implementation rules:
+- Reuse and extend current components in clubroom/app and components/*; only create new components listed in Sprint 1 if reuse is impossible (document why).
+- Keep styling consistent with constants/theme.ts, IconSymbol, and existing spacing; avoid bespoke inline styles.
+- Maintain role-aware navigation already present; new screens should slot into current tabs/routes.
+- Mock data only; keep state machines/UI ready to swap to APIs later. Note assumptions in code comments when unavoidable.
+- Add loading/empty/error states and haptics/toasts where Sprint 1 calls for them.
+
+Definition of done for the agent:
+- Every Sprint 1 checklist item is implemented or explicitly noted as blocked with rationale.
+- Tests/checks run when feasible; if skipped, state why in commit/PR.
+- Summary + Testing reported using repo AGENTS formatting; cite touched files/commands.
+```
+
+---
+
 ## Objectives
 
 Refine the MVP foundation to create a polished, professional experience for all user roles.

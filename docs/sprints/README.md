@@ -11,6 +11,7 @@
 - Keep work frontend-only with mock data; note any API assumptions so backend can slot in later.
 - Cross-reference `docs/vision/` for role expectations and `docs/technical/` for data alignment.
 - For deep, file-level guidance to reach “9.9/10” readiness, follow `SPRINTS_TO_99_DETAIL.md` in this folder; it lists the exact screens/components to touch and acceptance checklists for each sprint.
+- To spin up an agent for Sprint 1 quickly, use the copy/paste prompt in `SPRINT_1_UX_POLISH.md` (keeps Codex aligned to the repo, spines, and reuse-first rules).
 
 ## Current status
 - ✅ Role-aware navigation and demo auth across User, Parent, Coach, Admin.
