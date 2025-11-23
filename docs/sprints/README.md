@@ -10,6 +10,7 @@
 - Map each story to the product spines (Community, Booking/Revenue, Development, Trust/Ops). Only add a new flow when extending an existing one is impossible.
 - Keep work frontend-only with mock data; note any API assumptions so backend can slot in later.
 - Cross-reference `docs/vision/` for role expectations and `docs/technical/` for data alignment.
+- For deep, file-level guidance to reach “9.9/10” readiness, follow `SPRINTS_TO_99_DETAIL.md` in this folder; it lists the exact screens/components to touch and acceptance checklists for each sprint.
 
 ## Current status
 - ✅ Role-aware navigation and demo auth across User, Parent, Coach, Admin.
