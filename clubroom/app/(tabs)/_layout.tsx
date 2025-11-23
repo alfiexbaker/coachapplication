@@ -6,6 +6,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { chatThreads } from '@/constants/mock-data';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -13,6 +14,7 @@ export default function TabLayout() {
   const { currentUser } = useAuth();
 
   const userRole = currentUser?.role;
+  const unreadCount = chatThreads.reduce((total, thread) => total + (thread.unreadCount || 0), 0);
 
   // Debug logging to track role detection and tab rendering
   console.log('[TabLayout] Current user:', currentUser ? { username: currentUser.username, role: currentUser.role } : 'Not logged in');
@@ -86,6 +88,13 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="notifications"
+          options={{
+            title: 'Alerts',
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="bell.fill" color={color} />,
+          }}
+        />
+        <Tabs.Screen
           name="profile"
           options={{
             title: 'Settings',
@@ -108,6 +117,12 @@ export default function TabLayout() {
           name="availability"
           options={{
             href: null, // Admins don't need calendar view
+          }}
+        />
+        <Tabs.Screen
+          name="earnings"
+          options={{
+            href: null,
           }}
         />
         <Tabs.Screen
@@ -176,6 +191,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => (
               <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
             ),
+            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           }}
         />
         <Tabs.Screen
@@ -263,6 +279,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color }) => (
               <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
             ),
+            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           }}
         />
         <Tabs.Screen
@@ -360,6 +377,7 @@ export default function TabLayout() {
           name="messages"
           options={{
             href: null, // Hide - Messages accessible from Home
+            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
           }}
         />
         <Tabs.Screen
@@ -426,11 +444,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="messages"
-        options={{
-          href: null,
-        }}
-      />
+          name="messages"
+          options={{
+            href: null,
+            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          }}
+        />
       <Tabs.Screen
         name="more"
         options={{

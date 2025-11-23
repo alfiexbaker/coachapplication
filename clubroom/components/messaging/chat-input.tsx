@@ -5,7 +5,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export function ChatInput() {
+export function ChatInput({ onAttach, disabled }: { onAttach?: () => void; disabled?: boolean }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [value, setValue] = useState('');
@@ -14,7 +14,7 @@ export function ChatInput() {
   return (
     <View style={[styles.container, { borderColor: palette.border, backgroundColor: palette.card }]}
       accessibilityRole="none">
-      <Pressable accessibilityRole="button" style={styles.iconButton}>
+      <Pressable accessibilityRole="button" style={styles.iconButton} onPress={onAttach}>
         <IconSymbol name="paperclip" size={22} color={palette.icon} />
       </Pressable>
       <TextInput
@@ -24,6 +24,7 @@ export function ChatInput() {
         value={value}
         onChangeText={setValue}
         multiline
+        editable={!disabled}
       />
       <Pressable
         accessibilityRole="button"
@@ -34,7 +35,7 @@ export function ChatInput() {
             borderColor: value ? 'transparent' : palette.border,
           },
         ]}
-        disabled={!value}
+        disabled={!value || disabled}
         onPress={() => setValue('')}>
         {value ? (
           <IconSymbol name="paperplane.fill" size={18} color={scheme === 'light' ? '#FFFFFF' : '#000000'} />

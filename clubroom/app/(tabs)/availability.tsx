@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -8,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { Clickable } from '@/components/primitives/clickable';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const TIME_SLOTS = ['6a', '8a', '10a', '12p', '2p', '4p', '6p'];
@@ -62,7 +64,7 @@ export default function AvailabilityScreen() {
 
         <SectionHeader
           title="Weekly Schedule"
-          subtitle="Tap time slots to edit availability"
+          subtitle="Tap slots to block or open times"
         />
 
         <SurfaceCard style={styles.calendarCard}>
@@ -98,6 +100,23 @@ export default function AvailabilityScreen() {
               ))}
             </View>
           ))}
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.actionsCard}>
+          <ThemedText type="defaultSemiBold">Templates & blocks</ThemedText>
+          <View style={styles.actionRow}>
+            <Clickable style={[styles.actionButton, { borderColor: palette.border }]} onPress={() => router.push('/availability/set-schedule')}>
+              <Ionicons name="repeat" size={18} color={palette.tint} />
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Set weekly template</ThemedText>
+            </Clickable>
+            <Clickable style={[styles.actionButton, { borderColor: palette.border }]}>
+              <Ionicons name="close-circle" size={18} color={palette.error} />
+              <ThemedText style={{ color: palette.error, fontWeight: '700' }}>Block date</ThemedText>
+            </Clickable>
+          </View>
+          <ThemedText style={{ color: palette.muted }}>
+            Booked times auto-block; override for holidays and one-off slots.
+          </ThemedText>
         </SurfaceCard>
       </ScrollView>
     </SafeAreaView>
@@ -183,6 +202,23 @@ const styles = StyleSheet.create({
   },
   calendarCard: {
     padding: Spacing.lg,
+  },
+  actionsCard: {
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
   },
   gridHeader: {
     flexDirection: 'row',

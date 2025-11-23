@@ -317,3 +317,12 @@ export interface SkillLevel {
   level: number; // 0-100
   lastUpdated: string;
 }
+
+export interface NotificationItem {
+  id: string;
+  type: 'booking' | 'message' | 'review' | 'payment' | 'reminder';
+  title: string;
+  body: string;
+  timeLabel?: string;
+  read?: boolean;
+}

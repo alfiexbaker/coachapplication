@@ -12,6 +12,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 interface MessageBubbleProps {
   message: ChatMessage;
   isOwnMessage: boolean;
+  onLongPress?: () => void;
 }
 
 function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -32,7 +33,7 @@ function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string 
   );
 }
 
-function MessageBubbleComponent({ message, isOwnMessage }: MessageBubbleProps) {
+function MessageBubbleComponent({ message, isOwnMessage, onLongPress }: MessageBubbleProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const bubbleColor = isOwnMessage
@@ -50,19 +51,29 @@ function MessageBubbleComponent({ message, isOwnMessage }: MessageBubbleProps) {
     <Animated.View
       entering={FadeInDown.delay(50).duration(400).springify()}
       style={[styles.wrapper, isOwnMessage ? styles.alignRight : styles.alignLeft]}
+      onTouchEnd={(e) => {
+        if (e.nativeEvent.touches.length === 0 && onLongPress) {
+          // fallback gesture for long-press equivalent on web
+          onLongPress();
+        }
+      }}
     >
-      <View style={[styles.bubble, { backgroundColor: bubbleColor }]}>
+      <View style={[styles.bubble, { backgroundColor: bubbleColor }]}> 
         <ThemedText style={[styles.body, { color: textColor }]}>{message.body}</ThemedText>
         {message.attachments?.map((attachment) => (
           <AttachmentCard key={attachment.id} title={attachment.title} subtitle={attachment.subtitle} />
         ))}
       </View>
-      <ThemedText style={[styles.timestamp, {
-        alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
-        color: palette.muted
-      }]}>
-        {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      </ThemedText>
+      <View style={[styles.footerRow, { alignSelf: isOwnMessage ? 'flex-end' : 'flex-start' }]}> 
+        <ThemedText style={[styles.timestamp, { color: palette.muted }]}>
+          {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </ThemedText>
+        {isOwnMessage && (
+          <SurfaceCard style={[styles.statusPill, { backgroundColor: palette.surface }]}> 
+            <ThemedText style={[styles.statusText, { color: palette.muted }]}>{message.status}</ThemedText>
+          </SurfaceCard>
+        )}
+      </View>
     </Animated.View>
   );
 }
@@ -95,7 +106,21 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
     marginHorizontal: Spacing.md,
+  },
+  statusPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   attachment: {
     flexDirection: 'row',
