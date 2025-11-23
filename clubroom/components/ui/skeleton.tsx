@@ -1,0 +1,59 @@
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+
+import { Colors, Radii } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+
+type SkeletonProps = {
+  height?: number;
+  width?: number | string;
+  radius?: number;
+  style?: any;
+};
+
+/**
+ * Lightweight skeleton shimmer that can wrap lists or individual rows.
+ * Keeps implementation minimal so it can be swapped for a fancier shimmer later.
+ */
+export function Skeleton({ height = 16, width = '100%', radius = Radii.md, style }: SkeletonProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  return (
+    <Animated.View
+      entering={FadeIn}
+      exiting={FadeOut}
+      layout={LinearTransition}
+      style={[
+        styles.base,
+        {
+          height,
+          width,
+          borderRadius: radius,
+          backgroundColor: scheme === 'dark' ? `${palette.border}55` : `${palette.border}80`,
+        },
+        style,
+      ]}
+    />
+  );
+}
+
+export function SkeletonRow({ count = 3 }: { count?: number }) {
+  return (
+    <View style={styles.rowContainer}>
+      {Array.from({ length: count }).map((_, idx) => (
+        <Skeleton key={idx} width={`${Math.max(50, 100 - idx * 10)}%`} />
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    overflow: 'hidden',
+  },
+  rowContainer: {
+    gap: 10,
+  },
+});
