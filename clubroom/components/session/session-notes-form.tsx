@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,30 +7,35 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { RatingStars } from '@/components/review/rating-stars';
+import { SessionNoteFields } from '@/services/session-notes-service';
 
 const FOCUS_OPTIONS = ['Passing', 'Shooting', 'Dribbling', 'Defending', 'Conditioning'];
 const ATTENDANCE = ['Present', 'Late', 'No-show'];
 
 export function SessionNotesForm({
   onSubmit,
+  initialValues,
 }: {
-  onSubmit: (payload: {
-    summary: string;
-    focus: string[];
-    improvements: string;
-    homework: string;
-    effort: number;
-    attendance: string;
-  }) => void;
+  onSubmit: (payload: SessionNoteFields) => void;
+  initialValues?: Partial<SessionNoteFields>;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const [summary, setSummary] = useState('');
-  const [focus, setFocus] = useState<string[]>([]);
-  const [improvements, setImprovements] = useState('');
-  const [homework, setHomework] = useState('');
-  const [attendance, setAttendance] = useState('Present');
-  const [effort, setEffort] = useState(4);
+  const [summary, setSummary] = useState(initialValues?.summary ?? '');
+  const [focus, setFocus] = useState<string[]>(initialValues?.focus ?? []);
+  const [improvements, setImprovements] = useState(initialValues?.improvements ?? '');
+  const [homework, setHomework] = useState(initialValues?.homework ?? '');
+  const [attendance, setAttendance] = useState(initialValues?.attendance ?? 'Present');
+  const [effort, setEffort] = useState(initialValues?.effort ?? 4);
+
+  useEffect(() => {
+    setSummary(initialValues?.summary ?? '');
+    setFocus(initialValues?.focus ?? []);
+    setImprovements(initialValues?.improvements ?? '');
+    setHomework(initialValues?.homework ?? '');
+    setAttendance(initialValues?.attendance ?? 'Present');
+    setEffort(initialValues?.effort ?? 4);
+  }, [initialValues]);
 
   const toggleFocus = (item: string) => {
     setFocus((prev) => (prev.includes(item) ? prev.filter((f) => f !== item) : [...prev, item]));

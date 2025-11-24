@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,13 +12,30 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { upcomingBookings } from '@/constants/mock-data';
 import { EmptyState } from '@/components/ui/empty-state';
+import { SessionNoteRecord, getSessionNote } from '@/services/session-notes-service';
 
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const [sessionNote, setSessionNote] = useState<SessionNoteRecord | null>(null);
 
   const booking = useMemo(() => upcomingBookings.find((b) => b.id === id), [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      if (!id) return () => {};
+
+      getSessionNote(id).then((note) => {
+        if (active) setSessionNote(note);
+      });
+
+      return () => {
+        active = false;
+      };
+    }, [id])
+  );
 
   if (!booking) {
     return (
@@ -64,6 +81,68 @@ export default function BookingDetailScreen() {
               <ThemedText style={[styles.actionLabel, { color: palette.error }]}>Cancel</ThemedText>
             </Clickable>
           </View>
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold">Session notes & development</ThemedText>
+            <Clickable
+              style={styles.linkPill}
+              onPress={() => router.push(`/session-notes/${id}`)}
+            >
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                {sessionNote ? 'View & edit' : 'Add notes'}
+              </ThemedText>
+            </Clickable>
+          </View>
+
+          {sessionNote ? (
+            <View style={{ gap: Spacing.sm }}>
+              <InfoRow icon="reader" label="Summary" value={sessionNote.summary || '—'} />
+              <InfoRow
+                icon="sparkles"
+                label="Focus areas"
+                value={sessionNote.focus.length ? sessionNote.focus.join(', ') : 'Not captured yet'}
+              />
+              <InfoRow
+                icon="trending-up"
+                label="Improvements"
+                value={sessionNote.improvements || 'Waiting to be logged'}
+              />
+              <InfoRow
+                icon="book"
+                label="Homework"
+                value={sessionNote.homework || 'Share a quick reminder for parents'}
+              />
+              <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
+                  <ThemedText style={{ color: palette.muted }}>
+                    Effort {sessionNote.effort}/5
+                  </ThemedText>
+                </View>
+                <View style={styles.metaItem}>
+                  <Ionicons name="time" size={16} color={palette.muted} />
+                  <ThemedText style={{ color: palette.muted }}>
+                    Updated {new Date(sessionNote.updatedAt).toLocaleDateString()}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View style={{ gap: Spacing.xs }}>
+              <ThemedText style={{ color: palette.muted }}>
+                Capture what was covered, effort and homework so parents can track the session.
+              </ThemedText>
+              <Clickable
+                onPress={() => router.push(`/session-notes/${id}`)}
+                style={[styles.ctaButton, { backgroundColor: `${palette.tint}12` }]}
+              >
+                <Ionicons name="create" size={16} color={palette.tint} />
+                <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Add coach notes</ThemedText>
+              </Clickable>
+            </View>
+          )}
         </SurfaceCard>
       </ScrollView>
     </SafeAreaView>
@@ -152,6 +231,35 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontWeight: '700',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: Spacing.lg,
+    marginTop: Spacing.sm,
+    flexWrap: 'wrap',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  ctaButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.button,
+    borderWidth: 1,
+    borderColor: `${Colors.light.border}40`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    alignSelf: 'flex-start',
   },
 });
 

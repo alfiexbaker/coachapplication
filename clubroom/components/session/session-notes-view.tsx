@@ -10,6 +10,7 @@ export function SessionNotesView({
   homework,
   effort,
   attendance,
+  updatedAt,
 }: {
   summary: string;
   focus: string[];
@@ -17,6 +18,7 @@ export function SessionNotesView({
   homework: string;
   effort: number;
   attendance: string;
+  updatedAt?: string;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -28,6 +30,11 @@ export function SessionNotesView({
       <NoteBlock label="Homework" value={homework} />
       <NoteBlock label="Effort" value={`${effort}/5`} />
       <NoteBlock label="Attendance" value={attendance} />
+      {updatedAt ? (
+        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+          Updated {new Date(updatedAt).toLocaleString()}
+        </ThemedText>
+      ) : null}
       <View style={{ padding: Spacing.md, backgroundColor: `${palette.premium}12`, borderRadius: 12 }}>
         <ThemedText type="defaultSemiBold">Parent view</ThemedText>
         <ThemedText style={{ color: palette.muted }}>
