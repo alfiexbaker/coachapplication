@@ -1,22 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { MessageBubble } from '@/components/messaging/message-bubble';
-import { ChatInput } from '@/components/messaging/chat-input';
-import { TypingIndicator } from '@/components/messaging/typing-indicator';
-import { AttachmentPicker } from '@/components/chat/attachment-picker';
 import { Colors, Radii, Spacing } from '@/constants/theme';
-import { chatThreads, chatMessages } from '@/constants/mock-data';
+import { chatThreads } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ChatThreadSummary } from '@/constants/types';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonRow } from '@/components/ui/skeleton';
+import { messagingService } from '@/services/messaging-service';
 
 function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary; index: number; onPress: () => void }) {
   const scheme = useColorScheme() ?? 'light';
@@ -71,92 +68,32 @@ export default function MessagesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const params = useLocalSearchParams<{ coachId?: string }>();
-  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
-  const [showSafetyBanner, setShowSafetyBanner] = useState(true);
+  const [threads, setThreads] = useState<ChatThreadSummary[]>(chatThreads);
 
   // Auto-open thread if coachId param is provided
   useEffect(() => {
     if (params.coachId) {
-      // Find thread with matching coach ID - in production, match by actual coachId
-      // For now, just open the first thread as a demo
       const thread = chatThreads[0];
-      if (thread) {
-        setOpenThreadId(thread.id);
-      }
+      if (thread) router.push(`/chat/${thread.id}`);
     }
   }, [params.coachId]);
 
-  const openThread = openThreadId ? chatThreads.find(t => t.id === openThreadId) : null;
+  useEffect(() => {
+    messagingService.listThreads().then(setThreads);
+  }, []);
+
   const filteredThreads = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return chatThreads;
-    return chatThreads.filter((thread) => thread.coachName.toLowerCase().includes(term));
-  }, [search]);
-
-  const onLongPressMessage = () => {
-    Alert.alert('Message options', 'Choose an action', [
-      { text: 'Copy', onPress: () => {} },
-      { text: 'Delete', style: 'destructive', onPress: () => {} },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
-  };
+    if (!term) return threads;
+    return threads.filter((thread) => thread.coachName.toLowerCase().includes(term));
+  }, [search, threads]);
 
   const handleRefresh = () => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 800);
   };
-
-  if (openThread) {
-    return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={[styles.chatHeader, { borderBottomWidth: 1, borderBottomColor: palette.border }]}>
-          <Clickable onPress={() => setOpenThreadId(null)} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <View style={styles.chatHeaderInfo}>
-            <ThemedText type="subtitle" style={styles.chatHeaderName}>{openThread.coachName}</ThemedText>
-            <ThemedText style={[styles.chatSubtitle, { color: palette.muted }]}>{openThread.serviceName}</ThemedText>
-          </View>
-        </View>
-        {showSafetyBanner && (
-          <View style={[styles.safetyBanner, { backgroundColor: `${palette.warning}10`, borderColor: palette.border }]}> 
-            <Ionicons name="shield-checkmark" size={18} color={palette.warning} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <ThemedText type="defaultSemiBold">Stay safe</ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-                Messaging unlocks after a confirmed booking. Report concerns any time.
-              </ThemedText>
-            </View>
-            <Clickable onPress={() => setShowSafetyBanner(false)}>
-              <Ionicons name="close" size={16} color={palette.icon} />
-            </Clickable>
-          </View>
-        )}
-        <ScrollView contentContainerStyle={styles.chatContent}>
-          {chatMessages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isOwnMessage={message.sender === 'parent'}
-              onLongPress={onLongPressMessage}
-            />
-          ))}
-          <TypingIndicator />
-        </ScrollView>
-        <View style={[styles.chatInput, { borderTopColor: palette.border }]}> 
-          <ChatInput onAttach={() => setShowAttachmentPicker(true)} disabled={!openThread} />
-        </View>
-        <AttachmentPicker
-          visible={showAttachmentPicker}
-          onClose={() => setShowAttachmentPicker(false)}
-          onPick={() => setShowAttachmentPicker(false)}
-        />
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -191,7 +128,7 @@ export default function MessagesScreen() {
           />
         ) : (
           filteredThreads.map((thread, index) => (
-            <ConversationRow key={thread.id} thread={thread} index={index} onPress={() => setOpenThreadId(thread.id)} />
+            <ConversationRow key={thread.id} thread={thread} index={index} onPress={() => router.push(`/chat/${thread.id}`)} />
           ))
         )}
       </ScrollView>
@@ -296,48 +233,5 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: '800',
-  },
-  chatHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-  },
-  backButton: {
-    padding: Spacing.sm,
-    marginLeft: -Spacing.sm,
-  },
-  chatHeaderInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  chatHeaderName: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  chatSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  chatContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  safetyBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  chatInput: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
   },
 });

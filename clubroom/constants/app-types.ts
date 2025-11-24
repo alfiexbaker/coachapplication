@@ -78,6 +78,9 @@ export interface Booking {
     avatar: string;
     status: 'confirmed' | 'pending' | 'cancelled';
   }>;
+  service?: string;
+  locationLabel?: string;
+  start?: string;
 }
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';

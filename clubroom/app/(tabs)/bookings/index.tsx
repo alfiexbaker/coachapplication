@@ -366,12 +366,12 @@ export default function BookingsScreen() {
 
           <Clickable
             onPress={() => {
-              logger.press('ProfileButton', { route: '/(tabs)/profile' });
-              router.push('/(tabs)/profile');
+              logger.press('SettingsButton', { route: '/(tabs)/settings' });
+              router.push('/(tabs)/settings');
             }}>
             <SurfaceCard style={styles.actionCard}>
               <Ionicons name="person-outline" size={24} color={palette.tint} />
-              <ThemedText style={styles.actionText}>Profile</ThemedText>
+              <ThemedText style={styles.actionText}>Settings</ThemedText>
             </SurfaceCard>
           </Clickable>
         </View>
