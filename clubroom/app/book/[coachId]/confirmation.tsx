@@ -1,6 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { BookingWizardHeader } from '@/components/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';

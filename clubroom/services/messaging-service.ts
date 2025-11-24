@@ -21,17 +21,20 @@ export class MessagingService {
   async listMessages(threadId: string): Promise<ChatMessage[]> {
     const persisted = await storageService.getItem<Record<string, ChatMessage[]>>(STORAGE_KEY, {});
     const messages = persisted[threadId] || this.inMemoryMessages[threadId] || [];
-    return messages.sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
+    return messages.sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
   }
 
   async sendMessage(threadId: string, body: string, sender: 'parent' | 'coach', attachments: any[] = []) {
+    const timestamp = new Date().toISOString();
     const newMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
       threadId,
       sender,
       body,
-      sentAt: new Date().toISOString(),
-      status: 'sending',
+      createdAt: timestamp,
+      status: 'pending',
       attachments,
     };
 
@@ -43,12 +46,13 @@ export class MessagingService {
   }
 
   async simulateIncoming(threadId: string, body: string) {
+    const timestamp = new Date().toISOString();
     const incoming: ChatMessage = {
       id: `msg_${Date.now()}_coach`,
       threadId,
       sender: 'coach',
       body,
-      sentAt: new Date().toISOString(),
+      createdAt: timestamp,
       status: 'delivered',
     };
     await this.persistMessage(threadId, incoming);

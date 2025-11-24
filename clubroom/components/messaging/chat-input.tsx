@@ -5,7 +5,13 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export function ChatInput({ onAttach, disabled }: { onAttach?: () => void; disabled?: boolean }) {
+type ChatInputProps = {
+  onAttach?: () => void;
+  onSend?: (message: string) => void;
+  disabled?: boolean;
+};
+
+export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [value, setValue] = useState('');
@@ -36,7 +42,12 @@ export function ChatInput({ onAttach, disabled }: { onAttach?: () => void; disab
           },
         ]}
         disabled={!value || disabled}
-        onPress={() => setValue('')}>
+        onPress={() => {
+          const trimmed = value.trim();
+          if (!trimmed || disabled) return;
+          onSend?.(trimmed);
+          setValue('');
+        }}>
         {value ? (
           <IconSymbol name="paperplane.fill" size={18} color={scheme === 'light' ? '#FFFFFF' : '#000000'} />
         ) : (
