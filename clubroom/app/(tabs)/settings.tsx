@@ -74,9 +74,10 @@ export default function SettingsScreen() {
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             logger.press('ConfirmLogout', { userId: currentUser?.id });
-            logout();
+            await logout();
+            logger.info('Logout complete - returning to login screen');
           },
         },
       ]

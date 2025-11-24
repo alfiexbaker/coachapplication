@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 import { BookingSummary } from '@/constants/types';
 
 type CompactBookingCardProps = {
@@ -13,6 +14,7 @@ type CompactBookingCardProps = {
 };
 
 export function CompactBookingCard({ booking }: CompactBookingCardProps) {
+  const { currentUser } = useAuth();
   console.log('🔵🔵🔵 [CompactBookingCard] COMPONENT RENDERING - Booking ID:', booking.id, 'Service:', booking.service);
 
   const scheme = useColorScheme() ?? 'light';
@@ -71,6 +73,18 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
     handlePress();
   };
 
+  const handleAthleteClick = (e: any) => {
+    // Stop propagation to prevent navigating to booking detail
+    e.stopPropagation();
+    const athleteId = (booking as any).athleteId;
+    if (athleteId) {
+      console.log('🔵 [CompactBookingCard] Navigating to development hub for athlete:', athleteId);
+      router.push(`/development/athlete/${athleteId}` as any);
+    }
+  };
+
+  const isCoach = currentUser?.role === 'COACH';
+
   const CardContent = () => (
     <SurfaceCard style={styles.card}>
         <View style={styles.content}>
@@ -86,12 +100,21 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
               with {booking.coachName}
             </ThemedText>
             {booking.childName && (
-              <View style={styles.childRow}>
+              <Pressable
+                onPress={isCoach ? handleAthleteClick : undefined}
+                style={styles.childRow}
+                disabled={!isCoach}
+              >
                 <Ionicons name="person" size={14} color={palette.tint} />
-                <ThemedText style={[styles.childName, { color: palette.tint }]} numberOfLines={1}>
+                <ThemedText style={[
+                  styles.childName,
+                  { color: palette.tint },
+                  isCoach && styles.clickableText
+                ]} numberOfLines={1}>
                   For: {booking.childName}
                 </ThemedText>
-              </View>
+                {isCoach && <Ionicons name="arrow-forward" size={12} color={palette.tint} />}
+              </Pressable>
             )}
             <View style={styles.dateTimeRow}>
               <Ionicons name="calendar-outline" size={14} color={palette.muted} />
@@ -175,6 +198,9 @@ const styles = StyleSheet.create({
   childName: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  clickableText: {
+    textDecorationLine: 'underline',
   },
   dateTimeRow: {
     flexDirection: 'row',

@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -33,12 +34,51 @@ export function CoachDevelopmentScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const [allSessions, setAllSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load sessions from both mock data and AsyncStorage
+  useEffect(() => {
+    const loadSessions = async () => {
+      if (!currentUser) return;
+
+      try {
+        // Get mock data sessions
+        const mockSessions = getSessionsForCoach(currentUser.id);
+
+        // Get AsyncStorage sessions (both from bookings and manual add)
+        const storedSessions = await AsyncStorage.getItem('coach_sessions');
+        const asyncSessions = storedSessions ? JSON.parse(storedSessions) : [];
+        const coachAsyncSessions = asyncSessions.filter(
+          (s: any) => s.coachId === currentUser.id
+        );
+
+        // Combine both sources
+        const combined = [...mockSessions, ...coachAsyncSessions];
+        setAllSessions(combined);
+        logger.debug('Sessions loaded', {
+          mockCount: mockSessions.length,
+          asyncCount: coachAsyncSessions.length,
+          total: combined.length,
+        });
+      } catch (error) {
+        logger.error('Failed to load sessions', error);
+        // Fallback to mock data only
+        const mockSessions = getSessionsForCoach(currentUser.id);
+        setAllSessions(mockSessions);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSessions();
+  }, [currentUser]);
 
   // Get all sessions for this coach and group by athlete
   const athletesWithSessions = useMemo(() => {
-    if (!currentUser) return [];
+    if (!currentUser || allSessions.length === 0) return [];
 
-    const sessions = getSessionsForCoach(currentUser.id);
+    const sessions = allSessions;
     const athleteMap = new Map<string, Session[]>();
 
     // Group sessions by athlete
@@ -72,15 +112,22 @@ export function CoachDevelopmentScreen() {
     return athletes.sort(
       (a, b) => new Date(b.lastSession).getTime() - new Date(a.lastSession).getTime()
     );
-  }, [currentUser]);
+  }, [currentUser, allSessions]);
 
   if (!currentUser) {
     logger.warn('No current user found');
     return null;
   }
 
+  if (loading) {
+    return (
+      <PageContainer>
+        <ThemedText>Loading...</ThemedText>
+      </PageContainer>
+    );
+  }
+
   // Calculate key stats
-  const allSessions = getSessionsForCoach(currentUser.id);
   const activeAthletes = athletesWithSessions.length;
   const totalSessions = allSessions.length;
   const avgRating = allSessions.length > 0
@@ -150,8 +197,8 @@ export function CoachDevelopmentScreen() {
       ) : (
         <View style={styles.athleteList}>
           {athletesWithSessions.map(({ athlete, sessionCount, lastSession, averageRating }) => {
-            // Get all sessions for this athlete
-            const athleteSessions = getSessionsForCoach(currentUser.id).filter(
+            // Get all sessions for this athlete from the loaded sessions
+            const athleteSessions = allSessions.filter(
               (s) => s.athleteId === athlete.id
             );
 
