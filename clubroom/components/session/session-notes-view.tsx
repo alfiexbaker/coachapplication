@@ -3,6 +3,16 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+function formatValue(value?: string, fallback: string = 'Not captured yet') {
+  if (!value) return fallback;
+  return value;
+}
+
+function formatList(values: string[] = [], fallback: string = 'Not captured yet') {
+  if (!values.length) return fallback;
+  return values.join(', ');
+}
+
 export function SessionNotesView({
   summary,
   focus,
@@ -24,12 +34,12 @@ export function SessionNotesView({
   const palette = Colors[scheme];
   return (
     <View style={{ gap: Spacing.md }}>
-      <NoteBlock label="Summary" value={summary} />
-      <NoteBlock label="Focus areas" value={focus.join(', ')} />
-      <NoteBlock label="Improvements" value={improvements} />
-      <NoteBlock label="Homework" value={homework} />
-      <NoteBlock label="Effort" value={`${effort}/5`} />
-      <NoteBlock label="Attendance" value={attendance} />
+      <NoteBlock label="Summary" value={formatValue(summary)} />
+      <NoteBlock label="Focus areas" value={formatList(focus)} />
+      <NoteBlock label="Improvements" value={formatValue(improvements, 'Waiting to be logged')} />
+      <NoteBlock label="Homework" value={formatValue(homework, 'Share quick reminders for parents')} />
+      <NoteBlock label="Effort" value={`${effort || '—'}/5`} />
+      <NoteBlock label="Attendance" value={formatValue(attendance, 'Not captured yet')} />
       {updatedAt ? (
         <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
           Updated {new Date(updatedAt).toLocaleString()}
