@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { PageContainer } from '@/components/primitives/page-container';
@@ -101,6 +101,16 @@ export default function ClubHubScreen() {
   const [invites, setInvites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
   const [joinCode, setJoinCode] = useState('');
   const [newClubName, setNewClubName] = useState('');
+
+  const statTiles = useMemo(
+    () => [
+      { label: 'Members', value: membership && club ? club.memberCount : '—' },
+      { label: 'Coaches', value: membership && club ? club.coachCount ?? '—' : '—' },
+      { label: 'Squads', value: membership && club ? squads.length : '—' },
+      { label: 'Sessions', value: membership && club ? sessions.length : '—' },
+    ],
+    [club, membership, squads.length, sessions.length],
+  );
 
   useEffect(() => {
     if (!membership?.clubId) {
@@ -259,10 +269,11 @@ export default function ClubHubScreen() {
     <PageContainer
       header={<PageHeader title="Club Hub" subtitle="Invites, feed, squads, and internal sessions" />}
       gap={Spacing.md}
+      contentStyle={{ paddingBottom: Spacing.xl }}
     >
-      <SurfaceCard style={styles.heroCard}>
+      <SurfaceCard style={styles.heroCard} animateElevation={false}>
         <View style={styles.heroRow}>
-          <View style={[styles.avatar, { backgroundColor: `${palette.tint}20` }]}> 
+          <View style={[styles.avatar, { backgroundColor: `${palette.tint}20` }]}>
             <ThemedText style={styles.avatarText}>{club?.badge || '🏟️'}</ThemedText>
           </View>
           <View style={{ flex: 1, gap: 6 }}>
@@ -270,68 +281,87 @@ export default function ClubHubScreen() {
               {headline}
             </ThemedText>
             <ThemedText style={{ color: palette.muted }}>
-              Coaches can invite teammates, spin up squads, and run club-only sessions without new tabs.
+              Keep club work tucked into one hub with invite codes, club-only sessions, and a private feed.
             </ThemedText>
-            <View style={styles.metaPills}>
-              <Chip dense>{membership ? roleLabel : 'No club yet'}</Chip>
-              {club ? <Chip dense active>{club.memberCount} members</Chip> : <Chip dense>Share invite codes</Chip>}
-              {membership?.canPostAsClub ? <Chip dense>Post as club</Chip> : null}
+            <View style={styles.statRow}>
+              {statTiles.map((stat) => (
+                <View key={stat.label} style={[styles.statTile, { borderColor: palette.border }]}>
+                  <ThemedText type="defaultSemiBold">{stat.value}</ThemedText>
+                  <ThemedText style={{ color: palette.muted }}>{stat.label}</ThemedText>
+                </View>
+              ))}
             </View>
           </View>
         </View>
         <View style={styles.actionsRow}>
-          <Clickable style={[styles.primaryButton, { backgroundColor: palette.tint }]} onPress={membership ? handleLeaveClub : handleCreateClub}>
+          <Clickable
+            style={[styles.primaryButton, { backgroundColor: palette.tint }]}
+            onPress={membership ? handleLeaveClub : handleCreateClub}
+          >
             <ThemedText style={styles.primaryButtonText}>
               {membership ? 'Leave club' : 'Create club'}
             </ThemedText>
           </Clickable>
-          <Clickable style={[styles.secondaryButton, { borderColor: palette.border }]} onPress={membership ? undefined : handleJoinWithCode}>
+          <Clickable
+            style={[styles.secondaryButton, { borderColor: palette.border }]}
+            onPress={membership ? undefined : handleJoinWithCode}
+          >
             <ThemedText style={{ color: palette.text }}>
               {membership ? 'Already connected' : 'Join with code'}
             </ThemedText>
           </Clickable>
         </View>
         {!membership && (
-          <View style={styles.inlineForm}>
-            <TextInput
-              placeholder="Invite code"
-              placeholderTextColor={palette.muted}
-              value={joinCode}
-              onChangeText={setJoinCode}
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-            />
-            <Clickable style={[styles.primaryButton, { backgroundColor: palette.premium }]} onPress={handleJoinWithCode}>
-              <ThemedText style={styles.primaryButtonText}>Join</ThemedText>
-            </Clickable>
+          <View style={styles.inlineFormRow}>
+            <View style={{ flex: 1 }}>
+              <ThemedText type="defaultSemiBold">Join a club</ThemedText>
+              <View style={styles.inlineForm}>
+                <TextInput
+                  placeholder="Invite code"
+                  placeholderTextColor={palette.muted}
+                  value={joinCode}
+                  onChangeText={setJoinCode}
+                  style={[styles.input, { borderColor: palette.border, color: palette.text }]}
+                />
+                <Clickable style={[styles.primaryButton, { backgroundColor: palette.premium }]} onPress={handleJoinWithCode}>
+                  <ThemedText style={styles.primaryButtonText}>Join</ThemedText>
+                </Clickable>
+              </View>
+            </View>
             <View style={[styles.separator, { backgroundColor: palette.border }]} />
-            <TextInput
-              placeholder="New club name"
-              placeholderTextColor={palette.muted}
-              value={newClubName}
-              onChangeText={setNewClubName}
-              style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-            />
-            <Clickable style={[styles.secondaryButton, { borderColor: palette.border }]} onPress={handleCreateClub}>
-              <ThemedText style={{ color: palette.text }}>Create</ThemedText>
-            </Clickable>
+            <View style={{ flex: 1 }}>
+              <ThemedText type="defaultSemiBold">Start a club</ThemedText>
+              <View style={styles.inlineForm}>
+                <TextInput
+                  placeholder="Club name"
+                  placeholderTextColor={palette.muted}
+                  value={newClubName}
+                  onChangeText={setNewClubName}
+                  style={[styles.input, { borderColor: palette.border, color: palette.text }]}
+                />
+                <Clickable style={[styles.secondaryButton, { borderColor: palette.border }]} onPress={handleCreateClub}>
+                  <ThemedText style={{ color: palette.text }}>Create</ThemedText>
+                </Clickable>
+              </View>
+            </View>
           </View>
         )}
       </SurfaceCard>
 
       {membership && club ? (
-        <>
-          <SurfaceCard style={styles.sectionCard}>
+        <View style={styles.grid}>
+          <SurfaceCard style={[styles.sectionCard, styles.halfCard]} animateElevation={false}>
             <View style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold">Invites & posting</ThemedText>
-              <Chip dense>{invites.length} active codes</Chip>
+              <Chip dense>{invites.length} active</Chip>
             </View>
             <View style={{ gap: Spacing.xs }}>
               {invites.map((invite) => (
-                <View key={invite.code} style={[styles.inviteRow, { borderColor: palette.border }]}> 
+                <View key={invite.code} style={[styles.inviteRow, { borderColor: palette.border }]}>
                   <View style={{ flex: 1 }}>
                     <ThemedText type="defaultSemiBold">{invite.code}</ThemedText>
                     <ThemedText style={{ color: palette.muted }}>
-                      {invite.role} · {invite.remainingUses} uses left
+                      {invite.role} · {invite.remainingUses} left
                     </ThemedText>
                   </View>
                   <Chip dense>{new Date(invite.expiresAt).toLocaleDateString()}</Chip>
@@ -339,25 +369,11 @@ export default function ClubHubScreen() {
               ))}
             </View>
             <ThemedText style={{ color: palette.muted }}>
-              Coaches can post as themselves; admins/head coaches can post as the club. Joining or leaving keeps chats intact.
+              Coaches post as themselves; admins and owners can post as the club.
             </ThemedText>
           </SurfaceCard>
 
-          <SurfaceCard style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="defaultSemiBold">Club-only feed</ThemedText>
-              <Chip dense>{feed.length} updates</Chip>
-            </View>
-            <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
-              <View style={{ gap: Spacing.sm }}>
-                {feed.map((post) => (
-                  <FeedPost key={post.id} post={post} />
-                ))}
-              </View>
-            </ScrollView>
-          </SurfaceCard>
-
-          <SurfaceCard style={styles.sectionCard}>
+          <SurfaceCard style={[styles.sectionCard, styles.halfCard]} animateElevation={false}>
             <View style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold">Internal sessions</ThemedText>
               <Chip dense>{sessions.length} live</Chip>
@@ -368,18 +384,35 @@ export default function ClubHubScreen() {
               ))}
             </View>
             <ThemedText style={{ color: palette.muted }}>
-              Keep club offerings internal; publish to discovery from the Bookings tab when ready for the public.
+              Keep sessions private until you publish them from Bookings.
             </ThemedText>
           </SurfaceCard>
 
-          <SurfaceCard style={styles.sectionCard}>
+          <SurfaceCard style={[styles.sectionCard, styles.fullCard]} animateElevation={false}>
+            <View style={styles.sectionHeader}>
+              <ThemedText type="defaultSemiBold">Club-only feed</ThemedText>
+              <Chip dense>{feed.length} updates</Chip>
+            </View>
+            <View style={{ gap: Spacing.sm }}>
+              {feed.slice(0, 3).map((post) => (
+                <FeedPost key={post.id} post={post} />
+              ))}
+              {feed.length > 3 ? (
+                <ThemedText style={{ color: palette.muted }}>
+                  {feed.length - 3} more posts in history
+                </ThemedText>
+              ) : null}
+            </View>
+          </SurfaceCard>
+
+          <SurfaceCard style={[styles.sectionCard, styles.halfCard]} animateElevation={false}>
             <View style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold">Squads & classes</ThemedText>
               <Chip dense>{squads.length} spaces</Chip>
             </View>
             <View style={{ gap: Spacing.xs }}>
               {squads.map((squad) => (
-                <View key={squad.id} style={[styles.squadRow, { borderColor: palette.border }]}> 
+                <View key={squad.id} style={[styles.squadRow, { borderColor: palette.border }]}>
                   <View style={{ flex: 1, gap: 2 }}>
                     <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
                     <ThemedText style={{ color: palette.muted }}>
@@ -403,20 +436,14 @@ export default function ClubHubScreen() {
               ))}
             </View>
           </SurfaceCard>
-        </>
+        </View>
       ) : (
-        <SurfaceCard style={styles.sectionCard}>
+        <SurfaceCard style={[styles.sectionCard, styles.fullCard]} animateElevation={false}>
           <ThemedText type="defaultSemiBold">Why join?</ThemedText>
           <View style={{ gap: Spacing.xs }}>
-            <ThemedText>
-              • Keep tabs at four hubs by nesting club work here instead of adding more navigation.
-            </ThemedText>
-            <ThemedText>
-              • Run club-only feeds, invites, and sessions before publishing to public discovery.
-            </ThemedText>
-            <ThemedText>
-              • Coaches can join/leave with codes; owners keep control of badges and approvals.
-            </ThemedText>
+            <ThemedText>• Keep club work in one tidy hub—no extra tabs.</ThemedText>
+            <ThemedText>• Share invite codes, spin up squads, and run private sessions.</ThemedText>
+            <ThemedText>• Post as yourself or the club without losing chat history.</ThemedText>
           </View>
         </SurfaceCard>
       )}
@@ -469,6 +496,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginTop: Spacing.sm,
   },
+  inlineFormRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    alignItems: 'flex-start',
+  },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
@@ -476,11 +508,24 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   separator: {
-    height: 1,
-    width: '100%',
+    width: 1,
+    alignSelf: 'stretch',
   },
   sectionCard: {
     gap: Spacing.sm,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  fullCard: {
+    width: '100%',
+  },
+  halfCard: {
+    flexGrow: 1,
+    flexBasis: '48%',
+    minWidth: '48%',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -521,6 +566,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
+  },
+  statRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  statTile: {
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    padding: Spacing.sm,
+    flexGrow: 1,
+    flexBasis: '48%',
+    minWidth: 120,
+    gap: 2,
   },
   sessionRow: {
     padding: Spacing.sm,
