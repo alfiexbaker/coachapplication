@@ -2124,7 +2124,11 @@ export const coachProfiles: EnhancedCoachProfile[] = [
       'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400',
     ],
     videoGallery: [],
-    languages: ['English', 'Spanish'],
+    languages: [
+      { id: 'lang1', name: 'English', proficiency: 'Native' },
+      { id: 'lang2', name: 'Spanish', proficiency: 'Conversational' },
+      { id: 'lang3', name: 'French', proficiency: 'Basic' },
+    ],
     achievements: [
       'UEFA B Licensed Coach',
       'Former Professional Goalkeeper',

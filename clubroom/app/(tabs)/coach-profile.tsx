@@ -17,7 +17,13 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
-import { CoachPost, CoachExperience, CoachCertification, SessionOffering } from '@/constants/types';
+import {
+  CoachPost,
+  CoachExperience,
+  CoachCertification,
+  CoachLanguage,
+  SessionOffering,
+} from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
@@ -414,12 +420,15 @@ export default function CoachProfileScreen() {
                 <SurfaceCard style={styles.section}>
                   <ThemedText type="subtitle">Languages</ThemedText>
                   <View style={styles.languagesRow}>
-                    {coach.languages.map((lang, index) => (
+                    {coach.languages.map((lang: CoachLanguage) => (
                       <View
-                        key={index}
+                        key={lang.id}
                         style={[styles.languageTag, { backgroundColor: `${palette.tint}20` }]}>
                         <ThemedText style={[styles.languageText, { color: palette.tint }]}>
-                          {lang}
+                          {lang.name}
+                        </ThemedText>
+                        <ThemedText style={[styles.languageLevel, { color: palette.muted }]}>
+                          {lang.proficiency}
                         </ThemedText>
                       </View>
                     ))}
@@ -875,6 +884,9 @@ const styles = StyleSheet.create({
   },
   languageText: {
     fontWeight: '600',
+  },
+  languageLevel: {
+    fontSize: 12,
   },
   specialtiesRow: {
     flexDirection: 'row',

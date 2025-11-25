@@ -63,6 +63,12 @@ export interface CoachCertification {
   credentialUrl?: string;
 }
 
+export interface CoachLanguage {
+  id: string;
+  name: string;
+  proficiency: 'Native' | 'Fluent' | 'Conversational' | 'Basic';
+}
+
 export interface CoachPost {
   id: string;
   coachId: string;
@@ -127,7 +133,7 @@ export interface CoachProfile {
   posts: CoachPost[];
   photoGallery: string[];
   videoGallery: string[];
-  languages: string[];
+  languages: CoachLanguage[];
   achievements: string[];
 }
 
