@@ -14,6 +14,7 @@ This folder keeps the shared source of truth for Clubroom. Use it to stay aligne
 - **sprints/** – Current four-sprint plan with scope and deliverables per sprint.
 - **vision/** – Role requirements, feature specs, and software design notes that inform the sprint work.
 - **technical/** – Data and architecture notes to keep future backend/API work aligned.
+- **functional_overview.md** – Plaintext recap of current app capabilities across navigation, messaging, booking, and scheduling.
 
 ## Future additions
 - Add API contracts and data schemas here as they mature so frontend and backend stay in lockstep.
