@@ -107,7 +107,7 @@ export const designTokens = {
   shadows,
 };
 
-export const getTheme = (mode: ThemeMode = 'dark') => ({
+export const getTheme = (mode: ThemeMode = 'light') => ({
   colors: palettes[mode],
   spacing,
   radius,

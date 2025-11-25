@@ -334,7 +334,7 @@ function AttentionCard({ entry, theme, delay, onPress }: AttentionCardProps) {
 }
 
 export function CoachDevelopmentScreen() {
-  const scheme = useColorScheme() ?? 'dark';
+  const scheme = useColorScheme() ?? 'light';
   const theme = getTheme(scheme === 'dark' ? 'dark' : 'light');
   const { currentUser } = useAuth();
   const [allSessions, setAllSessions] = useState<Session[]>([]);
