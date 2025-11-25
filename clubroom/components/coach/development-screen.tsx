@@ -34,7 +34,10 @@ type AthleteWithSessions = {
   athlete: User;
   sessionCount: number;
   lastSession: string;
+  lastSessionId: string;
   averageRating: number;
+  pendingNoteSessionId?: string;
+  pendingNoteDate?: string;
 };
 
 type AthleteRosterEntry = AthleteWithSessions & {
@@ -146,9 +149,10 @@ type RosterCardProps = {
   theme: Theme;
   delay: number;
   onPress: () => void;
+  onAddNotes?: () => void;
 };
 
-function RosterCard({ entry, theme, delay, onPress }: RosterCardProps) {
+function RosterCard({ entry, theme, delay, onPress, onAddNotes }: RosterCardProps) {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: withSpring(scale.value, { damping: 18, stiffness: 260 }) }],
@@ -237,10 +241,29 @@ function RosterCard({ entry, theme, delay, onPress }: RosterCardProps) {
             Last session {formatDate(entry.lastSession)}
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-          <StatusPill label={`${entry.sessionCount} sessions`} tone="primary" theme={theme} />
-          <StatusPill label={`${entry.averageRating.toFixed(1)} rating`} tone="warning" theme={theme} />
-        </View>
+      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+        <StatusPill label={`${entry.sessionCount} sessions`} tone="primary" theme={theme} />
+        <StatusPill label={`${entry.averageRating.toFixed(1)} rating`} tone="warning" theme={theme} />
+        {entry.needsNotes ? (
+          <Pressable
+            onPress={onAddNotes}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.md,
+              paddingVertical: theme.spacing.xs,
+              borderRadius: theme.radius.pill,
+              backgroundColor: `${theme.colors.danger}16`,
+            }}
+          >
+            <Feather name="edit-3" size={14} color={theme.colors.danger} />
+            <Text style={{ ...theme.typography.body, color: theme.colors.danger, fontWeight: '700' }}>
+              Add notes
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
       </View>
 
       <View style={{ alignItems: 'flex-end', gap: theme.spacing.xs }}>
@@ -261,9 +284,10 @@ type AttentionCardProps = {
   theme: Theme;
   delay: number;
   onPress: () => void;
+  onAddNotes?: () => void;
 };
 
-function AttentionCard({ entry, theme, delay, onPress }: AttentionCardProps) {
+function AttentionCard({ entry, theme, delay, onPress, onAddNotes }: AttentionCardProps) {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: withSpring(scale.value, { damping: 18, stiffness: 260 }) }],
@@ -324,10 +348,34 @@ function AttentionCard({ entry, theme, delay, onPress }: AttentionCardProps) {
         </View>
         <Feather name="arrow-up-right" size={18} color={theme.colors.primary} />
       </View>
+      {entry.pendingNoteDate ? (
+        <Text style={{ ...theme.typography.body, color: theme.colors.muted }}>
+          Missing notes from {formatDate(entry.pendingNoteDate)}
+        </Text>
+      ) : null}
       <View style={{ flexDirection: 'row', gap: theme.spacing.xs, flexWrap: 'wrap' }}>
         {pills.map((pill, idx) => (
           <StatusPill key={pill.label + idx} {...pill} />
         ))}
+        {entry.pendingNoteSessionId ? (
+          <Pressable
+            onPress={onAddNotes}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
+              paddingHorizontal: theme.spacing.md,
+              paddingVertical: theme.spacing.xs,
+              borderRadius: theme.radius.pill,
+              backgroundColor: `${theme.colors.danger}16`,
+            }}
+          >
+            <Feather name="file-text" size={14} color={theme.colors.danger} />
+            <Text style={{ ...theme.typography.body, color: theme.colors.danger, fontWeight: '700' }}>
+              Open notes
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </AnimatedPressable>
   );
@@ -387,6 +435,7 @@ export function CoachDevelopmentScreen() {
       const sortedSessions = [...athleteSessions].sort(
         (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
       );
+      const pendingNoteSession = sortedSessions.find((s) => !s.notes || s.notes.trim() === '');
 
       const avgRating =
         athleteSessions.reduce((sum, s) => sum + s.performanceRating, 0) /
@@ -396,7 +445,10 @@ export function CoachDevelopmentScreen() {
         athlete,
         sessionCount: athleteSessions.length,
         lastSession: sortedSessions[0].completedAt,
+        lastSessionId: sortedSessions[0].id,
         averageRating: avgRating,
+        pendingNoteSessionId: pendingNoteSession?.id,
+        pendingNoteDate: pendingNoteSession?.completedAt,
       });
     });
 
@@ -407,7 +459,9 @@ export function CoachDevelopmentScreen() {
     const now = Date.now();
     return athletesWithSessions.map((entry) => {
       const athleteSessions = allSessions.filter((s) => s.athleteId === entry.athlete.id);
-      const needsNotes = athleteSessions.some((s) => !s.notes || s.notes.trim() === '');
+      const needsNotes =
+        entry.pendingNoteSessionId !== undefined ||
+        athleteSessions.some((s) => !s.notes || s.notes.trim() === '');
       const lastSessionDate = new Date(entry.lastSession);
       const daysSinceLast = Math.max(
         0,
@@ -426,24 +480,34 @@ export function CoachDevelopmentScreen() {
     (entry) => entry.needsNotes || entry.averageRating < 4 || entry.daysSinceLast >= 10
   );
 
-  const handlePressAthlete = useCallback(
-    (entry: AthleteRosterEntry) => {
-      logger.press('AthleteCard', {
-        athleteId: entry.athlete.id,
-        athleteName: entry.athlete.name,
-        sessionCount: entry.sessionCount,
-      });
-      router.push(`/development/athlete/${entry.athlete.id}`);
-    },
-    []
-  );
+  const handlePressAthlete = useCallback((entry: AthleteRosterEntry) => {
+    logger.press('AthleteCard', {
+      athleteId: entry.athlete.id,
+      athleteName: entry.athlete.name,
+      sessionCount: entry.sessionCount,
+    });
+
+    if (entry.pendingNoteSessionId) {
+      router.push(`/development/athlete-session/${entry.pendingNoteSessionId}`);
+      return;
+    }
+
+    router.push(`/development/athlete/${entry.athlete.id}`);
+  }, []);
 
   const handlePressAttention = useCallback((entry: AthleteRosterEntry) => {
     logger.press('AttentionAthlete', {
       athleteId: entry.athlete.id,
       athleteName: entry.athlete.name,
       needsNotes: entry.needsNotes,
+      pendingNoteSessionId: entry.pendingNoteSessionId,
     });
+
+    if (entry.pendingNoteSessionId) {
+      router.push(`/development/athlete-session/${entry.pendingNoteSessionId}`);
+      return;
+    }
+
     router.push(`/development/athlete/${entry.athlete.id}`);
   }, []);
 
@@ -464,6 +528,7 @@ export function CoachDevelopmentScreen() {
           allSessions.reduce((sum, s) => sum + s.performanceRating, 0) / allSessions.length
         ).toFixed(1)
       : '0';
+  const pendingNotesCount = rosterEntries.filter((entry) => entry.pendingNoteSessionId).length;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['top']}>
@@ -529,13 +594,21 @@ export function CoachDevelopmentScreen() {
               hint="Rolling 30 days"
               delay={120}
             />
+            <StatChip
+              theme={theme}
+              label="Needs notes"
+              value={pendingNotesCount}
+              icon="file-text"
+              hint="Missing context to close out"
+              delay={180}
+            />
           </View>
         </View>
 
         <View style={{ gap: theme.spacing.md }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text style={{ ...theme.typography.section, color: theme.colors.text }}>
-              Needs attention
+              Needs attention · {attentionAthletes.length}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
               <View
@@ -551,6 +624,9 @@ export function CoachDevelopmentScreen() {
               </Text>
             </View>
           </View>
+          <Text style={{ ...theme.typography.body, color: theme.colors.muted }}>
+            Jump straight into the latest session that needs notes or a rating refresh.
+          </Text>
 
           {attentionAthletes.length === 0 ? (
             <Animated.View
@@ -581,6 +657,11 @@ export function CoachDevelopmentScreen() {
                   theme={theme}
                   delay={idx * 60}
                   onPress={() => handlePressAttention(entry)}
+                  onAddNotes={() =>
+                    entry.pendingNoteSessionId
+                      ? router.push(`/development/athlete-session/${entry.pendingNoteSessionId}`)
+                      : handlePressAttention(entry)
+                  }
                 />
               ))}
             </View>
@@ -632,6 +713,11 @@ export function CoachDevelopmentScreen() {
                   delay={idx * 50}
                   theme={theme}
                   onPress={() => handlePressAthlete(entry)}
+                  onAddNotes={() =>
+                    entry.pendingNoteSessionId
+                      ? router.push(`/development/athlete-session/${entry.pendingNoteSessionId}`)
+                      : handlePressAthlete(entry)
+                  }
                 />
               ))}
             </View>
