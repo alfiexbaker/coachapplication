@@ -5,34 +5,97 @@ import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, type UserRole } from '@/hooks/use-auth';
 import { chatThreads } from '@/constants/mock-data';
+
+type TabDefinition = {
+  name: string;
+  title: string;
+  icon: React.ComponentProps<typeof IconSymbol>['name'];
+  badge?: boolean;
+};
+
+type RoleTabConfig = {
+  primary: TabDefinition[];
+  hidden?: string[];
+};
+
+const BASE_HIDDEN_ROUTES = [
+  'feed',
+  'notifications',
+  'availability',
+  'coach-profile',
+  'edit-profile',
+  'edit-user-profile',
+  'profile',
+  'admin/invite-codes',
+  'earnings',
+];
+
+const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
+  COACH: {
+    primary: [
+      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'bookings', title: 'Schedule', icon: 'calendar.badge.clock' },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
+    ],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+  },
+  USER: {
+    primary: [
+      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'more', title: 'Find Coach', icon: 'magnifyingglass' },
+      { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
+    ],
+    hidden: BASE_HIDDEN_ROUTES,
+  },
+  PARENT: {
+    primary: [
+      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'bookings', title: 'Calendar', icon: 'calendar.badge.clock' },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
+    ],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+  },
+  ADMIN: {
+    primary: [
+      { name: 'index', title: 'Users', icon: 'person.2.fill' },
+      { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
+    ],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+  },
+  DEFAULT: {
+    primary: [
+      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
+    ],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+  },
+};
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
   const { currentUser } = useAuth();
 
-  const userRole = currentUser?.role;
+  const userRole = currentUser?.role ?? 'DEFAULT';
   const unreadCount = chatThreads.reduce((total, thread) => total + (thread.unreadCount || 0), 0);
+  const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
+  const hiddenRoutes = roleConfig.hidden ?? [];
 
   // Debug logging to track role detection and tab rendering
   console.log('[TabLayout] Current user:', currentUser ? { username: currentUser.username, role: currentUser.role } : 'Not logged in');
-  console.log('[TabLayout] Detected role:', userRole);
+  console.log('[TabLayout] Rendering tabs for role:', userRole, roleConfig.primary.map((tab) => tab.title));
 
-  // Log which tabs will render
-  if (userRole === 'ADMIN') {
-    console.log('[TabLayout] ✓ Rendering ADMIN tabs (Feed, Users, Bookings, Settings)');
-  } else if (userRole === 'COACH') {
-    console.log('[TabLayout] ✓ Rendering COACH tabs (Home, Calendar, Feed, Messages, Settings)');
-  } else if (userRole === 'USER') {
-    console.log('[TabLayout] ✓ Rendering USER tabs (Home, Find Coach, Bookings, Messages, Settings)');
-  } else if (userRole === 'PARENT') {
-    console.log('[TabLayout] ✓ Rendering PARENT tabs (Home, Discover, Calendar, Settings)');
-  } else {
-    console.log('[TabLayout] ⚠️  Unknown/no role - defaulting to USER tabs');
-  }
-
+  // Consolidate bottom navigation to 4-5 role-aware hubs (home, schedule, comms, profile)
   const tabBarOptions = {
     tabBarActiveTintColor: palette.tint,
     tabBarInactiveTintColor: palette.tabIconDefault,
@@ -62,417 +125,30 @@ export default function TabLayout() {
     },
   };
 
-  // ADMIN TABS - Full access to all screens for moderation
-  if (userRole === 'ADMIN') {
-    return (
-      <Tabs screenOptions={tabBarOptions}>
-        <Tabs.Screen
-          name="feed"
-          options={{
-            title: 'Feed',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="square.stack.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Users',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            title: 'Bookings',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar.badge.clock" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            href: null, // Hide reports from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="more"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="availability"
-          options={{
-            href: null, // Admins don't need calendar view
-          }}
-        />
-        <Tabs.Screen
-          name="earnings"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="coach-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="edit-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="edit-user-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            href: null, // Profile hub is folded into Settings
-          }}
-        />
-        <Tabs.Screen
-          name="admin/invite-codes"
-          options={{
-            href: null, // Hide from tab bar - access via settings
-          }}
-        />
-      </Tabs>
-    );
-  }
-
-  // COACH TABS - 5 tabs: Home, Calendar, Feed, Messages, Settings
-  if (userRole === 'COACH') {
-    return (
-      <Tabs screenOptions={tabBarOptions}>
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            title: 'Calendar',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.badge.clock" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="feed"
-          options={{
-            title: 'Feed',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="square.stack.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
-            ),
-            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="more"
-          options={{
-            href: null, // Hide - Analytics/Development moved to Profile
-          }}
-        />
-        <Tabs.Screen
-          name="availability"
-          options={{
-            href: null, // Hide - integrated into Calendar tab
-          }}
-        />
-        <Tabs.Screen
-          name="coach-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="edit-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="edit-user-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            href: null, // Folded into Settings tab
-          }}
-        />
-        <Tabs.Screen
-          name="admin/invite-codes"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-      </Tabs>
-    );
-  }
-
-  // USER TABS - 5 tabs: Home, Find Coach, Bookings, Messages, Settings
-  if (userRole === 'USER') {
-    return (
-      <Tabs screenOptions={tabBarOptions}>
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="more"
-          options={{
-            title: 'Find Coach',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="magnifyingglass" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            title: 'Bookings',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.badge.clock" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
-            ),
-            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="feed"
-          options={{
-            href: null, // Hidden - feed integrated into Home
-          }}
-        />
-        <Tabs.Screen
-          name="availability"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="coach-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="edit-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="edit-user-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            href: null, // Folded into Settings tab
-          }}
-        />
-        <Tabs.Screen
-          name="admin/invite-codes"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-      </Tabs>
-    );
-  }
-
-  // PARENT TABS - 4 tabs: Home, Discover, Calendar, Settings
-  if (userRole === 'PARENT') {
-    return (
-      <Tabs screenOptions={tabBarOptions}>
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="more"
-          options={{
-            title: 'Discover',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="magnifyingglass" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            title: 'Calendar',
-            tabBarIcon: ({ color }) => <IconSymbol size={26} name="calendar.badge.clock" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-            tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="feed"
-          options={{
-            href: null, // Hide - Feed integrated into Home
-          }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            href: null, // Hide - Messages accessible from Home
-            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          }}
-        />
-        <Tabs.Screen
-          name="availability"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="coach-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="edit-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="edit-user-profile"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-        <Tabs.Screen
-          name="admin/invite-codes"
-          options={{
-            href: null, // Hide from tab bar
-          }}
-        />
-      </Tabs>
-    );
-  }
-
-  // DEFAULT FALLBACK - Basic tabs for unauthenticated/unknown role
   return (
     <Tabs screenOptions={tabBarOptions}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="gearshape.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="bookings"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-          name="messages"
+      {roleConfig.primary.map(({ name, title, icon, badge }) => (
+        <Tabs.Screen
+          key={name}
+          name={name}
           options={{
-            href: null,
-            tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+            title,
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name={icon} color={color} />,
+            tabBarBadge: badge && unreadCount > 0 ? unreadCount : undefined,
           }}
         />
-      <Tabs.Screen
-        name="more"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="availability"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="coach-profile"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="edit-profile"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="edit-user-profile"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="admin/invite-codes"
-        options={{
-          href: null,
-        }}
-      />
+      ))}
+
+      {hiddenRoutes.map((route) => (
+        <Tabs.Screen
+          key={route}
+          name={route}
+          options={{
+            href: null,
+            tabBarButton: () => null,
+          }}
+        />
+      ))}
     </Tabs>
   );
 }
