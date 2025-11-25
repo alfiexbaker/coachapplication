@@ -11,6 +11,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useThemePreferences } from '@/hooks/theme-provider';
 import { createLogger } from '@/utils/logger';
 import { mockUserProfile } from '@/constants/mock-data';
 import { NotificationsPanel } from './notifications';
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser, logout } = useAuth();
+  const { colorScheme, setColorScheme } = useThemePreferences();
 
   // Notification settings state
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -78,6 +80,7 @@ export default function SettingsScreen() {
             logger.press('ConfirmLogout', { userId: currentUser?.id });
             await logout();
             logger.info('Logout complete - returning to login screen');
+            router.replace('/');
           },
         },
       ]
@@ -396,14 +399,12 @@ export default function SettingsScreen() {
                 Alert.alert('Language', 'More languages coming soon');
               }}
             />
-            <SettingRow
+            <ToggleRow
               icon="moon"
               title="Dark mode"
-              subtitle={scheme === 'dark' ? 'On' : 'Off'}
-              onPress={() => {
-                logger.press('DarkMode');
-                Alert.alert('Dark Mode', 'Auto-switches with system settings');
-              }}
+              subtitle={colorScheme === 'dark' ? 'On' : 'Off'}
+              value={colorScheme === 'dark'}
+              onValueChange={(value) => setColorScheme(value ? 'dark' : 'light')}
             />
           </SurfaceCard>
         </View>

@@ -1,0 +1,174 @@
+{
+  "availability": [
+    {
+      "dayIndex": 0,
+      "slots": [
+        {
+          "templateId": "morning_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Personalized skill development",
+          "durationMinutes": 60,
+          "serviceType": "1-on-1",
+          "tag": "Popular"
+        },
+        {
+          "templateId": "afternoon_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Technical skills",
+          "durationMinutes": 90,
+          "serviceType": "1-on-1",
+          "tag": "Extended"
+        }
+      ]
+    },
+    {
+      "dayIndex": 1,
+      "slots": [
+        {
+          "templateId": "morning_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Personalized skill development",
+          "durationMinutes": 60,
+          "serviceType": "1-on-1",
+          "tag": "Popular"
+        },
+        {
+          "templateId": "morning_group",
+          "title": "Small Group Training",
+          "focus": "Ball control & passing",
+          "durationMinutes": 90,
+          "serviceType": "small-group",
+          "tag": "5/8 spots"
+        },
+        {
+          "templateId": "evening_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Match preparation",
+          "durationMinutes": 60,
+          "serviceType": "1-on-1",
+          "tag": "Match Prep"
+        }
+      ]
+    },
+    {
+      "dayIndex": 2,
+      "slots": [
+        {
+          "templateId": "afternoon_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Technical skills",
+          "durationMinutes": 90,
+          "serviceType": "1-on-1",
+          "tag": "Extended"
+        }
+      ]
+    },
+    {
+      "dayIndex": 3,
+      "slots": [
+        {
+          "templateId": "morning_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Personalized skill development",
+          "durationMinutes": 60,
+          "serviceType": "1-on-1",
+          "tag": "Popular"
+        },
+        {
+          "templateId": "afternoon_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Technical skills",
+          "durationMinutes": 90,
+          "serviceType": "1-on-1",
+          "tag": "Extended"
+        },
+        {
+          "templateId": "evening_group",
+          "title": "Group Session",
+          "focus": "Passing & positioning drills",
+          "durationMinutes": 60,
+          "serviceType": "small-group",
+          "tag": "3/8 spots"
+        }
+      ]
+    },
+    {
+      "dayIndex": 4,
+      "slots": [
+        {
+          "templateId": "morning_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Personalized skill development",
+          "durationMinutes": 60,
+          "serviceType": "1-on-1",
+          "tag": "Popular"
+        },
+        {
+          "templateId": "evening_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Match preparation",
+          "durationMinutes": 60,
+          "serviceType": "1-on-1",
+          "tag": "Match Prep"
+        }
+      ]
+    },
+    {
+      "dayIndex": 5,
+      "slots": [
+        {
+          "templateId": "afternoon_1on1",
+          "title": "1-on-1 Training",
+          "focus": "Technical skills",
+          "durationMinutes": 90,
+          "serviceType": "1-on-1",
+          "tag": "Extended"
+        },
+        {
+          "templateId": "evening_group",
+          "title": "Group Session",
+          "focus": "Passing & positioning drills",
+          "durationMinutes": 60,
+          "serviceType": "small-group",
+          "tag": "3/8 spots"
+        }
+      ]
+    },
+    {
+      "dayIndex": 6,
+      "slots": [
+        {
+          "templateId": "morning_group",
+          "title": "Small Group Training",
+          "focus": "Ball control & passing",
+          "durationMinutes": 90,
+          "serviceType": "small-group",
+          "tag": "5/8 spots"
+        }
+      ]
+    }
+  ],
+  "services": [
+    {
+      "id": "1-on-1",
+      "title": "1-on-1 Training",
+      "priceLabel": "£50/hr",
+      "capacity": null,
+      "spotsLeft": null
+    },
+    {
+      "id": "small-group",
+      "title": "Small Group",
+      "priceLabel": "£30/hr",
+      "capacity": 8,
+      "spotsLeft": 5
+    },
+    {
+      "id": "team",
+      "title": "Team Session",
+      "priceLabel": "£150",
+      "capacity": null,
+      "spotsLeft": null
+    }
+  ]
+}

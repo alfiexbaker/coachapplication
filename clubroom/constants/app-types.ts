@@ -120,6 +120,7 @@ export interface Conversation {
   id: string;
   participants: string[]; // User IDs
   relatedAthleteId?: string; // If parent chatting about kid
+  relatedBookingId?: string;
   lastMessageAt: string;
   lastMessage?: string;
   unreadCount?: number;

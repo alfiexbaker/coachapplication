@@ -116,7 +116,7 @@ export function SurfaceCard({
 
   const shimmerGradientUri = useMemo(() => {
     const colors = shimmerColors ?? shimmerPresets[scheme];
-    return buildLinearGradientUri(colors, Radii.lg);
+    return buildLinearGradientUri([...colors], Radii.lg);
   }, [scheme, shimmerColors]);
 
   const animatedCardStyle = useAnimatedStyle(() => {

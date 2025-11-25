@@ -128,7 +128,7 @@ export function UserFindCoachScreen() {
                   { opacity: pressed ? 0.7 : 1 },
                 ]}
               >
-                <SurfaceCard style={styles.cardContent}>
+                <SurfaceCard style={styles.cardContent} tactile={false}>
                   <View style={styles.coachHeader}>
                     <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>

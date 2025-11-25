@@ -9,7 +9,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "test:snapshots": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && node --test .tmp-tests/__tests__/book-coach.snapshot.js",
+    "test": "npm run test:snapshots"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

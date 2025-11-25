@@ -14,7 +14,18 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { inviteCodes } from '@/constants/mock-data';
+
+const inviteCodes = [
+  {
+    code: 'clubroom-coach',
+    status: 'active' as const,
+    schoolId: 'school-1',
+    schoolName: 'Elite Sports Academy',
+    currentUses: 0,
+    maxUses: 10,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
 
 interface CoachSignupScreenProps {
   onSignupComplete: (data: CoachSignupData) => void;
