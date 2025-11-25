@@ -245,8 +245,8 @@ export default function MessagesScreen() {
             <SurfaceCard style={styles.infoCard}>
               <ThemedText type="defaultSemiBold">Clubs, squads, badge hub</ThemedText>
               <ThemedText style={{ color: palette.muted }}>
-                Keep club-wide announcements, squad logistics, class chat, and badge/awards drops organised.
-                You can post as yourself or on behalf of the school.
+                Keep club-wide announcements and class chatter tidy. Post as yourself or on behalf of the school without leaving
+                this inbox.
               </ThemedText>
             </SurfaceCard>
             <View style={styles.filterRow}>
@@ -312,19 +312,19 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
     gap: Spacing.sm,
   },
   headerTitle: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -1,
   },
   headerSubtitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
@@ -347,16 +347,16 @@ const styles = StyleSheet.create({
   segmentedControl: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     padding: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   segmentedButton: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
@@ -364,26 +364,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg + 4,
-    gap: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
     borderBottomWidth: 1,
   },
   infoCard: {
     marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     gap: Spacing.xs,
   },
   filterRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.sm,
     flexWrap: 'wrap',
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   groupCard: {
     marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
     gap: Spacing.sm,
   },
   groupHeader: {

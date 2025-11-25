@@ -359,8 +359,8 @@ export function CoachDevelopmentScreen() {
 
 const styles = StyleSheet.create({
   sectionCard: {
-    gap: Spacing.md,
-    padding: Spacing.md,
+    gap: Spacing.sm,
+    padding: Spacing.sm,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -374,11 +374,11 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   sectionHint: {
-    fontSize: 13,
+    fontSize: 12,
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     flexWrap: 'wrap',
   },
   attentionList: {

@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CompactBookingCard } from '@/components/bookings/compact-booking-card';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Chip } from '@/components/primitives/chip';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -290,36 +291,35 @@ export default function BookingsScreen() {
       {userRole === 'COACH' && (
         <SurfaceCard style={styles.clubHubCard}>
           <View style={styles.clubHubHeader}>
-            <ThemedText type="defaultSemiBold">Club hub</ThemedText>
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={styles.clubHubTitleRow}>
+                <ThemedText type="defaultSemiBold">Club hub</ThemedText>
+                <Chip dense>{clubContext ? 'Active' : 'Joinable'}</Chip>
+              </View>
+              <ThemedText style={[styles.clubHubSummary, { color: palette.muted }]} numberOfLines={2}>
+                {clubContext
+                  ? `${clubContext.name} · ${clubMembership?.role.toLowerCase()} · ${clubInternalSessions.length} sessions`
+                  : 'Create or join a club with an invite code—internal feed, chats, and sessions stay tucked away.'}
+              </ThemedText>
+              <View style={styles.clubMetaRow}>
+                <View style={styles.metaChip}>
+                  <Ionicons name="shield-checkmark" size={14} color={palette.icon} />
+                  <ThemedText style={{ color: palette.muted }}>
+                    {clubContext ? `${clubContext.memberCount} members` : 'Invite with codes'}
+                  </ThemedText>
+                </View>
+                <View style={styles.metaChip}>
+                  <Ionicons name="chatbubbles-outline" size={14} color={palette.icon} />
+                  <ThemedText style={{ color: palette.muted }}>Feed + group chats</ThemedText>
+                </View>
+              </View>
+            </View>
             <Clickable
               onPress={() => router.push('/club-hub')}
               style={[styles.secondaryButton, { borderColor: palette.border }]}
             >
               <ThemedText style={{ color: palette.text }}>Open</ThemedText>
             </Clickable>
-          </View>
-          <ThemedText style={{ color: palette.muted }}>
-            {clubContext
-              ? `Connected to ${clubContext.name} as ${clubMembership?.role.toLowerCase()}.`
-              : 'Join or create a club to run internal sessions and feeds without adding more tabs.'}
-          </ThemedText>
-          <View style={styles.clubMetaRow}>
-            <View style={styles.metaChip}>
-              <Ionicons name="shield-checkmark" size={14} color={palette.icon} />
-              <ThemedText style={{ color: palette.muted }}>
-                {clubContext ? `${clubContext.memberCount} members` : 'Invite with codes'}
-              </ThemedText>
-            </View>
-            <View style={styles.metaChip}>
-              <Ionicons name="chatbubbles-outline" size={14} color={palette.icon} />
-              <ThemedText style={{ color: palette.muted }}>Club feed & chats stay nested</ThemedText>
-            </View>
-            <View style={styles.metaChip}>
-              <Ionicons name="calendar-outline" size={14} color={palette.icon} />
-              <ThemedText style={{ color: palette.muted }}>
-                {clubInternalSessions.length} internal sessions
-              </ThemedText>
-            </View>
           </View>
         </SurfaceCard>
       )}
@@ -403,22 +403,20 @@ export default function BookingsScreen() {
             onPress={() => {
               logger.press('CalendarButton', { route: '/(tabs)/availability' });
               router.push('/(tabs)/availability');
-            }}>
-            <SurfaceCard style={styles.actionCard}>
-              <Ionicons name="calendar-outline" size={24} color={palette.tint} />
-              <ThemedText style={styles.actionText}>Calendar</ThemedText>
-            </SurfaceCard>
+            }}
+            style={[styles.actionPill, { borderColor: palette.border }]}>
+            <Ionicons name="calendar-outline" size={18} color={palette.tint} />
+            <ThemedText style={[styles.actionText, { color: palette.text }]}>Calendar</ThemedText>
           </Clickable>
 
           <Clickable
             onPress={() => {
               logger.press('SettingsButton', { route: '/(tabs)/settings' });
               router.push('/(tabs)/settings');
-            }}>
-            <SurfaceCard style={styles.actionCard}>
-              <Ionicons name="person-outline" size={24} color={palette.tint} />
-              <ThemedText style={styles.actionText}>Settings</ThemedText>
-            </SurfaceCard>
+            }}
+            style={[styles.actionPill, { borderColor: palette.border }]}>
+            <Ionicons name="person-outline" size={18} color={palette.tint} />
+            <ThemedText style={[styles.actionText, { color: palette.text }]}>Settings</ThemedText>
           </Clickable>
         </View>
       )}
@@ -955,85 +953,93 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
   },
   clubHubCard: {
-    marginHorizontal: 20,
-    marginBottom: 12,
-    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 12,
+    gap: 6,
   },
   clubHubHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  clubHubTitleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+  },
+  clubHubSummary: {
+    fontSize: scaleFont(14),
+    lineHeight: 18,
   },
   clubMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   metaChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: '#00000008',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: '#00000006',
   },
   secondaryButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
     borderWidth: 1,
   },
   tabContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    gap: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    gap: 10,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderBottomWidth: 3,
+    gap: 6,
+    paddingVertical: 12,
+    borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomWidth: 3,
+    borderBottomWidth: 2,
   },
   tabText: {
-    fontSize: scaleFont(15),
+    fontSize: scaleFont(14),
     fontWeight: '700',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   quickActions: {
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  actionCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   actionText: {
-    fontSize: scaleFont(15),
+    fontSize: scaleFont(14),
     fontWeight: '600',
     letterSpacing: -0.2,
   },
+  actionPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
   list: {
-    padding: 20,
+    padding: 16,
     paddingTop: 0,
   },
   emptyState: {
