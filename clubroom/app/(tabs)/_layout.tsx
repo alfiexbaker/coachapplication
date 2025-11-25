@@ -145,7 +145,6 @@ export default function TabLayout() {
           name={route}
           options={{
             href: null,
-            tabBarButton: () => null,
           }}
         />
       ))}
