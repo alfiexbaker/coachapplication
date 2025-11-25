@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   SessionNoteFields,
@@ -22,7 +22,7 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const logger = createLogger('useSessionNote', { bookingId });
+  const logger = useMemo(() => createLogger('useSessionNote', { bookingId }), [bookingId]);
 
   const refresh = useCallback(async () => {
     if (!bookingId) {
@@ -98,7 +98,7 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
     return () => {
       active = false;
     };
-  }, [bookingId, logger]);
+  }, [bookingId]);
 
   return {
     note,
