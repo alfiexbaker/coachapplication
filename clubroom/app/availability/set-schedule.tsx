@@ -1,6 +1,6 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { useState } from 'react';
+import { ScrollView, StyleSheet, View, Alert } from 'react-native';
+import { useMemo, useState } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -8,15 +8,26 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const TIME_PRESETS = ['16:00 - 19:00', '09:00 - 12:00', '18:00 - 21:00'];
 
 export default function SetScheduleScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [selectedDays, setSelectedDays] = useState<string[]>(['Mon', 'Wed', 'Fri']);
-  const [time, setTime] = useState('16:00 - 19:00');
+  const [timeIndex, setTimeIndex] = useState(0);
+
+  const timeRange = useMemo(() => TIME_PRESETS[timeIndex] ?? TIME_PRESETS[0], [timeIndex]);
 
   const toggleDay = (day: string) => {
     setSelectedDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
+  };
+
+  const cycleTime = () => {
+    setTimeIndex((prev) => (prev + 1) % TIME_PRESETS.length);
+  };
+
+  const handleSaveTemplate = () => {
+    Alert.alert('Saved', `Weekly template stored for ${selectedDays.join(', ') || 'no days'} at ${timeRange}.`);
   };
 
   return (
@@ -45,13 +56,13 @@ export default function SetScheduleScreen() {
 
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">Time range</ThemedText>
-          <Clickable style={[styles.input, { borderColor: palette.border }]}> 
-            <ThemedText>{time}</ThemedText>
-            <ThemedText style={{ color: palette.muted }}>Tap to adjust (mock)</ThemedText>
+          <Clickable style={[styles.input, { borderColor: palette.border }]} onPress={cycleTime}>
+            <ThemedText>{timeRange}</ThemedText>
+            <ThemedText style={{ color: palette.muted }}>Tap to cycle presets</ThemedText>
           </Clickable>
         </View>
 
-        <Clickable style={[styles.save, { backgroundColor: palette.tint }]}> 
+        <Clickable style={[styles.save, { backgroundColor: palette.tint }]} onPress={handleSaveTemplate}>
           <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Save template</ThemedText>
         </Clickable>
       </ScrollView>
