@@ -181,7 +181,7 @@ export function AthleteProgressScreen() {
                     { opacity: pressed ? 0.7 : 1 },
                   ]}
                 >
-                  <SurfaceCard style={styles.sessionContent}>
+                  <SurfaceCard style={styles.sessionContent} tactile={false}>
                     <View style={styles.sessionHeader}>
                       <View style={styles.sessionHeaderLeft}>
                         <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
