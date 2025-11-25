@@ -12,3 +12,6 @@
 
 ## Scheduling & availability
 - Coaches can save weekly recurring availability templates by toggling active days, cycling preset time ranges, and confirming via in-app alerts. 【F:clubroom/app/availability/set-schedule.tsx†L1-L78】
+
+## Clubs & squads
+- Club Hub lets coaches join or create clubs with invite codes, run club-only feeds, and manage internal sessions and squads without adding a new tab, accessible from the Bookings screen. 【F:clubroom/app/(tabs)/club-hub.tsx†L1-L303】【F:clubroom/app/(tabs)/bookings/index.tsx†L272-L321】

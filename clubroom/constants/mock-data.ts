@@ -24,6 +24,12 @@ import type {
   CoachProfile as EnhancedCoachProfile,
   BookingSummary,
   ChatSender,
+  Club,
+  ClubMembership,
+  ClubFeedPost,
+  ClubInvite,
+  ClubSquad,
+  SessionOffering,
 } from './types';
 
 // ===== USERS =====
@@ -1806,6 +1812,250 @@ export function getPaymentsForUser(userId: string): PaymentInfo[] {
 
 export function getInviteCodesForCoach(coachId: string): TeamInviteCode[] {
   return MOCK_INVITE_CODES.filter((i) => i.coachId === coachId);
+}
+
+// ===== CLUB HUB DATA =====
+
+export const clubs: Club[] = [
+  {
+    id: 'club_lions',
+    name: 'Lions FC Academy',
+    city: 'London',
+    country: 'UK',
+    badge: '🦁',
+    photoUrl: 'https://images.unsplash.com/photo-1470082784645-bc2f0b9f9614?auto=format&fit=crop&w=800&q=80',
+    tagline: 'North London performance pathway with parent-friendly comms.',
+    memberCount: 52,
+    coachCount: 8,
+    squadCount: 3,
+    ownerId: 'coach1',
+    ownerName: 'Director Kelly',
+    inviteCode: 'LIONS-CLUB',
+  },
+];
+
+export const clubMemberships: ClubMembership[] = [
+  {
+    clubId: 'club_lions',
+    userId: 'coach1',
+    role: 'HEAD_COACH',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-CLUB',
+    squadIds: ['squad_u15', 'squad_juniors'],
+    canPostAsClub: true,
+  },
+  {
+    clubId: 'club_lions',
+    userId: 'coach2',
+    role: 'COACH',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-COACH',
+    squadIds: ['squad_u15'],
+  },
+  {
+    clubId: 'club_lions',
+    userId: 'coach3',
+    role: 'COACH',
+    status: 'pending',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-TRIAL',
+    squadIds: ['squad_juniors'],
+  },
+];
+
+export const clubSquads: ClubSquad[] = [
+  {
+    id: 'squad_u15',
+    clubId: 'club_lions',
+    name: 'U15 Performance',
+    level: 'U15 · Competitive',
+    memberCount: 18,
+    primaryCoach: 'Sarah Mitchell',
+    meetLocation: 'Pitch 2',
+    nextSession: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    tags: ['Pressing', 'Finishing'],
+  },
+  {
+    id: 'squad_juniors',
+    clubId: 'club_lions',
+    name: 'Junior Skills',
+    level: 'U11 · Development',
+    memberCount: 22,
+    primaryCoach: 'Mike Thompson',
+    meetLocation: 'Sports Hall',
+    nextSession: new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    tags: ['Ball Mastery', 'Confidence'],
+  },
+  {
+    id: 'squad_staff',
+    clubId: 'club_lions',
+    name: 'Staff Room',
+    level: 'Coaches & Admins',
+    memberCount: 8,
+    primaryCoach: 'Director Kelly',
+    meetLocation: 'Clubhouse',
+    tags: ['Approvals', 'Safeguarding'],
+  },
+];
+
+export const clubInvites: ClubInvite[] = [
+  {
+    code: 'LIONS-CLUB',
+    clubId: 'club_lions',
+    clubName: 'Lions FC Academy',
+    createdBy: 'coach1',
+    createdByName: 'Director Kelly',
+    role: 'HEAD_COACH',
+    expiresAt: new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    remainingUses: 8,
+  },
+  {
+    code: 'LIONS-COACH',
+    clubId: 'club_lions',
+    clubName: 'Lions FC Academy',
+    createdBy: 'coach1',
+    createdByName: 'Director Kelly',
+    role: 'COACH',
+    expiresAt: new Date(today.getTime() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+    remainingUses: 15,
+  },
+  {
+    code: 'LIONS-TRIAL',
+    clubId: 'club_lions',
+    clubName: 'Lions FC Academy',
+    createdBy: 'coach2',
+    createdByName: 'Coach Sarah',
+    role: 'COACH',
+    expiresAt: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    remainingUses: 3,
+  },
+];
+
+export const clubFeedPosts: ClubFeedPost[] = [
+  {
+    id: 'club_post_1',
+    clubId: 'club_lions',
+    title: 'Indoor training tonight',
+    body: 'Heavy rain forecast — moving U15s to the sports hall. Doors open 18:15. Bring flats and water.',
+    createdAt: new Date(today.getTime() - 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Director Kelly',
+    postAs: 'club',
+    attachments: ['Indoor waiver.pdf'],
+    reactionCount: 12,
+    commentCount: 4,
+  },
+  {
+    id: 'club_post_2',
+    clubId: 'club_lions',
+    title: 'Badge unlocks posted',
+    body: 'Finishing clinic clips uploaded. Top effort from Maya and Ethan — badge hub updated.',
+    createdAt: new Date(today.getTime() - 3 * 60 * 60 * 1000).toISOString(),
+    audience: 'squad',
+    audienceLabel: 'Squad · U15',
+    authorName: 'Coach Sarah',
+    postAs: 'self',
+    badgeAwarded: 'Clinical Finisher',
+    reactionCount: 7,
+    commentCount: 2,
+  },
+  {
+    id: 'club_post_3',
+    clubId: 'club_lions',
+    title: 'Staff approvals',
+    body: 'Drafting next month’s schedule. Drop proposed camps and indoor blocks for approval.',
+    createdAt: new Date(today.getTime() - 20 * 60 * 1000).toISOString(),
+    audience: 'staff',
+    audienceLabel: 'Staff',
+    authorName: 'Director Kelly',
+    postAs: 'club',
+    attachments: ['Schedule template'],
+    reactionCount: 3,
+    commentCount: 1,
+  },
+];
+
+export const clubSessions: SessionOffering[] = [
+  {
+    id: 'club_session_1',
+    clubId: 'club_lions',
+    clubScope: 'squad',
+    squadId: 'squad_u15',
+    coachId: 'coach1',
+    coachName: 'Sarah Mitchell',
+    title: 'U15 finishing tune-up',
+    description: 'Club-only reps with clips added to badge hub.',
+    sessionType: 'group',
+    maxParticipants: 18,
+    location: 'Pitch 2',
+    scheduledAt: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    isRecurring: false,
+    recurrenceType: 'none',
+    status: 'active',
+    visibility: 'club',
+    registrations: [
+      {
+        id: 'club_reg_1',
+        userId: 'user1',
+        userName: 'Tom Henderson',
+        bookedAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        status: 'confirmed',
+      },
+    ],
+    createdAt: today.toISOString(),
+    priceUsd: 0,
+    footballSkill: 'Finishing',
+  },
+  {
+    id: 'club_session_2',
+    clubId: 'club_lions',
+    clubScope: 'club',
+    coachId: 'coach2',
+    coachName: 'Mike Thompson',
+    title: 'Club open play night',
+    description: 'Members-only scrimmage block with mixed squads.',
+    sessionType: 'group',
+    maxParticipants: 30,
+    location: 'Main Dome',
+    scheduledAt: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    isRecurring: true,
+    recurrenceType: 'weekly',
+    dayOfWeek: 3,
+    timeOfDay: '18:30',
+    status: 'active',
+    visibility: 'club',
+    registrations: [],
+    createdAt: today.toISOString(),
+    priceUsd: 10,
+    footballSkill: 'Conditioning',
+  },
+];
+
+export function getClubMembershipForUser(userId: string): ClubMembership | undefined {
+  return clubMemberships.find((membership) => membership.userId === userId && membership.status === 'active');
+}
+
+export function getClubById(clubId: string): Club | undefined {
+  return clubs.find((club) => club.id === clubId);
+}
+
+export function getClubSquads(clubId: string): ClubSquad[] {
+  return clubSquads.filter((squad) => squad.clubId === clubId);
+}
+
+export function getClubFeed(clubId: string): ClubFeedPost[] {
+  return clubFeedPosts.filter((post) => post.clubId === clubId);
+}
+
+export function getClubSessions(clubId: string): SessionOffering[] {
+  return clubSessions.filter((session) => session.clubId === clubId);
+}
+
+export function getClubInvites(clubId: string): ClubInvite[] {
+  return clubInvites.filter((invite) => invite.clubId === clubId);
 }
 
 // ===== ADDITIONAL EXPORTS FOR COMPATIBILITY =====

@@ -24,6 +24,7 @@ const BASE_HIDDEN_ROUTES = [
   'feed',
   'notifications',
   'availability',
+  'club-hub',
   'coach-profile',
   'edit-profile',
   'edit-user-profile',

@@ -13,7 +13,13 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { upcomingBookings, getChildrenForParent } from '@/constants/mock-data';
+import {
+  upcomingBookings,
+  getChildrenForParent,
+  getClubMembershipForUser,
+  getClubById,
+  getClubSessions,
+} from '@/constants/mock-data';
 import { BookingSummary, SessionOffering, FootballObjective } from '@/constants/types';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
@@ -82,6 +88,9 @@ export default function BookingsScreen() {
   const [footballSkill, setFootballSkill] = useState<FootballObjective | ''>('');
 
   const userRole = currentUser?.role;
+  const clubMembership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
+  const clubContext = clubMembership ? getClubById(clubMembership.clubId) : undefined;
+  const clubInternalSessions = clubContext ? getClubSessions(clubContext.id) : [];
 
   // Load session bookings from AsyncStorage
   const loadSessionBookings = useCallback(async () => {
@@ -277,6 +286,43 @@ export default function BookingsScreen() {
       <ThemedView style={styles.header}>
         <ThemedText type="title">Bookings</ThemedText>
       </ThemedView>
+
+      {userRole === 'COACH' && (
+        <SurfaceCard style={styles.clubHubCard}>
+          <View style={styles.clubHubHeader}>
+            <ThemedText type="defaultSemiBold">Club hub</ThemedText>
+            <Clickable
+              onPress={() => router.push('/club-hub')}
+              style={[styles.secondaryButton, { borderColor: palette.border }]}
+            >
+              <ThemedText style={{ color: palette.text }}>Open</ThemedText>
+            </Clickable>
+          </View>
+          <ThemedText style={{ color: palette.muted }}>
+            {clubContext
+              ? `Connected to ${clubContext.name} as ${clubMembership?.role.toLowerCase()}.`
+              : 'Join or create a club to run internal sessions and feeds without adding more tabs.'}
+          </ThemedText>
+          <View style={styles.clubMetaRow}>
+            <View style={styles.metaChip}>
+              <Ionicons name="shield-checkmark" size={14} color={palette.icon} />
+              <ThemedText style={{ color: palette.muted }}>
+                {clubContext ? `${clubContext.memberCount} members` : 'Invite with codes'}
+              </ThemedText>
+            </View>
+            <View style={styles.metaChip}>
+              <Ionicons name="chatbubbles-outline" size={14} color={palette.icon} />
+              <ThemedText style={{ color: palette.muted }}>Club feed & chats stay nested</ThemedText>
+            </View>
+            <View style={styles.metaChip}>
+              <Ionicons name="calendar-outline" size={14} color={palette.icon} />
+              <ThemedText style={{ color: palette.muted }}>
+                {clubInternalSessions.length} internal sessions
+              </ThemedText>
+            </View>
+          </View>
+        </SurfaceCard>
+      )}
 
       {/* Tab Navigation for Coaches */}
       {userRole === 'COACH' && (
@@ -907,6 +953,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 14,
+  },
+  clubHubCard: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    gap: 8,
+  },
+  clubHubHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  clubMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: '#00000008',
+  },
+  secondaryButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   tabContainer: {
     flexDirection: 'row',
