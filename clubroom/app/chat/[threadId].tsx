@@ -13,6 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
+import { Chip } from '@/components/primitives/chip';
 
 export default function ChatScreen() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
@@ -21,11 +22,13 @@ export default function ChatScreen() {
   const [thread, setThread] = useState<ChatThreadSummary | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
+  const [postingAs, setPostingAs] = useState<string | undefined>();
 
   useEffect(() => {
     messagingService.listThreads().then((threads) => {
       const found = threads.find((t) => t.id === threadId) || threads[0];
       setThread(found);
+      setPostingAs(found?.postingAsOptions?.[0]);
     });
     refresh();
   }, [threadId]);
@@ -38,7 +41,8 @@ export default function ChatScreen() {
 
   const handleSend = async (body: string) => {
     if (!threadId) return;
-    await messagingService.sendMessage(threadId, body, 'parent');
+    const senderLabel = postingAs ? `You (${postingAs})` : 'You';
+    await messagingService.sendMessage(threadId, body, 'parent', senderLabel);
     await messagingService.simulateIncoming(threadId, 'Coach is typing...');
     refresh();
   };
@@ -55,6 +59,14 @@ export default function ChatScreen() {
     return null;
   }
 
+  const isGroup = thread.kind === 'group';
+  const headerTitle = thread.title || thread.coachName;
+  const headerSubtitle =
+    thread.subtitle ||
+    (isGroup
+      ? `${thread.memberCount ?? '—'} members${thread.scopeLabel ? ` · ${thread.scopeLabel}` : ''}`
+      : thread.serviceName);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <View style={[styles.chatHeader, { borderBottomColor: palette.border }]}>
@@ -62,9 +74,12 @@ export default function ChatScreen() {
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
         <View style={styles.chatHeaderInfo}>
-          <ThemedText type="subtitle" style={styles.chatHeaderName}>{thread.coachName}</ThemedText>
-          <ThemedText style={[styles.chatSubtitle, { color: palette.muted }]}>{thread.serviceName}</ThemedText>
+          <ThemedText type="subtitle" style={styles.chatHeaderName}>{headerTitle}</ThemedText>
+          <ThemedText style={[styles.chatSubtitle, { color: palette.muted }]}>{headerSubtitle}</ThemedText>
         </View>
+        {isGroup && thread.groupType ? (
+          <Chip dense>{thread.groupType === 'club' ? 'Club' : thread.groupType === 'squad' ? 'Squad' : 'Class'}</Chip>
+        ) : null}
       </View>
       {showSafetyBanner && (
         <View style={[styles.safetyBanner, { backgroundColor: `${palette.warning}10`, borderColor: palette.border }]}>
@@ -80,6 +95,34 @@ export default function ChatScreen() {
           </Clickable>
         </View>
       )}
+      {isGroup && thread.postingAsOptions?.length ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.postingAsRow, { borderColor: palette.border }]}>
+          {thread.postingAsOptions.map((option) => (
+            <Clickable
+              key={option}
+              onPress={() => setPostingAs(option)}
+              style={[
+                styles.postingAsChip,
+                {
+                  backgroundColor: postingAs === option ? `${palette.tint}15` : palette.surface,
+                  borderColor: postingAs === option ? palette.tint : palette.border,
+                },
+              ]}>
+              <Ionicons
+                name={postingAs === option ? 'checkmark-circle' : 'person-circle-outline'}
+                size={16}
+                color={postingAs === option ? palette.tint : palette.icon}
+              />
+              <ThemedText style={{ color: postingAs === option ? palette.text : palette.muted }}>
+                Post as {option}
+              </ThemedText>
+            </Clickable>
+          ))}
+        </ScrollView>
+      ) : null}
       <ScrollView contentContainerStyle={styles.chatContent}>
         {messages.map((message) => (
           <MessageBubble
@@ -87,6 +130,7 @@ export default function ChatScreen() {
             message={message}
             isOwnMessage={message.sender === 'parent'}
             onLongPress={onLongPressMessage}
+            showSenderLabel={isGroup}
           />
         ))}
         <TypingIndicator />
@@ -127,6 +171,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
+  },
+  postingAsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    marginTop: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  postingAsChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+    marginRight: Spacing.sm,
   },
   safetyBanner: {
     flexDirection: 'row',

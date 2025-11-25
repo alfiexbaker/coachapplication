@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
@@ -15,9 +15,11 @@ const ATTENDANCE = ['Present', 'Late', 'No-show'];
 export function SessionNotesForm({
   onSubmit,
   initialValues,
+  submitting,
 }: {
   onSubmit: (payload: SessionNoteFields) => void;
   initialValues?: Partial<SessionNoteFields>;
+  submitting?: boolean;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -134,10 +136,17 @@ export function SessionNotesForm({
 
       <Clickable
         onPress={() => onSubmit({ summary, focus, improvements, homework, effort, attendance })}
-        style={[styles.submit, { backgroundColor: palette.tint }]}
+        style={[styles.submit, { backgroundColor: submitting ? palette.border : palette.tint }]}
+        disabled={submitting}
       >
-        <Ionicons name="checkmark-circle" size={18} color="#fff" />
-        <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Submit Notes</ThemedText>
+        {submitting ? (
+          <ActivityIndicator color={palette.text} />
+        ) : (
+          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+        )}
+        <ThemedText style={{ color: submitting ? palette.text : '#fff', fontWeight: '700' }}>
+          {submitting ? 'Saving…' : 'Submit Notes'}
+        </ThemedText>
       </Clickable>
     </ScrollView>
   );

@@ -7,7 +7,7 @@ import React from 'react';
  */
 
 export interface ClickableProps {
-  onPress: () => void;
+  onPress?: () => void;
   style?: ViewStyle | ViewStyle[] | ((state: { pressed: boolean }) => ViewStyle | ViewStyle[]);
   children: React.ReactNode;
   disabled?: boolean;
@@ -15,12 +15,13 @@ export interface ClickableProps {
 }
 
 export function Clickable({ onPress, style, children, disabled, hitSlop }: ClickableProps) {
+  const handlePress = disabled ? undefined : onPress;
   if (Platform.OS === 'web') {
     const webStyle = typeof style === 'function' ? style({ pressed: false }) : style;
 
     return (
       <View
-        onMouseUp={disabled ? undefined : ((e: any) => onPress())}
+        onMouseUp={handlePress ? () => handlePress() : undefined}
         style={[
           webStyle,
           { cursor: disabled ? 'default' : 'pointer' },
@@ -37,8 +38,8 @@ export function Clickable({ onPress, style, children, disabled, hitSlop }: Click
 
   return (
     <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled}
+      onPress={handlePress}
+      disabled={disabled || !onPress}
       hitSlop={hitSlop}
       activeOpacity={0.7}
       style={nativeStyle as any}>

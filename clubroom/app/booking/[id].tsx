@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useMemo } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,30 +12,21 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { upcomingBookings } from '@/constants/mock-data';
 import { EmptyState } from '@/components/ui/empty-state';
-import { SessionNoteRecord, getSessionNote } from '@/services/session-notes-service';
+import { SessionNotesView } from '@/components/session/session-notes-view';
+import { useSessionNote } from '@/hooks/use-session-note';
 
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const [sessionNote, setSessionNote] = useState<SessionNoteRecord | null>(null);
 
   const booking = useMemo(() => upcomingBookings.find((b) => b.id === id), [id]);
-
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      if (!id) return () => {};
-
-      getSessionNote(id).then((note) => {
-        if (active) setSessionNote(note);
-      });
-
-      return () => {
-        active = false;
-      };
-    }, [id])
-  );
+  const {
+    note: sessionNote,
+    loading: sessionNoteLoading,
+    error: sessionNoteError,
+    refresh: refreshSessionNote,
+  } = useSessionNote(id);
 
   if (!booking) {
     return (
@@ -45,11 +36,26 @@ export default function BookingDetailScreen() {
           title="Booking not found"
           message="Double-check the link or pick a booking from the list."
           actionLabel="Back to bookings"
-          onPressAction={() => history.back()}
+          onPressAction={() => router.back()}
         />
       </SafeAreaView>
     );
   }
+
+  const followUpActions = [
+    {
+      label: 'Share homework reminder',
+      completed: Boolean(sessionNote?.homework),
+    },
+    {
+      label: 'Confirm attendance',
+      completed: Boolean(sessionNote?.attendance),
+    },
+    {
+      label: 'Log effort & focus',
+      completed: Boolean(sessionNote?.effort && sessionNote?.focus?.length),
+    },
+  ];
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -72,7 +78,7 @@ export default function BookingDetailScreen() {
         <SurfaceCard style={styles.card}>
           <ThemedText type="defaultSemiBold">Actions</ThemedText>
           <View style={styles.actionRow}>
-            <Clickable style={styles.actionButton} onPress={() => {}}>
+            <Clickable style={styles.actionButton} onPress={() => router.push('/chat')}>
               <Ionicons name="chatbubbles" size={18} color={palette.tint} />
               <ThemedText style={[styles.actionLabel, { color: palette.tint }]}>Message coach</ThemedText>
             </Clickable>
@@ -86,50 +92,32 @@ export default function BookingDetailScreen() {
         <SurfaceCard style={styles.card}>
           <View style={styles.sectionHeader}>
             <ThemedText type="defaultSemiBold">Session notes & development</ThemedText>
-            <Clickable
-              style={styles.linkPill}
-              onPress={() => router.push(`/session-notes/${id}`)}
-            >
+            <Clickable style={styles.linkPill} onPress={() => router.push(`/session-notes/${id}`)}>
               <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
                 {sessionNote ? 'View & edit' : 'Add notes'}
               </ThemedText>
             </Clickable>
           </View>
 
+          {sessionNoteLoading && !sessionNote ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color={palette.tint} />
+              <ThemedText style={{ color: palette.muted }}>Loading coach notes…</ThemedText>
+            </View>
+          ) : null}
+
+          {sessionNoteError ? (
+            <Clickable onPress={refreshSessionNote} style={styles.errorPill}>
+              <Ionicons name="refresh" size={16} color={palette.error} />
+              <ThemedText style={{ color: palette.error, fontWeight: '700' }}>Retry loading notes</ThemedText>
+            </Clickable>
+          ) : null}
+
           {sessionNote ? (
             <View style={{ gap: Spacing.sm }}>
-              <InfoRow icon="reader" label="Summary" value={sessionNote.summary || '—'} />
-              <InfoRow
-                icon="sparkles"
-                label="Focus areas"
-                value={sessionNote.focus.length ? sessionNote.focus.join(', ') : 'Not captured yet'}
-              />
-              <InfoRow
-                icon="trending-up"
-                label="Improvements"
-                value={sessionNote.improvements || 'Waiting to be logged'}
-              />
-              <InfoRow
-                icon="book"
-                label="Homework"
-                value={sessionNote.homework || 'Share a quick reminder for parents'}
-              />
-              <View style={styles.metaRow}>
-                <View style={styles.metaItem}>
-                  <Ionicons name="checkmark-circle" size={16} color={palette.tint} />
-                  <ThemedText style={{ color: palette.muted }}>
-                    Effort {sessionNote.effort}/5
-                  </ThemedText>
-                </View>
-                <View style={styles.metaItem}>
-                  <Ionicons name="time" size={16} color={palette.muted} />
-                  <ThemedText style={{ color: palette.muted }}>
-                    Updated {new Date(sessionNote.updatedAt).toLocaleDateString()}
-                  </ThemedText>
-                </View>
-              </View>
+              <SessionNotesView {...sessionNote} />
             </View>
-          ) : (
+          ) : !sessionNoteLoading ? (
             <View style={{ gap: Spacing.xs }}>
               <ThemedText style={{ color: palette.muted }}>
                 Capture what was covered, effort and homework so parents can track the session.
@@ -142,7 +130,32 @@ export default function BookingDetailScreen() {
                 <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Add coach notes</ThemedText>
               </Clickable>
             </View>
-          )}
+          ) : null}
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold">Follow-ups parents will see</ThemedText>
+            <Clickable style={styles.linkPill} onPress={refreshSessionNote}>
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                {sessionNoteLoading ? 'Refreshing…' : 'Sync now'}
+              </ThemedText>
+            </Clickable>
+          </View>
+          <View style={{ gap: Spacing.sm }}>
+            {followUpActions.map((action) => (
+              <View key={action.label} style={styles.metaItem}>
+                <Ionicons
+                  name={action.completed ? 'checkmark-circle' : 'radio-button-off'}
+                  size={18}
+                  color={action.completed ? palette.tint : palette.icon}
+                />
+                <ThemedText style={{ color: action.completed ? palette.tint : palette.muted }}>
+                  {action.label}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
         </SurfaceCard>
       </ScrollView>
     </SafeAreaView>
@@ -213,6 +226,15 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     backgroundColor: '#f1f5f9',
   },
+  errorPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    backgroundColor: `${Colors.light.error}10`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   actionRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -261,5 +283,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     alignSelf: 'flex-start',
   },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
 });
-

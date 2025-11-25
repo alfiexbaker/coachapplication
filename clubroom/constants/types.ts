@@ -43,6 +43,75 @@ export interface InviteCode {
   status: 'active' | 'expired' | 'exhausted';
 }
 
+// Club & squad system
+export type ClubRole = 'OWNER' | 'ADMIN' | 'HEAD_COACH' | 'COACH' | 'MEMBER';
+
+export interface Club {
+  id: string;
+  name: string;
+  city: string;
+  country?: string;
+  badge?: string;
+  photoUrl?: string;
+  tagline?: string;
+  memberCount: number;
+  coachCount: number;
+  squadCount: number;
+  ownerId: string;
+  ownerName: string;
+  inviteCode: string;
+}
+
+export interface ClubMembership {
+  clubId: string;
+  userId: string;
+  role: ClubRole;
+  status: 'active' | 'pending';
+  joinSource: 'invite' | 'created';
+  inviteCode?: string;
+  squadIds?: string[];
+  canPostAsClub?: boolean;
+}
+
+export interface ClubSquad {
+  id: string;
+  clubId: string;
+  name: string;
+  level: string;
+  memberCount: number;
+  primaryCoach: string;
+  meetLocation: string;
+  nextSession?: string;
+  tags?: string[];
+}
+
+export interface ClubInvite {
+  code: string;
+  clubId: string;
+  clubName: string;
+  createdBy: string;
+  createdByName: string;
+  role: ClubRole;
+  expiresAt: string;
+  remainingUses: number;
+}
+
+export interface ClubFeedPost {
+  id: string;
+  clubId: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  audience: 'club' | 'squad' | 'staff';
+  audienceLabel?: string;
+  authorName: string;
+  postAs?: 'club' | 'self';
+  badgeAwarded?: string;
+  attachments?: string[];
+  reactionCount?: number;
+  commentCount?: number;
+}
+
 // Enhanced Coach Profile (Facebook-style)
 export interface CoachExperience {
   id: string;
@@ -61,6 +130,12 @@ export interface CoachCertification {
   issueDate: string;
   expiryDate?: string;
   credentialUrl?: string;
+}
+
+export interface CoachLanguage {
+  id: string;
+  name: string;
+  proficiency: 'Native' | 'Fluent' | 'Conversational' | 'Basic';
 }
 
 export interface CoachPost {
@@ -127,7 +202,7 @@ export interface CoachProfile {
   posts: CoachPost[];
   photoGallery: string[];
   videoGallery: string[];
-  languages: string[];
+  languages: CoachLanguage[];
   achievements: string[];
 }
 
@@ -190,6 +265,9 @@ export interface SessionOffering {
   coachId: string;
   coachName: string;
   coachPhotoUrl?: string;
+  clubId?: string;
+  clubScope?: 'club' | 'squad' | 'public';
+  squadId?: string;
   title: string; // Session name/title
   description?: string;
   sessionType: '1on1' | 'group';
@@ -201,6 +279,7 @@ export interface SessionOffering {
   dayOfWeek?: number; // 0-6 (Sunday-Saturday) for recurring sessions
   timeOfDay?: string; // "18:00" format for recurring sessions
   status: 'active' | 'cancelled' | 'completed' | 'full';
+  visibility?: 'club' | 'public';
   registrations: SessionRegistration[];
   createdAt: string;
   priceUsd?: number;
@@ -259,7 +338,9 @@ export interface ChatAttachment {
 
 export interface ChatMessage {
   id: string;
+  threadId: string;
   sender: ChatSender;
+  senderName?: string;
   body: string;
   createdAt: string;
   status: 'sent' | 'delivered' | 'seen' | 'pending';
@@ -268,6 +349,8 @@ export interface ChatMessage {
 
 export interface ChatThreadSummary {
   id: string;
+  kind?: 'direct' | 'group';
+  groupType?: 'club' | 'squad' | 'class' | 'announcement';
   bookingId: string;
   coachName: string;
   childName: string;
@@ -275,8 +358,16 @@ export interface ChatThreadSummary {
   location: string;
   scheduledFor: string;
   unreadCount: number;
+  unreadMentions?: number;
+  memberCount?: number;
+  title?: string;
+  subtitle?: string;
+  scopeLabel?: string;
+  postingAsOptions?: string[];
   safetyCopy: string;
   pinnedObjectives?: FootballObjective[];
+  lastMessageSnippet?: string;
+  lastMessageSender?: string;
 }
 
 export interface UserProfile {

@@ -26,12 +26,19 @@ export class MessagingService {
     );
   }
 
-  async sendMessage(threadId: string, body: string, sender: 'parent' | 'coach', attachments: any[] = []) {
+  async sendMessage(
+    threadId: string,
+    body: string,
+    sender: 'parent' | 'coach',
+    senderName?: string,
+    attachments: any[] = [],
+  ) {
     const timestamp = new Date().toISOString();
     const newMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
       threadId,
       sender,
+      senderName,
       body,
       createdAt: timestamp,
       status: 'pending',

@@ -30,6 +30,11 @@ interface AthleteWithSessions {
   averageRating: number;
 }
 
+interface AthleteRosterEntry extends AthleteWithSessions {
+  needsNotes: boolean;
+  daysSinceLast: number;
+}
+
 export function CoachDevelopmentScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -114,6 +119,29 @@ export function CoachDevelopmentScreen() {
     );
   }, [currentUser, allSessions]);
 
+  const rosterEntries: AthleteRosterEntry[] = useMemo(() => {
+    const now = Date.now();
+    return athletesWithSessions.map((entry) => {
+      const athleteSessions = allSessions.filter((s) => s.athleteId === entry.athlete.id);
+      const needsNotes = athleteSessions.some((s) => !s.notes || s.notes.trim() === '');
+      const lastSessionDate = new Date(entry.lastSession);
+      const daysSinceLast = Math.max(
+        0,
+        Math.round((now - lastSessionDate.getTime()) / (1000 * 60 * 60 * 24))
+      );
+
+      return {
+        ...entry,
+        needsNotes,
+        daysSinceLast,
+      };
+    });
+  }, [allSessions, athletesWithSessions]);
+
+  const attentionAthletes = rosterEntries.filter(
+    (entry) => entry.needsNotes || entry.averageRating < 4 || entry.daysSinceLast >= 10
+  );
+
   if (!currentUser) {
     logger.warn('No current user found');
     return null;
@@ -149,22 +177,18 @@ export function CoachDevelopmentScreen() {
         />
       }
     >
-      {/* Key Stats Strip */}
-      <SurfaceCard style={styles.statsCard}>
-        <View style={styles.statsRow}>
-          <StatCard
-            value={activeAthletes}
-            label="Active Athletes"
-            variant="compact"
-          />
-          <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
-          <StatCard
-            value={totalSessions}
-            label="Sessions This Week"
-            variant="compact"
-            trend="+4"
-          />
-          <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
+      <SurfaceCard style={styles.sectionCard}>
+        <View style={styles.sectionHeaderRow}>
+          <ThemedText type="heading" style={styles.sectionTitle}>
+            Overview
+          </ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+            Coach view · Development spine
+          </ThemedText>
+        </View>
+        <View style={styles.statsGrid}>
+          <StatCard value={activeAthletes} label="Active Athletes" variant="compact" />
+          <StatCard value={totalSessions} label="Sessions This Week" variant="compact" trend="+4" />
           <StatCard
             value={avgRating}
             label="Avg Rating"
@@ -174,144 +198,229 @@ export function CoachDevelopmentScreen() {
         </View>
       </SurfaceCard>
 
-      {/* Section Header */}
-      <View style={styles.sectionHeader}>
-        <ThemedText type="heading" style={styles.sectionTitle}>
-          Athletes
-        </ThemedText>
-      </View>
-
-      {/* Athletes List or Empty State */}
-      {athletesWithSessions.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
-            <Ionicons name="people-outline" size={32} color={palette.icon} />
-          </View>
-          <ThemedText type="subtitle" style={styles.emptyTitle}>
-            No sessions yet
+      <SurfaceCard style={styles.sectionCard}>
+        <View style={styles.sectionHeaderRow}>
+          <ThemedText type="heading" style={styles.sectionTitle}>
+            Needs attention
           </ThemedText>
-          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-            Complete your first session to start tracking athlete development
+          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+            Prioritised by recency and missing notes
           </ThemedText>
         </View>
-      ) : (
-        <View style={styles.athleteList}>
-          {athletesWithSessions.map(({ athlete, sessionCount, lastSession, averageRating }) => {
-            // Get all sessions for this athlete from the loaded sessions
-            const athleteSessions = allSessions.filter(
-              (s) => s.athleteId === athlete.id
-            );
 
-            // Check if any sessions need notes
-            const needsNotes = athleteSessions.some((s) => !s.notes || s.notes.trim() === '');
-
-            return (
+        {attentionAthletes.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
+              <Ionicons name="checkmark-circle" size={28} color={palette.tint} />
+            </View>
+            <ThemedText type="defaultSemiBold">All caught up</ThemedText>
+            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>No athletes need follow-up right now.</ThemedText>
+          </View>
+        ) : (
+          <View style={styles.attentionList}>
+            {attentionAthletes.map((entry) => (
               <Clickable
-                key={athlete.id}
+                key={entry.athlete.id}
+                onPress={() => {
+                  logger.press('AttentionAthlete', {
+                    athleteId: entry.athlete.id,
+                    athleteName: entry.athlete.name,
+                    needsNotes: entry.needsNotes,
+                  });
+                  router.push(`/development/athlete/${entry.athlete.id}`);
+                }}
+                style={[styles.rowCard, { borderColor: palette.border }]}
+              >
+                <View style={styles.rowLeft}>
+                  <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                    <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                      {entry.athlete.avatar || entry.athlete.name.charAt(0)}
+                    </ThemedText>
+                    {entry.needsNotes && (
+                      <View style={[styles.badge, { backgroundColor: palette.error }]} />
+                    )}
+                  </View>
+                  <View style={styles.rowContent}>
+                    <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                      {entry.athlete.name}
+                    </ThemedText>
+                    <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
+                      Last session {formatDate(entry.lastSession)} · {entry.sessionCount} total
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.rowMeta}>
+                  {entry.needsNotes ? (
+                    <View style={[styles.pill, { backgroundColor: `${palette.error}14` }]}>
+                      <Ionicons name="document-text" size={14} color={palette.error} />
+                      <ThemedText style={[styles.pillLabel, { color: palette.error }]}>Add notes</ThemedText>
+                    </View>
+                  ) : null}
+                  {entry.averageRating < 4 ? (
+                    <View style={[styles.pill, { backgroundColor: `${palette.tint}14` }]}>
+                      <Ionicons name="trending-up" size={14} color={palette.tint} />
+                      <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Boost rating</ThemedText>
+                    </View>
+                  ) : null}
+                  {entry.daysSinceLast >= 10 ? (
+                    <View style={[styles.pill, { backgroundColor: `${palette.icon}10` }]}>
+                      <Ionicons name="time" size={14} color={palette.icon} />
+                      <ThemedText style={[styles.pillLabel, { color: palette.icon }]}>Reach out</ThemedText>
+                    </View>
+                  ) : null}
+                </View>
+              </Clickable>
+            ))}
+          </View>
+        )}
+      </SurfaceCard>
+
+      <SurfaceCard style={styles.sectionCard}>
+        <View style={styles.sectionHeaderRow}>
+          <ThemedText type="heading" style={styles.sectionTitle}>
+            Athlete roster
+          </ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+            Tap an athlete to view their development timeline
+          </ThemedText>
+        </View>
+
+        {rosterEntries.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
+              <Ionicons name="people-outline" size={32} color={palette.icon} />
+            </View>
+            <ThemedText type="subtitle" style={styles.emptyTitle}>
+              No sessions yet
+            </ThemedText>
+            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>Complete your first session to start tracking athlete development</ThemedText>
+          </View>
+        ) : (
+          <View style={styles.athleteList}>
+            {rosterEntries.map((entry) => (
+              <Clickable
+                key={entry.athlete.id}
                 onPress={() => {
                   logger.press('AthleteCard', {
-                    athleteId: athlete.id,
-                    athleteName: athlete.name,
-                    sessionCount,
+                    athleteId: entry.athlete.id,
+                    athleteName: entry.athlete.name,
+                    sessionCount: entry.sessionCount,
                   });
-                  router.push(`/development/athlete/${athlete.id}`);
+                  router.push(`/development/athlete/${entry.athlete.id}`);
                 }}
+                style={[styles.rowCard, { borderColor: palette.border }]}
               >
-                <SurfaceCard style={styles.cardContent}>
-                  <View style={styles.athleteInfo}>
-                    <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
-                      <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                        {athlete.avatar || athlete.name.charAt(0)}
-                      </ThemedText>
-                      {needsNotes && (
-                        <View style={[styles.badge, { backgroundColor: palette.error }]} />
-                      )}
-                    </View>
-                    <View style={styles.athleteDetails}>
-                      <ThemedText type="defaultSemiBold" style={styles.athleteName}>
-                        {athlete.name}
-                      </ThemedText>
-                      <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
-                        Last session: {formatDate(lastSession)}
-                      </ThemedText>
-                    </View>
+                <View style={styles.rowLeft}>
+                  <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                    <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                      {entry.athlete.avatar || entry.athlete.name.charAt(0)}
+                    </ThemedText>
+                    {entry.needsNotes && (
+                      <View style={[styles.badge, { backgroundColor: palette.error }]} />
+                    )}
                   </View>
+                  <View style={styles.rowContent}>
+                    <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                      {entry.athlete.name}
+                    </ThemedText>
+                    <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
+                      Last session: {formatDate(entry.lastSession)}
+                    </ThemedText>
+                  </View>
+                </View>
 
-                  <View style={styles.statsGroup}>
-                    <View style={styles.stat}>
+                <View style={styles.statsGroup}>
+                  <View style={styles.stat}>
+                    <ThemedText type="defaultSemiBold" style={styles.statValue}>
+                      {entry.sessionCount}
+                    </ThemedText>
+                    <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Sessions</ThemedText>
+                  </View>
+                  <View style={styles.stat}>
+                    <View style={styles.ratingRow}>
                       <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                        {sessionCount}
+                        {entry.averageRating.toFixed(1)}
                       </ThemedText>
-                      <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                        Sessions
-                      </ThemedText>
+                      <Ionicons name="star" size={16} color={palette.tint} />
                     </View>
-                    <View style={styles.stat}>
-                      <View style={styles.ratingRow}>
-                        <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                          {averageRating.toFixed(1)}
-                        </ThemedText>
-                        <Ionicons name="star" size={16} color={palette.tint} />
-                      </View>
-                      <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                        Avg Rating
-                      </ThemedText>
-                    </View>
+                    <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Avg Rating</ThemedText>
                   </View>
+                </View>
 
-                  <Ionicons name="chevron-forward" size={20} color={palette.icon} />
-                </SurfaceCard>
+                <Ionicons name="chevron-forward" size={20} color={palette.icon} />
               </Clickable>
-            );
-          })}
-        </View>
-      )}
+            ))}
+          </View>
+        )}
+      </SurfaceCard>
     </PageContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  // Stats card at top
-  statsCard: {
-    padding: Spacing.md,
+  sectionCard: {
+    gap: Spacing.sm,
+    padding: Spacing.sm,
   },
-  statsRow: {
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    opacity: 0.5,
-  },
-
-  // Section header
-  sectionHeader: {
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.xs / 2,
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '500',
     letterSpacing: -0.2,
   },
-
-  // Athlete list
-  athleteList: {
-    gap: Spacing.sm,
+  sectionHint: {
+    fontSize: 12,
   },
-  cardContent: {
+  statsGrid: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    flexWrap: 'wrap',
+  },
+  attentionList: {
+    gap: Spacing.xs,
+  },
+  rowCard: {
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.sm,
     gap: Spacing.sm,
   },
-  athleteInfo: {
+  rowLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+  rowContent: {
+    flex: 1,
+    gap: 2,
+  },
+  rowMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: Radii.pill,
+  },
+  pillLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  athleteList: {
+    gap: Spacing.xs,
   },
   avatar: {
     width: 44,
@@ -354,6 +463,7 @@ const styles = StyleSheet.create({
   statsGroup: {
     flexDirection: 'row',
     gap: Spacing.md,
+    alignItems: 'center',
   },
   stat: {
     alignItems: 'center',
