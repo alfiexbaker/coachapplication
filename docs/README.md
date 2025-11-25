@@ -13,6 +13,7 @@ This folder keeps the shared source of truth for Clubroom. Use it to stay aligne
 - **SPINE_CATEGORIES.md** – Four product spines (Community, Booking/Revenue, Development, Trust/Ops) and how to apply them.
 - **sprints/** – Current four-sprint plan with scope and deliverables per sprint.
 - **vision/** – Role requirements, feature specs, and software design notes that inform the sprint work.
+- **vision/facebook_parity.md** – Gap analysis to bring community features to Facebook-level quality without adding parallel systems.
 - **technical/** – Data and architecture notes to keep future backend/API work aligned.
 - **functional_overview.md** – Plaintext recap of current app capabilities across navigation, messaging, booking, and scheduling.
 
