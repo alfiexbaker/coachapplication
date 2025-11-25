@@ -259,7 +259,9 @@ export interface ChatAttachment {
 
 export interface ChatMessage {
   id: string;
+  threadId: string;
   sender: ChatSender;
+  senderName?: string;
   body: string;
   createdAt: string;
   status: 'sent' | 'delivered' | 'seen' | 'pending';
@@ -268,6 +270,8 @@ export interface ChatMessage {
 
 export interface ChatThreadSummary {
   id: string;
+  kind?: 'direct' | 'group';
+  groupType?: 'club' | 'squad' | 'class' | 'announcement';
   bookingId: string;
   coachName: string;
   childName: string;
@@ -275,8 +279,16 @@ export interface ChatThreadSummary {
   location: string;
   scheduledFor: string;
   unreadCount: number;
+  unreadMentions?: number;
+  memberCount?: number;
+  title?: string;
+  subtitle?: string;
+  scopeLabel?: string;
+  postingAsOptions?: string[];
   safetyCopy: string;
   pinnedObjectives?: FootballObjective[];
+  lastMessageSnippet?: string;
+  lastMessageSender?: string;
 }
 
 export interface UserProfile {

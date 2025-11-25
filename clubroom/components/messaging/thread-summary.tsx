@@ -15,18 +15,33 @@ interface ThreadSummaryProps {
 export function ThreadSummary({ thread }: ThreadSummaryProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const displayName = thread.title || thread.coachName;
+  const subtitle = thread.subtitle || thread.serviceName;
+  const isGroup = thread.kind === 'group';
 
   return (
     <SurfaceCard style={styles.card}>
       <View style={styles.headerRow}>
         <View
           style={[styles.avatar, { backgroundColor: `${palette.tint}22` }]}
-          accessibilityLabel={`Coach ${thread.coachName} avatar placeholder`}>
+          accessibilityLabel={`${displayName} avatar placeholder`}>
           <IconSymbol name="person.circle" size={28} color={palette.tint} />
         </View>
         <View style={{ flex: 1 }}>
-          <ThemedText type="defaultSemiBold">{thread.coachName}</ThemedText>
-          <ThemedText style={styles.subtitle}>{thread.serviceName}</ThemedText>
+          <ThemedText type="defaultSemiBold">{displayName}</ThemedText>
+          <View style={styles.subtitleRow}>
+            <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
+            {isGroup && thread.scopeLabel ? (
+              <View style={[styles.tag, { backgroundColor: `${palette.tint}12` }]}>
+                <ThemedText style={styles.tagLabel}>{thread.scopeLabel}</ThemedText>
+              </View>
+            ) : null}
+            {isGroup && thread.groupType ? (
+              <View style={[styles.tag, { backgroundColor: `${palette.secondary}14` }]}>
+                <ThemedText style={styles.tagLabel}>{thread.groupType}</ThemedText>
+              </View>
+            ) : null}
+          </View>
         </View>
         {thread.unreadCount ? (
           <View style={[styles.badge, { backgroundColor: palette.tint }]}>
@@ -61,6 +76,26 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
           ))}
         </View>
       ) : null}
+      {isGroup && thread.memberCount ? (
+        <View style={styles.metaRow}>
+          <IconSymbol name="person.3.fill" size={18} color={palette.icon} />
+          <ThemedText>{thread.memberCount} members</ThemedText>
+          {typeof thread.unreadMentions === 'number' && thread.unreadMentions > 0 ? (
+            <View style={[styles.badge, { backgroundColor: palette.secondary }]}>
+              <ThemedText style={styles.badgeLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">@{thread.unreadMentions}</ThemedText>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+      {thread.lastMessageSnippet ? (
+        <View style={styles.metaRow}>
+          <IconSymbol name="text.bubble" size={18} color={palette.icon} />
+          <ThemedText numberOfLines={1} style={{ flex: 1 }}>
+            {thread.lastMessageSender ? `${thread.lastMessageSender}: ` : ''}
+            {thread.lastMessageSnippet}
+          </ThemedText>
+        </View>
+      ) : null}
       <View
         style={[
           styles.safetyBanner,
@@ -90,8 +125,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   subtitle: {
     opacity: 0.8,
+  },
+  tag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  tagLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'capitalize',
   },
   badge: {
     paddingHorizontal: Spacing.sm,

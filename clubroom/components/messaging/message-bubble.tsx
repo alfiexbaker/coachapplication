@@ -12,6 +12,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 interface MessageBubbleProps {
   message: ChatMessage;
   isOwnMessage: boolean;
+  showSenderLabel?: boolean;
   onLongPress?: () => void;
 }
 
@@ -33,7 +34,7 @@ function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string 
   );
 }
 
-function MessageBubbleComponent({ message, isOwnMessage, onLongPress }: MessageBubbleProps) {
+function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSenderLabel }: MessageBubbleProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const bubbleColor = isOwnMessage
@@ -58,7 +59,10 @@ function MessageBubbleComponent({ message, isOwnMessage, onLongPress }: MessageB
         }
       }}
     >
-      <View style={[styles.bubble, { backgroundColor: bubbleColor }]}> 
+      {showSenderLabel && message.senderName ? (
+        <ThemedText style={[styles.senderLabel, { color: palette.muted }]}>{message.senderName}</ThemedText>
+      ) : null}
+      <View style={[styles.bubble, { backgroundColor: bubbleColor }]}>
         <ThemedText style={[styles.body, { color: textColor }]}>{message.body}</ThemedText>
         {message.attachments?.map((attachment) => (
           <AttachmentCard key={attachment.id} title={attachment.title} subtitle={attachment.subtitle} />
@@ -84,6 +88,11 @@ const styles = StyleSheet.create({
   wrapper: {
     marginBottom: Spacing.md,
     gap: Spacing.xs,
+  },
+  senderLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: Spacing.md,
   },
   alignRight: {
     alignItems: 'flex-end',

@@ -1811,9 +1811,10 @@ export function getInviteCodesForCoach(coachId: string): TeamInviteCode[] {
 // ===== ADDITIONAL EXPORTS FOR COMPATIBILITY =====
 
 // Chat threads for MessagesScreen
-export const chatThreads: ChatThreadSummary[] = MOCK_CONVERSATIONS.map((conv) => ({
+const BASE_CHAT_THREADS: ChatThreadSummary[] = MOCK_CONVERSATIONS.map((conv) => ({
   id: conv.id,
-  bookingId: 'book1', // Mock booking ID
+  kind: 'direct',
+  bookingId: conv.relatedBookingId || 'book1', // Mock booking ID fallback
   coachName: conv.coachName,
   childName: conv.athleteName,
   serviceName: 'Coaching Session',
@@ -1822,16 +1823,140 @@ export const chatThreads: ChatThreadSummary[] = MOCK_CONVERSATIONS.map((conv) =>
   unreadCount: conv.unreadCount,
   safetyCopy: 'All conversations are monitored for safety',
   pinnedObjectives: ['Finishing', 'Passing'],
+  lastMessageSnippet: conv.lastMessage,
+  lastMessageSender: conv.coachName,
+  title: `${conv.athleteName} x ${conv.coachName}`,
 }));
 
+const GROUP_CHAT_THREADS: ChatThreadSummary[] = [
+  {
+    id: 'club_announcements',
+    kind: 'group',
+    groupType: 'club',
+    bookingId: 'club_announcements',
+    coachName: 'Lions FC Academy',
+    childName: 'Club',
+    serviceName: 'Club Room',
+    location: 'Clubhouse',
+    scheduledFor: new Date(today.getTime() - 45 * 60 * 1000).toISOString(),
+    unreadCount: 3,
+    unreadMentions: 1,
+    memberCount: 48,
+    title: 'Lions FC Parents',
+    subtitle: 'Club announcements & logistics',
+    scopeLabel: 'Club-wide',
+    postingAsOptions: ['Myself', 'Lions FC'],
+    safetyCopy: 'Admins can post on behalf of the club; keep announcements professional.',
+    pinnedObjectives: ['Logistics', 'Payments'],
+    lastMessageSnippet: 'Training moved indoors due to weather.',
+    lastMessageSender: 'Director Kelly',
+  },
+  {
+    id: 'squad_u15',
+    kind: 'group',
+    groupType: 'squad',
+    bookingId: 'squad_u15',
+    coachName: 'Coach Sarah',
+    childName: 'U15 Squad',
+    serviceName: 'Match Prep',
+    location: 'Pitch 2',
+    scheduledFor: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    unreadCount: 0,
+    unreadMentions: 0,
+    memberCount: 16,
+    title: 'U15 Squad',
+    subtitle: 'Lineups, drills, kit lists',
+    scopeLabel: 'Squad',
+    postingAsOptions: ['Myself', 'Coaching Team'],
+    safetyCopy: 'All squad chat is visible to parents and coaches.',
+    pinnedObjectives: ['Finishing', 'Pressing'],
+    lastMessageSnippet: 'Share your availability for Saturday.',
+    lastMessageSender: 'Coach Sarah',
+  },
+  {
+    id: 'class_juniors',
+    kind: 'group',
+    groupType: 'class',
+    bookingId: 'class_juniors',
+    coachName: 'Coach Mike',
+    childName: 'Junior Class',
+    serviceName: 'Clinic Updates',
+    location: 'Sports Hall',
+    scheduledFor: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString(),
+    unreadCount: 4,
+    unreadMentions: 2,
+    memberCount: 24,
+    title: 'Saturday Finishing Clinic',
+    subtitle: 'Parents + athletes',
+    scopeLabel: 'Class',
+    postingAsOptions: ['Myself', 'Clinic Staff'],
+    safetyCopy: 'Keep class updates inclusive; highlight homework and wins.',
+    pinnedObjectives: ['Finishing', 'Confidence'],
+    lastMessageSnippet: 'Great finishes today — badge unlocks posted.',
+    lastMessageSender: 'Coach Mike',
+  },
+];
+
+// Chat threads for MessagesScreen
+export const chatThreads: ChatThreadSummary[] = [...BASE_CHAT_THREADS, ...GROUP_CHAT_THREADS];
+
 // Chat messages for MessagesScreen
-export const chatMessages: ChatMessage[] = MOCK_MESSAGES.map((msg) => ({
-  id: msg.id,
-  sender: msg.senderId.startsWith('coach') ? 'coach' : 'parent',
-  body: msg.content,
-  createdAt: msg.sentAt,
-  status: msg.read ? 'seen' : 'delivered',
-}));
+export const chatMessages: ChatMessage[] = [
+  ...MOCK_MESSAGES.map((msg) => ({
+    id: msg.id,
+    threadId: msg.conversationId,
+    sender: msg.senderId.startsWith('coach') ? 'coach' : 'parent',
+    senderName: msg.senderName,
+    body: msg.content,
+    createdAt: msg.sentAt,
+    status: msg.read ? 'seen' : 'delivered',
+  })),
+  {
+    id: 'msg_club_1',
+    threadId: 'club_announcements',
+    sender: 'coach',
+    senderName: 'Director Kelly',
+    body: 'Reminder: indoor training tonight. Bring flats and water.',
+    createdAt: new Date(today.getTime() - 50 * 60 * 1000).toISOString(),
+    status: 'seen',
+  },
+  {
+    id: 'msg_club_2',
+    threadId: 'club_announcements',
+    sender: 'parent',
+    senderName: 'You (posting as Lions FC)',
+    body: 'Copying the new indoor waiver here — please sign before Friday.',
+    createdAt: new Date(today.getTime() - 30 * 60 * 1000).toISOString(),
+    status: 'delivered',
+  },
+  {
+    id: 'msg_squad_1',
+    threadId: 'squad_u15',
+    sender: 'coach',
+    senderName: 'Coach Sarah',
+    body: 'Drop your availability for Saturday: ✅ or 🚫',
+    createdAt: new Date(today.getTime() - 90 * 60 * 1000).toISOString(),
+    status: 'delivered',
+  },
+  {
+    id: 'msg_class_1',
+    threadId: 'class_juniors',
+    sender: 'coach',
+    senderName: 'Coach Mike',
+    body: 'Badge hub updated with today’s highlights — check the awards tab.',
+    createdAt: new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+    status: 'seen',
+  },
+  {
+    id: 'msg_class_2',
+    threadId: 'class_juniors',
+    sender: 'parent',
+    senderName: 'Alex (parent)',
+    body: 'Ethan loved the finishing ladder — thanks! Does he need to bring boots next week?',
+    createdAt: new Date(today.getTime() - 3.5 * 60 * 60 * 1000).toISOString(),
+    status: 'seen',
+  },
+];
 
 // Mock user profile for ProfileScreen
 export const mockUserProfile: EnhancedUserProfile = {
