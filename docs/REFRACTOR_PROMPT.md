@@ -2,6 +2,23 @@
 
 The following notes capture the highest-impact frontend issues blocking scale, retention, and production readiness. They keep to the current vision in `docs/SOURCE_OF_TRUTH.md` and focus on deepening existing functionality while keeping the surfaces ready for future data sources.
 
+## How to use this prompt
+1) Re-read `docs/SOURCE_OF_TRUTH.md`, the relevant sprint brief, and `docs/SPINE_CATEGORIES.md` to anchor the role, spine, and acceptance criteria.
+2) State the intended outcome in a sentence before touching code (who benefits, what flow, which spine). Reference existing tabs/flows rather than inventing new ones.
+3) Identify what can be reused (components, services, tokens) and note why any new surface is unavoidable.
+4) Plan tests and observability hooks up front: what should be logged, how to assert the contract, and which screens deserve RTL coverage.
+5) Paste the refactor prompt below into your PR/notes and tailor it with the specific flows, guards, and data adapters you are touching.
+
+## Refactor readiness checklist (paste into PR)
+- [ ] Roles and spines noted (from `docs/SOURCE_OF_TRUTH.md` + sprint brief)
+- [ ] No parallel flows created; reused existing tabs/components where possible
+- [ ] Service boundaries typed with adapters/mocks + error paths
+- [ ] Navigation/guardrail impact described (deeplinks, role/child context, modals)
+- [ ] Design-system tokens and primitives applied (spacing/typography/buttons/cards)
+- [ ] Validation + loading/empty/error states wired for changed forms/screens
+- [ ] Telemetry/logging hooks with role/user context added or confirmed
+- [ ] Tests/fixtures added or updated; scripts runnable in CI
+
 ## Ten critical issues (plaintext)
 1. **Mock-only state**: Booking, messaging, objectives, and payments rely on local mocks with no contract boundaries, so flows break once data diverges from expectations and no role-based validation exists.
 2. **Fragile role navigation**: Role tabs and routes are scattered; there is no shared guard for role/child context, causing inconsistent visibility (e.g., parents vs. coaches) and brittle deeplinks/modals.
