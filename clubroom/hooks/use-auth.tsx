@@ -8,32 +8,121 @@ const logger = createLogger('useAuth');
 
 export type UserRole = 'USER' | 'PARENT' | 'COACH' | 'ADMIN';
 
-type DemoUser = {
-  id: string;
+type DemoUser = Omit<User, 'role'> & {
+  role: UserRole | 'ADMIN';
   username: string;
   password: string;
-  role: UserRole;
   fullName?: string;
-  email?: string;
   schoolId?: string;
   schoolName?: string;
 };
 
 // Map mock users to demo users with passwords
+// Map mock users to demo users with passwords
 const DEMO_USERS: DemoUser[] = [
   // Coaches
-  { id: 'coach1', username: 'coach1', password: 'coach', role: 'COACH', fullName: 'Sarah Mitchell', email: 'sarah.mitchell@coach.com' },
-  { id: 'coach2', username: 'coach2', password: 'coach', role: 'COACH', fullName: 'Mike Thompson', email: 'mike.thompson@coach.com' },
-  { id: 'coach3', username: 'coach3', password: 'coach', role: 'COACH', fullName: 'David Roberts', email: 'david.roberts@coach.com' },
+  {
+    id: 'coach1',
+    username: 'coach1',
+    password: 'coach',
+    role: 'COACH',
+    fullName: 'Sarah Mitchell',
+    email: 'sarah.mitchell@coach.com',
+    postcode: 'SW1A 1AA',
+    name: 'Sarah Mitchell',
+    dateOfBirth: '1988-03-15',
+  },
+  {
+    id: 'coach2',
+    username: 'coach2',
+    password: 'coach',
+    role: 'COACH',
+    fullName: 'Mike Thompson',
+    email: 'mike.thompson@coach.com',
+    postcode: 'SW1A 2AA',
+    name: 'Mike Thompson',
+    dateOfBirth: '1985-07-22',
+  },
+  {
+    id: 'coach3',
+    username: 'coach3',
+    password: 'coach',
+    role: 'COACH',
+    fullName: 'David Roberts',
+    email: 'david.roberts@coach.com',
+    postcode: 'SW2A 1BB',
+    name: 'David Roberts',
+    dateOfBirth: '1990-11-08',
+  },
   // Users
-  { id: 'user1', username: 'user1', password: 'user', role: 'USER', fullName: 'Tom Henderson', email: 'tom.henderson@email.com' },
-  { id: 'user2', username: 'user2', password: 'user', role: 'USER', fullName: 'Emma Henderson', email: 'emma.henderson@email.com' },
-  { id: 'user3', username: 'user3', password: 'user', role: 'USER', fullName: 'James Wilson', email: 'james.wilson@email.com' },
+  {
+    id: 'user1',
+    username: 'user1',
+    password: 'user',
+    role: 'USER',
+    fullName: 'Tom Henderson',
+    email: 'tom.henderson@email.com',
+    postcode: 'SW1A 3CC',
+    name: 'Tom Henderson',
+    dateOfBirth: '2008-05-12',
+  },
+  {
+    id: 'user2',
+    username: 'user2',
+    password: 'user',
+    role: 'USER',
+    fullName: 'Emma Henderson',
+    email: 'emma.henderson@email.com',
+    postcode: 'SW1A 3CC',
+    name: 'Emma Henderson',
+    dateOfBirth: '2009-08-20',
+  },
+  {
+    id: 'user3',
+    username: 'user3',
+    password: 'user',
+    role: 'USER',
+    fullName: 'James Wilson',
+    email: 'james.wilson@email.com',
+    postcode: 'SW2A 4DD',
+    name: 'James Wilson',
+    dateOfBirth: '2007-01-05',
+  },
   // Parents
-  { id: 'parent1', username: 'parent1', password: 'parent', role: 'PARENT', fullName: 'John Henderson', email: 'john.henderson@email.com' },
-  { id: 'parent2', username: 'parent2', password: 'parent', role: 'PARENT', fullName: 'Lisa Wilson', email: 'lisa.wilson@email.com' },
+  {
+    id: 'parent1',
+    username: 'parent1',
+    password: 'parent',
+    role: 'PARENT',
+    fullName: 'John Henderson',
+    email: 'john.henderson@email.com',
+    postcode: 'SW1A 3CC',
+    name: 'John Henderson',
+    dateOfBirth: '1980-02-11',
+  },
+  {
+    id: 'parent2',
+    username: 'parent2',
+    password: 'parent',
+    role: 'PARENT',
+    fullName: 'Lisa Wilson',
+    email: 'lisa.wilson@email.com',
+    postcode: 'SW2A 4DD',
+    name: 'Lisa Wilson',
+    dateOfBirth: '1983-09-07',
+  },
   // Admin
-  { id: 'admin', username: 'admin', password: 'admin', role: 'ADMIN', fullName: 'Admin User', email: 'admin@coach.com' },
+  {
+    id: 'admin',
+    username: 'admin',
+    password: 'admin',
+    role: 'ADMIN',
+    fullName: 'Admin User',
+    email: 'admin@coach.com',
+    postcode: 'SW1A 1AA',
+    name: 'Admin User',
+    dateOfBirth: '1985-01-01',
+  },
 ];
 
 type AuthContextValue = {
@@ -62,12 +151,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     if (match) {
+      const userRecord = getUserById(match.id);
+      const mergedUser = userRecord ? { ...match, ...userRecord } : match;
       logger.success('Login successful', {
-        username: match.username,
-        role: match.role,
-        userId: match.id
+        username: mergedUser.username,
+        role: mergedUser.role,
+        userId: mergedUser.id
       });
-      setCurrentUser(match);
+      setCurrentUser(mergedUser);
       setError(null);
       return true;
     }
@@ -98,6 +189,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: data.email,
       schoolId: data.schoolId,
       schoolName: data.schoolName,
+      name: data.fullName,
+      postcode: 'SW1A 1AA',
+      dateOfBirth: '1990-01-01',
     };
 
     logger.success('Coach registered successfully', {

@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -8,6 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { createLogger } from '@/utils/logger';
+import { ThemeProvider as AppThemeProvider } from '@/hooks/theme-provider';
 
 const logger = createLogger('RootLayout');
 
@@ -26,9 +27,9 @@ function RootNavigation() {
     username: currentUser?.username
   });
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      {isAuthenticated ? (
+    return (
+      <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        {isAuthenticated ? (
         <>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -72,18 +73,20 @@ function RootNavigation() {
           <StatusBar style="auto" />
         </>
       )}
-    </ThemeProvider>
-  );
-}
+      </NavigationThemeProvider>
+    );
+  }
 
 export default function RootLayout() {
   logger.info('App initializing');
 
-  return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <RootNavigation />
-      </AuthProvider>
-    </ErrorBoundary>
-  );
-}
+    return (
+      <ErrorBoundary>
+        <AppThemeProvider>
+          <AuthProvider>
+            <RootNavigation />
+          </AuthProvider>
+        </AppThemeProvider>
+      </ErrorBoundary>
+    );
+  }

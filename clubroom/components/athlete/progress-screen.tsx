@@ -216,7 +216,7 @@ export function AthleteProgressScreen() {
                         style={[styles.notesPreview, { color: palette.muted }]}
                         numberOfLines={2}
                       >
-                        "{session.notes}"
+                        {session.notes}
                       </ThemedText>
                     )}
 
