@@ -2097,7 +2097,7 @@ const GROUP_CHAT_THREADS: ChatThreadSummary[] = [
     scopeLabel: 'Club-wide',
     postingAsOptions: ['Myself', 'Lions FC'],
     safetyCopy: 'Admins can post on behalf of the club; keep announcements professional.',
-    pinnedObjectives: ['Logistics', 'Payments'],
+    pinnedObjectives: ['Passing', 'Conditioning'],
     lastMessageSnippet: 'Training moved indoors due to weather.',
     lastMessageSender: 'Director Kelly',
   },
@@ -2119,7 +2119,7 @@ const GROUP_CHAT_THREADS: ChatThreadSummary[] = [
     scopeLabel: 'Squad',
     postingAsOptions: ['Myself', 'Coaching Team'],
     safetyCopy: 'All squad chat is visible to parents and coaches.',
-    pinnedObjectives: ['Finishing', 'Pressing'],
+    pinnedObjectives: ['Finishing', 'Passing'],
     lastMessageSnippet: 'Share your availability for Saturday.',
     lastMessageSender: 'Coach Sarah',
   },
@@ -2141,7 +2141,7 @@ const GROUP_CHAT_THREADS: ChatThreadSummary[] = [
     scopeLabel: 'Class',
     postingAsOptions: ['Myself', 'Clinic Staff'],
     safetyCopy: 'Keep class updates inclusive; highlight homework and wins.',
-    pinnedObjectives: ['Finishing', 'Confidence'],
+    pinnedObjectives: ['Finishing', 'Dribbling'],
     lastMessageSnippet: 'Great finishes today — badge unlocks posted.',
     lastMessageSender: 'Coach Mike',
   },
@@ -2152,10 +2152,10 @@ export const chatThreads: ChatThreadSummary[] = [...BASE_CHAT_THREADS, ...GROUP_
 
 // Chat messages for MessagesScreen
 export const chatMessages: ChatMessage[] = [
-  ...MOCK_MESSAGES.map((msg) => ({
+  ...MOCK_MESSAGES.map((msg): ChatMessage => ({
     id: msg.id,
     threadId: msg.conversationId,
-    sender: msg.senderId.startsWith('coach') ? 'coach' : 'parent',
+    sender: msg.senderId.startsWith('coach') ? 'coach' : ('parent' as ChatSender),
     senderName: msg.senderName,
     body: msg.content,
     createdAt: msg.sentAt,

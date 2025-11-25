@@ -15,6 +15,8 @@ type DemoUser = {
   role: UserRole;
   fullName?: string;
   email?: string;
+  schoolId?: string;
+  schoolName?: string;
 };
 
 // Map mock users to demo users with passwords
@@ -88,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const newUser: DemoUser = {
+      id: username,
       username,
       password: data.password,
       role: 'COACH', // Fixed: was 'Coach', now 'COACH' to match UserRole type

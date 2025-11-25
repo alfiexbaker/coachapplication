@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "jsx": "react-native",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": true,
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "files": [
+    "app/book-coach.tsx",
+    "components/booking/book-coach/availability-picker.tsx",
+    "components/booking/book-coach/booking-stepper.tsx",
+    "components/booking/book-coach/child-selection-grid.tsx",
+    "components/booking/book-coach/coach-summary-card.tsx",
+    "components/booking/book-coach/objective-selector.tsx",
+    "components/booking/book-coach/service-selection-list.tsx",
+    "components/primitives/selection-tile.tsx",
+    "constants/booking-types.ts",
+    "hooks/use-booking-persona.ts"
+  ]
+}

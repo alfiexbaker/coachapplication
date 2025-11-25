@@ -22,7 +22,9 @@ export default function CancelBookingScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <ThemedText type="title">Cancel booking</ThemedText>
-        <ThemedText style={{ color: palette.muted }}>Policy: free >24h, 50% within 12-24h, no refund inside 12h.</ThemedText>
+        <ThemedText style={{ color: palette.muted }}>
+          Policy: free {'>'}24h, 50% within 12-24h, no refund inside 12h.
+        </ThemedText>
 
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">Reason</ThemedText>
