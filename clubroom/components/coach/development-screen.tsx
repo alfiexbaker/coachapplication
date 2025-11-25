@@ -426,24 +426,6 @@ export function CoachDevelopmentScreen() {
     (entry) => entry.needsNotes || entry.averageRating < 4 || entry.daysSinceLast >= 10
   );
 
-  if (!currentUser) {
-    logger.warn('No current user found');
-    return null;
-  }
-
-  if (loading) {
-    return <LoadingState theme={theme} />;
-  }
-
-  const activeAthletes = athletesWithSessions.length;
-  const totalSessions = allSessions.length;
-  const avgRating =
-    allSessions.length > 0
-      ? (
-          allSessions.reduce((sum, s) => sum + s.performanceRating, 0) / allSessions.length
-        ).toFixed(1)
-      : '0';
-
   const handlePressAthlete = useCallback(
     (entry: AthleteRosterEntry) => {
       logger.press('AthleteCard', {
@@ -464,6 +446,24 @@ export function CoachDevelopmentScreen() {
     });
     router.push(`/development/athlete/${entry.athlete.id}`);
   }, []);
+
+  if (!currentUser) {
+    logger.warn('No current user found');
+    return null;
+  }
+
+  if (loading) {
+    return <LoadingState theme={theme} />;
+  }
+
+  const activeAthletes = athletesWithSessions.length;
+  const totalSessions = allSessions.length;
+  const avgRating =
+    allSessions.length > 0
+      ? (
+          allSessions.reduce((sum, s) => sum + s.performanceRating, 0) / allSessions.length
+        ).toFixed(1)
+      : '0';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['top']}>
