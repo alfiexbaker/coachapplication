@@ -385,18 +385,23 @@ export function CoachDevelopmentScreen() {
   const scheme = useColorScheme() ?? 'light';
   const theme = getTheme(scheme === 'dark' ? 'dark' : 'light');
   const { currentUser } = useAuth();
+  const activeCoach = useMemo(() => currentUser ?? getUserById('coach1') ?? null, [currentUser]);
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadSessions = async () => {
-      if (!currentUser) return;
+      if (!activeCoach) {
+        setLoading(false);
+        logger.warn('No coach found for development screen');
+        return;
+      }
 
       try {
-        const mockSessions = getSessionsForCoach(currentUser.id);
+        const mockSessions = getSessionsForCoach(activeCoach.id);
         const storedSessions = await AsyncStorage.getItem('coach_sessions');
         const asyncSessions = storedSessions ? JSON.parse(storedSessions) : [];
-        const coachAsyncSessions = asyncSessions.filter((s: any) => s.coachId === currentUser.id);
+        const coachAsyncSessions = asyncSessions.filter((s: any) => s.coachId === activeCoach.id);
         const combined = [...mockSessions, ...coachAsyncSessions];
         setAllSessions(combined);
         logger.debug('Sessions loaded', {
@@ -406,7 +411,7 @@ export function CoachDevelopmentScreen() {
         });
       } catch (error) {
         logger.error('Failed to load sessions', error);
-        const mockSessions = getSessionsForCoach(currentUser.id);
+        const mockSessions = getSessionsForCoach(activeCoach.id);
         setAllSessions(mockSessions);
       } finally {
         setLoading(false);
@@ -414,10 +419,10 @@ export function CoachDevelopmentScreen() {
     };
 
     loadSessions();
-  }, [currentUser]);
+  }, [activeCoach]);
 
   const athletesWithSessions = useMemo(() => {
-    if (!currentUser || allSessions.length === 0) return [];
+    if (!activeCoach || allSessions.length === 0) return [];
 
     const sessions = allSessions;
     const athleteMap = new Map<string, Session[]>();
@@ -453,7 +458,7 @@ export function CoachDevelopmentScreen() {
     });
 
     return athletes.sort((a, b) => new Date(b.lastSession).getTime() - new Date(a.lastSession).getTime());
-  }, [currentUser, allSessions]);
+  }, [activeCoach, allSessions]);
 
   const rosterEntries: AthleteRosterEntry[] = useMemo(() => {
     const now = Date.now();
@@ -511,13 +516,40 @@ export function CoachDevelopmentScreen() {
     router.push(`/development/athlete/${entry.athlete.id}`);
   }, []);
 
-  if (!currentUser) {
-    logger.warn('No current user found');
-    return null;
-  }
-
   if (loading) {
     return <LoadingState theme={theme} />;
+  }
+
+  if (!activeCoach) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['top']}>
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: theme.spacing['3xl'],
+            paddingTop: theme.spacing['3xl'],
+            paddingBottom: theme.spacing['4xl'],
+            gap: theme.spacing.xl,
+          }}
+        >
+          <View style={{ gap: theme.spacing.md }}>
+            <Text style={{ ...theme.typography.label, color: theme.colors.muted }}>Coach · Development</Text>
+            <Text
+              style={{
+                color: theme.colors.text,
+                fontSize: 22,
+                fontWeight: '700',
+                letterSpacing: -0.3,
+              }}
+            >
+              No coach profile detected
+            </Text>
+            <Text style={{ ...theme.typography.body, color: theme.colors.muted }}>
+              Sign in as a coach to view development stats and pending notes, or use the seeded demo coach.
+            </Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
   }
 
   const activeAthletes = athletesWithSessions.length;
