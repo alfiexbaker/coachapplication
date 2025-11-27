@@ -25,12 +25,15 @@ import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, Session
 function FeedPost({ post }: { post: ClubFeedPost }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const initials = post.postAs === 'club'
+    ? 'CL'
+    : (post.authorName?.slice(0, 2).toUpperCase() || 'ME');
 
   return (
     <View style={[styles.feedCard, { borderColor: palette.border }]}> 
       <View style={styles.feedHeader}>
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}18` }]}> 
-          <ThemedText style={styles.avatarText}>{post.postAs === 'club' ? '🏟️' : '👤'}</ThemedText>
+        <View style={[styles.avatar, { backgroundColor: `${palette.tint}10`, borderColor: palette.border, borderWidth: 1 }]}>
+          <ThemedText style={styles.avatarText}>{initials}</ThemedText>
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <ThemedText type="defaultSemiBold">{post.title}</ThemedText>
@@ -193,7 +196,7 @@ export default function ClubHubScreen() {
       name,
       city: 'Your city',
       country: 'UK',
-      badge: '🏟️',
+      badge: name.slice(0, 2).toUpperCase(),
       memberCount: 1,
       coachCount: 1,
       squadCount: 0,
@@ -264,6 +267,7 @@ export default function ClubHubScreen() {
   const headline = membership && club
     ? `${club.name} · ${roleLabel}`
     : 'Join or create a club';
+  const badgeText = club?.name?.slice(0, 2).toUpperCase() || 'CL';
 
   return (
     <PageContainer
@@ -273,15 +277,15 @@ export default function ClubHubScreen() {
     >
       <SurfaceCard style={styles.heroCard} animateElevation={false}>
         <View style={styles.heroRow}>
-          <View style={[styles.avatar, { backgroundColor: `${palette.tint}20` }]}>
-            <ThemedText style={styles.avatarText}>{club?.badge || '🏟️'}</ThemedText>
+          <View style={[styles.avatar, { backgroundColor: `${palette.tint}08`, borderColor: palette.border, borderWidth: 1 }]}>
+            <ThemedText style={styles.avatarText}>{badgeText}</ThemedText>
           </View>
           <View style={{ flex: 1, gap: 6 }}>
             <ThemedText type="heading" style={{ fontSize: 18 }}>
               {headline}
             </ThemedText>
             <ThemedText style={{ color: palette.muted }}>
-              Keep club work tucked into one hub with invite codes, club-only sessions, and a private feed.
+              Keep club work organised with invite codes, private sessions, and concise updates.
             </ThemedText>
             <View style={styles.statRow}>
               {statTiles.map((stat) => (

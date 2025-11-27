@@ -184,7 +184,7 @@ export default function ConfirmBookingScreen() {
           : `${athletesInfo.length} sessions booked for ${athleteNames} with ${coachName} on ${formattedDate} at ${formattedTime}`;
 
         Alert.alert(
-          'Booking Confirmed! 🎉',
+          'Booking Confirmed',
           message,
           [
             {

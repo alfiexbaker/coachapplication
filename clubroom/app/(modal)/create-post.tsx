@@ -91,7 +91,7 @@ export default function CreatePostScreen() {
         {/* Author section - minimal like Twitter */}
         <View style={styles.composerRow}>
           <View style={[styles.avatar, { backgroundColor: palette.tint + '15' }]}>
-            <ThemedText style={styles.avatarEmoji}>{currentUser?.avatar || '👤'}</ThemedText>
+            <ThemedText style={styles.avatarEmoji}>{currentUser?.avatar || 'AA'}</ThemedText>
           </View>
 
           <View style={styles.composerContent}>

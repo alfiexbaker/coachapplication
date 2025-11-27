@@ -101,15 +101,15 @@ export default function AthleteDetailScreen() {
   // Calculate level badge based on total sessions
   const getLevel = () => {
     const count = sessions.length;
-    if (count >= 20) return { name: 'Gold', icon: '🏆', color: '#FFD700' };
-    if (count >= 10) return { name: 'Silver', icon: '⭐', color: '#C0C0C0' };
-    return { name: 'Bronze', icon: '🥉', color: '#CD7F32' };
+    if (count >= 20) return { name: 'Gold', icon: 'G', color: '#FFD700' };
+    if (count >= 10) return { name: 'Silver', icon: 'S', color: '#C0C0C0' };
+    return { name: 'Bronze', icon: 'B', color: '#CD7F32' };
   };
 
   const trend = getProgressTrend();
   const level = getLevel();
 
-  const trendIcon = trend === 'improving' ? '📈' : trend === 'declining' ? '📉' : '📊';
+  const trendIcon = trend === 'improving' ? 'UP' : trend === 'declining' ? 'DOWN' : 'EVEN';
   const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
   const trendColor = trend === 'improving' ? Colors.light.success : trend === 'declining' ? Colors.light.error : palette.muted;
 

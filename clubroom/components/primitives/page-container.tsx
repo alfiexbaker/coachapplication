@@ -86,10 +86,10 @@ export function PageContainer({
   contentStyle,
   scrollable = true,
   edges = ['top'],
-  horizontalSpacing = Spacing.lg,
-  topSpacing = Spacing.lg,
-  bottomSpacing = Spacing['2xl'],
-  gap = Spacing.lg,
+  horizontalSpacing = Spacing.md,
+  topSpacing = Spacing.md,
+  bottomSpacing = Spacing.xl,
+  gap = Spacing.md,
   showsScrollIndicator = false,
 }: PageContainerProps) {
   const scheme = useColorScheme() ?? 'light';
