@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { PageContainer } from '@/components/primitives/page-container';
@@ -287,14 +287,18 @@ export default function ClubHubScreen() {
             <ThemedText style={{ color: palette.muted }}>
               Keep club work organised with invite codes, private sessions, and concise updates.
             </ThemedText>
-            <View style={styles.statRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.statRow}
+            >
               {statTiles.map((stat) => (
                 <View key={stat.label} style={[styles.statTile, { borderColor: palette.border }]}>
                   <ThemedText type="defaultSemiBold">{stat.value}</ThemedText>
                   <ThemedText style={{ color: palette.muted }}>{stat.label}</ThemedText>
                 </View>
               ))}
-            </View>
+            </ScrollView>
           </View>
         </View>
         <View style={styles.actionsRow}>
@@ -573,7 +577,8 @@ const styles = StyleSheet.create({
   },
   statRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
+    paddingVertical: Spacing.xs,
     gap: Spacing.xs,
   },
   statTile: {

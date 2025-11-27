@@ -174,7 +174,10 @@ export function AthleteProgressScreen() {
                   key={session.id}
                   onPress={() => {
                     logger.press('SessionCard', { sessionId: session.id });
-                    router.push(`/development/athlete-session/${session.id}`);
+                    router.push({
+                      pathname: '/development/athlete-session/[sessionId]',
+                      params: { sessionId: session.id },
+                    });
                   }}
                   style={({ pressed }) => [
                     styles.sessionCard,

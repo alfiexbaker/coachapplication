@@ -177,6 +177,26 @@ export function UserFindCoachScreen() {
                       </ThemedText>
                     )}
                   </View>
+
+                  <View style={styles.actionsRow}>
+                    <Clickable
+                      onPress={() => {
+                        router.push({
+                          pathname: '/book-coach',
+                          params: { coachId: coach.id },
+                        });
+                      }}
+                      style={({ pressed }) => [
+                        styles.bookButton,
+                        {
+                          backgroundColor: palette.tint,
+                          opacity: pressed ? 0.8 : 1,
+                        },
+                      ]}
+                    >
+                      <ThemedText style={styles.bookButtonText}>Book coach</ThemedText>
+                    </Clickable>
+                  </View>
                 </SurfaceCard>
               </Clickable>
             ))}
@@ -316,6 +336,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.sm,
     alignItems: 'center',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  bookButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.lg,
+  },
+  bookButtonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
   specialtyBadge: {
     paddingHorizontal: Spacing.md,
