@@ -8,7 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { StatCard } from '@/components/primitives/stat-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
@@ -259,76 +258,78 @@ export default function AthleteDetailScreen() {
           const needsNotes = !session.notes || session.notes.trim() === '';
 
           return (
-            <Clickable
+            <SurfaceCard
               key={session.id}
+              tactile
               onPress={() => {
                 logger.press('SessionCard', { sessionId: session.id, source: 'AthleteDetail' });
                 router.push({ pathname: '/development/session/[sessionId]', params: { sessionId: session.id } });
               }}
+              accessibilityRole="button"
+              accessibilityLabel={`Session on ${formatDate(session.completedAt)}`}
+              style={styles.sessionCard}
             >
-              <SurfaceCard style={styles.sessionCard}>
-                <View style={styles.sessionHeader}>
-                  <View style={styles.sessionHeaderLeft}>
-                    <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
-                      {formatDate(session.completedAt)}
-                    </ThemedText>
-                    {needsNotes && (
-                      <View style={[styles.needsNotesBadge, { backgroundColor: palette.error }]}>
-                        <ThemedText style={styles.needsNotesText}>Needs Notes</ThemedText>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.ratingRow}>
-                    <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
-                    <Ionicons name="star" size={16} color={palette.tint} />
-                  </View>
-                </View>
-
-                {/* Skills worked on */}
-                {session.skillsWorkedOn.length > 0 && (
-                  <View style={styles.skillsRow}>
-                    {session.skillsWorkedOn.map((skill, index) => (
-                      <View
-                        key={index}
-                        style={[styles.skillChip, { backgroundColor: palette.tint + '15' }]}
-                      >
-                        <ThemedText style={[styles.skillText, { color: palette.tint }]}>
-                          {skill}
-                        </ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Notes preview */}
-                {session.notes && session.notes.trim() !== '' && (
-                  <ThemedText
-                    style={[styles.notesPreview, { color: palette.muted }]}
-                    numberOfLines={2}
-                  >
-                    {session.notes}
+              <View style={styles.sessionHeader}>
+                <View style={styles.sessionHeaderLeft}>
+                  <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
+                    {formatDate(session.completedAt)}
                   </ThemedText>
-                )}
+                  {needsNotes && (
+                    <View style={[styles.needsNotesBadge, { backgroundColor: palette.error }]}>
+                      <ThemedText style={styles.needsNotesText}>Needs Notes</ThemedText>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.ratingRow}>
+                  <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
+                  <Ionicons name="star" size={16} color={palette.tint} />
+                </View>
+              </View>
 
-                {/* Video indicator */}
-                {session.videoUrls && session.videoUrls.length > 0 && (
-                  <View style={styles.videoIndicator}>
-                    <Ionicons name="videocam" size={14} color={palette.tint} />
-                    <ThemedText style={[styles.videoText, { color: palette.tint }]}>
-                      {session.videoUrls.length}{' '}
-                      {session.videoUrls.length === 1 ? 'video' : 'videos'}
-                    </ThemedText>
-                  </View>
-                )}
+              {/* Skills worked on */}
+              {session.skillsWorkedOn.length > 0 && (
+                <View style={styles.skillsRow}>
+                  {session.skillsWorkedOn.map((skill, index) => (
+                    <View
+                      key={index}
+                      style={[styles.skillChip, { backgroundColor: palette.tint + '15' }]}
+                    >
+                      <ThemedText style={[styles.skillText, { color: palette.tint }]}>
+                        {skill}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
 
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={palette.icon}
-                  style={styles.chevron}
-                />
-              </SurfaceCard>
-            </Clickable>
+              {/* Notes preview */}
+              {session.notes && session.notes.trim() !== '' && (
+                <ThemedText
+                  style={[styles.notesPreview, { color: palette.muted }]}
+                  numberOfLines={2}
+                >
+                  {session.notes}
+                </ThemedText>
+              )}
+
+              {/* Video indicator */}
+              {session.videoUrls && session.videoUrls.length > 0 && (
+                <View style={styles.videoIndicator}>
+                  <Ionicons name="videocam" size={14} color={palette.tint} />
+                  <ThemedText style={[styles.videoText, { color: palette.tint }]}>
+                    {session.videoUrls.length}{' '}
+                    {session.videoUrls.length === 1 ? 'video' : 'videos'}
+                  </ThemedText>
+                </View>
+              )}
+
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={palette.icon}
+                style={styles.chevron}
+              />
+            </SurfaceCard>
           );
         })}
       </View>
