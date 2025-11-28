@@ -82,7 +82,7 @@ export default function PostDetailScreen() {
           <View style={styles.postHeader}>
             <View style={styles.authorInfo}>
               <View style={[styles.avatar, { backgroundColor: palette.tintAlt }]}>
-                <ThemedText style={{ fontSize: 24 }}>{post.authorAvatar || '👤'}</ThemedText>
+                <ThemedText style={{ fontSize: 24 }}>{post.authorAvatar || 'AA'}</ThemedText>
               </View>
               <View style={styles.authorDetails}>
                 <ThemedText type="defaultSemibold">{post.authorName}</ThemedText>
@@ -130,7 +130,7 @@ export default function PostDetailScreen() {
               >
                 <View style={styles.commentHeader}>
                   <View style={[styles.commentAvatar, { backgroundColor: palette.tintAlt }]}>
-                    <ThemedText style={{ fontSize: 18 }}>{comment.authorAvatar || '👤'}</ThemedText>
+                    <ThemedText style={{ fontSize: 18 }}>{comment.authorAvatar || 'AA'}</ThemedText>
                   </View>
                   <View style={styles.commentDetails}>
                     <ThemedText type="defaultSemibold">{comment.authorName}</ThemedText>

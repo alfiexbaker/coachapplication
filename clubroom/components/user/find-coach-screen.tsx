@@ -20,6 +20,9 @@ import {
   getDistanceBetweenPostcodes,
   formatGBP,
 } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('FindCoachScreen');
 
 export function UserFindCoachScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -118,6 +121,7 @@ export function UserFindCoachScreen() {
               <Clickable
                 key={coach.id}
                 onPress={() => {
+                  logger.press('CoachCard', { coachId: coach.id });
                   router.push({
                     pathname: '/book-coach',
                     params: { coachId: coach.id },
@@ -176,6 +180,27 @@ export function UserFindCoachScreen() {
                         +{coach.profile.specialties.length - 3} more
                       </ThemedText>
                     )}
+                  </View>
+
+                  <View style={styles.actionsRow}>
+                    <Clickable
+                      onPress={() => {
+                        logger.press('BookCoach', { coachId: coach.id });
+                        router.push({
+                          pathname: '/book-coach',
+                          params: { coachId: coach.id },
+                        });
+                      }}
+                      style={({ pressed }) => [
+                        styles.bookButton,
+                        {
+                          backgroundColor: palette.tint,
+                          opacity: pressed ? 0.8 : 1,
+                        },
+                      ]}
+                    >
+                      <ThemedText style={styles.bookButtonText}>Book coach</ThemedText>
+                    </Clickable>
                   </View>
                 </SurfaceCard>
               </Clickable>
@@ -316,6 +341,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.sm,
     alignItems: 'center',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  bookButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.lg,
+  },
+  bookButtonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
   specialtyBadge: {
     paddingHorizontal: Spacing.md,

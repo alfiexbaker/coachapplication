@@ -50,17 +50,17 @@ export function AthleteProgressScreen() {
   // Calculate level badge based on total sessions
   const getLevel = () => {
     const count = sessions.length;
-    if (count >= 20) return { name: 'Gold', icon: '🏆', color: '#FFD700' };
-    if (count >= 10) return { name: 'Silver', icon: '⭐', color: '#C0C0C0' };
-    return { name: 'Bronze', icon: '🥉', color: '#CD7F32' };
+    if (count >= 20) return { name: 'Gold', icon: 'trophy-outline' as const, color: '#FFD700' };
+    if (count >= 10) return { name: 'Silver', icon: 'medal-outline' as const, color: '#C0C0C0' };
+    return { name: 'Bronze', icon: 'ribbon-outline' as const, color: '#CD7F32' };
   };
 
   const trend = getProgressTrend();
   const level = getLevel();
 
-  const trendIcon = trend === 'improving' ? '📈' : trend === 'declining' ? '📉' : '📊';
   const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
   const trendColor = trend === 'improving' ? Colors.light.success : trend === 'declining' ? Colors.light.error : palette.muted;
+  const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
 
   // Sort sessions by date (newest first)
   const sortedSessions = [...sessions].sort(
@@ -101,14 +101,20 @@ export function AthleteProgressScreen() {
               </ThemedText>
               <View style={styles.badges}>
                 <View style={[styles.trendBadge, { backgroundColor: trendColor + '20' }]}>
-                  <ThemedText style={[styles.trendText, { color: trendColor }]}>
-                    {trendIcon} {trendText}
-                  </ThemedText>
+                  <View style={styles.badgeContent}>
+                    <Ionicons name={trendIcon} size={14} color={trendColor} />
+                    <ThemedText style={[styles.trendText, { color: trendColor }]}>
+                      {trendText}
+                    </ThemedText>
+                  </View>
                 </View>
                 <View style={[styles.levelBadge, { backgroundColor: level.color + '20' }]}>
-                  <ThemedText style={[styles.levelText, { color: level.color }]}>
-                    {level.icon} {level.name}
-                  </ThemedText>
+                  <View style={styles.badgeContent}>
+                    <Ionicons name={level.icon} size={14} color={level.color} />
+                    <ThemedText style={[styles.levelText, { color: level.color }]}>
+                      {level.name}
+                    </ThemedText>
+                  </View>
                 </View>
               </View>
             </View>
@@ -125,9 +131,14 @@ export function AthleteProgressScreen() {
               </ThemedText>
             </View>
             <View style={styles.stat}>
-              <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                {sessions.length > 0 ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1) : '0'}⭐
-              </ThemedText>
+              <View style={styles.statValueRow}>
+                <ThemedText type="defaultSemiBold" style={styles.statValue}>
+                  {sessions.length > 0
+                    ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)
+                    : '0'}
+                </ThemedText>
+                <Ionicons name="star" size={16} color={palette.tint} />
+              </View>
               <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
                 Avg Rating
               </ThemedText>
@@ -172,14 +183,17 @@ export function AthleteProgressScreen() {
               return (
                 <Clickable
                   key={session.id}
-                  onPress={() => {
-                    logger.press('SessionCard', { sessionId: session.id });
-                    router.push(`/development/athlete-session/${session.id}`);
-                  }}
                   style={({ pressed }) => [
                     styles.sessionCard,
                     { opacity: pressed ? 0.7 : 1 },
                   ]}
+                  onPress={() => {
+                    logger.press('SessionCard', { sessionId: session.id, source: 'MyProgress' });
+                    router.push({
+                      pathname: '/development/athlete-session/[sessionId]',
+                      params: { sessionId: session.id },
+                    });
+                  }}
                 >
                   <SurfaceCard style={styles.sessionContent} tactile={false}>
                     <View style={styles.sessionHeader}>
@@ -304,6 +318,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.xs,
   },
+  badgeContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+  },
   trendBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs / 2,
@@ -330,6 +349,11 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.light.border,
   },
   stat: {
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+  },
+  statValueRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },

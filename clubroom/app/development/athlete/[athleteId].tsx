@@ -8,7 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { StatCard } from '@/components/primitives/stat-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
@@ -101,15 +100,15 @@ export default function AthleteDetailScreen() {
   // Calculate level badge based on total sessions
   const getLevel = () => {
     const count = sessions.length;
-    if (count >= 20) return { name: 'Gold', icon: '🏆', color: '#FFD700' };
-    if (count >= 10) return { name: 'Silver', icon: '⭐', color: '#C0C0C0' };
-    return { name: 'Bronze', icon: '🥉', color: '#CD7F32' };
+    if (count >= 20) return { name: 'Gold', icon: 'trophy-outline' as const, color: '#FFD700' };
+    if (count >= 10) return { name: 'Silver', icon: 'medal-outline' as const, color: '#C0C0C0' };
+    return { name: 'Bronze', icon: 'ribbon-outline' as const, color: '#CD7F32' };
   };
 
   const trend = getProgressTrend();
   const level = getLevel();
 
-  const trendIcon = trend === 'improving' ? '📈' : trend === 'declining' ? '📉' : '📊';
+  const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
   const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
   const trendColor = trend === 'improving' ? Colors.light.success : trend === 'declining' ? Colors.light.error : palette.muted;
 
@@ -156,19 +155,25 @@ export default function AthleteDetailScreen() {
             <ThemedText type="heading" style={styles.athleteName}>
               {athlete.name}
             </ThemedText>
-            <View style={styles.badges}>
-              <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
-                <ThemedText style={[styles.badgeText, { color: trendColor }]}>
-                  {trendIcon} {trendText}
-                </ThemedText>
-              </View>
-              <View style={[styles.levelBadge, { backgroundColor: level.color + '15' }]}>
-                <ThemedText style={[styles.badgeText, { color: level.color }]}>
-                  {level.icon} {level.name}
-                </ThemedText>
+              <View style={styles.badges}>
+                <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
+                  <View style={styles.badgeRow}>
+                    <Ionicons name={trendIcon} size={14} color={trendColor} />
+                    <ThemedText style={[styles.badgeText, { color: trendColor }]}>
+                      {trendText}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={[styles.levelBadge, { backgroundColor: level.color + '15' }]}>
+                  <View style={styles.badgeRow}>
+                    <Ionicons name={level.icon} size={14} color={level.color} />
+                    <ThemedText style={[styles.badgeText, { color: level.color }]}>
+                      {level.name}
+                    </ThemedText>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
           <TouchableOpacity
             style={[styles.ctaButton, { backgroundColor: palette.tint }]}
             onPress={async () => {
@@ -253,76 +258,78 @@ export default function AthleteDetailScreen() {
           const needsNotes = !session.notes || session.notes.trim() === '';
 
           return (
-            <Clickable
+            <SurfaceCard
               key={session.id}
+              tactile
               onPress={() => {
-                logger.press('SessionCard', { sessionId: session.id });
-                router.push(`/development/session/${session.id}`);
+                logger.press('SessionCard', { sessionId: session.id, source: 'AthleteDetail' });
+                router.push({ pathname: '/development/session/[sessionId]', params: { sessionId: session.id } });
               }}
+              accessibilityRole="button"
+              accessibilityLabel={`Session on ${formatDate(session.completedAt)}`}
+              style={styles.sessionCard}
             >
-              <SurfaceCard style={styles.sessionCard}>
-                <View style={styles.sessionHeader}>
-                  <View style={styles.sessionHeaderLeft}>
-                    <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
-                      {formatDate(session.completedAt)}
-                    </ThemedText>
-                    {needsNotes && (
-                      <View style={[styles.needsNotesBadge, { backgroundColor: palette.error }]}>
-                        <ThemedText style={styles.needsNotesText}>Needs Notes</ThemedText>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.ratingRow}>
-                    <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
-                    <Ionicons name="star" size={16} color={palette.tint} />
-                  </View>
-                </View>
-
-                {/* Skills worked on */}
-                {session.skillsWorkedOn.length > 0 && (
-                  <View style={styles.skillsRow}>
-                    {session.skillsWorkedOn.map((skill, index) => (
-                      <View
-                        key={index}
-                        style={[styles.skillChip, { backgroundColor: palette.tint + '15' }]}
-                      >
-                        <ThemedText style={[styles.skillText, { color: palette.tint }]}>
-                          {skill}
-                        </ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {/* Notes preview */}
-                {session.notes && session.notes.trim() !== '' && (
-                  <ThemedText
-                    style={[styles.notesPreview, { color: palette.muted }]}
-                    numberOfLines={2}
-                  >
-                    {session.notes}
+              <View style={styles.sessionHeader}>
+                <View style={styles.sessionHeaderLeft}>
+                  <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
+                    {formatDate(session.completedAt)}
                   </ThemedText>
-                )}
+                  {needsNotes && (
+                    <View style={[styles.needsNotesBadge, { backgroundColor: palette.error }]}>
+                      <ThemedText style={styles.needsNotesText}>Needs Notes</ThemedText>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.ratingRow}>
+                  <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
+                  <Ionicons name="star" size={16} color={palette.tint} />
+                </View>
+              </View>
 
-                {/* Video indicator */}
-                {session.videoUrls && session.videoUrls.length > 0 && (
-                  <View style={styles.videoIndicator}>
-                    <Ionicons name="videocam" size={14} color={palette.tint} />
-                    <ThemedText style={[styles.videoText, { color: palette.tint }]}>
-                      {session.videoUrls.length}{' '}
-                      {session.videoUrls.length === 1 ? 'video' : 'videos'}
-                    </ThemedText>
-                  </View>
-                )}
+              {/* Skills worked on */}
+              {session.skillsWorkedOn.length > 0 && (
+                <View style={styles.skillsRow}>
+                  {session.skillsWorkedOn.map((skill, index) => (
+                    <View
+                      key={index}
+                      style={[styles.skillChip, { backgroundColor: palette.tint + '15' }]}
+                    >
+                      <ThemedText style={[styles.skillText, { color: palette.tint }]}>
+                        {skill}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
 
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={palette.icon}
-                  style={styles.chevron}
-                />
-              </SurfaceCard>
-            </Clickable>
+              {/* Notes preview */}
+              {session.notes && session.notes.trim() !== '' && (
+                <ThemedText
+                  style={[styles.notesPreview, { color: palette.muted }]}
+                  numberOfLines={2}
+                >
+                  {session.notes}
+                </ThemedText>
+              )}
+
+              {/* Video indicator */}
+              {session.videoUrls && session.videoUrls.length > 0 && (
+                <View style={styles.videoIndicator}>
+                  <Ionicons name="videocam" size={14} color={palette.tint} />
+                  <ThemedText style={[styles.videoText, { color: palette.tint }]}>
+                    {session.videoUrls.length}{' '}
+                    {session.videoUrls.length === 1 ? 'video' : 'videos'}
+                  </ThemedText>
+                </View>
+              )}
+
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={palette.icon}
+                style={styles.chevron}
+              />
+            </SurfaceCard>
           );
         })}
       </View>
@@ -383,6 +390,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.xs,
     flexWrap: 'wrap',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
   },
   trendBadge: {
     paddingHorizontal: Spacing.sm,

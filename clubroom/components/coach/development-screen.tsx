@@ -229,46 +229,53 @@ export function CoachDevelopmentScreen() {
                   });
                   router.push(`/development/athlete/${entry.athlete.id}`);
                 }}
-                style={[styles.rowCard, { borderColor: palette.border }]}
+                style={[styles.rowCard, styles.attentionCard, { borderColor: palette.border }]}
               >
-                <View style={styles.rowLeft}>
-                  <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
-                    <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                      {entry.athlete.avatar || entry.athlete.name.charAt(0)}
-                    </ThemedText>
-                    {entry.needsNotes && (
-                      <View style={[styles.badge, { backgroundColor: palette.error }]} />
-                    )}
+                <View style={styles.rowTop}>
+                  <View style={styles.rowLeft}>
+                    <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                      <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                        {entry.athlete.avatar || entry.athlete.name.charAt(0)}
+                      </ThemedText>
+                      {entry.needsNotes && (
+                        <View style={[styles.badge, { backgroundColor: palette.error }]} />
+                      )}
+                    </View>
+                    <View style={styles.rowContent}>
+                      <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                        {entry.athlete.name}
+                      </ThemedText>
+                      <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>
+                        {entry.sessionCount} sessions total
+                      </ThemedText>
+                    </View>
                   </View>
-                  <View style={styles.rowContent}>
-                    <ThemedText type="defaultSemiBold" style={styles.athleteName}>
-                      {entry.athlete.name}
-                    </ThemedText>
-                    <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
-                      Last session {formatDate(entry.lastSession)} · {entry.sessionCount} total
-                    </ThemedText>
+
+                  <View style={styles.actionRow}>
+                    {entry.needsNotes ? (
+                      <View style={[styles.pill, { backgroundColor: `${palette.error}12` }]}>
+                        <Ionicons name="document-text" size={13} color={palette.error} />
+                        <ThemedText style={[styles.pillLabel, { color: palette.error }]}>Add notes</ThemedText>
+                      </View>
+                    ) : null}
+                    {entry.averageRating < 4 ? (
+                      <View style={[styles.pill, { backgroundColor: `${palette.tint}12` }]}>
+                        <Ionicons name="trending-up" size={13} color={palette.tint} />
+                        <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Boost rating</ThemedText>
+                      </View>
+                    ) : null}
+                    {entry.daysSinceLast >= 10 ? (
+                      <View style={[styles.pill, { backgroundColor: `${palette.icon}0f` }]}>
+                        <Ionicons name="time" size={13} color={palette.icon} />
+                        <ThemedText style={[styles.pillLabel, { color: palette.icon }]}>Reach out</ThemedText>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
-                <View style={styles.rowMeta}>
-                  {entry.needsNotes ? (
-                    <View style={[styles.pill, { backgroundColor: `${palette.error}14` }]}>
-                      <Ionicons name="document-text" size={14} color={palette.error} />
-                      <ThemedText style={[styles.pillLabel, { color: palette.error }]}>Add notes</ThemedText>
-                    </View>
-                  ) : null}
-                  {entry.averageRating < 4 ? (
-                    <View style={[styles.pill, { backgroundColor: `${palette.tint}14` }]}>
-                      <Ionicons name="trending-up" size={14} color={palette.tint} />
-                      <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Boost rating</ThemedText>
-                    </View>
-                  ) : null}
-                  {entry.daysSinceLast >= 10 ? (
-                    <View style={[styles.pill, { backgroundColor: `${palette.icon}10` }]}>
-                      <Ionicons name="time" size={14} color={palette.icon} />
-                      <ThemedText style={[styles.pillLabel, { color: palette.icon }]}>Reach out</ThemedText>
-                    </View>
-                  ) : null}
-                </View>
+
+                <ThemedText style={[styles.athleteMetadata, styles.subtleMeta, { color: palette.muted }]}>
+                  Last session {formatDate(entry.lastSession)}
+                </ThemedText>
               </Clickable>
             ))}
           </View>
@@ -308,7 +315,7 @@ export function CoachDevelopmentScreen() {
                   });
                   router.push(`/development/athlete/${entry.athlete.id}`);
                 }}
-                style={[styles.rowCard, { borderColor: palette.border }]}
+                style={[styles.rowCard, styles.rowInline, { borderColor: palette.border }]}
               >
                 <View style={styles.rowLeft}>
                   <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
@@ -388,9 +395,26 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.card,
     borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  rowInline: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+  attentionCard: {
+    alignItems: 'stretch',
+  },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: Spacing.xs,
   },
   rowLeft: {
     flex: 1,
@@ -402,22 +426,22 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  rowMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 4,
     borderRadius: Radii.pill,
   },
   pillLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  subtleMeta: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   athleteList: {
     gap: Spacing.xs,

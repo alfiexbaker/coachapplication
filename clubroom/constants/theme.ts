@@ -1,70 +1,68 @@
 import { Platform } from 'react-native';
 
-// Premium dark palette inspired by modern fintech/lifestyle apps
-// Off-black backgrounds with purple-tinted surfaces for depth
-const offBlack = '#0E0E10'; // Main background
-const darkSurface = '#17171B'; // Elevated surface layer
-const cardSurface = '#1F2025'; // Card/interactive layer
+// Minimal light palette focused on clarity and whitespace
+const ink = '#0F172A';
+const mutedInk = '#475467';
+const surface = '#FFFFFF';
+const canvas = '#F7F8FB';
 
-// Brand colors - restrained, sophisticated accent palette
-const primaryBlue = '#5C7CFA'; // Primary CTA - vibrant but not harsh
-const successGreen = '#2BD17E'; // Positive trends/actions
-const warningOrange = '#FFB545'; // Warnings/notifications
-const errorPink = '#FF5C8A'; // Errors/destructive actions
+// Quiet accent colors
+const accent = '#0F172A';
+const success = '#1C8C5E';
+const warning = '#C78000';
+const error = '#C03E47';
 
-// Text hierarchy - high contrast with subtle warmth
-const primaryText = '#F6F7FB'; // Almost white, slightly warm
-const secondaryText = '#AEB3C7'; // Muted purple-gray for secondary info
-
-// Border with transparency for layering
-const subtleBorder = 'rgba(255, 255, 255, 0.06)'; // Barely visible separation
-const mediumBorder = 'rgba(255, 255, 255, 0.1)'; // Visible but soft
+// Border and divider colors
+const subtleBorder = '#E5E7EB';
+const mediumBorder = '#D1D5DB';
 
 export const Colors = {
   light: {
-    text: '#0E0E10', // Dark text for light mode
-    foreground: '#0E0E10',
-    muted: '#6B7280',
-    background: '#F6F7FB', // Light background
-    surface: '#FFFFFF',
-    card: '#FFFFFF',
-    border: '#E5E7EB',
-    tint: primaryBlue,
-    tintPressed: '#4C6AE8',
-    icon: '#6B7280',
-    success: successGreen,
-    warning: warningOrange,
-    error: errorPink,
-    secondary: successGreen,
-    accent: primaryBlue,
+    text: ink,
+    foreground: ink,
+    muted: mutedInk,
+    background: canvas,
+    surface,
+    card: surface,
+    border: subtleBorder,
+    borderMedium: mediumBorder,
+    tint: accent,
+    tintPressed: '#0B1220',
+    icon: '#111827',
+    success,
+    warning,
+    error,
+    secondary: success,
+    accent,
     tabIconDefault: '#9CA3AF',
-    tabIconSelected: primaryBlue,
-    overlay: 'rgba(0, 0, 0, 0.12)',
-    premium: primaryBlue,
-    surfaceSecondary: '#F6F7FB',
+    tabIconSelected: accent,
+    overlay: 'rgba(15, 23, 42, 0.08)',
+    premium: accent,
+    surfaceSecondary: canvas,
   },
   dark: {
-    text: primaryText, // #F6F7FB - high contrast, slightly warm
-    foreground: primaryText,
-    muted: secondaryText, // #AEB3C7 - muted purple-gray
-    background: offBlack, // #0E0E10 - deepest layer
-    surface: darkSurface, // #17171B - elevated section backgrounds
-    card: cardSurface, // #1F2025 - interactive cards/components
-    border: subtleBorder, // rgba(255,255,255,0.06) - subtle separation
-    borderMedium: mediumBorder, // rgba(255,255,255,0.1) - more visible
-    tint: primaryBlue, // #5C7CFA - primary actions
-    tintPressed: '#4C6AE8', // Slightly darker on press
-    icon: secondaryText,
-    success: successGreen, // #2BD17E - positive states
-    warning: warningOrange, // #FFB545 - warning states
-    error: errorPink, // #FF5C8A - error/destructive
-    secondary: successGreen,
-    accent: primaryBlue,
-    tabIconDefault: secondaryText,
-    tabIconSelected: primaryBlue,
-    overlay: 'rgba(0, 0, 0, 0.7)',
-    premium: primaryBlue,
-    surfaceSecondary: darkSurface,
+    // Keep dark mode aligned with the minimalist light palette
+    text: ink,
+    foreground: ink,
+    muted: mutedInk,
+    background: canvas,
+    surface,
+    card: surface,
+    border: subtleBorder,
+    borderMedium: mediumBorder,
+    tint: accent,
+    tintPressed: '#0B1220',
+    icon: '#111827',
+    success,
+    warning,
+    error,
+    secondary: success,
+    accent,
+    tabIconDefault: '#9CA3AF',
+    tabIconSelected: accent,
+    overlay: 'rgba(15, 23, 42, 0.08)',
+    premium: accent,
+    surfaceSecondary: canvas,
   },
 } as const;
 
@@ -98,24 +96,25 @@ export const Radii = {
 // Inspired by premium apps: lighter weights, generous spacing, smooth hierarchy
 export const Typography = {
   // Semantic type scale - lighter weights for elegance
-  display: { fontSize: 32, lineHeight: 44, letterSpacing: -0.6, fontWeight: '600' as const },   // H1 - Page titles
-  title: { fontSize: 24, lineHeight: 32, letterSpacing: -0.4, fontWeight: '600' as const },     // H2 - Section titles
-  heading: { fontSize: 20, lineHeight: 28, letterSpacing: -0.3, fontWeight: '500' as const },   // H3 - Card headers
-  subheading: { fontSize: 18, lineHeight: 26, letterSpacing: -0.2, fontWeight: '500' as const }, // H4 - Sub-sections
-  body: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '400' as const },      // Body text - 150% line height
-  bodySemiBold: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '500' as const }, // Medium, not semi-bold
-  small: { fontSize: 14, lineHeight: 20, letterSpacing: 0, fontWeight: '400' as const },        // Small text
-  caption: { fontSize: 13, lineHeight: 18, letterSpacing: 0, fontWeight: '400' as const },      // Captions, metadata
-  micro: { fontSize: 11, lineHeight: 16, letterSpacing: 0.6, fontWeight: '500' as const, textTransform: 'uppercase' as const }, // Pills, tags - lighter
+  display: { fontSize: 30, lineHeight: 40, letterSpacing: -0.4, fontWeight: '600' as const },   // H1 - Page titles
+  title: { fontSize: 22, lineHeight: 30, letterSpacing: -0.3, fontWeight: '600' as const },     // H2 - Section titles
+  heading: { fontSize: 18, lineHeight: 26, letterSpacing: -0.2, fontWeight: '600' as const },   // H3 - Card headers
+  subheading: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '500' as const }, // H4 - Sub-sections
+  body: { fontSize: 15, lineHeight: 22, letterSpacing: -0.05, fontWeight: '400' as const },      // Body text - 150% line height
+  bodySemiBold: { fontSize: 15, lineHeight: 22, letterSpacing: -0.05, fontWeight: '600' as const }, // Medium, not semi-bold
+  small: { fontSize: 13, lineHeight: 20, letterSpacing: 0, fontWeight: '400' as const },        // Small text
+  caption: { fontSize: 12, lineHeight: 18, letterSpacing: 0, fontWeight: '500' as const },      // Captions, metadata
+  micro: { fontSize: 10, lineHeight: 16, letterSpacing: 0.6, fontWeight: '600' as const, textTransform: 'uppercase' as const },
+// Pills, tags - lighter
 
   // Legacy sizes for compatibility
-  xs: { fontSize: 13, lineHeight: 18, letterSpacing: 0 },
-  sm: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
-  base: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1 },
-  lg: { fontSize: 18, lineHeight: 26, letterSpacing: -0.2 },
-  xl: { fontSize: 22, lineHeight: 30, letterSpacing: -0.3 },
-  '2xl': { fontSize: 28, lineHeight: 38, letterSpacing: -0.4 },
-  '3xl': { fontSize: 32, lineHeight: 44, letterSpacing: -0.5 },
+  xs: { fontSize: 12, lineHeight: 18, letterSpacing: 0 },
+  sm: { fontSize: 13, lineHeight: 20, letterSpacing: 0 },
+  base: { fontSize: 15, lineHeight: 22, letterSpacing: -0.05 },
+  lg: { fontSize: 17, lineHeight: 24, letterSpacing: -0.1 },
+  xl: { fontSize: 20, lineHeight: 28, letterSpacing: -0.2 },
+  '2xl': { fontSize: 26, lineHeight: 36, letterSpacing: -0.3 },
+  '3xl': { fontSize: 30, lineHeight: 40, letterSpacing: -0.4 },
 } as const;
 
 export const Fonts = Platform.select({
@@ -126,16 +125,16 @@ export const Fonts = Platform.select({
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+    sans: 'Inter',
+    serif: 'Georgia',
+    rounded: 'Inter',
+    mono: 'SFMono-Regular',
   },
   web: {
-    sans: "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    sans: "'Inter', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    serif: "'Charter', 'Times New Roman', serif",
+    rounded: "'Inter', 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
+    mono: "'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
 
@@ -143,47 +142,46 @@ export const Fonts = Platform.select({
 export const Shadows = {
   light: {
     card: {
-      shadowColor: '#000000',
-      shadowOpacity: 0.04,
-      shadowRadius: 16,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 2,
+      shadowColor: '#111827',
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 1,
     },
     cardHover: {
-      shadowColor: '#000000',
+      shadowColor: '#111827',
       shadowOpacity: 0.08,
-      shadowRadius: 24,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 4,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 2,
     },
     subtle: {
-      shadowColor: '#000000',
-      shadowOpacity: 0.02,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 1 },
+      shadowColor: '#111827',
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
       elevation: 1,
     },
   },
   dark: {
-    // Soft, diffused shadows for dark surfaces - creates depth without harshness
     card: {
-      shadowColor: '#000000',
-      shadowOpacity: 0.3,
+      shadowColor: '#111827',
+      shadowOpacity: 0.06,
       shadowRadius: 12,
       shadowOffset: { width: 0, height: 4 },
-      elevation: 2,
+      elevation: 1,
     },
     cardHover: {
-      shadowColor: '#000000',
-      shadowOpacity: 0.5,
-      shadowRadius: 20,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 4,
+      shadowColor: '#111827',
+      shadowOpacity: 0.08,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 2,
     },
     subtle: {
-      shadowColor: '#000000',
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
+      shadowColor: '#111827',
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
       shadowOffset: { width: 0, height: 2 },
       elevation: 1,
     },

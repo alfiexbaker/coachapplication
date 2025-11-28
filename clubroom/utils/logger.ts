@@ -43,15 +43,6 @@ class Logger {
    */
   private format(level: LogLevel, message: string, data?: any): string {
     const timestamp = new Date().toISOString().split('T')[1].slice(0, -1);
-    const emoji = {
-      debug: '🔍',
-      info: 'ℹ️',
-      warn: '⚠️',
-      error: '❌',
-      success: '✅',
-      event: '📍',
-    }[level];
-
     let contextStr = '';
     if (Object.keys(this.context).length > 0) {
       contextStr = ` [${Object.entries(this.context)
@@ -59,7 +50,9 @@ class Logger {
         .join(' ')}]`;
     }
 
-    return `${emoji} [${timestamp}]${contextStr} ${message}`;
+    const tag = level.toUpperCase();
+
+    return `[${tag}] [${timestamp}]${contextStr} ${message}`;
   }
 
   /**
@@ -144,15 +137,15 @@ class Logger {
    */
   async time<T>(label: string, fn: () => T | Promise<T>): Promise<T> {
     const start = performance.now();
-    this.debug(`⏱️  START: ${label}`);
+    this.debug(`TIMER START: ${label}`);
     try {
       const result = await fn();
       const duration = performance.now() - start;
-      this.debug(`⏱️  END: ${label} (${duration.toFixed(2)}ms)`);
+      this.debug(`TIMER END: ${label} (${duration.toFixed(2)}ms)`);
       return result;
     } catch (error) {
       const duration = performance.now() - start;
-      this.error(`⏱️  FAILED: ${label} (${duration.toFixed(2)}ms)`, error);
+      this.error(`TIMER FAILED: ${label} (${duration.toFixed(2)}ms)`, error);
       throw error;
     }
   }
@@ -162,7 +155,7 @@ class Logger {
    */
   group(label: string) {
     if (!this.enabled) return;
-    console.group(`📦 ${label}`);
+    console.group(label);
   }
 
   groupEnd() {

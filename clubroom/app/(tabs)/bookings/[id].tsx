@@ -20,7 +20,6 @@ const logger = createLogger('SessionDetailScreen');
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  console.log('🔴🔴🔴 [SessionDetailScreen] COMPONENT RENDERING - ID from params:', id);
 
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -33,13 +32,10 @@ export default function SessionDetailScreen() {
   // Load booking from both mock data and AsyncStorage
   useEffect(() => {
     const loadBooking = async () => {
-      console.log('🔴 [SessionDetailScreen] useEffect - Starting to load booking for ID:', id);
       logger.debug('Loading booking', { id });
 
       // First check mock data
-      console.log('🔴 [SessionDetailScreen] Searching mock data, total bookings:', upcomingBookings.length);
       let foundBooking = upcomingBookings.find((b) => b.id === id);
-      console.log('🔴 [SessionDetailScreen] Mock data result:', foundBooking ? 'FOUND' : 'NOT FOUND');
 
       // If not found, check session bookings
       if (!foundBooking) {

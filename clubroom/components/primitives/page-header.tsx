@@ -91,19 +91,20 @@ export function PageHeader({
                 style={[
                   styles.actionButton,
                   {
-                    backgroundColor: palette.tint,
+                    backgroundColor: palette.surface,
+                    borderColor: palette.border,
                   },
                 ]}
                 onPress={onActionPress}
               >
                 {actionIcon ? (
-                  <Ionicons name={actionIcon} size={20} color="#fff" />
+                  <Ionicons name={actionIcon} size={18} color={palette.foreground} />
                 ) : null}
                 {action ? (
                   <ThemedText
                     style={[
                       styles.actionText,
-                      { color: '#fff' },
+                      { color: palette.foreground },
                       !actionIcon && styles.actionTextOnly,
                     ]}
                   >
@@ -122,7 +123,7 @@ export function PageHeader({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
   },
   content: {
@@ -135,12 +136,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '600',
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 12,
     lineHeight: 18,
     fontWeight: '400',
   },
@@ -155,11 +156,12 @@ const styles = StyleSheet.create({
     borderRadius: Components.buttonCompact.borderRadius,
     gap: Spacing.xs / 2,
     height: Components.buttonCompact.height,
+    borderWidth: 1,
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    letterSpacing: -0.1,
+    letterSpacing: -0.05,
   },
   actionTextOnly: {
     paddingHorizontal: Spacing.xs / 2,
