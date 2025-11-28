@@ -180,6 +180,36 @@ export function CoachDevelopmentScreen() {
       <SurfaceCard style={styles.sectionCard}>
         <View style={styles.sectionHeaderRow}>
           <ThemedText type="heading" style={styles.sectionTitle}>
+            Development navigation
+          </ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+            Jump to badges and recognition
+          </ThemedText>
+        </View>
+
+        <View style={styles.navGrid}>
+          <Clickable
+            onPress={() => {
+              logger.press('BadgesNav');
+              router.push('/development/badges');
+            }}
+            style={[styles.navCard, { borderColor: palette.border }]}
+          >
+            <View style={[styles.navIcon, { backgroundColor: `${palette.tint}12` }]}>
+              <Ionicons name="ribbon" size={18} color={palette.tint} />
+            </View>
+            <View style={styles.navCopy}>
+              <ThemedText type="defaultSemiBold">Badges</ThemedText>
+              <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Award and share recognition</ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={palette.icon} />
+          </Clickable>
+        </View>
+      </SurfaceCard>
+
+      <SurfaceCard style={styles.sectionCard}>
+        <View style={styles.sectionHeaderRow}>
+          <ThemedText type="heading" style={styles.sectionTitle}>
             Overview
           </ThemedText>
           <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
@@ -374,6 +404,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.sm,
+  },
+  navGrid: {
+    gap: Spacing.xs,
+  },
+  navCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+  },
+  navIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navCopy: {
+    flex: 1,
+    gap: 2,
   },
   sectionTitle: {
     fontSize: 17,
