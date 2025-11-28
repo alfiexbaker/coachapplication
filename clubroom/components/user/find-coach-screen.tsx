@@ -20,6 +20,9 @@ import {
   getDistanceBetweenPostcodes,
   formatGBP,
 } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('FindCoachScreen');
 
 export function UserFindCoachScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -118,7 +121,11 @@ export function UserFindCoachScreen() {
               <Clickable
                 key={coach.id}
                 onPress={() => {
-                  router.push(`/book-coach?coachId=${coach.id}`);
+                  logger.press('CoachCard', { coachId: coach.id });
+                  router.push({
+                    pathname: '/book-coach',
+                    params: { coachId: coach.id },
+                  });
                 }}
                 style={({ pressed }) => [
                   styles.coachCard,
@@ -178,7 +185,11 @@ export function UserFindCoachScreen() {
                   <View style={styles.actionsRow}>
                     <Clickable
                       onPress={() => {
-                        router.push(`/book-coach?coachId=${coach.id}`);
+                        logger.press('BookCoach', { coachId: coach.id });
+                        router.push({
+                          pathname: '/book-coach',
+                          params: { coachId: coach.id },
+                        });
                       }}
                       style={({ pressed }) => [
                         styles.bookButton,

@@ -257,7 +257,10 @@ export default function AthleteDetailScreen() {
               key={session.id}
               onPress={() => {
                 logger.press('SessionCard', { sessionId: session.id });
-                router.push(`/development/session/${session.id}`);
+                router.push({
+                  pathname: '/development/session/[sessionId]',
+                  params: { sessionId: session.id },
+                });
               }}
             >
               <SurfaceCard style={styles.sessionCard}>
