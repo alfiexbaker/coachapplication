@@ -1,6 +1,6 @@
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -170,81 +170,77 @@ export function AthleteProgressScreen() {
               const hasVideos = session.videoUrls && session.videoUrls.length > 0;
 
               return (
-                <Link
+                <Clickable
                   key={session.id}
-                  asChild
-                  href={{
-                    pathname: '/development/athlete-session/[sessionId]',
-                    params: { sessionId: session.id },
+                  style={({ pressed }) => [
+                    styles.sessionCard,
+                    { opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  onPress={() => {
+                    logger.press('SessionCard', { sessionId: session.id, source: 'MyProgress' });
+                    router.push({
+                      pathname: '/development/athlete-session/[sessionId]',
+                      params: { sessionId: session.id },
+                    });
                   }}
-                  onPress={() =>
-                    logger.press('SessionCard', { sessionId: session.id, source: 'MyProgress' })
-                  }
                 >
-                  <Clickable
-                    style={({ pressed }) => [
-                      styles.sessionCard,
-                      { opacity: pressed ? 0.7 : 1 },
-                    ]}
-                  >
-                    <SurfaceCard style={styles.sessionContent} tactile={false}>
-                      <View style={styles.sessionHeader}>
-                        <View style={styles.sessionHeaderLeft}>
-                          <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
-                            {formatDate(session.completedAt)}
-                          </ThemedText>
-                          <ThemedText style={[styles.coachName, { color: palette.muted }]}>
-                            with {session.coachName}
-                          </ThemedText>
-                        </View>
-                        <View style={styles.ratingRow}>
-                          <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
-                          <Ionicons name="star" size={16} color={palette.tint} />
-                        </View>
-                      </View>
-
-                      {/* Skills worked on */}
-                      {session.skillsWorkedOn.length > 0 && (
-                        <View style={styles.skillsRow}>
-                          {session.skillsWorkedOn.map((skill, index) => (
-                            <View key={index} style={[styles.skillChip, { backgroundColor: palette.tint + '10' }]}>
-                              <ThemedText style={[styles.skillText, { color: palette.tint }]}>
-                                {skill}
-                              </ThemedText>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* Coach notes preview */}
-                      {hasNotes && (
-                        <ThemedText
-                          style={[styles.notesPreview, { color: palette.muted }]}
-                          numberOfLines={2}
-                        >
-                          {session.notes}
+                  <SurfaceCard style={styles.sessionContent} tactile={false}>
+                    <View style={styles.sessionHeader}>
+                      <View style={styles.sessionHeaderLeft}>
+                        <ThemedText type="defaultSemiBold" style={styles.sessionDate}>
+                          {formatDate(session.completedAt)}
                         </ThemedText>
-                      )}
+                        <ThemedText style={[styles.coachName, { color: palette.muted }]}>
+                          with {session.coachName}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.ratingRow}>
+                        <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
+                        <Ionicons name="star" size={16} color={palette.tint} />
+                      </View>
+                    </View>
 
-                      {/* Video indicator */}
-                      {hasVideos && (
-                        <View style={styles.videoIndicator}>
-                          <Ionicons name="videocam" size={14} color={palette.tint} />
-                          <ThemedText style={[styles.videoText, { color: palette.tint }]}>
-                            {session.videoUrls!.length} {session.videoUrls!.length === 1 ? 'video' : 'videos'}
-                          </ThemedText>
-                        </View>
-                      )}
+                    {/* Skills worked on */}
+                    {session.skillsWorkedOn.length > 0 && (
+                      <View style={styles.skillsRow}>
+                        {session.skillsWorkedOn.map((skill, index) => (
+                          <View key={index} style={[styles.skillChip, { backgroundColor: palette.tint + '10' }]}>
+                            <ThemedText style={[styles.skillText, { color: palette.tint }]}>
+                              {skill}
+                            </ThemedText>
+                          </View>
+                        ))}
+                      </View>
+                    )}
 
-                      <Ionicons
-                        name="chevron-forward"
-                        size={20}
-                        color={palette.icon}
-                        style={styles.chevron}
-                      />
-                    </SurfaceCard>
-                  </Clickable>
-                </Link>
+                    {/* Coach notes preview */}
+                    {hasNotes && (
+                      <ThemedText
+                        style={[styles.notesPreview, { color: palette.muted }]}
+                        numberOfLines={2}
+                      >
+                        {session.notes}
+                      </ThemedText>
+                    )}
+
+                    {/* Video indicator */}
+                    {hasVideos && (
+                      <View style={styles.videoIndicator}>
+                        <Ionicons name="videocam" size={14} color={palette.tint} />
+                        <ThemedText style={[styles.videoText, { color: palette.tint }]}>
+                          {session.videoUrls!.length} {session.videoUrls!.length === 1 ? 'video' : 'videos'}
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={palette.icon}
+                      style={styles.chevron}
+                    />
+                  </SurfaceCard>
+                </Clickable>
               );
             })}
           </View>
