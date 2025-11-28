@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -20,7 +21,8 @@ import {
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering } from '@/constants/types';
+import type { BadgeAward, Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering } from '@/constants/types';
+import { badgeService } from '@/services/badge-service';
 
 function FeedPost({ post }: { post: ClubFeedPost }) {
   const scheme = useColorScheme() ?? 'light';
@@ -104,6 +106,7 @@ export default function ClubHubScreen() {
   const [invites, setInvites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
   const [joinCode, setJoinCode] = useState('');
   const [newClubName, setNewClubName] = useState('');
+  const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
 
   const statTiles = useMemo(
     () => [
@@ -141,6 +144,7 @@ export default function ClubHubScreen() {
       const next = getClubInvites(membership.clubId);
       return next.length ? next : prev;
     });
+    badgeService.listAwards().then((awards) => setRecentBadges(awards.slice(0, 6)));
   }, [membership?.clubId]);
 
   const roleLabel = useMemo(() => {
@@ -356,6 +360,34 @@ export default function ClubHubScreen() {
         )}
       </SurfaceCard>
 
+      {recentBadges.length > 0 ? (
+        <SurfaceCard style={styles.sectionCard} animateElevation={false}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold">Recent badges</ThemedText>
+            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+              Shared for squads and supporters
+            </ThemedText>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.xs }}>
+            {recentBadges.map((award) => (
+              <Clickable
+                key={award.id}
+                onPress={() =>
+                  router.push({ pathname: '/development/athlete/[athleteId]', params: { athleteId: award.athleteId } })
+                }
+              >
+                <View style={[styles.badgeCard, { borderColor: palette.border }]}>               
+                  <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
+                  <ThemedText style={{ color: palette.muted }}>
+                    {award.athleteName || 'Athlete'} · {new Date(award.awardedAt).toLocaleDateString()}
+                  </ThemedText>
+                </View>
+              </Clickable>
+            ))}
+          </ScrollView>
+        </SurfaceCard>
+      ) : null}
+
       {membership && club ? (
         <View style={styles.grid}>
           <SurfaceCard style={[styles.sectionCard, styles.halfCard]} animateElevation={false}>
@@ -521,6 +553,13 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     gap: Spacing.sm,
+  },
+  badgeCard: {
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    minWidth: 180,
+    gap: Spacing.xs,
   },
   grid: {
     flexDirection: 'row',

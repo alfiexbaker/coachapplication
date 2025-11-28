@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,6 +11,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent } from '@/constants/mock-data';
 import { scale, scaleFont } from '@/utils/scale';
+import { badgeService } from '@/services/badge-service';
+import type { BadgeAward } from '@/constants/types';
 
 interface SessionDetailModalProps {
   visible: boolean;
@@ -25,6 +27,13 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
   const { currentUser } = useAuth();
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [weeksToBook, setWeeksToBook] = useState(1);
+  const [sessionAwards, setSessionAwards] = useState<BadgeAward[]>([]);
+
+  useEffect(() => {
+    if (visible && offering) {
+      badgeService.listAwardsForSession(offering.id).then(setSessionAwards);
+    }
+  }, [offering, visible]);
 
   if (!offering) return null;
 
@@ -172,13 +181,29 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                   </ThemedText>
                 </View>
               )}
-              {offering.priceUsd !== undefined && (
-                <ThemedText type="defaultSemiBold" style={styles.price}>
-                  ${offering.priceUsd}
-                </ThemedText>
-              )}
+            {offering.priceUsd !== undefined && (
+              <ThemedText type="defaultSemiBold" style={styles.price}>
+                ${offering.priceUsd}
+              </ThemedText>
+            )}
+          </View>
+
+          {sessionAwards.length > 0 && (
+            <View style={styles.awardsBlock}>
+              <ThemedText type="defaultSemiBold">Badges linked to this session</ThemedText>
+              <View style={styles.awardsRow}>
+                {sessionAwards.map((award) => (
+                  <View key={award.id} style={[styles.awardChip, { borderColor: palette.border }]}>  
+                    <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
+                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      {new Date(award.awardedAt).toLocaleDateString()}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
             </View>
-          </SurfaceCard>
+          )}
+        </SurfaceCard>
 
           {/* Coach View: Registrations */}
           {isMyOffering && (
@@ -365,6 +390,22 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
     marginTop: 12,
+  },
+  awardsBlock: {
+    gap: 8,
+    marginTop: 12,
+  },
+  awardsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  awardChip: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 4,
   },
   badge: {
     paddingHorizontal: 12,

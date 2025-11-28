@@ -1,4 +1,5 @@
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +12,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getSessionsForAthlete, getUserById, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import type { BadgeAward } from '@/constants/types';
+import { badgeService } from '@/services/badge-service';
 
 const logger = createLogger('AthleteProgressScreen');
 
@@ -18,10 +21,15 @@ export function AthleteProgressScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const [awards, setAwards] = useState<BadgeAward[]>([]);
 
   if (!currentUser) {
     return null;
   }
+
+  useEffect(() => {
+    badgeService.listAwardsForAthlete(currentUser.id).then(setAwards);
+  }, [currentUser.id]);
 
   const athlete = getUserById(currentUser.id);
   if (!athlete) {
@@ -152,6 +160,25 @@ export function AthleteProgressScreen() {
               </ThemedText>
             </View>
           </View>
+
+          {awards.length > 0 ? (
+            <View style={styles.badgeStrip}>
+              <ThemedText type="defaultSemiBold">Badges</ThemedText>
+              <View style={styles.badgeChips}>
+                {awards.map((award) => (
+                  <View
+                    key={award.id}
+                    style={[styles.badgeChip, { borderColor: palette.border }]}
+                  >
+                    <ThemedText style={{ fontWeight: '700' }}>{award.badgeLabel}</ThemedText>
+                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      {formatDate(award.awardedAt)}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </SurfaceCard>
 
         {/* Sessions List */}
@@ -347,6 +374,22 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.light.border,
+  },
+  badgeStrip: {
+    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  badgeChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  badgeChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    gap: 4,
   },
   stat: {
     alignItems: 'center',

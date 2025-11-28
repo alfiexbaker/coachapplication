@@ -10,11 +10,35 @@ export type FootballObjective =
 
 export type TrainingFormat = 'In-person' | 'Virtual' | 'Small group';
 
-export interface CoachBadge {
+export interface BadgeDefinition {
   id: string;
   label: string;
   tone?: 'success' | 'warning' | 'default';
+  description?: string;
 }
+
+export type BadgeVisibility = 'coach_only' | 'athlete' | 'supporters';
+
+export interface BadgeAward {
+  id: string;
+  badgeId: string;
+  badgeLabel: string;
+  badgeTone?: 'success' | 'warning' | 'default';
+  athleteId: string;
+  athleteName?: string;
+  coachId: string;
+  coachName?: string;
+  sessionId?: string;
+  reason: string;
+  note?: string;
+  awardedBy: string;
+  awardedByName?: string;
+  awardedAt: string;
+  visibility: BadgeVisibility;
+  shared?: boolean;
+}
+
+export interface CoachBadge extends BadgeDefinition {}
 
 // School & Invite System
 export interface School {
@@ -411,9 +435,14 @@ export interface SkillLevel {
 
 export interface NotificationItem {
   id: string;
-  type: 'booking' | 'message' | 'review' | 'payment' | 'reminder';
+  type: 'booking' | 'message' | 'review' | 'payment' | 'reminder' | 'badge';
   title: string;
   body: string;
   timeLabel?: string;
   read?: boolean;
+  badgeTitle?: string;
+  athleteName?: string;
+  badgeAwardId?: string;
+  actionLabel?: string;
+  handled?: boolean;
 }

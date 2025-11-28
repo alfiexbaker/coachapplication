@@ -78,6 +78,11 @@ Map every feature to at least one spine; upgrade existing flows before adding ne
 ## Current build state (frontend)
 - **Stack**: React Native (Expo), Expo Router, TypeScript, Reanimated.
 - **Data**: Mock data only; no persisted storage yet.
+
+### Badge visibility + sharing (development spine)
+- Coaches can attach badges to specific sessions with a reason and note; awards inherit session metadata for context.
+- Visibility defaults to the athlete and coach; parents/supporters view badges read-only and can only trigger the share chip from notifications.
+- Shares mark the notification as handled and flag the award as shared for parent/supporter timelines (no public posting yet).
 - **Auth**: Demo login with role context (`User | Parent | Coach | Admin`).
 - **Navigation**: Role-aware tabs; coach screens surface calendar/availability, user screens surface discovery/booking.
 

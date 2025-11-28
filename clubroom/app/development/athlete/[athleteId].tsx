@@ -14,6 +14,9 @@ import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-d
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import type { Session } from '@/constants/types';
+import type { BadgeAward } from '@/constants/types';
+import { badgeService } from '@/services/badge-service';
+import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -24,6 +27,8 @@ export default function AthleteDetailScreen() {
   const { currentUser } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [awards, setAwards] = useState<BadgeAward[]>([]);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   const athlete = getUserById(athleteId!);
 
@@ -67,6 +72,12 @@ export default function AthleteDetailScreen() {
 
     loadSessions();
   }, [athleteId, currentUser]);
+
+  useEffect(() => {
+    if (!athleteId) return;
+
+    badgeService.listAwardsForAthlete(athleteId).then(setAwards);
+  }, [athleteId]);
 
   if (!athlete || !currentUser) {
     return null;
@@ -125,23 +136,24 @@ export default function AthleteDetailScreen() {
   });
 
   return (
-    <PageContainer
-      gap={Spacing.lg}
-      header={
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-          </TouchableOpacity>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Athlete Progress
-          </ThemedText>
-          <View style={{ width: 24 }} />
-        </View>
-      }
-    >
+    <>
+      <PageContainer
+        gap={Spacing.lg}
+        header={
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+            >
+              <Ionicons name="arrow-back" size={24} color={palette.foreground} />
+            </TouchableOpacity>
+            <ThemedText type="title" style={styles.headerTitle}>
+              Athlete Progress
+            </ThemedText>
+            <View style={{ width: 24 }} />
+          </View>
+        }
+      >
 
       {/* Hero Card - Athlete Overview */}
       <SurfaceCard style={styles.heroCard}>
@@ -256,6 +268,7 @@ export default function AthleteDetailScreen() {
       <View style={styles.sessionList}>
         {sortedSessions.map((session) => {
           const needsNotes = !session.notes || session.notes.trim() === '';
+          const sessionAwards = awards.filter((award) => award.sessionId === session.id);
 
           return (
             <SurfaceCard
@@ -280,11 +293,42 @@ export default function AthleteDetailScreen() {
                     </View>
                   )}
                 </View>
-                <View style={styles.ratingRow}>
-                  <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
-                  <Ionicons name="star" size={16} color={palette.tint} />
+                <View style={styles.sessionActions}>
+                  <Clickable
+                    onPress={() => {
+                      setSelectedSession(session);
+                      logger.info('badge_award_start', { sessionId: session.id, athleteId });
+                    }}
+                  >
+                    <View style={[styles.awardChip, { borderColor: palette.tint }]}>
+                      <Ionicons name="ribbon-outline" size={14} color={palette.tint} />
+                      <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                        Award badge
+                      </ThemedText>
+                    </View>
+                  </Clickable>
+                  <View style={styles.ratingRow}>
+                    <ThemedText style={styles.rating}>{session.performanceRating}</ThemedText>
+                    <Ionicons name="star" size={16} color={palette.tint} />
+                  </View>
                 </View>
               </View>
+
+              {sessionAwards.length > 0 ? (
+                <View style={styles.awardRow}>
+                  {sessionAwards.map((award) => (
+                    <View
+                      key={award.id}
+                      style={[styles.awardChip, { borderColor: palette.border }]}
+                    >
+                      <ThemedText style={{ fontWeight: '700' }}>{award.badgeLabel}</ThemedText>
+                      <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                        {formatDate(award.awardedAt)}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
 
               {/* Skills worked on */}
               {session.skillsWorkedOn.length > 0 && (
@@ -333,7 +377,19 @@ export default function AthleteDetailScreen() {
           );
         })}
       </View>
-    </PageContainer>
+      </PageContainer>
+
+      <BadgeAwardModal
+        visible={!!selectedSession}
+        athleteId={athlete.id}
+        athleteName={athlete.name}
+        coachId={currentUser.id}
+        coachName={currentUser.name}
+        sessionId={selectedSession?.id}
+        onClose={() => setSelectedSession(null)}
+        onAwarded={(award) => setAwards((prev) => [award, ...prev])}
+      />
+    </>
   );
 }
 
@@ -471,6 +527,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xs / 2,
   },
+  sessionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   sessionHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -498,6 +559,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
+  },
+  awardRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  awardChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.card,
+    borderWidth: 1,
   },
   rating: {
     fontSize: 15,

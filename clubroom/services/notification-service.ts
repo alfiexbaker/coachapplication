@@ -22,6 +22,13 @@ export class NotificationService {
     return updated;
   }
 
+  async markHandled(id: string) {
+    const current = await this.list();
+    const updated = current.map((n) => (n.id === id ? { ...n, read: true, handled: true } : n));
+    await storageService.setItem(STORAGE_KEY, updated);
+    return updated.find((n) => n.id === id);
+  }
+
   async clearAll() {
     await storageService.setItem(STORAGE_KEY, []);
   }

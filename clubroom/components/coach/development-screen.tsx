@@ -20,6 +20,7 @@ import {
 } from '@/constants/mock-data';
 import type { Session, User } from '@/constants/app-types';
 import { createLogger } from '@/utils/logger';
+import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
 
 const logger = createLogger('CoachDevelopmentScreen');
 
@@ -41,6 +42,8 @@ export function CoachDevelopmentScreen() {
   const { currentUser } = useAuth();
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [selectedAthleteName, setSelectedAthleteName] = useState('');
 
   // Load sessions from both mock data and AsyncStorage
   useEffect(() => {
@@ -142,6 +145,10 @@ export function CoachDevelopmentScreen() {
     (entry) => entry.needsNotes || entry.averageRating < 4 || entry.daysSinceLast >= 10
   );
 
+  const recentSessions = [...allSessions]
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+    .slice(0, 5);
+
   if (!currentUser) {
     logger.warn('No current user found');
     return null;
@@ -168,15 +175,16 @@ export function CoachDevelopmentScreen() {
   });
 
   return (
-    <PageContainer
-      gap={Spacing.md}
-      header={
-        <PageHeader
-          title="Development"
-          subtitle="Track your athletes' progress"
-        />
-      }
-    >
+    <>
+      <PageContainer
+        gap={Spacing.md}
+        header={
+          <PageHeader
+            title="Development"
+            subtitle="Track your athletes' progress"
+          />
+        }
+      >
       <SurfaceCard style={styles.sectionCard}>
         <View style={styles.sectionHeaderRow}>
           <ThemedText type="heading" style={styles.sectionTitle}>
@@ -195,6 +203,59 @@ export function CoachDevelopmentScreen() {
             variant="compact"
             icon={<Ionicons name="star" size={16} color={palette.tint} />}
           />
+        </View>
+      </SurfaceCard>
+
+      <SurfaceCard style={styles.sectionCard}>
+        <View style={styles.sectionHeaderRow}>
+          <ThemedText type="heading" style={styles.sectionTitle}>
+            Recent sessions
+          </ThemedText>
+          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Badge-ready clips</ThemedText>
+        </View>
+
+        <View style={{ gap: Spacing.xs }}>
+          {recentSessions.map((session) => {
+            const athlete = getUserById(session.athleteId);
+            return (
+              <View
+                key={session.id}
+                style={[styles.recentRow, { borderColor: palette.border }]}
+              >
+                <View style={styles.rowLeft}>
+                  <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                    <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                      {athlete?.avatar || athlete?.name?.charAt(0) || '?'}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.rowContent}>
+                    <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                      {athlete?.name || 'Athlete'}
+                    </ThemedText>
+                    <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
+                      {formatDate(session.completedAt)} · Rated {session.performanceRating}
+                    </ThemedText>
+                  </View>
+                </View>
+
+                <Clickable
+                  onPress={() => {
+                    setSelectedSession(session);
+                    setSelectedAthleteName(athlete?.name || 'Athlete');
+                    logger.info('badge_award_start', {
+                      sessionId: session.id,
+                      athleteId: session.athleteId,
+                    });
+                  }}
+                >
+                  <View style={[styles.actionPill, { borderColor: palette.tint }]}> 
+                    <Ionicons name="ribbon-outline" size={14} color={palette.tint} />
+                    <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Award badge</ThemedText>
+                  </View>
+                </Clickable>
+              </View>
+            );
+          })}
         </View>
       </SurfaceCard>
 
@@ -360,7 +421,18 @@ export function CoachDevelopmentScreen() {
           </View>
         )}
       </SurfaceCard>
-    </PageContainer>
+      </PageContainer>
+
+      <BadgeAwardModal
+        visible={!!selectedSession}
+        athleteId={selectedSession?.athleteId || ''}
+        athleteName={selectedAthleteName}
+        coachId={currentUser.id}
+        coachName={currentUser.name}
+        sessionId={selectedSession?.id}
+        onClose={() => setSelectedSession(null)}
+      />
+    </>
   );
 }
 
@@ -387,6 +459,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.xs,
     flexWrap: 'wrap',
+  },
+  recentRow: {
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
   attentionList: {
     gap: Spacing.xs,
@@ -433,6 +514,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     paddingVertical: 4,
     borderRadius: Radii.pill,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.rounded,
+    borderWidth: 1,
   },
   pillLabel: {
     fontSize: 11,
