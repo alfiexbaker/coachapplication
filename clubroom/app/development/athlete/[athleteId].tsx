@@ -101,15 +101,15 @@ export default function AthleteDetailScreen() {
   // Calculate level badge based on total sessions
   const getLevel = () => {
     const count = sessions.length;
-    if (count >= 20) return { name: 'Gold', icon: 'G', color: '#FFD700' };
-    if (count >= 10) return { name: 'Silver', icon: 'S', color: '#C0C0C0' };
-    return { name: 'Bronze', icon: 'B', color: '#CD7F32' };
+    if (count >= 20) return { name: 'Gold', icon: 'trophy-outline' as const, color: '#FFD700' };
+    if (count >= 10) return { name: 'Silver', icon: 'medal-outline' as const, color: '#C0C0C0' };
+    return { name: 'Bronze', icon: 'ribbon-outline' as const, color: '#CD7F32' };
   };
 
   const trend = getProgressTrend();
   const level = getLevel();
 
-  const trendIcon = trend === 'improving' ? 'UP' : trend === 'declining' ? 'DOWN' : 'EVEN';
+  const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
   const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
   const trendColor = trend === 'improving' ? Colors.light.success : trend === 'declining' ? Colors.light.error : palette.muted;
 
@@ -156,19 +156,25 @@ export default function AthleteDetailScreen() {
             <ThemedText type="heading" style={styles.athleteName}>
               {athlete.name}
             </ThemedText>
-            <View style={styles.badges}>
-              <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
-                <ThemedText style={[styles.badgeText, { color: trendColor }]}>
-                  {trendIcon} {trendText}
-                </ThemedText>
-              </View>
-              <View style={[styles.levelBadge, { backgroundColor: level.color + '15' }]}>
-                <ThemedText style={[styles.badgeText, { color: level.color }]}>
-                  {level.icon} {level.name}
-                </ThemedText>
+              <View style={styles.badges}>
+                <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
+                  <View style={styles.badgeRow}>
+                    <Ionicons name={trendIcon} size={14} color={trendColor} />
+                    <ThemedText style={[styles.badgeText, { color: trendColor }]}>
+                      {trendText}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={[styles.levelBadge, { backgroundColor: level.color + '15' }]}>
+                  <View style={styles.badgeRow}>
+                    <Ionicons name={level.icon} size={14} color={level.color} />
+                    <ThemedText style={[styles.badgeText, { color: level.color }]}>
+                      {level.name}
+                    </ThemedText>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
           <TouchableOpacity
             style={[styles.ctaButton, { backgroundColor: palette.tint }]}
             onPress={async () => {
@@ -383,6 +389,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.xs,
     flexWrap: 'wrap',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
   },
   trendBadge: {
     paddingHorizontal: Spacing.sm,
