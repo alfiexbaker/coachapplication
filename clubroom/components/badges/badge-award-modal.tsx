@@ -38,6 +38,7 @@ export function BadgeAwardModal({
 }: BadgeAwardModalProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const resolvedAthleteName = athleteName || 'Athlete';
   const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
   const [selectedReason, setSelectedReason] = useState<string>(REASONS[0]);
@@ -61,7 +62,7 @@ export function BadgeAwardModal({
     const award = await badgeService.awardBadge({
       badgeId: selectedBadgeId,
       athleteId,
-      athleteName,
+      athleteName: resolvedAthleteName,
       coachId,
       coachName,
       sessionId,
@@ -80,7 +81,7 @@ export function BadgeAwardModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={[styles.backdrop, { backgroundColor: `${palette.overlay}99` }]}>        
+      <View style={[styles.backdrop, { backgroundColor: `${palette.overlay}99` }]}>
         <SurfaceCard style={styles.modalCard}>
           <View style={styles.headerRow}>
             <View style={styles.titleRow}>
@@ -93,6 +94,19 @@ export function BadgeAwardModal({
           </View>
 
           <ScrollView contentContainerStyle={{ gap: Spacing.md }}>
+            <View style={{ gap: Spacing.xs }}>
+              <View style={[styles.contextRow, { backgroundColor: `${palette.tint}10` }]}>
+                <Ionicons name="person" size={16} color={palette.tint} />
+                <ThemedText style={{ color: palette.text, fontWeight: '600' }}>{resolvedAthleteName}</ThemedText>
+              </View>
+              <View style={[styles.contextRow, { backgroundColor: `${palette.border}40` }]}>
+                <Ionicons name={sessionId ? 'link' : 'unlink'} size={16} color={palette.icon} />
+                <ThemedText style={{ color: palette.text }}>
+                  {sessionId ? 'Linked to session' : 'No session linked'}
+                </ThemedText>
+              </View>
+            </View>
+
             <View style={{ gap: Spacing.xs }}>
               <ThemedText type="defaultSemiBold">Select badge</ThemedText>
               <View style={styles.optionRow}>
@@ -189,6 +203,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  contextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
   },
   titleRow: {
     flexDirection: 'row',
