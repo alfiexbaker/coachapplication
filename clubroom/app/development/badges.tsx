@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -91,6 +92,7 @@ export default function BadgesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId?: string }>();
 
   const [activeTab, setActiveTab] = useState<BadgeCategory>('toAward');
   const [sessionQuery, setSessionQuery] = useState('');
@@ -122,6 +124,16 @@ export default function BadgesScreen() {
   const linkedAthlete = selectedSession?.athleteName ?? 'Session';
 
   const visibleBadges = useMemo(() => BADGES.filter((badge) => badge.category === activeTab), [activeTab]);
+
+  useEffect(() => {
+    if (!sessionIdParam || sessions.length === 0) return;
+
+    const paramId = Array.isArray(sessionIdParam) ? sessionIdParam[0] : sessionIdParam;
+    const match = sessions.find((session) => session.id === paramId);
+    if (match) {
+      setSelectedSessionId(paramId);
+    }
+  }, [sessionIdParam, sessions]);
 
   return (
     <PageContainer
