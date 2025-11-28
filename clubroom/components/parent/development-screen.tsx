@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -12,6 +12,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getSessionsForAthlete, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
+import type { BadgeAward } from '@/constants/types';
+import { badgeService } from '@/services/badge-service';
 
 const logger = createLogger('ParentDevelopmentScreen');
 
@@ -24,6 +26,7 @@ export function ParentDevelopmentScreen() {
 
   const children = getChildrenForParent(currentUser.id);
   const [selectedChildId, setSelectedChildId] = useState(children[0]?.id);
+  const [sharedBadges, setSharedBadges] = useState<BadgeAward[]>([]);
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
   const sessions = selectedChild ? getSessionsForAthlete(selectedChild.id) : [];
@@ -50,6 +53,13 @@ export function ParentDevelopmentScreen() {
   const sortedSessions = [...sessions].sort(
     (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
   );
+
+  useEffect(() => {
+    if (!selectedChildId) return;
+    badgeService
+      .listAwardsForAthlete(selectedChildId)
+      .then((awards) => setSharedBadges(awards.filter((award) => award.shared)));
+  }, [selectedChildId]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -113,6 +123,22 @@ export function ParentDevelopmentScreen() {
         </View>
 
         {/* Content */}
+        {sharedBadges.length > 0 ? (
+          <SurfaceCard style={styles.sharedCard}>
+            <ThemedText type="defaultSemiBold">Shared badges</ThemedText>
+            <View style={styles.sharedBadgeRow}>
+              {sharedBadges.map((award) => (
+                <View key={award.id} style={[styles.sharedBadge, { borderColor: palette.border }]}>
+                  <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
+                  <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                    {formatDate(award.awardedAt)}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          </SurfaceCard>
+        ) : null}
+
         {children.length === 0 ? (
           <View style={styles.emptyState}>
             <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -232,6 +258,22 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingBottom: Spacing['2xl'],
+  },
+  sharedCard: {
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+  },
+  sharedBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  sharedBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    gap: 4,
   },
   stickyHeader: {
     paddingHorizontal: Spacing.lg,

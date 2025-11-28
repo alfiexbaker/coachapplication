@@ -24,6 +24,8 @@ import type {
   CoachProfile as EnhancedCoachProfile,
   BookingSummary,
   ChatSender,
+  BadgeDefinition,
+  BadgeAward,
   Club,
   ClubMembership,
   ClubFeedPost,
@@ -423,6 +425,81 @@ export const MOCK_BOOKINGS: Booking[] = [
     location: 'Hackney Marshes',
     coachName: 'Mike Thompson',
     athleteName: 'James Wilson',
+  },
+];
+
+export const badgeCatalog: BadgeDefinition[] = [
+  {
+    id: 'badge_best_training',
+    label: 'Best Training Session',
+    tone: 'success',
+    description: 'Recognises a standout session with effort and focus.',
+  },
+  {
+    id: 'badge_master_passer',
+    label: 'Master Passer',
+    tone: 'default',
+    description: 'Awarded for reliable build-up play and vision.',
+  },
+  {
+    id: 'badge_sharp_shooter_pro',
+    label: 'Sharp Shooter Pro',
+    tone: 'warning',
+    description: 'Celebrates clinical finishing under pressure.',
+  },
+];
+
+export const badgeAwards: BadgeAward[] = [
+  {
+    id: 'award_training_focus',
+    badgeId: 'badge_best_training',
+    badgeLabel: 'Best Training Session',
+    badgeTone: 'success',
+    athleteId: 'user1',
+    athleteName: 'Tom Henderson',
+    coachId: 'coach1',
+    coachName: 'Sarah Mitchell',
+    sessionId: 'sess1',
+    reason: 'Led transitions and stayed switched on across drills.',
+    note: 'Kept energy up for younger players in the pod.',
+    awardedBy: 'coach1',
+    awardedByName: 'Sarah Mitchell',
+    awardedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000 + 90 * 60 * 1000).toISOString(),
+    visibility: 'supporters',
+  },
+  {
+    id: 'award_master_passer',
+    badgeId: 'badge_master_passer',
+    badgeLabel: 'Master Passer',
+    badgeTone: 'default',
+    athleteId: 'user2',
+    athleteName: 'Emma Henderson',
+    coachId: 'coach3',
+    coachName: 'David Roberts',
+    sessionId: 'sess4',
+    reason: 'Threaded creative passes under pressure.',
+    note: 'Great first-time balls during rondos.',
+    awardedBy: 'coach3',
+    awardedByName: 'David Roberts',
+    awardedAt: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    visibility: 'athlete',
+  },
+  {
+    id: 'award_sharp_shooter',
+    badgeId: 'badge_sharp_shooter_pro',
+    badgeLabel: 'Sharp Shooter Pro',
+    badgeTone: 'warning',
+    athleteId: 'user3',
+    athleteName: 'James Wilson',
+    coachId: 'coach2',
+    coachName: 'Mike Thompson',
+    sessionId: 'club_session_1',
+    reason: 'Finished five consecutive reps with both feet.',
+    note: 'Stayed composed with a defender closing.',
+    awardedBy: 'coach2',
+    awardedByName: 'Mike Thompson',
+    awardedAt: new Date(today.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+    visibility: 'supporters',
   },
 ];
 
@@ -1198,6 +1275,28 @@ export function getSessionsForAthlete(athleteId: string): Session[] {
   return MOCK_SESSIONS.filter((s) => s.athleteId === athleteId);
 }
 
+export function getBadgeCatalog(): BadgeDefinition[] {
+  return badgeCatalog;
+}
+
+export function getBadgeAwardsForAthlete(athleteId: string): BadgeAward[] {
+  return badgeAwards
+    .filter((award) => award.athleteId === athleteId)
+    .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime());
+}
+
+export function getBadgeAwardsForSession(sessionId: string): BadgeAward[] {
+  return badgeAwards
+    .filter((award) => award.sessionId === sessionId)
+    .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime());
+}
+
+export function getRecentBadgeAwards(limit = 5): BadgeAward[] {
+  return [...badgeAwards]
+    .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime())
+    .slice(0, limit);
+}
+
 export function getGoalsForUser(userId: string): Goal[] {
   return MOCK_GOALS.filter((g) => g.userId === userId);
 }
@@ -1709,6 +1808,28 @@ export const MOCK_NOTIFICATIONS: AppNotification[] = [
     relatedEntityId: 'recap1',
     isRead: false,
     createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'notif_badge_athlete',
+    userId: 'user1',
+    type: 'BADGE',
+    title: 'New badge awarded',
+    body: 'Best Training Session from Coach Sarah',
+    deepLink: '/(tabs)/progress',
+    relatedEntityId: 'award_training_focus',
+    isRead: false,
+    createdAt: new Date(today.getTime() - 10 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'notif_badge_parent',
+    userId: 'parent1',
+    type: 'BADGE',
+    title: 'New badge awarded',
+    body: 'Tom earned Sharp Shooter Pro — share with supporters?',
+    deepLink: '/(tabs)/notifications',
+    relatedEntityId: 'award_sharp_shooter',
+    isRead: false,
+    createdAt: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString(),
   },
 ];
 

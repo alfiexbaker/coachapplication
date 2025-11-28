@@ -377,7 +377,8 @@ export type NotificationType =
   | 'NEW_MESSAGE'
   | 'RECAP_SHARED'
   | 'PAYMENT_DUE'
-  | 'CERTIFICATION_EXPIRING';
+  | 'CERTIFICATION_EXPIRING'
+  | 'BADGE';
 
 export interface AppNotification {
   id: string;

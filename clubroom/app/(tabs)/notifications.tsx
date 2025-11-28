@@ -9,11 +9,27 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { notificationService } from '@/services/notification-service';
 import { NotificationItem } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
+import { badgeService } from '@/services/badge-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('NotificationsScreen');
 
 const seedNotifications: NotificationItem[] = [
   { id: 'n1', type: 'booking', title: 'Booking confirmed', body: 'Tom - 5pm with Sarah at Hyde Park', timeLabel: '2h ago', read: false },
   { id: 'n2', type: 'message', title: 'New message', body: 'Coach Sarah sent a message', timeLabel: '3h ago', read: true },
   { id: 'n3', type: 'review', title: 'Review request', body: 'Rate your last session with Mike', timeLabel: '1d ago', read: false },
+  {
+    id: 'n4',
+    type: 'badge',
+    title: 'New badge awarded',
+    body: 'Tom Henderson · Sharp Shooter Pro',
+    badgeTitle: 'Sharp Shooter Pro',
+    athleteName: 'Tom Henderson',
+    badgeAwardId: 'award_sharp_shooter',
+    actionLabel: 'Share to profile',
+    timeLabel: 'just now',
+    read: false,
+  },
 ];
 
 export function NotificationsPanel({
@@ -46,6 +62,21 @@ export function NotificationsPanel({
     setRefreshing(false);
   };
 
+  const handleShare = async (item: NotificationItem) => {
+    logger.info('badge_shared_event', {
+      notificationId: item.id,
+      badgeTitle: item.badgeTitle,
+      athleteName: item.athleteName,
+    });
+
+    if (item.badgeAwardId) {
+      await badgeService.markShared(item.badgeAwardId);
+    }
+
+    await notificationService.markHandled(item.id);
+    refresh();
+  };
+
   const markAsRead = async (id: string) => {
     await notificationService.markAsRead(id);
     refresh();
@@ -61,7 +92,10 @@ export function NotificationsPanel({
         ) : (
           visibleItems.map((item) => (
             <Clickable key={item.id} onPress={() => markAsRead(item.id)}>
-              <NotificationCard item={item} />
+              <NotificationCard
+                item={item}
+                onShare={item.type === 'badge' ? () => handleShare(item) : undefined}
+              />
             </Clickable>
           ))
         )}
