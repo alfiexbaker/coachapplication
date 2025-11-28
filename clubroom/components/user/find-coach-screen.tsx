@@ -118,10 +118,7 @@ export function UserFindCoachScreen() {
               <Clickable
                 key={coach.id}
                 onPress={() => {
-                  router.push({
-                    pathname: '/book-coach',
-                    params: { coachId: coach.id },
-                  });
+                  router.push(`/book-coach?coachId=${coach.id}`);
                 }}
                 style={({ pressed }) => [
                   styles.coachCard,
@@ -181,10 +178,7 @@ export function UserFindCoachScreen() {
                   <View style={styles.actionsRow}>
                     <Clickable
                       onPress={() => {
-                        router.push({
-                          pathname: '/book-coach',
-                          params: { coachId: coach.id },
-                        });
+                        router.push(`/book-coach?coachId=${coach.id}`);
                       }}
                       style={({ pressed }) => [
                         styles.bookButton,
