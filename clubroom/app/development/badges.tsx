@@ -13,6 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import type { Session } from '@/constants/app-types';
+import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
 
 type BadgeCategory = 'toAward' | 'recent' | 'shared';
 
@@ -20,6 +21,7 @@ type BadgeItem = {
   id: string;
   title: string;
   athlete: string;
+  athleteId?: string;
   detail: string;
   category: BadgeCategory;
   awardedAt?: string;
@@ -31,21 +33,24 @@ const BADGES: BadgeItem[] = [
   {
     id: 'consistency',
     title: 'Consistency',
-    athlete: 'Liam Carter',
+    athlete: 'Tom Henderson',
+    athleteId: 'user1',
     detail: 'Logged 4+ sessions this month',
     category: 'toAward',
   },
   {
     id: 'leadership',
     title: 'Leadership',
-    athlete: 'Sofia Malik',
+    athlete: 'James Wilson',
+    athleteId: 'user3',
     detail: 'Captained team drills and encouraged peers',
     category: 'toAward',
   },
   {
     id: 'recent-pace',
     title: 'Burst of Pace',
-    athlete: 'Mason Lee',
+    athlete: 'Emma Henderson',
+    athleteId: 'user2',
     detail: 'Awarded after sprint focus block',
     category: 'recent',
     awardedAt: '2025-02-13',
@@ -54,7 +59,8 @@ const BADGES: BadgeItem[] = [
   {
     id: 'recent-keeper',
     title: 'Safe Hands',
-    athlete: 'Ava Williams',
+    athlete: 'Tom Henderson',
+    athleteId: 'user1',
     detail: 'Completed three clean sheets in a row',
     category: 'recent',
     awardedAt: '2025-02-11',
@@ -63,7 +69,8 @@ const BADGES: BadgeItem[] = [
   {
     id: 'shared-technique',
     title: 'Technique Spotlight',
-    athlete: 'Noah Patel',
+    athlete: 'Tom Henderson',
+    athleteId: 'user1',
     detail: 'Shared with parents for weekly digest',
     category: 'shared',
     sharedWith: 'Parents (U13s)',
@@ -72,7 +79,8 @@ const BADGES: BadgeItem[] = [
   {
     id: 'shared-team',
     title: 'Team Player',
-    athlete: 'Ella Brown',
+    athlete: 'James Wilson',
+    athleteId: 'user3',
     detail: 'Highlighted to club staff',
     category: 'shared',
     sharedWith: 'Club staff channel',
@@ -97,6 +105,10 @@ export default function BadgesScreen() {
   const [activeTab, setActiveTab] = useState<BadgeCategory>('toAward');
   const [sessionQuery, setSessionQuery] = useState('');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [showAwardModal, setShowAwardModal] = useState(false);
+  const [awardContext, setAwardContext] = useState<{ athleteId: string; athleteName: string; sessionId?: string } | null>(
+    null,
+  );
 
   const sessions = useMemo<Session[]>(() => {
     if (!currentUser) return [];
@@ -123,6 +135,21 @@ export default function BadgesScreen() {
 
   const linkedAthlete = selectedSession?.athleteName ?? 'Session';
 
+  const sessionForAthlete = (athleteId?: string) => {
+    if (!athleteId) return null;
+    if (selectedSession && selectedSession.athleteId === athleteId) return selectedSession;
+    return sessions.find((session) => session.athleteId === athleteId) ?? null;
+  };
+
+  const openAwardModal = (badge: BadgeItem) => {
+    const athleteId = badge.athleteId;
+    if (!athleteId || !currentUser) return;
+
+    const session = sessionForAthlete(athleteId);
+    setAwardContext({ athleteId, athleteName: badge.athlete, sessionId: session?.id });
+    setShowAwardModal(true);
+  };
+
   const visibleBadges = useMemo(() => BADGES.filter((badge) => badge.category === activeTab), [activeTab]);
 
   useEffect(() => {
@@ -136,10 +163,11 @@ export default function BadgesScreen() {
   }, [sessionIdParam, sessions]);
 
   return (
-    <PageContainer
-      gap={Spacing.md}
-      header={<PageHeader title="Badges" subtitle="Recognise achievements without leaving development" />}
-    >
+    <>
+      <PageContainer
+        gap={Spacing.md}
+        header={<PageHeader title="Badges" subtitle="Recognise achievements without leaving development" />}
+      >
       <SurfaceCard style={styles.tabRow}>
         {TABS.map((tab) => {
           const isActive = tab.key === activeTab;
@@ -290,7 +318,7 @@ export default function BadgesScreen() {
                     </View>
                     <Clickable
                       style={[styles.awardButton, { backgroundColor: palette.tint }]}
-                      onPress={() => setActiveTab('recent')}
+                      onPress={() => openAwardModal(badge)}
                     >
                       <ThemedText style={styles.awardButtonText}>Award badge</ThemedText>
                     </Clickable>
@@ -301,7 +329,21 @@ export default function BadgesScreen() {
           </View>
         )}
       </SurfaceCard>
-    </PageContainer>
+      </PageContainer>
+
+      <BadgeAwardModal
+        visible={showAwardModal}
+        athleteId={awardContext?.athleteId ?? ''}
+        athleteName={awardContext?.athleteName ?? ''}
+        coachId={currentUser?.id ?? ''}
+        coachName={currentUser?.name}
+        sessionId={awardContext?.sessionId}
+        onClose={() => {
+          setShowAwardModal(false);
+          setAwardContext(null);
+        }}
+      />
+    </>
   );
 }
 
