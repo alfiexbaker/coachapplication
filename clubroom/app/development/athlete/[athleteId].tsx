@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { StatCard } from '@/components/primitives/stat-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
