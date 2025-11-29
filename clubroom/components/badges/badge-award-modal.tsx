@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,7 +11,7 @@ import { BadgeAward, BadgeDefinition } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
 import { createLogger } from '@/utils/logger';
 
-const REASONS = ['Leadership', 'Consistency', 'Technique', 'Mindset'];
+export const BADGE_REASONS = ['Leadership', 'Consistency', 'Technique', 'Mindset'];
 
 interface BadgeAwardModalProps {
   visible: boolean;
@@ -20,6 +20,9 @@ interface BadgeAwardModalProps {
   coachId: string;
   coachName?: string;
   sessionId?: string;
+  sessionLabel?: string;
+  initialReason?: string;
+  initialNote?: string;
   onClose: () => void;
   onAwarded?: (award: BadgeAward) => void;
 }
@@ -34,13 +37,25 @@ export function BadgeAwardModal({
   coachId,
   coachName,
   sessionId,
+  sessionLabel,
+  initialReason,
+  initialNote,
   onAwarded,
 }: BadgeAwardModalProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const resolvedAthleteName = athleteName || 'Athlete';
   const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
-  const [selectedReason, setSelectedReason] = useState<string>(REASONS[0]);
+  const reasonOptions = useMemo(() => {
+    if (initialReason && !BADGE_REASONS.includes(initialReason)) {
+      return [initialReason, ...BADGE_REASONS];
+    }
+
+    return BADGE_REASONS;
+  }, [initialReason]);
+
+  const [selectedReason, setSelectedReason] = useState<string>(reasonOptions[0]);
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -50,10 +65,10 @@ export function BadgeAwardModal({
       setDefinitions(defs);
       setSelectedBadgeId(defs[0]?.id ?? null);
     });
-    setSelectedReason(REASONS[0]);
-    setNote('');
+    setSelectedReason(initialReason ?? reasonOptions[0]);
+    setNote(initialNote ?? '');
     logger.info('badge_award_opened', { athleteId, sessionId, coachId });
-  }, [athleteId, coachId, sessionId, visible]);
+  }, [athleteId, coachId, initialNote, initialReason, reasonOptions, sessionId, visible]);
 
   const handleSubmit = async () => {
     if (!selectedBadgeId) return;
@@ -61,7 +76,7 @@ export function BadgeAwardModal({
     const award = await badgeService.awardBadge({
       badgeId: selectedBadgeId,
       athleteId,
-      athleteName,
+      athleteName: resolvedAthleteName,
       coachId,
       coachName,
       sessionId,
@@ -80,7 +95,7 @@ export function BadgeAwardModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={[styles.backdrop, { backgroundColor: `${palette.overlay}99` }]}>        
+      <View style={[styles.backdrop, { backgroundColor: `${palette.overlay}99` }]}>
         <SurfaceCard style={styles.modalCard}>
           <View style={styles.headerRow}>
             <View style={styles.titleRow}>
@@ -93,6 +108,19 @@ export function BadgeAwardModal({
           </View>
 
           <ScrollView contentContainerStyle={{ gap: Spacing.md }}>
+            <View style={{ gap: Spacing.xs }}>
+              <View style={[styles.contextRow, { backgroundColor: `${palette.tint}10` }]}>
+                <Ionicons name="person" size={16} color={palette.tint} />
+                <ThemedText style={{ color: palette.text, fontWeight: '600' }}>{resolvedAthleteName}</ThemedText>
+              </View>
+              <View style={[styles.contextRow, { backgroundColor: `${palette.border}40` }]}>
+                <Ionicons name={sessionId ? 'link' : 'unlink'} size={16} color={palette.icon} />
+                <ThemedText style={{ color: palette.text }}>
+                  {sessionId ? sessionLabel || 'Linked to session' : 'No session linked'}
+                </ThemedText>
+              </View>
+            </View>
+
             <View style={{ gap: Spacing.xs }}>
               <ThemedText type="defaultSemiBold">Select badge</ThemedText>
               <View style={styles.optionRow}>
@@ -118,7 +146,7 @@ export function BadgeAwardModal({
             <View style={{ gap: Spacing.xs }}>
               <ThemedText type="defaultSemiBold">Reason</ThemedText>
               <View style={styles.optionRow}>
-                {REASONS.map((reason) => (
+                {reasonOptions.map((reason) => (
                   <Clickable key={reason} onPress={() => setSelectedReason(reason)}>
                     <View
                       style={[
@@ -189,6 +217,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  contextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
   },
   titleRow: {
     flexDirection: 'row',

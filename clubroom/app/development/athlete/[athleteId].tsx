@@ -16,7 +16,7 @@ import { createLogger } from '@/utils/logger';
 import type { Session } from '@/constants/types';
 import type { BadgeAward } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
-import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
+import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -122,6 +122,9 @@ export default function AthleteDetailScreen() {
   const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
   const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
   const trendColor = trend === 'improving' ? Colors.light.success : trend === 'declining' ? Colors.light.error : palette.muted;
+  const selectedSessionLabel = selectedSession
+    ? `${selectedSession.nextFocusAreas?.[0] ?? 'Coaching session'} · ${formatDate(selectedSession.completedAt)}`
+    : undefined;
 
   // Sort sessions by date (newest first)
   const sortedSessions = [...sessions].sort(
@@ -386,6 +389,8 @@ export default function AthleteDetailScreen() {
         coachId={currentUser.id}
         coachName={currentUser.name}
         sessionId={selectedSession?.id}
+        sessionLabel={selectedSessionLabel}
+        initialReason={selectedSession?.nextFocusAreas?.find((focus) => BADGE_REASONS.includes(focus))}
         onClose={() => setSelectedSession(null)}
         onAwarded={(award) => setAwards((prev) => [award, ...prev])}
       />

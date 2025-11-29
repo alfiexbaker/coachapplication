@@ -20,7 +20,7 @@ import {
 } from '@/constants/mock-data';
 import type { Session, User } from '@/constants/app-types';
 import { createLogger } from '@/utils/logger';
-import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
+import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 
 const logger = createLogger('CoachDevelopmentScreen');
 
@@ -148,6 +148,12 @@ export function CoachDevelopmentScreen() {
   const recentSessions = [...allSessions]
     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
     .slice(0, 5);
+
+  const selectedSessionLabel = selectedSession
+    ? `${selectedSession.nextFocusAreas?.[0] ?? 'Coaching session'} · ${formatDate(selectedSession.completedAt)}`
+    : undefined;
+
+  const selectedReasonPreset = selectedSession?.nextFocusAreas?.find((focus) => BADGE_REASONS.includes(focus));
 
   if (!currentUser) {
     logger.warn('No current user found');
@@ -460,6 +466,8 @@ export function CoachDevelopmentScreen() {
         coachId={currentUser.id}
         coachName={currentUser.name}
         sessionId={selectedSession?.id}
+        sessionLabel={selectedSessionLabel}
+        initialReason={selectedReasonPreset}
         onClose={() => setSelectedSession(null)}
       />
     </>
