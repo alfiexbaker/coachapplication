@@ -28,6 +28,7 @@ export default function AthleteDetailScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   const athlete = getUserById(athleteId!);
 
@@ -303,7 +304,7 @@ export default function AthleteDetailScreen() {
                         athleteId,
                         source: 'AthleteSessionHistory',
                       });
-                      router.push({ pathname: '/development/badges', params: { sessionId: session.id } });
+                      setSelectedSession(session);
                     }}
                   >
                     <View style={[styles.awardChip, { borderColor: palette.tint }]}>
