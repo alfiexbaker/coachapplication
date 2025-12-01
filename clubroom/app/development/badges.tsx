@@ -13,7 +13,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import type { Session } from '@/constants/app-types';
-import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
+import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 
 type BadgeCategory = 'toAward' | 'recent' | 'shared';
 
@@ -106,9 +106,9 @@ export default function BadgesScreen() {
   const [sessionQuery, setSessionQuery] = useState('');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [showAwardModal, setShowAwardModal] = useState(false);
-  const [awardContext, setAwardContext] = useState<{ athleteId: string; athleteName: string; sessionId?: string } | null>(
-    null,
-  );
+  const [awardContext, setAwardContext] = useState<
+    { athleteId: string; athleteName: string; sessionId?: string; sessionLabel?: string; reason?: string } | null
+  >(null);
 
   const sessions = useMemo<Session[]>(() => {
     if (!currentUser) return [];
@@ -135,6 +135,19 @@ export default function BadgesScreen() {
 
   const linkedAthlete = selectedSession?.athleteName ?? 'Session';
 
+  const sessionLabel = (session: Session | null) => {
+    if (!session) return undefined;
+    return `${getSessionLabel(session)} · ${formatDate(session.completedAt)}`;
+  };
+
+  const resolveReasonPreset = (badge: BadgeItem) => {
+    const matchFromTitle = BADGE_REASONS.find((reason) => badge.title.toLowerCase().includes(reason.toLowerCase()));
+    if (matchFromTitle) return matchFromTitle;
+
+    const matchFromDetail = BADGE_REASONS.find((reason) => badge.detail.toLowerCase().includes(reason.toLowerCase()));
+    return matchFromDetail;
+  };
+
   const sessionForAthlete = (athleteId?: string) => {
     if (!athleteId) return null;
     if (selectedSession && selectedSession.athleteId === athleteId) return selectedSession;
@@ -146,7 +159,13 @@ export default function BadgesScreen() {
     if (!athleteId || !currentUser) return;
 
     const session = sessionForAthlete(athleteId);
-    setAwardContext({ athleteId, athleteName: badge.athlete, sessionId: session?.id });
+    setAwardContext({
+      athleteId,
+      athleteName: badge.athlete,
+      sessionId: session?.id,
+      sessionLabel: sessionLabel(session),
+      reason: resolveReasonPreset(badge),
+    });
     setShowAwardModal(true);
   };
 
@@ -338,6 +357,8 @@ export default function BadgesScreen() {
         coachId={currentUser?.id ?? ''}
         coachName={currentUser?.name}
         sessionId={awardContext?.sessionId}
+        sessionLabel={awardContext?.sessionLabel}
+        initialReason={awardContext?.reason}
         onClose={() => {
           setShowAwardModal(false);
           setAwardContext(null);
