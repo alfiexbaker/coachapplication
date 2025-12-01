@@ -14,8 +14,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
-import type { Session } from '@/constants/types';
-import type { BadgeAward } from '@/constants/types';
+import type { Session, BadgeAward } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 
@@ -29,7 +28,6 @@ export default function AthleteDetailScreen() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   const athlete = getUserById(athleteId!);
 
@@ -300,14 +298,18 @@ export default function AthleteDetailScreen() {
                 <View style={styles.sessionActions}>
                   <Clickable
                     onPress={() => {
-                      setSelectedSession(session);
-                      logger.info('badge_award_start', { sessionId: session.id, athleteId });
+                      logger.info('badge_workspace_deeplink', {
+                        sessionId: session.id,
+                        athleteId,
+                        source: 'AthleteSessionHistory',
+                      });
+                      router.push({ pathname: '/development/badges', params: { sessionId: session.id } });
                     }}
                   >
                     <View style={[styles.awardChip, { borderColor: palette.tint }]}>
                       <Ionicons name="ribbon-outline" size={14} color={palette.tint} />
                       <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
-                        Award badge
+                        Manage in Badges workspace
                       </ThemedText>
                     </View>
                   </Clickable>

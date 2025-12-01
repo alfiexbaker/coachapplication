@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -174,13 +175,13 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                   </ThemedText>
                 </View>
               )}
-              {offering.footballSkill && (
-                <View style={[styles.badge, { backgroundColor: `${palette.tint}15` }]}>
-                  <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
-                    {offering.footballSkill}
-                  </ThemedText>
-                </View>
-              )}
+            {offering.footballSkill && (
+              <View style={[styles.badge, { backgroundColor: `${palette.tint}15` }]}>
+                <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
+                  {offering.footballSkill}
+                </ThemedText>
+              </View>
+            )}
             {offering.priceUsd !== undefined && (
               <ThemedText type="defaultSemiBold" style={styles.price}>
                 ${offering.priceUsd}
@@ -193,14 +194,32 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
               <ThemedText type="defaultSemiBold">Badges linked to this session</ThemedText>
               <View style={styles.awardsRow}>
                 {sessionAwards.map((award) => (
-                  <View key={award.id} style={[styles.awardChip, { borderColor: palette.border }]}>  
+                  <View key={award.id} style={[styles.awardChip, { borderColor: palette.border }]}>
                     <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
-                      {new Date(award.awardedAt).toLocaleDateString()}
+                    <ThemedText style={styles.awardMeta}>
+                      Awarded {new Date(award.awardedAt).toLocaleString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                      {' '}by {award.awardedByName || award.coachName || 'Coach'}
                     </ThemedText>
                   </View>
                 ))}
               </View>
+              <Pressable
+                onPress={() =>
+                  router.push({ pathname: '/development/badges', params: { sessionId: offering.id } })
+                }
+                style={styles.manageBadgesLink}
+              >
+                <View style={styles.manageLinkRow}>
+                  <Ionicons name="link-outline" size={14} color={palette.tint} />
+                  <ThemedText style={[styles.manageLinkText, { color: palette.tint }]}>Manage in Badges workspace</ThemedText>
+                  <Ionicons name="arrow-forward" size={14} color={palette.tint} />
+                </View>
+              </Pressable>
             </View>
           )}
         </SurfaceCard>
@@ -406,6 +425,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 4,
+  },
+  awardMeta: {
+    color: '#6B7280',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  manageBadgesLink: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  manageLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  manageLinkText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   badge: {
     paddingHorizontal: 12,

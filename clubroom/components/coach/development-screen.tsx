@@ -42,8 +42,6 @@ export function CoachDevelopmentScreen() {
   const { currentUser } = useAuth();
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [selectedAthleteName, setSelectedAthleteName] = useState('');
 
   // Load sessions from both mock data and AsyncStorage
   useEffect(() => {
@@ -276,17 +274,17 @@ export function CoachDevelopmentScreen() {
 
                 <Clickable
                   onPress={() => {
-                    setSelectedSession(session);
-                    setSelectedAthleteName(athlete?.name || 'Athlete');
-                    logger.info('badge_award_start', {
+                    logger.info('badge_workspace_deeplink', {
                       sessionId: session.id,
                       athleteId: session.athleteId,
+                      source: 'RecentSessions',
                     });
+                    router.push({ pathname: '/development/badges', params: { sessionId: session.id } });
                   }}
                 >
-                  <View style={[styles.actionPill, { borderColor: palette.tint }]}> 
+                  <View style={[styles.actionPill, { borderColor: palette.tint }]}>
                     <Ionicons name="ribbon-outline" size={14} color={palette.tint} />
-                    <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Award badge</ThemedText>
+                    <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Manage in Badges workspace</ThemedText>
                   </View>
                 </Clickable>
               </View>
