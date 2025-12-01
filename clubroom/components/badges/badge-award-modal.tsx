@@ -13,6 +13,24 @@ import { createLogger } from '@/utils/logger';
 
 export const BADGE_REASONS = ['Leadership', 'Consistency', 'Technique', 'Mindset', 'Teamwork', 'Resilience'];
 
+const NOTE_PROMPTS: { id: string; label: string; text: string }[] = [
+  {
+    id: 'effort',
+    label: 'Call out effort',
+    text: 'Kept working through the tough reps and matched the tempo.',
+  },
+  {
+    id: 'next_focus',
+    label: 'Share a next focus',
+    text: 'Next up: stay on your front foot when pressing to win it early.',
+  },
+  {
+    id: 'parent_context',
+    label: 'Include parent context',
+    text: 'Ask {parent_name} to ask about this drill at home to reinforce it.',
+  },
+];
+
 const BADGE_PRESETS: {
   id: string;
   title: string;
@@ -142,6 +160,13 @@ export function BadgeAwardModal({
     return diffDays < COOLDOWN_WINDOW_DAYS;
   }, [recentAward]);
 
+  const cooldownDaysRemaining = useMemo(() => {
+    if (!recentAward) return 0;
+    const lastAwardDate = new Date(recentAward.awardedAt).getTime();
+    const diffDays = (Date.now() - lastAwardDate) / (1000 * 60 * 60 * 24);
+    return Math.max(0, Math.ceil(COOLDOWN_WINDOW_DAYS - diffDays));
+  }, [recentAward]);
+
   const finalNote = useMemo(() => {
     const base = note.trim();
     const custom = customNote.trim();
@@ -170,6 +195,10 @@ export function BadgeAwardModal({
 
   const handleSubmit = async () => {
     if (!selectedBadgeId) return;
+    if (overrideCooldown && !overrideNote.trim()) {
+      setSubmitError('Add a short exception note before sending.');
+      return;
+    }
     if (cooldownActive && !overrideCooldown) {
       setSubmitError(`Cooldown active. Wait ${COOLDOWN_WINDOW_DAYS} days or use an exception with a note.`);
       return;
@@ -217,7 +246,17 @@ export function BadgeAwardModal({
     'Tie badges to recent reps or objectives so parents see the why.',
     'Use notes that mirror the athlete’s words to make it personal.',
     'Show the next focus so the badge nudges future effort.',
+    'Add a parent ask so they can reinforce the habit at home.',
   ];
+
+  const addPromptToNote = (prompt: string) => {
+    setNote((prev) => {
+      if (!prev.trim()) return prompt;
+      const needsSpace = !prev.trim().endsWith('.') && !prev.trim().endsWith('!') && !prev.trim().endsWith('?');
+      return needsSpace ? `${prev.trim()}. ${prompt}` : `${prev.trim()} ${prompt}`;
+    });
+    logger.info('badge_note_prompt_applied', { athleteId, prompt });
+  };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -253,11 +292,28 @@ export function BadgeAwardModal({
                   {sessionId ? sessionLabel || 'Linked to session' : 'No session linked'}
                 </ThemedText>
               </View>
+              {recentAward && (
+                <SurfaceCard style={[styles.lastAwardCard, { borderColor: palette.border }]} tactile={false}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                    <Ionicons name="time" size={14} color={palette.icon} />
+                    <ThemedText type="defaultSemiBold">Last badge</ThemedText>
+                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      {new Date(recentAward.awardedAt).toLocaleDateString()}
+                    </ThemedText>
+                  </View>
+                  <View style={{ gap: 2 }}>
+                    <ThemedText style={{ color: palette.text }}>{recentAward.badgeLabel}</ThemedText>
+                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{recentAward.reason}</ThemedText>
+                  </View>
+                </SurfaceCard>
+              )}
               {cooldownActive && (
-                <View style={[styles.cooldownBanner, { backgroundColor: `${palette.warning}15`, borderColor: palette.warning }]}>
+                <View
+                  style={[styles.cooldownBanner, { backgroundColor: `${palette.warning}15`, borderColor: palette.warning }]}
+                >
                   <Ionicons name="warning" size={16} color={palette.warning} />
                   <ThemedText style={{ color: palette.warning, flex: 1 }}>
-                    Badge cooldown is on (one per {COOLDOWN_WINDOW_DAYS} days). Use an exception with a short note to send anyway.
+                    Badge cooldown is on (one per {COOLDOWN_WINDOW_DAYS} days). {cooldownDaysRemaining} day(s) left—use an exception with a short note to send anyway.
                   </ThemedText>
                 </View>
               )}
@@ -380,6 +436,26 @@ export function BadgeAwardModal({
                   style={{ color: palette.text }}
                 />
               </SurfaceCard>
+              <View style={{ gap: Spacing.xs }}>
+                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Tap to drop in a prompt</ThemedText>
+                <View style={styles.promptRow}>
+                  {NOTE_PROMPTS.map((prompt) => (
+                    <Clickable key={prompt.id} onPress={() => addPromptToNote(prompt.text)}>
+                      <View
+                        style={[
+                          styles.promptChip,
+                          {
+                            backgroundColor: `${palette.tint}12`,
+                            borderColor: `${palette.tint}40`,
+                          },
+                        ]}
+                      >
+                        <ThemedText style={{ color: palette.text, fontSize: 12 }}>{prompt.label}</ThemedText>
+                      </View>
+                    </Clickable>
+                  ))}
+                </View>
+              </View>
             </View>
 
             <View style={{ gap: Spacing.xs }}>
@@ -581,6 +657,17 @@ const styles = StyleSheet.create({
     borderRadius: Radii.rounded,
     borderWidth: 1,
   },
+  promptRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  promptChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.rounded,
+    borderWidth: 1,
+  },
   noteInput: {
     padding: Spacing.sm,
     borderWidth: 1,
@@ -615,6 +702,12 @@ const styles = StyleSheet.create({
   helperPoint: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  lastAwardCard: {
+    borderWidth: 1,
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
     gap: Spacing.xs,
   },
   presetHeader: {
