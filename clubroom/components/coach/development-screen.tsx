@@ -42,6 +42,7 @@ export function CoachDevelopmentScreen() {
   const { currentUser } = useAuth();
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   // Load sessions from both mock data and AsyncStorage
   useEffect(() => {
@@ -150,6 +151,10 @@ export function CoachDevelopmentScreen() {
   const selectedSessionLabel = selectedSession
     ? `${selectedSession.nextFocusAreas?.[0] ?? 'Coaching session'} · ${formatDate(selectedSession.completedAt)}`
     : undefined;
+
+  const selectedAthleteName = selectedSession
+    ? getUserById(selectedSession.athleteId)?.name || 'Athlete'
+    : '';
 
   const selectedReasonPreset = selectedSession?.nextFocusAreas?.find((focus) => BADGE_REASONS.includes(focus));
 
@@ -279,7 +284,7 @@ export function CoachDevelopmentScreen() {
                       athleteId: session.athleteId,
                       source: 'RecentSessions',
                     });
-                    router.push({ pathname: '/development/badges', params: { sessionId: session.id } });
+                    setSelectedSession(session);
                   }}
                 >
                   <View style={[styles.actionPill, { borderColor: palette.tint }]}>
