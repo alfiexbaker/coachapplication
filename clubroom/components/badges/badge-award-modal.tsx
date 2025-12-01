@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, TextInput, View, Switch } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TextInput, View, Switch, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -112,6 +112,8 @@ export function BadgeAwardModal({
 }: BadgeAwardModalProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { width } = useWindowDimensions();
+  const isCompactLayout = width < 380;
   const resolvedAthleteName = athleteName || 'Athlete';
   const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
@@ -261,7 +263,7 @@ export function BadgeAwardModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: `${palette.overlay}99` }]}>
-        <SurfaceCard style={styles.modalCard}>
+        <SurfaceCard style={[styles.modalCard, isCompactLayout && styles.modalCardCompact]}>
           <View style={styles.headerRow}>
             <View style={styles.titleRow}>
               <Ionicons name="ribbon" size={20} color={palette.tint} />
@@ -272,7 +274,7 @@ export function BadgeAwardModal({
             </Clickable>
           </View>
 
-          <ScrollView contentContainerStyle={{ gap: Spacing.md }}>
+          <ScrollView contentContainerStyle={{ gap: Spacing.md, paddingBottom: Spacing.sm }}>
             <View style={{ gap: Spacing.xs }}>
               <View style={[styles.contextRow, { backgroundColor: `${palette.tint}10` }]}>
                 <Ionicons name="person" size={16} color={palette.tint} />
@@ -342,6 +344,7 @@ export function BadgeAwardModal({
                     <View
                       style={[
                         styles.badgeOption,
+                        isCompactLayout && styles.badgeOptionFull,
                         {
                           borderColor: selectedBadgeId === badge.id ? palette.tint : palette.border,
                           backgroundColor: selectedBadgeId === badge.id ? `${palette.tint}12` : palette.surface,
@@ -384,7 +387,7 @@ export function BadgeAwardModal({
                 <ThemedText type="defaultSemiBold">Core value presets</ThemedText>
                 <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Tap to prefill notes</ThemedText>
               </View>
-              <View style={styles.presetGrid}>
+              <View style={[styles.presetGrid, isCompactLayout && styles.presetGridStacked]}>
                 {BADGE_PRESETS.map((preset) => {
                   const isSelected = selectedPresetId === preset.id;
                   return (
@@ -392,6 +395,7 @@ export function BadgeAwardModal({
                       <View
                         style={[
                           styles.presetCard,
+                          isCompactLayout && styles.presetCardFull,
                           {
                             borderColor: isSelected ? palette.tint : palette.border,
                             backgroundColor: isSelected ? `${palette.tint}12` : palette.surface,
@@ -603,6 +607,9 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.md,
   },
+  modalCardCompact: {
+    padding: Spacing.sm,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -650,6 +657,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 2,
     maxWidth: '48%',
+  },
+  badgeOptionFull: {
+    maxWidth: '100%',
   },
   reasonChip: {
     paddingHorizontal: Spacing.md,
@@ -726,6 +736,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: Spacing.sm,
     gap: 4,
+  },
+  presetGridStacked: {
+    flexDirection: 'column',
+    gap: Spacing.sm,
+  },
+  presetCardFull: {
+    width: '100%',
   },
   presetTitleRow: {
     flexDirection: 'row',
