@@ -15,6 +15,10 @@ type AwardBadgeInput = {
   reason: string;
   note?: string;
   visibility?: BadgeVisibility;
+  presetId?: string;
+  overrideCooldown?: boolean;
+  overrideNote?: string;
+  context?: 'session' | 'athlete_profile';
 };
 
 class BadgeService {
@@ -60,6 +64,25 @@ class BadgeService {
   async awardBadge(input: AwardBadgeInput): Promise<BadgeAward> {
     const stored = await this.getStoredAwards();
     const definition = badgeCatalog.find((badge) => badge.id === input.badgeId);
+    const allAwards = this.mergeAwards(stored);
+    const mostRecentAward = allAwards.find((award) => award.athleteId === input.athleteId);
+    const cooldownWindowDays = 7;
+
+    if (mostRecentAward) {
+      const lastAwardDate = new Date(mostRecentAward.awardedAt).getTime();
+      const now = Date.now();
+      const diffDays = (now - lastAwardDate) / (1000 * 60 * 60 * 24);
+
+      if (diffDays < cooldownWindowDays && !input.overrideCooldown) {
+        throw new Error(
+          `Cooldown in effect. Last badge was ${Math.ceil(diffDays)} day(s) ago. Toggle exception with a note to proceed.`,
+        );
+      }
+
+      if (diffDays < cooldownWindowDays && input.overrideCooldown && !input.overrideNote?.trim()) {
+        throw new Error('Exception note is required to bypass the cooldown.');
+      }
+    }
 
     const award: BadgeAward = {
       id: `award_${Date.now()}`,
@@ -73,6 +96,11 @@ class BadgeService {
       sessionId: input.sessionId,
       reason: input.reason,
       note: input.note,
+      presetId: input.presetId,
+      cooldownBypassed: Boolean(input.overrideCooldown),
+      cooldownWindowDays,
+      context: input.context ?? (input.sessionId ? 'session' : 'athlete_profile'),
+      overrideNote: input.overrideNote,
       awardedBy: input.coachId,
       awardedByName: input.coachName,
       awardedAt: new Date().toISOString(),
@@ -86,6 +114,9 @@ class BadgeService {
       athleteId: input.athleteId,
       coachId: input.coachId,
       sessionId: input.sessionId,
+      presetId: input.presetId,
+      cooldownBypassed: Boolean(input.overrideCooldown),
+      context: award.context,
       visibility: award.visibility,
     });
 
