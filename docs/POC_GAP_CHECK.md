@@ -31,6 +31,11 @@ This note benchmarks the current front-end POC against the documented vision and
 ## POC score (current readiness)
 - **Rating:** 4/10 for coverage of the documented MVP. The POC demonstrates navigation, discovery/booking shells, and messaging foundations but lacks most of the social, development analytics, full booking/state machine, and organisation/admin features laid out in the sprint plans.
 
+## Readiness for “Uber-level” adoption
+- **Current constraint:** The experience is a front-end-only mock MVP with no persistence, payments, or real-time messaging, so it cannot currently handle high-volume, two-sided marketplace traffic or trust/safety requirements. Scaling to "Uber-level" reach would require the planned NestJS/PostgreSQL/Redis/Stripe/S3 backend, real-time messaging, and hardened verification/consent/incident flows to ship. 【F:docs/SOURCE_OF_TRUTH.md†L32-L56】【F:docs/SOURCE_OF_TRUTH.md†L64-L77】
+- **Surface coverage gaps:** Discovery, booking, and messaging shells exist, but the POC still needs end-to-end booking (availability-backed slot selection, payment, state transitions), richer social/club features, development analytics, and organisation/admin controls to meet the breadth and reliability of a scaled marketplace. 【F:docs/POC_GAP_CHECK.md†L12-L56】【F:docs/POC_GAP_CHECK.md†L65-L110】
+- **Operational maturity:** To support Uber-like demand, trust & safety, support tooling, and instrumentation must extend beyond the current mock flows—adding verification queues, dispute/incident handling, consent defaults, and analytics instrumentation across booking and messaging workflows. 【F:docs/SOURCE_OF_TRUTH.md†L64-L77】【F:docs/POC_GAP_CHECK.md†L82-L110】
+
 ## How to use this checklist
 - Map upcoming stories to the spine sections above and upgrade existing screens/components before proposing new ones.
 - When implementing any item, reuse shared cards, lists, and state machines so new features inherit styling and behaviors without creating parallel flows.

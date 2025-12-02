@@ -31,6 +31,7 @@ const BASE_HIDDEN_ROUTES = [
   'profile',
   'admin/invite-codes',
   'earnings',
+  'badges',
 ];
 
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {

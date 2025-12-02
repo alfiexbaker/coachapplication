@@ -31,11 +31,17 @@ export interface BadgeAward {
   sessionId?: string;
   reason: string;
   note?: string;
+  presetId?: string;
+  cooldownBypassed?: boolean;
+  cooldownWindowDays?: number;
+  context?: 'session' | 'athlete_profile';
+  overrideNote?: string;
   awardedBy: string;
   awardedByName?: string;
   awardedAt: string;
   visibility: BadgeVisibility;
   shared?: boolean;
+  feedPostId?: string;
 }
 
 export interface CoachBadge extends BadgeDefinition {}
