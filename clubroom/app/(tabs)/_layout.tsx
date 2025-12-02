@@ -123,11 +123,11 @@ export default function TabLayout() {
     tabBarStyle: {
       backgroundColor: palette.surface, // Use surface for cleaner white
       borderTopWidth: 0, // Remove border for sleeker look
-      height: 64, // Slightly taller for better tap targets
-      paddingBottom: 8,
+      height: 66, // Slightly taller for better tap targets
+      paddingBottom: 10,
       paddingTop: 10,
-      paddingHorizontal: 12, // Provide breathing room without crowding
-      justifyContent: 'space-between',
+      paddingHorizontal: 0, // Avoid offsetting tabs to the left
+      justifyContent: 'space-evenly',
       shadowColor: '#000000',
       shadowOpacity: 0.05,
       shadowRadius: 8,
