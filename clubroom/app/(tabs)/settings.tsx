@@ -29,7 +29,7 @@ const NAV_LINKS: Record<string, { title: string; subtitle?: string; icon: string
     { title: 'My Bookings', subtitle: 'Upcoming & past sessions', icon: 'calendar-outline', route: '/(tabs)/bookings' },
     { title: 'Messages', subtitle: 'Chat with coaches', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Feed & Community', subtitle: 'Posts, drills, highlights', icon: 'newspaper-outline', route: '/(tabs)/feed' },
-    { title: 'Progress', subtitle: 'Goals and session history', icon: 'trending-up-outline', route: '/(tabs)/bookings' },
+    { title: 'Badges & Progress', subtitle: 'Recognition and session pathway', icon: 'ribbon-outline', route: '/(tabs)/badges' },
   ],
   PARENT: [
     { title: 'Kids & Bookings', subtitle: 'See all children', icon: 'people-outline', route: '/(tabs)/bookings' },
