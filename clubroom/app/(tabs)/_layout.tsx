@@ -160,17 +160,15 @@ export default function TabLayout() {
 
       {hiddenRoutes.map((route) => {
         const hiddenRoute = typeof route === 'string' ? { name: route } : route;
-        return (
-          <Tabs.Screen
-            key={hiddenRoute.name}
-            name={hiddenRoute.name}
-            options={{
-              href: null,
-              tabBarButton: () => null,
-              ...hiddenRoute.options,
-            }}
-          />
-        );
+        const routeOptions = hiddenRoute.options ?? {};
+        const { tabBarButton, ...restOptions } = routeOptions;
+
+        const options =
+          tabBarButton !== undefined
+            ? { tabBarButton, ...restOptions }
+            : { href: null, tabBarButton: () => null, ...routeOptions };
+
+        return <Tabs.Screen key={hiddenRoute.name} name={hiddenRoute.name} options={options} />;
       })}
     </Tabs>
   );
