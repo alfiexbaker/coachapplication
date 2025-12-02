@@ -43,9 +43,9 @@ const BASE_HIDDEN_ROUTES: HiddenRoute[] = [
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   COACH: {
     primary: [
-      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'index', title: 'Calendar', icon: 'calendar' },
+      { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'club-hub', title: 'Club', icon: 'person.3.sequence.fill' },
-      { name: 'bookings', title: 'Schedule', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
@@ -74,7 +74,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
       { name: 'club-hub', title: 'Club', icon: 'person.3.sequence.fill' },
-      { name: 'bookings', title: 'Calendar', icon: 'calendar.badge.clock' },
+      { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
