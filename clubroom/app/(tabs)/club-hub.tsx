@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -27,12 +27,11 @@ import { badgeService } from '@/services/badge-service';
 function FeedPost({ post }: { post: ClubFeedPost }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const initials = post.postAs === 'club'
-    ? 'CL'
-    : (post.authorName?.slice(0, 2).toUpperCase() || 'ME');
+  const initials =
+    post.postAs === 'club' ? 'CL' : post.authorName?.slice(0, 2).toUpperCase() || 'ME';
 
   return (
-    <View style={[styles.feedCard, { borderColor: palette.border }]}> 
+    <View style={[styles.feedCard, { borderColor: palette.border }]}>
       <View style={styles.feedHeader}>
         <View style={[styles.avatar, { backgroundColor: `${palette.tint}10`, borderColor: palette.border, borderWidth: 1 }]}>
           <ThemedText style={styles.avatarText}>{initials}</ThemedText>
@@ -67,7 +66,7 @@ function SessionRow({ session }: { session: SessionOffering }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   return (
-    <View style={[styles.sessionRow, { borderColor: palette.border }]}> 
+    <View style={[styles.sessionRow, { borderColor: palette.border }]}>
       <View style={{ flex: 1, gap: 4 }}>
         <ThemedText type="defaultSemiBold">{session.title}</ThemedText>
         <ThemedText style={{ color: palette.muted }}>
@@ -76,7 +75,11 @@ function SessionRow({ session }: { session: SessionOffering }) {
         <View style={styles.metaRow}>
           <Ionicons name="calendar" size={14} color={palette.icon} />
           <ThemedText style={{ color: palette.muted }}>
-            {new Date(session.scheduledAt).toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' })}
+            {new Date(session.scheduledAt).toLocaleDateString('en-GB', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+            })}
           </ThemedText>
           <Ionicons name="person" size={14} color={palette.icon} />
           <ThemedText style={{ color: palette.muted }}>
@@ -93,7 +96,9 @@ export default function ClubHubScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const { squadId } = useLocalSearchParams<{ squadId?: string }>();
 
+  const [isLoading, setIsLoading] = useState(true);
   const [membership, setMembership] = useState<ClubMembership | undefined>(() =>
     currentUser ? getClubMembershipForUser(currentUser.id) : undefined,
   );
@@ -101,22 +106,20 @@ export default function ClubHubScreen() {
     membership ? getClubById(membership.clubId) : undefined,
   );
   const [feed, setFeed] = useState<ClubFeedPost[]>(membership ? getClubFeed(membership.clubId) : []);
-  const [sessions, setSessions] = useState<SessionOffering[]>(membership ? getClubSessions(membership.clubId) : []);
+  const [sessions, setSessions] = useState<SessionOffering[]>(
+    membership ? getClubSessions(membership.clubId) : [],
+  );
   const [squads, setSquads] = useState<ClubSquad[]>(membership ? getClubSquads(membership.clubId) : []);
   const [invites, setInvites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
+  const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
+  const [selectedSquadId, setSelectedSquadId] = useState<string>('all');
   const [joinCode, setJoinCode] = useState('');
   const [newClubName, setNewClubName] = useState('');
-  const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
 
-  const statTiles = useMemo(
-    () => [
-      { label: 'Members', value: membership && club ? club.memberCount : '—' },
-      { label: 'Coaches', value: membership && club ? club.coachCount ?? '—' : '—' },
-      { label: 'Squads', value: membership && club ? squads.length : '—' },
-      { label: 'Sessions', value: membership && club ? sessions.length : '—' },
-    ],
-    [club, membership, squads.length, sessions.length],
-  );
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 250);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!membership?.clubId) {
@@ -147,8 +150,22 @@ export default function ClubHubScreen() {
     badgeService.listAwards().then((awards) => setRecentBadges(awards.slice(0, 6)));
   }, [membership?.clubId]);
 
+  useEffect(() => {
+    if (!squads.length) return;
+    if (squadId && squads.some((sq) => sq.id === squadId)) {
+      setSelectedSquadId(squadId);
+      return;
+    }
+    if (membership?.squadIds?.length) {
+      setSelectedSquadId(membership.squadIds[0]);
+    }
+  }, [membership?.squadIds, squadId, squads]);
+
+  const isActiveMember = membership?.status === 'active';
+  const isPending = membership?.status === 'pending';
+  const isStaff = membership?.role && ['OWNER', 'HEAD_COACH', 'ADMIN'].includes(membership.role);
   const roleLabel = useMemo(() => {
-    if (!membership) return 'No club';
+    if (!membership) return 'Guest';
     switch (membership.role) {
       case 'OWNER':
         return 'Owner';
@@ -162,6 +179,108 @@ export default function ClubHubScreen() {
         return 'Member';
     }
   }, [membership]);
+
+  const activeSquad = selectedSquadId === 'all' ? undefined : squads.find((sq) => sq.id === selectedSquadId);
+  const badgeText = club?.badge || club?.name?.slice(0, 2).toUpperCase() || 'CL';
+
+  const filteredSessions = useMemo(() => {
+    if (!activeSquad) return sessions;
+    return sessions.filter((session) => session.squadId === activeSquad.id || session.clubScope === 'club');
+  }, [activeSquad, sessions]);
+
+  const filteredFeed = useMemo(() => {
+    if (!activeSquad) return feed;
+    return feed.filter((post) => {
+      if (post.audience === 'club') return true;
+      if (post.audience === 'staff') return isStaff;
+      if (post.audience === 'squad') {
+        return post.audienceLabel?.toLowerCase().includes(activeSquad.name.toLowerCase());
+      }
+      return true;
+    });
+  }, [activeSquad, feed, isStaff]);
+
+  const whatsOnItems = useMemo(() => {
+    const sessionHighlights = filteredSessions.slice(0, 2).map((session) => ({
+      id: session.id,
+      type: 'session' as const,
+      title: session.title,
+      meta: `${session.location} · ${new Date(session.scheduledAt).toLocaleDateString('en-GB', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      })}`,
+      actionLabel: session.priceUsd ? `Book £${session.priceUsd}` : 'Join',
+    }));
+
+    const announcement = filteredFeed[0]
+      ? [
+          {
+            id: filteredFeed[0].id,
+            type: 'announcement' as const,
+            title: filteredFeed[0].title,
+            meta: filteredFeed[0].audienceLabel || filteredFeed[0].audience,
+            actionLabel: 'React',
+          },
+        ]
+      : [];
+
+    const badgeHighlight = recentBadges[0]
+      ? [
+          {
+            id: recentBadges[0].id,
+            type: 'badge' as const,
+            title: recentBadges[0].badgeLabel,
+            meta: recentBadges[0].athleteName || 'Athlete',
+            actionLabel: 'View badge',
+          },
+        ]
+      : [];
+
+    return [...sessionHighlights, ...announcement, ...badgeHighlight];
+  }, [filteredFeed, filteredSessions, recentBadges]);
+
+  const quickLinks = useMemo(
+    () => [
+      {
+        title: 'Announcements',
+        icon: 'megaphone-outline' as const,
+        route: '/(tabs)/feed',
+        disabled: !isActiveMember,
+      },
+      {
+        title: 'Messages',
+        icon: 'chatbubbles-outline' as const,
+        route: '/(tabs)/messages',
+        disabled: !isActiveMember,
+      },
+      {
+        title: 'Services',
+        icon: 'construct-outline' as const,
+        route: '/(tabs)/bookings',
+        disabled: !isActiveMember,
+      },
+      {
+        title: 'Rosters',
+        icon: 'people-outline' as const,
+        route: '/(tabs)/bookings',
+        disabled: !isActiveMember,
+      },
+      {
+        title: 'Badges',
+        icon: 'ribbon-outline' as const,
+        route: '/(tabs)/badges',
+        disabled: !isActiveMember,
+      },
+      {
+        title: 'Find Coach',
+        icon: 'search-outline' as const,
+        route: '/(tabs)/more',
+        disabled: false,
+      },
+    ],
+    [isActiveMember],
+  );
 
   const handleJoinWithCode = () => {
     const code = joinCode.trim().toUpperCase();
@@ -182,6 +301,7 @@ export default function ClubHubScreen() {
       joinSource: 'invite',
       inviteCode: invite.code,
       canPostAsClub: invite.role === 'OWNER' || invite.role === 'ADMIN',
+      squadIds: invite.role === 'COACH' ? ['squad_u15'] : [],
     };
     setMembership(newMembership);
     setJoinCode('');
@@ -268,14 +388,65 @@ export default function ClubHubScreen() {
     ]);
   };
 
-  const headline = membership && club
-    ? `${club.name} · ${roleLabel}`
-    : 'Join or create a club';
-  const badgeText = club?.name?.slice(0, 2).toUpperCase() || 'CL';
+  const headline = membership && club ? `${club.name} · ${roleLabel}` : 'Join or create a club';
+
+  const renderState = () => {
+    if (isLoading) {
+      return (
+        <SurfaceCard style={styles.sectionCard} animateElevation={false}>
+          <View style={{ gap: Spacing.xs }}>
+            <View style={[styles.loadingBlock, { backgroundColor: palette.surfaceSecondary }]} />
+            <View style={[styles.loadingBlock, { backgroundColor: palette.surfaceSecondary, width: '70%' }]} />
+          </View>
+        </SurfaceCard>
+      );
+    }
+
+    if (isPending) {
+      return (
+        <SurfaceCard style={styles.sectionCard} animateElevation={false}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold">Approval pending</ThemedText>
+            <Chip dense>Awaiting admin</Chip>
+          </View>
+          <ThemedText style={{ color: palette.muted }}>
+            You can still browse announcements and badge highlights while the club approves your access.
+          </ThemedText>
+        </SurfaceCard>
+      );
+    }
+
+    if (!membership) {
+      return (
+        <SurfaceCard style={styles.sectionCard} animateElevation={false}>
+          <ThemedText type="defaultSemiBold">Why join?</ThemedText>
+          <View style={{ gap: Spacing.xs }}>
+            <ThemedText>• Keep club work in one tidy hub—no extra tabs.</ThemedText>
+            <ThemedText>• Share invite codes, spin up squads, and run private sessions.</ThemedText>
+            <ThemedText>• Post as yourself or the club without losing chat history.</ThemedText>
+          </View>
+        </SurfaceCard>
+      );
+    }
+    return null;
+  };
 
   return (
     <PageContainer
-      header={<PageHeader title="Club Hub" subtitle="Invites, feed, squads, and internal sessions" />}
+      header={
+        <PageHeader
+          title="Club Hub"
+          subtitle={club ? `${club.name}${activeSquad ? ` · ${activeSquad.name}` : ''}` : 'Invite-only area for squads, sessions, and badges'}
+          right={
+            club ? (
+              <View style={styles.contextPill}>
+                <ThemedText style={{ fontWeight: '700' }}>{badgeText}</ThemedText>
+                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{roleLabel}</ThemedText>
+              </View>
+            ) : null
+          }
+        />
+      }
       gap={Spacing.md}
       contentStyle={{ paddingBottom: Spacing.xl }}
     >
@@ -285,9 +456,12 @@ export default function ClubHubScreen() {
             <ThemedText style={styles.avatarText}>{badgeText}</ThemedText>
           </View>
           <View style={{ flex: 1, gap: 6 }}>
-            <ThemedText type="heading" style={{ fontSize: 18 }}>
-              {headline}
-            </ThemedText>
+            <View style={styles.heroTitleRow}>
+              <ThemedText type="heading" style={{ fontSize: 18 }}>
+                {headline}
+              </ThemedText>
+              {club ? <Chip dense active>Verified</Chip> : null}
+            </View>
             <ThemedText style={{ color: palette.muted }}>
               Keep club work organised with invite codes, private sessions, and concise updates.
             </ThemedText>
@@ -296,7 +470,10 @@ export default function ClubHubScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.statRow}
             >
-              {statTiles.map((stat) => (
+              {[{ label: 'Members', value: club?.memberCount ?? '—' },
+                { label: 'Coaches', value: club?.coachCount ?? '—' },
+                { label: 'Squads', value: club ? squads.length || club.squadCount : '—' },
+                { label: 'Sessions', value: club ? sessions.length : '—' }].map((stat) => (
                 <View key={stat.label} style={[styles.statTile, { borderColor: palette.border }]}>
                   <ThemedText type="defaultSemiBold">{stat.value}</ThemedText>
                   <ThemedText style={{ color: palette.muted }}>{stat.label}</ThemedText>
@@ -317,8 +494,9 @@ export default function ClubHubScreen() {
           <Clickable
             style={[styles.secondaryButton, { borderColor: palette.border }]}
             onPress={membership ? undefined : handleJoinWithCode}
+            disabled={!!membership}
           >
-            <ThemedText style={{ color: palette.text }}>
+            <ThemedText style={{ color: membership ? palette.muted : palette.text }}>
               {membership ? 'Already connected' : 'Join with code'}
             </ThemedText>
           </Clickable>
@@ -360,6 +538,84 @@ export default function ClubHubScreen() {
         )}
       </SurfaceCard>
 
+      {membership && (
+        <SurfaceCard style={styles.sectionCard} animateElevation={false}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold">Squad filter</ThemedText>
+            <Chip dense>{activeSquad ? activeSquad.name : 'All club'}</Chip>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.metaPills}>
+            <Chip dense active={selectedSquadId === 'all'} onPress={() => setSelectedSquadId('all')}>
+              All club
+            </Chip>
+            {squads.map((squad) => (
+              <Chip
+                key={squad.id}
+                dense
+                active={selectedSquadId === squad.id}
+                onPress={() => setSelectedSquadId(squad.id)}
+              >
+                {squad.name}
+              </Chip>
+            ))}
+            {isStaff ? <Chip dense>Staff lane</Chip> : null}
+          </ScrollView>
+          <ThemedText style={{ color: palette.muted }}>
+            Deep links from Bookings/Calendar will preselect the right squad.
+          </ThemedText>
+        </SurfaceCard>
+      )}
+
+      {whatsOnItems.length ? (
+        <SurfaceCard style={styles.sectionCard} animateElevation={false}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold">What’s on</ThemedText>
+            <ThemedText style={{ color: palette.muted }}>Sessions, posts, badges</ThemedText>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.metaPills}>
+            {whatsOnItems.map((item) => (
+              <Clickable
+                key={item.id}
+                style={[styles.whatsOnCard, { borderColor: palette.border }]}
+                onPress={() => {
+                  if (item.type === 'session') {
+                    router.push('/(tabs)/bookings');
+                  } else if (item.type === 'badge') {
+                    router.push('/(tabs)/badges');
+                  } else {
+                    router.push('/(tabs)/feed');
+                  }
+                }}
+              >
+                <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
+                <ThemedText style={{ color: palette.muted }}>{item.meta}</ThemedText>
+                <Chip dense active>{item.actionLabel}</Chip>
+              </Clickable>
+            ))}
+          </ScrollView>
+        </SurfaceCard>
+      ) : null}
+
+      <SurfaceCard style={styles.sectionCard} animateElevation={false}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="defaultSemiBold">Quick links</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>Shortcuts respect your permissions</ThemedText>
+        </View>
+        <View style={styles.quickGrid}>
+          {quickLinks.map((link) => (
+            <Clickable
+              key={link.title}
+              onPress={() => router.push(link.route)}
+              disabled={link.disabled}
+              style={[styles.quickTile, { borderColor: palette.border, opacity: link.disabled ? 0.5 : 1 }]}
+            >
+              <Ionicons name={link.icon} size={20} color={palette.icon} />
+              <ThemedText type="defaultSemiBold">{link.title}</ThemedText>
+            </Clickable>
+          ))}
+        </View>
+      </SurfaceCard>
+
       {recentBadges.length > 0 ? (
         <SurfaceCard style={styles.sectionCard} animateElevation={false}>
           <View style={styles.sectionHeader}>
@@ -376,7 +632,7 @@ export default function ClubHubScreen() {
                   router.push({ pathname: '/development/athlete/[athleteId]', params: { athleteId: award.athleteId } })
                 }
               >
-                <View style={[styles.badgeCard, { borderColor: palette.border }]}>               
+                <View style={[styles.badgeCard, { borderColor: palette.border }]}>
                   <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
                   <ThemedText style={{ color: palette.muted }}>
                     {award.athleteName || 'Athlete'} · {new Date(award.awardedAt).toLocaleDateString()}
@@ -419,7 +675,7 @@ export default function ClubHubScreen() {
               <Chip dense>{sessions.length} live</Chip>
             </View>
             <View style={{ gap: Spacing.xs }}>
-              {sessions.map((session) => (
+              {filteredSessions.map((session) => (
                 <SessionRow key={session.id} session={session} />
               ))}
             </View>
@@ -431,15 +687,15 @@ export default function ClubHubScreen() {
           <SurfaceCard style={[styles.sectionCard, styles.fullCard]} animateElevation={false}>
             <View style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold">Club-only feed</ThemedText>
-              <Chip dense>{feed.length} updates</Chip>
+              <Chip dense>{filteredFeed.length} updates</Chip>
             </View>
             <View style={{ gap: Spacing.sm }}>
-              {feed.slice(0, 3).map((post) => (
+              {filteredFeed.slice(0, 3).map((post) => (
                 <FeedPost key={post.id} post={post} />
               ))}
-              {feed.length > 3 ? (
+              {filteredFeed.length > 3 ? (
                 <ThemedText style={{ color: palette.muted }}>
-                  {feed.length - 3} more posts in history
+                  {filteredFeed.length - 3} more posts in history
                 </ThemedText>
               ) : null}
             </View>
@@ -478,14 +734,7 @@ export default function ClubHubScreen() {
           </SurfaceCard>
         </View>
       ) : (
-        <SurfaceCard style={[styles.sectionCard, styles.fullCard]} animateElevation={false}>
-          <ThemedText type="defaultSemiBold">Why join?</ThemedText>
-          <View style={{ gap: Spacing.xs }}>
-            <ThemedText>• Keep club work in one tidy hub—no extra tabs.</ThemedText>
-            <ThemedText>• Share invite codes, spin up squads, and run private sessions.</ThemedText>
-            <ThemedText>• Post as yourself or the club without losing chat history.</ThemedText>
-          </View>
-        </SurfaceCard>
+        renderState()
       )}
     </PageContainer>
   );
@@ -499,6 +748,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
+  },
+  heroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   avatar: {
     width: 56,
@@ -644,5 +898,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
+  },
+  whatsOnCard: {
+    padding: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    gap: Spacing.xs,
+    minWidth: 180,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  quickTile: {
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    padding: Spacing.sm,
+    minWidth: '48%',
+    gap: Spacing.xs,
+  },
+  loadingBlock: {
+    height: 12,
+    borderRadius: Radii.md,
+  },
+  contextPill: {
+    borderWidth: 1,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    alignItems: 'flex-start',
+    gap: 2,
   },
 });

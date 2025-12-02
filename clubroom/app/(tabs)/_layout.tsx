@@ -15,16 +15,22 @@ type TabDefinition = {
   badge?: boolean;
 };
 
+type HiddenRoute =
+  | string
+  | {
+      name: string;
+      options?: React.ComponentProps<typeof Tabs.Screen>['options'];
+    };
+
 type RoleTabConfig = {
   primary: TabDefinition[];
-  hidden?: string[];
+  hidden?: HiddenRoute[];
 };
 
-const BASE_HIDDEN_ROUTES = [
+const BASE_HIDDEN_ROUTES: HiddenRoute[] = [
   'feed',
   'notifications',
   'availability',
-  'club-hub',
   'coach-profile',
   'edit-profile',
   'edit-user-profile',
@@ -38,6 +44,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   COACH: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.sequence.fill' },
       { name: 'bookings', title: 'Schedule', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
@@ -47,16 +54,26 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   USER: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
-      { name: 'more', title: 'Find Coach', icon: 'magnifyingglass' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.sequence.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: BASE_HIDDEN_ROUTES,
+    hidden: [
+      ...BASE_HIDDEN_ROUTES,
+      {
+        name: 'more',
+        options: {
+          tabBarButton: () => null,
+          href: undefined,
+        },
+      },
+    ],
   },
   PARENT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.sequence.fill' },
       { name: 'bookings', title: 'Calendar', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
@@ -70,7 +87,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub'],
   },
   DEFAULT: {
     primary: [
@@ -141,15 +158,20 @@ export default function TabLayout() {
         />
       ))}
 
-      {hiddenRoutes.map((route) => (
-        <Tabs.Screen
-          key={route}
-          name={route}
-          options={{
-            href: null,
-          }}
-        />
-      ))}
+      {hiddenRoutes.map((route) => {
+        const hiddenRoute = typeof route === 'string' ? { name: route } : route;
+        return (
+          <Tabs.Screen
+            key={hiddenRoute.name}
+            name={hiddenRoute.name}
+            options={{
+              href: null,
+              tabBarButton: () => null,
+              ...hiddenRoute.options,
+            }}
+          />
+        );
+      })}
     </Tabs>
   );
 }

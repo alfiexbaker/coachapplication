@@ -20,18 +20,21 @@ const logger = createLogger('SettingsScreen');
 
 const NAV_LINKS: Record<string, { title: string; subtitle?: string; icon: string; route: string }[]> = {
   COACH: [
+    { title: 'Club Hub', subtitle: 'Identity, squads, approvals', icon: 'people-circle-outline', route: '/(tabs)/club-hub' },
     { title: 'Calendar & Availability', subtitle: 'Manage slots and bookings', icon: 'calendar-outline', route: '/(tabs)/bookings' },
     { title: 'Coach Profile', subtitle: 'Services, rates, identity', icon: 'person-circle-outline', route: '/(tabs)/coach-profile' },
     { title: 'Messages', subtitle: 'Chat with athletes & parents', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Earnings', subtitle: 'Mock payouts & statements', icon: 'wallet-outline', route: '/(tabs)/earnings' },
   ],
   USER: [
+    { title: 'Club Hub', subtitle: 'Squads, announcements, badges', icon: 'people-circle-outline', route: '/(tabs)/club-hub' },
     { title: 'My Bookings', subtitle: 'Upcoming & past sessions', icon: 'calendar-outline', route: '/(tabs)/bookings' },
     { title: 'Messages', subtitle: 'Chat with coaches', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Feed & Community', subtitle: 'Posts, drills, highlights', icon: 'newspaper-outline', route: '/(tabs)/feed' },
     { title: 'Badges & Progress', subtitle: 'Recognition and session pathway', icon: 'ribbon-outline', route: '/(tabs)/badges' },
   ],
   PARENT: [
+    { title: 'Club Hub', subtitle: 'Squads, approvals, safety', icon: 'people-circle-outline', route: '/(tabs)/club-hub' },
     { title: 'Kids & Bookings', subtitle: 'See all children', icon: 'people-outline', route: '/(tabs)/bookings' },
     { title: 'Messages', subtitle: 'Coaches and updates', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Discover Coaches', subtitle: 'Find local sessions', icon: 'search-outline', route: '/(tabs)/more' },
