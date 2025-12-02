@@ -8,8 +8,7 @@ import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { router } from 'expo-router';
-import { MOCK_POSTS } from '@/constants/mock-data';
-import type { Post } from '@/constants/app-types';
+import { socialFeedService } from '@/services/social-feed-service';
 
 export default function CreatePostScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -39,21 +38,14 @@ export default function CreatePostScreen() {
     if (!content.trim() && !imageUri) return;
     if (!currentUser) return;
 
-    // Mock implementation - create new post
-    const newPost: Post = {
-      id: `post${Date.now()}`,
+    socialFeedService.addPost({
       authorId: currentUser.id,
       authorName: currentUser.name,
       authorAvatar: currentUser.avatar,
       content: content.trim(),
-      likes: [],
-      commentCount: 0,
-      createdAt: new Date().toISOString(),
       imageUrl: imageUri || undefined,
-    };
-
-    // Add to beginning of posts array
-    MOCK_POSTS.unshift(newPost);
+      context: 'manual',
+    });
 
     // Navigate back
     router.back();

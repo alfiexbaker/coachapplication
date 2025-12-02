@@ -118,7 +118,7 @@ export default function UserBadgesScreen() {
         <SurfaceCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <ThemedText type="defaultSemiBold">Share updates</ThemedText>
-            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Send badges to supporters</ThemedText>
+            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Send badges to supporters and the feed</ThemedText>
           </View>
 
           <View style={{ gap: Spacing.xs }}>
@@ -141,7 +141,7 @@ export default function UserBadgesScreen() {
                   style={[styles.pillButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
                 >
                   <ThemedText style={[styles.pillButtonText, { color: palette.tint }]}>
-                    {isSharing === award.id ? 'Sending…' : 'Share'}
+                    {isSharing === award.id ? 'Sending…' : 'Share to feed'}
                   </ThemedText>
                 </Clickable>
               </SurfaceCard>
@@ -204,7 +204,7 @@ export default function UserBadgesScreen() {
                   {award.shared ? (
                     <View style={[styles.metaPill, { backgroundColor: `${palette.success}12` }]}>
                       <Ionicons name="send" size={12} color={palette.success} />
-                      <ThemedText style={[styles.metaText, { color: palette.success }]}>Shared</ThemedText>
+                      <ThemedText style={[styles.metaText, { color: palette.success }]}>Shared to feed</ThemedText>
                     </View>
                   ) : null}
                 </View>

@@ -1,6 +1,7 @@
 import { badgeAwards as mockBadgeAwards, badgeCatalog } from '@/constants/mock-data';
 import { BadgeAward, BadgeDefinition, BadgeVisibility } from '@/constants/types';
 import { storageService } from './storage-service';
+import { socialFeedService } from './social-feed-service';
 import { createLogger } from '@/utils/logger';
 
 const STORAGE_KEY = 'clubroom.badge_awards';
@@ -129,7 +130,30 @@ class BadgeService {
     const target = merged.find((award) => award.id === awardId);
     if (!target) return undefined;
 
-    const updatedAward = { ...target, shared: true };
+    const alreadySentToFeed = Boolean(target.feedPostId);
+
+    const shareContentParts = [
+      `Earned the ${target.badgeLabel} badge!`,
+      target.reason,
+      target.note,
+      target.sessionId ? 'Linked to a recent session.' : undefined,
+    ].filter(Boolean);
+
+    const feedPost = alreadySentToFeed
+      ? undefined
+      : socialFeedService.addPost({
+          authorId: target.athleteId,
+          authorName: target.athleteName || 'Athlete',
+          authorAvatar: undefined,
+          content: shareContentParts.join('\n'),
+          context: 'badge_share',
+          badgeAwardId: target.id,
+          badgeId: target.badgeId,
+          badgeLabel: target.badgeLabel,
+          sessionId: target.sessionId,
+        });
+
+    const updatedAward = { ...target, shared: true, feedPostId: feedPost?.id ?? target.feedPostId };
     const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
     await storageService.setItem(STORAGE_KEY, nextStored);
     this.logger.info('badge_shared', {

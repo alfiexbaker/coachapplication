@@ -41,6 +41,7 @@ export interface BadgeAward {
   awardedAt: string;
   visibility: BadgeVisibility;
   shared?: boolean;
+  feedPostId?: string;
 }
 
 export interface CoachBadge extends BadgeDefinition {}
