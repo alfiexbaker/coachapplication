@@ -161,12 +161,14 @@ export default function TabLayout() {
       {hiddenRoutes.map((route) => {
         const hiddenRoute = typeof route === 'string' ? { name: route } : route;
         const routeOptions = hiddenRoute.options ?? {};
-        const { tabBarButton, ...restOptions } = routeOptions;
+        const { tabBarButton, href: _href, ...restOptions } = routeOptions;
 
+        // Avoid combining href with tabBarButton, which Expo Router disallows.
+        // Default hidden tabs rely solely on a null-returning tabBarButton to stay off the bar.
         const options =
           tabBarButton !== undefined
             ? { tabBarButton, ...restOptions }
-            : { href: null, tabBarButton: () => null, ...routeOptions };
+            : { tabBarButton: () => null, ...restOptions };
 
         return <Tabs.Screen key={hiddenRoute.name} name={hiddenRoute.name} options={options} />;
       })}
