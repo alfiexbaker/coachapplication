@@ -126,12 +126,16 @@ export default function TabLayout() {
       height: 60, // Reduced from 72px for modern feel
       paddingBottom: 8, // Reduced padding
       paddingTop: 8,
-      paddingHorizontal: 16, // More horizontal breathing room
+      paddingHorizontal: 0, // Let items consume full width for even alignment
       shadowColor: '#000000',
       shadowOpacity: 0.05,
       shadowRadius: 8,
       shadowOffset: { width: 0, height: -2 },
       elevation: 8, // Subtle shadow instead of border
+    },
+    tabBarItemStyle: {
+      flex: 1,
+      alignItems: 'center',
     },
     tabBarLabelStyle: {
       fontSize: 11,
