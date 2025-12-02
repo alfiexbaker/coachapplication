@@ -20,7 +20,7 @@ const logger = createLogger('SettingsScreen');
 
 const NAV_LINKS: Record<string, { title: string; subtitle?: string; icon: string; route: string }[]> = {
   COACH: [
-    { title: 'Club Hub', subtitle: 'Identity, squads, approvals', icon: 'people-circle-outline', route: '/(tabs)/club-hub' },
+    { title: 'Club Hub', subtitle: 'Identity, squads, approvals', icon: 'people-circle-outline', route: '/(tabs)/school' },
     { title: 'Calendar & Availability', subtitle: 'Manage slots and bookings', icon: 'calendar-outline', route: '/(tabs)/bookings' },
     { title: 'Coach Profile', subtitle: 'Services, rates, identity', icon: 'person-circle-outline', route: '/(tabs)/coach-profile' },
     { title: 'Messages', subtitle: 'Chat with athletes & parents', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },

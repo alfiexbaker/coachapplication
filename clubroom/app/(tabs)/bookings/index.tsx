@@ -318,7 +318,7 @@ export default function BookingsScreen() {
             <Clickable
               onPress={() =>
                 router.push({
-                  pathname: '/(tabs)/club-hub',
+                  pathname: userRole === 'COACH' ? '/(tabs)/school' : '/(tabs)/club-hub',
                   params: defaultSquadId ? { squadId: defaultSquadId } : undefined,
                 })
               }
