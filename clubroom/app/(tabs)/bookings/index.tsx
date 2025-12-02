@@ -91,6 +91,7 @@ export default function BookingsScreen() {
   const userRole = currentUser?.role;
   const clubMembership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
   const clubContext = clubMembership ? getClubById(clubMembership.clubId) : undefined;
+  const defaultSquadId = clubMembership?.squadIds?.[0];
   const clubInternalSessions = clubContext ? getClubSessions(clubContext.id) : [];
 
   // Load session bookings from AsyncStorage
@@ -315,7 +316,12 @@ export default function BookingsScreen() {
               </View>
             </View>
             <Clickable
-              onPress={() => router.push('/club-hub')}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/club-hub',
+                  params: defaultSquadId ? { squadId: defaultSquadId } : undefined,
+                })
+              }
               style={[styles.secondaryButton, { borderColor: palette.border }]}
             >
               <ThemedText style={{ color: palette.text }}>Open</ThemedText>
