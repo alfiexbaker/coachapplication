@@ -7,7 +7,17 @@ type TabButtonProps = BottomTabBarButtonProps &
   Pick<PressableProps, 'accessibilityLabel' | 'accessibilityState' | 'onPress'>;
 
 export const HapticTab = forwardRef<View, TabButtonProps>(function HapticTab(
-  { children, href, to, accessibilityLabel, accessibilityState, onPress, onPressIn, ...rest },
+  {
+    children,
+    href,
+    to,
+    accessibilityLabel,
+    accessibilityState,
+    onPress,
+    onPressIn,
+    style,
+    ...rest
+  },
   ref,
 ) {
   const content = (
@@ -27,6 +37,16 @@ export const HapticTab = forwardRef<View, TabButtonProps>(function HapticTab(
         }
         onPressIn?.(ev);
       }}
+      style={({ pressed }) => [
+        {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingVertical: 6,
+          opacity: pressed ? 0.9 : 1,
+        },
+        typeof style === 'function' ? style({ pressed }) : style,
+      ]}
       {...rest}
     >
       {children}

@@ -123,10 +123,11 @@ export default function TabLayout() {
     tabBarStyle: {
       backgroundColor: palette.surface, // Use surface for cleaner white
       borderTopWidth: 0, // Remove border for sleeker look
-      height: 60, // Reduced from 72px for modern feel
-      paddingBottom: 8, // Reduced padding
-      paddingTop: 8,
-      paddingHorizontal: 0, // Let items consume full width for even alignment
+      height: 64, // Slightly taller for better tap targets
+      paddingBottom: 8,
+      paddingTop: 10,
+      paddingHorizontal: 12, // Provide breathing room without crowding
+      justifyContent: 'space-between',
       shadowColor: '#000000',
       shadowOpacity: 0.05,
       shadowRadius: 8,
@@ -136,6 +137,7 @@ export default function TabLayout() {
     tabBarItemStyle: {
       flex: 1,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     tabBarLabelStyle: {
       fontSize: 11,

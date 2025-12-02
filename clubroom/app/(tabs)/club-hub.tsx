@@ -455,7 +455,7 @@ export default function ClubHubScreen() {
           <View style={[styles.avatar, { backgroundColor: `${palette.tint}08`, borderColor: palette.border, borderWidth: 1 }]}>
             <ThemedText style={styles.avatarText}>{badgeText}</ThemedText>
           </View>
-          <View style={{ flex: 1, gap: 6 }}>
+          <View style={{ flex: 1, gap: 8 }}>
             <View style={styles.heroTitleRow}>
               <ThemedText type="heading" style={{ fontSize: 18 }}>
                 {headline}
@@ -465,11 +465,7 @@ export default function ClubHubScreen() {
             <ThemedText style={{ color: palette.muted }}>
               Keep club work organised with invite codes, private sessions, and concise updates.
             </ThemedText>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.statRow}
-            >
+            <View style={styles.statGrid}>
               {[{ label: 'Members', value: club?.memberCount ?? '—' },
                 { label: 'Coaches', value: club?.coachCount ?? '—' },
                 { label: 'Squads', value: club ? squads.length || club.squadCount : '—' },
@@ -479,7 +475,7 @@ export default function ClubHubScreen() {
                   <ThemedText style={{ color: palette.muted }}>{stat.label}</ThemedText>
                 </View>
               ))}
-            </ScrollView>
+            </View>
           </View>
         </View>
         <View style={styles.actionsRow}>
@@ -746,7 +742,8 @@ const styles = StyleSheet.create({
   },
   heroRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
     gap: Spacing.md,
   },
   heroTitleRow: {
@@ -755,9 +752,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -768,6 +765,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
+    flexWrap: 'wrap',
   },
   primaryButton: {
     flex: 1,
@@ -794,6 +792,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.md,
     alignItems: 'flex-start',
+    flexWrap: 'wrap',
   },
   input: {
     borderWidth: 1,
@@ -806,7 +805,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   sectionCard: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
   badgeCard: {
     padding: Spacing.sm,
@@ -868,20 +867,20 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.xs,
   },
-  statRow: {
+  statGrid: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap',
     paddingVertical: Spacing.xs,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   statTile: {
     borderWidth: 1,
     borderRadius: Radii.card,
-    padding: Spacing.sm,
+    padding: Spacing.md,
     flexGrow: 1,
     flexBasis: '48%',
-    minWidth: 120,
-    gap: 2,
+    minWidth: 140,
+    gap: Spacing.xs,
   },
   sessionRow: {
     padding: Spacing.sm,
@@ -900,11 +899,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   whatsOnCard: {
-    padding: Spacing.sm,
+    padding: Spacing.md,
     borderWidth: 1,
     borderRadius: Radii.card,
-    gap: Spacing.xs,
-    minWidth: 180,
+    gap: Spacing.sm,
+    minWidth: 200,
   },
   quickGrid: {
     flexDirection: 'row',
@@ -914,9 +913,9 @@ const styles = StyleSheet.create({
   quickTile: {
     borderWidth: 1,
     borderRadius: Radii.card,
-    padding: Spacing.sm,
+    padding: Spacing.md,
     minWidth: '48%',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   loadingBlock: {
     height: 12,
