@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -26,7 +26,8 @@ export function ParentDevelopmentScreen() {
 
   const children = getChildrenForParent(currentUser.id);
   const [selectedChildId, setSelectedChildId] = useState(children[0]?.id);
-  const [sharedBadges, setSharedBadges] = useState<BadgeAward[]>([]);
+  const [awards, setAwards] = useState<BadgeAward[]>([]);
+  const [coachOnlyCount, setCoachOnlyCount] = useState(0);
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
   const sessions = selectedChild ? getSessionsForAthlete(selectedChild.id) : [];
@@ -58,8 +59,14 @@ export function ParentDevelopmentScreen() {
     if (!selectedChildId) return;
     badgeService
       .listAwardsForAthlete(selectedChildId)
-      .then((awards) => setSharedBadges(awards.filter((award) => award.shared)));
+      .then((childAwards) => {
+        const supporterVisible = childAwards.filter((award) => award.visibility !== 'coach_only');
+        setAwards(supporterVisible);
+        setCoachOnlyCount(childAwards.length - supporterVisible.length);
+      });
   }, [selectedChildId]);
+
+  const sharedBadges = useMemo(() => awards.filter((award) => award.shared), [awards]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -125,14 +132,100 @@ export function ParentDevelopmentScreen() {
         {/* Content */}
         {sharedBadges.length > 0 ? (
           <SurfaceCard style={styles.sharedCard}>
-            <ThemedText type="defaultSemiBold">Shared badges</ThemedText>
+            <View style={styles.sectionHeaderRow}>
+              <ThemedText type="defaultSemiBold">Shared badges</ThemedText>
+              <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                Sent by coaches for supporters
+              </ThemedText>
+            </View>
             <View style={styles.sharedBadgeRow}>
               {sharedBadges.map((award) => (
                 <View key={award.id} style={[styles.sharedBadge, { borderColor: palette.border }]}>
-                  <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
-                  <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
-                    {formatDate(award.awardedAt)}
-                  </ThemedText>
+                  <View style={styles.sharedBadgeHeader}>
+                    <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
+                    <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                      {formatDate(award.awardedAt)}
+                    </ThemedText>
+                  </View>
+                  <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{award.reason}</ThemedText>
+                  {award.note ? (
+                    <ThemedText style={{ color: palette.foreground, fontSize: 12 }} numberOfLines={2}>
+                      {award.note}
+                    </ThemedText>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          </SurfaceCard>
+        ) : null}
+
+        {awards.length > 0 ? (
+          <SurfaceCard style={styles.badgeLogCard}>
+            <View style={styles.sectionHeaderRow}>
+              <ThemedText type="defaultSemiBold">Badge log</ThemedText>
+              <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Parent-visible history</ThemedText>
+            </View>
+            {coachOnlyCount > 0 ? (
+              <View style={[styles.infoStrip, { backgroundColor: `${palette.icon}08` }]}>
+                <Ionicons name="shield" size={14} color={palette.icon} />
+                <ThemedText style={[styles.sectionHint, { color: palette.muted }]}> 
+                  {coachOnlyCount} coach-only badge{coachOnlyCount > 1 ? 's are' : ' is'} hidden from parents
+                </ThemedText>
+              </View>
+            ) : null}
+            <View style={styles.badgeLogList}>
+              {awards.map((award) => (
+                <View key={award.id} style={[styles.badgeLogItem, { borderColor: palette.border }]}>
+                  <View style={styles.badgeLogHeader}>
+                    <View style={styles.badgeTitleRow}>
+                      <Ionicons name="ribbon" size={16} color={palette.tint} />
+                      <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
+                    </View>
+                    <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                      {formatDate(award.awardedAt)}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.badgeMetaRow}>
+                    <View style={[styles.badgePill, { backgroundColor: `${palette.tint}12` }]}>
+                      <Ionicons name="book" size={12} color={palette.tint} />
+                      <ThemedText style={[styles.pillText, { color: palette.tint }]}>{award.reason}</ThemedText>
+                    </View>
+                    <View
+                      style={[
+                        styles.badgePill,
+                        {
+                          backgroundColor: award.shared ? `${palette.success}12` : `${palette.icon}08`,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={award.shared ? 'send' : 'lock-closed'}
+                        size={12}
+                        color={award.shared ? palette.success : palette.icon}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.pillText,
+                          { color: award.shared ? palette.success : palette.icon },
+                        ]}
+                      >
+                        {award.shared ? 'Shared with supporters' : 'Visible in app'}
+                      </ThemedText>
+                    </View>
+                  </View>
+                  {award.note ? (
+                    <ThemedText style={{ color: palette.foreground, lineHeight: 18 }} numberOfLines={3}>
+                      {award.note}
+                    </ThemedText>
+                  ) : null}
+                  {award.sessionId ? (
+                    <View style={styles.badgeMetaRow}>
+                      <Ionicons name="link" size={12} color={palette.icon} />
+                      <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                        Linked to a session
+                      </ThemedText>
+                    </View>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -263,6 +356,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginTop: Spacing.md,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.xs,
+  },
+  sectionHint: {
+    fontSize: 12,
+  },
   sharedBadgeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -274,6 +376,61 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.card,
     gap: 4,
+  },
+  sharedBadgeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  badgeLogCard: {
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  infoStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: Radii.md,
+  },
+  badgeLogList: {
+    gap: Spacing.xs,
+  },
+  badgeLogItem: {
+    borderWidth: 1,
+    borderRadius: Radii.card,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  badgeLogHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  badgeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  badgeMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    flexWrap: 'wrap',
+  },
+  badgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  pillText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   stickyHeader: {
     paddingHorizontal: Spacing.lg,

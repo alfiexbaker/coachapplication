@@ -306,12 +306,12 @@ export default function AthleteDetailScreen() {
                       });
                       setSelectedSession(session);
                     }}
+                    accessibilityLabel="Open badges workspace for this session"
+                    accessibilityRole="button"
+                    hitSlop={10}
                   >
-                    <View style={[styles.awardChip, { borderColor: palette.tint }]}>
+                    <View style={[styles.awardChip, styles.workspaceChip, { borderColor: palette.tint, backgroundColor: `${palette.tint}15` }]}>
                       <Ionicons name="ribbon-outline" size={14} color={palette.tint} />
-                      <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
-                        Manage in Badges workspace
-                      </ThemedText>
                     </View>
                   </Clickable>
                   <View style={styles.ratingRow}>
@@ -583,6 +583,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.card,
     borderWidth: 1,
+  },
+  workspaceChip: {
+    paddingHorizontal: Spacing.xs,
   },
   rating: {
     fontSize: 15,

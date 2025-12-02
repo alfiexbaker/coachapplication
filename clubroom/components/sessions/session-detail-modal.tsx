@@ -213,10 +213,12 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                   router.push({ pathname: '/development/badges', params: { sessionId: offering.id } })
                 }
                 style={styles.manageBadgesLink}
+                accessibilityLabel="Open badges workspace"
+                accessibilityHint="Link badges to this session"
+                accessibilityRole="button"
               >
                 <View style={styles.manageLinkRow}>
                   <Ionicons name="link-outline" size={14} color={palette.tint} />
-                  <ThemedText style={[styles.manageLinkText, { color: palette.tint }]}>Manage in Badges workspace</ThemedText>
                   <Ionicons name="arrow-forward" size={14} color={palette.tint} />
                 </View>
               </Pressable>
@@ -439,10 +441,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  manageLinkText: {
-    fontSize: 13,
-    fontWeight: '700',
   },
   badge: {
     paddingHorizontal: 12,

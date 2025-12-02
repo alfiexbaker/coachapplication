@@ -8,7 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
-import { StatCard } from '@/components/primitives/stat-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -42,7 +41,6 @@ export function CoachDevelopmentScreen() {
   const { currentUser } = useAuth();
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   // Load sessions from both mock data and AsyncStorage
   useEffect(() => {
@@ -148,16 +146,6 @@ export function CoachDevelopmentScreen() {
     .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
     .slice(0, 5);
 
-  const selectedSessionLabel = selectedSession
-    ? `${selectedSession.nextFocusAreas?.[0] ?? 'Coaching session'} · ${formatDate(selectedSession.completedAt)}`
-    : undefined;
-
-  const selectedAthleteName = selectedSession
-    ? getUserById(selectedSession.athleteId)?.name || 'Athlete'
-    : '';
-
-  const selectedReasonPreset = selectedSession?.nextFocusAreas?.find((focus) => BADGE_REASONS.includes(focus));
-
   if (!currentUser) {
     logger.warn('No current user found');
     return null;
@@ -194,285 +182,145 @@ export function CoachDevelopmentScreen() {
           />
         }
       >
-      <SurfaceCard style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText type="heading" style={styles.sectionTitle}>
-            Development navigation
-          </ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-            Jump to badges and recognition
-          </ThemedText>
-        </View>
-
-        <View style={styles.navGrid}>
-          <Clickable
-            onPress={() => {
-              logger.press('BadgesNav');
-              router.push('/development/badges');
-            }}
-            style={[styles.navCard, { borderColor: palette.border }]}
-          >
-            <View style={[styles.navIcon, { backgroundColor: `${palette.tint}12` }]}>
-              <Ionicons name="ribbon" size={18} color={palette.tint} />
-            </View>
-            <View style={styles.navCopy}>
-              <ThemedText type="defaultSemiBold">Badges</ThemedText>
-              <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Award and share recognition</ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={palette.icon} />
-          </Clickable>
-        </View>
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText type="heading" style={styles.sectionTitle}>
-            Overview
-          </ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-            Coach view · Development spine
-          </ThemedText>
-        </View>
-        <View style={styles.statsGrid}>
-          <StatCard value={activeAthletes} label="Active Athletes" variant="compact" />
-          <StatCard value={totalSessions} label="Sessions This Week" variant="compact" trend="+4" />
-          <StatCard
-            value={avgRating}
-            label="Avg Rating"
-            variant="compact"
-            icon={<Ionicons name="star" size={16} color={palette.tint} />}
-          />
-        </View>
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText type="heading" style={styles.sectionTitle}>
-            Recent sessions
-          </ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>Badge-ready clips</ThemedText>
-        </View>
-
-        <View style={{ gap: Spacing.xs }}>
-          {recentSessions.map((session) => {
-            const athlete = getUserById(session.athleteId);
-            return (
-              <View
-                key={session.id}
-                style={[styles.recentRow, { borderColor: palette.border }]}
-              >
-                <View style={styles.rowLeft}>
-                  <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
-                    <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                      {athlete?.avatar || athlete?.name?.charAt(0) || '?'}
-                    </ThemedText>
-                  </View>
-                  <View style={styles.rowContent}>
-                    <ThemedText type="defaultSemiBold" style={styles.athleteName}>
-                      {athlete?.name || 'Athlete'}
-                    </ThemedText>
-                    <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
-                      {formatDate(session.completedAt)} · Rated {session.performanceRating}
-                    </ThemedText>
-                  </View>
-                </View>
-
-                <Clickable
-                  onPress={() => {
-                    logger.info('badge_workspace_deeplink', {
-                      sessionId: session.id,
-                      athleteId: session.athleteId,
-                      source: 'RecentSessions',
-                    });
-                    setSelectedSession(session);
-                  }}
-                >
-                  <View style={[styles.actionPill, { borderColor: palette.tint }]}>
-                    <Ionicons name="ribbon-outline" size={14} color={palette.tint} />
-                    <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Manage in Badges workspace</ThemedText>
-                  </View>
-                </Clickable>
-              </View>
-            );
-          })}
-        </View>
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText type="heading" style={styles.sectionTitle}>
-            Needs attention
-          </ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-            Prioritised by recency and missing notes
-          </ThemedText>
-        </View>
-
-        {attentionAthletes.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
-              <Ionicons name="checkmark-circle" size={28} color={palette.tint} />
-            </View>
-            <ThemedText type="defaultSemiBold">All caught up</ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>No athletes need follow-up right now.</ThemedText>
+        <SurfaceCard style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <ThemedText type="heading" style={styles.sectionTitle}>
+              Needs attention
+            </ThemedText>
+            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+              Prioritised by recency and missing notes
+            </ThemedText>
           </View>
-        ) : (
-          <View style={styles.attentionList}>
-            {attentionAthletes.map((entry) => (
-              <Clickable
-                key={entry.athlete.id}
-                onPress={() => {
-                  logger.press('AttentionAthlete', {
-                    athleteId: entry.athlete.id,
-                    athleteName: entry.athlete.name,
-                    needsNotes: entry.needsNotes,
-                  });
-                  router.push(`/development/athlete/${entry.athlete.id}`);
-                }}
-                style={[styles.rowCard, styles.attentionCard, { borderColor: palette.border }]}
-              >
-                <View style={styles.rowTop}>
-                  <View style={styles.rowLeft}>
-                    <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
-                      <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                        {entry.athlete.avatar || entry.athlete.name.charAt(0)}
-                      </ThemedText>
-                      {entry.needsNotes && (
-                        <View style={[styles.badge, { backgroundColor: palette.error }]} />
-                      )}
+  
+          {attentionAthletes.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
+                <Ionicons name="checkmark-circle" size={28} color={palette.tint} />
+              </View>
+              <ThemedText type="defaultSemiBold">All caught up</ThemedText>
+              <ThemedText style={[styles.emptyText, { color: palette.muted }]}>No athletes need follow-up right now.</ThemedText>
+            </View>
+          ) : (
+            <View style={styles.attentionList}>
+              {attentionAthletes.map((entry) => (
+                <Clickable
+                  key={entry.athlete.id}
+                  onPress={() => {
+                    logger.press('AttentionAthlete', {
+                      athleteId: entry.athlete.id,
+                      athleteName: entry.athlete.name,
+                      needsNotes: entry.needsNotes,
+                    });
+                    router.push(`/development/athlete/${entry.athlete.id}`);
+                  }}
+                  style={[styles.rowCard, styles.attentionCard, { borderColor: palette.border }]}
+                >
+                  <View style={styles.rowTop}>
+                    <View style={styles.rowLeft}>
+                      <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                        <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                          {entry.athlete.avatar || entry.athlete.name.charAt(0)}
+                        </ThemedText>
+                        {entry.needsNotes && (
+                          <View style={[styles.badge, { backgroundColor: palette.error }]} />
+                        )}
+                      </View>
+                      <View style={styles.rowContent}>
+                        <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                          {entry.athlete.name}
+                        </ThemedText>
+                        <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>
+                          {entry.sessionCount} sessions total
+                        </ThemedText>
+                      </View>
                     </View>
-                    <View style={styles.rowContent}>
-                      <ThemedText type="defaultSemiBold" style={styles.athleteName}>
-                        {entry.athlete.name}
-                      </ThemedText>
-                      <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>
-                        {entry.sessionCount} sessions total
-                      </ThemedText>
-                    </View>
-                  </View>
-
-                  <View style={styles.actionRow}>
+  
+                    <View style={styles.actionRow}>
                     {entry.needsNotes ? (
-                      <View style={[styles.pill, { backgroundColor: `${palette.error}12` }]}>
+                      <View style={[styles.pill, { backgroundColor: `${palette.error}12` }]}> 
                         <Ionicons name="document-text" size={13} color={palette.error} />
                         <ThemedText style={[styles.pillLabel, { color: palette.error }]}>Add notes</ThemedText>
                       </View>
                     ) : null}
                     {entry.averageRating < 4 ? (
-                      <View style={[styles.pill, { backgroundColor: `${palette.tint}12` }]}>
+                      <View style={[styles.pill, { backgroundColor: `${palette.tint}12` }]}> 
                         <Ionicons name="trending-up" size={13} color={palette.tint} />
                         <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Boost rating</ThemedText>
                       </View>
                     ) : null}
                     {entry.daysSinceLast >= 10 ? (
-                      <View style={[styles.pill, { backgroundColor: `${palette.icon}0f` }]}>
+                      <View style={[styles.pill, { backgroundColor: `${palette.icon}0f` }]}> 
                         <Ionicons name="time" size={13} color={palette.icon} />
                         <ThemedText style={[styles.pillLabel, { color: palette.icon }]}>Reach out</ThemedText>
                       </View>
                     ) : null}
                   </View>
                 </View>
-
-                <ThemedText style={[styles.athleteMetadata, styles.subtleMeta, { color: palette.muted }]}>
-                  Last session {formatDate(entry.lastSession)}
-                </ThemedText>
-              </Clickable>
-            ))}
-          </View>
-        )}
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText type="heading" style={styles.sectionTitle}>
-            Athlete roster
-          </ThemedText>
-          <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-            Tap an athlete to view their development timeline
-          </ThemedText>
-        </View>
-
-        {rosterEntries.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIconCircle, { backgroundColor: palette.surface }]}>
-              <Ionicons name="people-outline" size={32} color={palette.icon} />
+  
+                  <ThemedText style={[styles.athleteMetadata, styles.subtleMeta, { color: palette.muted }]}>
+                    Last session {formatDate(entry.lastSession)}
+                  </ThemedText>
+                </Clickable>
+              ))}
             </View>
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              No sessions yet
+          )}
+        </SurfaceCard>
+
+        <SurfaceCard style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <ThemedText type="heading" style={styles.sectionTitle}>
+              Recent sessions
             </ThemedText>
-            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>Complete your first session to start tracking athlete development</ThemedText>
+            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+              Open feedback to share notes or badges
+            </ThemedText>
           </View>
-        ) : (
-          <View style={styles.athleteList}>
-            {rosterEntries.map((entry) => (
-              <Clickable
-                key={entry.athlete.id}
-                onPress={() => {
-                  logger.press('AthleteCard', {
-                    athleteId: entry.athlete.id,
-                    athleteName: entry.athlete.name,
-                    sessionCount: entry.sessionCount,
-                  });
-                  router.push(`/development/athlete/${entry.athlete.id}`);
-                }}
-                style={[styles.rowCard, styles.rowInline, { borderColor: palette.border }]}
-              >
-                <View style={styles.rowLeft}>
-                  <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
-                    <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                      {entry.athlete.avatar || entry.athlete.name.charAt(0)}
-                    </ThemedText>
-                    {entry.needsNotes && (
-                      <View style={[styles.badge, { backgroundColor: palette.error }]} />
-                    )}
-                  </View>
-                  <View style={styles.rowContent}>
-                    <ThemedText type="defaultSemiBold" style={styles.athleteName}>
-                      {entry.athlete.name}
-                    </ThemedText>
-                    <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
-                      Last session: {formatDate(entry.lastSession)}
-                    </ThemedText>
-                  </View>
-                </View>
-
-                <View style={styles.statsGroup}>
-                  <View style={styles.stat}>
-                    <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                      {entry.sessionCount}
-                    </ThemedText>
-                    <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Sessions</ThemedText>
-                  </View>
-                  <View style={styles.stat}>
-                    <View style={styles.ratingRow}>
-                      <ThemedText type="defaultSemiBold" style={styles.statValue}>
-                        {entry.averageRating.toFixed(1)}
+  
+          <View style={{ gap: Spacing.xs }}>
+            {recentSessions.map((session) => {
+              const athlete = getUserById(session.athleteId);
+              return (
+                <View
+                  key={session.id}
+                  style={[styles.recentRow, { borderColor: palette.border }]}
+                >
+                  <View style={styles.rowLeft}>
+                    <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                      <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                        {athlete?.avatar || athlete?.name?.charAt(0) || '?'}
                       </ThemedText>
-                      <Ionicons name="star" size={16} color={palette.tint} />
                     </View>
-                    <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Avg Rating</ThemedText>
+                    <View style={styles.rowContent}>
+                      <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                        {athlete?.name || 'Athlete'}
+                      </ThemedText>
+                      <ThemedText style={[styles.athleteMetadata, { color: palette.muted }]}>
+                        {formatDate(session.completedAt)} · Rated {session.performanceRating}
+                      </ThemedText>
+                    </View>
                   </View>
+  
+                  <Clickable
+                    onPress={() => {
+                      logger.press('SessionFeedbackOpen', {
+                        sessionId: session.id,
+                        athleteId: session.athleteId,
+                        source: 'RecentSessions',
+                      });
+                      router.push(`/development/session/${session.id}`);
+                    }}
+                  >
+                    <View style={[styles.actionPill, { borderColor: palette.tint }]}>
+                      <Ionicons name="create-outline" size={14} color={palette.tint} />
+                      <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Open feedback</ThemedText>
+                    </View>
+                  </Clickable>
                 </View>
-
-                <Ionicons name="chevron-forward" size={20} color={palette.icon} />
-              </Clickable>
-            ))}
+              );
+            })}
           </View>
-        )}
-      </SurfaceCard>
+        </SurfaceCard>
       </PageContainer>
-
-      <BadgeAwardModal
-        visible={!!selectedSession}
-        athleteId={selectedSession?.athleteId || ''}
-        athleteName={selectedAthleteName}
-        coachId={currentUser.id}
-        coachName={currentUser.name}
-        sessionId={selectedSession?.id}
-        sessionLabel={selectedSessionLabel}
-        initialReason={selectedReasonPreset}
-        onClose={() => setSelectedSession(null)}
-      />
     </>
   );
 }
@@ -488,28 +336,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.sm,
   },
-  navGrid: {
-    gap: Spacing.xs,
-  },
-  navCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-  },
-  navIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navCopy: {
-    flex: 1,
-    gap: 2,
-  },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '500',
@@ -517,11 +343,6 @@ const styles = StyleSheet.create({
   },
   sectionHint: {
     fontSize: 12,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
   },
   recentRow: {
     padding: Spacing.sm,
@@ -539,11 +360,6 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.card,
     borderWidth: 1,
-    gap: Spacing.sm,
-  },
-  rowInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.sm,
   },
   attentionCard: {
@@ -596,9 +412,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
-  athleteList: {
-    gap: Spacing.xs,
-  },
   avatar: {
     width: 44,
     height: 44,
@@ -636,32 +449,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 
-  // Stats in athlete cards
-  statsGroup: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    alignItems: 'center',
-  },
-  stat: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 15,
-    fontWeight: '500',
-    fontVariant: ['tabular-nums'],
-  },
-  statLabel: {
-    fontSize: 10,
-    textTransform: 'uppercase',
-    fontWeight: '500',
-    letterSpacing: 0.5,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
 
   // Empty state
   emptyState: {
