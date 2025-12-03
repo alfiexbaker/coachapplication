@@ -123,11 +123,12 @@ export default function TabLayout() {
     tabBarStyle: {
       backgroundColor: palette.surface, // Use surface for cleaner white
       borderTopWidth: 0, // Remove border for sleeker look
-      height: 66, // Slightly taller for better tap targets
-      paddingBottom: 10,
-      paddingTop: 10,
-      paddingHorizontal: 0, // Avoid offsetting tabs to the left
-      justifyContent: 'space-evenly',
+      height: 70, // Slightly taller for better tap targets
+      paddingBottom: 12,
+      paddingTop: 12,
+      paddingHorizontal: 12, // Center tabs within the full width
+      alignItems: 'stretch',
+      justifyContent: 'space-between',
       shadowColor: '#000000',
       shadowOpacity: 0.05,
       shadowRadius: 8,
@@ -138,15 +139,16 @@ export default function TabLayout() {
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
+      paddingHorizontal: 0,
     },
     tabBarLabelStyle: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '600' as const,
-      letterSpacing: 0.3,
-      marginTop: 2,
+      letterSpacing: 0.2,
+      marginTop: 3,
     },
     tabBarIconStyle: {
-      marginTop: 0,
+      marginTop: 1,
     },
   };
 
@@ -173,8 +175,8 @@ export default function TabLayout() {
         // Default hidden tabs rely solely on a null-returning tabBarButton to stay off the bar.
         const options =
           tabBarButton !== undefined
-            ? { tabBarButton, ...restOptions }
-            : { tabBarButton: () => null, ...restOptions };
+            ? { tabBarButton, tabBarItemStyle: { display: 'none' }, ...restOptions }
+            : { tabBarButton: () => null, tabBarItemStyle: { display: 'none' }, ...restOptions };
 
         return <Tabs.Screen key={hiddenRoute.name} name={hiddenRoute.name} options={options} />;
       })}
