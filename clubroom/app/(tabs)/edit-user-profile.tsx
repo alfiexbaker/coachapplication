@@ -36,7 +36,7 @@ export default function EditUserProfileScreen() {
   };
 
   const pickImage = () => {
-    Alert.alert('Photo upload coming soon');
+    Alert.alert('Photo upload');
   };
 
   const addChild = () => {

@@ -28,7 +28,7 @@ class SocialFeedService {
       id: `post_${Date.now()}`,
       authorId: input.authorId,
       authorName: input.authorName,
-      authorAvatar: input.authorAvatar || '🏅',
+      authorAvatar: input.authorAvatar || '',
       content,
       likes: [],
       commentCount: 0,

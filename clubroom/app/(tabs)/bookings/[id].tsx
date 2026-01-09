@@ -159,7 +159,7 @@ export default function SessionDetailScreen() {
   };
 
   const handleReschedule = () => {
-    Alert.alert('Reschedule', 'Rescheduling feature coming soon');
+    Alert.alert('Reschedule', 'Rescheduling not available');
   };
 
   const handleReportProblem = () => {

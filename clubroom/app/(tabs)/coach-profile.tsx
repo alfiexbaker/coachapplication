@@ -301,7 +301,7 @@ export default function CoachProfileScreen() {
               {currentUser?.role === 'Coach' && (
                 <Pressable
                   style={[styles.createPostButton, { backgroundColor: palette.card }]}
-                  onPress={() => alert('Create post coming soon!')}>
+                  onPress={() => alert('Create post')}>
                   <Ionicons name="add-circle" size={24} color={palette.tint} />
                   <ThemedText style={styles.createPostText}>Share an update...</ThemedText>
                 </Pressable>
@@ -491,7 +491,7 @@ export default function CoachProfileScreen() {
 
           {activeTab === 'reviews' && (
             <SurfaceCard style={styles.emptyState}>
-              <ThemedText style={styles.emptyStateText}>Reviews coming soon</ThemedText>
+              <ThemedText style={styles.emptyStateText}>No reviews yet</ThemedText>
             </SurfaceCard>
           )}
         </View>

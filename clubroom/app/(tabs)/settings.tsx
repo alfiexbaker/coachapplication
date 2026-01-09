@@ -396,7 +396,7 @@ export default function SettingsScreen() {
               subtitle="English (UK)"
               onPress={() => {
                 logger.press('Language');
-                Alert.alert('Language', 'More languages coming soon');
+                Alert.alert('Language', 'Additional languages not available');
               }}
             />
             <ToggleRow

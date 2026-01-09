@@ -93,8 +93,8 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
       await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
 
       Alert.alert('Success', offering.isRecurring
-        ? `Booked for the next ${weeksToBook} week${weeksToBook > 1 ? 's' : ''}!`
-        : 'Session booked successfully!');
+        ? `Booked for the next ${weeksToBook} week${weeksToBook > 1 ? 's' : ''}`
+        : 'Session booked');
 
       onUpdate?.();
       onClose();
@@ -311,7 +311,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
               <View style={styles.registeredBanner}>
                 <Ionicons name="checkmark-circle" size={24} color={palette.success} />
                 <ThemedText style={[styles.registeredText, { color: palette.success }]}>
-                  You're registered for this session!
+                  Registered for this session
                 </ThemedText>
               </View>
             </SurfaceCard>
