@@ -1,9 +1,13 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+// Tab bar height constant for proper positioning
+const TAB_BAR_HEIGHT = 60;
 
 type ToastContextValue = {
   showToast: (message: string, tone?: 'default' | 'success' | 'error') => void;
@@ -40,12 +44,21 @@ export function useToast() {
 function Toast({ message, tone = 'default' }: { message?: string; tone?: 'default' | 'success' | 'error' }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const insets = useSafeAreaInsets();
   const toneColor = tone === 'success' ? palette.success : tone === 'error' ? palette.error : palette.text;
+
+  // Calculate bottom position accounting for tab bar and safe area
+  const bottomPosition = TAB_BAR_HEIGHT + Math.max(insets.bottom, Spacing.sm);
 
   if (!message) return null;
 
   return (
-    <Animated.View entering={FadeInDown.springify()} exiting={FadeOutUp} style={styles.container} pointerEvents="none">
+    <Animated.View
+      entering={FadeInDown.springify()}
+      exiting={FadeOutUp}
+      style={[styles.container, { bottom: bottomPosition }]}
+      pointerEvents="none"
+    >
       <View
         style={[
           styles.toast,
@@ -61,7 +74,7 @@ function Toast({ message, tone = 'default' }: { message?: string; tone?: 'defaul
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: Spacing['2xl'],
+    // bottom is set dynamically to account for tab bar and safe area insets
     left: Spacing.lg,
     right: Spacing.lg,
     alignItems: 'center',

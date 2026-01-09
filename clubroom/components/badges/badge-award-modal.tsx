@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, View, Switch, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -112,8 +113,13 @@ export function BadgeAwardModal({
 }: BadgeAwardModalProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isCompactLayout = width < 380;
+
+  // Calculate dynamic max height accounting for safe areas and padding
+  const availableHeight = height - insets.top - insets.bottom - Spacing.lg * 2;
+  const dynamicMaxHeight = Math.min(availableHeight, height * 0.9);
   const resolvedAthleteName = athleteName || 'Athlete';
   const [definitions, setDefinitions] = useState<BadgeDefinition[]>([]);
   const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
@@ -263,7 +269,7 @@ export function BadgeAwardModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={[styles.backdrop, { backgroundColor: `${palette.overlay}99` }]}>
-        <SurfaceCard style={[styles.modalCard, isCompactLayout && styles.modalCardCompact]}>
+        <SurfaceCard style={[styles.modalCard, isCompactLayout && styles.modalCardCompact, { maxHeight: dynamicMaxHeight }]}>
           <View style={styles.headerRow}>
             <View style={styles.titleRow}>
               <Ionicons name="ribbon" size={20} color={palette.tint} />
@@ -603,7 +609,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxHeight: '80%',
+    // maxHeight is set dynamically based on screen dimensions and safe areas
     padding: Spacing.md,
     gap: Spacing.md,
   },

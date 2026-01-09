@@ -249,11 +249,11 @@ const styles = StyleSheet.create({
   },
   fullOverlay: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    top: Spacing.sm,
+    right: Spacing.sm,
+    paddingHorizontal: Spacing.sm - 4,
+    paddingVertical: Spacing.xs - 2,
+    borderRadius: Radii.sm,
   },
   fullText: {
     fontSize: scaleFont(12),
