@@ -1,8 +1,15 @@
 import { badgeAwards as mockBadgeAwards, badgeCatalog } from '@/constants/mock-data';
-import { BadgeAward, BadgeDefinition, BadgeVisibility } from '@/constants/types';
+import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/constants/types';
 import { storageService } from './storage-service';
 import { socialFeedService } from './social-feed-service';
 import { createLogger } from '@/utils/logger';
+import {
+  ProgressionLevel,
+  getProgressToNextLevel,
+  getCategoryMilestoneStatus,
+  CategoryInfo,
+  TierNames,
+} from '@/constants/progression';
 
 const STORAGE_KEY = 'clubroom.badge_awards';
 
@@ -106,6 +113,10 @@ class BadgeService {
       awardedByName: input.coachName,
       awardedAt: new Date().toISOString(),
       visibility: input.visibility || 'athlete',
+      // Copy progression fields from definition
+      badgeCategory: definition?.category,
+      badgeTier: definition?.tier,
+      badgePointValue: definition?.pointValue,
     };
 
     const updated = [award, ...stored];
@@ -133,10 +144,10 @@ class BadgeService {
     const alreadySentToFeed = Boolean(target.feedPostId);
 
     const shareContentParts = [
-      `Earned the ${target.badgeLabel} badge!`,
+      `Earned the ${target.badgeLabel} badge`,
       target.reason,
       target.note,
-      target.sessionId ? 'Linked to a recent session.' : undefined,
+      target.sessionId ? 'Linked to a recent session' : undefined,
     ].filter(Boolean);
 
     const feedPost = alreadySentToFeed
@@ -162,6 +173,177 @@ class BadgeService {
       awardId,
     });
     return updatedAward;
+  }
+
+  // ===== Progression Methods =====
+
+  /**
+   * Calculate total points for an athlete based on their badge awards
+   */
+  async calculateTotalPoints(athleteId: string): Promise<number> {
+    const awards = await this.listAwardsForAthlete(athleteId);
+    return awards.reduce((total, award) => {
+      // Use stored point value or look up from catalog
+      if (award.badgePointValue) {
+        return total + award.badgePointValue;
+      }
+      const definition = badgeCatalog.find((badge) => badge.id === award.badgeId);
+      return total + (definition?.pointValue ?? 0);
+    }, 0);
+  }
+
+  /**
+   * Get the current progression level for an athlete
+   */
+  async getCurrentLevel(athleteId: string): Promise<ProgressionLevel> {
+    const points = await this.calculateTotalPoints(athleteId);
+    return getProgressToNextLevel(points).currentLevel;
+  }
+
+  /**
+   * Get detailed progress to the next level for an athlete
+   */
+  async getProgressToNextLevel(athleteId: string): Promise<{
+    currentLevel: ProgressionLevel;
+    nextLevel: ProgressionLevel | null;
+    progressPercent: number;
+    pointsToNext: number;
+    totalPoints: number;
+  }> {
+    const points = await this.calculateTotalPoints(athleteId);
+    const progress = getProgressToNextLevel(points);
+    return {
+      ...progress,
+      totalPoints: points,
+    };
+  }
+
+  /**
+   * Get category breakdown for an athlete showing badge counts and milestone progress
+   */
+  async getCategoryBreakdown(athleteId: string): Promise<
+    Array<{
+      category: BadgeCategory;
+      label: string;
+      icon: string;
+      badgeCount: number;
+      currentMilestone: string;
+      nextMilestone: string | null;
+      badgesToNext: number;
+      progressPercent: number;
+      totalPoints: number;
+    }>
+  > {
+    const awards = await this.listAwardsForAthlete(athleteId);
+    const categories: BadgeCategory[] = [
+      'leadership',
+      'consistency',
+      'technique',
+      'mindset',
+      'teamwork',
+      'resilience',
+    ];
+
+    return categories.map((category) => {
+      const categoryAwards = awards.filter((award) => {
+        // Check stored category or look up from catalog
+        if (award.badgeCategory) {
+          return award.badgeCategory === category;
+        }
+        const definition = badgeCatalog.find((badge) => badge.id === award.badgeId);
+        return definition?.category === category;
+      });
+
+      const badgeCount = categoryAwards.length;
+      const totalPoints = categoryAwards.reduce((sum, award) => {
+        if (award.badgePointValue) {
+          return sum + award.badgePointValue;
+        }
+        const definition = badgeCatalog.find((badge) => badge.id === award.badgeId);
+        return sum + (definition?.pointValue ?? 0);
+      }, 0);
+
+      const milestoneStatus = getCategoryMilestoneStatus(badgeCount);
+      const info = CategoryInfo[category];
+
+      return {
+        category,
+        label: info.label,
+        icon: info.icon,
+        badgeCount,
+        currentMilestone: milestoneStatus.currentMilestone,
+        nextMilestone: milestoneStatus.nextMilestone,
+        badgesToNext: milestoneStatus.badgesToNext,
+        progressPercent: milestoneStatus.progressPercent,
+        totalPoints,
+      };
+    });
+  }
+
+  /**
+   * Get top categories for an athlete (sorted by badge count)
+   */
+  async getTopCategories(
+    athleteId: string,
+    limit = 3,
+  ): Promise<Array<{ category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }>> {
+    const breakdown = await this.getCategoryBreakdown(athleteId);
+    return breakdown
+      .filter((cat) => cat.badgeCount > 0)
+      .sort((a, b) => b.badgeCount - a.badgeCount || b.totalPoints - a.totalPoints)
+      .slice(0, limit)
+      .map(({ category, label, badgeCount, totalPoints }) => ({
+        category,
+        label,
+        badgeCount,
+        totalPoints,
+      }));
+  }
+
+  /**
+   * Get a complete progression summary for an athlete
+   */
+  async getProgressionSummary(athleteId: string): Promise<{
+    totalPoints: number;
+    currentLevel: ProgressionLevel;
+    nextLevel: ProgressionLevel | null;
+    progressPercent: number;
+    pointsToNext: number;
+    totalBadges: number;
+    categoryBreakdown: Awaited<ReturnType<typeof this.getCategoryBreakdown>>;
+    topCategories: Awaited<ReturnType<typeof this.getTopCategories>>;
+  }> {
+    const [progress, categoryBreakdown, topCategories, awards] = await Promise.all([
+      this.getProgressToNextLevel(athleteId),
+      this.getCategoryBreakdown(athleteId),
+      this.getTopCategories(athleteId),
+      this.listAwardsForAthlete(athleteId),
+    ]);
+
+    return {
+      totalPoints: progress.totalPoints,
+      currentLevel: progress.currentLevel,
+      nextLevel: progress.nextLevel,
+      progressPercent: progress.progressPercent,
+      pointsToNext: progress.pointsToNext,
+      totalBadges: awards.length,
+      categoryBreakdown,
+      topCategories,
+    };
+  }
+
+  /**
+   * Get tier display name
+   */
+  getTierName(tier: 1 | 2 | 3): string {
+    return TierNames[tier];
+  }
+
+  /**
+   * Get category info
+   */
+  getCategoryInfo(category: BadgeCategory): { label: string; icon: string } {
+    return CategoryInfo[category];
   }
 }
 

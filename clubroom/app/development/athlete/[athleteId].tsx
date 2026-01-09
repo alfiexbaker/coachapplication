@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,9 +14,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
-import type { Session, BadgeAward } from '@/constants/types';
+import type { Session, BadgeAward, BadgeCategory } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
+import { ProgressionLevel, CategoryInfo, TierNames } from '@/constants/progression';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -29,6 +30,15 @@ export default function AthleteDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [progressionSummary, setProgressionSummary] = useState<{
+    totalPoints: number;
+    currentLevel: ProgressionLevel;
+    nextLevel: ProgressionLevel | null;
+    progressPercent: number;
+    pointsToNext: number;
+    totalBadges: number;
+    topCategories: Array<{ category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }>;
+  } | null>(null);
 
   const athlete = getUserById(athleteId!);
 
@@ -76,7 +86,14 @@ export default function AthleteDetailScreen() {
   useEffect(() => {
     if (!athleteId) return;
 
-    badgeService.listAwardsForAthlete(athleteId).then(setAwards);
+    // Load awards and progression summary in parallel
+    Promise.all([
+      badgeService.listAwardsForAthlete(athleteId),
+      badgeService.getProgressionSummary(athleteId),
+    ]).then(([awardsData, progression]) => {
+      setAwards(awardsData);
+      setProgressionSummary(progression);
+    });
   }, [athleteId]);
 
   if (!athlete || !currentUser) {
@@ -256,6 +273,71 @@ export default function AthleteDetailScreen() {
           />
         </View>
       </SurfaceCard>
+
+      {/* Badge Progression Summary */}
+      {progressionSummary && (
+        <SurfaceCard style={styles.progressionCard}>
+          <View style={styles.progressionHeader}>
+            <View style={styles.progressionBadge}>
+              <Ionicons name="trophy" size={20} color={palette.tint} />
+            </View>
+            <View style={styles.progressionInfo}>
+              <ThemedText type="defaultSemiBold" style={styles.progressionLevel}>
+                Level {progressionSummary.currentLevel.level}: {progressionSummary.currentLevel.name}
+              </ThemedText>
+              <ThemedText style={[styles.progressionPoints, { color: palette.muted }]}>
+                {progressionSummary.totalPoints} pts from {progressionSummary.totalBadges} badge{progressionSummary.totalBadges !== 1 ? 's' : ''}
+              </ThemedText>
+            </View>
+          </View>
+
+          {progressionSummary.nextLevel && (
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBar, { backgroundColor: `${palette.tint}15` }]}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      backgroundColor: palette.tint,
+                      width: `${progressionSummary.progressPercent}%`,
+                    },
+                  ]}
+                />
+              </View>
+              <ThemedText style={[styles.progressText, { color: palette.muted }]}>
+                {progressionSummary.pointsToNext} pts to {progressionSummary.nextLevel.name}
+              </ThemedText>
+            </View>
+          )}
+
+          {progressionSummary.topCategories.length > 0 && (
+            <View style={styles.topCategoriesSection}>
+              <ThemedText style={[styles.topCategoriesLabel, { color: palette.muted }]}>
+                Top categories
+              </ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.topCategoriesRow}>
+                  {progressionSummary.topCategories.map((cat) => (
+                    <View
+                      key={cat.category}
+                      style={[styles.categoryChip, { backgroundColor: `${palette.tint}12` }]}
+                    >
+                      <ThemedText style={[styles.categoryChipText, { color: palette.tint }]}>
+                        {cat.label}
+                      </ThemedText>
+                      <View style={[styles.categoryCountBadge, { backgroundColor: palette.tint }]}>
+                        <ThemedText style={styles.categoryCountText}>
+                          {cat.badgeCount}
+                        </ThemedText>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+        </SurfaceCard>
+      )}
 
       {/* Section Header */}
       <View style={styles.sectionHeader}>
@@ -624,5 +706,87 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: Spacing.sm,
     top: Spacing.sm,
+  },
+
+  // Badge Progression Summary
+  progressionCard: {
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  progressionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  progressionBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0F172A12',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressionInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  progressionLevel: {
+    fontSize: 15,
+  },
+  progressionPoints: {
+    fontSize: 12,
+  },
+  progressBarContainer: {
+    gap: 4,
+  },
+  progressBar: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 11,
+    textAlign: 'right',
+  },
+  topCategoriesSection: {
+    gap: 6,
+  },
+  topCategoriesLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  topCategoriesRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: Radii.pill,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  categoryCountBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  categoryCountText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#fff',
   },
 });
