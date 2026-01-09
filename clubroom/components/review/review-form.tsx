@@ -65,8 +65,8 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
 
 const styles = StyleSheet.create({
   content: {
-    gap: Spacing.lg,
-    padding: Spacing.lg,
+    gap: Spacing.md,
+    padding: Spacing.md,
   },
   categoryRow: {
     flexDirection: 'row',
@@ -74,14 +74,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textArea: {
-    minHeight: 120,
+    minHeight: 100,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     textAlignVertical: 'top',
   },
   submit: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radii.button,
     alignItems: 'center',
   },

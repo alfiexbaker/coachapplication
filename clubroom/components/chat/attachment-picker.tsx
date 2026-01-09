@@ -65,13 +65,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'flex-end',
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   sheet: {
     borderRadius: Radii['2xl'],
     borderWidth: 1,
-    padding: Spacing.lg,
-    gap: Spacing.sm,
+    padding: Spacing.md,
+    gap: Spacing.xs,
   },
   title: {
     fontSize: 18,
@@ -80,8 +80,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
   },
   iconCircle: {
     width: 40,

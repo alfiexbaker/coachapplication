@@ -202,8 +202,8 @@ export const Components = {
   },
   card: {
     borderRadius: Radii.card,
-    padding: Spacing.md,  // Reduced from lg - tighter
-    gap: Spacing.sm,      // Reduced from md - more compact
+    padding: Spacing.sm,  // Reduced from md - compact
+    gap: Spacing.xs,      // Reduced from sm - tight
   },
   input: {
     height: 44,  // Reduced from 52
@@ -240,6 +240,6 @@ export const Components = {
   modal: {
     maxWidth: 400,
     borderRadius: 16,
-    padding: 24,
+    padding: 16,
   },
 } as const;

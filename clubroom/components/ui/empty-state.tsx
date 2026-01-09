@@ -22,7 +22,7 @@ export function EmptyState({ icon = 'information-circle', title, message, action
   return (
     <View style={styles.container}>
       <View style={[styles.iconContainer, { backgroundColor: `${palette.border}30` }]}>
-        <Ionicons name={icon as any} size={28} color={palette.icon} />
+        <Ionicons name={icon as any} size={24} color={palette.icon} />
       </View>
       <ThemedText type="subtitle" style={styles.title}>
         {title}
@@ -51,12 +51,12 @@ export function EmptyState({ icon = 'information-circle', title, message, action
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.lg,
+    gap: Spacing.xs,
+    padding: Spacing.md,
     borderRadius: Radii.card,
   },
   iconContainer: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radii.pill,
   },
   title: {
@@ -70,9 +70,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   action: {
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 2,
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
     shadowOpacity: 0.1,
     shadowRadius: 10,

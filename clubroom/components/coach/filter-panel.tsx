@@ -209,18 +209,18 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   header: {
-    padding: Spacing.lg,
+    padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   content: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
   },
   section: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   sectionLabel: {
     fontSize: 15,
@@ -232,25 +232,25 @@ const styles = StyleSheet.create({
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   pill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
   footer: {
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    marginTop: Spacing.xs,
   },
   apply: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.button,
   },
   applyLabel: {

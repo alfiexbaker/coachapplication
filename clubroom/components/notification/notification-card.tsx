@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
+    gap: Spacing.sm,
+    padding: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
   },

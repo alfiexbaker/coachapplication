@@ -130,20 +130,20 @@ function SlotRow({ slot, selected, onPress }: { slot: SlotInstance; selected: bo
 const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
   dateList: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
   },
   dateCard: {
-    width: 72,
-    paddingVertical: Spacing.md,
+    width: 64,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1,
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
   dayName: {
     fontSize: 13,
@@ -157,23 +157,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   noSlotsContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   slotList: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
   },
   slotCard: {
     borderWidth: 1,
     borderRadius: Radii.md,
-    padding: Spacing.lg,
+    padding: Spacing.sm,
   },
   slotContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   slotLeft: {
     flex: 1,

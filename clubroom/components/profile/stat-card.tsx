@@ -33,11 +33,11 @@ export function StatCard({ label, value, subtitle }: StatCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radii.card,
   },
   copy: {
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
   label: {
     fontSize: 13,

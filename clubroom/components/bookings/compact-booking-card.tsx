@@ -15,7 +15,7 @@ type CompactBookingCardProps = {
 
 export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   const { currentUser } = useAuth();
-  console.log('🔵🔵🔵 [CompactBookingCard] COMPONENT RENDERING - Booking ID:', booking.id, 'Service:', booking.service);
+  console.log('[CompactBookingCard] COMPONENT RENDERING - Booking ID:', booking.id, 'Service:', booking.service);
 
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -47,28 +47,28 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
 
   const handlePress = () => {
     const route = `/bookings/${booking.id}`;
-    console.log('🔵🔵🔵 [CompactBookingCard] PRESS FIRED! Navigating to:', route);
-    console.log('🔵 [CompactBookingCard] Booking details:', {
+    console.log('[CompactBookingCard] PRESS FIRED - Navigating to:', route);
+    console.log('[CompactBookingCard] Booking details:', {
       id: booking.id,
       service: booking.service,
       coachName: booking.coachName,
       status: booking.status
     });
     router.push(route);
-    console.log('🔵 [CompactBookingCard] router.push() called');
+    console.log('[CompactBookingCard] router.push() called');
   };
 
   const handlePressIn = () => {
-    console.log('🔵 [CompactBookingCard] PRESS IN detected for booking:', booking.id);
+    console.log('[CompactBookingCard] PRESS IN detected for booking:', booking.id);
   };
 
   const handlePressOut = () => {
-    console.log('🔵 [CompactBookingCard] PRESS OUT detected for booking:', booking.id);
+    console.log('[CompactBookingCard] PRESS OUT detected for booking:', booking.id);
   };
 
   // Web-specific: onMouseUp triggers navigation since onClick doesn't work on RN View
   const handleWebClick = (e: any) => {
-    console.log('🔵 [CompactBookingCard] WEB CLICK detected for booking:', booking.id);
+    console.log('[CompactBookingCard] WEB CLICK detected for booking:', booking.id);
     handlePressOut();
     handlePress();
   };
@@ -78,7 +78,7 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
     e.stopPropagation();
     const athleteId = (booking as any).athleteId;
     if (athleteId) {
-      console.log('🔵 [CompactBookingCard] Navigating to development hub for athlete:', athleteId);
+      console.log('[CompactBookingCard] Navigating to development hub for athlete:', athleteId);
       router.push(`/development/athlete/${athleteId}` as any);
     }
   };
@@ -166,12 +166,12 @@ const styles = StyleSheet.create({
     // No styles needed, just for structure
   },
   card: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   avatar: {
     width: 48,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   right: {
     alignItems: 'flex-end',
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
