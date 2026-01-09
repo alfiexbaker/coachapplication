@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
 import {
   CoachPost,
@@ -630,9 +630,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     right: 4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

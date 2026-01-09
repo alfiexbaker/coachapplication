@@ -8,7 +8,7 @@ import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useThemePreferences } from '@/hooks/theme-provider';
@@ -501,9 +501,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   profilePhoto: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: Components.avatar.xl,
+    height: Components.avatar.xl,
+    borderRadius: Components.avatar.xl / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },

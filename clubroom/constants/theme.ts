@@ -226,4 +226,20 @@ export const Components = {
     lg: 24,
     xl: 32,
   },
+  avatar: {
+    sm: 32,   // List items, compact views
+    md: 44,   // Standard avatar size
+    lg: 64,   // Profile headers, featured
+    xl: 80,   // Hero sections
+  },
+  listItem: {
+    compact: 48,
+    standard: 56,
+    large: 72,
+  },
+  modal: {
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+  },
 } as const;

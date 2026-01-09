@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { badgeService } from '@/services/badge-service';
@@ -245,9 +245,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#00000010',
   },
   toneBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -311,9 +311,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   badgeIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

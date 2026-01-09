@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getSessionsForCoach, formatDate } from '@/constants/mock-data';
@@ -298,7 +298,7 @@ export default function BadgesScreen() {
             <Ionicons name="ribbon-outline" size={28} color={palette.icon} />
             <ThemedText type="defaultSemiBold">Nothing here yet</ThemedText>
             <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-              Create a badge or log a session to get started
+              Create a badge or log a session
             </ThemedText>
           </View>
         ) : (
@@ -491,9 +491,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   badgeIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
