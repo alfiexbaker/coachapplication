@@ -305,6 +305,6 @@ const styles = StyleSheet.create({
   gradientWrapper: {
     position: 'relative',
     borderRadius: Radii.lg,
-    overflow: 'visible',
+    overflow: 'hidden',
   },
 });
