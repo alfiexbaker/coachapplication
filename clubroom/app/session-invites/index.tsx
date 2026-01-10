@@ -55,6 +55,19 @@ function InviteCard({
           .map((n) => n[0])
           .join('');
 
+  // Build invitation message
+  const coachFirstName = invite.coachName.split(' ')[0];
+  const athleteDisplay = invite.athleteNames.length === 1
+    ? invite.athleteNames[0]
+    : `${invite.athleteNames.length} athletes`;
+  const invitationMessage = mode === 'received'
+    ? invite.clubName
+      ? `Coach ${coachFirstName} has invited ${athleteDisplay} to ${invite.clubName}`
+      : `Coach ${coachFirstName} has invited ${athleteDisplay} to a ${invite.sessionType.toLowerCase()}`
+    : invite.clubName
+      ? `Invite to ${invite.clubName}`
+      : `${invite.sessionType} invite`;
+
   const firstSlot = invite.proposedSlots[0];
   const slotDate = firstSlot
     ? new Date(firstSlot.date).toLocaleDateString('en-GB', {
@@ -67,6 +80,14 @@ function InviteCard({
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
       <SurfaceCard style={styles.inviteCard} onPress={onPress}>
+        {/* Invitation Message Banner */}
+        <View style={[styles.invitationBanner, { backgroundColor: `${palette.tint}08` }]}>
+          <Ionicons name="mail-outline" size={16} color={palette.tint} />
+          <ThemedText style={[styles.invitationText, { color: palette.text }]} numberOfLines={2}>
+            {invitationMessage}
+          </ThemedText>
+        </View>
+
         <View style={styles.cardHeader}>
           <View style={[styles.avatar, { backgroundColor: `${palette.tint}10` }]}>
             <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
@@ -76,10 +97,15 @@ function InviteCard({
 
           <View style={styles.headerContent}>
             <ThemedText type="defaultSemiBold" style={styles.name}>
-              {displayName}
+              {mode === 'received' ? `Coach ${displayName}` : displayName}
             </ThemedText>
+            {invite.clubName && (
+              <ThemedText style={[styles.clubName, { color: palette.tint }]}>
+                {invite.clubName}
+              </ThemedText>
+            )}
             <ThemedText style={[styles.sessionType, { color: palette.muted }]}>
-              {invite.sessionType} · {invite.focus}
+              {invite.sessionType} - {invite.focus}
             </ThemedText>
           </View>
 
@@ -314,6 +340,23 @@ const styles = StyleSheet.create({
   inviteCard: {
     padding: Spacing.md,
     gap: Spacing.sm,
+  },
+  invitationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
+  invitationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 18,
+  },
+  clubName: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   cardHeader: {
     flexDirection: 'row',

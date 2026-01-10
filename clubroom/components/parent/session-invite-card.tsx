@@ -54,6 +54,15 @@ export function SessionInviteCard({
 
   const canRespond = status === 'PENDING';
 
+  // Build invitation message: "Coach X has invited [Athlete] to [Club/Session]"
+  const coachFirstName = invite.coachName.split(' ')[0];
+  const athleteDisplay = invite.athleteNames.length === 1
+    ? invite.athleteNames[0]
+    : `${invite.athleteNames.length} athletes`;
+  const invitationMessage = invite.clubName
+    ? `Coach ${coachFirstName} has invited ${athleteDisplay} to ${invite.clubName}`
+    : `Coach ${coachFirstName} has invited ${athleteDisplay} to a ${invite.sessionType.toLowerCase()}`;
+
   if (compact) {
     return (
       <SurfaceCard style={styles.compactCard} onPress={onPress}>
@@ -65,8 +74,8 @@ export function SessionInviteCard({
           </View>
 
           <View style={styles.compactInfo}>
-            <ThemedText type="defaultSemiBold" numberOfLines={1}>
-              {invite.coachName}
+            <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.invitationText}>
+              {invitationMessage}
             </ThemedText>
             <ThemedText style={[styles.compactMeta, { color: palette.muted }]} numberOfLines={1}>
               {invite.sessionType} - {slotDate}
@@ -83,24 +92,31 @@ export function SessionInviteCard({
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
+      {/* Invitation Message Banner */}
+      <View style={[styles.invitationBanner, { backgroundColor: `${palette.tint}08` }]}>
+        <Ionicons name="mail-outline" size={16} color={palette.tint} />
+        <ThemedText style={[styles.invitationBannerText, { color: palette.text }]}>
+          {invitationMessage}
+        </ThemedText>
+      </View>
+
       {/* Header */}
       <View style={styles.header}>
         <View style={[styles.avatar, { backgroundColor: `${palette.tint}10` }]}>
-          {invite.coachPhotoUrl ? (
-            <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-              {initials}
-            </ThemedText>
-          ) : (
-            <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-              {initials}
-            </ThemedText>
-          )}
+          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+            {initials}
+          </ThemedText>
         </View>
 
         <View style={styles.headerContent}>
           <ThemedText type="defaultSemiBold" style={styles.coachName}>
-            {invite.coachName}
+            Coach {invite.coachName}
           </ThemedText>
+          {invite.clubName && (
+            <ThemedText style={[styles.clubName, { color: palette.tint }]}>
+              {invite.clubName}
+            </ThemedText>
+          )}
           <ThemedText style={[styles.sessionType, { color: palette.muted }]}>
             {invite.sessionType} - {invite.focus}
           </ThemedText>
@@ -227,6 +243,27 @@ const styles = StyleSheet.create({
   },
   compactMeta: {
     fontSize: 12,
+  },
+  invitationText: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  invitationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+    marginBottom: Spacing.xs,
+  },
+  invitationBannerText: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+  },
+  clubName: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',

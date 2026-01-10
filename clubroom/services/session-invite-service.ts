@@ -25,6 +25,7 @@ const MOCK_INVITES: SessionInvite[] = [
     coachId: 'coach_1',
     coachName: 'Marcus Thompson',
     coachPhotoUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
+    clubName: 'Bradwell Boys Academy',
     athleteIds: ['athlete_1'],
     athleteNames: ['Tom Baker'],
     parentId: 'parent_1',
@@ -46,6 +47,7 @@ const MOCK_INVITES: SessionInvite[] = [
     coachId: 'coach_2',
     coachName: 'Emma Williams',
     coachPhotoUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
+    clubName: 'Victoria Park FC',
     athleteIds: ['athlete_2'],
     athleteNames: ['Lucy Baker'],
     parentId: 'parent_1',
@@ -65,6 +67,7 @@ const MOCK_INVITES: SessionInvite[] = [
     id: 'inv_3',
     coachId: 'coach_1',
     coachName: 'Marcus Thompson',
+    clubName: 'Bradwell Boys Academy',
     athleteIds: ['athlete_3'],
     athleteNames: ['James Wilson'],
     parentId: 'parent_2',
@@ -88,6 +91,7 @@ export interface CreateInviteInput {
   coachId: string;
   coachName: string;
   coachPhotoUrl?: string;
+  clubName?: string;
   athleteIds: string[];
   athleteNames: string[];
   parentId: string;
@@ -192,6 +196,7 @@ export const sessionInviteService = {
       coachId: input.coachId,
       coachName: input.coachName,
       coachPhotoUrl: input.coachPhotoUrl,
+      clubName: input.clubName,
       athleteIds: input.athleteIds,
       athleteNames: input.athleteNames,
       parentId: input.parentId,

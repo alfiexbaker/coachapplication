@@ -1,5 +1,27 @@
 export type SportCategory = 'Football';
 
+// ============================================================================
+// SOCIAL MEDIA LINKS
+// ============================================================================
+
+export type SocialPlatform = 'instagram' | 'twitter' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok' | 'website';
+
+export interface SocialLink {
+  platform: SocialPlatform;
+  url: string;
+  username?: string; // Optional display username (e.g., @coachsarah)
+}
+
+export interface SocialLinks {
+  instagram?: string;
+  twitter?: string;
+  facebook?: string;
+  linkedin?: string;
+  youtube?: string;
+  tiktok?: string;
+  website?: string;
+}
+
 export type FootballObjective =
   | 'Dribbling'
   | 'Passing'
@@ -245,6 +267,7 @@ export interface CoachProfile {
   videoGallery: string[];
   languages: CoachLanguage[];
   achievements: string[];
+  socialLinks?: SocialLinks;
 }
 
 export interface CoachSearchParams {
@@ -424,6 +447,7 @@ export interface UserProfile {
     name: string;
     age: number;
   }>;
+  socialLinks?: SocialLinks;
 }
 
 export interface CoachFeedback {
@@ -480,6 +504,7 @@ export interface SessionInvite {
   coachId: string;
   coachName: string;
   coachPhotoUrl?: string;
+  clubName?: string; // Club or Academy name (e.g., "Bradwell Boys")
   athleteIds: string[];
   athleteNames: string[];
   parentId: string;

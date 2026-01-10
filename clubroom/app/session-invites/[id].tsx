@@ -144,6 +144,15 @@ export default function SessionInviteDetailScreen() {
   const statusConfig = statusColors[status] || statusColors.PENDING;
   const canRespond = status === 'PENDING' && isRecipient;
 
+  // Build invitation message
+  const coachFirstName = invite.coachName.split(' ')[0];
+  const athleteDisplay = invite.athleteNames.length === 1
+    ? invite.athleteNames[0]
+    : `${invite.athleteNames.length} athletes`;
+  const invitationMessage = invite.clubName
+    ? `Coach ${coachFirstName} has invited ${athleteDisplay} to ${invite.clubName}`
+    : `Coach ${coachFirstName} has invited ${athleteDisplay} to a ${invite.sessionType.toLowerCase()}`;
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <View style={styles.header}>
@@ -191,8 +200,20 @@ export default function SessionInviteDetailScreen() {
           </ThemedText>
         </Animated.View>
 
+        {/* Invitation Message */}
+        {!isCoach && (
+          <Animated.View entering={FadeInDown.delay(50).springify()}>
+            <View style={[styles.invitationBanner, { backgroundColor: `${palette.tint}10` }]}>
+              <Ionicons name="mail-outline" size={20} color={palette.tint} />
+              <ThemedText style={[styles.invitationText, { color: palette.text }]}>
+                {invitationMessage}
+              </ThemedText>
+            </View>
+          </Animated.View>
+        )}
+
         {/* Coach/Parent Info */}
-        <Animated.View entering={FadeInDown.delay(50).springify()}>
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
           <SurfaceCard style={styles.infoCard}>
             <View style={styles.personRow}>
               <View style={[styles.avatar, { backgroundColor: `${palette.tint}10` }]}>
@@ -210,18 +231,25 @@ export default function SessionInviteDetailScreen() {
                   {isCoach ? 'Athletes' : 'Coach'}
                 </ThemedText>
                 <ThemedText type="subtitle">
-                  {isCoach ? invite.athleteNames.join(', ') : invite.coachName}
+                  {isCoach ? invite.athleteNames.join(', ') : `Coach ${invite.coachName}`}
                 </ThemedText>
-                <ThemedText style={[styles.roleLabel, { color: palette.muted }]}>
-                  {isCoach ? `Parent: ${invite.parentName}` : ''}
-                </ThemedText>
+                {invite.clubName && !isCoach && (
+                  <ThemedText style={[styles.clubName, { color: palette.tint }]}>
+                    {invite.clubName}
+                  </ThemedText>
+                )}
+                {isCoach && (
+                  <ThemedText style={[styles.roleLabel, { color: palette.muted }]}>
+                    Parent: {invite.parentName}
+                  </ThemedText>
+                )}
               </View>
             </View>
           </SurfaceCard>
         </Animated.View>
 
         {/* Session Details */}
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
+        <Animated.View entering={FadeInDown.delay(150).springify()}>
           <SurfaceCard style={styles.detailsCard}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
               Session Details
@@ -260,7 +288,7 @@ export default function SessionInviteDetailScreen() {
         </Animated.View>
 
         {/* Time Slots */}
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
+        <Animated.View entering={FadeInDown.delay(200).springify()}>
           <SurfaceCard style={styles.slotsCard}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
               {canRespond ? 'Select a Time Slot' : 'Proposed Times'}
@@ -328,7 +356,7 @@ export default function SessionInviteDetailScreen() {
 
         {/* Expiry Info */}
         {status === 'PENDING' && (
-          <Animated.View entering={FadeInDown.delay(200).springify()}>
+          <Animated.View entering={FadeInDown.delay(250).springify()}>
             <View style={[styles.expiryBanner, { backgroundColor: `${palette.warning}10` }]}>
               <Ionicons name="time-outline" size={16} color={palette.warning} />
               <ThemedText style={{ color: palette.warning, fontSize: 13 }}>
@@ -402,6 +430,24 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontWeight: '600',
+  },
+  invitationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  invitationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 22,
+  },
+  clubName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 2,
   },
   infoCard: {
     padding: Spacing.md,
