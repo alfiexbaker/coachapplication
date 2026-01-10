@@ -20,6 +20,7 @@ type RoleTabConfig = {
   hidden?: string[];
 };
 
+// Routes that should be hidden from tab bar but still accessible via navigation
 const BASE_HIDDEN_ROUTES = [
   'feed',
   'notifications',
@@ -34,56 +35,64 @@ const BASE_HIDDEN_ROUTES = [
   'roster',
 ];
 
+// Uber-style grouped navigation - max 5 tabs with cascading hub screens
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
+  // COACH: Home, Schedule hub, Athletes hub, Club, Profile
+  // Messages accessible from Home screen or via notifications
   COACH: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'schedule', title: 'Schedule', icon: 'calendar.badge.clock' },
+      { name: 'athletes', title: 'Athletes', icon: 'person.2.fill' },
       { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
-      { name: 'bookings', title: 'Schedule', icon: 'calendar.badge.clock' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings'],
   },
+  // USER (Athlete): Home, Find Coach, Bookings, Messages, Profile
   USER: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
       { name: 'more', title: 'Find Coach', icon: 'magnifyingglass' },
-      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
-    ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'settings'],
-  },
-  PARENT: {
-    primary: [
-      { name: 'index', title: 'Home', icon: 'house.fill' },
-      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
-      { name: 'bookings', title: 'Calendar', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'schedule', 'athletes', 'children'],
   },
+  // PARENT: Home, Book, Children hub, Messages, Profile
+  // Bookings accessible via Children hub
+  PARENT: {
+    primary: [
+      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'more', title: 'Book', icon: 'magnifyingglass' },
+      { name: 'children', title: 'Children', icon: 'person.2.fill' },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
+    ],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'schedule', 'athletes', 'bookings'],
+  },
+  // ADMIN: Users, Bookings, Club, Messages, Settings
   ADMIN: {
     primary: [
       { name: 'index', title: 'Users', icon: 'person.2.fill' },
-      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'schedule', 'athletes', 'children'],
   },
+  // DEFAULT: Home, Bookings, Club, Messages, Settings
   DEFAULT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
-      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'schedule', 'athletes', 'children'],
   },
 };
 
