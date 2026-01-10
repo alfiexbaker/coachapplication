@@ -14,7 +14,6 @@ import { chatThreads } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ChatThreadSummary } from '@/constants/types';
 import { EmptyState } from '@/components/ui/empty-state';
-import { SkeletonRow } from '@/components/ui/skeleton';
 import { messagingService } from '@/services/messaging-service';
 
 function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary; index: number; onPress: () => void }) {
@@ -31,8 +30,7 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
         style={({ pressed }) => [
           styles.conversationRow,
           {
-            backgroundColor: pressed ? palette.surface : palette.background,
-            borderBottomColor: palette.border,
+            backgroundColor: pressed ? palette.surfaceSecondary : 'transparent',
           },
         ]}
       >
@@ -301,7 +299,6 @@ export default function MessagesScreen() {
           ))
         )}
       </ScrollView>
-      <SkeletonRow />
     </SafeAreaView>
   );
 }
@@ -336,9 +333,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.md,
-    borderWidth: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.lg,
+    backgroundColor: '#F7F8FB',
   },
   searchInput: {
     flex: 1,
@@ -364,9 +361,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm + 4,
     gap: Spacing.md,
-    borderBottomWidth: 1,
   },
   infoCard: {
     marginHorizontal: Spacing.lg,
@@ -381,19 +377,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 19,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
   },
   conversationContent: {
     flex: 1,
-    gap: Spacing.sm,
+    gap: 4,
   },
   metaPill: {
     fontSize: 13,
@@ -406,12 +402,12 @@ const styles = StyleSheet.create({
   },
   coachName: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
   },
   time: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
   },
   conversationMeta: {
     flexDirection: 'row',
@@ -419,25 +415,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   serviceName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '500',
     flex: 1,
   },
   badge: {
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   badgeText: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '700',
   },
   preview: {
-    fontSize: 13,
-    marginTop: -4,
+    fontSize: 14,
   },
   groupCard: {
     marginHorizontal: Spacing.lg,

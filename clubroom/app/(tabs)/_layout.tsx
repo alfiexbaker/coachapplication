@@ -24,7 +24,6 @@ const BASE_HIDDEN_ROUTES = [
   'feed',
   'notifications',
   'availability',
-  'club-hub',
   'coach-profile',
   'edit-profile',
   'edit-user-profile',
@@ -38,6 +37,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   COACH: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'bookings', title: 'Schedule', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
@@ -48,15 +48,16 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
       { name: 'more', title: 'Find Coach', icon: 'magnifyingglass' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
-      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: BASE_HIDDEN_ROUTES,
+    hidden: [...BASE_HIDDEN_ROUTES, 'settings'],
   },
   PARENT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'bookings', title: 'Calendar', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
@@ -66,6 +67,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   ADMIN: {
     primary: [
       { name: 'index', title: 'Users', icon: 'person.2.fill' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
@@ -75,6 +77,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   DEFAULT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },

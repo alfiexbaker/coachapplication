@@ -275,90 +275,73 @@ export default function ClubHubScreen() {
 
   return (
     <PageContainer
-      header={<PageHeader title="Club Hub" subtitle="Invites, feed, squads, and internal sessions" />}
+      header={<PageHeader title="Club" subtitle="Your club membership and activity" />}
       gap={Spacing.md}
       contentStyle={{ paddingBottom: Spacing.xl }}
     >
-      <SurfaceCard style={styles.heroCard} animateElevation={false}>
-        <View style={styles.heroRow}>
-          <View style={[styles.avatar, { backgroundColor: `${palette.tint}08`, borderColor: palette.border, borderWidth: 1 }]}>
-            <ThemedText style={styles.avatarText}>{badgeText}</ThemedText>
+      {membership && club ? (
+        <SurfaceCard style={styles.heroCard} animateElevation={false}>
+          <View style={styles.heroRow}>
+            <View style={[styles.avatar, { backgroundColor: `${palette.tint}08` }]}>
+              <ThemedText style={styles.avatarText}>{badgeText}</ThemedText>
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <ThemedText type="heading">{club.name}</ThemedText>
+              <ThemedText style={{ color: palette.muted }}>{roleLabel}</ThemedText>
+            </View>
+            <Clickable onPress={handleLeaveClub}>
+              <Ionicons name="log-out-outline" size={22} color={palette.muted} />
+            </Clickable>
           </View>
-          <View style={{ flex: 1, gap: 6 }}>
-            <ThemedText type="heading" style={{ fontSize: 18 }}>
-              {headline}
-            </ThemedText>
-            <ThemedText style={{ color: palette.muted }}>
-              Keep club work organised with invite codes, private sessions, and concise updates.
-            </ThemedText>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.statRow}
+          <View style={styles.statRow}>
+            {statTiles.map((stat) => (
+              <View key={stat.label} style={styles.statTile}>
+                <ThemedText type="heading">{stat.value}</ThemedText>
+                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{stat.label}</ThemedText>
+              </View>
+            ))}
+          </View>
+        </SurfaceCard>
+      ) : (
+        <SurfaceCard style={styles.heroCard} animateElevation={false}>
+          <ThemedText type="heading">Join or create a club</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>
+            Connect with your coaching team, share updates, and manage sessions.
+          </ThemedText>
+          <View style={styles.joinForm}>
+            <TextInput
+              placeholder="Enter invite code"
+              placeholderTextColor={palette.muted}
+              value={joinCode}
+              onChangeText={setJoinCode}
+              autoCapitalize="characters"
+              style={[styles.input, { backgroundColor: palette.background, color: palette.text }]}
+            />
+            <Clickable
+              style={[styles.primaryButton, { backgroundColor: palette.tint }]}
+              onPress={handleJoinWithCode}
             >
-              {statTiles.map((stat) => (
-                <View key={stat.label} style={[styles.statTile, { borderColor: palette.border }]}>
-                  <ThemedText type="defaultSemiBold">{stat.value}</ThemedText>
-                  <ThemedText style={{ color: palette.muted }}>{stat.label}</ThemedText>
-                </View>
-              ))}
-            </ScrollView>
+              <ThemedText style={styles.primaryButtonText}>Join</ThemedText>
+            </Clickable>
           </View>
-        </View>
-        <View style={styles.actionsRow}>
-          <Clickable
-            style={[styles.primaryButton, { backgroundColor: palette.tint }]}
-            onPress={membership ? handleLeaveClub : handleCreateClub}
-          >
-            <ThemedText style={styles.primaryButtonText}>
-              {membership ? 'Leave club' : 'Create club'}
-            </ThemedText>
-          </Clickable>
-          <Clickable
-            style={[styles.secondaryButton, { borderColor: palette.border }]}
-            onPress={membership ? undefined : handleJoinWithCode}
-          >
-            <ThemedText style={{ color: palette.text }}>
-              {membership ? 'Already connected' : 'Join with code'}
-            </ThemedText>
-          </Clickable>
-        </View>
-        {!membership && (
-          <View style={styles.inlineFormRow}>
-            <View style={{ flex: 1 }}>
-              <ThemedText type="defaultSemiBold">Join a club</ThemedText>
-              <View style={styles.inlineForm}>
-                <TextInput
-                  placeholder="Invite code"
-                  placeholderTextColor={palette.muted}
-                  value={joinCode}
-                  onChangeText={setJoinCode}
-                  style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-                />
-                <Clickable style={[styles.primaryButton, { backgroundColor: palette.premium }]} onPress={handleJoinWithCode}>
-                  <ThemedText style={styles.primaryButtonText}>Join</ThemedText>
-                </Clickable>
-              </View>
-            </View>
-            <View style={[styles.separator, { backgroundColor: palette.border }]} />
-            <View style={{ flex: 1 }}>
-              <ThemedText type="defaultSemiBold">Start a club</ThemedText>
-              <View style={styles.inlineForm}>
-                <TextInput
-                  placeholder="Club name"
-                  placeholderTextColor={palette.muted}
-                  value={newClubName}
-                  onChangeText={setNewClubName}
-                  style={[styles.input, { borderColor: palette.border, color: palette.text }]}
-                />
-                <Clickable style={[styles.secondaryButton, { borderColor: palette.border }]} onPress={handleCreateClub}>
-                  <ThemedText style={{ color: palette.text }}>Create</ThemedText>
-                </Clickable>
-              </View>
-            </View>
+          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <View style={styles.createForm}>
+            <TextInput
+              placeholder="New club name"
+              placeholderTextColor={palette.muted}
+              value={newClubName}
+              onChangeText={setNewClubName}
+              style={[styles.input, { backgroundColor: palette.background, color: palette.text }]}
+            />
+            <Clickable
+              style={[styles.secondaryButton, { borderColor: palette.border }]}
+              onPress={handleCreateClub}
+            >
+              <ThemedText style={{ color: palette.text, fontWeight: '600' }}>Create</ThemedText>
+            </Clickable>
           </View>
-        )}
-      </SurfaceCard>
+        </SurfaceCard>
+      )}
 
       {recentBadges.length > 0 ? (
         <SurfaceCard style={styles.sectionCard} animateElevation={false}>
@@ -501,55 +484,62 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
   },
-  actionsRow: {
+  statRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  primaryButton: {
+  statTile: {
     flex: 1,
-    paddingVertical: Spacing.sm,
     alignItems: 'center',
-    borderRadius: Radii.pill,
+    gap: 2,
+    paddingVertical: Spacing.xs,
+  },
+  joinForm: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    alignItems: 'center',
+  },
+  createForm: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    alignItems: 'center',
+  },
+  divider: {
+    height: 1,
+  },
+  primaryButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    borderRadius: Radii.lg,
   },
   primaryButtonText: {
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#fff',
   },
   secondaryButton: {
-    flex: 1,
     paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
     alignItems: 'center',
-    borderRadius: Radii.pill,
+    borderRadius: Radii.lg,
     borderWidth: 1,
-  },
-  inlineForm: {
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  inlineFormRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    alignItems: 'flex-start',
   },
   input: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
+    flex: 1,
+    borderRadius: Radii.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-  },
-  separator: {
-    width: 1,
-    alignSelf: 'stretch',
+    fontSize: 15,
   },
   sectionCard: {
     gap: Spacing.sm,
