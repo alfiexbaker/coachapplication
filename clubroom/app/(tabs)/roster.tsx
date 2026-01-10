@@ -586,7 +586,7 @@ export default function RosterScreen() {
           setShowRemovalModal(false);
           setSelectedAthleteForRemoval(null);
         }}
-        onConfirm={handleConfirmRemoval}
+        onConfirm={(reason, customReason, archive) => handleConfirmRemoval(reason as RemovalReason, customReason, archive)}
         type="athlete"
         name={selectedAthleteForRemoval?.athleteName || ''}
         isLoading={isRemoving}

@@ -2247,6 +2247,26 @@ export const clubInvites: ClubInvite[] = [
 ];
 
 export const clubFeedPosts: ClubFeedPost[] = [
+  // Pinned announcement at top
+  {
+    id: 'club_post_pinned_1',
+    clubId: 'club_lions',
+    title: 'Club Registration Now Open for Spring Season',
+    body: 'Spring 2026 registration is live! Early bird pricing available until Jan 31. All returning members get priority placement. New families welcome — share with friends!',
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
+    postAs: 'club',
+    postType: 'announcement',
+    isPinned: true,
+    pinnedBy: 'coach_kelly',
+    pinnedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    reactionCount: 45,
+    commentCount: 12,
+  },
+  // Recent announcement
   {
     id: 'club_post_1',
     clubId: 'club_lions',
@@ -2256,11 +2276,31 @@ export const clubFeedPosts: ClubFeedPost[] = [
     audience: 'club',
     audienceLabel: 'Club-wide',
     authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
     postAs: 'club',
+    postType: 'announcement',
     attachments: ['Indoor waiver.pdf'],
     reactionCount: 12,
     commentCount: 4,
   },
+  // Photo post
+  {
+    id: 'club_post_photo_1',
+    clubId: 'club_lions',
+    title: 'U12 Tournament Champions!',
+    body: 'Incredible weekend at the Regional Cup! Our U12s went undefeated and brought home the trophy. So proud of this group!',
+    createdAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Coach Mike',
+    authorId: 'coach_mike',
+    postAs: 'self',
+    postType: 'photo',
+    imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800',
+    reactionCount: 34,
+    commentCount: 8,
+  },
+  // Badge/general post
   {
     id: 'club_post_2',
     clubId: 'club_lions',
@@ -2270,24 +2310,80 @@ export const clubFeedPosts: ClubFeedPost[] = [
     audience: 'squad',
     audienceLabel: 'Squad · U15',
     authorName: 'Coach Sarah',
+    authorId: 'coach1',
     postAs: 'self',
+    postType: 'general',
     badgeAwarded: 'Clinical Finisher',
     reactionCount: 7,
     commentCount: 2,
   },
+  // Event post
+  {
+    id: 'club_post_event_1',
+    clubId: 'club_lions',
+    title: 'Family Fun Day - Save the Date',
+    body: 'Mark your calendars! Annual Family Fun Day is coming up. BBQ, skills challenges, and mini tournaments for all ages. Families and friends welcome!',
+    createdAt: new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
+    postAs: 'club',
+    postType: 'event',
+    eventDate: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    eventLocation: 'Lions Sports Complex',
+    reactionCount: 28,
+    commentCount: 15,
+  },
+  // Staff only post
   {
     id: 'club_post_3',
     clubId: 'club_lions',
     title: 'Staff approvals',
-    body: 'Drafting next month’s schedule. Drop proposed camps and indoor blocks for approval.',
+    body: 'Drafting next month\'s schedule. Drop proposed camps and indoor blocks for approval.',
     createdAt: new Date(today.getTime() - 20 * 60 * 1000).toISOString(),
     audience: 'staff',
     audienceLabel: 'Staff',
     authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
     postAs: 'club',
+    postType: 'general',
     attachments: ['Schedule template'],
     reactionCount: 3,
     commentCount: 1,
+  },
+  // Another photo
+  {
+    id: 'club_post_photo_2',
+    clubId: 'club_lions',
+    title: 'Training highlights',
+    body: 'Great energy at yesterday\'s session! The passing drills are really paying off.',
+    createdAt: new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'squad',
+    audienceLabel: 'Squad · U15',
+    authorName: 'Coach Sarah',
+    authorId: 'coach1',
+    postAs: 'self',
+    postType: 'photo',
+    imageUrl: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800',
+    reactionCount: 19,
+    commentCount: 3,
+  },
+  // General update
+  {
+    id: 'club_post_general_1',
+    clubId: 'club_lions',
+    title: 'Welcome new members!',
+    body: 'Big welcome to the 8 new families joining us this month. Looking forward to seeing everyone on the pitch!',
+    createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
+    postAs: 'club',
+    postType: 'general',
+    reactionCount: 22,
+    commentCount: 6,
   },
 ];
 
@@ -2359,8 +2455,54 @@ export function getClubSquads(clubId: string): ClubSquad[] {
   return clubSquads.filter((squad) => squad.clubId === clubId);
 }
 
-export function getClubFeed(clubId: string): ClubFeedPost[] {
-  return clubFeedPosts.filter((post) => post.clubId === clubId);
+export function getClubFeed(clubId: string, filter?: 'all' | 'announcement' | 'photo' | 'event'): ClubFeedPost[] {
+  let posts = clubFeedPosts.filter((post) => post.clubId === clubId);
+
+  if (filter && filter !== 'all') {
+    posts = posts.filter((post) => post.postType === filter);
+  }
+
+  // Sort: pinned first, then by date descending
+  return posts.sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
+
+export function addClubFeedPost(post: Omit<ClubFeedPost, 'id' | 'createdAt' | 'reactionCount' | 'commentCount'>): ClubFeedPost {
+  const newPost: ClubFeedPost = {
+    ...post,
+    id: `club_post_${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    reactionCount: 0,
+    commentCount: 0,
+  };
+  clubFeedPosts.unshift(newPost);
+  return newPost;
+}
+
+export function togglePinPost(postId: string, pinnedBy: string): boolean {
+  const post = clubFeedPosts.find((p) => p.id === postId);
+  if (!post) return false;
+
+  post.isPinned = !post.isPinned;
+  if (post.isPinned) {
+    post.pinnedBy = pinnedBy;
+    post.pinnedAt = new Date().toISOString();
+  } else {
+    post.pinnedBy = undefined;
+    post.pinnedAt = undefined;
+  }
+  return post.isPinned;
+}
+
+export function getPinnedPosts(clubId: string): ClubFeedPost[] {
+  return clubFeedPosts.filter((post) => post.clubId === clubId && post.isPinned);
+}
+
+export function getAnnouncements(clubId: string): ClubFeedPost[] {
+  return clubFeedPosts.filter((post) => post.clubId === clubId && post.postType === 'announcement');
 }
 
 export function getClubSessions(clubId: string): SessionOffering[] {

@@ -1,5 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { StyleSheet, View, Text, Pressable } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,27 +8,88 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // Tab bar height constant for proper positioning
 const TAB_BAR_HEIGHT = 60;
+const UNDO_DURATION = 5000; // 5 seconds for undo
+
+interface ToastOptions {
+  tone?: 'default' | 'success' | 'error';
+  action?: {
+    label: string;
+    onPress: () => void;
+  };
+  duration?: number;
+}
 
 type ToastContextValue = {
-  showToast: (message: string, tone?: 'default' | 'success' | 'error') => void;
+  showToast: (message: string, options?: ToastOptions | 'default' | 'success' | 'error') => void;
+  showUndoToast: (message: string, onUndo: () => void) => void;
+  hideToast: () => void;
 };
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toast, setToast] = useState<{ message: string; tone: 'default' | 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    tone: 'default' | 'success' | 'error';
+    action?: { label: string; onPress: () => void };
+  } | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const showToast = useCallback((message: string, tone: 'default' | 'success' | 'error' = 'default') => {
-    setToast({ message, tone });
-    setTimeout(() => setToast(null), 2500);
+  const hideToast = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setToast(null);
   }, []);
 
-  const value = useMemo(() => ({ showToast }), [showToast]);
+  const showToast = useCallback((
+    message: string,
+    options?: ToastOptions | 'default' | 'success' | 'error'
+  ) => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Handle legacy string-only tone parameter
+    const resolvedOptions: ToastOptions = typeof options === 'string'
+      ? { tone: options }
+      : options || {};
+
+    const { tone = 'default', action, duration = 2500 } = resolvedOptions;
+
+    setToast({ message, tone, action });
+    timeoutRef.current = setTimeout(() => setToast(null), duration);
+  }, []);
+
+  const showUndoToast = useCallback((message: string, onUndo: () => void) => {
+    showToast(message, {
+      tone: 'success',
+      action: {
+        label: 'Undo',
+        onPress: () => {
+          onUndo();
+          hideToast();
+        },
+      },
+      duration: UNDO_DURATION,
+    });
+  }, [showToast, hideToast]);
+
+  const value = useMemo(() => ({ showToast, showUndoToast, hideToast }), [showToast, showUndoToast, hideToast]);
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <Toast message={toast?.message} tone={toast?.tone} />
+      <Toast
+        message={toast?.message}
+        tone={toast?.tone}
+        action={toast?.action}
+        onActionPress={() => {
+          toast?.action?.onPress();
+        }}
+      />
     </ToastContext.Provider>
   );
 }
@@ -41,7 +102,17 @@ export function useToast() {
   return ctx;
 }
 
-function Toast({ message, tone = 'default' }: { message?: string; tone?: 'default' | 'success' | 'error' }) {
+function Toast({
+  message,
+  tone = 'default',
+  action,
+  onActionPress,
+}: {
+  message?: string;
+  tone?: 'default' | 'success' | 'error';
+  action?: { label: string; onPress: () => void };
+  onActionPress?: () => void;
+}) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const insets = useSafeAreaInsets();
@@ -57,7 +128,7 @@ function Toast({ message, tone = 'default' }: { message?: string; tone?: 'defaul
       entering={FadeInDown.springify()}
       exiting={FadeOutUp}
       style={[styles.container, { bottom: bottomPosition }]}
-      pointerEvents="none"
+      pointerEvents={action ? 'box-none' : 'none'}
     >
       <View
         style={[
@@ -66,6 +137,17 @@ function Toast({ message, tone = 'default' }: { message?: string; tone?: 'defaul
         ]}
       >
         <Text style={[styles.message, { color: toneColor }]}>{message}</Text>
+        {action && (
+          <Pressable
+            onPress={onActionPress}
+            style={({ pressed }) => [
+              styles.actionButton,
+              { backgroundColor: `${palette.tint}${pressed ? '30' : '15'}` },
+            ]}
+          >
+            <Text style={[styles.actionText, { color: palette.tint }]}>{action.label}</Text>
+          </Pressable>
+        )}
       </View>
     </Animated.View>
   );
@@ -81,6 +163,9 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
   toast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
     borderWidth: 1,
     borderRadius: Radii.lg,
     paddingHorizontal: Spacing.lg,
@@ -92,7 +177,17 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   message: {
+    flex: 1,
     fontSize: 15,
+    fontWeight: '700',
+  },
+  actionButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.md,
+  },
+  actionText: {
+    fontSize: 14,
     fontWeight: '700',
   },
 });

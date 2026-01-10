@@ -1,5 +1,7 @@
-import { View, StyleSheet, Image } from 'react-native';
+import { useRef } from 'react';
+import { View, StyleSheet, Image, Pressable, Animated, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Swipeable } from 'react-native-gesture-handler';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -11,16 +13,67 @@ import type { RosterEntry } from '@/constants/types';
 interface AthleteRowProps {
   entry: RosterEntry;
   onPress?: () => void;
+  onRemove?: () => void;
+  onLongPress?: () => void;
+  swipeEnabled?: boolean;
 }
 
-export function AthleteRow({ entry, onPress }: AthleteRowProps) {
+export function AthleteRow({
+  entry,
+  onPress,
+  onRemove,
+  onLongPress,
+  swipeEnabled = true,
+}: AthleteRowProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const swipeableRef = useRef<Swipeable>(null);
 
   const statusColor = rosterService.getStatusColor(entry.status);
 
-  return (
-    <SurfaceCard style={styles.card} onPress={onPress}>
+  const handleRemovePress = () => {
+    swipeableRef.current?.close();
+    onRemove?.();
+  };
+
+  const renderRightActions = (
+    progress: Animated.AnimatedInterpolation<number>,
+    dragX: Animated.AnimatedInterpolation<number>
+  ) => {
+    const scale = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [1, 0.8],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = dragX.interpolate({
+      inputRange: [-100, -50, 0],
+      outputRange: [1, 0.8, 0],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <Animated.View style={[styles.swipeAction, { opacity }]}>
+        <Pressable
+          onPress={handleRemovePress}
+          style={[styles.removeButton, { backgroundColor: palette.error }]}
+        >
+          <Animated.View style={{ transform: [{ scale }] }}>
+            <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+            <ThemedText style={styles.removeText}>Remove</ThemedText>
+          </Animated.View>
+        </Pressable>
+      </Animated.View>
+    );
+  };
+
+  const content = (
+    <SurfaceCard
+      style={styles.card}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={500}
+    >
       <View style={styles.main}>
         {/* Avatar */}
         {entry.athletePhotoUrl ? (
@@ -83,6 +136,22 @@ export function AthleteRow({ entry, onPress }: AthleteRowProps) {
         </View>
       )}
     </SurfaceCard>
+  );
+
+  if (!swipeEnabled || !onRemove) {
+    return content;
+  }
+
+  return (
+    <Swipeable
+      ref={swipeableRef}
+      renderRightActions={renderRightActions}
+      friction={2}
+      rightThreshold={40}
+      overshootRight={false}
+    >
+      {content}
+    </Swipeable>
   );
 }
 
@@ -171,5 +240,23 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 10,
     fontWeight: '500',
+  },
+  swipeAction: {
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingLeft: Spacing.sm,
+  },
+  removeButton: {
+    width: 80,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: Radii.md,
+  },
+  removeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });
