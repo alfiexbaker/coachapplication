@@ -32,6 +32,7 @@ import type {
   ClubInvite,
   ClubSquad,
   SessionOffering,
+  SocialLinks,
 } from './types';
 
 // ===== USERS =====
@@ -2697,6 +2698,13 @@ export const coachProfiles: EnhancedCoachProfile[] = [
       'Over 230 successful training sessions',
       'Helped 15+ athletes join academy programs',
     ],
+    socialLinks: {
+      instagram: '@coachsarahmitchell',
+      twitter: '@SarahMitchellGK',
+      youtube: '@SarahMitchellCoaching',
+      linkedin: 'sarah-mitchell-coaching',
+      website: 'https://sarahmitchellcoaching.com',
+    },
   },
 ];
 

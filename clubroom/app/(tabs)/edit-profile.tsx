@@ -16,9 +16,10 @@ import { router } from 'expo-router';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
+import { SocialLinksEditor } from '@/components/profile/social-links-editor';
 import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
-import { CoachExperience, CoachLanguage, FootballObjective } from '@/constants/types';
+import { CoachExperience, CoachLanguage, FootballObjective, SocialLinks } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const footballObjectives: FootballObjective[] = [
@@ -75,6 +76,7 @@ export default function EditProfileScreen() {
   const [languages, setLanguages] = useState<CoachLanguage[]>(coach.languages || []);
   const [languageDraft, setLanguageDraft] = useState<CoachLanguage>(createBlankLanguage());
   const [isLanguageModalVisible, setLanguageModalVisible] = useState(false);
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(coach.socialLinks || {});
 
   const toggleFocus = (focus: FootballObjective) => {
     if (selectedFocuses.includes(focus)) {
@@ -150,6 +152,7 @@ export default function EditProfileScreen() {
       footballFocuses: selectedFocuses,
       experiences,
       languages,
+      socialLinks,
     };
 
     console.log('Profile payload ready for API sync', payload);
@@ -519,6 +522,14 @@ export default function EditProfileScreen() {
                 })}
               </View>
             </View>
+          </SurfaceCard>
+
+          {/* Social Media Links Section */}
+          <SurfaceCard style={styles.section}>
+            <SocialLinksEditor
+              socialLinks={socialLinks}
+              onChange={setSocialLinks}
+            />
           </SurfaceCard>
 
           {/* Certifications Section */}
