@@ -463,3 +463,565 @@ export interface NotificationItem {
   actionLabel?: string;
   handled?: boolean;
 }
+
+// ============================================================================
+// SESSION INVITES (Coach → Parent)
+// ============================================================================
+
+export interface TimeSlot {
+  date: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+}
+
+export interface SessionInvite {
+  id: string;
+  coachId: string;
+  coachName: string;
+  coachPhotoUrl?: string;
+  athleteIds: string[];
+  athleteNames: string[];
+  parentId: string;
+  parentName: string;
+  proposedSlots: TimeSlot[];
+  sessionType: string;
+  focus: string;
+  notes?: string;
+  priceUsd?: number;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED';
+  expiresAt: string;
+  createdAt: string;
+  respondedAt?: string;
+  counterProposal?: TimeSlot[];
+  counterNote?: string;
+}
+
+// ============================================================================
+// AVAILABILITY MANAGEMENT
+// ============================================================================
+
+export interface AvailabilityTemplate {
+  id: string;
+  coachId: string;
+  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  startTime: string;
+  endTime: string;
+  isRecurring: boolean;
+  maxConcurrent: number;
+  bufferMinutes: number;
+  location?: string;
+}
+
+export interface AvailabilityOverride {
+  id: string;
+  coachId: string;
+  date: string;
+  isBlocked: boolean;
+  reason?: string;
+  customSlots?: TimeSlot[];
+}
+
+export interface AvailabilitySlot {
+  date: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  bookedCount: number;
+  maxBookings: number;
+  location?: string;
+}
+
+// ============================================================================
+// VIDEO MANAGEMENT
+// ============================================================================
+
+export type VideoAnnotationType = 'HIGHLIGHT' | 'IMPROVEMENT' | 'TECHNIQUE' | 'GENERAL';
+
+export interface VideoAnnotation {
+  id: string;
+  timestamp: number;
+  label: string;
+  note?: string;
+  type: VideoAnnotationType;
+}
+
+export interface SessionVideo {
+  id: string;
+  sessionId?: string;
+  bookingId?: string;
+  coachId: string;
+  coachName: string;
+  athleteIds: string[];
+  athleteNames: string[];
+  title: string;
+  description?: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  duration: number;
+  fileSize: number;
+  annotations: VideoAnnotation[];
+  visibility: 'PRIVATE' | 'SHARED' | 'PUBLIC';
+  sharedWith: string[];
+  createdAt: string;
+  uploadStatus: 'UPLOADING' | 'PROCESSING' | 'READY' | 'FAILED';
+  viewCount: number;
+  tags: string[];
+}
+
+// ============================================================================
+// PLAYER ANALYTICS & PROGRESS
+// ============================================================================
+
+export interface SkillProgress {
+  skillName: string;
+  category: string;
+  currentLevel: number;
+  previousLevel: number;
+  changePercent: number;
+  history: { date: string; level: number }[];
+}
+
+export interface GoalMilestone {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  completedAt?: string;
+}
+
+export interface Goal {
+  id: string;
+  athleteId: string;
+  title: string;
+  description?: string;
+  targetDate?: string;
+  progress: number;
+  milestones: GoalMilestone[];
+  status: 'ACTIVE' | 'COMPLETED' | 'ABANDONED';
+  createdBy: 'COACH' | 'ATHLETE' | 'PARENT';
+  createdById: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AthleteAnalytics {
+  athleteId: string;
+  athleteName: string;
+  period: 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 'ALL';
+  totalSessions: number;
+  sessionsThisPeriod: number;
+  averageSessionRating: number;
+  attendanceRate: number;
+  skills: SkillProgress[];
+  activeGoals: Goal[];
+  completedGoals: Goal[];
+  improvementRate: number;
+  consistencyScore: number;
+  percentileRank: number;
+  lastSessionDate?: string;
+  nextSessionDate?: string;
+}
+
+// ============================================================================
+// GROUP SESSIONS
+// ============================================================================
+
+export interface GroupSessionSchedule {
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface GroupSession {
+  id: string;
+  coachId: string;
+  coachName: string;
+  coachPhotoUrl?: string;
+  clubId?: string;
+  clubName?: string;
+  title: string;
+  description: string;
+  sessionType: 'CAMP' | 'CLINIC' | 'TEAM_TRAINING' | 'OPEN_SESSION' | 'TRIAL';
+  schedule: GroupSessionSchedule[];
+  maxParticipants: number;
+  currentParticipants: number;
+  waitlistEnabled: boolean;
+  waitlistCount: number;
+  pricePerParticipant: number;
+  currency: string;
+  ageMin?: number;
+  ageMax?: number;
+  skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ALL';
+  location: string;
+  isVirtual: boolean;
+  status: 'DRAFT' | 'PUBLISHED' | 'FULL' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  focus?: FootballObjective[];
+  equipment?: string[];
+  imageUrl?: string;
+}
+
+export interface GroupRegistration {
+  id: string;
+  sessionId: string;
+  athleteId: string;
+  athleteName: string;
+  parentId: string;
+  parentName: string;
+  status: 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' | 'ATTENDED' | 'NO_SHOW';
+  registeredAt: string;
+  paidAt?: string;
+  attendedDates: string[];
+  notes?: string;
+}
+
+// ============================================================================
+// ACADEMY / SCHOOL SYSTEM
+// ============================================================================
+
+export type AcademyPermission =
+  | 'MANAGE_STAFF'
+  | 'MANAGE_SETTINGS'
+  | 'CREATE_SESSIONS'
+  | 'VIEW_ANALYTICS'
+  | 'MANAGE_BILLING'
+  | 'POST_AS_ACADEMY'
+  | 'INVITE_MEMBERS';
+
+export interface Academy {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  postcode: string;
+  city: string;
+  coachCount: number;
+  athleteCount: number;
+  sessionCount: number;
+  isPublic: boolean;
+  requiresApproval: boolean;
+  ownerId: string;
+  ownerName: string;
+  createdAt: string;
+  rating?: {
+    average: number;
+    reviewCount: number;
+  };
+  sports: SportCategory[];
+  specialties: FootballObjective[];
+}
+
+export interface AcademyMembership {
+  id: string;
+  academyId: string;
+  userId: string;
+  userName: string;
+  userPhotoUrl?: string;
+  role: 'OWNER' | 'ADMIN' | 'HEAD_COACH' | 'COACH' | 'ASSISTANT' | 'MEMBER';
+  permissions: AcademyPermission[];
+  status: 'ACTIVE' | 'PENDING' | 'SUSPENDED';
+  joinedAt: string;
+  invitedBy?: string;
+}
+
+export interface AcademyInvite {
+  id: string;
+  academyId: string;
+  academyName: string;
+  code: string;
+  role: AcademyMembership['role'];
+  permissions: AcademyPermission[];
+  createdBy: string;
+  createdByName: string;
+  expiresAt: string;
+  maxUses: number;
+  currentUses: number;
+}
+
+// ============================================================================
+// COACH ROSTER & ATHLETE DIRECTORY
+// ============================================================================
+
+export interface RosterNote {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface RosterEntry {
+  id: string;
+  coachId: string;
+  athleteId: string;
+  athleteName: string;
+  athleteAge?: number;
+  athletePhotoUrl?: string;
+  athleteSkillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  parentId: string;
+  parentName: string;
+  parentEmail?: string;
+  parentPhone?: string;
+  status: 'ACTIVE' | 'PAUSED' | 'GRADUATED' | 'INACTIVE';
+  startDate: string;
+  lastSessionDate?: string;
+  nextSessionDate?: string;
+  totalSessions: number;
+  totalRevenue: number;
+  averageRating: number;
+  notes: RosterNote[];
+  tags: string[];
+  primaryFocus?: FootballObjective;
+  notificationPreference: 'ALL' | 'IMPORTANT' | 'NONE';
+}
+
+// ============================================================================
+// VERIFICATION & TRUST
+// ============================================================================
+
+export interface VerificationItem {
+  status: 'NOT_STARTED' | 'PENDING' | 'VERIFIED' | 'FAILED' | 'EXPIRED';
+  verifiedAt?: string;
+  expiresAt?: string;
+  documentUrl?: string;
+  notes?: string;
+}
+
+export interface VerificationStatus {
+  coachId: string;
+  email: VerificationItem;
+  phone: VerificationItem;
+  identity: VerificationItem;
+  backgroundCheck: VerificationItem;
+  credentials: VerificationItem[];
+  insurance: VerificationItem;
+  overallLevel: 'NONE' | 'BASIC' | 'VERIFIED' | 'PREMIUM';
+  lastUpdated: string;
+}
+
+// ============================================================================
+// EMERGENCY & SAFETY INFO
+// ============================================================================
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  email?: string;
+  isPrimary: boolean;
+  canPickup: boolean;
+}
+
+export interface MedicalInfo {
+  conditions: string[];
+  allergies: string[];
+  medications: string[];
+  doctorName?: string;
+  doctorPhone?: string;
+  insuranceProvider?: string;
+  insuranceNumber?: string;
+  restrictions: string[];
+  notes?: string;
+}
+
+export type ConsentType = 'PHOTO' | 'VIDEO' | 'SOCIAL_MEDIA' | 'EMERGENCY_TREATMENT';
+
+export interface Consent {
+  type: ConsentType;
+  granted: boolean;
+  grantedAt?: string;
+  grantedBy: string;
+}
+
+export interface EmergencyInfo {
+  athleteId: string;
+  contacts: EmergencyContact[];
+  medical: MedicalInfo;
+  consents: Consent[];
+  updatedAt: string;
+}
+
+// ============================================================================
+// ENHANCED NOTIFICATIONS
+// ============================================================================
+
+export type NotificationType =
+  | 'BOOKING_RECEIVED'
+  | 'BOOKING_CONFIRMED'
+  | 'BOOKING_CANCELLED'
+  | 'SESSION_REMINDER'
+  | 'MESSAGE_RECEIVED'
+  | 'SESSION_INVITE'
+  | 'SESSION_INVITE_RESPONSE'
+  | 'REVIEW_REQUEST'
+  | 'REVIEW_RECEIVED'
+  | 'BADGE_AWARDED'
+  | 'WAITLIST_AVAILABLE'
+  | 'PAYMENT_RECEIVED'
+  | 'PAYMENT_FAILED'
+  | 'GOAL_COMPLETED'
+  | 'VIDEO_SHARED';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+  deepLink?: string;
+  isRead: boolean;
+  createdAt: string;
+  expiresAt?: string;
+}
+
+export interface NotificationPreferences {
+  userId: string;
+  inApp: boolean;
+  push: boolean;
+  email: boolean;
+  sms: boolean;
+  typePreferences: {
+    [key in NotificationType]?: {
+      enabled: boolean;
+      channels: ('IN_APP' | 'PUSH' | 'EMAIL' | 'SMS')[];
+    };
+  };
+  quietHoursEnabled: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+}
+
+// ============================================================================
+// ENHANCED REVIEWS
+// ============================================================================
+
+export interface Review {
+  id: string;
+  coachId: string;
+  coachName: string;
+  parentId: string;
+  parentName: string;
+  parentPhotoUrl?: string;
+  athleteId?: string;
+  athleteName?: string;
+  bookingId?: string;
+  rating: number;
+  title?: string;
+  content: string;
+  isPublic: boolean;
+  response?: string;
+  respondedAt?: string;
+  isVerifiedBooking: boolean;
+  status: 'PENDING' | 'PUBLISHED' | 'HIDDEN' | 'FLAGGED';
+  createdAt: string;
+  updatedAt?: string;
+  helpfulCount: number;
+}
+
+// ============================================================================
+// PAYMENTS & TRANSACTIONS
+// ============================================================================
+
+export interface PaymentMethod {
+  id: string;
+  userId: string;
+  type: 'CARD' | 'APPLE_PAY' | 'GOOGLE_PAY' | 'BANK';
+  last4?: string;
+  brand?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  isDefault: boolean;
+  stripePaymentMethodId?: string;
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  type: 'PAYMENT' | 'REFUND' | 'PAYOUT';
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  description: string;
+  bookingId?: string;
+  stripePaymentIntentId?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface CoachEarnings {
+  coachId: string;
+  balance: number;
+  pendingBalance: number;
+  lifetimeEarnings: number;
+  recentTransactions: Transaction[];
+  payoutSchedule: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'MANUAL';
+  nextPayoutDate?: string;
+  stripeAccountId?: string;
+  stripeAccountStatus?: 'PENDING' | 'ACTIVE' | 'RESTRICTED';
+}
+
+// ============================================================================
+// SESSION NOTES (Enhanced)
+// ============================================================================
+
+export interface SessionNote {
+  id: string;
+  bookingId: string;
+  coachId: string;
+  athleteId: string;
+  effortRating: number;
+  focusAreas: FootballObjective[];
+  improvements: string[];
+  homework: string[];
+  privateNotes?: string;
+  parentVisibleNotes?: string;
+  videoUrls: string[];
+  skillUpdates: {
+    skill: FootballObjective;
+    previousLevel: number;
+    newLevel: number;
+  }[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// ============================================================================
+// PACKAGES & PRICING
+// ============================================================================
+
+export interface SessionPackage {
+  id: string;
+  coachId: string;
+  name: string;
+  description?: string;
+  sessionCount: number;
+  priceUsd: number;
+  savingsPercent: number;
+  validDays: number;
+  isActive: boolean;
+  sessionType?: string;
+  focus?: FootballObjective[];
+}
+
+export interface PackagePurchase {
+  id: string;
+  packageId: string;
+  packageName: string;
+  userId: string;
+  coachId: string;
+  sessionsTotal: number;
+  sessionsUsed: number;
+  sessionsRemaining: number;
+  purchasedAt: string;
+  expiresAt: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'EXHAUSTED';
+}
