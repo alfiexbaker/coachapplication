@@ -158,9 +158,24 @@ export default function SettingsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Settings
-          </ThemedText>
+          <View style={styles.headerRow}>
+            <ThemedText type="title" style={styles.title}>
+              Settings
+            </ThemedText>
+            <Clickable
+              onPress={() => {
+                logger.press('SettingsHub', { targetRoute: '/settings' });
+                router.push('/settings');
+              }}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.settingsButton,
+                { backgroundColor: pressed ? `${palette.accent}20` : `${palette.accent}10` },
+              ]}
+            >
+              <Ionicons name="settings-outline" size={22} color={palette.accent} />
+            </Clickable>
+          </View>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Collated controls, profile, and alerts</ThemedText>
         </View>
 
@@ -483,6 +498,18 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: Spacing.xs,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,
