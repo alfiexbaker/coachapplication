@@ -29,13 +29,14 @@ const NAV_LINKS: Record<string, { title: string; subtitle?: string; icon: string
     { title: 'My Bookings', subtitle: 'Upcoming & past sessions', icon: 'calendar-outline', route: '/(tabs)/bookings' },
     { title: 'Messages', subtitle: 'Chat with coaches', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Feed & Community', subtitle: 'Posts, drills, highlights', icon: 'newspaper-outline', route: '/(tabs)/feed' },
-    { title: 'Badges & Progress', subtitle: 'Recognition and session pathway', icon: 'ribbon-outline', route: '/(tabs)/badges' },
+    { title: 'Badges & Achievements', subtitle: 'All badges and progress tracking', icon: 'ribbon-outline', route: '/badges' },
   ],
   PARENT: [
     { title: 'Kids & Bookings', subtitle: 'See all children', icon: 'people-outline', route: '/(tabs)/bookings' },
     { title: 'Messages', subtitle: 'Coaches and updates', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Discover Coaches', subtitle: 'Find local sessions', icon: 'search-outline', route: '/(tabs)/more' },
     { title: 'Activity Feed', subtitle: 'Goals and highlights', icon: 'newspaper-outline', route: '/(tabs)/feed' },
+    { title: 'Badges & Achievements', subtitle: 'View earned badges and milestones', icon: 'ribbon-outline', route: '/badges' },
   ],
   ADMIN: [
     { title: 'User Directory', subtitle: 'Moderate accounts', icon: 'person-circle-outline', route: '/(tabs)/index' },

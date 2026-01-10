@@ -1,0 +1,400 @@
+import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Radii, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { TierNames } from '@/constants/progression';
+import type { AllBadgeWithProgress, BadgeType } from '@/services/badge-service';
+
+interface BadgeCardProps {
+  badge: AllBadgeWithProgress;
+  onPress?: () => void;
+  compact?: boolean;
+}
+
+const BADGE_TYPE_ICONS: Record<BadgeType, keyof typeof Ionicons.glyphMap> = {
+  skill: 'ribbon',
+  milestone: 'trophy',
+  streak: 'flame',
+  event: 'star',
+};
+
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  leadership: 'people',
+  consistency: 'refresh',
+  technique: 'football',
+  mindset: 'bulb',
+  teamwork: 'hand-left',
+  resilience: 'fitness',
+};
+
+export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  const getTierColor = (tier?: 1 | 2 | 3) => {
+    switch (tier) {
+      case 3:
+        return '#FFD700'; // Gold
+      case 2:
+        return '#C0C0C0'; // Silver
+      case 1:
+        return '#CD7F32'; // Bronze
+      default:
+        return palette.tint;
+    }
+  };
+
+  const tierColor = getTierColor(badge.tier);
+  const isLocked = !badge.isUnlocked;
+  const badgeIcon = BADGE_TYPE_ICONS[badge.badgeType];
+  const categoryIcon = badge.category ? CATEGORY_ICONS[badge.category] : undefined;
+
+  // Format earned date
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  if (compact) {
+    return (
+      <SurfaceCard
+        style={[
+          styles.compactCard,
+          isLocked && styles.lockedCard,
+          { borderColor: isLocked ? palette.border : `${tierColor}40` },
+        ]}
+        onPress={onPress}
+        tactile={!!onPress}
+      >
+        <View
+          style={[
+            styles.compactIconContainer,
+            {
+              backgroundColor: isLocked ? `${palette.muted}15` : `${tierColor}20`,
+            },
+          ]}
+        >
+          <Ionicons
+            name={badgeIcon}
+            size={20}
+            color={isLocked ? palette.muted : tierColor}
+            style={isLocked ? styles.lockedIcon : undefined}
+          />
+          {isLocked && (
+            <View style={styles.lockOverlay}>
+              <Ionicons name="lock-closed" size={10} color={palette.muted} />
+            </View>
+          )}
+        </View>
+        <View style={styles.compactContent}>
+          <ThemedText
+            type="defaultSemiBold"
+            style={[styles.compactLabel, isLocked && { color: palette.muted }]}
+            numberOfLines={1}
+          >
+            {badge.label}
+          </ThemedText>
+          {badge.tier && (
+            <View
+              style={[
+                styles.tierPillSmall,
+                { backgroundColor: isLocked ? `${palette.muted}15` : `${tierColor}20` },
+              ]}
+            >
+              <ThemedText
+                style={[styles.tierTextSmall, { color: isLocked ? palette.muted : tierColor }]}
+              >
+                {TierNames[badge.tier]}
+              </ThemedText>
+            </View>
+          )}
+        </View>
+        {!isLocked && badge.earnedAt && (
+          <Ionicons name="checkmark-circle" size={16} color={palette.success} />
+        )}
+      </SurfaceCard>
+    );
+  }
+
+  return (
+    <SurfaceCard
+      style={[
+        styles.card,
+        isLocked && styles.lockedCard,
+        { borderColor: isLocked ? palette.border : `${tierColor}40` },
+      ]}
+      onPress={onPress}
+      tactile={!!onPress}
+    >
+      {/* Badge Icon */}
+      <View style={styles.iconRow}>
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              backgroundColor: isLocked ? `${palette.muted}15` : `${tierColor}20`,
+            },
+          ]}
+        >
+          <Ionicons
+            name={badgeIcon}
+            size={28}
+            color={isLocked ? palette.muted : tierColor}
+            style={isLocked ? styles.lockedIcon : undefined}
+          />
+          {isLocked && (
+            <View style={styles.lockOverlay}>
+              <Ionicons name="lock-closed" size={12} color={palette.muted} />
+            </View>
+          )}
+        </View>
+        {badge.tier && (
+          <View
+            style={[
+              styles.tierPill,
+              { backgroundColor: isLocked ? `${palette.muted}15` : `${tierColor}20` },
+            ]}
+          >
+            <ThemedText
+              style={[styles.tierText, { color: isLocked ? palette.muted : tierColor }]}
+            >
+              {TierNames[badge.tier]}
+            </ThemedText>
+          </View>
+        )}
+      </View>
+
+      {/* Badge Info */}
+      <View style={styles.infoSection}>
+        <ThemedText
+          type="defaultSemiBold"
+          style={[styles.label, isLocked && { color: palette.muted }]}
+          numberOfLines={2}
+        >
+          {badge.label}
+        </ThemedText>
+        {badge.description && (
+          <ThemedText
+            style={[styles.description, { color: palette.muted }]}
+            numberOfLines={2}
+          >
+            {badge.description}
+          </ThemedText>
+        )}
+      </View>
+
+      {/* Progress Bar (for locked badges with progress) */}
+      {isLocked && badge.progress > 0 && badge.progress < 100 && (
+        <View style={styles.progressSection}>
+          <View style={[styles.progressBar, { backgroundColor: `${palette.tint}15` }]}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: palette.tint,
+                  width: `${badge.progress}%`,
+                },
+              ]}
+            />
+          </View>
+          <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>
+            {badge.progressLabel}
+          </ThemedText>
+        </View>
+      )}
+
+      {/* Locked state with requirement */}
+      {isLocked && badge.progress === 0 && (
+        <View style={styles.requirementSection}>
+          <Ionicons name="lock-closed" size={12} color={palette.muted} />
+          <ThemedText style={[styles.requirementText, { color: palette.muted }]}>
+            {badge.progressLabel}
+          </ThemedText>
+        </View>
+      )}
+
+      {/* Unlocked state with earned date */}
+      {!isLocked && (
+        <View style={styles.earnedSection}>
+          <View style={styles.earnedRow}>
+            <Ionicons name="checkmark-circle" size={14} color={palette.success} />
+            <ThemedText style={[styles.earnedText, { color: palette.success }]}>
+              Earned
+            </ThemedText>
+          </View>
+          {badge.earnedAt && (
+            <ThemedText style={[styles.dateText, { color: palette.muted }]}>
+              {formatDate(badge.earnedAt)}
+            </ThemedText>
+          )}
+        </View>
+      )}
+
+      {/* Points value */}
+      <View style={styles.pointsSection}>
+        {categoryIcon && (
+          <View style={[styles.categoryPill, { backgroundColor: `${palette.tint}10` }]}>
+            <Ionicons name={categoryIcon} size={12} color={palette.tint} />
+          </View>
+        )}
+        <ThemedText style={[styles.pointsText, { color: palette.tint }]}>
+          +{badge.pointValue} pts
+        </ThemedText>
+      </View>
+    </SurfaceCard>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+    minHeight: 160,
+  },
+  compactCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  lockedCard: {
+    opacity: 0.85,
+  },
+  iconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  iconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  compactIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  lockedIcon: {
+    opacity: 0.5,
+  },
+  lockOverlay: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 2,
+  },
+  tierPill: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
+  },
+  tierPillSmall: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  tierText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tierTextSmall: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  infoSection: {
+    gap: 4,
+    flex: 1,
+  },
+  label: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  compactLabel: {
+    fontSize: 14,
+  },
+  compactContent: {
+    flex: 1,
+    gap: 4,
+  },
+  description: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  progressSection: {
+    gap: 6,
+  },
+  progressBar: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressLabel: {
+    fontSize: 11,
+  },
+  requirementSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  requirementText: {
+    fontSize: 11,
+  },
+  earnedSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  earnedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  earnedText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  dateText: {
+    fontSize: 11,
+  },
+  pointsSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 'auto',
+  },
+  categoryPill: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pointsText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});
