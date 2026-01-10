@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,13 +16,26 @@ export interface Athlete {
   photoUrl?: string;
   age?: number;
   lastSession?: string;
+  skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  squadId?: string;
+  squadName?: string;
+  tags?: string[];
 }
+
+export interface Squad {
+  id: string;
+  name: string;
+}
+
+type SkillFilter = 'ALL' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+type AgeFilter = 'ALL' | 'U8' | 'U10' | 'U12' | 'U14' | 'U16' | '16+';
 
 interface InviteAthleteModalProps {
   visible: boolean;
   onClose: () => void;
   onSelect: (athletes: Athlete[]) => void;
   athletes: Athlete[];
+  squads?: Squad[];
   multiSelect?: boolean;
   title?: string;
 }
@@ -32,6 +45,7 @@ export function InviteAthleteModal({
   onClose,
   onSelect,
   athletes,
+  squads = [],
   multiSelect = true,
   title = 'Select Athletes',
 }: InviteAthleteModalProps) {
@@ -40,12 +54,65 @@ export function InviteAthleteModal({
 
   const [selectedAthletes, setSelectedAthletes] = useState<Athlete[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [skillFilter, setSkillFilter] = useState<SkillFilter>('ALL');
+  const [ageFilter, setAgeFilter] = useState<AgeFilter>('ALL');
+  const [squadFilter, setSquadFilter] = useState<string>('ALL');
+  const [showFilters, setShowFilters] = useState(false);
 
-  const filteredAthletes = athletes.filter(
-    (athlete) =>
-      athlete.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      athlete.parentName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Helper to check age range
+  const isInAgeRange = (age: number | undefined, filter: AgeFilter): boolean => {
+    if (!age || filter === 'ALL') return true;
+    switch (filter) {
+      case 'U8':
+        return age < 8;
+      case 'U10':
+        return age >= 8 && age < 10;
+      case 'U12':
+        return age >= 10 && age < 12;
+      case 'U14':
+        return age >= 12 && age < 14;
+      case 'U16':
+        return age >= 14 && age < 16;
+      case '16+':
+        return age >= 16;
+      default:
+        return true;
+    }
+  };
+
+  const filteredAthletes = useMemo(() => {
+    return athletes.filter((athlete) => {
+      // Search filter
+      const matchesSearch =
+        athlete.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        athlete.parentName.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Skill level filter
+      const matchesSkill =
+        skillFilter === 'ALL' || athlete.skillLevel === skillFilter;
+
+      // Age filter
+      const matchesAge = isInAgeRange(athlete.age, ageFilter);
+
+      // Squad filter
+      const matchesSquad =
+        squadFilter === 'ALL' || athlete.squadId === squadFilter;
+
+      return matchesSearch && matchesSkill && matchesAge && matchesSquad;
+    });
+  }, [athletes, searchQuery, skillFilter, ageFilter, squadFilter]);
+
+  // Get unique squads from athletes if not provided
+  const availableSquads = useMemo(() => {
+    if (squads.length > 0) return squads;
+    const squadMap = new Map<string, string>();
+    athletes.forEach((a) => {
+      if (a.squadId && a.squadName) {
+        squadMap.set(a.squadId, a.squadName);
+      }
+    });
+    return Array.from(squadMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [athletes, squads]);
 
   const toggleAthlete = (athlete: Athlete) => {
     if (multiSelect) {
@@ -59,6 +126,43 @@ export function InviteAthleteModal({
       setSelectedAthletes([athlete]);
     }
   };
+
+  // Select All / Select None
+  const selectAll = () => {
+    setSelectedAthletes(filteredAthletes);
+  };
+
+  const selectNone = () => {
+    setSelectedAthletes([]);
+  };
+
+  // Quick select helpers
+  const selectBySquad = (squadId: string) => {
+    const squadAthletes = athletes.filter((a) => a.squadId === squadId);
+    setSelectedAthletes(squadAthletes);
+    setSquadFilter(squadId);
+  };
+
+  const selectBySkillLevel = (level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED') => {
+    const levelAthletes = athletes.filter((a) => a.skillLevel === level);
+    setSelectedAthletes(levelAthletes);
+    setSkillFilter(level);
+  };
+
+  const selectByAgeRange = (filter: AgeFilter) => {
+    const ageAthletes = athletes.filter((a) => isInAgeRange(a.age, filter));
+    setSelectedAthletes(ageAthletes);
+    setAgeFilter(filter);
+  };
+
+  const resetFilters = () => {
+    setSkillFilter('ALL');
+    setAgeFilter('ALL');
+    setSquadFilter('ALL');
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters = skillFilter !== 'ALL' || ageFilter !== 'ALL' || squadFilter !== 'ALL';
 
   const handleConfirm = () => {
     onSelect(selectedAthletes);
@@ -122,16 +226,191 @@ export function InviteAthleteModal({
                 <Ionicons name="close-circle" size={18} color={palette.muted} />
               </Clickable>
             )}
+            <Clickable onPress={() => setShowFilters(!showFilters)}>
+              <Ionicons
+                name={showFilters ? 'options' : 'options-outline'}
+                size={20}
+                color={hasActiveFilters ? palette.tint : palette.muted}
+              />
+            </Clickable>
           </View>
         </View>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <View style={[styles.filtersPanel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <View style={styles.filterRow}>
+              <ThemedText style={styles.filterLabel}>Skill Level</ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterChips}>
+                  {(['ALL', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as SkillFilter[]).map((level) => (
+                    <Clickable
+                      key={level}
+                      onPress={() => setSkillFilter(level)}
+                      style={[
+                        styles.filterChip,
+                        {
+                          backgroundColor: skillFilter === level ? palette.tint : 'transparent',
+                          borderColor: skillFilter === level ? palette.tint : palette.border,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={{
+                          fontSize: 12,
+                          color: skillFilter === level ? '#fff' : palette.text,
+                        }}
+                      >
+                        {level === 'ALL' ? 'All' : level.charAt(0) + level.slice(1).toLowerCase()}
+                      </ThemedText>
+                    </Clickable>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            <View style={styles.filterRow}>
+              <ThemedText style={styles.filterLabel}>Age Group</ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterChips}>
+                  {(['ALL', 'U8', 'U10', 'U12', 'U14', 'U16', '16+'] as AgeFilter[]).map((age) => (
+                    <Clickable
+                      key={age}
+                      onPress={() => setAgeFilter(age)}
+                      style={[
+                        styles.filterChip,
+                        {
+                          backgroundColor: ageFilter === age ? palette.tint : 'transparent',
+                          borderColor: ageFilter === age ? palette.tint : palette.border,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={{
+                          fontSize: 12,
+                          color: ageFilter === age ? '#fff' : palette.text,
+                        }}
+                      >
+                        {age === 'ALL' ? 'All' : age}
+                      </ThemedText>
+                    </Clickable>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            {availableSquads.length > 0 && (
+              <View style={styles.filterRow}>
+                <ThemedText style={styles.filterLabel}>Squad</ThemedText>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.filterChips}>
+                    <Clickable
+                      onPress={() => setSquadFilter('ALL')}
+                      style={[
+                        styles.filterChip,
+                        {
+                          backgroundColor: squadFilter === 'ALL' ? palette.tint : 'transparent',
+                          borderColor: squadFilter === 'ALL' ? palette.tint : palette.border,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={{
+                          fontSize: 12,
+                          color: squadFilter === 'ALL' ? '#fff' : palette.text,
+                        }}
+                      >
+                        All
+                      </ThemedText>
+                    </Clickable>
+                    {availableSquads.map((squad) => (
+                      <Clickable
+                        key={squad.id}
+                        onPress={() => setSquadFilter(squad.id)}
+                        style={[
+                          styles.filterChip,
+                          {
+                            backgroundColor: squadFilter === squad.id ? palette.tint : 'transparent',
+                            borderColor: squadFilter === squad.id ? palette.tint : palette.border,
+                          },
+                        ]}
+                      >
+                        <ThemedText
+                          style={{
+                            fontSize: 12,
+                            color: squadFilter === squad.id ? '#fff' : palette.text,
+                          }}
+                        >
+                          {squad.name}
+                        </ThemedText>
+                      </Clickable>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+
+            {hasActiveFilters && (
+              <Clickable onPress={resetFilters} style={styles.resetButton}>
+                <Ionicons name="refresh" size={14} color={palette.tint} />
+                <ThemedText style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}>
+                  Reset Filters
+                </ThemedText>
+              </Clickable>
+            )}
+          </View>
+        )}
+
+        {/* Quick Select Actions */}
+        {multiSelect && (
+          <View style={styles.quickActionsContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.quickActions}>
+                <Clickable
+                  onPress={selectAll}
+                  style={[styles.quickActionButton, { backgroundColor: `${palette.tint}10` }]}
+                >
+                  <Ionicons name="checkmark-done" size={14} color={palette.tint} />
+                  <ThemedText style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}>
+                    Select All ({filteredAthletes.length})
+                  </ThemedText>
+                </Clickable>
+                <Clickable
+                  onPress={selectNone}
+                  style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
+                >
+                  <ThemedText style={{ color: palette.text, fontSize: 12 }}>Select None</ThemedText>
+                </Clickable>
+                {availableSquads.map((squad) => (
+                  <Clickable
+                    key={squad.id}
+                    onPress={() => selectBySquad(squad.id)}
+                    style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
+                  >
+                    <Ionicons name="people" size={14} color={palette.muted} />
+                    <ThemedText style={{ color: palette.text, fontSize: 12 }}>
+                      All in {squad.name}
+                    </ThemedText>
+                  </Clickable>
+                ))}
+                <Clickable
+                  onPress={() => selectBySkillLevel('BEGINNER')}
+                  style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
+                >
+                  <ThemedText style={{ color: palette.text, fontSize: 12 }}>Beginners only</ThemedText>
+                </Clickable>
+              </View>
+            </ScrollView>
+          </View>
+        )}
 
         {/* Selected Count */}
         {selectedAthletes.length > 0 && (
           <View style={[styles.selectedBanner, { backgroundColor: `${palette.tint}10` }]}>
-            <ThemedText style={{ color: palette.tint }}>
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
               {selectedAthletes.length} athlete{selectedAthletes.length !== 1 ? 's' : ''} selected
             </ThemedText>
-            <Clickable onPress={() => setSelectedAthletes([])}>
+            <Clickable onPress={selectNone}>
               <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Clear</ThemedText>
             </Clickable>
           </View>
@@ -177,9 +456,23 @@ export function InviteAthleteModal({
 
                     <View style={styles.athleteInfo}>
                       <ThemedText type="defaultSemiBold">{athlete.name}</ThemedText>
-                      {athlete.age && (
-                        <ThemedText style={[styles.athleteAge, { color: palette.muted }]}>
-                          Age {athlete.age}
+                      <View style={styles.athleteMeta}>
+                        {athlete.age && (
+                          <ThemedText style={[styles.athleteAge, { color: palette.muted }]}>
+                            Age {athlete.age}
+                          </ThemedText>
+                        )}
+                        {athlete.skillLevel && (
+                          <View style={[styles.skillBadge, { backgroundColor: `${palette.tint}15` }]}>
+                            <ThemedText style={{ fontSize: 10, color: palette.tint }}>
+                              {athlete.skillLevel.charAt(0) + athlete.skillLevel.slice(1).toLowerCase()}
+                            </ThemedText>
+                          </View>
+                        )}
+                      </View>
+                      {athlete.squadName && (
+                        <ThemedText style={[styles.squadName, { color: palette.muted }]}>
+                          {athlete.squadName}
                         </ThemedText>
                       )}
                       {athlete.lastSession && (
@@ -317,5 +610,66 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing['2xl'],
+  },
+  filtersPanel: {
+    marginHorizontal: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  filterRow: {
+    gap: Spacing.xs,
+  },
+  filterLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  filterChips: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  filterChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  quickActionsContainer: {
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  quickActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.md,
+  },
+  athleteMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  skillBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radii.sm,
+  },
+  squadName: {
+    fontSize: 11,
   },
 });

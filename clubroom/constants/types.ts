@@ -159,6 +159,8 @@ export interface ClubInvite {
   remainingUses: number;
 }
 
+export type ClubPostType = 'announcement' | 'photo' | 'event' | 'general';
+
 export interface ClubFeedPost {
   id: string;
   clubId: string;
@@ -168,11 +170,19 @@ export interface ClubFeedPost {
   audience: 'club' | 'squad' | 'staff';
   audienceLabel?: string;
   authorName: string;
+  authorId?: string;
   postAs?: 'club' | 'self';
+  postType?: ClubPostType;
   badgeAwarded?: string;
   attachments?: string[];
+  imageUrl?: string;
   reactionCount?: number;
   commentCount?: number;
+  isPinned?: boolean;
+  pinnedBy?: string;
+  pinnedAt?: string;
+  eventDate?: string;
+  eventLocation?: string;
 }
 
 // Enhanced Coach Profile (Facebook-style)
@@ -520,6 +530,7 @@ export interface SessionInvite {
   respondedAt?: string;
   counterProposal?: TimeSlot[];
   counterNote?: string;
+  groupId?: string; // Links invites that were sent as part of a group/bulk send
 }
 
 // ============================================================================

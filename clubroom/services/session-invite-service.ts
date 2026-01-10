@@ -102,6 +102,13 @@ export interface CreateInviteInput {
   notes?: string;
   priceUsd?: number;
   expiresInDays?: number;
+  groupId?: string; // Links invites that were sent as part of a group/bulk send
+}
+
+export interface BulkInviteResult {
+  successful: SessionInvite[];
+  failed: { input: CreateInviteInput; error: string }[];
+  groupId: string;
 }
 
 export interface RespondToInviteInput {
@@ -209,6 +216,7 @@ export const sessionInviteService = {
       status: 'PENDING',
       expiresAt: expiresAt.toISOString(),
       createdAt: new Date().toISOString(),
+      groupId: input.groupId,
     };
 
     if (USE_MOCK) {
@@ -224,6 +232,100 @@ export const sessionInviteService = {
       body: JSON.stringify(newInvite),
     });
     return response.json();
+  },
+
+  /**
+   * Create multiple session invites at once (bulk send)
+   * Used for group invites to multiple parents/athletes
+   */
+  async createBulk(inputs: CreateInviteInput[]): Promise<BulkInviteResult> {
+    const groupId = inputs[0]?.groupId || `group_${Date.now()}`;
+    const successful: SessionInvite[] = [];
+    const failed: { input: CreateInviteInput; error: string }[] = [];
+
+    if (USE_MOCK) {
+      invitesCache = await loadFromStorage();
+
+      for (const input of inputs) {
+        try {
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + (input.expiresInDays || 7));
+
+          const newInvite: SessionInvite = {
+            id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            coachId: input.coachId,
+            coachName: input.coachName,
+            coachPhotoUrl: input.coachPhotoUrl,
+            clubName: input.clubName,
+            athleteIds: input.athleteIds,
+            athleteNames: input.athleteNames,
+            parentId: input.parentId,
+            parentName: input.parentName,
+            proposedSlots: input.proposedSlots,
+            sessionType: input.sessionType,
+            focus: input.focus,
+            notes: input.notes,
+            priceUsd: input.priceUsd,
+            status: 'PENDING',
+            expiresAt: expiresAt.toISOString(),
+            createdAt: new Date().toISOString(),
+            groupId,
+          };
+
+          invitesCache.push(newInvite);
+          successful.push(newInvite);
+        } catch (error) {
+          failed.push({
+            input,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      }
+
+      await saveToStorage(invitesCache);
+      return { successful, failed, groupId };
+    }
+
+    // API call for bulk creation
+    const response = await fetch('/api/session-invites/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invites: inputs, groupId }),
+    });
+    return response.json();
+  },
+
+  /**
+   * Get all invites that are part of a group send
+   */
+  async getGroupInvites(groupId: string): Promise<SessionInvite[]> {
+    if (USE_MOCK) {
+      invitesCache = await loadFromStorage();
+      return invitesCache.filter((inv) => inv.groupId === groupId);
+    }
+
+    const response = await fetch(`/api/session-invites?groupId=${groupId}`);
+    return response.json();
+  },
+
+  /**
+   * Get group send statistics
+   */
+  async getGroupStats(groupId: string): Promise<{
+    total: number;
+    pending: number;
+    accepted: number;
+    declined: number;
+    expired: number;
+  }> {
+    const invites = await this.getGroupInvites(groupId);
+    return {
+      total: invites.length,
+      pending: invites.filter((i) => i.status === 'PENDING').length,
+      accepted: invites.filter((i) => i.status === 'ACCEPTED').length,
+      declined: invites.filter((i) => i.status === 'DECLINED').length,
+      expired: invites.filter((i) => i.status === 'EXPIRED').length,
+    };
   },
 
   /**
