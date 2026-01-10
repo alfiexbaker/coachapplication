@@ -9,7 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -413,12 +413,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Components.avatar.md / 2,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    overflow: 'visible',
   },
   avatarText: {
     fontSize: 18,
@@ -458,9 +459,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: Components.listItem.large,
+    height: Components.listItem.large,
+    borderRadius: Components.listItem.large / 2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,

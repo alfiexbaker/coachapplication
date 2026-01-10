@@ -37,20 +37,20 @@ export function ReviewCard({ name, role, rating, text, date, response }: ReviewC
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.lg,
+    padding: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   response: {
-    marginTop: Spacing.sm,
-    padding: Spacing.md,
+    marginTop: Spacing.xs,
+    padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
 });

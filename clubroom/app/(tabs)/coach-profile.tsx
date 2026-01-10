@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
 import {
   CoachPost,
@@ -301,7 +301,7 @@ export default function CoachProfileScreen() {
               {currentUser?.role === 'Coach' && (
                 <Pressable
                   style={[styles.createPostButton, { backgroundColor: palette.card }]}
-                  onPress={() => alert('Create post coming soon!')}>
+                  onPress={() => alert('Create post')}>
                   <Ionicons name="add-circle" size={24} color={palette.tint} />
                   <ThemedText style={styles.createPostText}>Share an update...</ThemedText>
                 </Pressable>
@@ -491,7 +491,7 @@ export default function CoachProfileScreen() {
 
           {activeTab === 'reviews' && (
             <SurfaceCard style={styles.emptyState}>
-              <ThemedText style={styles.emptyStateText}>Reviews coming soon</ThemedText>
+              <ThemedText style={styles.emptyStateText}>No reviews yet</ThemedText>
             </SurfaceCard>
           )}
         </View>
@@ -630,9 +630,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     right: 4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

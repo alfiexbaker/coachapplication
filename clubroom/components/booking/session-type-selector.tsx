@@ -56,12 +56,12 @@ export function SessionTypeSelector({
 
 const styles = StyleSheet.create({
   list: {
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   card: {
-    padding: Spacing.lg,
+    padding: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
 });

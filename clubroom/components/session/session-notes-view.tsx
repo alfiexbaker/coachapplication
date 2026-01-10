@@ -33,7 +33,7 @@ export function SessionNotesView({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   return (
-    <View style={{ gap: Spacing.md }}>
+    <View style={{ gap: Spacing.sm }}>
       <NoteBlock label="Summary" value={formatValue(summary)} />
       <NoteBlock label="Focus areas" value={formatList(focus)} />
       <NoteBlock label="Improvements" value={formatValue(improvements, 'Waiting to be logged')} />
@@ -45,7 +45,7 @@ export function SessionNotesView({
           Updated {new Date(updatedAt).toLocaleString()}
         </ThemedText>
       ) : null}
-      <View style={{ padding: Spacing.md, backgroundColor: `${palette.premium}12`, borderRadius: 12 }}>
+      <View style={{ padding: Spacing.sm, backgroundColor: `${palette.premium}12`, borderRadius: 12 }}>
         <ThemedText type="defaultSemiBold">Parent view</ThemedText>
         <ThemedText style={{ color: palette.muted }}>
           Parents will see this inside booking details along with progression charts.

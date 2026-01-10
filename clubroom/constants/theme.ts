@@ -202,8 +202,8 @@ export const Components = {
   },
   card: {
     borderRadius: Radii.card,
-    padding: Spacing.md,  // Reduced from lg - tighter
-    gap: Spacing.sm,      // Reduced from md - more compact
+    padding: Spacing.sm,  // Reduced from md - compact
+    gap: Spacing.xs,      // Reduced from sm - tight
   },
   input: {
     height: 44,  // Reduced from 52
@@ -225,5 +225,21 @@ export const Components = {
     md: 20,
     lg: 24,
     xl: 32,
+  },
+  avatar: {
+    sm: 32,   // List items, compact views
+    md: 44,   // Standard avatar size
+    lg: 64,   // Profile headers, featured
+    xl: 80,   // Hero sections
+  },
+  listItem: {
+    compact: 48,
+    standard: 56,
+    large: 72,
+  },
+  modal: {
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 16,
   },
 } as const;

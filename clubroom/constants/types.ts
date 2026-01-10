@@ -10,11 +10,18 @@ export type FootballObjective =
 
 export type TrainingFormat = 'In-person' | 'Virtual' | 'Small group';
 
+export type BadgeCategory = 'leadership' | 'consistency' | 'technique' | 'mindset' | 'teamwork' | 'resilience';
+export type BadgeTier = 1 | 2 | 3;  // Bronze, Silver, Gold
+
 export interface BadgeDefinition {
   id: string;
   label: string;
   tone?: 'success' | 'warning' | 'default';
   description?: string;
+  // Progression fields (optional for non-athlete badges like coach verification badges)
+  category?: BadgeCategory;
+  tier?: BadgeTier;
+  pointValue?: number;  // 10, 25, 50 for Bronze, Silver, Gold
 }
 
 export type BadgeVisibility = 'coach_only' | 'athlete' | 'supporters';
@@ -42,6 +49,10 @@ export interface BadgeAward {
   visibility: BadgeVisibility;
   shared?: boolean;
   feedPostId?: string;
+  // Progression fields (copied from badge definition at award time)
+  badgeCategory?: BadgeCategory;
+  badgeTier?: BadgeTier;
+  badgePointValue?: number;
 }
 
 export interface CoachBadge extends BadgeDefinition {}

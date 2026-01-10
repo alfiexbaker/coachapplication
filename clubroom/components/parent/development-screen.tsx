@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getSessionsForAthlete, formatDate } from '@/constants/mock-data';
@@ -519,9 +519,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   trendBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

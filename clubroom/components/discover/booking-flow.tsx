@@ -396,10 +396,10 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   column: {
     flex: 1,
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   flowCard: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   flowHeader: {
     flexDirection: 'row',
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   stepper: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   stepItem: {
     flex: 1,
@@ -439,12 +439,12 @@ const styles = StyleSheet.create({
   contextRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   contextCard: {
     flex: 1,
     minWidth: 180,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1,
   },
@@ -457,9 +457,9 @@ const styles = StyleSheet.create({
   },
   callout: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     borderRadius: Radii.lg,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
     backgroundColor: 'rgba(251, 146, 60, 0.1)',
   },
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   schedulerCard: {
-    gap: Spacing.lg,
+    gap: Spacing.md,
   },
   schedulerHeader: {
     flexDirection: 'row',
@@ -521,8 +521,8 @@ const styles = StyleSheet.create({
   slotCard: {
     borderWidth: 1,
     borderRadius: Radii.md,
-    padding: Spacing.md,
-    gap: Spacing.xs,
+    padding: Spacing.sm,
+    gap: Spacing.xs / 2,
   },
   slotHeader: {
     flexDirection: 'row',
@@ -542,13 +542,13 @@ const styles = StyleSheet.create({
   },
   emptySlots: {
     alignItems: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.lg,
+    gap: Spacing.xs / 2,
+    padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
   summaryCard: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   summaryIntro: {
     opacity: 0.75,
@@ -565,8 +565,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   cta: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.md,
+    marginTop: Spacing.xs,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     alignItems: 'center',
   },

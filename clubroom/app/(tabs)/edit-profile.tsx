@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
 import { CoachExperience, CoachLanguage, FootballObjective } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -153,13 +153,13 @@ export default function EditProfileScreen() {
     };
 
     console.log('Profile payload ready for API sync', payload);
-    alert('Profile updated successfully! Ready to sync with the API.');
+    alert('Profile updated');
     router.back();
   };
 
   const pickImage = (type: 'profile' | 'cover') => {
     // In production, use expo-image-picker
-    alert(`Pick ${type} photo - coming soon!`);
+    alert(`Select ${type} photo`);
   };
 
   return (
@@ -525,7 +525,7 @@ export default function EditProfileScreen() {
           <SurfaceCard style={styles.section}>
             <View style={styles.sectionHeader}>
               <ThemedText type="subtitle">Certifications</ThemedText>
-              <Pressable onPress={() => alert('Add certification - coming soon!')}>
+              <Pressable onPress={() => alert('Add certification')}>
                 <Ionicons name="add-circle" size={24} color={palette.tint} />
               </Pressable>
             </View>
@@ -786,9 +786,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: Components.avatar.sm,
+    height: Components.avatar.sm,
+    borderRadius: Components.avatar.sm / 2,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

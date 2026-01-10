@@ -138,7 +138,7 @@ export default function SessionDetailScreen() {
           imageCount: imageUrls.length,
         });
 
-        Alert.alert('Success', 'Session updated successfully!', [
+        Alert.alert('Success', 'Session updated', [
           {
             text: 'OK',
             onPress: () => router.back(),

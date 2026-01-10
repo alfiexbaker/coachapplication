@@ -287,7 +287,7 @@ function toHex(value: number) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: Radii.lg,
-    padding: Spacing.lg,
+    padding: Spacing.md,
     borderWidth: 0.75,
     overflow: 'hidden',
   },

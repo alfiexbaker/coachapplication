@@ -42,14 +42,14 @@ export function CoachSummaryCard({ coach, coachProfile }: CoachSummaryCardProps)
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.lg,
-    padding: Spacing.lg,
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    padding: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   avatar: {
     width: 56,

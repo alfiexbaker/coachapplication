@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getSessionsForAthlete, getUserById, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
@@ -323,9 +323,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: Components.avatar.lg,
+    height: Components.avatar.lg,
+    borderRadius: Components.avatar.lg / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -501,6 +501,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: Spacing.md,
     top: '50%',
-    marginTop: -10,
+    // Use transform for proper vertical centering (icon size is 20px)
+    transform: [{ translateY: -10 }],
   },
 });

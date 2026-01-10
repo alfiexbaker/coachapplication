@@ -39,7 +39,7 @@ export default function ReportProblemScreen() {
     }
 
     // TODO: Submit report to backend
-    alert('Report submitted successfully! Our team will review it shortly.');
+    alert('Report submitted');
     router.back();
   };
 

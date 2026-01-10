@@ -67,20 +67,20 @@ const styles = StyleSheet.create({
   tile: {
     borderWidth: 1.25,
     borderRadius: Radii.lg,
-    padding: Spacing.lg,
-    gap: Spacing.sm,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   content: {
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
     alignSelf: 'stretch',
   },
   rowContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   copy: {
     flex: 1,

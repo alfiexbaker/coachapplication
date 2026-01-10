@@ -172,7 +172,7 @@ export default function InviteCodesScreen() {
           <View style={styles.modalHeader}>
             <ThemedText type="title">Generate Invite Code</ThemedText>
             <Pressable onPress={() => setShowCreateModal(false)}>
-              <ThemedText style={styles.closeButton}>✕</ThemedText>
+              <ThemedText style={styles.closeButton}>Close</ThemedText>
             </Pressable>
           </View>
 

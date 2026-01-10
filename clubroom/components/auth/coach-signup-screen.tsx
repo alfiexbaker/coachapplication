@@ -145,7 +145,7 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
               Join Your School
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Enter your invite code from your school to get started.
+              Enter your invite code from your school.
             </ThemedText>
 
             {/* Invite Code Section */}
@@ -195,7 +195,7 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
                       style={styles.validateButtonText}
                       lightColor="#FFFFFF"
                       darkColor="#000000">
-                      {inviteValidated ? '✓' : 'Verify'}
+                      {inviteValidated ? 'Verified' : 'Verify'}
                     </ThemedText>
                   </Pressable>
                 </View>
@@ -203,7 +203,7 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
                   <ThemedText style={[styles.helper, { color: palette.error }]}>{inviteError}</ThemedText>
                 ) : inviteValidated && validatedSchool ? (
                   <ThemedText style={[styles.helper, { color: palette.success }]}>
-                    ✓ Verified for {validatedSchool.name}
+                    Verified for {validatedSchool.name}
                   </ThemedText>
                 ) : null}
               </View>

@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { CoachProfile } from '@/constants/types';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -137,19 +137,19 @@ function InfoRow({ icon, label, color }: InfoRowProps) {
 
 const styles = StyleSheet.create({
   pressable: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   card: {
-    padding: Spacing.lg,
+    padding: Spacing.sm,
   },
   row: {
     flexDirection: 'row',
-    gap: Spacing.lg,
+    gap: Spacing.sm,
     alignItems: 'center',
   },
   meta: {
     flex: 1,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     justifyContent: 'center',
   },
   coachName: {
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -188,8 +188,8 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   focusBadge: {
-    paddingHorizontal: Spacing.md - 2,
-    paddingVertical: Spacing.xs + 1,
+    paddingHorizontal: Spacing.sm - 2,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
   },
   focusText: {
@@ -197,8 +197,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   avatar: {
-    width: 64,
-    height: 64,
+    width: Components.avatar.lg,
+    height: Components.avatar.lg,
     borderRadius: Radii.md,
   },
   priceColumn: {

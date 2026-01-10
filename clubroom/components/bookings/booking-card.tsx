@@ -119,13 +119,13 @@ function withAlpha(hexColor: string, alpha: number) {
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   meta: {
     flex: 1,
@@ -135,8 +135,8 @@ const styles = StyleSheet.create({
   },
   statusPill: {
     borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
   },
   statusLabel: {
     fontWeight: '600',
@@ -178,9 +178,9 @@ const styles = StyleSheet.create({
   actionButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.md,
+    gap: Spacing.xs / 2,
   },
   actionLabel: {
     ...Typography.sm,

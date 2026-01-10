@@ -19,9 +19,9 @@ export function EarningsStatCard({ label, value }: { label: string; value: strin
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    padding: Spacing.lg,
+    padding: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
 });

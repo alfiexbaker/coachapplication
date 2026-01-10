@@ -78,8 +78,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <SafeAreaView style={styles.container}>
           <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.emoji}>💥</Text>
-            <Text style={styles.title}>Oops! Something went wrong</Text>
+            <Text style={styles.title}>Something went wrong</Text>
             <Text style={styles.message}>
               The app encountered an unexpected error. This has been logged for debugging.
             </Text>

@@ -48,12 +48,12 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
   },
   saveButton: {
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radii.button,
     alignItems: 'center',
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xs,
   },
 });

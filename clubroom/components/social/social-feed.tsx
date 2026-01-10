@@ -86,7 +86,7 @@ export function SocialFeed({ title = 'Community Feed', limit }: SocialFeedProps)
 
 const styles = StyleSheet.create({
   section: {
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   sectionTitle: {
     fontSize: 18,
@@ -94,8 +94,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   post: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
   },
   postHeader: {
     flexDirection: 'row',
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   postAuthor: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   authorAvatar: {
     fontSize: 32,
@@ -119,11 +119,11 @@ const styles = StyleSheet.create({
   },
   postActions: {
     flexDirection: 'row',
-    gap: Spacing.xl,
+    gap: Spacing.md,
   },
   postAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
 });

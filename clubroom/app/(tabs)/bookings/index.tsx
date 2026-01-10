@@ -234,7 +234,7 @@ export default function BookingsScreen() {
       // Switch back to list tab
       setActiveTab('list');
 
-      Alert.alert('Success', 'Session offering created successfully!');
+      Alert.alert('Success', 'Session offering created');
     } catch (error) {
       logger.error('Failed to create session offering', error);
       Alert.alert('Error', 'Failed to create session offering. Please try again.');
@@ -495,7 +495,7 @@ export default function BookingsScreen() {
                     ? 'Create your first session offering'
                     : 'No past sessions yet'
                   : timeFilter === 'upcoming'
-                    ? 'Book your first coaching session to get started'
+                    ? 'Book your first coaching session'
                     : 'No past sessions yet'}
               </ThemedText>
               {(userRole === 'USER' || userRole === 'PARENT') && timeFilter === 'upcoming' && (

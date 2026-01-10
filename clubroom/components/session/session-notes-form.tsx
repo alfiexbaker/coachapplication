@@ -154,34 +154,34 @@ export function SessionNotesForm({
 
 const styles = StyleSheet.create({
   content: {
-    padding: Spacing.lg,
-    gap: Spacing.lg,
+    padding: Spacing.md,
+    gap: Spacing.md,
   },
   textArea: {
-    minHeight: 96,
+    minHeight: 80,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     lineHeight: 20,
     textAlignVertical: 'top',
   },
   rowWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   chip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1.5,
   },
   submit: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: Spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radii.button,
   },
 });
