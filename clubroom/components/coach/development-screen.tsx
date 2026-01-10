@@ -171,6 +171,14 @@ export function CoachDevelopmentScreen() {
     coachId: currentUser.id,
   });
 
+  const quickActions = [
+    { icon: 'people' as const, label: 'Roster', route: '/roster', color: palette.tint },
+    { icon: 'calendar' as const, label: 'Availability', route: '/availability', color: '#059669' },
+    { icon: 'mail' as const, label: 'Invites', route: '/session-invites', color: '#7C3AED' },
+    { icon: 'videocam' as const, label: 'Videos', route: '/videos', color: '#DC2626' },
+    { icon: 'people-circle' as const, label: 'Groups', route: '/group-sessions', color: '#FF6B35' },
+  ];
+
   return (
     <>
       <PageContainer
@@ -182,6 +190,24 @@ export function CoachDevelopmentScreen() {
           />
         }
       >
+        {/* Quick Actions */}
+        <View style={styles.quickActionsRow}>
+          {quickActions.map((action) => (
+            <Clickable
+              key={action.route}
+              onPress={() => router.push(action.route)}
+              style={styles.quickActionItem}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}15` }]}>
+                <Ionicons name={action.icon} size={20} color={action.color} />
+              </View>
+              <ThemedText style={[styles.quickActionLabel, { color: palette.text }]}>
+                {action.label}
+              </ThemedText>
+            </Clickable>
+          ))}
+        </View>
+
         <SurfaceCard style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
             <ThemedText type="heading" style={styles.sectionTitle}>
@@ -326,6 +352,27 @@ export function CoachDevelopmentScreen() {
 }
 
 const styles = StyleSheet.create({
+  quickActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.xs,
+  },
+  quickActionItem: {
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
   sectionCard: {
     gap: Spacing.sm,
     padding: Spacing.sm,
