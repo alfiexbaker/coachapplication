@@ -268,9 +268,15 @@ export default function ClubHubScreen() {
     ]);
   };
 
+  // Check if current user is a coach (can create clubs) or parent (can only join)
+  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const isParent = currentUser?.role === 'PARENT';
+
   const headline = membership && club
     ? `${club.name} · ${roleLabel}`
-    : 'Join or create a club';
+    : isCoach
+      ? 'Join or create a club'
+      : 'Join a club';
   const badgeText = club?.name?.slice(0, 2).toUpperCase() || 'CL';
 
   return (
@@ -304,9 +310,11 @@ export default function ClubHubScreen() {
         </SurfaceCard>
       ) : (
         <SurfaceCard style={styles.heroCard} animateElevation={false}>
-          <ThemedText type="heading">Join or create a club</ThemedText>
+          <ThemedText type="heading">{isCoach ? 'Join or create a club' : 'Join a club'}</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            Connect with your coaching team, share updates, and manage sessions.
+            {isCoach
+              ? 'Connect with your coaching team, share updates, and manage sessions.'
+              : 'Join your coach\'s club to access exclusive sessions, updates, and team communications.'}
           </ThemedText>
           <View style={styles.joinForm}>
             <TextInput
@@ -324,22 +332,26 @@ export default function ClubHubScreen() {
               <ThemedText style={styles.primaryButtonText}>Join</ThemedText>
             </Clickable>
           </View>
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
-          <View style={styles.createForm}>
-            <TextInput
-              placeholder="New club name"
-              placeholderTextColor={palette.muted}
-              value={newClubName}
-              onChangeText={setNewClubName}
-              style={[styles.input, { backgroundColor: palette.background, color: palette.text }]}
-            />
-            <Clickable
-              style={[styles.secondaryButton, { borderColor: palette.border }]}
-              onPress={handleCreateClub}
-            >
-              <ThemedText style={{ color: palette.text, fontWeight: '600' }}>Create</ThemedText>
-            </Clickable>
-          </View>
+          {isCoach && (
+            <>
+              <View style={[styles.divider, { backgroundColor: palette.border }]} />
+              <View style={styles.createForm}>
+                <TextInput
+                  placeholder="New club name"
+                  placeholderTextColor={palette.muted}
+                  value={newClubName}
+                  onChangeText={setNewClubName}
+                  style={[styles.input, { backgroundColor: palette.background, color: palette.text }]}
+                />
+                <Clickable
+                  style={[styles.secondaryButton, { borderColor: palette.border }]}
+                  onPress={handleCreateClub}
+                >
+                  <ThemedText style={{ color: palette.text, fontWeight: '600' }}>Create</ThemedText>
+                </Clickable>
+              </View>
+            </>
+          )}
         </SurfaceCard>
       )}
 
@@ -462,11 +474,21 @@ export default function ClubHubScreen() {
         </View>
       ) : (
         <SurfaceCard style={[styles.sectionCard, styles.fullCard]} animateElevation={false}>
-          <ThemedText type="defaultSemiBold">Why join?</ThemedText>
+          <ThemedText type="defaultSemiBold">{isCoach ? 'Why create or join?' : 'Why join?'}</ThemedText>
           <View style={{ gap: Spacing.xs }}>
-            <ThemedText>• Keep club work in one tidy hub—no extra tabs.</ThemedText>
-            <ThemedText>• Share invite codes, spin up squads, and run private sessions.</ThemedText>
-            <ThemedText>• Post as yourself or the club without losing chat history.</ThemedText>
+            {isCoach ? (
+              <>
+                <ThemedText>- Keep club work in one tidy hub - no extra tabs.</ThemedText>
+                <ThemedText>- Share invite codes, spin up squads, and run private sessions.</ThemedText>
+                <ThemedText>- Post as yourself or the club without losing chat history.</ThemedText>
+              </>
+            ) : (
+              <>
+                <ThemedText>- Stay connected with your child's coaching team.</ThemedText>
+                <ThemedText>- Get access to exclusive club sessions and updates.</ThemedText>
+                <ThemedText>- Receive announcements and schedule changes in real-time.</ThemedText>
+              </>
+            )}
           </View>
         </SurfaceCard>
       )}
