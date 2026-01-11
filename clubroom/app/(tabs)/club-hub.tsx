@@ -26,6 +26,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering, ClubRole } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
+import { groupSessionService } from '@/services/group-session-service';
+import type { GroupSession } from '@/constants/types';
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
 
@@ -387,6 +389,7 @@ export default function ClubHubScreen() {
   const [sessions] = useState<SessionOffering[]>(membership ? getClubSessions(membership.clubId) : []);
   const [squads] = useState<ClubSquad[]>(membership ? getClubSquads(membership.clubId) : []);
   const [invites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
+  const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
 
   // Member management state
   const [members, setMembers] = useState<ClubMember[]>([]);
@@ -424,10 +427,23 @@ export default function ClubHubScreen() {
     }
   }, [membership?.clubId]);
 
+  // Load training sessions
+  const loadTrainingSessions = useCallback(async () => {
+    if (membership?.clubId) {
+      try {
+        const sessions = await groupSessionService.getClubTrainingSessions(membership.clubId);
+        setTrainingSessions(sessions);
+      } catch (error) {
+        console.error('Failed to load training sessions:', error);
+      }
+    }
+  }, [membership?.clubId]);
+
   useEffect(() => {
     loadFeed();
     loadMembers();
-  }, [loadFeed, loadMembers]);
+    loadTrainingSessions();
+  }, [loadFeed, loadMembers, loadTrainingSessions]);
 
   // Handle member removal
   const handleRemoveMember = (member: ClubMember) => {
@@ -687,6 +703,117 @@ export default function ClubHubScreen() {
               </View>
             </SurfaceCard>
           )}
+
+          {/* Training Schedule Section */}
+          <SurfaceCard style={styles.trainingCard}>
+            <View style={styles.trainingSectionHeader}>
+              <View style={styles.trainingHeaderLeft}>
+                <Ionicons name="football" size={20} color={palette.tint} />
+                <ThemedText type="defaultSemiBold">Training Schedule</ThemedText>
+              </View>
+              {isCoach && (
+                <TouchableOpacity
+                  style={[styles.addTrainingButton, { backgroundColor: palette.tint }]}
+                  onPress={() => router.push('/group-sessions/create')}
+                >
+                  <Ionicons name="add" size={16} color="#fff" />
+                  <ThemedText style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Add</ThemedText>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {trainingSessions.length > 0 ? (
+              <View style={styles.trainingList}>
+                {trainingSessions.slice(0, 3).map((session) => {
+                  const nextDate = groupSessionService.getNextTrainingDate(session);
+                  const dayName = session.recurringPattern
+                    ? groupSessionService.formatDayOfWeek(session.recurringPattern.dayOfWeek)
+                    : '';
+                  return (
+                    <TouchableOpacity
+                      key={session.id}
+                      style={[styles.trainingItem, { borderColor: palette.border }]}
+                      onPress={() => router.push({
+                        pathname: '/group-sessions/[id]',
+                        params: { id: session.id },
+                      })}
+                    >
+                      <View style={styles.trainingItemLeft}>
+                        <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>
+                          {session.title}
+                        </ThemedText>
+                        <View style={styles.trainingMeta}>
+                          {session.isRecurring && (
+                            <View style={[styles.recurringBadge, { backgroundColor: `${palette.tint}15` }]}>
+                              <Ionicons name="repeat" size={10} color={palette.tint} />
+                              <ThemedText style={{ color: palette.tint, fontSize: 10 }}>
+                                {dayName}s
+                              </ThemedText>
+                            </View>
+                          )}
+                          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                            {nextDate ? `${nextDate.startTime} - ${nextDate.endTime}` : ''}
+                          </ThemedText>
+                        </View>
+                        <View style={styles.trainingLocation}>
+                          <Ionicons name="location-outline" size={12} color={palette.muted} />
+                          <ThemedText style={{ color: palette.muted, fontSize: 11 }} numberOfLines={1}>
+                            {session.location}
+                          </ThemedText>
+                        </View>
+                      </View>
+                      <View style={styles.trainingItemRight}>
+                        {session.squadName && (
+                          <View style={[styles.squadTag, { backgroundColor: `${palette.tint}10` }]}>
+                            <ThemedText style={{ color: palette.tint, fontSize: 10, fontWeight: '600' }}>
+                              {session.squadName}
+                            </ThemedText>
+                          </View>
+                        )}
+                        {session.pricePerParticipant === 0 ? (
+                          <ThemedText style={{ color: palette.success, fontSize: 12, fontWeight: '600' }}>
+                            Free
+                          </ThemedText>
+                        ) : (
+                          <ThemedText style={{ color: palette.text, fontSize: 12, fontWeight: '600' }}>
+                            {groupSessionService.formatPrice(session.pricePerParticipant, session.currency)}
+                          </ThemedText>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+                {trainingSessions.length > 3 && (
+                  <TouchableOpacity
+                    style={styles.viewAllButton}
+                    onPress={() => router.push('/club/training-schedule')}
+                  >
+                    <ThemedText style={{ color: palette.tint, fontSize: 13 }}>
+                      View all {trainingSessions.length} training sessions
+                    </ThemedText>
+                    <Ionicons name="chevron-forward" size={16} color={palette.tint} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <View style={styles.emptyTraining}>
+                <Ionicons name="calendar-outline" size={32} color={palette.muted} />
+                <ThemedText style={{ color: palette.muted, fontSize: 13, textAlign: 'center' }}>
+                  No training sessions scheduled
+                </ThemedText>
+                {isCoach && (
+                  <TouchableOpacity
+                    style={[styles.createTrainingButton, { borderColor: palette.tint }]}
+                    onPress={() => router.push('/group-sessions/create')}
+                  >
+                    <ThemedText style={{ color: palette.tint, fontSize: 13, fontWeight: '600' }}>
+                      Schedule Training
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </SurfaceCard>
 
           {/* Feed filter tabs */}
           <ScrollView
@@ -1086,5 +1213,88 @@ const styles = StyleSheet.create({
   memberAvatarText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  trainingCard: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    gap: Spacing.md,
+  },
+  trainingSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  trainingHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  addTrainingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+  },
+  trainingList: {
+    gap: Spacing.sm,
+  },
+  trainingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  trainingItemLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  trainingMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  recurringBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radii.sm,
+  },
+  trainingLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  trainingItemRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  squadTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radii.sm,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: Spacing.sm,
+  },
+  emptyTraining: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+  },
+  createTrainingButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    marginTop: Spacing.xs,
   },
 });

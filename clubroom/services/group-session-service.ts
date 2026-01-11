@@ -14,7 +14,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective } from '@/constants/types';
+import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective, RecurringPattern } from '@/constants/types';
 
 const SESSIONS_STORAGE_KEY = 'group_sessions';
 const REGISTRATIONS_STORAGE_KEY = 'group_registrations';
@@ -134,6 +134,132 @@ const MOCK_SESSIONS: GroupSession[] = [
     focus: ['Dribbling', 'Passing'],
     imageUrl: 'https://picsum.photos/seed/trial1/800/400',
   },
+  // Recurring Training Sessions
+  {
+    id: 'gs_training_1',
+    coachId: 'coach_1',
+    coachName: 'Marcus Thompson',
+    coachPhotoUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
+    clubId: 'club_lions',
+    clubName: 'Hackney Lions FC',
+    squadId: 'squad_u11',
+    squadName: 'Under 11s',
+    title: "Under 11's Training",
+    description: 'Weekly training session for U11 squad. Focus on technical development, team tactics, and match preparation.',
+    sessionType: 'TRAINING',
+    schedule: [
+      { date: '2026-01-14', startTime: '17:00', endTime: '18:30' },
+      { date: '2026-01-21', startTime: '17:00', endTime: '18:30' },
+      { date: '2026-01-28', startTime: '17:00', endTime: '18:30' },
+      { date: '2026-02-04', startTime: '17:00', endTime: '18:30' },
+    ],
+    maxParticipants: 16,
+    currentParticipants: 14,
+    waitlistEnabled: true,
+    waitlistCount: 2,
+    pricePerParticipant: 0,
+    currency: 'GBP',
+    ageMin: 10,
+    ageMax: 11,
+    skillLevel: 'ALL',
+    location: 'Hackney Marshes, East London',
+    isVirtual: false,
+    status: 'PUBLISHED',
+    createdAt: '2026-01-01T08:00:00Z',
+    focus: ['Passing', 'Dribbling', 'Defending'],
+    equipment: ['Boots', 'Shin pads', 'Water bottle'],
+    isRecurring: true,
+    recurringPattern: {
+      dayOfWeek: 2, // Tuesday
+      startTime: '17:00',
+      endTime: '18:30',
+      until: '2026-06-30',
+    },
+    isFree: true,
+  },
+  {
+    id: 'gs_training_2',
+    coachId: 'coach_2',
+    coachName: 'Emma Williams',
+    coachPhotoUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
+    clubId: 'club_lions',
+    clubName: 'Hackney Lions FC',
+    squadId: 'squad_u9',
+    squadName: 'Under 9s Development',
+    title: "Under 9's Development",
+    description: 'Saturday morning development sessions for our youngest squad members. Fun-focused with skill building.',
+    sessionType: 'TRAINING',
+    schedule: [
+      { date: '2026-01-18', startTime: '10:00', endTime: '11:30' },
+      { date: '2026-01-25', startTime: '10:00', endTime: '11:30' },
+      { date: '2026-02-01', startTime: '10:00', endTime: '11:30' },
+      { date: '2026-02-08', startTime: '10:00', endTime: '11:30' },
+    ],
+    maxParticipants: 14,
+    currentParticipants: 12,
+    waitlistEnabled: true,
+    waitlistCount: 1,
+    pricePerParticipant: 0,
+    currency: 'GBP',
+    ageMin: 8,
+    ageMax: 9,
+    skillLevel: 'BEGINNER',
+    location: 'Victoria Park, London',
+    isVirtual: false,
+    status: 'PUBLISHED',
+    createdAt: '2026-01-01T08:00:00Z',
+    focus: ['Dribbling', 'Passing', 'Conditioning'],
+    equipment: ['Boots', 'Shin pads', 'Water bottle'],
+    isRecurring: true,
+    recurringPattern: {
+      dayOfWeek: 6, // Saturday
+      startTime: '10:00',
+      endTime: '11:30',
+      until: '2026-06-30',
+    },
+    isFree: true,
+  },
+  {
+    id: 'gs_training_3',
+    coachId: 'coach_1',
+    coachName: 'Marcus Thompson',
+    coachPhotoUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
+    clubId: 'club_lions',
+    clubName: 'Hackney Lions FC',
+    squadId: 'squad_u15',
+    squadName: 'Under 15s Performance',
+    title: "U15 Performance Training",
+    description: 'Advanced training for our U15 performance squad. Focus on tactical understanding and match intensity.',
+    sessionType: 'TRAINING',
+    schedule: [
+      { date: '2026-01-15', startTime: '18:00', endTime: '19:30' },
+      { date: '2026-01-22', startTime: '18:00', endTime: '19:30' },
+      { date: '2026-01-29', startTime: '18:00', endTime: '19:30' },
+    ],
+    maxParticipants: 18,
+    currentParticipants: 16,
+    waitlistEnabled: true,
+    waitlistCount: 0,
+    pricePerParticipant: 5,
+    currency: 'GBP',
+    ageMin: 14,
+    ageMax: 15,
+    skillLevel: 'ADVANCED',
+    location: 'Hackney Marshes, East London',
+    isVirtual: false,
+    status: 'PUBLISHED',
+    createdAt: '2026-01-01T08:00:00Z',
+    focus: ['Finishing', 'Defending', 'Conditioning'],
+    equipment: ['Boots', 'Shin pads', 'Water bottle'],
+    isRecurring: true,
+    recurringPattern: {
+      dayOfWeek: 3, // Wednesday
+      startTime: '18:00',
+      endTime: '19:30',
+      until: '2026-06-30',
+    },
+    isFree: false,
+  },
 ];
 
 const MOCK_REGISTRATIONS: GroupRegistration[] = [
@@ -224,7 +350,37 @@ export interface CreateGroupSessionInput {
   equipment?: string[];
   imageUrl?: string;
   waitlistEnabled?: boolean;
+  // Recurring/Training session fields
+  isRecurring?: boolean;
+  recurringPattern?: RecurringPattern;
+  squadId?: string;
+  squadName?: string;
+  isFree?: boolean;
 }
+
+// Helper to generate dates for recurring sessions
+function generateRecurringDates(pattern: RecurringPattern, weeksAhead: number = 12): string[] {
+  const dates: string[] = [];
+  const today = new Date();
+  const endDate = pattern.until ? new Date(pattern.until) : null;
+
+  // Find the next occurrence of the day of week
+  let currentDate = new Date(today);
+  const currentDay = currentDate.getDay();
+  const daysUntilTarget = (pattern.dayOfWeek - currentDay + 7) % 7;
+  currentDate.setDate(currentDate.getDate() + (daysUntilTarget === 0 ? 0 : daysUntilTarget));
+
+  for (let i = 0; i < weeksAhead; i++) {
+    if (endDate && currentDate > endDate) break;
+    dates.push(currentDate.toISOString().split('T')[0]);
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+
+  return dates;
+}
+
+// Day of week labels
+const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const groupSessionService = {
   /**
@@ -301,6 +457,17 @@ export const groupSessionService = {
    * Create a new group session
    */
   async createSession(input: CreateGroupSessionInput): Promise<GroupSession> {
+    // For recurring training sessions, auto-generate the schedule if not provided
+    let schedule = input.schedule;
+    if (input.isRecurring && input.recurringPattern && schedule.length === 0) {
+      const dates = generateRecurringDates(input.recurringPattern);
+      schedule = dates.map((date) => ({
+        date,
+        startTime: input.recurringPattern!.startTime,
+        endTime: input.recurringPattern!.endTime,
+      }));
+    }
+
     const newSession: GroupSession = {
       id: `gs_${Date.now()}`,
       coachId: input.coachId,
@@ -311,7 +478,7 @@ export const groupSessionService = {
       title: input.title,
       description: input.description,
       sessionType: input.sessionType,
-      schedule: input.schedule,
+      schedule,
       maxParticipants: input.maxParticipants,
       currentParticipants: 0,
       waitlistEnabled: input.waitlistEnabled ?? true,
@@ -328,6 +495,12 @@ export const groupSessionService = {
       focus: input.focus,
       equipment: input.equipment,
       imageUrl: input.imageUrl,
+      // Recurring/Training fields
+      isRecurring: input.isRecurring,
+      recurringPattern: input.recurringPattern,
+      squadId: input.squadId,
+      squadName: input.squadName,
+      isFree: input.isFree ?? (input.pricePerParticipant === 0),
     };
 
     if (USE_MOCK) {
@@ -589,7 +762,109 @@ export const groupSessionService = {
       TEAM_TRAINING: 'Team Training',
       OPEN_SESSION: 'Open Session',
       TRIAL: 'Trial Session',
+      TRAINING: 'Training',
     };
     return labels[type] || type;
+  },
+
+  /**
+   * Get club training sessions
+   */
+  async getClubTrainingSessions(clubId: string): Promise<GroupSession[]> {
+    if (USE_MOCK) {
+      sessionsCache = await loadSessions();
+      return sessionsCache
+        .filter(
+          (s) =>
+            s.clubId === clubId &&
+            s.sessionType === 'TRAINING' &&
+            s.status === 'PUBLISHED'
+        )
+        .sort((a, b) => {
+          const aDate = a.schedule[0]?.date || '';
+          const bDate = b.schedule[0]?.date || '';
+          return aDate.localeCompare(bDate);
+        });
+    }
+
+    const response = await fetch(`/api/clubs/${clubId}/training-sessions`);
+    return response.json();
+  },
+
+  /**
+   * Get training sessions for a squad
+   */
+  async getSquadTrainingSessions(squadId: string): Promise<GroupSession[]> {
+    if (USE_MOCK) {
+      sessionsCache = await loadSessions();
+      return sessionsCache
+        .filter(
+          (s) =>
+            s.squadId === squadId &&
+            s.sessionType === 'TRAINING' &&
+            s.status === 'PUBLISHED'
+        )
+        .sort((a, b) => {
+          const aDate = a.schedule[0]?.date || '';
+          const bDate = b.schedule[0]?.date || '';
+          return aDate.localeCompare(bDate);
+        });
+    }
+
+    const response = await fetch(`/api/squads/${squadId}/training-sessions`);
+    return response.json();
+  },
+
+  /**
+   * Get all upcoming training sessions (for parent's child)
+   */
+  async getChildTrainingSessions(childId: string): Promise<GroupSession[]> {
+    if (USE_MOCK) {
+      registrationsCache = await loadRegistrations();
+      sessionsCache = await loadSessions();
+
+      const registeredSessionIds = registrationsCache
+        .filter((r) => r.athleteId === childId && r.status !== 'CANCELLED')
+        .map((r) => r.sessionId);
+
+      return sessionsCache
+        .filter(
+          (s) =>
+            registeredSessionIds.includes(s.id) &&
+            s.sessionType === 'TRAINING' &&
+            s.status === 'PUBLISHED'
+        )
+        .sort((a, b) => {
+          const aDate = a.schedule[0]?.date || '';
+          const bDate = b.schedule[0]?.date || '';
+          return aDate.localeCompare(bDate);
+        });
+    }
+
+    const response = await fetch(`/api/athletes/${childId}/training-sessions`);
+    return response.json();
+  },
+
+  /**
+   * Format day of week for display
+   */
+  formatDayOfWeek(day: number): string {
+    return DAY_LABELS[day] || `Day ${day}`;
+  },
+
+  /**
+   * Format recurring pattern for display
+   */
+  formatRecurringPattern(pattern: RecurringPattern): string {
+    const day = DAY_LABELS[pattern.dayOfWeek];
+    return `${day}s ${pattern.startTime} - ${pattern.endTime}`;
+  },
+
+  /**
+   * Get next upcoming date for a training session
+   */
+  getNextTrainingDate(session: GroupSession): GroupSessionSchedule | null {
+    const today = new Date().toISOString().split('T')[0];
+    return session.schedule.find((s) => s.date >= today) || null;
   },
 };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,16 +9,19 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
+import { SquadInviteModal } from '@/components/squad/squad-invite-modal';
+import { InlineSquadSelector } from '@/components/squad/squad-picker';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService, CreateGroupSessionInput } from '@/services/group-session-service';
-import type { GroupSession, GroupSessionSchedule, FootballObjective } from '@/constants/types';
+import type { GroupSession, GroupSessionSchedule, FootballObjective, ClubSquad } from '@/constants/types';
 
-const SESSION_TYPES: { key: GroupSession['sessionType']; label: string; icon: string }[] = [
+const SESSION_TYPES: { key: GroupSession['sessionType']; label: string; icon: string; forSquad?: boolean }[] = [
   { key: 'CAMP', label: 'Camp', icon: 'sunny' },
   { key: 'CLINIC', label: 'Clinic', icon: 'school' },
-  { key: 'TEAM_TRAINING', label: 'Team Training', icon: 'people' },
+  { key: 'TEAM_TRAINING', label: 'Team Training', icon: 'people', forSquad: true },
+  { key: 'TRAINING', label: 'Squad Training', icon: 'football', forSquad: true },
   { key: 'OPEN_SESSION', label: 'Open Session', icon: 'fitness' },
   { key: 'TRIAL', label: 'Trial', icon: 'sparkles' },
 ];
@@ -39,7 +42,10 @@ const FOCUS_OPTIONS: FootballObjective[] = [
   'Conditioning',
 ];
 
-type WizardStep = 'type' | 'details' | 'schedule' | 'pricing' | 'review';
+type WizardStep = 'type' | 'details' | 'schedule' | 'pricing' | 'review' | 'invite';
+
+// Default club ID for demo (would come from user context in production)
+const DEFAULT_CLUB_ID = 'club_lions';
 
 export default function CreateGroupSessionScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -48,6 +54,7 @@ export default function CreateGroupSessionScreen() {
 
   const [step, setStep] = useState<WizardStep>('type');
   const [loading, setLoading] = useState(false);
+  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
 
   // Form state
   const [sessionType, setSessionType] = useState<GroupSession['sessionType']>('OPEN_SESSION');
@@ -62,12 +69,23 @@ export default function CreateGroupSessionScreen() {
   const [price, setPrice] = useState('0');
   const [waitlistEnabled, setWaitlistEnabled] = useState(true);
 
+  // Squad linking for team training sessions
+  const [selectedSquadIds, setSelectedSquadIds] = useState<string[]>([]);
+  const [showSquadInviteModal, setShowSquadInviteModal] = useState(false);
+  const [squadInviteSent, setSquadInviteSent] = useState(false);
+
   // Schedule state (simplified to single date for MVP)
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleStartTime, setScheduleStartTime] = useState('09:00');
   const [scheduleEndTime, setScheduleEndTime] = useState('12:00');
 
-  const steps: WizardStep[] = ['type', 'details', 'schedule', 'pricing', 'review'];
+  // Determine if this is a squad-linked session type
+  const isSquadSession = SESSION_TYPES.find((t) => t.key === sessionType)?.forSquad || false;
+
+  // Steps change based on session type - squad sessions get invite step
+  const steps: WizardStep[] = isSquadSession
+    ? ['type', 'details', 'schedule', 'pricing', 'review', 'invite']
+    : ['type', 'details', 'schedule', 'pricing', 'review'];
   const currentStepIndex = steps.indexOf(step);
 
   const canProceed = () => {
@@ -82,6 +100,8 @@ export default function CreateGroupSessionScreen() {
         return true;
       case 'review':
         return true;
+      case 'invite':
+        return true; // Optional step
       default:
         return false;
     }
@@ -132,19 +152,47 @@ export default function CreateGroupSessionScreen() {
         location,
         focus,
         waitlistEnabled,
+        // Add squad linking for team sessions
+        squadId: selectedSquadIds.length > 0 ? selectedSquadIds[0] : undefined,
       };
 
       const session = await groupSessionService.createSession(input);
       await groupSessionService.publishSession(session.id);
+      setCreatedSessionId(session.id);
 
-      router.replace({
-        pathname: '/group-sessions/[id]',
-        params: { id: session.id },
-      });
+      // For squad sessions, go to invite step; otherwise navigate to session
+      if (isSquadSession) {
+        setStep('invite');
+      } else {
+        router.replace({
+          pathname: '/group-sessions/[id]',
+          params: { id: session.id },
+        });
+      }
     } catch (error) {
       console.error('Failed to create session:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSquadInviteSuccess = (result: { squadInviteId: string; successful: number; failed: number }) => {
+    setSquadInviteSent(true);
+    Alert.alert(
+      'Invites Sent',
+      `Successfully sent ${result.successful} invite${result.successful !== 1 ? 's' : ''} to squad members.`,
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleFinish = () => {
+    if (createdSessionId) {
+      router.replace({
+        pathname: '/group-sessions/[id]',
+        params: { id: createdSessionId },
+      });
+    } else {
+      router.back();
     }
   };
 
@@ -327,6 +375,22 @@ export default function CreateGroupSessionScreen() {
                 ))}
               </View>
             </View>
+
+            {/* Squad selector for team training sessions */}
+            {isSquadSession && (
+              <View style={styles.inputGroup}>
+                <ThemedText style={styles.inputLabel}>Link to Squad (Optional)</ThemedText>
+                <ThemedText style={[{ color: palette.muted, fontSize: 12, marginBottom: Spacing.xs }]}>
+                  Link this session to a squad for easy invite management
+                </ThemedText>
+                <InlineSquadSelector
+                  clubId={DEFAULT_CLUB_ID}
+                  selectedSquadIds={selectedSquadIds}
+                  onSelectionChange={setSelectedSquadIds}
+                  multiSelect={false}
+                />
+              </View>
+            )}
           </Animated.View>
         );
 
@@ -480,6 +544,69 @@ export default function CreateGroupSessionScreen() {
             </SurfaceCard>
           </Animated.View>
         );
+
+      case 'invite':
+        return (
+          <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
+            <View style={styles.inviteHeader}>
+              <View style={[styles.successIcon, { backgroundColor: `${palette.success}15` }]}>
+                <Ionicons name="checkmark-circle" size={48} color={palette.success} />
+              </View>
+              <ThemedText type="title" style={styles.stepTitle}>
+                Session Created!
+              </ThemedText>
+              <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>
+                Would you like to invite your squad?
+              </ThemedText>
+            </View>
+
+            {selectedSquadIds.length > 0 ? (
+              <SurfaceCard style={styles.inviteCard}>
+                <View style={styles.inviteCardHeader}>
+                  <Ionicons name="people" size={24} color={palette.tint} />
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="defaultSemiBold">Invite Squad Members</ThemedText>
+                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      Send session invites to all athletes in your linked squad
+                    </ThemedText>
+                  </View>
+                </View>
+
+                {squadInviteSent ? (
+                  <View style={[styles.inviteSentBadge, { backgroundColor: `${palette.success}15` }]}>
+                    <Ionicons name="checkmark-circle" size={18} color={palette.success} />
+                    <ThemedText style={{ color: palette.success, fontWeight: '600' }}>
+                      Invites sent successfully!
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <Clickable
+                    onPress={() => setShowSquadInviteModal(true)}
+                    style={[styles.inviteButton, { backgroundColor: palette.tint }]}
+                  >
+                    <Ionicons name="paper-plane" size={18} color="#fff" />
+                    <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+                      Invite Squad to Session
+                    </ThemedText>
+                  </Clickable>
+                )}
+              </SurfaceCard>
+            ) : (
+              <SurfaceCard style={styles.inviteCard}>
+                <View style={styles.noSquadMessage}>
+                  <Ionicons name="information-circle-outline" size={24} color={palette.muted} />
+                  <ThemedText style={{ color: palette.muted, flex: 1 }}>
+                    No squad linked. You can still invite athletes individually from the session page.
+                  </ThemedText>
+                </View>
+              </SurfaceCard>
+            )}
+
+            <ThemedText style={[styles.inviteNote, { color: palette.muted }]}>
+              You can also invite athletes later from the session details page.
+            </ThemedText>
+          </Animated.View>
+        );
     }
   };
 
@@ -525,9 +652,13 @@ export default function CreateGroupSessionScreen() {
 
         {/* Footer buttons */}
         <View style={[styles.footer, { borderTopColor: palette.border }]}>
-          {step === 'review' ? (
+          {step === 'invite' ? (
+            <Button onPress={handleFinish}>
+              {squadInviteSent ? 'View Session' : 'Skip & View Session'}
+            </Button>
+          ) : step === 'review' ? (
             <Button onPress={handleCreate} disabled={loading}>
-              {loading ? 'Creating...' : 'Create & Publish'}
+              {loading ? 'Creating...' : isSquadSession ? 'Create Session' : 'Create & Publish'}
             </Button>
           ) : (
             <Button onPress={goNext} disabled={!canProceed()}>
@@ -536,6 +667,36 @@ export default function CreateGroupSessionScreen() {
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* Squad Invite Modal */}
+      {createdSessionId && currentUser && (
+        <SquadInviteModal
+          visible={showSquadInviteModal}
+          onClose={() => setShowSquadInviteModal(false)}
+          onSuccess={handleSquadInviteSuccess}
+          clubId={DEFAULT_CLUB_ID}
+          inviteType="SESSION"
+          targetId={createdSessionId}
+          targetTitle={title}
+          preSelectedSquadIds={selectedSquadIds}
+          multiSelect={false}
+          sessionProps={{
+            coachId: currentUser.id,
+            coachName: currentUser.name || 'Coach',
+            coachPhotoUrl: currentUser.avatarUrl,
+            proposedSlots: [{
+              id: `slot_${Date.now()}`,
+              date: scheduleDate,
+              startTime: scheduleStartTime,
+              endTime: scheduleEndTime,
+            }],
+            sessionType: groupSessionService.formatSessionType(sessionType),
+            focus: focus.length > 0 ? focus.join(', ') : 'General Training',
+            notes: description,
+            priceUsd: parseFloat(price) || 0,
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -685,5 +846,53 @@ const styles = StyleSheet.create({
   footer: {
     padding: Spacing.lg,
     borderTopWidth: 1,
+  },
+  // Invite step styles
+  inviteHeader: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  inviteCard: {
+    gap: Spacing.md,
+  },
+  inviteCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  inviteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  inviteSentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  noSquadMessage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  inviteNote: {
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: Spacing.md,
   },
 });
