@@ -8,8 +8,8 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
- * Social feed has been moved to club-centric design.
- * This component now redirects users to the Club tab for social features.
+ * Social feed redirect component.
+ * This component redirects users to the Feed tab for aggregated social content.
  */
 export function SocialFeed() {
   const scheme = useColorScheme() ?? 'light';
@@ -19,19 +19,19 @@ export function SocialFeed() {
     <View style={styles.container}>
       <SurfaceCard style={styles.card}>
         <View style={[styles.iconContainer, { backgroundColor: `${palette.tint}10` }]}>
-          <Ionicons name="people" size={32} color={palette.tint} />
+          <Ionicons name="newspaper" size={32} color={palette.tint} />
         </View>
         <ThemedText type="subtitle" style={styles.title}>
-          Social lives in your Club
+          Your Club Feed
         </ThemedText>
         <ThemedText style={[styles.description, { color: palette.muted }]}>
-          Stay connected with your club community. All social features, posts, and updates are now part of your club experience.
+          See updates from all your clubs in one place. Announcements, photos, and events from every club you are part of.
         </ThemedText>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: palette.tint }]}
-          onPress={() => router.push('/(tabs)/club-hub')}
+          onPress={() => router.push('/(tabs)/feed')}
         >
-          <ThemedText style={styles.buttonText}>Go to Club</ThemedText>
+          <ThemedText style={styles.buttonText}>Go to Feed</ThemedText>
           <Ionicons name="arrow-forward" size={18} color="#fff" />
         </TouchableOpacity>
       </SurfaceCard>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -22,6 +22,7 @@ export default function AvailabilityScreen() {
   const { currentUser } = useAuth();
 
   const [templates, setTemplates] = useState<AvailabilityTemplate[]>([]);
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -46,9 +47,37 @@ export default function AvailabilityScreen() {
     }
   }, [coachId]);
 
+  const loadUpcomingBookings = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const twoWeeksLater = new Date();
+      twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
+      const endDate = twoWeeksLater.toISOString().split('T')[0];
+
+      const bookings = await availabilityService.getCoachBookings(coachId, today, endDate);
+      // Sort by date
+      const sorted = bookings.sort((a, b) => {
+        const dateA = new Date(a.scheduledAt || '');
+        const dateB = new Date(b.scheduledAt || '');
+        return dateA.getTime() - dateB.getTime();
+      });
+      setUpcomingBookings(sorted);
+    } catch (error) {
+      console.error('Failed to load upcoming bookings:', error);
+    }
+  }, [coachId]);
+
   useEffect(() => {
     loadTemplates();
-  }, [loadTemplates]);
+    loadUpcomingBookings();
+  }, [loadTemplates, loadUpcomingBookings]);
+
+  // Reload bookings when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadUpcomingBookings();
+    }, [loadUpcomingBookings])
+  );
 
   const handleSlotPress = (dayOfWeek: number, hour: number) => {
     setPreselectedDay(dayOfWeek);
@@ -201,6 +230,82 @@ export default function AvailabilityScreen() {
               }}
             />
           </SurfaceCard>
+        )}
+
+        {/* Upcoming Bookings Section */}
+        {upcomingBookings.length > 0 && (
+          <>
+            <SectionHeader
+              title="Upcoming Bookings"
+              subtitle={`${upcomingBookings.length} session${upcomingBookings.length > 1 ? 's' : ''} scheduled`}
+            />
+            <SurfaceCard style={styles.bookingsCard}>
+              {upcomingBookings.slice(0, 5).map((booking, index) => {
+                const bookingDate = new Date(booking.scheduledAt);
+                const dayName = bookingDate.toLocaleDateString('en-US', { weekday: 'short' });
+                const dateStr = bookingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const timeStr = bookingDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+                return (
+                  <View key={booking.id}>
+                    {index > 0 && <View style={[styles.bookingDivider, { backgroundColor: palette.border }]} />}
+                    <Clickable
+                      onPress={() => router.push(`/booking/${booking.id}`)}
+                      style={styles.bookingItem}
+                    >
+                      <View style={[styles.bookingDateBadge, { backgroundColor: palette.tint + '15' }]}>
+                        <ThemedText style={[styles.bookingDayName, { color: palette.tint }]}>{dayName}</ThemedText>
+                        <ThemedText style={[styles.bookingDate, { color: palette.tint }]}>{dateStr}</ThemedText>
+                      </View>
+                      <View style={styles.bookingInfo}>
+                        <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                          {booking.athleteName || booking.service || 'Session'}
+                        </ThemedText>
+                        <View style={styles.bookingMeta}>
+                          <Ionicons name="time-outline" size={14} color={palette.muted} />
+                          <ThemedText style={[styles.bookingMetaText, { color: palette.muted }]}>
+                            {timeStr}
+                          </ThemedText>
+                          {booking.location && (
+                            <>
+                              <Ionicons name="location-outline" size={14} color={palette.muted} style={{ marginLeft: 8 }} />
+                              <ThemedText style={[styles.bookingMetaText, { color: palette.muted }]} numberOfLines={1}>
+                                {booking.location}
+                              </ThemedText>
+                            </>
+                          )}
+                        </View>
+                        {booking.isGroupSession && (
+                          <View style={styles.groupBadge}>
+                            <Ionicons name="people-outline" size={12} color={palette.secondary} />
+                            <ThemedText style={[styles.groupBadgeText, { color: palette.secondary }]}>
+                              {booking.currentParticipants || 0}/{booking.maxParticipants} participants
+                            </ThemedText>
+                          </View>
+                        )}
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: booking.status === 'CONFIRMED' ? palette.success + '20' : palette.warning + '20' }]}>
+                        <ThemedText style={[styles.statusText, { color: booking.status === 'CONFIRMED' ? palette.success : palette.warning }]}>
+                          {booking.status === 'CONFIRMED' ? 'Confirmed' : 'Pending'}
+                        </ThemedText>
+                      </View>
+                    </Clickable>
+                  </View>
+                );
+              })}
+              {upcomingBookings.length > 5 && (
+                <Clickable
+                  onPress={() => router.push('/(tabs)/bookings')}
+                  style={[styles.viewAllButton, { borderTopColor: palette.border }]}
+                >
+                  <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+                    View all {upcomingBookings.length} bookings
+                  </ThemedText>
+                  <Ionicons name="chevron-forward" size={18} color={palette.tint} />
+                </Clickable>
+              )}
+            </SurfaceCard>
+          </>
         )}
 
         <SurfaceCard style={styles.actionsCard}>
@@ -379,5 +484,75 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: 'center',
     lineHeight: 14,
+  },
+  bookingsCard: {
+    padding: 0,
+    overflow: 'hidden',
+  },
+  bookingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+  },
+  bookingDivider: {
+    height: 1,
+    marginHorizontal: Spacing.md,
+  },
+  bookingDateBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.sm,
+    minWidth: 56,
+  },
+  bookingDayName: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  bookingDate: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  bookingInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  bookingMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  bookingMetaText: {
+    fontSize: 12,
+  },
+  groupBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  groupBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  statusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.sm,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
   },
 });

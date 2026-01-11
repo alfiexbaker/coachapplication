@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -22,15 +22,21 @@ import {
   formatGBP,
   getChildrenForParent,
 } from '@/constants/mock-data';
+import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
+import type { AvailabilitySlot } from '@/constants/types';
 
 const logger = createLogger('ParentDiscoverScreen');
+
+// Cache for next available slots to avoid repeated API calls
+const nextAvailableCache: Record<string, { slot: AvailabilitySlot | null; timestamp: number }> = {};
 
 export function ParentDiscoverScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
   const [postcode, setPostcode] = useState('');
+  const [nextAvailableSlots, setNextAvailableSlots] = useState<Record<string, AvailabilitySlot | null>>({});
 
   if (!currentUser) return null;
 
@@ -50,6 +56,64 @@ export function ParentDiscoverScreen() {
       .filter((coach) => coach.distance <= 5)
       .sort((a, b) => a.distance - b.distance);
   }, [postcode, currentUser]);
+
+  // Fetch next available slot for each coach
+  useEffect(() => {
+    const fetchNextAvailableSlots = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const twoWeeksLater = new Date();
+      twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
+      const endDate = twoWeeksLater.toISOString().split('T')[0];
+
+      const slotsMap: Record<string, AvailabilitySlot | null> = {};
+
+      for (const coach of nearbyCoaches) {
+        // Check cache first (valid for 5 minutes)
+        const cached = nextAvailableCache[coach.id];
+        if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
+          slotsMap[coach.id] = cached.slot;
+          continue;
+        }
+
+        try {
+          const slots = await availabilityService.getAvailableSlots(coach.id, today, endDate);
+          const nextSlot = slots.find((s) => s.isAvailable) || null;
+          slotsMap[coach.id] = nextSlot;
+          nextAvailableCache[coach.id] = { slot: nextSlot, timestamp: Date.now() };
+        } catch (error) {
+          logger.error('Failed to fetch availability for coach', { coachId: coach.id, error });
+          slotsMap[coach.id] = null;
+        }
+      }
+
+      setNextAvailableSlots(slotsMap);
+    };
+
+    if (nearbyCoaches.length > 0) {
+      fetchNextAvailableSlots();
+    }
+  }, [nearbyCoaches]);
+
+  // Format next available slot for display
+  const formatNextAvailable = (slot: AvailabilitySlot | null): string => {
+    if (!slot) return 'Check availability';
+
+    const slotDate = new Date(slot.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (slotDate.toDateString() === today.toDateString()) {
+      return `Today at ${slot.startTime}`;
+    } else if (slotDate.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow at ${slot.startTime}`;
+    } else {
+      const dayName = slotDate.toLocaleDateString('en-US', { weekday: 'short' });
+      return `${dayName} at ${slot.startTime}`;
+    }
+  };
 
   const handlePostcodeChange = (value: string) => {
     const stripped = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -231,6 +295,13 @@ export function ParentDiscoverScreen() {
                       </ThemedText>
                     </View>
                   </View>
+                  {/* Next Available Slot */}
+                  <View style={[styles.nextAvailable, { backgroundColor: palette.tint + '10' }]}>
+                    <Ionicons name="time-outline" size={14} color={palette.tint} />
+                    <ThemedText style={[styles.nextAvailableText, { color: palette.tint }]}>
+                      {formatNextAvailable(nextAvailableSlots[coach.id])}
+                    </ThemedText>
+                  </View>
                   {coach.footballFocuses && coach.footballFocuses.length > 0 && (
                     <View style={styles.focuses}>
                       {coach.footballFocuses.slice(0, 3).map((focus, index) => (
@@ -409,6 +480,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   focusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  nextAvailable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    alignSelf: 'flex-start',
+  },
+  nextAvailableText: {
     fontSize: 12,
     fontWeight: '600',
   },

@@ -1,9 +1,20 @@
 import type { ClubFeedPost, ClubPostType } from '@/constants/types';
-import { addClubFeedPost, togglePinPost, getClubFeed, getPinnedPosts, getAnnouncements } from '@/constants/mock-data';
+import {
+  addClubFeedPost,
+  togglePinPost,
+  getClubFeed,
+  getPinnedPosts,
+  getAnnouncements,
+  getAggregatedFeed as getAggregatedFeedFromData,
+  getUserClubs,
+  type AggregatedFeedPost,
+} from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
+import { notificationService } from './notification-service';
 
 type CreateClubPostInput = {
   clubId: string;
+  clubName?: string;
   authorId: string;
   authorName: string;
   title: string;
@@ -17,9 +28,16 @@ type CreateClubPostInput = {
   eventDate?: string;
   eventLocation?: string;
   badgeAwarded?: string;
+  notifyMembers?: boolean; // Whether to notify club members
 };
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
+
+// Mock club member list (in production, this would come from the database)
+const MOCK_CLUB_MEMBERS: Record<string, string[]> = {
+  club_bradwell: ['parent_1', 'parent_2', 'parent_3'],
+  club_victoria: ['parent_1', 'parent_4'],
+};
 
 class ClubFeedService {
   private logger = createLogger('ClubFeedService');
@@ -57,7 +75,37 @@ class ClubFeedService {
       audience: post.audience,
     });
 
+    // Notify club members if requested (default to true for announcements)
+    const shouldNotify = input.notifyMembers ?? (input.postType === 'announcement');
+    if (shouldNotify) {
+      this.notifyClubMembers(input.clubId, input.clubName || 'your club', post.id, input.authorId);
+    }
+
     return post;
+  }
+
+  /**
+   * Notify club members of a new post
+   */
+  private async notifyClubMembers(
+    clubId: string,
+    clubName: string,
+    postId: string,
+    authorId: string
+  ): Promise<void> {
+    const members = MOCK_CLUB_MEMBERS[clubId] || [];
+
+    for (const memberId of members) {
+      // Don't notify the author of their own post
+      if (memberId === authorId) continue;
+
+      await notificationService.notifyParentClubPost({
+        parentId: memberId,
+        clubName,
+        postId,
+        clubId,
+      });
+    }
   }
 
   /**
@@ -105,9 +153,32 @@ class ClubFeedService {
       userId,
     });
   }
+
+  /**
+   * Get aggregated feed from all clubs user is member of
+   */
+  getAggregatedFeed(userId: string, filter: FeedFilter = 'all'): AggregatedFeedPost[] {
+    const posts = getAggregatedFeedFromData(userId, filter === 'all' ? undefined : filter);
+    this.logger.info('aggregated_feed_fetched', {
+      userId,
+      filter,
+      postCount: posts.length,
+    });
+    return posts;
+  }
+
+  /**
+   * Get all clubs the user is a member of
+   */
+  getUserClubs(userId: string) {
+    return getUserClubs(userId);
+  }
 }
 
 export const clubFeedService = new ClubFeedService();
 
 // Keep backward compatibility export
 export const socialFeedService = clubFeedService;
+
+// Export the AggregatedFeedPost type for use in components
+export type { AggregatedFeedPost };

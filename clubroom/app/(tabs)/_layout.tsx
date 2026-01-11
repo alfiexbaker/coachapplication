@@ -22,7 +22,6 @@ type RoleTabConfig = {
 
 // Routes that should be hidden from tab bar but still accessible via navigation
 const BASE_HIDDEN_ROUTES = [
-  'feed',
   'notifications',
   'availability',
   'coach-profile',
@@ -36,18 +35,19 @@ const BASE_HIDDEN_ROUTES = [
 ];
 
 // Uber-style grouped navigation - max 5 tabs with cascading hub screens
+// Feed shows aggregated posts from all clubs, club-hub is for managing clubs (accessible from Feed/Profile)
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
-  // COACH: Home, Schedule hub, Athletes hub, Club, Profile
-  // Messages accessible from Home screen or via notifications
+  // COACH: Home, Schedule hub, Athletes hub, Feed, Profile
+  // Club management accessible from Feed screen or Profile -> My Clubs
   COACH: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
       { name: 'schedule', title: 'Schedule', icon: 'calendar.badge.clock' },
       { name: 'athletes', title: 'Athletes', icon: 'person.2.fill' },
-      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
+      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
   },
   // USER (Athlete): Home, Find Coach, Bookings, Messages, Profile
   USER: {
@@ -58,41 +58,41 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'schedule', 'athletes', 'children'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'feed', 'schedule', 'athletes', 'children'],
   },
-  // PARENT: Home, Book, Children hub, Messages, Profile
+  // PARENT: Home, Book, Children hub, Feed, Profile
   // Bookings accessible via Children hub
   PARENT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
       { name: 'more', title: 'Book', icon: 'magnifyingglass' },
       { name: 'children', title: 'Children', icon: 'person.2.fill' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'schedule', 'athletes', 'bookings'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'schedule', 'athletes', 'bookings', 'messages'],
   },
-  // ADMIN: Users, Bookings, Club, Messages, Settings
+  // ADMIN: Users, Bookings, Feed, Messages, Settings
   ADMIN: {
     primary: [
       { name: 'index', title: 'Users', icon: 'person.2.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
-      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
+      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'schedule', 'athletes', 'children'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
   },
-  // DEFAULT: Home, Bookings, Club, Messages, Settings
+  // DEFAULT: Home, Bookings, Feed, Messages, Settings
   DEFAULT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
-      { name: 'club-hub', title: 'Club', icon: 'person.3.fill' },
+      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'schedule', 'athletes', 'children'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
   },
 };
 

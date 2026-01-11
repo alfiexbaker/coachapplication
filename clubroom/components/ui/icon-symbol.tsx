@@ -35,6 +35,9 @@ const MAPPING = {
   'person.2.fill': 'people',
   'exclamationmark.triangle.fill': 'warning',
   'gearshape.fill': 'settings',
+  // Social/Feed icons
+  'newspaper.fill': 'article',
+  'person.3.fill': 'groups',
 } as IconMapping;
 
 /**
