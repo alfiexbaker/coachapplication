@@ -21,11 +21,12 @@ import { useAuth } from '@/hooks/use-auth';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
 import type { Club } from '@/constants/types';
 
-type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
+type FeedFilter = 'all' | 'announcement' | 'photo' | 'event' | 'achievement';
 
 const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: 'grid-outline' },
   { key: 'announcement', label: 'Announcements', icon: 'megaphone-outline' },
+  { key: 'achievement', label: 'Achievements', icon: 'trophy-outline' },
   { key: 'photo', label: 'Photos', icon: 'images-outline' },
   { key: 'event', label: 'Events', icon: 'calendar-outline' },
 ];
@@ -321,6 +322,7 @@ export default function FeedScreen() {
     return {
       all: allPosts.length,
       announcement: allPosts.filter((p) => p.postType === 'announcement').length,
+      achievement: allPosts.filter((p) => p.postType === 'achievement').length,
       photo: allPosts.filter((p) => p.postType === 'photo').length,
       event: allPosts.filter((p) => p.postType === 'event').length,
     };

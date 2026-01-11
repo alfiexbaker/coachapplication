@@ -33,6 +33,7 @@ import type {
   NotificationItem,
 } from '@/constants/types';
 import { notificationService } from './notification-service';
+import { socialFeedService } from './social-feed-service';
 
 const STORAGE_KEY = 'matches';
 const USE_MOCK = true;
@@ -325,6 +326,23 @@ export const matchService = {
       matchesCache = await loadFromStorage();
       matchesCache.push(newMatch);
       await saveToStorage(matchesCache);
+
+      // Create social feed post for the match
+      socialFeedService.createMatchPost({
+        clubId: newMatch.clubId,
+        clubName: newMatch.clubName,
+        matchId: newMatch.id,
+        matchTitle: newMatch.title,
+        opponent: newMatch.opponent,
+        matchDate: newMatch.date,
+        kickoffTime: newMatch.kickoffTime,
+        venue: newMatch.venue,
+        isHome: newMatch.isHome,
+        coachId: newMatch.coachId,
+        coachName: newMatch.coachName || 'Coach',
+        squadName: newMatch.squadName,
+      });
+
       return newMatch;
     }
 

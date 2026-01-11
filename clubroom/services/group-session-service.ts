@@ -15,6 +15,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective, RecurringPattern } from '@/constants/types';
+import { socialFeedService } from './social-feed-service';
+import { notificationService } from './notification-service';
 
 const SESSIONS_STORAGE_KEY = 'group_sessions';
 const REGISTRATIONS_STORAGE_KEY = 'group_registrations';
@@ -529,6 +531,24 @@ export const groupSessionService = {
 
       session.status = 'PUBLISHED';
       await saveSessions(sessionsCache);
+
+      // Create social feed post for club sessions
+      if (session.clubId && session.schedule.length > 0) {
+        const firstSchedule = session.schedule[0];
+        socialFeedService.createSessionPost({
+          clubId: session.clubId,
+          clubName: session.clubName || 'Club',
+          sessionId: session.id,
+          sessionTitle: session.title,
+          sessionDate: firstSchedule.date,
+          sessionTime: firstSchedule.startTime,
+          location: session.location,
+          coachId: session.coachId,
+          coachName: session.coachName,
+          squadName: session.squadName,
+        });
+      }
+
       return session;
     }
 

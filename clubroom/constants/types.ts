@@ -206,7 +206,7 @@ export interface ClubInvite {
   remainingUses: number;
 }
 
-export type ClubPostType = 'announcement' | 'photo' | 'event' | 'general';
+export type ClubPostType = 'announcement' | 'photo' | 'event' | 'general' | 'achievement' | 'session' | 'match';
 
 export interface ClubFeedPost {
   id: string;
@@ -230,6 +230,17 @@ export interface ClubFeedPost {
   pinnedAt?: string;
   eventDate?: string;
   eventLocation?: string;
+  // Achievement post fields
+  athleteId?: string;
+  athleteName?: string;
+  badgeId?: string;
+  badgeAwardId?: string;
+  // Session/Match post fields
+  sessionId?: string;
+  matchId?: string;
+  // Parent who shared this (for achievement shares)
+  sharedByParentId?: string;
+  sharedByParentName?: string;
 }
 
 // Enhanced Coach Profile (Facebook-style)

@@ -1,4 +1,4 @@
-import { badgeAwards as mockBadgeAwards, badgeCatalog, getParentForAthlete } from '@/constants/mock-data';
+import { badgeAwards as mockBadgeAwards, badgeCatalog, getParentForAthlete, getUserClubs } from '@/constants/mock-data';
 import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/constants/types';
 import { storageService } from './storage-service';
 import { socialFeedService } from './social-feed-service';
@@ -139,7 +139,51 @@ class BadgeService {
       await this.notifyParent(award);
     }
 
+    // Auto-create achievement post in social feed for all clubs the athlete is in
+    if (award.visibility !== 'coach_only') {
+      await this.createAchievementPosts(award);
+    }
+
     return award;
+  }
+
+  /**
+   * Create achievement posts in social feed for all clubs the athlete is in
+   */
+  private async createAchievementPosts(award: BadgeAward): Promise<void> {
+    const clubs = getUserClubs(award.athleteId);
+    if (clubs.length === 0) {
+      this.logger.debug('no_clubs_for_achievement_post', { athleteId: award.athleteId });
+      return;
+    }
+
+    for (const club of clubs) {
+      try {
+        socialFeedService.createAchievementPost({
+          clubId: club.id,
+          clubName: club.name,
+          athleteId: award.athleteId,
+          athleteName: award.athleteName || 'Athlete',
+          badgeId: award.badgeId,
+          badgeLabel: award.badgeLabel || 'Badge',
+          badgeAwardId: award.id,
+          coachId: award.coachId,
+          coachName: award.coachName || 'Coach',
+          reason: award.reason,
+        });
+        this.logger.info('achievement_post_created', {
+          clubId: club.id,
+          athleteId: award.athleteId,
+          badgeAwardId: award.id,
+        });
+      } catch (error) {
+        this.logger.error('achievement_post_failed', {
+          clubId: club.id,
+          athleteId: award.athleteId,
+          error: String(error),
+        });
+      }
+    }
   }
 
   /**

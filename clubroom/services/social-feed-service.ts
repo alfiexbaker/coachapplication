@@ -31,7 +31,7 @@ type CreateClubPostInput = {
   notifyMembers?: boolean; // Whether to notify club members
 };
 
-type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
+type FeedFilter = 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match';
 
 // Mock club member list (in production, this would come from the database)
 const MOCK_CLUB_MEMBERS: Record<string, string[]> = {
@@ -172,6 +172,240 @@ class ClubFeedService {
    */
   getUserClubs(userId: string) {
     return getUserClubs(userId);
+  }
+
+  /**
+   * Add a post directly (for backward compatibility with badge sharing)
+   * Used by badge-service.markShared()
+   */
+  addPost(input: {
+    authorId: string;
+    authorName: string;
+    authorAvatar?: string;
+    content: string;
+    context?: string;
+    badgeAwardId?: string;
+    badgeId?: string;
+    badgeLabel?: string;
+    sessionId?: string;
+    clubId?: string;
+  }): ClubFeedPost | undefined {
+    // If no clubId provided, try to get user's first club
+    const clubs = getUserClubs(input.authorId);
+    const clubId = input.clubId || clubs[0]?.id;
+
+    if (!clubId) {
+      this.logger.warn('add_post_no_club', { authorId: input.authorId });
+      return undefined;
+    }
+
+    const club = clubs.find((c) => c.id === clubId);
+
+    const post = addClubFeedPost({
+      clubId,
+      title: input.badgeLabel ? `${input.authorName} earned a badge!` : 'Update',
+      body: input.content,
+      audience: 'club',
+      audienceLabel: 'Club-wide',
+      authorName: input.authorName,
+      authorId: input.authorId,
+      postAs: 'self',
+      postType: input.badgeAwardId ? 'achievement' : 'general',
+      badgeAwarded: input.badgeLabel,
+      badgeId: input.badgeId,
+      badgeAwardId: input.badgeAwardId,
+      athleteId: input.authorId,
+      athleteName: input.authorName,
+      sessionId: input.sessionId,
+    });
+
+    this.logger.info('post_added', {
+      postId: post.id,
+      clubId,
+      context: input.context,
+    });
+
+    return post;
+  }
+
+  /**
+   * Create an achievement post when a badge is awarded
+   * Auto-called by badge service
+   */
+  createAchievementPost(input: {
+    clubId: string;
+    clubName: string;
+    athleteId: string;
+    athleteName: string;
+    badgeId: string;
+    badgeLabel: string;
+    badgeAwardId: string;
+    coachId: string;
+    coachName: string;
+    reason?: string;
+  }): ClubFeedPost {
+    const post = addClubFeedPost({
+      clubId: input.clubId,
+      title: `${input.athleteName} earned a badge!`,
+      body: `Congratulations to ${input.athleteName} for earning the "${input.badgeLabel}" badge!${input.reason ? ` ${input.reason}` : ''}`,
+      audience: 'club',
+      audienceLabel: 'Club-wide',
+      authorName: input.coachName,
+      authorId: input.coachId,
+      postAs: 'club',
+      postType: 'achievement',
+      badgeAwarded: input.badgeLabel,
+      badgeId: input.badgeId,
+      badgeAwardId: input.badgeAwardId,
+      athleteId: input.athleteId,
+      athleteName: input.athleteName,
+    });
+
+    this.logger.info('achievement_post_created', {
+      postId: post.id,
+      clubId: input.clubId,
+      athleteId: input.athleteId,
+      badgeId: input.badgeId,
+    });
+
+    return post;
+  }
+
+  /**
+   * Create a post when a training session is scheduled
+   */
+  createSessionPost(input: {
+    clubId: string;
+    clubName: string;
+    sessionId: string;
+    sessionTitle: string;
+    sessionDate: string;
+    sessionTime: string;
+    location: string;
+    coachId: string;
+    coachName: string;
+    squadName?: string;
+  }): ClubFeedPost {
+    const dateStr = new Date(input.sessionDate).toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+
+    const post = addClubFeedPost({
+      clubId: input.clubId,
+      title: `New Training Session: ${input.sessionTitle}`,
+      body: `${input.squadName ? `${input.squadName} - ` : ''}Training scheduled for ${dateStr} at ${input.sessionTime}. Location: ${input.location}`,
+      audience: input.squadName ? 'squad' : 'club',
+      audienceLabel: input.squadName || 'Club-wide',
+      authorName: input.coachName,
+      authorId: input.coachId,
+      postAs: 'club',
+      postType: 'session',
+      sessionId: input.sessionId,
+      eventDate: input.sessionDate,
+      eventLocation: input.location,
+    });
+
+    this.logger.info('session_post_created', {
+      postId: post.id,
+      clubId: input.clubId,
+      sessionId: input.sessionId,
+    });
+
+    return post;
+  }
+
+  /**
+   * Create a post when a match is scheduled
+   */
+  createMatchPost(input: {
+    clubId: string;
+    clubName: string;
+    matchId: string;
+    matchTitle: string;
+    opponent: string;
+    matchDate: string;
+    kickoffTime: string;
+    venue: string;
+    isHome: boolean;
+    coachId: string;
+    coachName: string;
+    squadName?: string;
+  }): ClubFeedPost {
+    const dateStr = new Date(input.matchDate).toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+    const homeAway = input.isHome ? 'Home' : 'Away';
+
+    const post = addClubFeedPost({
+      clubId: input.clubId,
+      title: `Match Scheduled: ${input.matchTitle}`,
+      body: `${homeAway} match vs ${input.opponent} on ${dateStr}, kickoff ${input.kickoffTime}. Venue: ${input.venue}`,
+      audience: input.squadName ? 'squad' : 'club',
+      audienceLabel: input.squadName || 'Club-wide',
+      authorName: input.coachName,
+      authorId: input.coachId,
+      postAs: 'club',
+      postType: 'match',
+      matchId: input.matchId,
+      eventDate: input.matchDate,
+      eventLocation: input.venue,
+    });
+
+    this.logger.info('match_post_created', {
+      postId: post.id,
+      clubId: input.clubId,
+      matchId: input.matchId,
+    });
+
+    return post;
+  }
+
+  /**
+   * Create a post from a parent about their child (e.g., sharing a badge)
+   */
+  createParentPost(input: {
+    clubId: string;
+    parentId: string;
+    parentName: string;
+    athleteId: string;
+    athleteName: string;
+    title: string;
+    body: string;
+    badgeAwarded?: string;
+    badgeAwardId?: string;
+    imageUrl?: string;
+  }): ClubFeedPost {
+    const post = addClubFeedPost({
+      clubId: input.clubId,
+      title: input.title,
+      body: input.body,
+      audience: 'club',
+      audienceLabel: 'Club-wide',
+      authorName: input.parentName,
+      authorId: input.parentId,
+      postAs: 'self',
+      postType: input.badgeAwardId ? 'achievement' : 'general',
+      badgeAwarded: input.badgeAwarded,
+      badgeAwardId: input.badgeAwardId,
+      athleteId: input.athleteId,
+      athleteName: input.athleteName,
+      imageUrl: input.imageUrl,
+      sharedByParentId: input.parentId,
+      sharedByParentName: input.parentName,
+    });
+
+    this.logger.info('parent_post_created', {
+      postId: post.id,
+      clubId: input.clubId,
+      parentId: input.parentId,
+      athleteId: input.athleteId,
+    });
+
+    return post;
   }
 }
 

@@ -2500,6 +2500,67 @@ export const clubFeedPosts: ClubFeedPost[] = [
     reactionCount: 18,
     commentCount: 7,
   },
+  // Achievement posts (auto-created when badges awarded)
+  {
+    id: 'achievement_post_1',
+    clubId: 'club_lions',
+    title: 'Tom Henderson earned a badge!',
+    body: 'Congratulations to Tom Henderson for earning the "Team Captain" badge! Excellent leadership during training sessions.',
+    createdAt: new Date(today.getTime() - 3 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Coach Sarah',
+    authorId: 'coach1',
+    postAs: 'club',
+    postType: 'achievement',
+    badgeAwarded: 'Team Captain',
+    badgeId: 'badge_leadership',
+    badgeAwardId: 'award_tom_1',
+    athleteId: 'user1',
+    athleteName: 'Tom Henderson',
+    reactionCount: 15,
+    commentCount: 4,
+  },
+  {
+    id: 'achievement_post_2',
+    clubId: 'club_eagles',
+    title: 'Emma Davis earned a badge!',
+    body: 'Congratulations to Emma Davis for earning the "Sharp Shooter" badge! Incredible goal-scoring performance this week.',
+    createdAt: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'achievement',
+    badgeAwarded: 'Sharp Shooter',
+    badgeId: 'badge_technique',
+    badgeAwardId: 'award_emma_1',
+    athleteId: 'athlete_emma',
+    athleteName: 'Emma Davis',
+    reactionCount: 22,
+    commentCount: 6,
+  },
+  {
+    id: 'achievement_post_3',
+    clubId: 'club_lions',
+    title: 'Jake Thompson earned a badge!',
+    body: 'Congratulations to Jake Thompson for earning the "Never Give Up" badge! Great resilience during the tough match.',
+    createdAt: new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Mike Thompson',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'achievement',
+    badgeAwarded: 'Never Give Up',
+    badgeId: 'badge_resilience',
+    badgeAwardId: 'award_jake_1',
+    athleteId: 'athlete_jake',
+    athleteName: 'Jake Thompson',
+    reactionCount: 18,
+    commentCount: 3,
+  },
 ];
 
 export const clubSessions: SessionOffering[] = [
@@ -2584,7 +2645,7 @@ export type AggregatedFeedPost = ClubFeedPost & {
 
 export function getAggregatedFeed(
   userId: string,
-  filter?: 'all' | 'announcement' | 'photo' | 'event'
+  filter?: 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match'
 ): AggregatedFeedPost[] {
   const memberships = getAllClubMembershipsForUser(userId);
   const clubIds = memberships.map((m) => m.clubId);
@@ -2614,7 +2675,7 @@ export function getClubSquads(clubId: string): ClubSquad[] {
   return clubSquads.filter((squad) => squad.clubId === clubId);
 }
 
-export function getClubFeed(clubId: string, filter?: 'all' | 'announcement' | 'photo' | 'event'): ClubFeedPost[] {
+export function getClubFeed(clubId: string, filter?: 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match'): ClubFeedPost[] {
   let posts = clubFeedPosts.filter((post) => post.clubId === clubId);
 
   if (filter && filter !== 'all') {
