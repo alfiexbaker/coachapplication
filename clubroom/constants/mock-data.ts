@@ -6,7 +6,6 @@ import type {
   Relationship,
   Booking,
   Session,
-  Goal,
   Conversation,
   Message,
   Post,
@@ -14,7 +13,6 @@ import type {
   Review,
   SkillLevel,
   BookingStatus,
-  GoalStatus,
 } from './app-types';
 
 import type {
@@ -829,49 +827,6 @@ export const MOCK_SESSIONS: Session[] = [
   },
 ];
 
-// ===== GOALS =====
-export const MOCK_GOALS: Goal[] = [
-  {
-    id: 'goal1',
-    userId: 'user1',
-    title: 'Make School Team',
-    description: 'Get selected for the school football team tryouts in January',
-    targetDate: '2026-01-15',
-    status: 'ACTIVE',
-    progress: 60,
-    createdAt: new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'goal2',
-    userId: 'user1',
-    title: 'Improve Weak Foot',
-    description: 'Be comfortable shooting and passing with my left foot',
-    status: 'ACTIVE',
-    progress: 45,
-    createdAt: new Date(today.getTime() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'goal3',
-    userId: 'user2',
-    title: 'Complete 10 Sessions',
-    description: 'Attend 10 coaching sessions to build fundamentals',
-    targetDate: '2026-03-01',
-    status: 'ACTIVE',
-    progress: 20,
-    createdAt: new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'goal4',
-    userId: 'user3',
-    title: 'Join Academy',
-    description: 'Trial for a professional academy',
-    targetDate: '2026-06-01',
-    status: 'ACTIVE',
-    progress: 75,
-    createdAt: new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
 // ===== CONVERSATIONS =====
 export const MOCK_CONVERSATIONS: Conversation[] = [
   {
@@ -1493,10 +1448,6 @@ export function getRecentBadgeAwards(limit = 5): BadgeAward[] {
   return [...badgeAwards]
     .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime())
     .slice(0, limit);
-}
-
-export function getGoalsForUser(userId: string): Goal[] {
-  return MOCK_GOALS.filter((g) => g.userId === userId);
 }
 
 export function getConversationsForUser(userId: string): Conversation[] {

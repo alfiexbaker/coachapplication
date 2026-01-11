@@ -536,12 +536,6 @@ export interface CoachFeedback {
   createdAt: string;
 }
 
-export interface SkillLevel {
-  skill: FootballObjective;
-  level: number; // 0-100
-  lastUpdated: string;
-}
-
 export interface NotificationItem {
   id: string;
   type: 'booking' | 'message' | 'review' | 'payment' | 'reminder' | 'badge';

@@ -101,20 +101,6 @@ export interface Session {
   athleteName?: string; // Denormalized
 }
 
-// Goals & Progress
-export type GoalStatus = 'ACTIVE' | 'ACHIEVED' | 'PAUSED';
-
-export interface Goal {
-  id: string;
-  userId: string;
-  title: string;
-  description: string;
-  targetDate?: string;
-  status: GoalStatus;
-  progress: number; // 0-100%
-  createdAt: string;
-}
-
 // Messages
 export interface Conversation {
   id: string;
@@ -186,14 +172,6 @@ export interface CoachAnalytics {
   revenueTotal: number; // GBP
 }
 
-export interface AthleteProgress {
-  athleteId: string;
-  totalSessions: number;
-  averagePerformance: number;
-  skillsProgress: { skill: string; level: number; trend: 'up' | 'down' | 'stable' }[];
-  goalsActive: number;
-  goalsAchieved: number;
-}
 
 // ===== SESSION MANAGEMENT TYPES =====
 

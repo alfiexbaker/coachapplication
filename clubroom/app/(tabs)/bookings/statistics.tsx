@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -31,14 +31,19 @@ export default function StatisticsScreen() {
   );
   const [badgeCount, setBadgeCount] = useState(0);
 
+  // Compute targetId for badge fetching
+  const targetId = currentUser?.role === 'PARENT' ? selectedChildId : currentUser?.id;
+
   // Load badge count
-  useMemo(async () => {
-    const targetId = currentUser?.role === 'PARENT' ? selectedChildId : currentUser?.id;
-    if (targetId) {
-      const badges = await badgeService.listAwardsForAthlete(targetId);
-      setBadgeCount(badges.filter(b => b.visibility !== 'coach_only').length);
-    }
-  }, [currentUser, selectedChildId]);
+  useEffect(() => {
+    const fetchBadges = async () => {
+      if (targetId) {
+        const badges = await badgeService.listAwardsForAthlete(targetId);
+        setBadgeCount(badges.filter(b => b.visibility !== 'coach_only').length);
+      }
+    };
+    fetchBadges();
+  }, [currentUser, selectedChildId, targetId]);
 
   // Get sessions filtered by selected child for parents
   const sessions = useMemo(() => {
