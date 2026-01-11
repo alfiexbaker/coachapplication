@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -372,7 +373,17 @@ export default function EarningsScreen() {
               </View>
             ))
           )}
-          <Clickable onPress={() => {}}>
+          <Clickable onPress={() => {
+            Alert.alert(
+              'Add Payout Method',
+              'Choose how you want to receive your earnings.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Bank Account', onPress: () => Alert.alert('Coming Soon', 'Bank account linking will be available soon.') },
+                { text: 'PayPal', onPress: () => Alert.alert('Coming Soon', 'PayPal integration will be available soon.') },
+              ]
+            );
+          }}>
             <View style={[styles.addMethodButton, { borderColor: palette.border }]}>
               <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
               <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>

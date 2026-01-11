@@ -49,6 +49,13 @@ export default function BookingsLayout() {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen
+        name="session-feedback"
+        options={{
+          title: 'Session Feedback',
+          presentation: 'modal',
+        }}
+      />
     </Stack>
   );
 }

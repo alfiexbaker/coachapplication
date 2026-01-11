@@ -102,16 +102,17 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
   },
-  // USER (Athlete): Home, Find Coach, Bookings, Messages, Profile
+  // USER (Athlete): Home, Feed, Bookings, Messages, Profile
+  // Note: Find Coach accessible from Feed screen (DiscoverCoachesCard) and via /more route
   USER: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
-      { name: 'more', title: 'Find Coach', icon: 'magnifyingglass' },
+      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'feed', 'schedule', 'athletes', 'children'],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
   },
   // PARENT: Home, Book, Children hub, Feed, Profile
   // Bookings accessible via Children hub

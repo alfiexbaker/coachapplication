@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -290,7 +290,18 @@ export default function AthleteAnalyticsScreen() {
           <ThemedText type="title">{analytics.athleteName}</ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Progress Analytics</ThemedText>
         </View>
-        <Clickable onPress={() => {}} hitSlop={8}>
+        <Clickable
+          onPress={async () => {
+            try {
+              await Share.share({
+                message: `Check out ${analytics.athleteName}'s progress! ${analytics.totalSessions} sessions completed with an average performance of ${analytics.avgPerformance.toFixed(1)}/5.`,
+                title: `${analytics.athleteName} Progress Report`,
+              });
+            } catch (error) {
+              Alert.alert('Error', 'Failed to share progress report.');
+            }
+          }}
+          hitSlop={8}>
           <Ionicons name="share-outline" size={22} color={palette.text} />
         </Clickable>
       </View>

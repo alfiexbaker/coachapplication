@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,7 +71,19 @@ export default function BookingDetailScreen() {
         <SurfaceCard style={styles.card}>
           <InfoRow icon="person" label="Coach" value={booking.coachName} />
           <InfoRow icon="calendar" label="Date" value={new Date(booking.start).toLocaleString()} />
-          <InfoRow icon="navigate" label="Directions" value="Launch maps" actionLabel="Open" />
+          <InfoRow
+            icon="navigate"
+            label="Directions"
+            value={booking.locationLabel}
+            actionLabel="Open"
+            onAction={() => {
+              const location = encodeURIComponent(booking.locationLabel);
+              const url = `https://maps.google.com/?q=${location}`;
+              Linking.openURL(url).catch(() => {
+                Alert.alert('Error', 'Could not open maps application.');
+              });
+            }}
+          />
           <InfoRow icon="card" label="Payment" value="£65 (mock)" />
         </SurfaceCard>
 
@@ -82,7 +94,25 @@ export default function BookingDetailScreen() {
               <Ionicons name="chatbubbles" size={18} color={palette.tint} />
               <ThemedText style={[styles.actionLabel, { color: palette.tint }]}>Message coach</ThemedText>
             </Clickable>
-            <Clickable style={[styles.actionButton, { backgroundColor: `${palette.error}10` }]} onPress={() => {}}>
+            <Clickable
+              style={[styles.actionButton, { backgroundColor: `${palette.error}10` }]}
+              onPress={() => {
+                Alert.alert(
+                  'Cancel Booking',
+                  'Are you sure you want to cancel this session? Cancellation fees may apply.',
+                  [
+                    { text: 'Keep Booking', style: 'cancel' },
+                    {
+                      text: 'Cancel Session',
+                      style: 'destructive',
+                      onPress: () => {
+                        Alert.alert('Booking Cancelled', 'Your session has been cancelled. Any refund will be processed within 3-5 business days.');
+                        router.back();
+                      }
+                    },
+                  ]
+                );
+              }}>
               <Ionicons name="close-circle" size={18} color={palette.error} />
               <ThemedText style={[styles.actionLabel, { color: palette.error }]}>Cancel</ThemedText>
             </Clickable>
@@ -167,11 +197,13 @@ function InfoRow({
   label,
   value,
   actionLabel,
+  onAction,
 }: {
   icon: string;
   label: string;
   value: string;
   actionLabel?: string;
+  onAction?: () => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -185,7 +217,7 @@ function InfoRow({
         </View>
       </View>
       {actionLabel ? (
-        <Clickable style={styles.linkPill} onPress={() => {}}>
+        <Clickable style={styles.linkPill} onPress={onAction ?? (() => {})}>
           <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>{actionLabel}</ThemedText>
         </Clickable>
       ) : null}
