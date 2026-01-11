@@ -258,7 +258,7 @@ export default function MyProgressScreen() {
             </View>
 
             {progress.skills.length > 0 ? (
-              <SkillLevelGrid skills={progress.skills} />
+              <SkillLevelGrid skills={progress.skills} groupByCategory showUpdatedBy />
             ) : (
               <SurfaceCard style={styles.emptyCard}>
                 <Ionicons name="analytics-outline" size={32} color={palette.muted} />

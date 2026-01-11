@@ -4,6 +4,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -206,6 +207,150 @@ function FeedPost({ post }: { post: AggregatedFeedPost }) {
   );
 }
 
+function DiscoverCoachesCard() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  return (
+    <SurfaceCard style={styles.discoverCard}>
+      <View style={styles.discoverHeader}>
+        <View style={[styles.discoverIconCircle, { backgroundColor: `${palette.tint}15` }]}>
+          <Ionicons name="search" size={24} color={palette.tint} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>
+            Discover Coaches
+          </ThemedText>
+          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+            Find expert coaches near you
+          </ThemedText>
+        </View>
+        <TouchableOpacity
+          style={[styles.discoverButton, { backgroundColor: palette.tint }]}
+          onPress={() => router.push('/(tabs)/more')}
+        >
+          <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Find</ThemedText>
+        </TouchableOpacity>
+      </View>
+    </SurfaceCard>
+  );
+}
+
+function JoinClubCard() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const [inviteCode, setInviteCode] = useState('');
+
+  const handleJoin = () => {
+    if (inviteCode.trim()) {
+      router.push({
+        pathname: '/(tabs)/club-hub',
+        params: { code: inviteCode.trim().toUpperCase() },
+      });
+    } else {
+      router.push('/(tabs)/club-hub');
+    }
+  };
+
+  return (
+    <SurfaceCard style={styles.joinClubCard}>
+      <View style={styles.joinClubHeader}>
+        <View style={[styles.discoverIconCircle, { backgroundColor: `${palette.success}15` }]}>
+          <Ionicons name="people" size={24} color={palette.success} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>
+            Join a Club
+          </ThemedText>
+          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+            Get access to exclusive content
+          </ThemedText>
+        </View>
+      </View>
+      <View style={styles.joinClubForm}>
+        <View style={[styles.inviteCodeInput, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+          <Ionicons name="key-outline" size={18} color={palette.muted} />
+          <TextInput
+            value={inviteCode}
+            onChangeText={setInviteCode}
+            placeholder="Enter invite code"
+            placeholderTextColor={palette.muted}
+            autoCapitalize="characters"
+            style={[styles.inviteCodeText, { color: palette.text }]}
+          />
+        </View>
+        <TouchableOpacity
+          style={[styles.joinButton, { backgroundColor: palette.success }]}
+          onPress={handleJoin}
+        >
+          <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Join</ThemedText>
+        </TouchableOpacity>
+      </View>
+    </SurfaceCard>
+  );
+}
+
+function OnboardingTipsCard() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  const tips = [
+    { icon: 'person-circle', title: 'Complete Your Profile', desc: 'Add your photo and bio' },
+    { icon: 'calendar', title: 'Book a Session', desc: 'Train with expert coaches' },
+    { icon: 'trophy', title: 'Track Progress', desc: 'View your skills and badges' },
+  ];
+
+  return (
+    <SurfaceCard style={styles.tipsCard}>
+      <View style={styles.tipsHeader}>
+        <Ionicons name="bulb" size={20} color={palette.warning} />
+        <ThemedText type="defaultSemiBold">Getting Started</ThemedText>
+      </View>
+      <View style={styles.tipsList}>
+        {tips.map((tip, index) => (
+          <View key={index} style={styles.tipItem}>
+            <View style={[styles.tipIcon, { backgroundColor: `${palette.tint}10` }]}>
+              <Ionicons name={tip.icon as any} size={18} color={palette.tint} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>{tip.title}</ThemedText>
+              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{tip.desc}</ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+          </View>
+        ))}
+      </View>
+    </SurfaceCard>
+  );
+}
+
+function QuickActionsCard() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  const actions = [
+    { icon: 'search', label: 'Find Coach', route: '/(tabs)/more', color: palette.tint },
+    { icon: 'analytics', label: 'My Progress', route: '/development/my-progress', color: palette.success },
+    { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', color: palette.accent },
+    { icon: 'ribbon', label: 'Badges', route: '/badges', color: '#F59E0B' },
+  ];
+
+  return (
+    <View style={styles.quickActionsGrid}>
+      {actions.map((action, index) => (
+        <TouchableOpacity
+          key={index}
+          style={[styles.quickActionItem, { backgroundColor: `${action.color}10`, borderColor: `${action.color}30` }]}
+          onPress={() => router.push(action.route as any)}
+        >
+          <Ionicons name={action.icon as any} size={22} color={action.color} />
+          <ThemedText style={[styles.quickActionLabel, { color: action.color }]}>{action.label}</ThemedText>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
 function EmptyFeedState({
   hasClubs,
   filter,
@@ -218,23 +363,29 @@ function EmptyFeedState({
 
   if (!hasClubs) {
     return (
-      <SurfaceCard style={styles.emptyCard}>
-        <View style={[styles.emptyIconContainer, { backgroundColor: `${palette.tint}10` }]}>
-          <Ionicons name="people" size={40} color={palette.tint} />
+      <View style={styles.noClubsContent}>
+        {/* Welcome Header */}
+        <View style={styles.welcomeHeader}>
+          <ThemedText type="subtitle" style={styles.welcomeTitle}>
+            Welcome to Your Feed
+          </ThemedText>
+          <ThemedText style={[styles.welcomeDesc, { color: palette.muted }]}>
+            Here you will see updates from your clubs, coaches, and training community.
+          </ThemedText>
         </View>
-        <ThemedText type="subtitle" style={styles.emptyTitle}>
-          Join a Club to See Posts
-        </ThemedText>
-        <ThemedText style={[styles.emptyDescription, { color: palette.muted }]}>
-          Join clubs to see their updates, announcements, and photos in your feed. Ask your coach for an invite code.
-        </ThemedText>
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: palette.tint }]}
-          onPress={() => router.push('/(tabs)/club-hub')}
-        >
-          <ThemedText style={styles.primaryButtonText}>Find or Create a Club</ThemedText>
-        </TouchableOpacity>
-      </SurfaceCard>
+
+        {/* Quick Actions */}
+        <QuickActionsCard />
+
+        {/* Discover Coaches */}
+        <DiscoverCoachesCard />
+
+        {/* Join a Club */}
+        <JoinClubCard />
+
+        {/* Getting Started Tips */}
+        <OnboardingTipsCard />
+      </View>
     );
   }
 
@@ -635,5 +786,117 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.xl,
     gap: Spacing.md,
+  },
+  // New empty state styles for USER without clubs
+  noClubsContent: {
+    gap: Spacing.md,
+  },
+  welcomeHeader: {
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    gap: Spacing.xs,
+  },
+  welcomeTitle: {
+    textAlign: 'center',
+    fontSize: 18,
+  },
+  welcomeDesc: {
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 20,
+    maxWidth: 300,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  quickActionItem: {
+    flexBasis: '47%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  quickActionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  discoverCard: {
+    gap: Spacing.sm,
+  },
+  discoverHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  discoverIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  discoverButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  joinClubCard: {
+    gap: Spacing.md,
+  },
+  joinClubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  joinClubForm: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  inviteCodeInput: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  inviteCodeText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  joinButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  tipsCard: {
+    gap: Spacing.md,
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  tipsList: {
+    gap: Spacing.sm,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  tipIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -249,35 +249,41 @@ export default function SettingsScreen() {
           </View>
         </SurfaceCard>
 
-        <View style={styles.section}>
-          <SectionHeader title="Navigation hub" subtitle="Jump to the places you need" />
-          <View style={styles.navGrid}>
-            {navLinks.map((link) => (
-              <SurfaceCard key={link.title} style={styles.navCard} onPress={() => router.push(link.route as any)}>
-                <View style={[styles.navIcon, { backgroundColor: `${palette.accent}12` }]}>
-                  <Ionicons name={link.icon as any} size={22} color={palette.accent} />
-                </View>
-                <View style={styles.navText}>
-                  <ThemedText type="defaultSemiBold">{link.title}</ThemedText>
-                  {link.subtitle && (
-                    <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{link.subtitle}</ThemedText>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-              </SurfaceCard>
-            ))}
+        {/* Navigation hub - only show for non-USER roles */}
+        {currentUser?.role !== 'USER' && (
+          <View style={styles.section}>
+            <SectionHeader title="Navigation hub" subtitle="Jump to the places you need" />
+            <View style={styles.navGrid}>
+              {navLinks.map((link) => (
+                <SurfaceCard key={link.title} style={styles.navCard} onPress={() => router.push(link.route as any)}>
+                  <View style={[styles.navIcon, { backgroundColor: `${palette.accent}12` }]}>
+                    <Ionicons name={link.icon as any} size={22} color={palette.accent} />
+                  </View>
+                  <View style={styles.navText}>
+                    <ThemedText type="defaultSemiBold">{link.title}</ThemedText>
+                    {link.subtitle && (
+                      <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{link.subtitle}</ThemedText>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+                </SurfaceCard>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
-        <View style={styles.section}>
-          <SectionHeader title="Latest alerts" subtitle="Inline so they never take a full page" />
-          <SurfaceCard style={styles.card}>
-            <NotificationsPanel limit={3} />
-            <ThemedText style={[styles.helperText, { color: palette.muted }]}>
-              Alerts stay inline here; manage the toggles below.
-            </ThemedText>
-          </SurfaceCard>
-        </View>
+        {/* Latest alerts - only show for non-USER roles */}
+        {currentUser?.role !== 'USER' && (
+          <View style={styles.section}>
+            <SectionHeader title="Latest alerts" subtitle="Inline so they never take a full page" />
+            <SurfaceCard style={styles.card}>
+              <NotificationsPanel limit={3} />
+              <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+                Alerts stay inline here; manage the toggles below.
+              </ThemedText>
+            </SurfaceCard>
+          </View>
+        )}
 
         <View style={styles.section}>
           <SectionHeader title="Account" />
@@ -292,25 +298,27 @@ export default function SettingsScreen() {
               }}
             />
             {currentUser?.role === 'COACH' && (
-              <SettingRow
-                icon="briefcase"
-                title="Coach profile"
-                subtitle="Services, identity, and badges"
-                onPress={() => {
-                  logger.press('EditCoachProfile');
-                  router.push('/(tabs)/coach-profile');
-                }}
-              />
+              <>
+                <SettingRow
+                  icon="briefcase"
+                  title="Coach profile"
+                  subtitle="Services, identity, and badges"
+                  onPress={() => {
+                    logger.press('EditCoachProfile');
+                    router.push('/(tabs)/coach-profile');
+                  }}
+                />
+                <SettingRow
+                  icon="shield-checkmark"
+                  title="Verification"
+                  subtitle="Background checks and credentials"
+                  onPress={() => {
+                    logger.press('Verification');
+                    Alert.alert('Coming Soon', 'Verification badges coming in Sprint 2');
+                  }}
+                />
+              </>
             )}
-            <SettingRow
-              icon="shield-checkmark"
-              title="Verification"
-              subtitle="Background checks and credentials"
-              onPress={() => {
-                logger.press('Verification');
-                Alert.alert('Coming Soon', 'Verification badges coming in Sprint 2');
-              }}
-            />
           </SurfaceCard>
         </View>
 
@@ -349,17 +357,19 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <SectionHeader title="Social & privacy" />
+          <SectionHeader title={currentUser?.role === 'USER' ? 'Privacy' : 'Social & privacy'} />
           <SurfaceCard style={styles.card}>
-            <SettingRow
-              icon="people"
-              title="Social profile"
-              subtitle="Manage your social presence and posts"
-              onPress={() => {
-                logger.press('SocialProfile');
-                router.push('/(tabs)/feed');
-              }}
-            />
+            {currentUser?.role !== 'USER' && (
+              <SettingRow
+                icon="people"
+                title="Social profile"
+                subtitle="Manage your social presence and posts"
+                onPress={() => {
+                  logger.press('SocialProfile');
+                  router.push('/(tabs)/feed');
+                }}
+              />
+            )}
             <ToggleRow
               icon="eye"
               title="Profile visibility"
