@@ -23,6 +23,9 @@ import type {
   EventTargetAudience,
   RSVPStatus,
 } from '@/constants/types';
+import { clubSettingsService } from './club-settings-service';
+import { clubService } from './club-service';
+import { notificationService } from './notification-service';
 
 const EVENTS_STORAGE_KEY = 'club_events';
 const USE_MOCK = true;
@@ -275,6 +278,7 @@ export const eventService = {
 
   /**
    * Publish an event (make visible to members)
+   * Also notifies club members if notifications are enabled
    */
   async publishEvent(eventId: string): Promise<ClubEvent> {
     if (USE_MOCK) {
@@ -284,6 +288,36 @@ export const eventService = {
 
       event.status = 'PUBLISHED';
       await saveEvents(eventsCache);
+
+      // Notify parents if event notifications are enabled
+      if (event.clubId) {
+        try {
+          const shouldNotify = await clubSettingsService.shouldNotify(event.clubId, 'event');
+          if (shouldNotify) {
+            // Get all parent members of the club
+            const members = await clubService.getMembers(event.clubId);
+            const parentIds = members
+              .filter((m) => m.role === 'MEMBER')
+              .map((m) => m.userId);
+
+            if (parentIds.length > 0) {
+              await notificationService.notifyClubParentsEventCreated({
+                clubId: event.clubId,
+                clubName: event.clubName || 'Club',
+                eventId: event.id,
+                eventTitle: event.title,
+                eventDate: event.date,
+                eventTime: event.startTime,
+                venue: event.venue,
+                parentIds,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('[EventService] Failed to send notifications:', error);
+        }
+      }
+
       return event;
     }
 

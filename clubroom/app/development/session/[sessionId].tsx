@@ -17,6 +17,7 @@ import { MOCK_SESSIONS, getUserById, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 import { progressService } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
+import { videoService, type LocalVideo } from '@/services/video-service';
 import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
 import type { Session, BadgeAward } from '@/constants/types';
 
@@ -61,7 +62,8 @@ export default function SessionDetailScreen() {
   const [skillRatings, setSkillRatings] = useState<SkillRating[]>([]);
   const [improvements, setImprovements] = useState('');
   const [homework, setHomework] = useState('');
-  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]); // Legacy - still saved to session
+  const [sessionVideos, setSessionVideos] = useState<LocalVideo[]>([]); // Real uploaded videos
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   // Badge state
@@ -103,6 +105,10 @@ export default function SessionDetailScreen() {
           // Load badges for this session
           const badges = await badgeService.listAwardsForSession(sessionId!);
           setSessionBadges(badges);
+
+          // Load videos for this session
+          const videos = await videoService.getVideosBySession(sessionId!);
+          setSessionVideos(videos);
 
           // Load existing skill levels for prefill
           const athleteSkills = await progressService.getAthleteSkillLevels(foundSession.athleteId);
@@ -262,13 +268,73 @@ export default function SessionDetailScreen() {
     setImageUrls(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleAddVideo = () => {
-    const mockVideoUrl = `https://example.com/video_${Date.now()}.mp4`;
-    setVideoUrls(prev => [...prev, mockVideoUrl]);
-    logger.info('Video added', { videoUrl: mockVideoUrl });
+  const handleAddVideo = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please allow access to your videos');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+
+        // Prompt for video title
+        Alert.prompt(
+          'Video Title',
+          'Enter a title for this video',
+          async (title) => {
+            if (!title || !currentUser) return;
+
+            try {
+              // Save the video locally
+              const savedVideo = await videoService.saveLocalVideo(asset.uri, {
+                title: title || `Session Video ${sessionVideos.length + 1}`,
+                description: `Video from session on ${formatDate(session!.completedAt)}`,
+                athleteId: athlete.id,
+                athleteName: athlete.name,
+                coachId: currentUser.id,
+                coachName: currentUser.name || 'Coach',
+                sessionId: sessionId,
+                bookingId: session!.bookingId,
+                duration: asset.duration ? asset.duration / 1000 : undefined,
+                fileSize: asset.fileSize,
+                tags: selectedSkills.slice(0, 3).map(s => s.toLowerCase()),
+              });
+
+              setSessionVideos(prev => [savedVideo, ...prev]);
+              // Also keep track of URL for legacy save
+              setVideoUrls(prev => [...prev, savedVideo.localUri]);
+
+              logger.info('Video saved', { videoId: savedVideo.id, uri: asset.uri });
+              Alert.alert('Success', 'Video saved successfully!');
+            } catch (error) {
+              logger.error('Failed to save video', error);
+              Alert.alert('Error', 'Failed to save video. Please try again.');
+            }
+          },
+          'plain-text',
+          `Session Video ${sessionVideos.length + 1}`
+        );
+      }
+    } catch (error) {
+      logger.error('Failed to pick video', error);
+      Alert.alert('Error', 'Failed to pick video');
+    }
   };
 
-  const handleRemoveVideo = (index: number) => {
+  const handleRemoveVideo = async (index: number, videoId?: string) => {
+    if (videoId) {
+      // Delete from video service
+      await videoService.deleteLocalVideo(videoId);
+      setSessionVideos(prev => prev.filter(v => v.id !== videoId));
+    }
     setVideoUrls(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -581,17 +647,25 @@ export default function SessionDetailScreen() {
               </Clickable>
             </View>
 
-            {videoUrls.length > 0 ? (
+            {sessionVideos.length > 0 ? (
               <View style={styles.mediaList}>
-                {videoUrls.map((url, index) => (
-                  <SurfaceCard key={index} style={styles.mediaCard}>
+                {sessionVideos.map((video, index) => (
+                  <SurfaceCard key={video.id} style={styles.mediaCard}>
                     <View style={styles.mediaInfo}>
-                      <Ionicons name="videocam" size={20} color={palette.tint} />
-                      <ThemedText style={styles.mediaName} numberOfLines={1}>
-                        Video {index + 1}
-                      </ThemedText>
+                      <View style={[styles.videoThumbnail, { backgroundColor: `${palette.tint}15` }]}>
+                        <Ionicons name="videocam" size={18} color={palette.tint} />
+                      </View>
+                      <View style={styles.videoDetails}>
+                        <ThemedText style={styles.mediaName} numberOfLines={1}>
+                          {video.title}
+                        </ThemedText>
+                        <ThemedText style={[styles.videoDuration, { color: palette.muted }]}>
+                          {video.duration ? `${Math.floor(video.duration / 60)}:${String(Math.floor(video.duration % 60)).padStart(2, '0')}` : 'Video'}
+                          {video.visibility === 'SHARED' && ' - Shared'}
+                        </ThemedText>
+                      </View>
                     </View>
-                    <Clickable onPress={() => handleRemoveVideo(index)}>
+                    <Clickable onPress={() => handleRemoveVideo(index, video.id)}>
                       <Ionicons name="trash-outline" size={20} color={Colors.light.error} />
                     </Clickable>
                   </SurfaceCard>
@@ -601,7 +675,7 @@ export default function SessionDetailScreen() {
               <SurfaceCard style={styles.emptyMedia}>
                 <Ionicons name="videocam-outline" size={32} color={palette.muted} />
                 <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-                  Link training videos for parent review
+                  Tap + to add training videos for parent review
                 </ThemedText>
               </SurfaceCard>
             )}
@@ -930,6 +1004,21 @@ const styles = StyleSheet.create({
   mediaName: {
     fontSize: 14,
     flex: 1,
+    fontWeight: '500',
+  },
+  videoThumbnail: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoDetails: {
+    flex: 1,
+    gap: 2,
+  },
+  videoDuration: {
+    fontSize: 12,
   },
   emptyMedia: {
     padding: Spacing.lg,

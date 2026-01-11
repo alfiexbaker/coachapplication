@@ -2,22 +2,31 @@
  * Club Service
  *
  * Handles club management operations including member management.
- * Provides functionality for removing members and tracking removal history.
+ * Provides functionality for removing members, leaving clubs, joining clubs,
+ * and invite code validation with proper persistence.
  *
  * API Integration Notes:
  * - GET /api/clubs/:id/members - Get club members
  * - DELETE /api/clubs/:id/members/:userId - Remove member
  * - GET /api/clubs/:id/members/removed - Get removal history
  * - POST /api/clubs/:id/members/removed/:recordId/undo - Undo removal
+ * - POST /api/clubs/:id/join - Join club with invite code
+ * - POST /api/clubs/:id/leave - Leave club
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ClubMembership, ClubRole } from '@/constants/types';
-import { clubMemberships } from '@/constants/mock-data';
+import type { ClubMembership, ClubRole, Club, ClubInvite } from '@/constants/types';
+import { clubMemberships, clubInvites, clubs, getClubById } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
 
 const CLUB_MEMBERS_KEY = 'club_members';
 const MEMBER_REMOVAL_KEY = 'club_member_removals';
+const USER_MEMBERSHIPS_KEY = '@user_memberships';
+const INVITE_CODES_KEY = '@invite_codes';
+const CLUB_GROUP_CHATS_KEY = '@club_group_chats';
 const USE_MOCK = true;
+
+const logger = createLogger('ClubService');
 
 export type MemberRemovalReason = 'LEFT_CLUB' | 'INACTIVE' | 'CONDUCT' | 'SEASON_END' | 'OTHER';
 
@@ -326,5 +335,334 @@ export const clubService = {
       MEMBER: '#6B7280',
     };
     return colors[role] || '#6B7280';
+  },
+
+  // ============================================================================
+  // INVITE CODE VALIDATION & CLUB JOIN
+  // ============================================================================
+
+  /**
+   * Validate an invite code and return the associated club
+   */
+  async validateInviteCode(code: string): Promise<{
+    valid: boolean;
+    club?: Club;
+    invite?: ClubInvite;
+    error?: string;
+  }> {
+    const trimmedCode = code.trim().toUpperCase();
+
+    if (!trimmedCode) {
+      return { valid: false, error: 'Please enter an invite code' };
+    }
+
+    // Check mock invite codes first
+    const invite = clubInvites.find((item) => item.code.toUpperCase() === trimmedCode);
+
+    if (!invite) {
+      // Check stored custom invite codes
+      try {
+        const storedCodes = await AsyncStorage.getItem(INVITE_CODES_KEY);
+        if (storedCodes) {
+          const codeMap: Record<string, string> = JSON.parse(storedCodes);
+          const clubId = codeMap[trimmedCode];
+          if (clubId) {
+            const club = getClubById(clubId);
+            if (club) {
+              return {
+                valid: true,
+                club,
+                invite: {
+                  code: trimmedCode,
+                  clubId,
+                  clubName: club.name,
+                  createdBy: 'system',
+                  createdByName: 'System',
+                  role: 'MEMBER',
+                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                  remainingUses: 99,
+                },
+              };
+            }
+          }
+        }
+      } catch (error) {
+        logger.error('validate_invite_code_storage_error', { error });
+      }
+
+      return { valid: false, error: 'Invalid invite code. Please check and try again.' };
+    }
+
+    // Check if invite has expired
+    if (new Date(invite.expiresAt) < new Date()) {
+      return { valid: false, error: 'This invite code has expired' };
+    }
+
+    // Check remaining uses
+    if (invite.remainingUses <= 0) {
+      return { valid: false, error: 'This invite code has reached its usage limit' };
+    }
+
+    // Get the club
+    const club = getClubById(invite.clubId);
+    if (!club) {
+      return { valid: false, error: 'Club not found' };
+    }
+
+    logger.info('invite_code_validated', { code: trimmedCode, clubId: invite.clubId });
+
+    return { valid: true, club, invite };
+  },
+
+  /**
+   * Join a club using an invite code
+   */
+  async joinClub(
+    userId: string,
+    clubId: string,
+    code: string,
+    userName?: string
+  ): Promise<{
+    success: boolean;
+    membership?: ClubMembership;
+    club?: Club;
+    error?: string;
+  }> {
+    // First validate the code
+    const validation = await this.validateInviteCode(code);
+    if (!validation.valid || !validation.invite || !validation.club) {
+      return { success: false, error: validation.error || 'Invalid invite code' };
+    }
+
+    // Ensure the code matches the requested club
+    if (validation.invite.clubId !== clubId) {
+      return { success: false, error: 'Invite code does not match this club' };
+    }
+
+    // Check if user is already a member
+    const existingMemberships = await this.getUserMemberships(userId);
+    if (existingMemberships.some((m) => m.clubId === clubId && m.status === 'active')) {
+      return { success: false, error: 'You are already a member of this club' };
+    }
+
+    // Create new membership
+    const newMembership: ClubMembership = {
+      clubId,
+      userId,
+      role: validation.invite.role,
+      status: 'active',
+      joinSource: 'invite',
+      inviteCode: validation.invite.code,
+      canPostAsClub: validation.invite.role === 'OWNER' || validation.invite.role === 'ADMIN',
+    };
+
+    // Save to user memberships
+    existingMemberships.push(newMembership);
+    await this.saveUserMemberships(userId, existingMemberships);
+
+    // Add user to club members list
+    const members = await loadMembers(clubId);
+    members.push({
+      userId,
+      userName: userName || 'New Member',
+      role: validation.invite.role,
+      status: 'active',
+      joinedAt: new Date().toISOString(),
+    });
+    await saveMembers(clubId, members);
+
+    logger.info('user_joined_club', {
+      userId,
+      clubId,
+      role: validation.invite.role,
+      inviteCode: code,
+    });
+
+    return {
+      success: true,
+      membership: newMembership,
+      club: validation.club,
+    };
+  },
+
+  /**
+   * Get all memberships for a user
+   */
+  async getUserMemberships(userId: string): Promise<ClubMembership[]> {
+    try {
+      const stored = await AsyncStorage.getItem(`${USER_MEMBERSHIPS_KEY}_${userId}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      logger.error('get_user_memberships_failed', { userId, error });
+    }
+
+    // Fall back to mock data
+    return clubMemberships.filter((m) => m.userId === userId && m.status === 'active');
+  },
+
+  /**
+   * Save user memberships
+   */
+  async saveUserMemberships(userId: string, memberships: ClubMembership[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(`${USER_MEMBERSHIPS_KEY}_${userId}`, JSON.stringify(memberships));
+    } catch (error) {
+      logger.error('save_user_memberships_failed', { userId, error });
+    }
+  },
+
+  // ============================================================================
+  // LEAVE CLUB
+  // ============================================================================
+
+  /**
+   * Leave a club - removes all user data and associations
+   */
+  async leaveClub(
+    userId: string,
+    clubId: string
+  ): Promise<{
+    success: boolean;
+    clubName?: string;
+    error?: string;
+  }> {
+    try {
+      const club = getClubById(clubId);
+      const clubName = club?.name || 'the club';
+
+      // Check if user is the owner
+      const memberships = await this.getUserMemberships(userId);
+      const membership = memberships.find((m) => m.clubId === clubId);
+
+      if (membership?.role === 'OWNER') {
+        return {
+          success: false,
+          error: 'Club owners cannot leave. Transfer ownership first or delete the club.',
+        };
+      }
+
+      // 1. Remove from user's memberships
+      const updatedMemberships = memberships.filter((m) => m.clubId !== clubId);
+      await this.saveUserMemberships(userId, updatedMemberships);
+
+      // 2. Remove from club's member list
+      const members = await loadMembers(clubId);
+      const updatedMembers = members.filter((m) => m.userId !== userId);
+      await saveMembers(clubId, updatedMembers);
+
+      // 3. Remove user from club group chats
+      await this.removeUserFromClubChats(userId, clubId);
+
+      // 4. Clear related notifications (mark as handled)
+      await this.clearClubNotifications(userId, clubId);
+
+      logger.info('user_left_club', { userId, clubId, clubName });
+
+      return { success: true, clubName };
+    } catch (error) {
+      logger.error('leave_club_failed', { userId, clubId, error });
+      return { success: false, error: 'Failed to leave club. Please try again.' };
+    }
+  },
+
+  /**
+   * Remove user from club group chats
+   */
+  async removeUserFromClubChats(userId: string, clubId: string): Promise<void> {
+    try {
+      const key = `${CLUB_GROUP_CHATS_KEY}_${clubId}`;
+      const stored = await AsyncStorage.getItem(key);
+
+      if (stored) {
+        const chatMembers: string[] = JSON.parse(stored);
+        const updated = chatMembers.filter((id) => id !== userId);
+        await AsyncStorage.setItem(key, JSON.stringify(updated));
+      }
+
+      logger.info('user_removed_from_club_chats', { userId, clubId });
+    } catch (error) {
+      logger.error('remove_from_club_chats_failed', { userId, clubId, error });
+    }
+  },
+
+  /**
+   * Clear club-related notifications for a user
+   */
+  async clearClubNotifications(userId: string, clubId: string): Promise<void> {
+    try {
+      const notifKey = 'clubroom.notifications';
+      const stored = await AsyncStorage.getItem(notifKey);
+
+      if (stored) {
+        const notifications = JSON.parse(stored);
+        const updated = notifications.filter(
+          (n: { recipientId?: string; data?: { clubId?: string } }) =>
+            !(n.recipientId === userId && n.data?.clubId === clubId)
+        );
+        await AsyncStorage.setItem(notifKey, JSON.stringify(updated));
+      }
+
+      logger.info('club_notifications_cleared', { userId, clubId });
+    } catch (error) {
+      logger.error('clear_club_notifications_failed', { userId, clubId, error });
+    }
+  },
+
+  // ============================================================================
+  // INVITE CODE MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Generate a new invite code for a club
+   */
+  async generateInviteCode(
+    clubId: string,
+    clubName: string,
+    role: ClubRole = 'MEMBER'
+  ): Promise<string> {
+    // Generate random code: CLUBNAME-XXXX
+    const prefix = clubName.replace(/[^a-zA-Z]/g, '').slice(0, 5).toUpperCase();
+    const suffix = Math.floor(1000 + Math.random() * 9000);
+    const code = `${prefix}-${suffix}`;
+
+    // Store the code
+    try {
+      const stored = await AsyncStorage.getItem(INVITE_CODES_KEY);
+      const codeMap: Record<string, string> = stored ? JSON.parse(stored) : {};
+      codeMap[code] = clubId;
+      await AsyncStorage.setItem(INVITE_CODES_KEY, JSON.stringify(codeMap));
+
+      logger.info('invite_code_generated', { clubId, code, role });
+    } catch (error) {
+      logger.error('generate_invite_code_failed', { clubId, error });
+    }
+
+    return code;
+  },
+
+  /**
+   * Regenerate invite code for a club (invalidates old code)
+   */
+  async regenerateInviteCode(
+    clubId: string,
+    clubName: string,
+    oldCode: string
+  ): Promise<string> {
+    // Remove old code
+    try {
+      const stored = await AsyncStorage.getItem(INVITE_CODES_KEY);
+      if (stored) {
+        const codeMap: Record<string, string> = JSON.parse(stored);
+        delete codeMap[oldCode.toUpperCase()];
+        await AsyncStorage.setItem(INVITE_CODES_KEY, JSON.stringify(codeMap));
+      }
+    } catch (error) {
+      logger.error('remove_old_invite_code_failed', { clubId, oldCode, error });
+    }
+
+    // Generate new code
+    return this.generateInviteCode(clubId, clubName);
   },
 };

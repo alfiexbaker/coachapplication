@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,7 +10,6 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { Colors, Radii, Spacing } from '@/constants/theme';
-import { chatThreads } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { ChatThreadSummary } from '@/constants/types';
@@ -23,6 +22,22 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
   const hasUnread = thread.unreadCount > 0;
   const displayName = thread.title || thread.coachName;
   const subtitle = thread.serviceName || thread.subtitle || '1:1 coaching';
+
+  // Format the time display
+  const timeDisplay = useMemo(() => {
+    const date = new Date(thread.scheduledFor);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'Now';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }, [thread.scheduledFor]);
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
@@ -40,16 +55,17 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
             {displayName
               .split(' ')
               .map((n) => n[0])
-              .join('')}
+              .join('')
+              .substring(0, 2)}
           </ThemedText>
         </View>
         <View style={styles.conversationContent}>
           <View style={styles.conversationHeader}>
-            <ThemedText type="defaultSemiBold" style={styles.coachName}>
+            <ThemedText type="defaultSemiBold" style={[styles.coachName, hasUnread && { fontWeight: '700' }]}>
               {displayName}
             </ThemedText>
-            <ThemedText style={[styles.time, { color: palette.muted }]}>
-              {new Date(thread.scheduledFor).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            <ThemedText style={[styles.time, { color: hasUnread ? palette.tint : palette.muted }]}>
+              {timeDisplay}
             </ThemedText>
           </View>
           <View style={styles.conversationMeta}>
@@ -65,7 +81,10 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
             )}
           </View>
           {thread.lastMessageSnippet ? (
-            <ThemedText style={[styles.preview, { color: palette.muted }]} numberOfLines={1}>
+            <ThemedText
+              style={[styles.preview, { color: hasUnread ? palette.text : palette.muted, fontWeight: hasUnread ? '500' : '400' }]}
+              numberOfLines={1}
+            >
               {thread.lastMessageSender ? `${thread.lastMessageSender}: ` : ''}
               {thread.lastMessageSnippet}
             </ThemedText>
@@ -85,12 +104,13 @@ function GroupConversationRow({ thread, index, onPress }: { thread: ChatThreadSu
     <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
       <SurfaceCard style={styles.groupCard}>
         <View style={styles.groupHeader}>
-          <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}> 
+          <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}>
             <ThemedText style={[styles.avatarText, { color: palette.text }]}>
               {(thread.title || thread.coachName)
                 .split(' ')
                 .map((n) => n[0])
-                .join('')}
+                .join('')
+                .substring(0, 2)}
             </ThemedText>
           </View>
           <View style={{ flex: 1, gap: 4 }}>
@@ -144,28 +164,73 @@ function GroupConversationRow({ thread, index, onPress }: { thread: ChatThreadSu
 export default function MessagesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const params = useLocalSearchParams<{ coachId?: string }>();
+  const params = useLocalSearchParams<{ coachId?: string; coachName?: string }>();
   const { currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [threads, setThreads] = useState<ChatThreadSummary[]>(chatThreads);
+  const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
   const [viewMode, setViewMode] = useState<'direct' | 'groups'>('direct');
   const [groupFilter, setGroupFilter] = useState<'all' | 'club' | 'squad' | 'class'>('all');
+  const [isLoading, setIsLoading] = useState(true);
 
   // Check if current user is a coach (can create clubs) or parent (can only join)
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+  const userRole = isCoach ? 'coach' : 'parent';
 
-  // Auto-open thread if coachId param is provided
-  useEffect(() => {
-    if (params.coachId) {
-      const thread = chatThreads[0];
-      if (thread) router.push(`/chat/${thread.id}`);
+  // Load threads from service
+  const loadThreads = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      // First, seed demo data if needed
+      await messagingService.seedDemoData(currentUser.id, userRole as 'coach' | 'parent');
+
+      // Then load user's threads
+      const userThreads = await messagingService.getThreads(currentUser.id);
+
+      // If no threads for user, get all threads as fallback
+      if (userThreads.length === 0) {
+        const allThreads = await messagingService.listThreads();
+        setThreads(allThreads);
+      } else {
+        setThreads(userThreads);
+      }
+    } catch (error) {
+      console.error('Failed to load threads:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [params.coachId]);
+  }, [currentUser, userRole]);
 
+  // Initial load
   useEffect(() => {
-    messagingService.listThreads().then(setThreads);
-  }, []);
+    loadThreads();
+  }, [loadThreads]);
+
+  // Reload when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadThreads();
+    }, [loadThreads])
+  );
+
+  // Handle coachId param - create/open thread with that coach
+  useEffect(() => {
+    if (params.coachId && currentUser) {
+      const openOrCreateThread = async () => {
+        const thread = await messagingService.createThread({
+          participants: [
+            { id: params.coachId!, name: params.coachName || 'Coach', role: 'coach' },
+            { id: currentUser.id, name: currentUser.fullName || currentUser.username || 'Parent', role: 'parent' },
+          ],
+          title: `Chat with ${params.coachName || 'Coach'}`,
+          subtitle: 'Direct message',
+        });
+        router.push(`/chat/${thread.id}`);
+      };
+      openOrCreateThread();
+    }
+  }, [params.coachId, params.coachName, currentUser]);
 
   const filteredThreads = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -193,32 +258,45 @@ export default function MessagesScreen() {
     [filteredThreads, groupFilter],
   );
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
+    await loadThreads();
+    setRefreshing(false);
   };
+
+  const totalUnread = useMemo(() => {
+    return threads.reduce((sum, t) => sum + (t.unreadCount || 0), 0);
+  }, [threads]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <View style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>Messages</ThemedText>
+        <View style={styles.headerRow}>
+          <ThemedText type="title" style={styles.headerTitle}>Messages</ThemedText>
+          {totalUnread > 0 && (
+            <View style={[styles.headerBadge, { backgroundColor: palette.premium }]}>
+              <ThemedText style={styles.headerBadgeText}>{totalUnread}</ThemedText>
+            </View>
+          )}
+        </View>
         <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>
-          Your coaching conversations
+          {isCoach ? 'Your parent conversations' : 'Your coaching conversations'}
         </ThemedText>
       </View>
       <View style={styles.searchRow}>
         <Ionicons name="search" size={18} color={palette.icon} />
         <TextInput
-          placeholder="Search by coach or team"
+          placeholder="Search conversations"
           placeholderTextColor={palette.muted}
           value={search}
           onChangeText={setSearch}
           style={[styles.searchInput, { color: palette.text }]}
         />
       </View>
-      <View style={[styles.segmentedControl, { borderColor: palette.border }]}> 
+      <View style={[styles.segmentedControl, { borderColor: palette.border }]}>
         {[{ key: 'direct', label: 'Direct' }, { key: 'groups', label: 'Groups' }].map((option) => {
           const active = viewMode === option.key;
+          const count = option.key === 'direct' ? directThreads.length : groupThreads.length;
           return (
             <Clickable
               key={option.key}
@@ -232,7 +310,7 @@ export default function MessagesScreen() {
               ]}
             >
               <ThemedText style={{ color: active ? '#fff' : palette.text, fontWeight: '700' }}>
-                {option.label}
+                {option.label} {count > 0 ? `(${count})` : ''}
               </ThemedText>
             </Clickable>
           );
@@ -287,13 +365,15 @@ export default function MessagesScreen() {
               ))
             )}
           </>
-        ) : filteredThreads.length === 0 ? (
+        ) : directThreads.length === 0 ? (
           <EmptyState
             icon="chatbubbles"
-            title="No messages yet"
-            message="Start a conversation with a coach or respond to pending requests."
-            actionLabel="Find coaches"
-            onPressAction={() => router.push('/(tabs)/more')}
+            title={isLoading ? "Loading conversations..." : "No messages yet"}
+            message={isCoach
+              ? "Start a conversation with parents from your roster."
+              : "Message a coach to get started with training."}
+            actionLabel={isCoach ? "View Roster" : "Find Coaches"}
+            onPressAction={() => router.push(isCoach ? '/(tabs)/more' : '/(tabs)/more')}
           />
         ) : (
           directThreads.map((thread, index) => (
@@ -301,7 +381,11 @@ export default function MessagesScreen() {
               key={thread.id}
               thread={thread}
               index={index}
-              onPress={() => router.push(`/chat/${thread.id}`)}
+              onPress={() => {
+                // Mark as read when opening
+                messagingService.markAsRead(thread.id, currentUser?.id || '');
+                router.push(`/chat/${thread.id}`);
+              }}
             />
           ))
         )}
@@ -320,6 +404,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     gap: Spacing.sm,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: '800',
@@ -329,6 +418,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',
+  },
+  headerBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  headerBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,

@@ -34,6 +34,7 @@ import type {
 } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { socialFeedService } from './social-feed-service';
+import { clubSettingsService } from './club-settings-service';
 
 const STORAGE_KEY = 'matches';
 const USE_MOCK = true;
@@ -372,7 +373,7 @@ export const matchService = {
 
   /**
    * Invite specific players to a match
-   * Sends notification to each parent
+   * Sends notification to each parent (respects club settings)
    */
   async invitePlayers(input: InvitePlayersInput): Promise<Match> {
     if (USE_MOCK) {
@@ -384,6 +385,16 @@ export const matchService = {
       }
 
       const match = matchesCache[index];
+
+      // Check if match notifications are enabled
+      let shouldNotify = true;
+      if (match.clubId) {
+        try {
+          shouldNotify = await clubSettingsService.shouldNotify(match.clubId, 'match');
+        } catch (error) {
+          console.error('[MatchService] Failed to check notification settings:', error);
+        }
+      }
 
       // Add players who aren't already invited
       for (const player of input.players) {
@@ -399,17 +410,20 @@ export const matchService = {
             status: 'INVITED',
           });
 
-          // Create notification for parent
-          const notification: NotificationItem = {
-            id: `notif_match_${Date.now()}_${player.athleteId}`,
-            type: 'booking',
-            title: 'Match Invite',
-            body: `${player.athleteName} has been invited to play: ${match.title} on ${formatMatchDate(match.date)} at ${match.kickoffTime}`,
-            timeLabel: 'Just now',
-            read: false,
-            actionLabel: 'Respond',
-          };
-          await notificationService.create(notification);
+          // Create notification for parent (if enabled)
+          if (shouldNotify) {
+            await notificationService.notifyParentMatchCreated({
+              parentId: player.parentId,
+              clubId: match.clubId,
+              clubName: match.clubName,
+              matchId: match.id,
+              matchTitle: match.title,
+              matchDate: match.date,
+              kickoffTime: match.kickoffTime,
+              venue: match.venue,
+              athleteName: player.athleteName,
+            });
+          }
         }
       }
 

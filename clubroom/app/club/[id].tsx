@@ -16,6 +16,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
+import { CommentsSheet } from '@/components/social/CommentsSheet';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
 import { useToast } from '@/components/ui/toast';
 import {
@@ -34,6 +35,7 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Club, ClubFeedPost, ClubMembership, ClubSquad, SessionOffering, ClubInvite, ClubEvent } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
 import { eventService } from '@/services/event-service';
+import { commentService } from '@/services/comment-service';
 import { EventCard } from '@/components/event/event-card';
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
@@ -56,6 +58,28 @@ function FeedPost({
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+
+  // Comments state
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
+
+  // Load initial comment count
+  useEffect(() => {
+    async function loadCommentCount() {
+      try {
+        const count = await commentService.getCommentCount(post.id);
+        setCommentCount(Math.max(count, post.commentCount ?? 0));
+      } catch (error) {
+        console.error('Failed to load comment count:', error);
+      }
+    }
+    loadCommentCount();
+  }, [post.id, post.commentCount]);
+
+  const handleCommentCountChange = useCallback((count: number) => {
+    setCommentCount(count);
+  }, []);
+
   const initials =
     post.postAs === 'club' ? 'CL' : post.authorName?.slice(0, 2).toUpperCase() || 'ME';
 
@@ -182,14 +206,26 @@ function FeedPost({
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
           <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{post.reactionCount ?? 0}</ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setShowComments(true)}
+          activeOpacity={0.7}
+        >
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{post.commentCount ?? 0}</ThemedText>
+          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{commentCount}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
         </TouchableOpacity>
       </View>
+
+      {/* Comments Sheet */}
+      <CommentsSheet
+        visible={showComments}
+        postId={post.id}
+        onClose={() => setShowComments(false)}
+        onCommentCountChange={handleCommentCountChange}
+      />
     </SurfaceCard>
   );
 }
@@ -198,10 +234,12 @@ function ClubHeader({
   club,
   membership,
   onOptions,
+  onSettings,
 }: {
   club: Club;
   membership?: ClubMembership;
   onOptions: () => void;
+  onSettings?: () => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -221,6 +259,9 @@ function ClubHeader({
         return 'Member';
     }
   }, [membership]);
+
+  // Check if user can access settings (coach/admin roles)
+  const canAccessSettings = membership && ['OWNER', 'ADMIN', 'HEAD_COACH'].includes(membership.role);
 
   const badgeText = club.badge?.slice(0, 2) || club.name?.slice(0, 2).toUpperCase() || 'CL';
 
@@ -246,11 +287,22 @@ function ClubHeader({
           </ThemedText>
         )}
       </View>
-      {membership && (
-        <TouchableOpacity onPress={onOptions} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
-        </TouchableOpacity>
-      )}
+      <View style={styles.headerActions}>
+        {canAccessSettings && onSettings && (
+          <TouchableOpacity
+            onPress={onSettings}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.headerActionButton}
+          >
+            <Ionicons name="settings-outline" size={20} color={palette.muted} />
+          </TouchableOpacity>
+        )}
+        {membership && (
+          <TouchableOpacity onPress={onOptions} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
@@ -555,7 +607,12 @@ export default function ClubDetailScreen() {
         >
           {/* Club header */}
           <View style={styles.section}>
-            <ClubHeader club={club} membership={membership} onOptions={handleOptions} />
+            <ClubHeader
+              club={club}
+              membership={membership}
+              onOptions={handleOptions}
+              onSettings={() => router.push({ pathname: '/club/settings/[clubId]', params: { clubId: id } })}
+            />
           </View>
 
           {/* Quick stats */}
@@ -809,6 +866,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.md,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  headerActionButton: {
+    padding: 4,
   },
   clubAvatar: {
     width: 64,

@@ -16,10 +16,12 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
+import { CommentsSheet } from '@/components/social/CommentsSheet';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
+import { commentService } from '@/services/comment-service';
 import type { Club } from '@/constants/types';
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event' | 'achievement';
@@ -73,6 +75,28 @@ function ClubBadge({
 function FeedPost({ post }: { post: AggregatedFeedPost }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+
+  // Comments state
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
+
+  // Load initial comment count
+  useEffect(() => {
+    async function loadCommentCount() {
+      try {
+        const count = await commentService.getCommentCount(post.id);
+        setCommentCount(Math.max(count, post.commentCount ?? 0));
+      } catch (error) {
+        console.error('Failed to load comment count:', error);
+      }
+    }
+    loadCommentCount();
+  }, [post.id, post.commentCount]);
+
+  const handleCommentCountChange = useCallback((count: number) => {
+    setCommentCount(count);
+  }, []);
+
   const initials =
     post.postAs === 'club'
       ? post.clubBadge?.slice(0, 2) || 'CL'
@@ -193,16 +217,28 @@ function FeedPost({ post }: { post: AggregatedFeedPost }) {
             {post.reactionCount ?? 0}
           </ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setShowComments(true)}
+          activeOpacity={0.7}
+        >
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
           <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-            {post.commentCount ?? 0}
+            {commentCount}
           </ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
         </TouchableOpacity>
       </View>
+
+      {/* Comments Sheet */}
+      <CommentsSheet
+        visible={showComments}
+        postId={post.id}
+        onClose={() => setShowComments(false)}
+        onCommentCountChange={handleCommentCountChange}
+      />
     </SurfaceCard>
   );
 }

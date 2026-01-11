@@ -1,11 +1,16 @@
+import { useCallback, useEffect, useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
+import { CommentsSheet } from '@/components/social/CommentsSheet';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+import { reactionService } from '@/services/reaction-service';
+import { commentService } from '@/services/comment-service';
 import type { ClubFeedPost } from '@/constants/types';
 
 export interface FeedPostProps {
@@ -17,6 +22,90 @@ export interface FeedPostProps {
 export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser } = useAuth();
+
+  // Reaction state
+  const [hasReacted, setHasReacted] = useState(false);
+  const [reactionCount, setReactionCount] = useState(post.reactionCount ?? 0);
+  const [isToggling, setIsToggling] = useState(false);
+
+  // Comments state
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.commentCount ?? 0);
+
+  // Load initial reaction state
+  useEffect(() => {
+    async function loadReactionState() {
+      if (!currentUser?.id) return;
+
+      try {
+        // Check if user has reacted
+        const userReacted = await reactionService.hasUserReacted(post.id, currentUser.id);
+        setHasReacted(userReacted);
+
+        // Get actual count (may differ from mock data)
+        const state = await reactionService.getReactions(post.id);
+        // Use the larger of stored count or mock count for initial display
+        const displayCount = Math.max(state.count, post.reactionCount ?? 0);
+        setReactionCount(displayCount);
+
+        // Initialize from mock data if needed
+        if (state.count === 0 && (post.reactionCount ?? 0) > 0) {
+          await reactionService.initializeFromMockData(post.id, post.reactionCount ?? 0);
+        }
+      } catch (error) {
+        console.error('Failed to load reaction state:', error);
+      }
+    }
+
+    loadReactionState();
+  }, [post.id, currentUser?.id, post.reactionCount]);
+
+  // Load initial comment count
+  useEffect(() => {
+    async function loadCommentCount() {
+      try {
+        const count = await commentService.getCommentCount(post.id);
+        // Use the larger of stored count or mock data count
+        setCommentCount(Math.max(count, post.commentCount ?? 0));
+      } catch (error) {
+        console.error('Failed to load comment count:', error);
+      }
+    }
+
+    loadCommentCount();
+  }, [post.id, post.commentCount]);
+
+  // Handle comment count change from CommentsSheet
+  const handleCommentCountChange = useCallback((count: number) => {
+    setCommentCount(count);
+  }, []);
+
+  // Handle reaction toggle
+  const handleReactionToggle = useCallback(async () => {
+    if (!currentUser?.id || isToggling) return;
+
+    setIsToggling(true);
+
+    // Optimistic update
+    const wasReacted = hasReacted;
+    setHasReacted(!wasReacted);
+    setReactionCount((prev) => (wasReacted ? prev - 1 : prev + 1));
+
+    try {
+      const result = await reactionService.toggleReaction(post.id, currentUser.id);
+      // Sync with actual result
+      setHasReacted(result.added);
+      setReactionCount(result.newCount);
+    } catch (error) {
+      // Revert on error
+      console.error('Failed to toggle reaction:', error);
+      setHasReacted(wasReacted);
+      setReactionCount((prev) => (wasReacted ? prev + 1 : prev - 1));
+    } finally {
+      setIsToggling(false);
+    }
+  }, [currentUser?.id, post.id, hasReacted, isToggling]);
   const initials = post.postAs === 'club'
     ? 'CL'
     : (post.authorName?.slice(0, 2).toUpperCase() || 'ME');
@@ -132,18 +221,47 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Post actions */}
       <View style={styles.feedFooter}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="heart-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{post.reactionCount ?? 0}</ThemedText>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleReactionToggle}
+          disabled={isToggling}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={hasReacted ? 'heart' : 'heart-outline'}
+            size={18}
+            color={hasReacted ? '#E11D48' : palette.muted}
+          />
+          <ThemedText
+            style={{
+              color: hasReacted ? '#E11D48' : palette.muted,
+              fontSize: 13,
+              fontWeight: hasReacted ? '600' : '400',
+            }}
+          >
+            {reactionCount}
+          </ThemedText>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setShowComments(true)}
+          activeOpacity={0.7}
+        >
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{post.commentCount ?? 0}</ThemedText>
+          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{commentCount}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
         </TouchableOpacity>
       </View>
+
+      {/* Comments Sheet */}
+      <CommentsSheet
+        visible={showComments}
+        postId={post.id}
+        onClose={() => setShowComments(false)}
+        onCommentCountChange={handleCommentCountChange}
+      />
     </SurfaceCard>
   );
 }

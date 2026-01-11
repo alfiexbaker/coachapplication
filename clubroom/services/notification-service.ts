@@ -484,7 +484,7 @@ export class NotificationService {
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
       title: 'Club Update',
-      body: `📢 New post in ${params.clubName}`,
+      body: `New post in ${params.clubName}`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/club-hub`,
@@ -494,6 +494,280 @@ export class NotificationService {
         clubName: params.clubName,
       },
       timeLabel: 'Just now',
+    });
+  }
+
+  // ============================================================================
+  // CLUB SESSION / EVENT / MATCH NOTIFICATIONS
+  // ============================================================================
+
+  /**
+   * Notify parent of new session offering available in club
+   */
+  async notifyParentSessionAvailable(params: {
+    parentId: string;
+    clubId: string;
+    clubName: string;
+    sessionId: string;
+    sessionTitle: string;
+    sessionDate: string;
+    sessionTime: string;
+    coachName: string;
+  }): Promise<void> {
+    const formattedDate = new Date(params.sessionDate).toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+
+    await this.create({
+      id: `notif_session_${Date.now()}_${params.parentId}`,
+      type: 'booking',
+      notificationType: 'SESSION_AVAILABLE',
+      title: 'New Training Session',
+      body: `New session available: ${params.sessionTitle} on ${formattedDate} at ${params.sessionTime}`,
+      recipientId: params.parentId,
+      recipientRole: 'parent',
+      deepLink: `/group-sessions/${params.sessionId}`,
+      data: {
+        sessionId: params.sessionId,
+        sessionTitle: params.sessionTitle,
+        clubId: params.clubId,
+        clubName: params.clubName,
+        coachName: params.coachName,
+      },
+      timeLabel: 'Just now',
+    });
+
+    logger.info('session_available_notification_sent', {
+      parentId: params.parentId,
+      sessionId: params.sessionId,
+    });
+  }
+
+  /**
+   * Notify parent of new match/fixture created
+   */
+  async notifyParentMatchCreated(params: {
+    parentId: string;
+    clubId: string;
+    clubName: string;
+    matchId: string;
+    matchTitle: string;
+    matchDate: string;
+    kickoffTime: string;
+    venue: string;
+    athleteName: string;
+  }): Promise<void> {
+    const formattedDate = new Date(params.matchDate).toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+
+    await this.create({
+      id: `notif_match_${Date.now()}_${params.parentId}`,
+      type: 'booking',
+      notificationType: 'MATCH_CREATED',
+      title: 'New Match Scheduled',
+      body: `${params.matchTitle} on ${formattedDate} at ${params.kickoffTime}`,
+      recipientId: params.parentId,
+      recipientRole: 'parent',
+      deepLink: `/matches/${params.matchId}`,
+      data: {
+        matchId: params.matchId,
+        matchTitle: params.matchTitle,
+        clubId: params.clubId,
+        clubName: params.clubName,
+        athleteName: params.athleteName,
+      },
+      timeLabel: 'Just now',
+    });
+
+    logger.info('match_created_notification_sent', {
+      parentId: params.parentId,
+      matchId: params.matchId,
+    });
+  }
+
+  /**
+   * Notify parent of new club event created
+   */
+  async notifyParentEventCreated(params: {
+    parentId: string;
+    clubId: string;
+    clubName: string;
+    eventId: string;
+    eventTitle: string;
+    eventDate: string;
+    eventTime: string;
+    venue: string;
+  }): Promise<void> {
+    const formattedDate = new Date(params.eventDate).toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+
+    await this.create({
+      id: `notif_event_${Date.now()}_${params.parentId}`,
+      type: 'booking',
+      notificationType: 'EVENT_CREATED',
+      title: 'New Club Event',
+      body: `${params.eventTitle} on ${formattedDate} at ${params.eventTime}`,
+      recipientId: params.parentId,
+      recipientRole: 'parent',
+      deepLink: `/events/${params.eventId}`,
+      data: {
+        eventId: params.eventId,
+        eventTitle: params.eventTitle,
+        clubId: params.clubId,
+        clubName: params.clubName,
+      },
+      timeLabel: 'Just now',
+    });
+
+    logger.info('event_created_notification_sent', {
+      parentId: params.parentId,
+      eventId: params.eventId,
+    });
+  }
+
+  /**
+   * Notify parent of upcoming session (24h reminder)
+   */
+  async notifyParentSessionReminder24h(params: {
+    parentId: string;
+    childName: string;
+    sessionTitle: string;
+    sessionDate: string;
+    sessionTime: string;
+    location: string;
+    sessionId: string;
+    clubName: string;
+  }): Promise<void> {
+    await this.create({
+      id: `notif_session_reminder_${Date.now()}_${params.parentId}`,
+      type: 'reminder',
+      notificationType: 'SESSION_REMINDER',
+      title: 'Session Tomorrow',
+      body: `Reminder: ${params.childName} has ${params.sessionTitle} tomorrow at ${params.sessionTime}`,
+      recipientId: params.parentId,
+      recipientRole: 'parent',
+      deepLink: `/group-sessions/${params.sessionId}`,
+      data: {
+        sessionId: params.sessionId,
+        sessionTitle: params.sessionTitle,
+        childName: params.childName,
+        location: params.location,
+        clubName: params.clubName,
+      },
+      timeLabel: 'Just now',
+    });
+
+    logger.info('session_reminder_sent', {
+      parentId: params.parentId,
+      sessionId: params.sessionId,
+    });
+  }
+
+  /**
+   * Bulk notify all parents in a club about a new session
+   */
+  async notifyClubParentsSessionAvailable(params: {
+    clubId: string;
+    clubName: string;
+    sessionId: string;
+    sessionTitle: string;
+    sessionDate: string;
+    sessionTime: string;
+    coachName: string;
+    parentIds: string[];
+  }): Promise<void> {
+    for (const parentId of params.parentIds) {
+      await this.notifyParentSessionAvailable({
+        parentId,
+        clubId: params.clubId,
+        clubName: params.clubName,
+        sessionId: params.sessionId,
+        sessionTitle: params.sessionTitle,
+        sessionDate: params.sessionDate,
+        sessionTime: params.sessionTime,
+        coachName: params.coachName,
+      });
+    }
+
+    logger.info('club_session_notifications_sent', {
+      clubId: params.clubId,
+      sessionId: params.sessionId,
+      parentCount: params.parentIds.length,
+    });
+  }
+
+  /**
+   * Bulk notify all parents in a club about a new match
+   */
+  async notifyClubParentsMatchCreated(params: {
+    clubId: string;
+    clubName: string;
+    matchId: string;
+    matchTitle: string;
+    matchDate: string;
+    kickoffTime: string;
+    venue: string;
+    players: Array<{ parentId: string; athleteName: string }>;
+  }): Promise<void> {
+    for (const player of params.players) {
+      await this.notifyParentMatchCreated({
+        parentId: player.parentId,
+        clubId: params.clubId,
+        clubName: params.clubName,
+        matchId: params.matchId,
+        matchTitle: params.matchTitle,
+        matchDate: params.matchDate,
+        kickoffTime: params.kickoffTime,
+        venue: params.venue,
+        athleteName: player.athleteName,
+      });
+    }
+
+    logger.info('club_match_notifications_sent', {
+      clubId: params.clubId,
+      matchId: params.matchId,
+      parentCount: params.players.length,
+    });
+  }
+
+  /**
+   * Bulk notify all parents in a club about a new event
+   */
+  async notifyClubParentsEventCreated(params: {
+    clubId: string;
+    clubName: string;
+    eventId: string;
+    eventTitle: string;
+    eventDate: string;
+    eventTime: string;
+    venue: string;
+    parentIds: string[];
+  }): Promise<void> {
+    for (const parentId of params.parentIds) {
+      await this.notifyParentEventCreated({
+        parentId,
+        clubId: params.clubId,
+        clubName: params.clubName,
+        eventId: params.eventId,
+        eventTitle: params.eventTitle,
+        eventDate: params.eventDate,
+        eventTime: params.eventTime,
+        venue: params.venue,
+      });
+    }
+
+    logger.info('club_event_notifications_sent', {
+      clubId: params.clubId,
+      eventId: params.eventId,
+      parentCount: params.parentIds.length,
     });
   }
 

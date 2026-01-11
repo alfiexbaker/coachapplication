@@ -17,6 +17,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective, RecurringPattern } from '@/constants/types';
 import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
+import { clubSettingsService } from './club-settings-service';
+import { clubService } from './club-service';
 
 const SESSIONS_STORAGE_KEY = 'group_sessions';
 const REGISTRATIONS_STORAGE_KEY = 'group_registrations';
@@ -522,6 +524,7 @@ export const groupSessionService = {
 
   /**
    * Publish a session (make it visible)
+   * Also notifies parents if notifications are enabled in club settings
    */
   async publishSession(sessionId: string): Promise<GroupSession> {
     if (USE_MOCK) {
@@ -547,6 +550,33 @@ export const groupSessionService = {
           coachName: session.coachName,
           squadName: session.squadName,
         });
+
+        // Notify parents if notifications are enabled
+        try {
+          const shouldNotify = await clubSettingsService.shouldNotify(session.clubId, 'session');
+          if (shouldNotify) {
+            // Get all parent members of the club
+            const members = await clubService.getMembers(session.clubId);
+            const parentIds = members
+              .filter((m) => m.role === 'MEMBER')
+              .map((m) => m.userId);
+
+            if (parentIds.length > 0) {
+              await notificationService.notifyClubParentsSessionAvailable({
+                clubId: session.clubId,
+                clubName: session.clubName || 'Club',
+                sessionId: session.id,
+                sessionTitle: session.title,
+                sessionDate: firstSchedule.date,
+                sessionTime: firstSchedule.startTime,
+                coachName: session.coachName,
+                parentIds,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('[GroupSessionService] Failed to send notifications:', error);
+        }
       }
 
       return session;

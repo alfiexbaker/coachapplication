@@ -11,6 +11,7 @@ import {
 } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 import { notificationService } from './notification-service';
+import { reactionService, type ToggleReactionResult } from './reaction-service';
 
 type CreateClubPostInput = {
   clubId: string;
@@ -144,14 +145,33 @@ class ClubFeedService {
 
   /**
    * React to a post (like/heart)
+   * Persists to AsyncStorage via reaction service
    */
-  toggleReaction(postId: string, userId: string): void {
-    // In production, this would update the database
-    // For now, we just log the action
+  async toggleReaction(postId: string, userId: string): Promise<ToggleReactionResult> {
+    const result = await reactionService.toggleReaction(postId, userId);
+
     this.logger.info('post_reaction_toggled', {
       postId,
       userId,
+      added: result.added,
+      newCount: result.newCount,
     });
+
+    return result;
+  }
+
+  /**
+   * Check if user has reacted to a post
+   */
+  async hasUserReacted(postId: string, userId: string): Promise<boolean> {
+    return reactionService.hasUserReacted(postId, userId);
+  }
+
+  /**
+   * Get reaction count for a post
+   */
+  async getReactionCount(postId: string): Promise<number> {
+    return reactionService.getReactionCount(postId);
   }
 
   /**
@@ -359,6 +379,53 @@ class ClubFeedService {
       postId: post.id,
       clubId: input.clubId,
       matchId: input.matchId,
+    });
+
+    return post;
+  }
+
+  /**
+   * Create a post when a video is shared
+   */
+  createVideoPost(input: {
+    clubId: string;
+    clubName?: string;
+    videoId: string;
+    videoTitle: string;
+    videoUri: string;
+    thumbnailUri?: string;
+    duration?: number;
+    athleteId?: string;
+    athleteName?: string;
+    coachId: string;
+    coachName: string;
+    description?: string;
+    sessionId?: string;
+  }): ClubFeedPost {
+    const durationText = input.duration
+      ? ` (${Math.floor(input.duration / 60)}:${String(Math.floor(input.duration % 60)).padStart(2, '0')})`
+      : '';
+
+    const post = addClubFeedPost({
+      clubId: input.clubId,
+      title: `Training Video: ${input.videoTitle}`,
+      body: input.description || `Check out this training video${input.athleteName ? ` featuring ${input.athleteName}` : ''}${durationText}`,
+      audience: 'club',
+      audienceLabel: 'Club-wide',
+      authorName: input.coachName,
+      authorId: input.coachId,
+      postAs: 'self',
+      postType: 'photo', // Using 'photo' type for video posts as well
+      imageUrl: input.thumbnailUri || input.videoUri,
+      sessionId: input.sessionId,
+      athleteId: input.athleteId,
+      athleteName: input.athleteName,
+    });
+
+    this.logger.info('video_post_created', {
+      postId: post.id,
+      clubId: input.clubId,
+      videoId: input.videoId,
     });
 
     return post;

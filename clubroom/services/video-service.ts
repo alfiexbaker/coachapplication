@@ -17,7 +17,50 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 
 const STORAGE_KEY = 'session_videos';
+const LOCAL_VIDEOS_KEY = 'local_videos';
 const USE_MOCK = true;
+
+// Metadata for locally stored videos
+export interface VideoMetadata {
+  title: string;
+  description?: string;
+  athleteId?: string;
+  athleteName?: string;
+  athleteIds?: string[];
+  athleteNames?: string[];
+  coachId: string;
+  coachName: string;
+  sessionId?: string;
+  bookingId?: string;
+  tags?: string[];
+  duration?: number;
+  fileSize?: number;
+  shareToFeed?: boolean;
+}
+
+// Local video type (simpler structure for local storage)
+export interface LocalVideo {
+  id: string;
+  localUri: string;
+  title: string;
+  description?: string;
+  athleteId?: string;
+  athleteName?: string;
+  athleteIds: string[];
+  athleteNames: string[];
+  coachId: string;
+  coachName: string;
+  sessionId?: string;
+  bookingId?: string;
+  createdAt: string;
+  duration?: number;
+  fileSize?: number;
+  thumbnail?: string;
+  tags: string[];
+  visibility: 'PRIVATE' | 'SHARED' | 'PUBLIC';
+  sharedWith: string[];
+  sharedToFeed: boolean;
+}
 
 // Mock videos for development
 const MOCK_VIDEOS: SessionVideo[] = [
@@ -428,5 +471,253 @@ export const videoService = {
       return `${Math.round(bytes / 1024)} KB`;
     }
     return `${Math.round(bytes / (1024 * 1024))} MB`;
+  },
+
+  // ============================================================================
+  // LOCAL VIDEO STORAGE (for real uploaded videos)
+  // ============================================================================
+
+  /**
+   * Save a local video with metadata
+   * This is the main function to use when uploading a video from the device
+   */
+  async saveLocalVideo(uri: string, metadata: VideoMetadata): Promise<LocalVideo> {
+    const localVideos = await this.getLocalVideos();
+
+    const newVideo: LocalVideo = {
+      id: `local_vid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      localUri: uri,
+      title: metadata.title,
+      description: metadata.description,
+      athleteId: metadata.athleteId,
+      athleteName: metadata.athleteName,
+      athleteIds: metadata.athleteIds || (metadata.athleteId ? [metadata.athleteId] : []),
+      athleteNames: metadata.athleteNames || (metadata.athleteName ? [metadata.athleteName] : []),
+      coachId: metadata.coachId,
+      coachName: metadata.coachName,
+      sessionId: metadata.sessionId,
+      bookingId: metadata.bookingId,
+      createdAt: new Date().toISOString(),
+      duration: metadata.duration,
+      fileSize: metadata.fileSize,
+      thumbnail: uri, // Use video URI as thumbnail for now
+      tags: metadata.tags || [],
+      visibility: 'PRIVATE',
+      sharedWith: [],
+      sharedToFeed: metadata.shareToFeed || false,
+    };
+
+    localVideos.unshift(newVideo);
+    await this.saveLocalVideosToStorage(localVideos);
+
+    console.log('[VideoService] Saved local video:', newVideo.id);
+    return newVideo;
+  },
+
+  /**
+   * Get all locally stored videos
+   */
+  async getLocalVideos(): Promise<LocalVideo[]> {
+    try {
+      const stored = await AsyncStorage.getItem(LOCAL_VIDEOS_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch (error) {
+      console.error('[VideoService] Failed to load local videos:', error);
+    }
+    return [];
+  },
+
+  /**
+   * Save local videos array to storage
+   */
+  async saveLocalVideosToStorage(videos: LocalVideo[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(LOCAL_VIDEOS_KEY, JSON.stringify(videos));
+    } catch (error) {
+      console.error('[VideoService] Failed to save local videos:', error);
+    }
+  },
+
+  /**
+   * Get videos uploaded by a specific user (coach)
+   */
+  async getVideos(userId: string): Promise<LocalVideo[]> {
+    const localVideos = await this.getLocalVideos();
+    return localVideos
+      .filter((v) => v.coachId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+
+  /**
+   * Get all videos featuring a specific athlete
+   * Parents can see videos shared with them or marked public
+   */
+  async getVideosByAthlete(athleteId: string, parentId?: string): Promise<LocalVideo[]> {
+    const localVideos = await this.getLocalVideos();
+    return localVideos
+      .filter((v) => {
+        const hasAthlete = v.athleteId === athleteId || v.athleteIds.includes(athleteId);
+        if (!hasAthlete) return false;
+        // If parentId provided, filter by visibility
+        if (parentId) {
+          return v.visibility === 'PUBLIC' ||
+                 v.visibility === 'SHARED' && v.sharedWith.includes(parentId);
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+
+  /**
+   * Get videos for a specific session
+   */
+  async getVideosBySession(sessionId: string): Promise<LocalVideo[]> {
+    const localVideos = await this.getLocalVideos();
+    return localVideos
+      .filter((v) => v.sessionId === sessionId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+
+  /**
+   * Get a single local video by ID
+   */
+  async getLocalVideo(videoId: string): Promise<LocalVideo | null> {
+    const localVideos = await this.getLocalVideos();
+    return localVideos.find((v) => v.id === videoId) || null;
+  },
+
+  /**
+   * Update a local video
+   */
+  async updateLocalVideo(videoId: string, updates: Partial<LocalVideo>): Promise<LocalVideo | null> {
+    const localVideos = await this.getLocalVideos();
+    const index = localVideos.findIndex((v) => v.id === videoId);
+
+    if (index === -1) return null;
+
+    localVideos[index] = { ...localVideos[index], ...updates };
+    await this.saveLocalVideosToStorage(localVideos);
+
+    return localVideos[index];
+  },
+
+  /**
+   * Share a local video with parents
+   */
+  async shareLocalVideo(videoId: string, parentIds: string[]): Promise<LocalVideo | null> {
+    const localVideos = await this.getLocalVideos();
+    const video = localVideos.find((v) => v.id === videoId);
+
+    if (!video) return null;
+
+    video.visibility = 'SHARED';
+    video.sharedWith = [...new Set([...video.sharedWith, ...parentIds])];
+    await this.saveLocalVideosToStorage(localVideos);
+
+    return video;
+  },
+
+  /**
+   * Delete a local video
+   */
+  async deleteLocalVideo(videoId: string): Promise<boolean> {
+    const localVideos = await this.getLocalVideos();
+    const filtered = localVideos.filter((v) => v.id !== videoId);
+
+    if (filtered.length === localVideos.length) return false;
+
+    await this.saveLocalVideosToStorage(filtered);
+    console.log('[VideoService] Deleted local video:', videoId);
+    return true;
+  },
+
+  /**
+   * Mark video as shared to social feed
+   */
+  async markSharedToFeed(videoId: string): Promise<LocalVideo | null> {
+    return this.updateLocalVideo(videoId, { sharedToFeed: true });
+  },
+
+  /**
+   * Get combined videos (mock + local) for display
+   * This merges both types for a unified view
+   */
+  async getAllVideosForCoach(coachId: string): Promise<(SessionVideo | LocalVideo)[]> {
+    const [mockVideos, localVideos] = await Promise.all([
+      this.getCoachVideos(coachId),
+      this.getVideos(coachId),
+    ]);
+
+    // Convert LocalVideos to SessionVideo-like format for unified display
+    const convertedLocalVideos: SessionVideo[] = localVideos.map((v) => ({
+      id: v.id,
+      sessionId: v.sessionId,
+      bookingId: v.bookingId,
+      coachId: v.coachId,
+      coachName: v.coachName,
+      athleteIds: v.athleteIds,
+      athleteNames: v.athleteNames,
+      title: v.title,
+      description: v.description,
+      videoUrl: v.localUri, // Use local URI
+      thumbnailUrl: v.thumbnail || v.localUri,
+      duration: v.duration || 0,
+      fileSize: v.fileSize || 0,
+      annotations: [],
+      visibility: v.visibility,
+      sharedWith: v.sharedWith,
+      createdAt: v.createdAt,
+      uploadStatus: 'READY' as const,
+      viewCount: 0,
+      tags: v.tags,
+      isLocal: true, // Flag to identify local videos
+    }));
+
+    // Combine and sort by date
+    const allVideos = [...convertedLocalVideos, ...mockVideos];
+    return allVideos.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  },
+
+  /**
+   * Get all videos for an athlete (for parent view)
+   * Includes both mock and local videos
+   */
+  async getAllVideosForAthlete(athleteId: string, parentId: string): Promise<(SessionVideo | LocalVideo)[]> {
+    const [mockVideos, localVideos] = await Promise.all([
+      this.getAthleteVideos(athleteId, parentId),
+      this.getVideosByAthlete(athleteId, parentId),
+    ]);
+
+    // Convert LocalVideos to SessionVideo-like format
+    const convertedLocalVideos: SessionVideo[] = localVideos.map((v) => ({
+      id: v.id,
+      sessionId: v.sessionId,
+      bookingId: v.bookingId,
+      coachId: v.coachId,
+      coachName: v.coachName,
+      athleteIds: v.athleteIds,
+      athleteNames: v.athleteNames,
+      title: v.title,
+      description: v.description,
+      videoUrl: v.localUri,
+      thumbnailUrl: v.thumbnail || v.localUri,
+      duration: v.duration || 0,
+      fileSize: v.fileSize || 0,
+      annotations: [],
+      visibility: v.visibility,
+      sharedWith: v.sharedWith,
+      createdAt: v.createdAt,
+      uploadStatus: 'READY' as const,
+      viewCount: 0,
+      tags: v.tags,
+      isLocal: true,
+    }));
+
+    const allVideos = [...convertedLocalVideos, ...mockVideos];
+    return allVideos.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   },
 };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -32,6 +32,7 @@ import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, Session
 import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { matchService } from '@/services/match-service';
+import { messagingService } from '@/services/messaging-service';
 import type { GroupSession } from '@/constants/types';
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
@@ -70,6 +71,10 @@ export default function ClubHubScreen() {
   const [showMemberRemovalModal, setShowMemberRemovalModal] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const lastMemberRemovalRef = useRef<ClubMemberRemovalRecord | null>(null);
+
+  // Leave club state
+  const [showLeaveConfirmModal, setShowLeaveConfirmModal] = useState(false);
+  const [isLeavingClub, setIsLeavingClub] = useState(false);
 
   // Check if user can manage posts (pin, etc.)
   const canManagePosts = membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
@@ -197,31 +202,78 @@ export default function ClubHubScreen() {
     loadFeed();
   }, [currentUser, loadFeed]);
 
-  const handleJoinWithCode = (code: string) => {
-    const trimmedCode = code.trim().toUpperCase();
-    if (!trimmedCode) {
-      Alert.alert('Enter invite code', 'Paste the club code shared with you.');
+  const handleJoinWithCode = async (code: string) => {
+    // JoinClubCard now handles validation and joining through clubService
+    // This callback is called after successful join
+    // We need to reload the membership state from the service
+
+    if (!currentUser?.id) {
+      Alert.alert('Error', 'Please log in to join a club');
       return;
     }
-    const invite = clubInvites.find((item) => item.code.toUpperCase() === trimmedCode);
-    if (!invite) {
-      Alert.alert('Code not found', 'Check the code or request a new one from the club admin.');
-      return;
+
+    try {
+      // Get the updated membership from club service
+      const memberships = await clubService.getUserMemberships(currentUser.id);
+      const newMembership = memberships.find((m) => m.inviteCode?.toUpperCase() === code.toUpperCase());
+
+      if (newMembership) {
+        setMembership(newMembership);
+        const joinedClub = getClubById(newMembership.clubId);
+        setClub(joinedClub);
+        showToast(`Welcome to ${joinedClub?.name}!`, 'success');
+        loadFeed();
+        loadMembers();
+
+        // Add user to club group thread
+        if (joinedClub) {
+          const userRole = newMembership.role === 'MEMBER' ? 'parent' : 'coach';
+          await messagingService.getOrCreateClubThread(
+            joinedClub.id,
+            joinedClub.name,
+            currentUser.id,
+            currentUser.fullName || currentUser.username || 'Member',
+            userRole
+          );
+        }
+      } else {
+        // Fall back to finding invite for legacy support
+        const invite = clubInvites.find((item) => item.code.toUpperCase() === code.trim().toUpperCase());
+        if (invite) {
+          const legacyMembership: ClubMembership = {
+            clubId: invite.clubId,
+            userId: currentUser.id,
+            role: invite.role,
+            status: 'active',
+            joinSource: 'invite',
+            inviteCode: invite.code,
+            canPostAsClub: invite.role === 'OWNER' || invite.role === 'ADMIN',
+          };
+          setMembership(legacyMembership);
+          const joinedClub = getClubById(invite.clubId);
+          setClub(joinedClub);
+          showToast(`Welcome to ${invite.clubName}!`, 'success');
+
+          // Add user to club group thread
+          if (joinedClub) {
+            const userRole = invite.role === 'MEMBER' ? 'parent' : 'coach';
+            await messagingService.getOrCreateClubThread(
+              joinedClub.id,
+              joinedClub.name,
+              currentUser.id,
+              currentUser.fullName || currentUser.username || 'Member',
+              userRole
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load membership after join:', error);
+      Alert.alert('Error', 'Joined club but failed to load. Please refresh.');
     }
-    const newMembership: ClubMembership = {
-      clubId: invite.clubId,
-      userId: currentUser?.id || 'guest',
-      role: invite.role,
-      status: 'active',
-      joinSource: 'invite',
-      inviteCode: invite.code,
-      canPostAsClub: invite.role === 'OWNER' || invite.role === 'ADMIN',
-    };
-    setMembership(newMembership);
-    Alert.alert('Joined club', `You are now part of ${invite.clubName}`);
   };
 
-  const handleCreateClub = (name: string) => {
+  const handleCreateClub = async (name: string) => {
     const trimmedName = name.trim();
     if (!trimmedName) {
       Alert.alert('Add club name', 'Give your club a name to get started.');
@@ -267,22 +319,72 @@ export default function ClubHubScreen() {
       reactionCount: 0,
       commentCount: 0,
     }]);
+
+    // Create the club group thread
+    if (currentUser) {
+      try {
+        const thread = await messagingService.getOrCreateClubThread(
+          created.id,
+          created.name,
+          currentUser.id,
+          currentUser.fullName || currentUser.username || 'Coach',
+          'coach'
+        );
+
+        // Send a welcome message to the group
+        await messagingService.sendMessage(
+          thread.id,
+          currentUser.id,
+          `Welcome to ${created.name}! This is the group chat for all club members. Share updates, announcements, and coordinate with your team here.`,
+          'coach',
+          `${created.ownerName} (Club)`
+        );
+      } catch (error) {
+        console.error('Failed to create club group thread:', error);
+      }
+    }
+
     Alert.alert('Club created!', `Share code ${created.inviteCode} to invite your team.`);
   };
 
   const handleLeaveClub = () => {
-    Alert.alert('Club options', 'What would you like to do?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Leave club',
-        style: 'destructive',
-        onPress: () => {
-          setMembership(undefined);
-          setClub(undefined);
-          setFeed([]);
-        },
-      },
-    ]);
+    if (membership?.role === 'OWNER') {
+      Alert.alert(
+        'Cannot leave club',
+        'Club owners cannot leave. Transfer ownership first or delete the club.'
+      );
+      return;
+    }
+    setShowLeaveConfirmModal(true);
+  };
+
+  const confirmLeaveClub = async () => {
+    if (!currentUser?.id || !membership?.clubId) return;
+
+    setIsLeavingClub(true);
+
+    try {
+      const result = await clubService.leaveClub(currentUser.id, membership.clubId);
+
+      if (result.success) {
+        // Clear local state
+        setMembership(undefined);
+        setClub(undefined);
+        setFeed([]);
+        setMembers([]);
+        setShowLeaveConfirmModal(false);
+
+        // Show success message
+        showToast(`You've left ${result.clubName}`, 'success');
+      } else {
+        Alert.alert('Error', result.error || 'Failed to leave club');
+      }
+    } catch (error) {
+      console.error('Failed to leave club:', error);
+      Alert.alert('Error', 'Failed to leave club. Please try again.');
+    } finally {
+      setIsLeavingClub(false);
+    }
   };
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
@@ -488,6 +590,51 @@ export default function ClubHubScreen() {
         name={selectedMemberForRemoval?.userName || ''}
         isLoading={isRemovingMember}
       />
+
+      {/* Leave Club Confirmation Modal */}
+      <Modal
+        visible={showLeaveConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLeaveConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: palette.surface }]}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalIconContainer, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="exit-outline" size={24} color="#DC2626" />
+              </View>
+              <ThemedText type="title" style={{ fontSize: 18, marginTop: Spacing.sm }}>
+                Leave {club?.name}?
+              </ThemedText>
+            </View>
+
+            <ThemedText style={{ textAlign: 'center', color: palette.muted, marginVertical: Spacing.md }}>
+              You will lose access to club posts, group chats, and notifications. You can rejoin later with a new invite code.
+            </ThemedText>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: palette.background, borderColor: palette.border, borderWidth: 1 }]}
+                onPress={() => setShowLeaveConfirmModal(false)}
+                disabled={isLeavingClub}
+              >
+                <ThemedText style={{ fontWeight: '600' }}>Cancel</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: '#DC2626' }]}
+                onPress={confirmLeaveClub}
+                disabled={isLeavingClub}
+              >
+                <ThemedText style={{ color: '#fff', fontWeight: '600' }}>
+                  {isLeavingClub ? 'Leaving...' : 'Leave Club'}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </PageContainer>
   );
 }
@@ -557,5 +704,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: Radii.lg,
+    padding: Spacing.lg,
+    alignItems: 'center',
+  },
+  modalHeader: {
+    alignItems: 'center',
+  },
+  modalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    alignItems: 'center',
   },
 });

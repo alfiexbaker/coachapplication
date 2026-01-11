@@ -976,7 +976,10 @@ export type NotificationType =
   | 'MATCH_RESPONSE'
   | 'MATCH_LINEUP'
   | 'MATCH_REMINDER'
-  | 'MATCH_CANCELLED';
+  | 'MATCH_CANCELLED'
+  | 'SESSION_AVAILABLE'
+  | 'EVENT_CREATED'
+  | 'MATCH_CREATED';
 
 export interface Notification {
   id: string;
@@ -1304,4 +1307,26 @@ export interface ClubEvent {
 
   imageUrl?: string;
   createdAt: string;
+}
+
+// ============================================================================
+// CLUB SETTINGS
+// ============================================================================
+
+export interface ClubSettings {
+  clubId: string;
+  name: string;
+  description: string;
+  photoUri?: string;
+  inviteCode: string;
+  isPublic: boolean;
+  // Notification preferences
+  notifyOnNewSession: boolean;
+  notifyOnNewPost: boolean;
+  notifyOnNewMatch: boolean;
+  notifyOnNewEvent: boolean;
+  // Session reminders
+  sessionReminderHours: number;
+  // Updated timestamp
+  updatedAt: string;
 }

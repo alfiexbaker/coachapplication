@@ -15,6 +15,7 @@ import { getChildrenForParent, getSessionsForAthlete, formatDate } from '@/const
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, SkillProgress, Goal } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
+import { videoService, type LocalVideo } from '@/services/video-service';
 import { SkillRadar } from '@/components/analytics/skill-radar';
 import { SkillsSummary, SkillCategoryGroup } from '@/components/analytics/skill-progress-bar';
 import { StatsRow, EmptyMetrics, MetricsSummary } from '@/components/analytics/enhanced-stats';
@@ -22,7 +23,7 @@ import { GoalProgress, GoalsSummary } from '@/components/analytics/goal-progress
 
 const logger = createLogger('ParentDevelopmentScreen');
 
-type TabType = 'progress' | 'badges' | 'goals';
+type TabType = 'progress' | 'badges' | 'goals' | 'videos';
 
 export function ParentDevelopmentScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -36,6 +37,7 @@ export function ParentDevelopmentScreen() {
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [coachOnlyCount, setCoachOnlyCount] = useState(0);
   const [activeTab, setActiveTab] = useState<TabType>('progress');
+  const [childVideos, setChildVideos] = useState<LocalVideo[]>([]);
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
   const sessions = selectedChild ? getSessionsForAthlete(selectedChild.id) : [];
@@ -122,7 +124,9 @@ export function ParentDevelopmentScreen() {
   }, [selectedChild]);
 
   useEffect(() => {
-    if (!selectedChildId) return;
+    if (!selectedChildId || !currentUser) return;
+
+    // Load badges
     badgeService
       .listAwardsForAthlete(selectedChildId)
       .then((childAwards) => {
@@ -130,7 +134,14 @@ export function ParentDevelopmentScreen() {
         setAwards(supporterVisible);
         setCoachOnlyCount(childAwards.length - supporterVisible.length);
       });
-  }, [selectedChildId]);
+
+    // Load videos shared with parent
+    videoService
+      .getVideosByAthlete(selectedChildId, currentUser.id)
+      .then((videos) => {
+        setChildVideos(videos);
+      });
+  }, [selectedChildId, currentUser]);
 
   const sharedBadges = useMemo(() => awards.filter((award) => award.shared), [awards]);
   const activeGoals = goals.filter(g => g.status === 'ACTIVE');
@@ -145,6 +156,7 @@ export function ParentDevelopmentScreen() {
     { key: 'progress', label: 'Progress', icon: 'stats-chart' },
     { key: 'badges', label: 'Badges', icon: 'ribbon' },
     { key: 'goals', label: 'Goals', icon: 'flag' },
+    { key: 'videos', label: 'Videos', icon: 'videocam' },
   ];
 
   return (
@@ -579,6 +591,84 @@ export function ParentDevelopmentScreen() {
                 </View>
               </Animated.View>
             )}
+
+            {/* Videos Tab */}
+            {activeTab === 'videos' && (
+              <Animated.View entering={FadeIn} style={styles.tabContent}>
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                      Training Videos
+                    </ThemedText>
+                    <View style={[styles.countBadge, { backgroundColor: palette.tint + '15' }]}>
+                      <ThemedText style={[styles.countBadgeText, { color: palette.tint }]}>
+                        {childVideos.length}
+                      </ThemedText>
+                    </View>
+                  </View>
+
+                  {childVideos.length === 0 ? (
+                    <EmptyMetrics
+                      icon="videocam-outline"
+                      title="No Videos Yet"
+                      description="Videos shared by coaches will appear here"
+                    />
+                  ) : (
+                    <View style={styles.videosList}>
+                      {childVideos.map((video, index) => (
+                        <Animated.View
+                          key={video.id}
+                          entering={FadeInDown.delay(index * 50).springify()}
+                        >
+                          <SurfaceCard style={styles.videoCard}>
+                            <View style={styles.videoHeader}>
+                              <View style={[styles.videoThumbnail, { backgroundColor: `${palette.tint}15` }]}>
+                                <Ionicons name="videocam" size={24} color={palette.tint} />
+                              </View>
+                              <View style={styles.videoInfo}>
+                                <ThemedText type="defaultSemiBold" style={styles.videoTitle}>
+                                  {video.title}
+                                </ThemedText>
+                                <ThemedText style={[styles.videoMeta, { color: palette.muted }]}>
+                                  {video.duration
+                                    ? `${Math.floor(video.duration / 60)}:${String(Math.floor(video.duration % 60)).padStart(2, '0')}`
+                                    : 'Video'}{' '}
+                                  - {formatDate(video.createdAt)}
+                                </ThemedText>
+                                {video.description && (
+                                  <ThemedText style={[styles.videoDescription, { color: palette.text }]} numberOfLines={2}>
+                                    {video.description}
+                                  </ThemedText>
+                                )}
+                              </View>
+                            </View>
+                            {video.coachName && (
+                              <View style={styles.videoFooter}>
+                                <Ionicons name="person-circle-outline" size={14} color={palette.muted} />
+                                <ThemedText style={[styles.coachName, { color: palette.muted }]}>
+                                  From {video.coachName}
+                                </ThemedText>
+                              </View>
+                            )}
+                            {video.tags.length > 0 && (
+                              <View style={styles.videoTags}>
+                                {video.tags.slice(0, 3).map((tag) => (
+                                  <View key={tag} style={[styles.videoTag, { backgroundColor: `${palette.tint}10` }]}>
+                                    <ThemedText style={[styles.videoTagText, { color: palette.tint }]}>
+                                      {tag}
+                                    </ThemedText>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+                          </SurfaceCard>
+                        </Animated.View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </Animated.View>
+            )}
           </>
         )}
       </ScrollView>
@@ -949,5 +1039,65 @@ const styles = StyleSheet.create({
   // Goals
   goalsList: {
     gap: Spacing.sm,
+  },
+
+  // Videos
+  videosList: {
+    gap: Spacing.sm,
+  },
+  videoCard: {
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  videoHeader: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  videoThumbnail: {
+    width: 56,
+    height: 56,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  videoTitle: {
+    fontSize: 15,
+  },
+  videoMeta: {
+    fontSize: 12,
+  },
+  videoDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  videoFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.xs,
+    paddingTop: Spacing.xs,
+  },
+  coachName: {
+    fontSize: 12,
+  },
+  videoTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: Spacing.xs,
+  },
+  videoTag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
+  },
+  videoTagText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
