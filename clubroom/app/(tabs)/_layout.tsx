@@ -7,12 +7,15 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
 import { chatThreads } from '@/constants/mock-data';
+import { useNotificationCount } from '@/hooks/use-notifications';
+
+type BadgeType = 'messages' | 'notifications';
 
 type TabDefinition = {
   name: string;
   title: string;
   icon: React.ComponentProps<typeof IconSymbol>['name'];
-  badge?: boolean;
+  badge?: BadgeType;
 };
 
 type RoleTabConfig = {
@@ -41,7 +44,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   // Club management accessible from Feed screen or Profile -> My Clubs
   COACH: {
     primary: [
-      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'schedule', title: 'Schedule', icon: 'calendar.badge.clock' },
       { name: 'athletes', title: 'Athletes', icon: 'person.2.fill' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
@@ -52,10 +55,10 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   // USER (Athlete): Home, Find Coach, Bookings, Messages, Profile
   USER: {
     primary: [
-      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'more', title: 'Find Coach', icon: 'magnifyingglass' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'feed', 'schedule', 'athletes', 'children'],
@@ -64,7 +67,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   // Bookings accessible via Children hub
   PARENT: {
     primary: [
-      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'more', title: 'Book', icon: 'magnifyingglass' },
       { name: 'children', title: 'Children', icon: 'person.2.fill' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
@@ -75,10 +78,10 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   // ADMIN: Users, Bookings, Feed, Messages, Settings
   ADMIN: {
     primary: [
-      { name: 'index', title: 'Users', icon: 'person.2.fill' },
+      { name: 'index', title: 'Users', icon: 'person.2.fill', badge: 'notifications' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
@@ -86,10 +89,10 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   // DEFAULT: Home, Bookings, Feed, Messages, Settings
   DEFAULT: {
     primary: [
-      { name: 'index', title: 'Home', icon: 'house.fill' },
+      { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
-      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: true },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
       { name: 'settings', title: 'Settings', icon: 'gearshape.fill' },
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'club-hub', 'schedule', 'athletes', 'children'],
@@ -100,15 +103,25 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
   const { currentUser } = useAuth();
+  const notificationCount = useNotificationCount();
 
   const userRole = currentUser?.role ?? 'DEFAULT';
-  const unreadCount = chatThreads.reduce((total, thread) => total + (thread.unreadCount || 0), 0);
+  const messageCount = chatThreads.reduce((total, thread) => total + (thread.unreadCount || 0), 0);
   const roleConfig = ROLE_TAB_CONFIG[userRole] ?? ROLE_TAB_CONFIG.DEFAULT;
   const hiddenRoutes = roleConfig.hidden ?? [];
+
+  // Helper to get badge count based on badge type
+  const getBadgeCount = (badgeType?: BadgeType): number | undefined => {
+    if (!badgeType) return undefined;
+    if (badgeType === 'messages') return messageCount > 0 ? messageCount : undefined;
+    if (badgeType === 'notifications') return notificationCount > 0 ? notificationCount : undefined;
+    return undefined;
+  };
 
   // Debug logging to track role detection and tab rendering
   console.log('[TabLayout] Current user:', currentUser ? { username: currentUser.username, role: currentUser.role } : 'Not logged in');
   console.log('[TabLayout] Rendering tabs for role:', userRole, roleConfig.primary.map((tab) => tab.title));
+  console.log('[TabLayout] Notification count:', notificationCount, 'Message count:', messageCount);
 
   // Consolidate bottom navigation to 4-5 role-aware hubs (home, schedule, comms, profile)
   const tabBarOptions = {
@@ -149,7 +162,7 @@ export default function TabLayout() {
           options={{
             title,
             tabBarIcon: ({ color }) => <IconSymbol size={24} name={icon} color={color} />,
-            tabBarBadge: badge && unreadCount > 0 ? unreadCount : undefined,
+            tabBarBadge: getBadgeCount(badge),
           }}
         />
       ))}

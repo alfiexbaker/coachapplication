@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { createLogger } from '@/utils/logger';
 import { ThemeProvider as AppThemeProvider } from '@/hooks/theme-provider';
+import { NotificationToastProvider } from '@/components/notification/notification-toast';
 
 const logger = createLogger('RootLayout');
 
@@ -30,56 +31,56 @@ function RootNavigation() {
     return (
       <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         {isAuthenticated ? (
-        <>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            <Stack.Screen
-              name="(modal)/post-detail"
-              options={{
-                presentation: 'modal',
-                headerShown: false,
-                animation: 'slide_from_bottom'
-              }}
-            />
-            <Stack.Screen
-              name="(modal)/create-post"
-              options={{
-                presentation: 'modal',
-                headerShown: false,
-                animation: 'slide_from_bottom'
-              }}
-            />
-            <Stack.Screen
-              name="book-coach"
-              options={{
-                presentation: 'modal',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="confirm-booking"
-              options={{
-                presentation: 'modal',
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="settings"
-              options={{
-                headerShown: false,
-                animation: 'slide_from_right',
-              }}
-            />
-          </Stack>
-          <StatusBar style="auto" />
-        </>
-      ) : (
-        <>
-          <LoginScreen />
-          <StatusBar style="auto" />
-        </>
-      )}
+          <NotificationToastProvider>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+              <Stack.Screen
+                name="(modal)/post-detail"
+                options={{
+                  presentation: 'modal',
+                  headerShown: false,
+                  animation: 'slide_from_bottom'
+                }}
+              />
+              <Stack.Screen
+                name="(modal)/create-post"
+                options={{
+                  presentation: 'modal',
+                  headerShown: false,
+                  animation: 'slide_from_bottom'
+                }}
+              />
+              <Stack.Screen
+                name="book-coach"
+                options={{
+                  presentation: 'modal',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="confirm-booking"
+                options={{
+                  presentation: 'modal',
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="settings"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
+            </Stack>
+            <StatusBar style="auto" />
+          </NotificationToastProvider>
+        ) : (
+          <>
+            <LoginScreen />
+            <StatusBar style="auto" />
+          </>
+        )}
       </NavigationThemeProvider>
     );
   }

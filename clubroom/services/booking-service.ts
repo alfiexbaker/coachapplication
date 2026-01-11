@@ -339,7 +339,7 @@ class BookingService {
     await notificationService.notifyCoachNewBooking({
       coachId: newBooking.coachId,
       parentName: 'Parent',
-      childName: newBooking.athleteName,
+      childName: newBooking.athleteName || 'Athlete',
       date: formattedDate,
       bookingId: newBooking.id,
     });
@@ -367,15 +367,15 @@ class BookingService {
       // Notify coach
       await notificationService.notifyCoachSessionReminder({
         coachId: session.coachId,
-        athleteName: session.athleteName,
+        athleteName: session.athleteName || 'Athlete',
         bookingId: session.id,
       });
 
       // Notify parent
       await notificationService.notifyParentSessionReminder({
         parentId: session.bookedById || 'parent_1',
-        childName: session.athleteName,
-        coachName: session.coachName,
+        childName: session.athleteName || 'Athlete',
+        coachName: session.coachName || 'Coach',
         bookingId: session.id,
       });
     }
