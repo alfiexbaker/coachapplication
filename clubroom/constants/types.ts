@@ -1,6 +1,145 @@
 export type SportCategory = 'Football';
 
 // ============================================================================
+// WALLET & FINANCIAL SYSTEM
+// ============================================================================
+// User wallet for balance, top-ups, and payments
+// Coach earnings for revenue tracking and withdrawals
+
+export type TransactionType =
+  | 'DEPOSIT'
+  | 'TOP_UP'
+  | 'BOOKING_PAYMENT'
+  | 'BOOKING_REFUND'
+  | 'WITHDRAWAL'
+  | 'EARNING'
+  | 'PLATFORM_FEE'
+  | 'PROMO_CREDIT'
+  | 'TRANSFER_IN'
+  | 'TRANSFER_OUT';
+
+export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  userId: string;
+  type: TransactionType;
+  amount: number; // Positive for credit, negative for debit
+  currency: string;
+  status: TransactionStatus;
+  description: string;
+  reference?: string; // bookingId, withdrawalId, etc.
+  balanceAfter: number;
+  createdAt: string;
+  completedAt?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface Wallet {
+  id: string;
+  userId: string;
+  userName: string;
+  balance: number;
+  currency: string;
+  pendingBalance: number; // Funds on hold (e.g., pending refunds)
+  totalDeposited: number;
+  totalSpent: number;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+export type PayoutMethodType = 'BANK_ACCOUNT' | 'PAYPAL' | 'STRIPE';
+
+export interface PayoutMethod {
+  id: string;
+  coachId: string;
+  type: PayoutMethodType;
+  isDefault: boolean;
+  isVerified: boolean;
+  // Bank account details
+  bankName?: string;
+  accountLastFour?: string;
+  sortCode?: string;
+  // PayPal details
+  paypalEmail?: string;
+  // Stripe details
+  stripeAccountId?: string;
+  // Common
+  nickname?: string;
+  createdAt: string;
+  verifiedAt?: string;
+}
+
+export type WithdrawalStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export interface Withdrawal {
+  id: string;
+  coachId: string;
+  coachName: string;
+  amount: number;
+  currency: string;
+  fee: number; // Platform fee for withdrawal
+  netAmount: number; // Amount after fees
+  payoutMethodId: string;
+  payoutMethod: PayoutMethodType;
+  status: WithdrawalStatus;
+  requestedAt: string;
+  processedAt?: string;
+  completedAt?: string;
+  failureReason?: string;
+  reference?: string; // Bank reference number
+}
+
+export interface CoachEarnings {
+  coachId: string;
+  coachName: string;
+  // Balances
+  availableBalance: number; // Can withdraw now
+  pendingBalance: number; // Awaiting session completion
+  totalEarned: number; // Lifetime earnings
+  totalWithdrawn: number; // Lifetime withdrawals
+  // Stats
+  totalSessions: number;
+  averageSessionValue: number;
+  // Period stats
+  thisWeek: number;
+  thisMonth: number;
+  lastMonth: number;
+  // Recent activity
+  recentTransactions: EarningTransaction[];
+  pendingWithdrawals: Withdrawal[];
+  // Payout settings
+  payoutMethods: PayoutMethod[];
+  defaultPayoutMethodId?: string;
+  // Platform fees
+  platformFeePercent: number; // e.g., 10 for 10%
+  currency: string;
+  updatedAt: string;
+}
+
+export interface EarningTransaction {
+  id: string;
+  coachId: string;
+  type: 'SESSION_PAYMENT' | 'REFUND' | 'WITHDRAWAL' | 'ADJUSTMENT' | 'PLATFORM_FEE';
+  amount: number;
+  currency: string;
+  status: TransactionStatus;
+  description: string;
+  bookingId?: string;
+  athleteName?: string;
+  sessionDate?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+// ============================================================================
 // SIMPLIFIED USER TYPE SYSTEM
 // ============================================================================
 // Instead of 4 roles (COACH, USER, PARENT, ADMIN), we use 2 primary types:

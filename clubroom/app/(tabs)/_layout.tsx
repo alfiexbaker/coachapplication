@@ -81,6 +81,7 @@ const BASE_HIDDEN_ROUTES = [
   'earnings',
   'badges',
   'roster',
+  'wallet',
 ];
 
 // Uber-style grouped navigation - max 5 tabs with cascading hub screens
