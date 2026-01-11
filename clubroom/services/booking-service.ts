@@ -42,6 +42,7 @@ export interface CreateBookingParams {
   objectives?: string[];
   price?: number;
   notes?: string;
+  sessionInviteId?: string; // Link to session invite if created from one
 }
 
 class BookingService {
@@ -163,6 +164,7 @@ class BookingService {
       objectives,
       price,
       notes,
+      sessionInviteId,
     } = params;
 
     // Extract date and time from scheduledAt
@@ -193,6 +195,7 @@ class BookingService {
       price,
       notes: notes || '',
       createdAt: new Date().toISOString(),
+      sessionInviteId, // Link to session invite if created from one
     };
 
     // Save to session bookings storage

@@ -173,7 +173,50 @@ export default function AthleteDetailScreen() {
         <View style={styles.headerTitle}>
           <ThemedText type="title">{entry.athleteName}</ThemedText>
         </View>
-        <Clickable onPress={() => {}} hitSlop={8}>
+        <Clickable
+          onPress={() => {
+            Alert.alert(
+              'Athlete Options',
+              `Actions for ${entry.athleteName}`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Send Message',
+                  onPress: () => router.push(`/chat?athleteId=${entry.athleteId}`),
+                },
+                {
+                  text: 'Schedule Session',
+                  onPress: () => router.push(`/coach/invite?athleteId=${entry.athleteId}`),
+                },
+                {
+                  text: 'View Analytics',
+                  onPress: () => router.push(`/analytics/${entry.athleteId}`),
+                },
+                {
+                  text: 'Remove from Roster',
+                  style: 'destructive',
+                  onPress: () => {
+                    Alert.alert(
+                      'Remove Athlete',
+                      `Are you sure you want to remove ${entry.athleteName} from your roster?`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Remove',
+                          style: 'destructive',
+                          onPress: async () => {
+                            await rosterService.removeFromRoster(coachId, entry.athleteId);
+                            router.back();
+                          },
+                        },
+                      ]
+                    );
+                  },
+                },
+              ]
+            );
+          }}
+          hitSlop={8}>
           <Ionicons name="ellipsis-horizontal" size={24} color={palette.text} />
         </Clickable>
       </View>

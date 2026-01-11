@@ -1,6 +1,322 @@
 export type SportCategory = 'Football';
 
 // ============================================================================
+// WALLET & FINANCIAL SYSTEM
+// ============================================================================
+// User wallet for balance, top-ups, and payments
+// Coach earnings for revenue tracking and withdrawals
+
+export type TransactionType =
+  | 'DEPOSIT'
+  | 'TOP_UP'
+  | 'BOOKING_PAYMENT'
+  | 'BOOKING_REFUND'
+  | 'WITHDRAWAL'
+  | 'EARNING'
+  | 'PLATFORM_FEE'
+  | 'PROMO_CREDIT'
+  | 'TRANSFER_IN'
+  | 'TRANSFER_OUT';
+
+export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  userId: string;
+  type: TransactionType;
+  amount: number; // Positive for credit, negative for debit
+  currency: string;
+  status: TransactionStatus;
+  description: string;
+  reference?: string; // bookingId, withdrawalId, etc.
+  balanceAfter: number;
+  createdAt: string;
+  completedAt?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface Wallet {
+  id: string;
+  userId: string;
+  userName: string;
+  balance: number;
+  currency: string;
+  pendingBalance: number; // Funds on hold (e.g., pending refunds)
+  totalDeposited: number;
+  totalSpent: number;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+export type PayoutMethodType = 'BANK_ACCOUNT' | 'PAYPAL' | 'STRIPE';
+
+export interface PayoutMethod {
+  id: string;
+  coachId: string;
+  type: PayoutMethodType;
+  isDefault: boolean;
+  isVerified: boolean;
+  // Bank account details
+  bankName?: string;
+  accountLastFour?: string;
+  sortCode?: string;
+  // PayPal details
+  paypalEmail?: string;
+  // Stripe details
+  stripeAccountId?: string;
+  // Common
+  nickname?: string;
+  createdAt: string;
+  verifiedAt?: string;
+}
+
+export type WithdrawalStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export interface Withdrawal {
+  id: string;
+  coachId: string;
+  coachName: string;
+  amount: number;
+  currency: string;
+  fee: number; // Platform fee for withdrawal
+  netAmount: number; // Amount after fees
+  payoutMethodId: string;
+  payoutMethod: PayoutMethodType;
+  status: WithdrawalStatus;
+  requestedAt: string;
+  processedAt?: string;
+  completedAt?: string;
+  failureReason?: string;
+  reference?: string; // Bank reference number
+}
+
+export interface CoachEarnings {
+  coachId: string;
+  coachName: string;
+  // Balances
+  availableBalance: number; // Can withdraw now
+  pendingBalance: number; // Awaiting session completion
+  totalEarned: number; // Lifetime earnings
+  totalWithdrawn: number; // Lifetime withdrawals
+  // Stats
+  totalSessions: number;
+  averageSessionValue: number;
+  // Period stats
+  thisWeek: number;
+  thisMonth: number;
+  lastMonth: number;
+  // Recent activity
+  recentTransactions: EarningTransaction[];
+  pendingWithdrawals: Withdrawal[];
+  // Payout settings
+  payoutMethods: PayoutMethod[];
+  defaultPayoutMethodId?: string;
+  // Platform fees
+  platformFeePercent: number; // e.g., 10 for 10%
+  currency: string;
+  updatedAt: string;
+}
+
+export interface EarningTransaction {
+  id: string;
+  coachId: string;
+  type: 'SESSION_PAYMENT' | 'REFUND' | 'WITHDRAWAL' | 'ADJUSTMENT' | 'PLATFORM_FEE';
+  amount: number;
+  currency: string;
+  status: TransactionStatus;
+  description: string;
+  bookingId?: string;
+  athleteName?: string;
+  sessionDate?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+// ============================================================================
+// SIMPLIFIED USER TYPE SYSTEM
+// ============================================================================
+// Instead of 4 roles (COACH, USER, PARENT, ADMIN), we use 2 primary types:
+// - USER: Can be athlete AND/OR parent
+// - COACH: Can be individual OR organization
+// Admin is a system flag, not a user type
+
+export type SimplifiedUserType = 'USER' | 'COACH';
+
+export interface ChildReference {
+  childId: string;
+  childName: string;
+  relationshipType: 'PARENT_CHILD' | 'GUARDIAN';
+  addedAt: string;
+}
+
+export interface GuardianReference {
+  guardianId: string;
+  guardianName: string;
+  relationshipType: 'PARENT_CHILD' | 'GUARDIAN';
+  isPrimary: boolean;
+}
+
+export type CoachPermission =
+  | 'MANAGE_BOOKINGS'
+  | 'MANAGE_ROSTER'
+  | 'AWARD_BADGES'
+  | 'VIEW_EARNINGS'
+  | 'MANAGE_SETTINGS'
+  | 'INVITE_STAFF'
+  | 'POST_AS_COACH';
+
+export interface StaffMember {
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  role: 'HEAD_COACH' | 'COACH' | 'ASSISTANT' | 'ADMIN';
+  permissions: CoachPermission[];
+  joinedAt: string;
+  isActive: boolean;
+}
+
+// Simplified User interface (replaces USER + PARENT roles)
+export interface SimplifiedUser {
+  id: string;
+  email: string;
+  name: string;
+  type: 'USER';
+  avatar?: string;
+  bio?: string;
+  phone?: string;
+  dateOfBirth: string;
+  postcode: string;
+  createdAt: string;
+
+  // Self-athlete properties (optional - if user is also an athlete)
+  skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE';
+  position?: string;
+
+  // Parent properties (optional - if user has children)
+  children?: ChildReference[];
+
+  // If managed by a parent
+  parentId?: string;
+  guardians?: GuardianReference[];
+
+  // Admin flag (instead of separate ADMIN role)
+  isSystemAdmin?: boolean;
+}
+
+// ============================================================================
+// FOLLOWING SYSTEM
+// ============================================================================
+// Enables users to follow coaches (and potentially other users) to see their
+// content in a personalized feed. This creates the missing non-bilateral
+// relationship between users and coaches outside of club membership.
+
+export interface Follow {
+  id: string;
+  followerId: string;
+  followerName: string;
+  followerType: 'USER' | 'COACH';
+  followerAvatar?: string;
+  followingId: string;
+  followingName: string;
+  followingType: 'USER' | 'COACH';
+  followingAvatar?: string;
+  createdAt: string;
+  // Notification preferences for this follow
+  notifyOnPost: boolean;
+  notifyOnSession: boolean;
+}
+
+// For private profiles that require approval
+export interface FollowRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterAvatar?: string;
+  targetId: string;
+  targetName: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  message?: string; // Optional message with request
+  createdAt: string;
+  respondedAt?: string;
+}
+
+// ============================================================================
+// SIMPLIFIED USER TYPE SYSTEM (continued)
+// ============================================================================
+
+// Simplified Coach interface (individuals or organizations)
+export interface SimplifiedCoach {
+  id: string;
+  email: string;
+  name: string;
+  type: 'COACH';
+  avatar?: string;
+  createdAt: string;
+
+  // Organization support
+  isOrganization: boolean;
+  organizationName?: string;
+  organizationLogo?: string;
+
+  // Staff (if organization)
+  staffMembers?: StaffMember[];
+
+  // Availability status
+  isLive: boolean; // Currently accepting new bookings
+  liveStatusReason?: string; // "On vacation", "Fully booked", etc.
+
+  // Profile
+  bio: string;
+  phone?: string;
+  website?: string;
+  primarySport: SportCategory;
+  sports: SportCategory[];
+  specialties: string[];
+
+  // Qualifications
+  certifications: CoachCertification[];
+  experiences: CoachExperience[];
+  languages: CoachLanguage[];
+
+  // Location
+  city: string;
+  state?: string;
+  postcode: string;
+  travelRadius?: number; // miles willing to travel
+
+  // Pricing
+  priceRange: {
+    minUsd: number;
+    maxUsd: number;
+    unitLabel: string;
+  };
+  sessionFormats: ('In-person' | 'Virtual' | 'Small group')[];
+
+  // Ratings
+  rating: {
+    average: number;
+    reviewCount: number;
+  };
+
+  // Verification
+  verificationLevel: 'NONE' | 'BASIC' | 'VERIFIED' | 'PREMIUM';
+
+  // Social
+  socialLinks?: SocialLinks;
+
+  // Analytics
+  totalSessions: number;
+  activeAthletes: number;
+}
+
+// ============================================================================
 // SOCIAL MEDIA LINKS
 // ============================================================================
 
@@ -584,6 +900,7 @@ export interface SessionInvite {
   counterProposal?: TimeSlot[];
   counterNote?: string;
   groupId?: string; // Links invites that were sent as part of a group/bulk send
+  bookingId?: string; // Link to created booking (bidirectional)
 }
 
 // ============================================================================
@@ -976,7 +1293,10 @@ export type NotificationType =
   | 'MATCH_RESPONSE'
   | 'MATCH_LINEUP'
   | 'MATCH_REMINDER'
-  | 'MATCH_CANCELLED';
+  | 'MATCH_CANCELLED'
+  | 'NEW_FOLLOWER'
+  | 'FOLLOW_REQUEST'
+  | 'FOLLOW_REQUEST_ACCEPTED';
 
 export interface Notification {
   id: string;

@@ -330,9 +330,9 @@ function QuickActionsCard() {
 
   const actions = [
     { icon: 'search', label: 'Find Coach', route: '/(tabs)/more', color: palette.tint },
-    { icon: 'analytics', label: 'My Progress', route: '/development/my-progress', color: palette.success },
+    { icon: 'analytics', label: 'My Progress', route: '/(tabs)/bookings/statistics', color: palette.success },
     { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', color: palette.accent },
-    { icon: 'ribbon', label: 'Badges', route: '/badges', color: '#F59E0B' },
+    { icon: 'ribbon', label: 'Badges', route: '/(tabs)/badges', color: '#F59E0B' },
   ];
 
   return (

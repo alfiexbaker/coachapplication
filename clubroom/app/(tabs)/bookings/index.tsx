@@ -241,13 +241,13 @@ export default function BookingsScreen() {
 
   // Navigation handlers
   const handleMyGoalsPress = () => {
-    logger.press('MyGoalsButton', { route: '/bookings/objectives' });
-    router.push('/bookings/objectives');
+    logger.press('MyGoalsButton', { route: '/(tabs)/bookings/objectives' });
+    router.push('/(tabs)/bookings/objectives');
   };
 
   const handleProgressPress = () => {
-    logger.press('ProgressButton', { route: '/bookings/statistics' });
-    router.push('/bookings/statistics');
+    logger.press('ProgressButton', { route: '/(tabs)/bookings/statistics' });
+    router.push('/(tabs)/bookings/statistics');
   };
 
   const handleCalendarPress = () => {

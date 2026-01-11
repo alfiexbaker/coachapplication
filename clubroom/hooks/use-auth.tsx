@@ -3,11 +3,13 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import { MOCK_USERS, getUserById } from '@/constants/mock-data';
 import type { User } from '@/constants/app-types';
+import type { ChildReference, StaffMember } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAuth');
 
 export type UserRole = 'USER' | 'PARENT' | 'COACH' | 'ADMIN';
+export type SimplifiedUserType = 'USER' | 'COACH';
 
 type DemoUser = Omit<User, 'role'> & {
   role: UserRole | 'ADMIN';
@@ -16,113 +18,219 @@ type DemoUser = Omit<User, 'role'> & {
   fullName?: string;
   schoolId?: string;
   schoolName?: string;
+  // Simplified user type fields
+  type?: SimplifiedUserType;
+  // For USER type - parent properties
+  children?: ChildReference[];
+  // For USER type - athlete properties
+  skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE';
+  position?: string;
+  parentId?: string;
+  // For COACH type - organization properties
+  isOrganization?: boolean;
+  organizationName?: string;
+  staffMembers?: StaffMember[];
+  // For COACH type - availability
+  isLive?: boolean;
+  liveStatusReason?: string;
+  // Admin flag
+  isSystemAdmin?: boolean;
 };
 
 // Map mock users to demo users with passwords
-// Map mock users to demo users with passwords
+// Updated with simplified user type system fields
 const DEMO_USERS: DemoUser[] = [
-  // Coaches
+  // Coaches (Individual)
   {
     id: 'coach1',
     username: 'coach1',
     password: 'coach',
     role: 'COACH',
+    type: 'COACH',
     fullName: 'Sarah Mitchell',
     email: 'sarah.mitchell@coach.com',
     postcode: 'SW1A 1AA',
     name: 'Sarah Mitchell',
     dateOfBirth: '1988-03-15',
+    isOrganization: false,
+    isLive: true,
   },
   {
     id: 'coach2',
     username: 'coach2',
     password: 'coach',
     role: 'COACH',
+    type: 'COACH',
     fullName: 'Mike Thompson',
     email: 'mike.thompson@coach.com',
     postcode: 'SW1A 2AA',
     name: 'Mike Thompson',
     dateOfBirth: '1985-07-22',
+    isOrganization: false,
+    isLive: true,
   },
   {
     id: 'coach3',
     username: 'coach3',
     password: 'coach',
     role: 'COACH',
+    type: 'COACH',
     fullName: 'David Roberts',
     email: 'david.roberts@coach.com',
     postcode: 'SW2A 1BB',
     name: 'David Roberts',
     dateOfBirth: '1990-11-08',
+    isOrganization: false,
+    isLive: false,
+    liveStatusReason: 'On vacation until February',
   },
-  // Users
+  // Coach (Organization)
+  {
+    id: 'academy1',
+    username: 'academy',
+    password: 'academy',
+    role: 'COACH',
+    type: 'COACH',
+    fullName: 'Elite Sports Academy',
+    email: 'contact@elitesportsacademy.com',
+    postcode: 'SW1A 5AA',
+    name: 'Elite Sports Academy',
+    dateOfBirth: '2015-01-01',
+    isOrganization: true,
+    organizationName: 'Elite Sports Academy',
+    isLive: true,
+    staffMembers: [
+      {
+        userId: 'coach1',
+        userName: 'Sarah Mitchell',
+        role: 'HEAD_COACH',
+        permissions: ['MANAGE_BOOKINGS', 'MANAGE_ROSTER', 'AWARD_BADGES', 'VIEW_EARNINGS', 'POST_AS_COACH'],
+        joinedAt: '2020-03-15',
+        isActive: true,
+      },
+      {
+        userId: 'coach2',
+        userName: 'Mike Thompson',
+        role: 'COACH',
+        permissions: ['MANAGE_BOOKINGS', 'AWARD_BADGES', 'POST_AS_COACH'],
+        joinedAt: '2021-06-10',
+        isActive: true,
+      },
+    ],
+  },
+  // Users (Athletes - managed by parents)
   {
     id: 'user1',
     username: 'user1',
     password: 'user',
     role: 'USER',
+    type: 'USER',
     fullName: 'Tom Henderson',
     email: 'tom.henderson@email.com',
     postcode: 'SW1A 3CC',
     name: 'Tom Henderson',
     dateOfBirth: '2008-05-12',
+    skillLevel: 'INTERMEDIATE',
+    position: 'Midfielder',
+    parentId: 'parent1', // Managed by John Henderson
+    children: [], // Not a parent
   },
   {
     id: 'user2',
     username: 'user2',
     password: 'user',
     role: 'USER',
+    type: 'USER',
     fullName: 'Emma Henderson',
     email: 'emma.henderson@email.com',
     postcode: 'SW1A 3CC',
     name: 'Emma Henderson',
     dateOfBirth: '2009-08-20',
+    skillLevel: 'BEGINNER',
+    position: 'Striker',
+    parentId: 'parent1', // Managed by John Henderson
+    children: [], // Not a parent
   },
   {
     id: 'user3',
     username: 'user3',
     password: 'user',
     role: 'USER',
+    type: 'USER',
     fullName: 'James Wilson',
     email: 'james.wilson@email.com',
     postcode: 'SW2A 4DD',
     name: 'James Wilson',
     dateOfBirth: '2007-01-05',
+    skillLevel: 'ADVANCED',
+    position: 'Goalkeeper',
+    parentId: 'parent2', // Managed by Lisa Wilson
+    children: [], // Not a parent
   },
-  // Parents
+  // Parents (Users with children)
   {
     id: 'parent1',
     username: 'parent1',
     password: 'parent',
     role: 'PARENT',
+    type: 'USER',
     fullName: 'John Henderson',
     email: 'john.henderson@email.com',
     postcode: 'SW1A 3CC',
     name: 'John Henderson',
     dateOfBirth: '1980-02-11',
+    children: [
+      { childId: 'user1', childName: 'Tom Henderson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
+      { childId: 'user2', childName: 'Emma Henderson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
+    ],
   },
   {
     id: 'parent2',
     username: 'parent2',
     password: 'parent',
     role: 'PARENT',
+    type: 'USER',
     fullName: 'Lisa Wilson',
     email: 'lisa.wilson@email.com',
     postcode: 'SW2A 4DD',
     name: 'Lisa Wilson',
     dateOfBirth: '1983-09-07',
+    children: [
+      { childId: 'user3', childName: 'James Wilson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
+    ],
   },
-  // Admin
+  // User who is both an athlete AND a parent (demonstrates flexibility of new system)
+  {
+    id: 'athlete_parent1',
+    username: 'athleteparent',
+    password: 'both',
+    role: 'PARENT', // Legacy role for nav compatibility
+    type: 'USER',
+    fullName: 'Mike Wilson',
+    email: 'mike.wilson@email.com',
+    postcode: 'SW2A 4DD',
+    name: 'Mike Wilson',
+    dateOfBirth: '1990-06-15',
+    skillLevel: 'BEGINNER', // Also an athlete
+    position: 'Defender',
+    children: [
+      { childId: 'user3', childName: 'James Wilson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
+    ],
+  },
+  // Admin (System flag on a USER)
   {
     id: 'admin',
     username: 'admin',
     password: 'admin',
     role: 'ADMIN',
+    type: 'USER',
     fullName: 'Admin User',
     email: 'admin@coach.com',
     postcode: 'SW1A 1AA',
     name: 'Admin User',
     dateOfBirth: '1985-01-01',
+    isSystemAdmin: true,
+    children: [],
   },
 ];
 

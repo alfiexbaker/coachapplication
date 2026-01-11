@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -178,7 +178,20 @@ export default function VerificationHubScreen() {
               title="Email"
               description="Verify your email address"
               item={status.email}
-              onPress={() => {}}
+              onPress={() => {
+                if (status.email.status === 'VERIFIED') {
+                  Alert.alert('Email Verified', 'Your email is already verified.');
+                } else {
+                  Alert.alert(
+                    'Verify Email',
+                    'We will send a verification code to your email address.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Send Code', onPress: () => Alert.alert('Code Sent', 'Check your inbox for the verification code.') },
+                    ]
+                  );
+                }
+              }}
             />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
             <VerificationItemRow
@@ -186,7 +199,20 @@ export default function VerificationHubScreen() {
               title="Phone"
               description="Verify your phone number"
               item={status.phone}
-              onPress={() => {}}
+              onPress={() => {
+                if (status.phone.status === 'VERIFIED') {
+                  Alert.alert('Phone Verified', 'Your phone number is already verified.');
+                } else {
+                  Alert.alert(
+                    'Verify Phone',
+                    'We will send an SMS verification code to your phone.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Send SMS', onPress: () => Alert.alert('Code Sent', 'Check your messages for the verification code.') },
+                    ]
+                  );
+                }
+              }}
             />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
             <VerificationItemRow
@@ -229,7 +255,20 @@ export default function VerificationHubScreen() {
               title="Insurance"
               description="Public liability insurance"
               item={status.insurance}
-              onPress={() => {}}
+              onPress={() => {
+                if (status.insurance.status === 'VERIFIED') {
+                  Alert.alert('Insurance Verified', 'Your insurance documents are verified and up to date.');
+                } else {
+                  Alert.alert(
+                    'Upload Insurance',
+                    'Upload your public liability insurance certificate to get verified.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Upload', onPress: () => router.push('/verification/insurance') },
+                    ]
+                  );
+                }
+              }}
             />
           </SurfaceCard>
         </View>

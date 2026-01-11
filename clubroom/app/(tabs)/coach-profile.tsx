@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   FlatList,
   Image,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -29,6 +30,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { SocialLinks } from '@/components/profile/social-links';
+import { followService } from '@/services/follow-service';
 
 type TabType = 'posts' | 'about' | 'photos' | 'sessions' | 'reviews';
 
@@ -44,6 +46,64 @@ export default function CoachProfileScreen() {
   const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  // Following system state
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  // Check if current user is viewing their own profile
+  const isOwnProfile = currentUser?.role === 'COACH' && currentUser?.id === coach?.id;
+
+  // Load following status and follower count
+  useEffect(() => {
+    const loadFollowData = async () => {
+      if (!currentUser || !coach) return;
+
+      try {
+        const [following, count] = await Promise.all([
+          followService.isFollowing(currentUser.id, coach.id),
+          followService.getFollowerCount(coach.id),
+        ]);
+        setIsFollowing(following);
+        setFollowerCount(count);
+      } catch (error) {
+        console.error('Failed to load follow data:', error);
+      }
+    };
+
+    loadFollowData();
+  }, [currentUser, coach]);
+
+  // Handle follow/unfollow action
+  const handleFollowToggle = useCallback(async () => {
+    if (!currentUser || !coach || followLoading) return;
+
+    setFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await followService.unfollow(currentUser.id, coach.id);
+        setIsFollowing(false);
+        setFollowerCount((prev) => Math.max(0, prev - 1));
+      } else {
+        await followService.follow({
+          followerId: currentUser.id,
+          followerName: currentUser.name || currentUser.fullName || 'User',
+          followerType: currentUser.role === 'COACH' ? 'COACH' : 'USER',
+          followingId: coach.id,
+          followingName: coach.fullName,
+          followingType: 'COACH',
+          followingAvatar: coach.profilePhotoUrl,
+        });
+        setIsFollowing(true);
+        setFollowerCount((prev) => prev + 1);
+      }
+    } catch (error) {
+      console.error('Failed to toggle follow:', error);
+    } finally {
+      setFollowLoading(false);
+    }
+  }, [currentUser, coach, isFollowing, followLoading]);
 
   // Load coach's session offerings
   useEffect(() => {
@@ -230,6 +290,10 @@ export default function CoachProfileScreen() {
                 <ThemedText style={styles.statLabel}>Sessions</ThemedText>
               </View>
               <View style={styles.statItem}>
+                <ThemedText type="subtitle">{followerCount}</ThemedText>
+                <ThemedText style={styles.statLabel}>Followers</ThemedText>
+              </View>
+              <View style={styles.statItem}>
                 <ThemedText type="subtitle">{coach.rating.average.toFixed(1)}</ThemedText>
                 <ThemedText style={styles.statLabel}>Rating</ThemedText>
               </View>
@@ -238,6 +302,39 @@ export default function CoachProfileScreen() {
                 <ThemedText style={styles.statLabel}>Reviews</ThemedText>
               </View>
             </View>
+
+            {/* Follow Button - shown when viewing another coach's profile */}
+            {!isOwnProfile && currentUser && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.followButton,
+                  isFollowing
+                    ? [styles.followingButton, { borderColor: palette.tint }]
+                    : { backgroundColor: palette.tint },
+                  pressed && { opacity: 0.8 },
+                ]}
+                onPress={handleFollowToggle}
+                disabled={followLoading}>
+                {followLoading ? (
+                  <ActivityIndicator size="small" color={isFollowing ? palette.tint : '#FFFFFF'} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={isFollowing ? 'checkmark' : 'add'}
+                      size={18}
+                      color={isFollowing ? palette.tint : '#FFFFFF'}
+                    />
+                    <ThemedText
+                      style={[
+                        styles.followButtonText,
+                        { color: isFollowing ? palette.tint : '#FFFFFF' },
+                      ]}>
+                      {isFollowing ? 'Following' : 'Follow'}
+                    </ThemedText>
+                  </>
+                )}
+              </Pressable>
+            )}
 
             {coach.badges && coach.badges.length > 0 && (
               <View style={styles.badgesRow}>
@@ -693,6 +790,26 @@ const styles = StyleSheet.create({
   },
   editProfileText: {
     fontWeight: '600',
+  },
+  followButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.pill,
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    minWidth: 120,
+    height: 40,
+  },
+  followingButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+  },
+  followButtonText: {
+    fontWeight: '600',
+    fontSize: 15,
   },
   tabsContainer: {
     flexDirection: 'row',
