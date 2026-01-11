@@ -355,4 +355,118 @@
 
 ---
 
-*Generated: January 2026*
+## DEVELOPMENT STANDARDS
+
+### For Every Feature
+
+Each feature MUST include:
+
+#### 1. Unit Tests
+- Component tests with React Native Testing Library
+- Service/hook tests with Jest
+- Mock Supabase calls
+- Test user interactions and edge cases
+- Minimum 80% coverage per feature
+
+#### 2. Documentation
+- JSDoc comments on all exports
+- README in feature folder explaining usage
+- Type definitions fully documented
+- API/service methods documented
+
+#### 3. Quality Requirements
+- TypeScript strict mode compliance
+- No `any` types
+- Proper error handling with user-friendly messages
+- Loading states for all async operations
+- Empty states for lists
+- Accessibility labels on interactive elements
+
+#### 4. Customer/Coach Centric UX
+- Clear call-to-action buttons
+- Intuitive navigation flow
+- Confirmation dialogs for destructive actions
+- Success/error feedback (toasts)
+- Pull-to-refresh where applicable
+- Skeleton loaders during data fetch
+
+### File Structure Per Feature
+
+```
+src/
+├── components/{feature}/
+│   ├── __tests__/
+│   │   └── {Component}.test.tsx
+│   ├── {Component}.tsx
+│   └── index.ts
+├── screens/{feature}/
+│   ├── __tests__/
+│   │   └── {Screen}.test.tsx
+│   └── {Screen}.tsx
+├── services/{feature}/
+│   ├── __tests__/
+│   │   └── {service}.test.ts
+│   └── {service}.ts
+├── hooks/{feature}/
+│   ├── __tests__/
+│   │   └── use{Feature}.test.ts
+│   └── use{Feature}.ts
+└── types/{feature}.ts
+```
+
+### Test Examples
+
+```typescript
+// Component test
+describe('PackageCard', () => {
+  it('renders package details correctly', () => {})
+  it('shows discount percentage', () => {})
+  it('calls onPurchase when button pressed', () => {})
+  it('disables button when out of stock', () => {})
+})
+
+// Service test
+describe('packageService', () => {
+  it('fetches available packages', async () => {})
+  it('handles purchase transaction', async () => {})
+  it('returns error on insufficient balance', async () => {})
+})
+```
+
+---
+
+## IMPLEMENTATION TRACKER
+
+| # | Feature | Status | Tests | Docs |
+|---|---------|--------|-------|------|
+| 1 | Advanced Coach Discovery | DONE | 30 | JSDoc |
+| 2 | Session Packages | DONE | 32 | JSDoc |
+| 3 | Recurring Bookings | DONE | 40+ | JSDoc |
+| 4 | Homework & Drills | DONE | 64 | JSDoc |
+| 5 | Goals & Milestones | DONE | 30+ | JSDoc |
+| 6 | Calendar Sync | DONE | 25+ | JSDoc |
+| 7 | Coach Comparison | DONE | 48 | JSDoc |
+| 8 | Family Dashboard | DONE | 30+ | JSDoc |
+| 9 | Skill Trees | DONE | 35+ | JSDoc |
+| 10 | Waitlist System | DONE | 35 | JSDoc |
+| 11 | Session Recording | DONE | 79 | JSDoc |
+| 12 | Referral System | DONE | 22 | JSDoc |
+| 13 | Invoice Generation | DONE | 80 | JSDoc |
+| 14 | Emergency Quick Access | DONE | 30+ | JSDoc |
+| 15 | Notification Preferences | DONE | 72 | JSDoc |
+| 16 | Squad Bulk Invites | DONE | 31 | JSDoc |
+| 17 | Event RSVP | DONE | 36 | JSDoc |
+| 18 | Promo Codes | DONE | 47 | JSDoc |
+| 19 | Coach Analytics | DONE | 49 | JSDoc |
+| 20 | Consent Dashboard | DONE | 62 | JSDoc |
+| 21 | Counter-Offers | DONE | 17 | JSDoc |
+| 22 | Verification Badges | DONE | (integrated) | JSDoc |
+| 23 | Parent Community | DONE | 25+ | JSDoc |
+| 24 | Injury Tracking | DONE | 79 | JSDoc |
+| 25 | Favourites | DONE | 61 | JSDoc |
+
+**Total: ~1000+ unit tests across all features**
+
+---
+
+*Completed: January 2026*

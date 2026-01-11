@@ -4,8 +4,59 @@ import {
   MedicalInfo,
   Consent,
   ConsentType,
+  RosterEntry,
 } from '@/constants/types';
 import { storageService } from './storage-service';
+
+// Cache for offline access - stores most recently accessed emergency info
+const CACHE_KEY = 'clubroom.emergency_cache';
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+interface CachedEmergencyInfo {
+  data: EmergencyInfo;
+  cachedAt: number;
+  athleteName?: string;
+}
+
+interface EmergencyCache {
+  [athleteId: string]: CachedEmergencyInfo;
+}
+
+/**
+ * Quick access emergency data for coach view during sessions
+ */
+export interface AthleteEmergencyQuickView {
+  athleteId: string;
+  athleteName: string;
+  hasAlerts: boolean;
+  alertLevel: 'none' | 'low' | 'medium' | 'high';
+  primaryContact: EmergencyContact | null;
+  allContacts: EmergencyContact[];
+  allergies: string[];
+  conditions: string[];
+  medications: string[];
+  restrictions: string[];
+  medicalNotes: string | undefined;
+  doctorName: string | undefined;
+  doctorPhone: string | undefined;
+  emergencyTreatmentConsent: boolean;
+  lastUpdated: string;
+  isCached: boolean;
+}
+
+/**
+ * Session safety info aggregating all attendees' emergency data
+ */
+export interface SessionSafetyInfo {
+  sessionId: string;
+  totalAthletes: number;
+  athletesWithAlerts: number;
+  highAlertCount: number;
+  athletes: AthleteEmergencyQuickView[];
+  allAllergies: string[];
+  allConditions: string[];
+  missingEmergencyInfo: string[];
+}
 
 const STORAGE_KEY = 'clubroom.emergency_info';
 
@@ -350,6 +401,269 @@ class SafetyService {
     }
 
     return 'low';
+  }
+
+  // ============================================================================
+  // EMERGENCY QUICK ACCESS METHODS (for coach session view)
+  // ============================================================================
+
+  /**
+   * Get quick access emergency data for a single athlete
+   * Caches data for offline access during sessions
+   */
+  async getAthleteEmergency(
+    athleteId: string,
+    athleteName?: string
+  ): Promise<AthleteEmergencyQuickView> {
+    let isCached = false;
+    let info: EmergencyInfo;
+    let resolvedName = athleteName || 'Unknown Athlete';
+
+    try {
+      info = await this.getEmergencyInfo(athleteId);
+      // Cache for offline access
+      await this.cacheEmergencyInfo(athleteId, info, resolvedName);
+    } catch {
+      // Try to get from cache if network fails
+      const cached = await this.getCachedEmergencyInfo(athleteId);
+      if (cached) {
+        info = cached.data;
+        resolvedName = cached.athleteName || resolvedName;
+        isCached = true;
+      } else {
+        // Return empty data if nothing available
+        info = createDefaultEmergencyInfo(athleteId);
+      }
+    }
+
+    const primaryContact = info.contacts.find(c => c.isPrimary) ?? info.contacts[0] ?? null;
+    const alertLevel = this.getMedicalAlertSeverity(info.medical);
+    const hasAlerts = alertLevel !== 'none';
+    const emergencyTreatmentConsent = info.consents.find(
+      c => c.type === 'EMERGENCY_TREATMENT'
+    )?.granted ?? false;
+
+    return {
+      athleteId,
+      athleteName: resolvedName,
+      hasAlerts,
+      alertLevel,
+      primaryContact,
+      allContacts: info.contacts,
+      allergies: info.medical.allergies,
+      conditions: info.medical.conditions,
+      medications: info.medical.medications,
+      restrictions: info.medical.restrictions,
+      medicalNotes: info.medical.notes,
+      doctorName: info.medical.doctorName,
+      doctorPhone: info.medical.doctorPhone,
+      emergencyTreatmentConsent,
+      lastUpdated: info.updatedAt,
+      isCached,
+    };
+  }
+
+  /**
+   * Get aggregated safety info for all attendees in a session
+   */
+  async getSessionSafetyInfo(
+    sessionId: string,
+    attendees: Array<{ athleteId: string; athleteName: string }>
+  ): Promise<SessionSafetyInfo> {
+    const athletes: AthleteEmergencyQuickView[] = [];
+    const allAllergies = new Set<string>();
+    const allConditions = new Set<string>();
+    const missingEmergencyInfo: string[] = [];
+    let athletesWithAlerts = 0;
+    let highAlertCount = 0;
+
+    for (const attendee of attendees) {
+      const emergencyData = await this.getAthleteEmergency(
+        attendee.athleteId,
+        attendee.athleteName
+      );
+      athletes.push(emergencyData);
+
+      // Aggregate allergies and conditions
+      emergencyData.allergies.forEach(a => allAllergies.add(a));
+      emergencyData.conditions.forEach(c => allConditions.add(c));
+
+      // Count alerts
+      if (emergencyData.hasAlerts) {
+        athletesWithAlerts++;
+        if (emergencyData.alertLevel === 'high') {
+          highAlertCount++;
+        }
+      }
+
+      // Track missing info
+      if (emergencyData.allContacts.length === 0) {
+        missingEmergencyInfo.push(attendee.athleteName);
+      }
+    }
+
+    return {
+      sessionId,
+      totalAthletes: attendees.length,
+      athletesWithAlerts,
+      highAlertCount,
+      athletes,
+      allAllergies: Array.from(allAllergies).sort(),
+      allConditions: Array.from(allConditions).sort(),
+      missingEmergencyInfo,
+    };
+  }
+
+  /**
+   * Format an emergency contact for display
+   */
+  formatEmergencyContact(contact: EmergencyContact): string {
+    const parts = [contact.name];
+    if (contact.relationship) {
+      parts.push(`(${contact.relationship})`);
+    }
+    return parts.join(' ');
+  }
+
+  /**
+   * Format phone number for display
+   */
+  formatPhoneNumber(phone: string): string {
+    // Simple formatting - just return as-is for now
+    // Could be enhanced to format based on locale
+    return phone;
+  }
+
+  /**
+   * Get a formatted summary of medical alerts
+   */
+  getAlertSummary(info: AthleteEmergencyQuickView): string {
+    const parts: string[] = [];
+
+    if (info.allergies.length > 0) {
+      parts.push(`${info.allergies.length} allerg${info.allergies.length === 1 ? 'y' : 'ies'}`);
+    }
+    if (info.conditions.length > 0) {
+      parts.push(`${info.conditions.length} condition${info.conditions.length === 1 ? '' : 's'}`);
+    }
+    if (info.medications.length > 0) {
+      parts.push(`${info.medications.length} medication${info.medications.length === 1 ? '' : 's'}`);
+    }
+
+    if (parts.length === 0) {
+      return 'No medical alerts';
+    }
+
+    return parts.join(', ');
+  }
+
+  /**
+   * Get alert level color for UI
+   */
+  getAlertLevelColor(level: 'none' | 'low' | 'medium' | 'high'): string {
+    switch (level) {
+      case 'high':
+        return '#C03E47'; // error red
+      case 'medium':
+        return '#C78000'; // warning amber
+      case 'low':
+        return '#64748b'; // muted gray
+      case 'none':
+      default:
+        return '#1C8C5E'; // success green
+    }
+  }
+
+  /**
+   * Get alert level label for UI
+   */
+  getAlertLevelLabel(level: 'none' | 'low' | 'medium' | 'high'): string {
+    switch (level) {
+      case 'high':
+        return 'High Alert';
+      case 'medium':
+        return 'Medical Alert';
+      case 'low':
+        return 'Info on File';
+      case 'none':
+      default:
+        return 'No Alerts';
+    }
+  }
+
+  // ============================================================================
+  // CACHING METHODS (for offline access)
+  // ============================================================================
+
+  /**
+   * Cache emergency info for offline access
+   */
+  private async cacheEmergencyInfo(
+    athleteId: string,
+    info: EmergencyInfo,
+    athleteName?: string
+  ): Promise<void> {
+    const cache = await storageService.getItem<EmergencyCache>(CACHE_KEY, {});
+    cache[athleteId] = {
+      data: info,
+      cachedAt: Date.now(),
+      athleteName,
+    };
+    await storageService.setItem(CACHE_KEY, cache);
+  }
+
+  /**
+   * Get cached emergency info
+   */
+  private async getCachedEmergencyInfo(
+    athleteId: string
+  ): Promise<CachedEmergencyInfo | null> {
+    const cache = await storageService.getItem<EmergencyCache>(CACHE_KEY, {});
+    const cached = cache[athleteId];
+
+    if (!cached) {
+      return null;
+    }
+
+    // Check if cache is still valid
+    if (Date.now() - cached.cachedAt > CACHE_TTL_MS) {
+      return null;
+    }
+
+    return cached;
+  }
+
+  /**
+   * Pre-cache emergency info for all athletes in an upcoming session
+   * Call this before a session starts to ensure offline access
+   */
+  async preCacheSessionEmergencyInfo(
+    attendees: Array<{ athleteId: string; athleteName: string }>
+  ): Promise<void> {
+    for (const attendee of attendees) {
+      try {
+        const info = await this.getEmergencyInfo(attendee.athleteId);
+        await this.cacheEmergencyInfo(attendee.athleteId, info, attendee.athleteName);
+      } catch {
+        // Ignore errors during pre-caching
+        console.warn(`Failed to pre-cache emergency info for ${attendee.athleteId}`);
+      }
+    }
+  }
+
+  /**
+   * Clear cached emergency info
+   */
+  async clearCache(): Promise<void> {
+    await storageService.removeItem(CACHE_KEY);
+  }
+
+  /**
+   * Reset to mock data (for testing)
+   */
+  async resetToMockData(): Promise<void> {
+    await storageService.setItem(STORAGE_KEY, MOCK_EMERGENCY_INFO);
+    await this.clearCache();
   }
 }
 

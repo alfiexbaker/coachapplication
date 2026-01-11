@@ -1,0 +1,99 @@
+import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Radii, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import type { ConsentType } from '@/constants/types';
+import { consentService } from '@/services/consent-service';
+
+interface ConsentBadgeProps {
+  type: ConsentType;
+  granted: boolean;
+  showLabel?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+}
+
+const SIZE_CONFIG = {
+  sm: { icon: 14, padding: 4, fontSize: 10, gap: 2 },
+  md: { icon: 18, padding: 6, fontSize: 12, gap: 4 },
+  lg: { icon: 22, padding: 8, fontSize: 14, gap: 6 },
+} as const;
+
+export function ConsentBadge({
+  type,
+  granted,
+  showLabel = false,
+  size = 'md',
+}: ConsentBadgeProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const config = SIZE_CONFIG[size];
+
+  const iconName = consentService.getConsentIcon(type);
+  const label = consentService.getConsentLabel(type);
+
+  const backgroundColor = granted
+    ? `${palette.success}15`
+    : `${palette.error}15`;
+  const iconColor = granted ? palette.success : palette.error;
+  const statusIcon = granted ? 'checkmark-circle' : 'close-circle';
+
+  return (
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor,
+          padding: config.padding,
+          gap: config.gap,
+        },
+      ]}
+    >
+      <View style={styles.iconWrapper}>
+        <Ionicons
+          name={iconName as keyof typeof Ionicons.glyphMap}
+          size={config.icon}
+          color={iconColor}
+        />
+        <View style={[styles.statusIndicator, { backgroundColor: palette.surface }]}>
+          <Ionicons
+            name={statusIcon}
+            size={config.icon * 0.6}
+            color={iconColor}
+          />
+        </View>
+      </View>
+      {showLabel && (
+        <ThemedText
+          style={[
+            styles.label,
+            { color: iconColor, fontSize: config.fontSize },
+          ]}
+        >
+          {label}
+        </ThemedText>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radii.sm,
+  },
+  iconWrapper: {
+    position: 'relative',
+  },
+  statusIndicator: {
+    position: 'absolute',
+    bottom: -2,
+    right: -4,
+    borderRadius: 10,
+  },
+  label: {
+    fontWeight: '500',
+  },
+});

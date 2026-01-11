@@ -74,6 +74,13 @@ function RootNavigation() {
                   animation: 'slide_from_right',
                 }}
               />
+              <Stack.Screen
+                name="skills"
+                options={{
+                  headerShown: false,
+                  animation: 'slide_from_right',
+                }}
+              />
             </Stack>
               <StatusBar style="auto" />
             </NotificationToastProvider>

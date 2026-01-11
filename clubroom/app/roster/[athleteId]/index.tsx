@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image, Alert, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -11,10 +12,12 @@ import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { AthleteNotes } from '@/components/roster/athlete-notes';
+import { MedicalAlertBadge } from '@/components/safety/MedicalAlertBadge';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService } from '@/services/roster-service';
+import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-service';
 import type { RosterEntry, FootballObjective } from '@/constants/types';
 
 const FOCUS_OPTIONS: FootballObjective[] = [
@@ -33,6 +36,7 @@ export default function AthleteDetailScreen() {
   const { currentUser } = useAuth();
 
   const [entry, setEntry] = useState<RosterEntry | null>(null);
+  const [emergencyData, setEmergencyData] = useState<AthleteEmergencyQuickView | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -53,12 +57,21 @@ export default function AthleteDetailScreen() {
     try {
       const data = await rosterService.getRosterEntry(coachId, athleteId);
       setEntry(data);
+
+      // Load emergency data for quick access
+      const emergency = await safetyService.getAthleteEmergency(athleteId, data?.athleteName);
+      setEmergencyData(emergency);
     } catch (error) {
       console.error('Failed to load athlete:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleNavigateToEmergency = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(`/roster/${athleteId}/emergency`);
+  }, [athleteId]);
 
   const handleUpdateStatus = async (status: RosterEntry['status']) => {
     if (!entry) return;
@@ -306,6 +319,90 @@ export default function AthleteDetailScreen() {
                 </Clickable>
               </View>
             </View>
+          </SurfaceCard>
+        </Animated.View>
+
+        {/* Emergency Info Quick Access */}
+        <Animated.View entering={FadeInDown.delay(125).springify()}>
+          <SurfaceCard
+            style={[
+              styles.emergencyCard,
+              {
+                borderColor: emergencyData?.hasAlerts
+                  ? `${safetyService.getAlertLevelColor(emergencyData.alertLevel)}40`
+                  : palette.border,
+              },
+            ]}
+            onPress={handleNavigateToEmergency}
+          >
+            <View style={styles.emergencyHeader}>
+              <View
+                style={[
+                  styles.emergencyIcon,
+                  {
+                    backgroundColor: emergencyData?.hasAlerts
+                      ? `${safetyService.getAlertLevelColor(emergencyData?.alertLevel || 'none')}15`
+                      : `${palette.success}15`,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={emergencyData?.hasAlerts ? 'warning' : 'shield-checkmark'}
+                  size={20}
+                  color={
+                    emergencyData?.hasAlerts
+                      ? safetyService.getAlertLevelColor(emergencyData.alertLevel)
+                      : palette.success
+                  }
+                />
+              </View>
+              <View style={styles.emergencyInfo}>
+                <ThemedText type="defaultSemiBold">Emergency Info</ThemedText>
+                <ThemedText style={[styles.emergencySubtext, { color: palette.muted }]}>
+                  {emergencyData
+                    ? safetyService.getAlertSummary(emergencyData)
+                    : 'Loading...'}
+                </ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+            </View>
+
+            {emergencyData?.hasAlerts && (
+              <View style={styles.emergencyAlerts}>
+                {emergencyData.allergies.slice(0, 2).map((allergy, index) => (
+                  <MedicalAlertBadge
+                    key={`allergy-${index}`}
+                    type="allergy"
+                    label={allergy}
+                    size="small"
+                  />
+                ))}
+                {emergencyData.conditions.slice(0, 1).map((condition, index) => (
+                  <MedicalAlertBadge
+                    key={`condition-${index}`}
+                    type="condition"
+                    label={condition}
+                    size="small"
+                  />
+                ))}
+                {emergencyData.allergies.length + emergencyData.conditions.length > 3 && (
+                  <View style={[styles.moreAlerts, { backgroundColor: palette.surfaceSecondary }]}>
+                    <ThemedText style={[styles.moreAlertsText, { color: palette.muted }]}>
+                      +{emergencyData.allergies.length + emergencyData.conditions.length - 3} more
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {emergencyData?.primaryContact && (
+              <View style={[styles.emergencyContact, { borderTopColor: palette.border }]}>
+                <Ionicons name="call" size={14} color={palette.success} />
+                <ThemedText style={[styles.emergencyContactText, { color: palette.muted }]} numberOfLines={1}>
+                  {emergencyData.primaryContact.name} ({emergencyData.primaryContact.relationship})
+                </ThemedText>
+              </View>
+            )}
           </SurfaceCard>
         </Animated.View>
 
@@ -695,5 +792,59 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     fontSize: 15,
+  },
+  // Emergency Card styles
+  emergencyCard: {
+    padding: 0,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  emergencyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+  },
+  emergencyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emergencyInfo: {
+    flex: 1,
+  },
+  emergencySubtext: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  emergencyAlerts: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+  },
+  moreAlerts: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
+  },
+  moreAlertsText: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  emergencyContact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+  },
+  emergencyContactText: {
+    fontSize: 12,
+    flex: 1,
   },
 });
