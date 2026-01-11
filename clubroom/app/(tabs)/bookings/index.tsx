@@ -17,9 +17,6 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   upcomingBookings,
   getChildrenForParent,
-  getClubMembershipForUser,
-  getClubById,
-  getClubSessions,
 } from '@/constants/mock-data';
 import { BookingSummary, SessionOffering, FootballObjective } from '@/constants/types';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
@@ -89,9 +86,6 @@ export default function BookingsScreen() {
   const [footballSkill, setFootballSkill] = useState<FootballObjective | ''>('');
 
   const userRole = currentUser?.role;
-  const clubMembership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
-  const clubContext = clubMembership ? getClubById(clubMembership.clubId) : undefined;
-  const clubInternalSessions = clubContext ? getClubSessions(clubContext.id) : [];
 
   // Load session bookings from AsyncStorage
   const loadSessionBookings = useCallback(async () => {
@@ -287,42 +281,6 @@ export default function BookingsScreen() {
       <ThemedView style={styles.header}>
         <ThemedText type="title">Bookings</ThemedText>
       </ThemedView>
-
-      {userRole === 'COACH' && (
-        <SurfaceCard style={styles.clubHubCard}>
-          <View style={styles.clubHubHeader}>
-            <View style={{ flex: 1, gap: 6 }}>
-              <View style={styles.clubHubTitleRow}>
-                <ThemedText type="defaultSemiBold">Club hub</ThemedText>
-                <Chip dense>{clubContext ? 'Active' : 'Joinable'}</Chip>
-              </View>
-              <ThemedText style={[styles.clubHubSummary, { color: palette.muted }]} numberOfLines={2}>
-                {clubContext
-                  ? `${clubContext.name} · ${clubMembership?.role.toLowerCase()} · ${clubInternalSessions.length} sessions`
-                  : 'Create or join a club with an invite code—internal feed, chats, and sessions stay tucked away.'}
-              </ThemedText>
-              <View style={styles.clubMetaRow}>
-                <View style={styles.metaChip}>
-                  <Ionicons name="shield-checkmark" size={14} color={palette.icon} />
-                  <ThemedText style={{ color: palette.muted }}>
-                    {clubContext ? `${clubContext.memberCount} members` : 'Invite with codes'}
-                  </ThemedText>
-                </View>
-                <View style={styles.metaChip}>
-                  <Ionicons name="chatbubbles-outline" size={14} color={palette.icon} />
-                  <ThemedText style={{ color: palette.muted }}>Feed + group chats</ThemedText>
-                </View>
-              </View>
-            </View>
-            <Clickable
-              onPress={() => router.push('/club-hub')}
-              style={[styles.secondaryButton, { borderColor: palette.border }]}
-            >
-              <ThemedText style={{ color: palette.text }}>Open</ThemedText>
-            </Clickable>
-          </View>
-        </SurfaceCard>
-      )}
 
       {/* Tab Navigation for Coaches */}
       {userRole === 'COACH' && (
@@ -951,41 +909,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 14,
-  },
-  clubHubCard: {
-    marginHorizontal: 16,
-    marginBottom: 10,
-    padding: 12,
-    gap: 6,
-  },
-  clubHubHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  clubHubTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  clubHubSummary: {
-    fontSize: scaleFont(14),
-    lineHeight: 18,
-  },
-  clubMetaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  metaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: '#00000006',
   },
   secondaryButton: {
     paddingHorizontal: 12,
