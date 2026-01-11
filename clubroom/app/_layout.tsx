@@ -10,6 +10,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { createLogger } from '@/utils/logger';
 import { ThemeProvider as AppThemeProvider } from '@/hooks/theme-provider';
 import { NotificationToastProvider } from '@/components/notification/notification-toast';
+import { ToastProvider } from '@/components/ui/toast';
 
 const logger = createLogger('RootLayout');
 
@@ -31,8 +32,9 @@ function RootNavigation() {
     return (
       <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         {isAuthenticated ? (
-          <NotificationToastProvider>
-            <Stack>
+          <ToastProvider>
+            <NotificationToastProvider>
+              <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
               <Stack.Screen
@@ -73,8 +75,9 @@ function RootNavigation() {
                 }}
               />
             </Stack>
-            <StatusBar style="auto" />
-          </NotificationToastProvider>
+              <StatusBar style="auto" />
+            </NotificationToastProvider>
+          </ToastProvider>
         ) : (
           <>
             <LoginScreen />
