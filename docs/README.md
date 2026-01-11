@@ -20,3 +20,44 @@ This folder keeps the shared source of truth for Clubroom. Use it to stay aligne
 ## Future additions
 - Add API contracts and data schemas here as they mature so frontend and backend stay in lockstep.
 - Capture major design decisions (and their trade-offs) as ADR-style notes in this folder for quick onboarding.
+
+---
+
+## Deep Analysis Documentation (January 2026)
+
+### Overview Documents
+| Document | Description |
+|----------|-------------|
+| [COMPREHENSIVE-ANALYSIS.md](./COMPREHENSIVE-ANALYSIS.md) | Full codebase analysis - user types, relationships, issues |
+| [ACTION-PLAN.md](./ACTION-PLAN.md) | Implementation roadmap with code examples |
+| [CONNECTION-MAP.md](./CONNECTION-MAP.md) | Visual diagrams of all entity relationships |
+
+### Feature-by-Feature Documentation
+| Feature | Description |
+|---------|-------------|
+| [Booking System](./features/BOOKING-SYSTEM.md) | Sessions, invites, group sessions, payments, availability |
+| [Messaging System](./features/MESSAGING-SYSTEM.md) | Direct & group messaging, attachments, notifications |
+| [Badge & Achievements](./features/BADGE-ACHIEVEMENT-SYSTEM.md) | Badges, progression, skills, goals |
+| [Club & Organizations](./features/CLUB-ORGANIZATION-SYSTEM.md) | Clubs, academies, squads, events, matches |
+| [Profile System](./features/PROFILE-SYSTEM.md) | Coach/user profiles, verification, privacy |
+| [Review System](./features/REVIEW-SYSTEM.md) | Reviews, ratings, session feedback |
+
+### Key Findings Summary
+
+**Critical Bugs:**
+- Session invites don't create bookings on acceptance
+- Audience filtering not enforced in club feed
+- Privacy settings are UI-only (no backend enforcement)
+
+**Non-Bilateral Relationships:**
+- Reviews: Parent → Coach only (no coach feedback on athletes)
+- Following: Missing entirely
+- Messaging: Booking-scoped only (no direct messages)
+- Blocking: UI exists but not enforced
+
+**Recommended Changes:**
+1. Simplify 4 user types (COACH, USER, PARENT, ADMIN) to 2 (USER, COACH)
+2. COACH can be individual or organization with `isLive` flag
+3. USER can be athlete AND/OR parent with `children[]` array
+
+**Entity Count:** 66 interfaces, 97 routes, 131 components, 23 services
