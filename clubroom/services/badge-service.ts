@@ -1,7 +1,8 @@
-import { badgeAwards as mockBadgeAwards, badgeCatalog } from '@/constants/mock-data';
+import { badgeAwards as mockBadgeAwards, badgeCatalog, getParentForAthlete } from '@/constants/mock-data';
 import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/constants/types';
 import { storageService } from './storage-service';
 import { socialFeedService } from './social-feed-service';
+import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
 import {
   ProgressionLevel,
@@ -113,6 +114,7 @@ class BadgeService {
       awardedByName: input.coachName,
       awardedAt: new Date().toISOString(),
       visibility: input.visibility || 'athlete',
+      seenByParent: false,
       // Copy progression fields from definition
       badgeCategory: definition?.category,
       badgeTier: definition?.tier,
@@ -132,7 +134,44 @@ class BadgeService {
       visibility: award.visibility,
     });
 
+    // Send notification to parent if visibility allows
+    if (award.visibility !== 'coach_only') {
+      await this.notifyParent(award);
+    }
+
     return award;
+  }
+
+  /**
+   * Send notification to parent when a badge is awarded
+   */
+  private async notifyParent(award: BadgeAward): Promise<void> {
+    const parent = getParentForAthlete(award.athleteId);
+    if (!parent) {
+      this.logger.debug('no_parent_for_notification', { athleteId: award.athleteId });
+      return;
+    }
+
+    const notification = {
+      id: `notif_badge_${award.id}`,
+      type: 'badge' as const,
+      title: `${award.athleteName} earned a badge!`,
+      body: `${award.athleteName} earned the ${award.badgeLabel} badge from Coach ${award.coachName}`,
+      timeLabel: 'Just now',
+      read: false,
+      badgeTitle: award.badgeLabel,
+      athleteName: award.athleteName,
+      badgeAwardId: award.id,
+      actionLabel: 'View Badge',
+      handled: false,
+    };
+
+    await notificationService.create(notification);
+    this.logger.info('parent_notified_of_badge', {
+      parentId: parent.id,
+      badgeAwardId: award.id,
+      athleteId: award.athleteId,
+    });
   }
 
   async markShared(awardId: string): Promise<BadgeAward | undefined> {
@@ -173,6 +212,64 @@ class BadgeService {
       awardId,
     });
     return updatedAward;
+  }
+
+  /**
+   * Mark a badge as seen by parent
+   */
+  async markSeenByParent(awardId: string): Promise<BadgeAward | undefined> {
+    const stored = await this.getStoredAwards();
+    const merged = this.mergeAwards(stored);
+    const target = merged.find((award) => award.id === awardId);
+    if (!target) return undefined;
+
+    const updatedAward = {
+      ...target,
+      seenByParent: true,
+      seenAt: new Date().toISOString(),
+    };
+    const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
+    await storageService.setItem(STORAGE_KEY, nextStored);
+    this.logger.info('badge_seen_by_parent', { awardId });
+    return updatedAward;
+  }
+
+  /**
+   * Mark all badges for an athlete as seen by parent
+   */
+  async markAllSeenByParent(athleteId: string): Promise<void> {
+    const stored = await this.getStoredAwards();
+    const merged = this.mergeAwards(stored);
+    const now = new Date().toISOString();
+
+    const updated = merged.map((award) =>
+      award.athleteId === athleteId && !award.seenByParent
+        ? { ...award, seenByParent: true, seenAt: now }
+        : award
+    );
+
+    await storageService.setItem(STORAGE_KEY, updated);
+    this.logger.info('all_badges_seen_by_parent', { athleteId });
+  }
+
+  /**
+   * Get count of unseen badges for an athlete (for parent view)
+   */
+  async getUnseenBadgeCount(athleteId: string): Promise<number> {
+    const awards = await this.listAwardsForAthlete(athleteId);
+    return awards.filter(
+      (award) => award.visibility !== 'coach_only' && !award.seenByParent
+    ).length;
+  }
+
+  /**
+   * Get unseen badges for an athlete
+   */
+  async getUnseenBadges(athleteId: string): Promise<BadgeAward[]> {
+    const awards = await this.listAwardsForAthlete(athleteId);
+    return awards.filter(
+      (award) => award.visibility !== 'coach_only' && !award.seenByParent
+    );
   }
 
   // ===== Progression Methods =====

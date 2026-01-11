@@ -1451,6 +1451,12 @@ export function getChildrenForParent(parentId: string): User[] {
   return MOCK_USERS.filter((u) => childIds.includes(u.id));
 }
 
+export function getParentForAthlete(athleteId: string): User | undefined {
+  const relationship = MOCK_RELATIONSHIPS.find((r) => r.childId === athleteId);
+  if (!relationship) return undefined;
+  return MOCK_USERS.find((u) => u.id === relationship.parentId);
+}
+
 export function getBookingsForCoach(coachId: string): Booking[] {
   return MOCK_BOOKINGS.filter((b) => b.coachId === coachId);
 }
@@ -2145,9 +2151,25 @@ export const clubs: Club[] = [
     ownerName: 'Director Kelly',
     inviteCode: 'LIONS-CLUB',
   },
+  {
+    id: 'club_eagles',
+    name: 'East London Eagles',
+    city: 'London',
+    country: 'UK',
+    badge: 'ELE',
+    photoUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Developing champions through dedication and teamwork.',
+    memberCount: 38,
+    coachCount: 5,
+    squadCount: 2,
+    ownerId: 'coach2',
+    ownerName: 'Sarah Mitchell',
+    inviteCode: 'EAGLES-JOIN',
+  },
 ];
 
 export const clubMemberships: ClubMembership[] = [
+  // Lions FC memberships
   {
     clubId: 'club_lions',
     userId: 'coach1',
@@ -2175,6 +2197,50 @@ export const clubMemberships: ClubMembership[] = [
     joinSource: 'invite',
     inviteCode: 'LIONS-TRIAL',
     squadIds: ['squad_juniors'],
+  },
+  // Parent memberships at Lions FC
+  {
+    clubId: 'club_lions',
+    userId: 'parent1',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-PARENT',
+    squadIds: ['squad_u15'],
+  },
+  {
+    clubId: 'club_lions',
+    userId: 'parent2',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-PARENT',
+    squadIds: ['squad_juniors'],
+  },
+  // Eagles memberships
+  {
+    clubId: 'club_eagles',
+    userId: 'coach2',
+    role: 'OWNER',
+    status: 'active',
+    joinSource: 'created',
+    canPostAsClub: true,
+  },
+  {
+    clubId: 'club_eagles',
+    userId: 'coach1',
+    role: 'COACH',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'EAGLES-COACH',
+  },
+  {
+    clubId: 'club_eagles',
+    userId: 'parent1',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'EAGLES-JOIN',
   },
 ];
 
@@ -2385,6 +2451,55 @@ export const clubFeedPosts: ClubFeedPost[] = [
     reactionCount: 22,
     commentCount: 6,
   },
+  // Eagles club posts
+  {
+    id: 'eagles_post_1',
+    clubId: 'club_eagles',
+    title: 'Match Day Update',
+    body: 'Great result yesterday! U14s won 3-1 against Hackney Rovers. Solid defensive performance and clinical finishing. Well done everyone!',
+    createdAt: new Date(today.getTime() - 5 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'announcement',
+    reactionCount: 31,
+    commentCount: 9,
+  },
+  {
+    id: 'eagles_post_photo_1',
+    clubId: 'club_eagles',
+    title: 'New Training Kits Arrived!',
+    body: 'Fresh gear for the new season. Pick up yours at the next session. Looking sharp, Eagles!',
+    createdAt: new Date(today.getTime() - 8 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'photo',
+    imageUrl: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
+    reactionCount: 24,
+    commentCount: 5,
+  },
+  {
+    id: 'eagles_post_event_1',
+    clubId: 'club_eagles',
+    title: 'Winter Training Camp',
+    body: 'Intensive 3-day training camp during half term. Focus on technical skills and match preparation. Limited spots available!',
+    createdAt: new Date(today.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'event',
+    eventDate: new Date(today.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+    eventLocation: 'Victoria Park Sports Centre',
+    reactionCount: 18,
+    commentCount: 7,
+  },
 ];
 
 export const clubSessions: SessionOffering[] = [
@@ -2447,8 +2562,52 @@ export function getClubMembershipForUser(userId: string): ClubMembership | undef
   return clubMemberships.find((membership) => membership.userId === userId && membership.status === 'active');
 }
 
+export function getAllClubMembershipsForUser(userId: string): ClubMembership[] {
+  return clubMemberships.filter((membership) => membership.userId === userId && membership.status === 'active');
+}
+
 export function getClubById(clubId: string): Club | undefined {
   return clubs.find((club) => club.id === clubId);
+}
+
+export function getUserClubs(userId: string): Club[] {
+  const memberships = getAllClubMembershipsForUser(userId);
+  return memberships
+    .map((m) => getClubById(m.clubId))
+    .filter((club): club is Club => club !== undefined);
+}
+
+export type AggregatedFeedPost = ClubFeedPost & {
+  clubName: string;
+  clubBadge?: string;
+};
+
+export function getAggregatedFeed(
+  userId: string,
+  filter?: 'all' | 'announcement' | 'photo' | 'event'
+): AggregatedFeedPost[] {
+  const memberships = getAllClubMembershipsForUser(userId);
+  const clubIds = memberships.map((m) => m.clubId);
+
+  let posts: AggregatedFeedPost[] = clubFeedPosts
+    .filter((post) => clubIds.includes(post.clubId))
+    .map((post) => {
+      const club = getClubById(post.clubId);
+      return {
+        ...post,
+        clubName: club?.name || 'Unknown Club',
+        clubBadge: club?.badge,
+      };
+    });
+
+  if (filter && filter !== 'all') {
+    posts = posts.filter((post) => post.postType === filter);
+  }
+
+  // Sort by date descending (no pinning for aggregated feed)
+  return posts.sort((a, b) => {
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 }
 
 export function getClubSquads(clubId: string): ClubSquad[] {

@@ -71,6 +71,9 @@ export interface BadgeAward {
   visibility: BadgeVisibility;
   shared?: boolean;
   feedPostId?: string;
+  // Parent view tracking
+  seenByParent?: boolean;
+  seenAt?: string;
   // Progression fields (copied from badge definition at award time)
   badgeCategory?: BadgeCategory;
   badgeTier?: BadgeTier;
@@ -528,6 +531,7 @@ export interface SessionInvite {
   expiresAt: string;
   createdAt: string;
   respondedAt?: string;
+  selectedSlot?: TimeSlot; // The slot chosen when accepting
   counterProposal?: TimeSlot[];
   counterNote?: string;
   groupId?: string; // Links invites that were sent as part of a group/bulk send

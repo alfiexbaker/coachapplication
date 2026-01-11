@@ -30,6 +30,7 @@ export default function AthleteDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [progressionSummary, setProgressionSummary] = useState<{
     totalPoints: number;
     currentLevel: ProgressionLevel;
@@ -206,46 +207,58 @@ export default function AthleteDetailScreen() {
                 </View>
               </View>
             </View>
-          <TouchableOpacity
-            style={[styles.ctaButton, { backgroundColor: palette.tint }]}
-            onPress={async () => {
-              logger.press('LogSession');
+          <View style={styles.heroButtons}>
+            <TouchableOpacity
+              style={[styles.ctaButton, { backgroundColor: palette.tint }]}
+              onPress={async () => {
+                logger.press('LogSession');
 
-              try {
-                // Create new session
-                const sessionId = `session-${Date.now()}`;
-                const sessionRecord = {
-                  id: sessionId,
-                  athleteId,
-                  athleteName: athlete.name,
-                  coachId: currentUser.id,
-                  bookingId: `manual-${Date.now()}`,
-                  completedAt: new Date().toISOString(),
-                  performanceRating: 3,
-                  skillsWorkedOn: [],
-                  notes: '',
-                  videoUrls: [],
-                  imageUrls: [],
-                  attendance: 'ATTENDED',
-                };
+                try {
+                  // Create new session
+                  const sessionId = `session-${Date.now()}`;
+                  const sessionRecord = {
+                    id: sessionId,
+                    athleteId,
+                    athleteName: athlete.name,
+                    coachId: currentUser.id,
+                    bookingId: `manual-${Date.now()}`,
+                    completedAt: new Date().toISOString(),
+                    performanceRating: 3,
+                    skillsWorkedOn: [],
+                    notes: '',
+                    videoUrls: [],
+                    imageUrls: [],
+                    attendance: 'ATTENDED',
+                  };
 
-                // Save to AsyncStorage
-                const existingSessions = await AsyncStorage.getItem('coach_sessions');
-                const sessions = existingSessions ? JSON.parse(existingSessions) : [];
-                sessions.push(sessionRecord);
-                await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
+                  // Save to AsyncStorage
+                  const existingSessions = await AsyncStorage.getItem('coach_sessions');
+                  const sessions = existingSessions ? JSON.parse(existingSessions) : [];
+                  sessions.push(sessionRecord);
+                  await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
 
-                logger.info('Session created', { sessionId, athleteId });
+                  logger.info('Session created', { sessionId, athleteId });
 
-                // Navigate to session detail
-                router.push(`/development/session/${sessionId}` as any);
-              } catch (error) {
-                logger.error('Failed to create session', error);
-              }
-            }}
-          >
-            <ThemedText style={styles.ctaText}>Log Session</ThemedText>
-          </TouchableOpacity>
+                  // Navigate to session detail
+                  router.push(`/development/session/${sessionId}` as any);
+                } catch (error) {
+                  logger.error('Failed to create session', error);
+                }
+              }}
+            >
+              <ThemedText style={styles.ctaText}>Log Session</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.awardBadgeButton, { borderColor: '#F59E0B', backgroundColor: '#F59E0B15' }]}
+              onPress={() => {
+                logger.press('AwardBadgeFromProfile', { athleteId });
+                setShowBadgeModal(true);
+              }}
+            >
+              <Ionicons name="ribbon" size={14} color="#F59E0B" />
+              <ThemedText style={[styles.awardBadgeText, { color: '#F59E0B' }]}>Award Badge</ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats Divider */}
@@ -469,15 +482,18 @@ export default function AthleteDetailScreen() {
       </PageContainer>
 
       <BadgeAwardModal
-        visible={!!selectedSession}
+        visible={!!selectedSession || showBadgeModal}
         athleteId={athlete.id}
         athleteName={athlete.name}
         coachId={currentUser.id}
         coachName={currentUser.name}
         sessionId={selectedSession?.id}
-        sessionLabel={selectedSessionLabel}
+        sessionLabel={selectedSession ? selectedSessionLabel : undefined}
         initialReason={selectedSession?.nextFocusAreas?.find((focus) => BADGE_REASONS.includes(focus))}
-        onClose={() => setSelectedSession(null)}
+        onClose={() => {
+          setSelectedSession(null);
+          setShowBadgeModal(false);
+        }}
         onAwarded={(award) => setAwards((prev) => [award, ...prev])}
       />
     </>
@@ -570,6 +586,25 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#fff',
     letterSpacing: -0.1,
+  },
+  heroButtons: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  awardBadgeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: Spacing.xs / 2,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Components.buttonCompact.borderRadius,
+    height: Components.buttonCompact.height,
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  awardBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 
   // Stats in hero card
