@@ -158,23 +158,21 @@ export default function CreateMatchScreen() {
 
       if (autoInvite && selectedSquadId) {
         // Use bulk invite service to create match with auto-invites
-        const scheduledAt = new Date(`${date}T${kickoffTime}:00`).toISOString();
         const result = await bulkInviteService.inviteSquadToMatch({
-          match: {
-            clubId: DEFAULT_CLUB_ID,
-            squadId: selectedSquadId,
-            squadName: selectedSquad?.name || 'Team',
-            opponent,
-            homeAway: isHome ? 'HOME' : 'AWAY',
-            location: venue,
-            scheduledAt,
-            status: 'SCHEDULED',
-            coachId: currentUser?.id || 'coach_1',
-            coachName: currentUser?.fullName || currentUser?.username || 'Coach',
-            notes: notes || undefined,
-          },
+          squadId: selectedSquadId,
+          squadName: selectedSquad?.name || 'Team',
+          matchTitle: title,
+          opponent,
+          isHome,
+          date,
+          kickoffTime,
+          venue,
+          clubId: DEFAULT_CLUB_ID,
+          clubName: 'Lions FC Academy',
           coachId: currentUser?.id || 'coach_1',
           coachName: currentUser?.fullName || currentUser?.username || 'Coach',
+          matchType,
+          notes: notes || undefined,
         });
 
         Alert.alert(

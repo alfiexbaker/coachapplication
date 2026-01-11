@@ -796,13 +796,22 @@ export default function ClubHubScreen() {
                 <ThemedText type="defaultSemiBold">Training Schedule</ThemedText>
               </View>
               {isCoach && (
-                <TouchableOpacity
-                  style={[styles.addTrainingButton, { backgroundColor: palette.tint }]}
-                  onPress={() => router.push('/group-sessions/create')}
-                >
-                  <Ionicons name="add" size={16} color="#fff" />
-                  <ThemedText style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Add</ThemedText>
-                </TouchableOpacity>
+                <View style={styles.trainingHeaderButtons}>
+                  <TouchableOpacity
+                    style={[styles.inviteSquadButton, { borderColor: palette.tint }]}
+                    onPress={() => router.push('/session-invites/group')}
+                  >
+                    <Ionicons name="people" size={14} color={palette.tint} />
+                    <ThemedText style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}>Invite Squad</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.addTrainingButton, { backgroundColor: palette.tint }]}
+                    onPress={() => router.push('/group-sessions/create')}
+                  >
+                    <Ionicons name="add" size={16} color="#fff" />
+                    <ThemedText style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Add</ThemedText>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
 
@@ -1314,11 +1323,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
   viewAllText: {
     fontSize: 13,
     fontWeight: '500',
@@ -1388,6 +1392,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
+  },
+  trainingHeaderButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  inviteSquadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
   },
   trainingList: {
     gap: Spacing.sm,
