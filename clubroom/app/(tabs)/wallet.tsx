@@ -119,7 +119,11 @@ export default function WalletScreen() {
     // Simulate payment processing delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const result = await walletService.topUp(currentUser.id, amount);
+    const result = await walletService.topUp({
+      userId: currentUser.id,
+      amount,
+      paymentMethod: 'card',
+    });
 
     if (result.success) {
       await loadData();

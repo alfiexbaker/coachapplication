@@ -63,7 +63,7 @@ export default function EarningsScreen() {
     try {
       const [earningsData, transactionsData, withdrawalsData, methodsData] = await Promise.all([
         earningsService.getEarnings(coachId),
-        earningsService.getTransactions(coachId, transactionFilter),
+        earningsService.getTransactionHistory(coachId),
         earningsService.getPendingWithdrawals(coachId),
         earningsService.getPayoutMethods(coachId),
       ]);
@@ -98,7 +98,7 @@ export default function EarningsScreen() {
 
   // Reload transactions when filter changes
   useEffect(() => {
-    earningsService.getTransactions(coachId, transactionFilter).then(setTransactions);
+    earningsService.getTransactionHistory(coachId).then(setTransactions);
   }, [coachId, transactionFilter]);
 
   const handleWithdraw = async () => {
@@ -124,7 +124,6 @@ export default function EarningsScreen() {
     try {
       const result = await earningsService.requestWithdrawal(
         coachId,
-        coachName,
         amount,
         selectedPayoutMethod
       );
@@ -177,10 +176,11 @@ export default function EarningsScreen() {
     }
   };
 
-  const { fee, netAmount } = earningsService.calculateFee(
-    parseFloat(withdrawAmount) || 0,
-    earnings?.platformFeePercent || 10
-  );
+  // Calculate withdrawal fee and net amount
+  const withdrawalGross = parseFloat(withdrawAmount) || 0;
+  const feePercent = earnings?.platformFeePercent || earningsService.getPlatformFeePercent();
+  const fee = withdrawalGross * (feePercent / 100);
+  const netAmount = withdrawalGross - fee;
 
   if (loading && !earnings) {
     return (
