@@ -22,6 +22,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SessionInvite, TimeSlot, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
+import { bookingService } from './booking-service';
 
 const STORAGE_KEY = 'session_invites';
 const USE_MOCK = true;
@@ -405,8 +406,44 @@ export const sessionInviteService = {
             : 'the selected time'
         }.`;
 
-        // In a real app, this would create a booking via booking service
-        console.log('[SessionInviteService] Booking would be created for invite:', invite.id);
+        // Create the actual booking
+        if (input.selectedSlot) {
+          const scheduledAt = `${input.selectedSlot.date}T${input.selectedSlot.startTime}:00`;
+          const endTime = input.selectedSlot.endTime;
+          const startTime = input.selectedSlot.startTime;
+
+          // Calculate duration in minutes from start and end time
+          const [startHour, startMin] = startTime.split(':').map(Number);
+          const [endHour, endMin] = endTime.split(':').map(Number);
+          const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+
+          const bookingResult = await bookingService.createBooking({
+            coachId: invite.coachId,
+            coachName: invite.coachName,
+            athleteId: invite.athleteIds[0], // Primary athlete
+            athleteName: invite.athleteNames[0],
+            bookedById: invite.parentId,
+            bookedByName: invite.parentName,
+            scheduledAt,
+            duration: durationMinutes > 0 ? durationMinutes : 60,
+            location: input.selectedSlot.location || 'Coach preferred location',
+            service: invite.sessionType,
+            serviceType: invite.sessionType,
+            objectives: invite.focus ? [invite.focus] : [],
+            price: invite.priceUsd,
+            notes: invite.notes,
+            sessionInviteId: invite.id, // Link booking to invite
+          });
+
+          if (bookingResult.success && bookingResult.booking) {
+            // Link booking back to invite (bidirectional)
+            invitesCache[index].bookingId = bookingResult.booking.id;
+            await saveToStorage(invitesCache);
+            console.log('[SessionInviteService] Booking created successfully:', bookingResult.booking.id);
+          } else {
+            console.error('[SessionInviteService] Failed to create booking:', bookingResult.error);
+          }
+        }
       } else if (input.response === 'DECLINED') {
         notification.title = 'Invite Declined';
         notification.body = `${invite.parentName} declined your session invite for ${athleteNames}.`;
@@ -519,6 +556,43 @@ export const sessionInviteService = {
       };
 
       await notificationService.create(notification);
+
+      // Create the actual booking when counter-proposal is accepted
+      const scheduledAt = `${selectedSlot.date}T${selectedSlot.startTime}:00`;
+      const endTime = selectedSlot.endTime;
+      const startTime = selectedSlot.startTime;
+
+      // Calculate duration in minutes from start and end time
+      const [startHour, startMin] = startTime.split(':').map(Number);
+      const [endHour, endMin] = endTime.split(':').map(Number);
+      const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+
+      const bookingResult = await bookingService.createBooking({
+        coachId: invite.coachId,
+        coachName: invite.coachName,
+        athleteId: invite.athleteIds[0], // Primary athlete
+        athleteName: invite.athleteNames[0],
+        bookedById: invite.parentId,
+        bookedByName: invite.parentName,
+        scheduledAt,
+        duration: durationMinutes > 0 ? durationMinutes : 60,
+        location: selectedSlot.location || 'Coach preferred location',
+        service: invite.sessionType,
+        serviceType: invite.sessionType,
+        objectives: invite.focus ? [invite.focus] : [],
+        price: invite.priceUsd,
+        notes: invite.notes,
+        sessionInviteId: invite.id, // Link booking to invite
+      });
+
+      if (bookingResult.success && bookingResult.booking) {
+        // Link booking back to invite (bidirectional)
+        invitesCache[index].bookingId = bookingResult.booking.id;
+        await saveToStorage(invitesCache);
+        console.log('[SessionInviteService] Booking created from counter-proposal:', bookingResult.booking.id);
+      } else {
+        console.error('[SessionInviteService] Failed to create booking from counter-proposal:', bookingResult.error);
+      }
 
       return invitesCache[index];
     }

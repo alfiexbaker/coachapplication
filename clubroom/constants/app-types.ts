@@ -81,6 +81,8 @@ export interface Booking {
   service?: string;
   locationLabel?: string;
   start?: string;
+  // Session invite link (bidirectional)
+  sessionInviteId?: string;
 }
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';
