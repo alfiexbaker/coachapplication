@@ -4,6 +4,7 @@ import { storageService } from './storage-service';
 import { availabilityService } from './availability-service';
 import { notificationService } from './notification-service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const STORAGE_KEY = 'clubroom.bookings';
 const SESSION_BOOKINGS_KEY = 'session_bookings';
@@ -114,6 +115,12 @@ class BookingService {
   /**
    * Validate booking against coach availability
    * Returns { valid: true } if slot is available, otherwise { valid: false, reason: string }
+   *
+   * This method performs comprehensive validation including:
+   * - Coach's availability template for the day of week
+   * - Date-specific overrides (blocked dates, custom hours)
+   * - Existing bookings with overlap detection based on duration
+   * - maxConcurrent limits and buffer times
    */
   async validateBooking(
     coachId: string,
@@ -122,19 +129,11 @@ class BookingService {
     durationMinutes: number = 60
   ): Promise<{ valid: boolean; reason?: string }> {
     try {
-      const slots = await availabilityService.getAvailableSlots(coachId, date, date, durationMinutes);
+      // Use the availability service's isSlotAvailable which includes overlap detection
+      const result = await availabilityService.isSlotAvailable(coachId, date, startTime, durationMinutes);
 
-      // Find matching slot
-      const matchingSlot = slots.find(
-        (slot) => slot.date === date && slot.startTime === startTime
-      );
-
-      if (!matchingSlot) {
-        return { valid: false, reason: 'This time slot is not within the coach\'s available hours.' };
-      }
-
-      if (!matchingSlot.isAvailable) {
-        return { valid: false, reason: 'This time slot is already fully booked.' };
+      if (!result.available) {
+        return { valid: false, reason: result.reason };
       }
 
       return { valid: true };
@@ -198,7 +197,7 @@ class BookingService {
     // Save to session bookings storage
     try {
       const existingBookings = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      const bookings = existingBookings ? JSON.parse(existingBookings) : [];
+      const bookings = safeJsonParse<any[]>(existingBookings, []);
       bookings.push(newBooking);
       await AsyncStorage.setItem(SESSION_BOOKINGS_KEY, JSON.stringify(bookings));
 
@@ -255,7 +254,7 @@ class BookingService {
   async getBookingsForUser(userId: string, role: 'coach' | 'parent' | 'athlete'): Promise<any[]> {
     try {
       const stored = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      const bookings = stored ? JSON.parse(stored) : [];
+      const bookings = safeJsonParse<any[]>(stored, []);
 
       switch (role) {
         case 'coach':
@@ -279,7 +278,7 @@ class BookingService {
   async confirmBooking(bookingId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const stored = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      const bookings = stored ? JSON.parse(stored) : [];
+      const bookings = safeJsonParse<any[]>(stored, []);
 
       const bookingIndex = bookings.findIndex((b: any) => b.id === bookingId);
       if (bookingIndex === -1) {

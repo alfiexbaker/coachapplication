@@ -5,6 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -37,7 +38,7 @@ export default function AthleteSessionDetailScreen() {
         let foundSession: Session | undefined;
 
         if (storedSessions) {
-          const sessions = JSON.parse(storedSessions);
+          const sessions = safeJsonParse<Session[]>(storedSessions, []);
           foundSession = sessions.find((s: Session) => s.id === sessionId);
         }
 

@@ -1,7 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { EarningsStatCard } from '@/components/earnings/stat-card';
+import { StatCard } from '@/components/primitives/stat-card';
 import { TransactionListItem } from '@/components/earnings/transaction-list-item';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
@@ -24,12 +24,12 @@ export default function EarningsScreen() {
         <ThemedText style={{ color: palette.muted }}>Mock payouts—no Stripe hookup yet.</ThemedText>
 
         <View style={styles.statsRow}>
-          <EarningsStatCard label="Today" value="£0" />
-          <EarningsStatCard label="This week" value="£340" />
+          <StatCard label="Today" value="£0" wrapped />
+          <StatCard label="This week" value="£340" wrapped />
         </View>
         <View style={styles.statsRow}>
-          <EarningsStatCard label="This month" value="£1,520" />
-          <EarningsStatCard label="Total" value="£12,450" />
+          <StatCard label="This month" value="£1,520" wrapped />
+          <StatCard label="Total" value="£12,450" wrapped />
         </View>
 
         <View style={[styles.balanceCard, { borderColor: palette.border }]}> 

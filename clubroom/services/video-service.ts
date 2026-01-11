@@ -15,6 +15,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const STORAGE_KEY = 'session_videos';
 const LOCAL_VIDEOS_KEY = 'local_videos';
@@ -141,7 +142,7 @@ let videosCache: SessionVideo[] = [...MOCK_VIDEOS];
 async function loadFromStorage(): Promise<SessionVideo[]> {
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_VIDEOS]);
   } catch (error) {
     console.error('[VideoService] Failed to load from storage:', error);
   }
@@ -520,7 +521,7 @@ export const videoService = {
   async getLocalVideos(): Promise<LocalVideo[]> {
     try {
       const stored = await AsyncStorage.getItem(LOCAL_VIDEOS_KEY);
-      if (stored) return JSON.parse(stored);
+      if (stored) return safeJsonParse<LocalVideo[]>(stored, []);
     } catch (error) {
       console.error('[VideoService] Failed to load local videos:', error);
     }

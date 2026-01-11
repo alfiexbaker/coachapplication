@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { sessionInviteService } from '@/services/session-invite-service';
 import { academyService } from '@/services/academy-service';
 import type { TimeSlot, Academy, SessionInvite } from '@/constants/types';
+import { withRoleGuard } from '@/components/auth/with-role-guard';
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Trial'];
 const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
@@ -26,7 +27,7 @@ const MOCK_ATHLETES = [
   { id: 'athlete_3', name: 'James Wilson', parentId: 'parent_2', parentName: 'Mike Wilson' },
 ];
 
-export default function CreateSessionInviteScreen() {
+function CreateSessionInviteScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
@@ -965,3 +966,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
+export default withRoleGuard(CreateSessionInviteScreen, ['COACH', 'ADMIN']);

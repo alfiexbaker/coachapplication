@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
 import { bookingService } from '@/services/booking-service';
 import { notificationService } from '@/services/notification-service';
+import { safeJsonParse } from '@/utils/safe-json';
 
 export default function ConfirmBookingScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -37,9 +38,9 @@ export default function ConfirmBookingScreen() {
   const price = parseFloat(params.price as string);
   const serviceType = params.serviceType as string;
   const objectivesParam = params.objectives as string;
-  const objectives = objectivesParam ? JSON.parse(objectivesParam) : [];
+  const objectives = objectivesParam ? safeJsonParse<string[]>(objectivesParam, []) : [];
   const athleteIdsParam = params.athleteIds as string;
-  const athleteIds = athleteIdsParam ? JSON.parse(athleteIdsParam) : [];
+  const athleteIds = athleteIdsParam ? safeJsonParse<string[]>(athleteIdsParam, []) : [];
 
   // Mock group participants for group sessions
   const isGroupSession = serviceType === 'Small Group';

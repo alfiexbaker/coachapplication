@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { AppState, AppStateStatus } from 'react-native';
 import 'react-native-reanimated';
 
 import LoginScreen from '@/components/auth/login-screen';
@@ -11,6 +13,9 @@ import { createLogger } from '@/utils/logger';
 import { ThemeProvider as AppThemeProvider } from '@/hooks/theme-provider';
 import { NotificationToastProvider } from '@/components/notification/notification-toast';
 import { ToastProvider } from '@/components/ui/toast';
+import { NetworkProvider } from '@/hooks/use-network-status';
+import { OfflineBanner } from '@/components/ui/offline-banner';
+import { sessionReminderService } from '@/services/session-reminder-service';
 
 const logger = createLogger('RootLayout');
 
@@ -21,6 +26,27 @@ export const unstable_settings = {
 function RootNavigation() {
   const colorScheme = useColorScheme();
   const { isAuthenticated, currentUser } = useAuth();
+
+  // Start session reminder service when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      logger.info('Starting session reminder service');
+      sessionReminderService.start();
+
+      // Also check reminders when app comes back to foreground
+      const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'active') {
+          logger.debug('App came to foreground, triggering reminder check');
+          sessionReminderService.triggerCheck();
+        }
+      });
+
+      return () => {
+        sessionReminderService.stop();
+        subscription.remove();
+      };
+    }
+  }, [isAuthenticated]);
 
   logger.debug('RootNavigation rendered', {
     isAuthenticated,
@@ -34,6 +60,7 @@ function RootNavigation() {
         {isAuthenticated ? (
           <ToastProvider>
             <NotificationToastProvider>
+              <OfflineBanner />
               <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
@@ -93,11 +120,13 @@ export default function RootLayout() {
 
     return (
       <ErrorBoundary>
-        <AppThemeProvider>
-          <AuthProvider>
-            <RootNavigation />
-          </AuthProvider>
-        </AppThemeProvider>
+        <NetworkProvider>
+          <AppThemeProvider>
+            <AuthProvider>
+              <RootNavigation />
+            </AuthProvider>
+          </AppThemeProvider>
+        </NetworkProvider>
       </ErrorBoundary>
     );
   }

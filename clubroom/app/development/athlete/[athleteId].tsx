@@ -4,6 +4,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
@@ -18,10 +19,11 @@ import type { Session, BadgeAward, BadgeCategory } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 import { ProgressionLevel, CategoryInfo, TierNames } from '@/constants/progression';
+import { withRoleGuard } from '@/components/auth/with-role-guard';
 
 const logger = createLogger('AthleteDetailScreen');
 
-export default function AthleteDetailScreen() {
+function AthleteDetailScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -56,7 +58,7 @@ export default function AthleteDetailScreen() {
 
         // Get AsyncStorage sessions
         const storedSessions = await AsyncStorage.getItem('coach_sessions');
-        const asyncSessions = storedSessions ? JSON.parse(storedSessions) : [];
+        const asyncSessions = safeJsonParse<any[]>(storedSessions, []);
         const athleteAsyncSessions = asyncSessions.filter(
           (s: any) => s.athleteId === athleteId && s.coachId === currentUser.id
         );
@@ -233,7 +235,7 @@ export default function AthleteDetailScreen() {
 
                   // Save to AsyncStorage
                   const existingSessions = await AsyncStorage.getItem('coach_sessions');
-                  const sessions = existingSessions ? JSON.parse(existingSessions) : [];
+                  const sessions = safeJsonParse<any[]>(existingSessions, []);
                   sessions.push(sessionRecord);
                   await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
 
@@ -825,3 +827,5 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 });
+
+export default withRoleGuard(AthleteDetailScreen, ['COACH', 'ADMIN']);

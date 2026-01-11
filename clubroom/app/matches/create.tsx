@@ -26,6 +26,7 @@ import type { MatchType, ClubSquad } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
 import { bulkInviteService } from '@/services/bulk-invite-service';
+import { withRoleGuard } from '@/components/auth/with-role-guard';
 
 const MATCH_TYPES: { type: MatchType; label: string; icon: string }[] = [
   { type: 'FRIENDLY', label: 'Friendly', icon: 'people-outline' },
@@ -39,7 +40,7 @@ const DEFAULT_CLUB_ID = 'club_lions';
 
 type Step = 'details' | 'schedule' | 'squad' | 'review';
 
-export default function CreateMatchScreen() {
+function CreateMatchScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
@@ -872,3 +873,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+export default withRoleGuard(CreateMatchScreen, ['COACH', 'ADMIN']);

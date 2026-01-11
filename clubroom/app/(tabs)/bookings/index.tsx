@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
@@ -63,7 +64,7 @@ export default function BookingsScreen() {
     try {
       const stored = await AsyncStorage.getItem('session_bookings');
       if (stored) {
-        const bookings = JSON.parse(stored);
+        const bookings = safeJsonParse(stored, []);
         // Convert to BookingSummary format
         const summaries: BookingSummary[] = bookings.map((booking: any) => ({
           id: booking.id,
@@ -97,7 +98,7 @@ export default function BookingsScreen() {
     try {
       const stored = await AsyncStorage.getItem('session_offerings');
       if (stored) {
-        const offerings = JSON.parse(stored);
+        const offerings = safeJsonParse(stored, []);
         setSessionOfferings(offerings);
         logger.debug('Loaded session offerings', { count: offerings.length });
       }
@@ -117,7 +118,7 @@ export default function BookingsScreen() {
       // Count session bookings for today
       const storedBookings = await AsyncStorage.getItem('session_bookings');
       if (storedBookings) {
-        const bookings = JSON.parse(storedBookings);
+        const bookings = safeJsonParse(storedBookings, []);
         count += bookings.filter((b: any) => {
           const bookingDate = b.scheduledAt?.split('T')[0];
           return bookingDate === todayString && b.coachId === currentUser?.id;
@@ -127,7 +128,7 @@ export default function BookingsScreen() {
       // Count session offerings for today
       const storedOfferings = await AsyncStorage.getItem('session_offerings');
       if (storedOfferings) {
-        const offerings = JSON.parse(storedOfferings);
+        const offerings = safeJsonParse(storedOfferings, []);
         count += offerings.filter((o: SessionOffering) => {
           const offeringDate = o.scheduledAt?.split('T')[0];
           return offeringDate === todayString && o.coachId === currentUser?.id;
@@ -208,7 +209,7 @@ export default function BookingsScreen() {
 
       // Load existing offerings
       const stored = await AsyncStorage.getItem('session_offerings');
-      const existingOfferings = stored ? JSON.parse(stored) : [];
+      const existingOfferings = stored ? safeJsonParse(stored, []) : [];
 
       // Add new offering
       const updatedOfferings = [...existingOfferings, newOffering];

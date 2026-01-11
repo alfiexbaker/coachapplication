@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -84,7 +85,7 @@ export default function SessionDetailScreen() {
         let foundSession: Session | undefined;
 
         if (storedSessions) {
-          const sessions = JSON.parse(storedSessions);
+          const sessions = safeJsonParse<any[]>(storedSessions, []);
           foundSession = sessions.find((s: any) => s.id === sessionId);
         }
 
@@ -161,7 +162,7 @@ export default function SessionDetailScreen() {
     try {
       // Load existing sessions
       const storedSessions = await AsyncStorage.getItem('coach_sessions');
-      const sessions = storedSessions ? JSON.parse(storedSessions) : [];
+      const sessions = safeJsonParse<any[]>(storedSessions, []);
 
       // Find and update the session
       const sessionIndex = sessions.findIndex((s: any) => s.id === sessionId);

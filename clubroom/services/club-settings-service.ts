@@ -14,6 +14,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const STORAGE_KEY_PREFIX = '@club_settings_';
 const logger = createLogger('ClubSettingsService');
@@ -71,7 +72,12 @@ export const clubSettingsService = {
     try {
       const stored = await AsyncStorage.getItem(`${STORAGE_KEY_PREFIX}${clubId}`);
       if (stored) {
-        const settings = JSON.parse(stored) as ClubSettings;
+        const defaults = getDefaultSettings(
+          clubId,
+          clubName || 'Club',
+          existingInviteCode || generateInviteCode()
+        );
+        const settings = safeJsonParse<ClubSettings>(stored, defaults);
         logger.info('settings_loaded', { clubId });
         return settings;
       }

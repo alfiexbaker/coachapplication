@@ -13,6 +13,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing, Components } from '@/constants/theme';
@@ -51,7 +52,7 @@ export default function CoachProfileScreen() {
       try {
         const stored = await AsyncStorage.getItem('session_offerings');
         if (stored) {
-          const offerings: SessionOffering[] = JSON.parse(stored);
+          const offerings = safeJsonParse<SessionOffering[]>(stored, []);
           const coachOfferings = offerings.filter(o => o.coachId === coach.id && o.status === 'active');
           setSessionOfferings(coachOfferings);
         }
@@ -517,7 +518,7 @@ export default function CoachProfileScreen() {
             // Reload offerings after booking
             const stored = await AsyncStorage.getItem('session_offerings');
             if (stored) {
-              const offerings: SessionOffering[] = JSON.parse(stored);
+              const offerings = safeJsonParse<SessionOffering[]>(stored, []);
               const coachOfferings = offerings.filter(o => o.coachId === coach.id && o.status === 'active');
               setSessionOfferings(coachOfferings);
             }

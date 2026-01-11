@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -60,7 +61,7 @@ export default function ScheduleHubScreen() {
     try {
       const stored = await AsyncStorage.getItem('session_offerings');
       if (stored) {
-        const offerings: SessionOffering[] = JSON.parse(stored);
+        const offerings = safeJsonParse<SessionOffering[]>(stored, []);
         const myOfferings = offerings.filter(o => o.coachId === currentUser.id);
         setSessionOfferings(myOfferings);
 

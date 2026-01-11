@@ -17,14 +17,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ClubMembership, ClubRole, Club, ClubInvite } from '@/constants/types';
 import { clubMemberships, clubInvites, clubs, getClubById } from '@/constants/mock-data';
+import { ClubRoleColors } from '@/constants/status-colors';
 import { createLogger } from '@/utils/logger';
+import { httpClient, HttpError } from '@/services/http-client';
+import { config } from '@/services/config-service';
+import type { ApiResponse } from '@/types/api';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const CLUB_MEMBERS_KEY = 'club_members';
 const MEMBER_REMOVAL_KEY = 'club_member_removals';
 const USER_MEMBERSHIPS_KEY = '@user_memberships';
 const INVITE_CODES_KEY = '@invite_codes';
 const CLUB_GROUP_CHATS_KEY = '@club_group_chats';
-const USE_MOCK = true;
+
+// Use centralized config for mock mode
+const USE_MOCK = config.useMock;
 
 const logger = createLogger('ClubService');
 
@@ -102,7 +109,7 @@ let removalHistoryCache: ClubMemberRemovalRecord[] = [];
 async function loadMembers(clubId: string): Promise<ClubMember[]> {
   try {
     const stored = await AsyncStorage.getItem(`${CLUB_MEMBERS_KEY}_${clubId}`);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_MEMBERS]);
   } catch (error) {
     console.error('[ClubService] Failed to load members:', error);
   }
@@ -121,7 +128,7 @@ async function saveMembers(clubId: string, members: ClubMember[]): Promise<void>
 async function loadRemovalHistory(): Promise<ClubMemberRemovalRecord[]> {
   try {
     const stored = await AsyncStorage.getItem(MEMBER_REMOVAL_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse<ClubMemberRemovalRecord[]>(stored, []);
   } catch (error) {
     console.error('[ClubService] Failed to load removal history:', error);
   }
@@ -149,8 +156,24 @@ export const clubService = {
       return membersCache.get(clubId) || [];
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members`);
-    return response.json();
+    // Use centralized HTTP client with retry, timeout, and auth handling
+    try {
+      const response = await httpClient.get<ApiResponse<ClubMember[]>>(`/clubs/${clubId}/members`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        logger.error('get_members_failed', {
+          clubId,
+          status: error.status,
+          message: error.message,
+        });
+        // Return empty array on 404, rethrow other errors
+        if (error.isNotFound()) {
+          return [];
+        }
+      }
+      throw error;
+    }
   },
 
   /**
@@ -209,16 +232,30 @@ export const clubService = {
       return removalRecord;
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/${userId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reason,
-        customReason: options?.customReason,
-        removedBy: removedBy.id,
-      }),
-    });
-    return response.json();
+    // Use centralized HTTP client for API call
+    try {
+      const response = await httpClient.delete<ApiResponse<ClubMemberRemovalRecord>>(
+        `/clubs/${clubId}/members/${userId}`,
+        {
+          headers: {
+            'X-Removal-Reason': reason,
+            'X-Custom-Reason': options?.customReason || '',
+            'X-Removed-By': removedBy.id,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        logger.error('remove_member_failed', {
+          clubId,
+          userId,
+          status: error.status,
+          message: error.message,
+        });
+      }
+      throw error;
+    }
   },
 
   /**
@@ -261,11 +298,27 @@ export const clubService = {
       return restoredMember;
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/removed/${removalId}/undo`, {
-      method: 'POST',
-    });
-    if (!response.ok) return null;
-    return response.json();
+    // Use centralized HTTP client for API call
+    try {
+      const response = await httpClient.post<ApiResponse<ClubMember>>(
+        `/clubs/${clubId}/members/removed/${removalId}/undo`
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        logger.error('undo_removal_failed', {
+          clubId,
+          removalId,
+          status: error.status,
+          message: error.message,
+        });
+        // Return null on 404 for backwards compatibility
+        if (error.isNotFound()) {
+          return null;
+        }
+      }
+      throw error;
+    }
   },
 
   /**
@@ -277,8 +330,26 @@ export const clubService = {
       return removalHistoryCache.filter((r) => r.clubId === clubId);
     }
 
-    const response = await fetch(`/api/clubs/${clubId}/members/removed`);
-    return response.json();
+    // Use centralized HTTP client for API call
+    try {
+      const response = await httpClient.get<ApiResponse<ClubMemberRemovalRecord[]>>(
+        `/clubs/${clubId}/members/removed`
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        logger.error('get_removal_history_failed', {
+          clubId,
+          status: error.status,
+          message: error.message,
+        });
+        // Return empty array on 404
+        if (error.isNotFound()) {
+          return [];
+        }
+      }
+      throw error;
+    }
   },
 
   /**
@@ -327,14 +398,7 @@ export const clubService = {
    * Get role color
    */
   getRoleColor(role: ClubRole): string {
-    const colors: Record<ClubRole, string> = {
-      OWNER: '#7C3AED',
-      ADMIN: '#2563EB',
-      HEAD_COACH: '#16A34A',
-      COACH: '#0891B2',
-      MEMBER: '#6B7280',
-    };
-    return colors[role] || '#6B7280';
+    return ClubRoleColors[role as keyof typeof ClubRoleColors] || '#6B7280';
   },
 
   // ============================================================================
@@ -364,7 +428,7 @@ export const clubService = {
       try {
         const storedCodes = await AsyncStorage.getItem(INVITE_CODES_KEY);
         if (storedCodes) {
-          const codeMap: Record<string, string> = JSON.parse(storedCodes);
+          const codeMap: Record<string, string> = safeJsonParse(storedCodes, {});
           const clubId = codeMap[trimmedCode];
           if (clubId) {
             const club = getClubById(clubId);
@@ -492,7 +556,7 @@ export const clubService = {
     try {
       const stored = await AsyncStorage.getItem(`${USER_MEMBERSHIPS_KEY}_${userId}`);
       if (stored) {
-        return JSON.parse(stored);
+        return safeJsonParse<ClubMembership[]>(stored, []);
       }
     } catch (error) {
       logger.error('get_user_memberships_failed', { userId, error });
@@ -576,7 +640,7 @@ export const clubService = {
       const stored = await AsyncStorage.getItem(key);
 
       if (stored) {
-        const chatMembers: string[] = JSON.parse(stored);
+        const chatMembers: string[] = safeJsonParse(stored, []);
         const updated = chatMembers.filter((id) => id !== userId);
         await AsyncStorage.setItem(key, JSON.stringify(updated));
       }
@@ -596,10 +660,9 @@ export const clubService = {
       const stored = await AsyncStorage.getItem(notifKey);
 
       if (stored) {
-        const notifications = JSON.parse(stored);
+        const notifications = safeJsonParse<Array<{ recipientId?: string; data?: { clubId?: string } }>>(stored, []);
         const updated = notifications.filter(
-          (n: { recipientId?: string; data?: { clubId?: string } }) =>
-            !(n.recipientId === userId && n.data?.clubId === clubId)
+          (n) => !(n.recipientId === userId && n.data?.clubId === clubId)
         );
         await AsyncStorage.setItem(notifKey, JSON.stringify(updated));
       }
@@ -630,7 +693,7 @@ export const clubService = {
     // Store the code
     try {
       const stored = await AsyncStorage.getItem(INVITE_CODES_KEY);
-      const codeMap: Record<string, string> = stored ? JSON.parse(stored) : {};
+      const codeMap: Record<string, string> = safeJsonParse(stored, {});
       codeMap[code] = clubId;
       await AsyncStorage.setItem(INVITE_CODES_KEY, JSON.stringify(codeMap));
 
@@ -654,7 +717,7 @@ export const clubService = {
     try {
       const stored = await AsyncStorage.getItem(INVITE_CODES_KEY);
       if (stored) {
-        const codeMap: Record<string, string> = JSON.parse(stored);
+        const codeMap: Record<string, string> = safeJsonParse(stored, {});
         delete codeMap[oldCode.toUpperCase()];
         await AsyncStorage.setItem(INVITE_CODES_KEY, JSON.stringify(codeMap));
       }

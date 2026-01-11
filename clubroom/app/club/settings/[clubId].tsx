@@ -25,10 +25,11 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Club, ClubMembership, ClubRole } from '@/constants/types';
 import { clubSettingsService, type ClubSettings } from '@/services/club-settings-service';
 import { clubService, type ClubMember } from '@/services/club-service';
+import { withRoleGuard } from '@/components/auth/with-role-guard';
 
 type SettingsSection = 'general' | 'members' | 'notifications' | 'danger';
 
-export default function ClubSettingsScreen() {
+function ClubSettingsScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -772,3 +773,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 });
+
+export default withRoleGuard(ClubSettingsScreen, ['COACH', 'ADMIN']);

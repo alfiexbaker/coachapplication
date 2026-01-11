@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Swipeable } from 'react-native-gesture-handler';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Badge } from '@/components/primitives/badge';
 import { ThemedText } from '@/components/themed-text';
-import { StatusBadge, BookingStatus } from '@/components/booking/status-badge';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export type EnhancedBooking = {
+export type BookingStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
+
+export type BookingCardData = {
   id: string;
   title: string;
   coachName: string;
@@ -21,18 +24,86 @@ export type EnhancedBooking = {
   price?: string;
 };
 
+type SwipeAction = {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  onPress: () => void;
+};
+
 type Props = {
-  booking: EnhancedBooking;
+  booking: BookingCardData;
   onPress?: () => void;
   onPrimaryAction?: () => void;
   onSecondaryAction?: () => void;
+  /** Labels for action buttons */
+  primaryActionLabel?: string;
+  secondaryActionLabel?: string;
+  /** Swipe actions for gesture-based interactions */
+  swipeActions?: SwipeAction[];
+  /** Whether swipe is enabled */
+  swipeable?: boolean;
 };
 
-export function BookingCardEnhanced({ booking, onPress, onPrimaryAction, onSecondaryAction }: Props) {
+/**
+ * Consolidated BookingCard component.
+ * Supports both button-based actions and swipe gestures.
+ *
+ * @example
+ * ```tsx
+ * // Basic usage with button actions
+ * <BookingCard
+ *   booking={bookingData}
+ *   onPress={() => navigate(booking.id)}
+ *   onPrimaryAction={() => confirm(booking.id)}
+ * />
+ *
+ * // With swipe actions
+ * <BookingCard
+ *   booking={bookingData}
+ *   swipeable
+ *   swipeActions={[
+ *     { label: 'Reschedule', icon: 'refresh', color: palette.tint, onPress: reschedule },
+ *     { label: 'Cancel', icon: 'close', color: palette.error, onPress: cancel },
+ *   ]}
+ * />
+ * ```
+ */
+export function BookingCard({
+  booking,
+  onPress,
+  onPrimaryAction,
+  onSecondaryAction,
+  primaryActionLabel = 'Take action',
+  secondaryActionLabel = 'Details',
+  swipeActions,
+  swipeable = false,
+}: Props) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  return (
+  const statusTone = getStatusTone(booking.status);
+
+  const renderRightActions = () => {
+    if (!swipeActions?.length) return null;
+    return (
+      <View style={styles.actionsContainer}>
+        {swipeActions.map((action, index) => (
+          <Clickable
+            key={index}
+            onPress={action.onPress}
+            style={[styles.swipeActionButton, { backgroundColor: action.color }]}>
+            <Ionicons name={action.icon} size={18} color="#FFFFFF" />
+            <ThemedText style={styles.swipeActionLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">
+              {action.label}
+            </ThemedText>
+          </Clickable>
+        ))}
+      </View>
+    );
+  };
+
+  const cardContent = (
     <Clickable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
       <SurfaceCard style={styles.card}>
         <View style={styles.headerRow}>
@@ -40,9 +111,11 @@ export function BookingCardEnhanced({ booking, onPress, onPrimaryAction, onSecon
             <ThemedText type="defaultSemiBold" style={styles.title}>
               {booking.title}
             </ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>with {booking.coachName}</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+              with {booking.coachName}
+            </ThemedText>
           </View>
-          <StatusBadge status={booking.status} />
+          <Badge label={booking.status} tone={statusTone} />
         </View>
 
         <View style={styles.metaRow}>
@@ -74,7 +147,9 @@ export function BookingCardEnhanced({ booking, onPress, onPrimaryAction, onSecon
                   },
                 ]}
               >
-                <ThemedText style={[styles.actionLabel, { color: palette.text }]}>Details</ThemedText>
+                <ThemedText style={[styles.actionLabel, { color: palette.text }]}>
+                  {secondaryActionLabel}
+                </ThemedText>
               </Clickable>
             ) : null}
 
@@ -89,7 +164,9 @@ export function BookingCardEnhanced({ booking, onPress, onPrimaryAction, onSecon
                   { backgroundColor: pressed ? palette.tintPressed : palette.tint },
                 ]}
               >
-                <ThemedText style={[styles.actionLabel, { color: '#fff' }]}>Take action</ThemedText>
+                <ThemedText style={[styles.actionLabel, { color: '#fff' }]}>
+                  {primaryActionLabel}
+                </ThemedText>
               </Clickable>
             ) : null}
           </View>
@@ -97,6 +174,29 @@ export function BookingCardEnhanced({ booking, onPress, onPrimaryAction, onSecon
       </SurfaceCard>
     </Clickable>
   );
+
+  if (swipeable && swipeActions?.length) {
+    return (
+      <Swipeable renderRightActions={renderRightActions} friction={2}>
+        {cardContent}
+      </Swipeable>
+    );
+  }
+
+  return cardContent;
+}
+
+function getStatusTone(status: BookingStatus): 'success' | 'warning' | 'default' {
+  switch (status) {
+    case 'Confirmed':
+    case 'Completed':
+      return 'success';
+    case 'Pending':
+      return 'warning';
+    case 'Cancelled':
+    default:
+      return 'default';
+  }
 }
 
 function Meta({ icon, text }: { icon: string; text: string }) {
@@ -172,5 +272,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  swipeActionButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.md,
+    gap: Spacing.xs / 2,
+  },
+  swipeActionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });
 
+// Re-export for backward compatibility
+export { BookingCard as BookingCardEnhanced };
+export type { BookingCardData as EnhancedBooking };

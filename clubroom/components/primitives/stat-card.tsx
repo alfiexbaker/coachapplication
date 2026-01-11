@@ -1,8 +1,9 @@
 import { ReactNode } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface StatCardProps {
@@ -35,6 +36,21 @@ export interface StatCardProps {
    * Variant: 'default' or 'compact'
    */
   variant?: 'default' | 'compact';
+
+  /**
+   * Optional subtitle text below the value
+   */
+  subtitle?: string;
+
+  /**
+   * Wrap in a SurfaceCard for bordered/elevated appearance
+   */
+  wrapped?: boolean;
+
+  /**
+   * Style override for the container
+   */
+  style?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -56,6 +72,9 @@ export function StatCard({
   trend,
   trendColor,
   variant = 'default',
+  subtitle,
+  wrapped = false,
+  style,
 }: StatCardProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -73,8 +92,11 @@ export function StatCard({
 
   const finalTrendColor = trendColor || autoTrendColor;
 
-  return (
-    <View style={[styles.container, isCompact && styles.containerCompact]}>
+  const content = (
+    <View style={[styles.container, isCompact && styles.containerCompact, !wrapped && style]}>
+      <ThemedText style={[styles.label, isCompact && styles.labelCompact, { color: palette.muted }]}>
+        {label}
+      </ThemedText>
       <View style={styles.valueRow}>
         <ThemedText
           style={[
@@ -94,17 +116,29 @@ export function StatCard({
           </View>
         ) : null}
       </View>
-      <ThemedText style={[styles.label, isCompact && styles.labelCompact, { color: palette.muted }]}>
-        {label}
-      </ThemedText>
+      {subtitle ? (
+        <ThemedText style={[styles.subtitle, { color: palette.secondary }]}>
+          {subtitle}
+        </ThemedText>
+      ) : null}
     </View>
   );
+
+  if (wrapped) {
+    return (
+      <SurfaceCard style={[styles.wrappedCard, style]}>
+        {content}
+      </SurfaceCard>
+    );
+  }
+
+  return content;
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    gap: Spacing.xs,
+    alignItems: 'flex-start',
+    gap: Spacing.xs / 2,
   },
   containerCompact: {
     alignItems: 'flex-start',
@@ -115,8 +149,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   value: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '800',
     letterSpacing: -0.4,
   },
   valueCompact: {
@@ -124,16 +158,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   label: {
-    fontSize: 11,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   labelCompact: {
     fontSize: 13,
     textTransform: 'none',
     letterSpacing: 0,
     fontWeight: '400',
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   trendBadge: {
     paddingHorizontal: Spacing.xs,
@@ -144,5 +182,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0,
+  },
+  wrappedCard: {
+    flex: 1,
+    padding: Spacing.sm,
+    borderRadius: Radii.lg,
   },
 });

@@ -23,6 +23,7 @@ import type {
 import { squadService } from './squad-service';
 import { sessionInviteService } from './session-invite-service';
 import { notificationService } from './notification-service';
+import { safeJsonParse } from '@/utils/safe-json';
 import { matchService } from './match-service';
 import { eventService } from './event-service';
 
@@ -125,7 +126,7 @@ let squadInvitesCache: SquadInvite[] = [];
 async function loadSquadInvites(): Promise<SquadInvite[]> {
   try {
     const stored = await AsyncStorage.getItem(SQUAD_INVITES_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse<SquadInvite[]>(stored, []);
   } catch (error) {
     console.error('[BulkInviteService] Failed to load squad invites:', error);
   }

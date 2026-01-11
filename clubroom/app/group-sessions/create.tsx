@@ -16,6 +16,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService, CreateGroupSessionInput } from '@/services/group-session-service';
 import type { GroupSession, GroupSessionSchedule, FootballObjective, ClubSquad } from '@/constants/types';
+import { withRoleGuard } from '@/components/auth/with-role-guard';
 
 const SESSION_TYPES: { key: GroupSession['sessionType']; label: string; icon: string; forSquad?: boolean }[] = [
   { key: 'CAMP', label: 'Camp', icon: 'sunny' },
@@ -47,7 +48,7 @@ type WizardStep = 'type' | 'details' | 'schedule' | 'pricing' | 'review' | 'invi
 // Default club ID for demo (would come from user context in production)
 const DEFAULT_CLUB_ID = 'club_lions';
 
-export default function CreateGroupSessionScreen() {
+function CreateGroupSessionScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
@@ -896,3 +897,5 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
 });
+
+export default withRoleGuard(CreateGroupSessionScreen, ['COACH', 'ADMIN']);

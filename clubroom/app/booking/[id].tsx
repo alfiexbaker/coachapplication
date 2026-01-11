@@ -78,7 +78,7 @@ export default function BookingDetailScreen() {
         <SurfaceCard style={styles.card}>
           <ThemedText type="defaultSemiBold">Actions</ThemedText>
           <View style={styles.actionRow}>
-            <Clickable style={styles.actionButton} onPress={() => router.push('/chat')}>
+            <Clickable style={styles.actionButton} onPress={() => router.push(`/chat/${id}`)}>
               <Ionicons name="chatbubbles" size={18} color={palette.tint} />
               <ThemedText style={[styles.actionLabel, { color: palette.tint }]}>Message coach</ThemedText>
             </Clickable>

@@ -72,7 +72,7 @@ export function ParentKidsScreen() {
                       childName: child.name,
                       hasUpcomingSession: !!nextSession
                     });
-                    router.push(`/child-progress/${child.id}`);
+                    router.push(`/development/child-progress/${child.id}`);
                   }}
                   style={({ pressed }) => [
                     styles.kidCard,

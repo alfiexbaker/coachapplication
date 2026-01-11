@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
 import { FootballObjective } from '@/constants/types';
@@ -37,7 +38,7 @@ export default function SessionFeedbackScreen() {
   // Get athlete's objectives from params
   const athleteObjectivesParam = params.athleteObjectives as string;
   const athleteObjectives: FootballObjective[] = athleteObjectivesParam
-    ? JSON.parse(athleteObjectivesParam)
+    ? safeJsonParse<FootballObjective[]>(athleteObjectivesParam, [])
     : [];
   const athleteName = (params.athleteName as string) || 'the athlete';
   const athleteId = params.athleteId as string;
@@ -69,7 +70,7 @@ export default function SessionFeedbackScreen() {
 
         // Save to AsyncStorage
         const existingSessions = await AsyncStorage.getItem('coach_sessions');
-        const sessions = existingSessions ? JSON.parse(existingSessions) : [];
+        const sessions = safeJsonParse<any[]>(existingSessions, []);
         sessions.push(sessionRecord);
         await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
 
@@ -82,7 +83,7 @@ export default function SessionFeedbackScreen() {
         // Update booking status
         const existingBookings = await AsyncStorage.getItem('session_bookings');
         if (existingBookings) {
-          const bookings = JSON.parse(existingBookings);
+          const bookings = safeJsonParse<any[]>(existingBookings, []);
           const updatedBookings = bookings.map((booking: any) =>
             booking.id === bookingId
               ? { ...booking, status: 'COMPLETED', sessionId }

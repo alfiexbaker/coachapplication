@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -18,6 +19,24 @@ export default function ScheduleScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
+  // Convert draft.date string to Date object, default to today
+  const selectedDate = useMemo(() => {
+    if (draft.date) {
+      return new Date(draft.date);
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  }, [draft.date]);
+
+  // Get session duration from draft or default to 60 minutes
+  const sessionDuration = draft.duration || 60;
+
+  // Clear slot when date changes (since availability changes per day)
+  const handleDateSelect = (date: string | undefined) => {
+    updateDraft({ date, slot: undefined });
+  };
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -27,11 +46,17 @@ export default function ScheduleScreen() {
           step={2}
         />
 
-        <CalendarPicker selectedDate={draft.date} onSelect={(date) => updateDraft({ date })} />
+        <CalendarPicker selectedDate={draft.date} onSelect={handleDateSelect} />
 
         <View style={{ gap: Spacing.sm }}>
           <ThemedText type="defaultSemiBold">Available slots</ThemedText>
-          <TimeSlotPicker selectedSlot={draft.slot} onSelect={(slot) => updateDraft({ slot })} />
+          <TimeSlotPicker
+            coachId={coachId}
+            selectedDate={selectedDate}
+            sessionDuration={sessionDuration}
+            selectedSlot={draft.slot}
+            onSelect={(slot) => updateDraft({ slot })}
+          />
         </View>
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>

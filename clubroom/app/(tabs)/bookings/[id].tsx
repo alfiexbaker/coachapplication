@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -42,7 +43,7 @@ export default function SessionDetailScreen() {
         try {
           const stored = await AsyncStorage.getItem('session_bookings');
           if (stored) {
-            const sessionBookings = JSON.parse(stored);
+            const sessionBookings = safeJsonParse<any[]>(stored, []);
             const sessionBooking = sessionBookings.find((b: any) => b.id === id);
 
             if (sessionBooking) {

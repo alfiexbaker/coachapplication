@@ -1,6 +1,7 @@
 import { NotificationItem, NotificationType } from '@/constants/types';
 import { storageService } from './storage-service';
 import { createLogger } from '@/utils/logger';
+import { notificationPreferencesService, ReminderTiming } from './notification-preferences-service';
 
 const STORAGE_KEY = 'clubroom.notifications';
 const logger = createLogger('NotificationService');
@@ -29,6 +30,10 @@ export class NotificationService {
     return storageService.getItem<ExtendedNotificationItem[]>(STORAGE_KEY, []);
   }
 
+  /**
+   * Create a notification (internal - bypasses preference checks)
+   * Use createWithPreferenceCheck for user-facing notifications
+   */
   async create(notification: ExtendedNotificationItem): Promise<ExtendedNotificationItem[]> {
     const fullNotification: ExtendedNotificationItem = {
       ...notification,
@@ -56,6 +61,36 @@ export class NotificationService {
     });
 
     return updated;
+  }
+
+  /**
+   * Create a notification with preference checks
+   * Returns null if notification was blocked due to user preferences
+   */
+  async createWithPreferenceCheck(
+    notification: ExtendedNotificationItem
+  ): Promise<ExtendedNotificationItem[] | null> {
+    const recipientId = notification.recipientId;
+    const notificationType = notification.notificationType;
+
+    // If we have both recipientId and notificationType, check preferences
+    if (recipientId && notificationType) {
+      const shouldNotify = await notificationPreferencesService.shouldNotify(
+        recipientId,
+        notificationType
+      );
+
+      if (!shouldNotify) {
+        logger.info('notification_blocked_by_preferences', {
+          id: notification.id,
+          type: notificationType,
+          recipientId,
+        });
+        return null;
+      }
+    }
+
+    return this.create(notification);
   }
 
   async markAsRead(id: string): Promise<ExtendedNotificationItem[]> {
@@ -129,12 +164,12 @@ export class NotificationService {
     date: string;
     bookingId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_booking_${Date.now()}`,
       type: 'booking',
       notificationType: 'BOOKING_RECEIVED',
       title: 'New Booking',
-      body: `📅 New booking from ${params.parentName} for ${params.childName} on ${params.date}`,
+      body: `New booking from ${params.parentName} for ${params.childName} on ${params.date}`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/booking/${params.bookingId}`,
@@ -156,12 +191,12 @@ export class NotificationService {
     date: string;
     bookingId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_cancel_${Date.now()}`,
       type: 'booking',
       notificationType: 'BOOKING_CANCELLED',
       title: 'Booking Cancelled',
-      body: `❌ ${params.parentName} cancelled booking for ${params.date}`,
+      body: `${params.parentName} cancelled booking for ${params.date}`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/booking/${params.bookingId}`,
@@ -182,12 +217,12 @@ export class NotificationService {
     childName: string;
     inviteId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_invite_accept_${Date.now()}`,
       type: 'booking',
       notificationType: 'SESSION_INVITE_RESPONSE',
       title: 'Invite Accepted',
-      body: `✅ ${params.parentName} accepted session invite for ${params.childName}`,
+      body: `${params.parentName} accepted session invite for ${params.childName}`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/session-invites/${params.inviteId}`,
@@ -208,12 +243,12 @@ export class NotificationService {
     parentName: string;
     inviteId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_invite_decline_${Date.now()}`,
       type: 'booking',
       notificationType: 'SESSION_INVITE_RESPONSE',
       title: 'Invite Declined',
-      body: `❌ ${params.parentName} declined session invite`,
+      body: `${params.parentName} declined session invite`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/session-invites/${params.inviteId}`,
@@ -233,12 +268,12 @@ export class NotificationService {
     parentName: string;
     threadId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_msg_${Date.now()}`,
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
       title: 'New Message',
-      body: `💬 New message from ${params.parentName}`,
+      body: `New message from ${params.parentName}`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/chat/${params.threadId}`,
@@ -259,12 +294,12 @@ export class NotificationService {
     rating: number;
     reviewId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_review_${Date.now()}`,
       type: 'review',
       notificationType: 'REVIEW_RECEIVED',
       title: 'New Review',
-      body: `⭐ ${params.parentName} left a ${params.rating}-star review`,
+      body: `${params.parentName} left a ${params.rating}-star review`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/review/${params.reviewId}`,
@@ -284,13 +319,22 @@ export class NotificationService {
     coachId: string;
     athleteName: string;
     bookingId: string;
+    hoursBeforeSession?: number;
   }): Promise<void> {
-    await this.create({
+    const hoursLabel = params.hoursBeforeSession === 1
+      ? '1 hour'
+      : params.hoursBeforeSession === 24
+      ? 'tomorrow'
+      : params.hoursBeforeSession === 48
+      ? 'in 2 days'
+      : '1 hour';
+
+    await this.createWithPreferenceCheck({
       id: `notif_reminder_${Date.now()}`,
       type: 'reminder',
       notificationType: 'SESSION_REMINDER',
       title: 'Session Reminder',
-      body: `⏰ Session with ${params.athleteName} in 1 hour`,
+      body: `Session with ${params.athleteName} ${hoursLabel}`,
       recipientId: params.coachId,
       recipientRole: 'coach',
       deepLink: `/booking/${params.bookingId}`,
@@ -315,12 +359,12 @@ export class NotificationService {
     date: string;
     bookingId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_confirm_${Date.now()}`,
       type: 'booking',
       notificationType: 'BOOKING_CONFIRMED',
       title: 'Booking Confirmed',
-      body: `✅ Booking confirmed with Coach ${params.coachName} for ${params.date}`,
+      body: `Booking confirmed with Coach ${params.coachName} for ${params.date}`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/booking/${params.bookingId}`,
@@ -341,12 +385,12 @@ export class NotificationService {
     childName: string;
     inviteId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_invite_${Date.now()}`,
       type: 'booking',
       notificationType: 'SESSION_INVITE',
       title: 'Session Invite',
-      body: `📩 Coach ${params.coachName} invited ${params.childName} to a session`,
+      body: `Coach ${params.coachName} invited ${params.childName} to a session`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/session-invites/${params.inviteId}`,
@@ -369,12 +413,12 @@ export class NotificationService {
     coachName: string;
     badgeAwardId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_badge_${Date.now()}`,
       type: 'badge',
       notificationType: 'BADGE_AWARDED',
       title: 'Badge Earned',
-      body: `🏅 ${params.childName} earned ${params.badgeName} from Coach ${params.coachName}`,
+      body: `${params.childName} earned ${params.badgeName} from Coach ${params.coachName}`,
       badgeTitle: params.badgeName,
       athleteName: params.childName,
       badgeAwardId: params.badgeAwardId,
@@ -400,12 +444,12 @@ export class NotificationService {
     childName: string;
     bookingId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_feedback_${Date.now()}`,
       type: 'review',
       notificationType: 'REVIEW_RECEIVED',
       title: 'Session Feedback',
-      body: `📝 Coach ${params.coachName} added feedback for ${params.childName}'s session`,
+      body: `Coach ${params.coachName} added feedback for ${params.childName}'s session`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/bookings/${params.bookingId}`,
@@ -426,12 +470,12 @@ export class NotificationService {
     coachName: string;
     threadId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_msg_${Date.now()}`,
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
       title: 'New Message',
-      body: `💬 New message from Coach ${params.coachName}`,
+      body: `New message from Coach ${params.coachName}`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/chat/${params.threadId}`,
@@ -451,13 +495,22 @@ export class NotificationService {
     childName: string;
     coachName: string;
     bookingId: string;
+    hoursBeforeSession?: number;
   }): Promise<void> {
-    await this.create({
+    const hoursLabel = params.hoursBeforeSession === 1
+      ? 'in 1 hour'
+      : params.hoursBeforeSession === 24
+      ? 'tomorrow'
+      : params.hoursBeforeSession === 48
+      ? 'in 2 days'
+      : 'in 1 hour';
+
+    await this.createWithPreferenceCheck({
       id: `notif_reminder_${Date.now()}`,
       type: 'reminder',
       notificationType: 'SESSION_REMINDER',
       title: 'Session Reminder',
-      body: `⏰ ${params.childName}'s session with Coach ${params.coachName} in 1 hour`,
+      body: `${params.childName}'s session with Coach ${params.coachName} ${hoursLabel}`,
       recipientId: params.parentId,
       recipientRole: 'parent',
       deepLink: `/booking/${params.bookingId}`,
@@ -479,7 +532,7 @@ export class NotificationService {
     postId: string;
     clubId: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_post_${Date.now()}`,
       type: 'message',
       notificationType: 'MESSAGE_RECEIVED',
@@ -520,7 +573,7 @@ export class NotificationService {
       month: 'short',
     });
 
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_session_${Date.now()}_${params.parentId}`,
       type: 'booking',
       notificationType: 'SESSION_AVAILABLE',
@@ -565,7 +618,7 @@ export class NotificationService {
       month: 'short',
     });
 
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_match_${Date.now()}_${params.parentId}`,
       type: 'booking',
       notificationType: 'MATCH_CREATED',
@@ -609,7 +662,7 @@ export class NotificationService {
       month: 'short',
     });
 
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_event_${Date.now()}_${params.parentId}`,
       type: 'booking',
       notificationType: 'EVENT_CREATED',
@@ -646,7 +699,7 @@ export class NotificationService {
     sessionId: string;
     clubName: string;
   }): Promise<void> {
-    await this.create({
+    await this.createWithPreferenceCheck({
       id: `notif_session_reminder_${Date.now()}_${params.parentId}`,
       type: 'reminder',
       notificationType: 'SESSION_REMINDER',

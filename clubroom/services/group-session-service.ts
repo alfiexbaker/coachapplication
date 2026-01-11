@@ -19,6 +19,7 @@ import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
 import { clubSettingsService } from './club-settings-service';
 import { clubService } from './club-service';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const SESSIONS_STORAGE_KEY = 'group_sessions';
 const REGISTRATIONS_STORAGE_KEY = 'group_registrations';
@@ -300,7 +301,7 @@ let registrationsCache: GroupRegistration[] = [...MOCK_REGISTRATIONS];
 async function loadSessions(): Promise<GroupSession[]> {
   try {
     const stored = await AsyncStorage.getItem(SESSIONS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_SESSIONS]);
   } catch (error) {
     console.error('[GroupSessionService] Failed to load sessions:', error);
   }
@@ -318,7 +319,7 @@ async function saveSessions(sessions: GroupSession[]): Promise<void> {
 async function loadRegistrations(): Promise<GroupRegistration[]> {
   try {
     const stored = await AsyncStorage.getItem(REGISTRATIONS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_REGISTRATIONS]);
   } catch (error) {
     console.error('[GroupSessionService] Failed to load registrations:', error);
   }
@@ -1138,7 +1139,7 @@ export const groupSessionService = {
 
     try {
       const existingJson = await AsyncStorage.getItem(storageKey);
-      const existing: GroupFeedback[] = existingJson ? JSON.parse(existingJson) : [];
+      const existing: GroupFeedback[] = safeJsonParse(existingJson, []);
 
       // Check if feedback already exists for this athlete
       const existingIndex = existing.findIndex(f => f.athleteId === athleteId);
@@ -1180,7 +1181,7 @@ export const groupSessionService = {
 
     try {
       const json = await AsyncStorage.getItem(storageKey);
-      return json ? JSON.parse(json) : [];
+      return safeJsonParse<GroupFeedback[]>(json, []);
     } catch (error) {
       console.error('[GroupSessionService] Failed to get feedback:', error);
       return [];
@@ -1231,7 +1232,7 @@ export const groupSessionService = {
       for (const key of feedbackKeys) {
         const json = await AsyncStorage.getItem(key);
         if (json) {
-          const sessionFeedback: GroupFeedback[] = JSON.parse(json);
+          const sessionFeedback: GroupFeedback[] = safeJsonParse(json, []);
           const athleteFeedback = sessionFeedback.filter(f => f.athleteId === athleteId);
           allFeedback.push(...athleteFeedback);
         }

@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import type { Session } from '@/constants/app-types';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
+import { withRoleGuard } from '@/components/auth/with-role-guard';
 
 type BadgeCategory = 'toAward' | 'recent' | 'shared';
 
@@ -96,7 +97,7 @@ const TABS: { key: BadgeCategory; label: string; icon: keyof typeof Ionicons.gly
 
 const getSessionLabel = (session: Session) => session.nextFocusAreas?.[0] ?? 'Coaching session';
 
-export default function BadgesScreen() {
+function BadgesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
@@ -535,3 +536,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+export default withRoleGuard(BadgesScreen, ['COACH', 'ADMIN']);

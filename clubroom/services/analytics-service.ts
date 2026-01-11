@@ -13,6 +13,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AthleteAnalytics, SkillProgress, Goal, GoalMilestone, FootballObjective } from '@/constants/types';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const ANALYTICS_STORAGE_KEY = 'athlete_analytics';
 const GOALS_STORAGE_KEY = 'athlete_goals';
@@ -169,7 +170,7 @@ let goalsCache: Goal[] = [...MOCK_GOALS];
 async function loadAnalytics(): Promise<AthleteAnalytics[]> {
   try {
     const stored = await AsyncStorage.getItem(ANALYTICS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_ANALYTICS]);
   } catch (error) {
     console.error('[AnalyticsService] Failed to load analytics:', error);
   }
@@ -179,7 +180,7 @@ async function loadAnalytics(): Promise<AthleteAnalytics[]> {
 async function loadGoals(): Promise<Goal[]> {
   try {
     const stored = await AsyncStorage.getItem(GOALS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_GOALS]);
   } catch (error) {
     console.error('[AnalyticsService] Failed to load goals:', error);
   }

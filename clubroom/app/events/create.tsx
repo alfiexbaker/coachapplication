@@ -18,6 +18,7 @@ import { squadService } from '@/services/squad-service';
 import { bulkInviteService } from '@/services/bulk-invite-service';
 import type { ClubEventType, EventTargetAudience, ClubSquad } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
+import { withRoleGuard } from '@/components/auth/with-role-guard';
 
 // Default club ID for demo
 const DEFAULT_CLUB_ID = 'club_lions';
@@ -42,7 +43,7 @@ const AUDIENCE_OPTIONS: { key: EventTargetAudience | 'SQUADS'; label: string; de
 
 type WizardStep = 'type' | 'details' | 'schedule' | 'audience' | 'review';
 
-export default function CreateEventScreen() {
+function CreateEventScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
@@ -883,3 +884,5 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+export default withRoleGuard(CreateEventScreen, ['COACH', 'ADMIN']);

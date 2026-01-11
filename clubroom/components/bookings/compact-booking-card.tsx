@@ -15,8 +15,6 @@ type CompactBookingCardProps = {
 
 export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   const { currentUser } = useAuth();
-  console.log('[CompactBookingCard] COMPONENT RENDERING - Booking ID:', booking.id, 'Service:', booking.service);
-
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
@@ -47,29 +45,11 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
 
   const handlePress = () => {
     const route = `/bookings/${booking.id}`;
-    console.log('[CompactBookingCard] PRESS FIRED - Navigating to:', route);
-    console.log('[CompactBookingCard] Booking details:', {
-      id: booking.id,
-      service: booking.service,
-      coachName: booking.coachName,
-      status: booking.status
-    });
     router.push(route);
-    console.log('[CompactBookingCard] router.push() called');
-  };
-
-  const handlePressIn = () => {
-    console.log('[CompactBookingCard] PRESS IN detected for booking:', booking.id);
-  };
-
-  const handlePressOut = () => {
-    console.log('[CompactBookingCard] PRESS OUT detected for booking:', booking.id);
   };
 
   // Web-specific: onMouseUp triggers navigation since onClick doesn't work on RN View
-  const handleWebClick = (e: any) => {
-    console.log('[CompactBookingCard] WEB CLICK detected for booking:', booking.id);
-    handlePressOut();
+  const handleWebClick = () => {
     handlePress();
   };
 
@@ -78,7 +58,6 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
     e.stopPropagation();
     const athleteId = (booking as any).athleteId;
     if (athleteId) {
-      console.log('[CompactBookingCard] Navigating to development hub for athlete:', athleteId);
       router.push(`/development/athlete/${athleteId}` as any);
     }
   };
@@ -141,7 +120,6 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   if (Platform.OS === 'web') {
     return (
       <View
-        onMouseDown={handlePressIn as any}
         onMouseUp={handleWebClick as any}
         style={[styles.touchable, { cursor: 'pointer' }]}>
         <CardContent />
@@ -152,8 +130,6 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   return (
     <TouchableOpacity
       onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
       activeOpacity={0.7}
       style={styles.touchable}>
       <CardContent />

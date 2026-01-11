@@ -32,9 +32,15 @@ import type {
   MatchType,
   NotificationItem,
 } from '@/constants/types';
+import {
+  MatchTypeColors,
+  MatchStatusColors,
+  MatchPlayerStatusColors,
+} from '@/constants/status-colors';
 import { notificationService } from './notification-service';
 import { socialFeedService } from './social-feed-service';
 import { clubSettingsService } from './club-settings-service';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const STORAGE_KEY = 'matches';
 const USE_MOCK = true;
@@ -215,7 +221,7 @@ async function loadFromStorage(): Promise<Match[]> {
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      return safeJsonParse(stored, [...MOCK_MATCHES]);
     }
   } catch (error) {
     console.error('[MatchService] Failed to load from storage:', error);
@@ -751,13 +757,7 @@ export const matchService = {
    * Get match type color
    */
   getMatchTypeColor(type: MatchType): string {
-    const colors: Record<MatchType, string> = {
-      FRIENDLY: '#0891B2',
-      LEAGUE: '#16A34A',
-      CUP: '#7C3AED',
-      TOURNAMENT: '#EA580C',
-    };
-    return colors[type] || '#6B7280';
+    return MatchTypeColors[type as keyof typeof MatchTypeColors] || '#6B7280';
   },
 
   /**
@@ -778,14 +778,7 @@ export const matchService = {
    * Get status color
    */
   getStatusColor(status: MatchStatus): string {
-    const colors: Record<MatchStatus, string> = {
-      SCHEDULED: '#0891B2',
-      LINEUP_SET: '#16A34A',
-      IN_PROGRESS: '#EA580C',
-      COMPLETED: '#6B7280',
-      CANCELLED: '#DC2626',
-    };
-    return colors[status] || '#6B7280';
+    return MatchStatusColors[status as keyof typeof MatchStatusColors] || '#6B7280';
   },
 
   /**
@@ -806,14 +799,7 @@ export const matchService = {
    * Get player status color
    */
   getPlayerStatusColor(status: MatchPlayerStatus): string {
-    const colors: Record<MatchPlayerStatus, string> = {
-      INVITED: '#F59E0B',
-      AVAILABLE: '#16A34A',
-      UNAVAILABLE: '#DC2626',
-      SELECTED: '#7C3AED',
-      RESERVE: '#0891B2',
-    };
-    return colors[status] || '#6B7280';
+    return MatchPlayerStatusColors[status as keyof typeof MatchPlayerStatusColors] || '#6B7280';
   },
 };
 

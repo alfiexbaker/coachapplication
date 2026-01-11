@@ -14,6 +14,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Academy, AcademyMembership, AcademyInvite, AcademyPermission, SportCategory, FootballObjective } from '@/constants/types';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const ACADEMIES_STORAGE_KEY = 'academies';
 const MEMBERSHIPS_STORAGE_KEY = 'academy_memberships';
@@ -140,7 +141,7 @@ let invitesCache: AcademyInvite[] = [...MOCK_INVITES];
 async function loadAcademies(): Promise<Academy[]> {
   try {
     const stored = await AsyncStorage.getItem(ACADEMIES_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_ACADEMIES]);
   } catch (error) {
     console.error('[AcademyService] Failed to load academies:', error);
   }
@@ -158,7 +159,7 @@ async function saveAcademies(academies: Academy[]): Promise<void> {
 async function loadMemberships(): Promise<AcademyMembership[]> {
   try {
     const stored = await AsyncStorage.getItem(MEMBERSHIPS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_MEMBERSHIPS]);
   } catch (error) {
     console.error('[AcademyService] Failed to load memberships:', error);
   }
@@ -176,7 +177,7 @@ async function saveMemberships(memberships: AcademyMembership[]): Promise<void> 
 async function loadInvites(): Promise<AcademyInvite[]> {
   try {
     const stored = await AsyncStorage.getItem(INVITES_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_INVITES]);
   } catch (error) {
     console.error('[AcademyService] Failed to load invites:', error);
   }

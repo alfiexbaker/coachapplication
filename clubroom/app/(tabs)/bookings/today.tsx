@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { safeJsonParse } from '@/utils/safe-json';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -228,7 +229,7 @@ export default function TodayDashboardScreen({ embedded = false }: TodayDashboar
       // 1. Load 1:1 session bookings from AsyncStorage
       const storedBookings = await AsyncStorage.getItem('session_bookings');
       if (storedBookings) {
-        const bookings: any[] = JSON.parse(storedBookings);
+        const bookings = safeJsonParse<any[]>(storedBookings, []);
         const todayBookings = bookings.filter((b) => {
           const bookingDate = b.scheduledAt?.split('T')[0];
           return bookingDate === todayString && b.coachId === currentUser.id;
@@ -280,7 +281,7 @@ export default function TodayDashboardScreen({ embedded = false }: TodayDashboar
       // 2. Load session offerings (group sessions)
       const storedOfferings = await AsyncStorage.getItem('session_offerings');
       if (storedOfferings) {
-        const offerings: SessionOffering[] = JSON.parse(storedOfferings);
+        const offerings = safeJsonParse<SessionOffering[]>(storedOfferings, []);
         const todayOfferings = offerings.filter((o) => {
           const offeringDate = o.scheduledAt?.split('T')[0];
           return offeringDate === todayString && o.coachId === currentUser.id;
@@ -328,7 +329,7 @@ export default function TodayDashboardScreen({ embedded = false }: TodayDashboar
         // Get club ID from user's club membership
         const storedClubMembership = await AsyncStorage.getItem('club_membership');
         if (storedClubMembership) {
-          const membership = JSON.parse(storedClubMembership);
+          const membership = safeJsonParse<{ clubId: string }>(storedClubMembership, { clubId: '' });
           const matches = await matchService.getClubMatches(membership.clubId);
           const todayMatches = matches.filter((m) => m.date === todayString);
 
@@ -374,7 +375,7 @@ export default function TodayDashboardScreen({ embedded = false }: TodayDashboar
       try {
         const storedClubMembership = await AsyncStorage.getItem('club_membership');
         if (storedClubMembership) {
-          const membership = JSON.parse(storedClubMembership);
+          const membership = safeJsonParse<{ clubId: string }>(storedClubMembership, { clubId: '' });
           const events = await eventService.getUpcomingEvents(membership.clubId);
           const todayEvents = events.filter((e) => e.date === todayString);
 
@@ -478,7 +479,7 @@ export default function TodayDashboardScreen({ embedded = false }: TodayDashboar
       // Update the session offerings in AsyncStorage
       const storedOfferings = await AsyncStorage.getItem('session_offerings');
       if (storedOfferings) {
-        const offerings: SessionOffering[] = JSON.parse(storedOfferings);
+        const offerings = safeJsonParse<SessionOffering[]>(storedOfferings, []);
         const index = offerings.findIndex((o) => o.id === selectedSession.id);
 
         if (index !== -1) {

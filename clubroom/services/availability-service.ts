@@ -13,6 +13,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot, SessionOffering } from '@/constants/types';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const TEMPLATE_STORAGE_KEY = 'availability_templates';
 const OVERRIDE_STORAGE_KEY = 'availability_overrides';
@@ -24,7 +25,7 @@ const USE_MOCK = true;
 async function loadBookings(): Promise<any[]> {
   try {
     const stored = await AsyncStorage.getItem(BOOKINGS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse<any[]>(stored, []);
   } catch (error) {
     console.error('[AvailabilityService] Failed to load bookings:', error);
   }
@@ -35,7 +36,7 @@ async function loadBookings(): Promise<any[]> {
 async function loadSessionOfferings(): Promise<SessionOffering[]> {
   try {
     const stored = await AsyncStorage.getItem(SESSION_OFFERINGS_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse<SessionOffering[]>(stored, []);
   } catch (error) {
     console.error('[AvailabilityService] Failed to load session offerings:', error);
   }
@@ -115,7 +116,7 @@ let overridesCache: AvailabilityOverride[] = [...MOCK_OVERRIDES];
 async function loadTemplates(): Promise<AvailabilityTemplate[]> {
   try {
     const stored = await AsyncStorage.getItem(TEMPLATE_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_TEMPLATES]);
   } catch (error) {
     console.error('[AvailabilityService] Failed to load templates:', error);
   }
@@ -133,7 +134,7 @@ async function saveTemplates(templates: AvailabilityTemplate[]): Promise<void> {
 async function loadOverrides(): Promise<AvailabilityOverride[]> {
   try {
     const stored = await AsyncStorage.getItem(OVERRIDE_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_OVERRIDES]);
   } catch (error) {
     console.error('[AvailabilityService] Failed to load overrides:', error);
   }
@@ -372,7 +373,8 @@ export const availabilityService = {
             coachBookings,
             coachOfferings,
             dateStr,
-            customSlot.startTime
+            customSlot.startTime,
+            sessionDurationMinutes
           );
 
           slots.push({
@@ -417,7 +419,8 @@ export const availabilityService = {
             coachBookings,
             coachOfferings,
             dateStr,
-            slotStartTime
+            slotStartTime,
+            sessionDurationMinutes
           );
 
           slots.push({
@@ -441,36 +444,92 @@ export const availabilityService = {
   },
 
   /**
-   * Count bookings for a specific slot
+   * Count bookings for a specific slot with overlap detection
+   * Checks if the proposed slot overlaps with any existing bookings
    */
   countBookingsForSlot(
     bookings: any[],
     offerings: SessionOffering[],
     date: string,
-    startTime: string
+    startTime: string,
+    slotDurationMinutes: number = 60
   ): number {
     let count = 0;
 
-    // Count from regular bookings
+    // Convert slot start time to minutes
+    const [slotStartHour, slotStartMin] = startTime.split(':').map(Number);
+    const slotStartMinutes = slotStartHour * 60 + slotStartMin;
+    const slotEndMinutes = slotStartMinutes + slotDurationMinutes;
+
+    // Count from regular bookings - check for overlap
     for (const booking of bookings) {
       const bookingDate = booking.scheduledAt?.split('T')[0];
+      if (bookingDate !== date) continue;
+
       const bookingTime = booking.scheduledAt?.split('T')[1]?.substring(0, 5);
-      if (bookingDate === date && bookingTime === startTime) {
+      if (!bookingTime) continue;
+
+      const [bookingStartHour, bookingStartMin] = bookingTime.split(':').map(Number);
+      const bookingStartMinutes = bookingStartHour * 60 + bookingStartMin;
+      const bookingDuration = booking.duration || 60;
+      const bookingEndMinutes = bookingStartMinutes + bookingDuration;
+
+      // Check for overlap: slots overlap if one starts before the other ends
+      const hasOverlap = slotStartMinutes < bookingEndMinutes && slotEndMinutes > bookingStartMinutes;
+
+      if (hasOverlap) {
         count++;
       }
     }
 
-    // Count from session offerings (for group sessions, count registrations)
+    // Count from session offerings - check for overlap
     for (const offering of offerings) {
       const offeringDate = offering.scheduledAt?.split('T')[0];
+      if (offeringDate !== date) continue;
+
       const offeringTime = offering.scheduledAt?.split('T')[1]?.substring(0, 5);
-      if (offeringDate === date && offeringTime === startTime) {
+      if (!offeringTime) continue;
+
+      const [offeringStartHour, offeringStartMin] = offeringTime.split(':').map(Number);
+      const offeringStartMinutes = offeringStartHour * 60 + offeringStartMin;
+      const offeringDuration = offering.durationMinutes || 60;
+      const offeringEndMinutes = offeringStartMinutes + offeringDuration;
+
+      // Check for overlap
+      const hasOverlap = slotStartMinutes < offeringEndMinutes && slotEndMinutes > offeringStartMinutes;
+
+      if (hasOverlap) {
         // For session offerings, the slot is occupied
         count += offering.registrations?.filter(r => r.status === 'confirmed').length || 1;
       }
     }
 
     return count;
+  },
+
+  /**
+   * Check if a specific time slot is available (no overlapping bookings)
+   */
+  async isSlotAvailable(
+    coachId: string,
+    date: string,
+    startTime: string,
+    durationMinutes: number = 60
+  ): Promise<{ available: boolean; reason?: string }> {
+    const slots = await this.getAvailableSlots(coachId, date, date, durationMinutes);
+
+    // Find the exact slot
+    const matchingSlot = slots.find((slot) => slot.startTime === startTime);
+
+    if (!matchingSlot) {
+      return { available: false, reason: 'This time is outside the coach\'s available hours.' };
+    }
+
+    if (!matchingSlot.isAvailable) {
+      return { available: false, reason: 'This time slot is already booked.' };
+    }
+
+    return { available: true };
   },
 
   /**

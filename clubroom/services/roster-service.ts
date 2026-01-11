@@ -15,6 +15,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { RosterEntry, RosterNote, FootballObjective } from '@/constants/types';
+import { RosterStatusColors } from '@/constants/status-colors';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const STORAGE_KEY = 'coach_roster';
 const REMOVAL_HISTORY_KEY = 'roster_removal_history';
@@ -204,7 +206,7 @@ let removalHistoryCache: AthleteRemovalRecord[] = [];
 async function loadRemovalHistory(): Promise<AthleteRemovalRecord[]> {
   try {
     const stored = await AsyncStorage.getItem(REMOVAL_HISTORY_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse<AthleteRemovalRecord[]>(stored, []);
   } catch (error) {
     console.error('[RosterService] Failed to load removal history:', error);
   }
@@ -222,7 +224,7 @@ async function saveRemovalHistory(history: AthleteRemovalRecord[]): Promise<void
 async function loadFromStorage(): Promise<RosterEntry[]> {
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_ROSTER]);
   } catch (error) {
     console.error('[RosterService] Failed to load from storage:', error);
   }
@@ -547,13 +549,7 @@ export const rosterService = {
    * Get status color
    */
   getStatusColor(status: RosterEntry['status']): string {
-    const colors: Record<RosterEntry['status'], string> = {
-      ACTIVE: '#16A34A',
-      PAUSED: '#CA8A04',
-      GRADUATED: '#2563EB',
-      INACTIVE: '#6B7280',
-    };
-    return colors[status] || '#6B7280';
+    return RosterStatusColors[status as keyof typeof RosterStatusColors] || '#6B7280';
   },
 
   /**

@@ -13,8 +13,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import type { Academy, AcademyMembership } from '@/constants/types';
+import { withRoleGuard } from '@/components/auth/with-role-guard';
 
-export default function AcademySettingsScreen() {
+function AcademySettingsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -347,3 +348,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
 });
+
+export default withRoleGuard(AcademySettingsScreen, ['COACH', 'ADMIN']);

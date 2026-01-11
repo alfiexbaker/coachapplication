@@ -10,6 +10,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createLogger } from '@/utils/logger';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const REACTION_KEY_PREFIX = '@reactions_';
 const logger = createLogger('ReactionService');
@@ -46,7 +47,7 @@ async function loadReactions(postId: string): Promise<string[]> {
   try {
     const stored = await AsyncStorage.getItem(getStorageKey(postId));
     if (stored) {
-      const userIds = JSON.parse(stored) as string[];
+      const userIds = safeJsonParse<string[]>(stored, []);
       reactionCache.set(postId, userIds);
       return userIds;
     }

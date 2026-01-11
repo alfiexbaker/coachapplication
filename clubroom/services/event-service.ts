@@ -26,6 +26,7 @@ import type {
 import { clubSettingsService } from './club-settings-service';
 import { clubService } from './club-service';
 import { notificationService } from './notification-service';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const EVENTS_STORAGE_KEY = 'club_events';
 const USE_MOCK = true;
@@ -186,7 +187,7 @@ let eventsCache: ClubEvent[] = [...MOCK_EVENTS];
 async function loadEvents(): Promise<ClubEvent[]> {
   try {
     const stored = await AsyncStorage.getItem(EVENTS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_EVENTS]);
   } catch (error) {
     console.error('[EventService] Failed to load events:', error);
   }

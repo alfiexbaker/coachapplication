@@ -13,6 +13,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ClubSquad, SquadMember } from '@/constants/types';
 import { clubSquads } from '@/constants/mock-data';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const SQUAD_MEMBERS_KEY = 'squad_members';
 const USE_MOCK = true;
@@ -182,7 +183,7 @@ let membersCache: SquadMember[] = [...MOCK_SQUAD_MEMBERS];
 async function loadMembers(): Promise<SquadMember[]> {
   try {
     const stored = await AsyncStorage.getItem(SQUAD_MEMBERS_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return safeJsonParse(stored, [...MOCK_SQUAD_MEMBERS]);
   } catch (error) {
     console.error('[SquadService] Failed to load members:', error);
   }

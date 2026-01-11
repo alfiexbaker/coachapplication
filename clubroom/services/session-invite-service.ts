@@ -22,6 +22,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SessionInvite, TimeSlot, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
+import { safeJsonParse } from '@/utils/safe-json';
 
 const STORAGE_KEY = 'session_invites';
 const USE_MOCK = true;
@@ -131,7 +132,7 @@ async function loadFromStorage(): Promise<SessionInvite[]> {
   try {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      return safeJsonParse(stored, [...MOCK_INVITES]);
     }
   } catch (error) {
     console.error('[SessionInviteService] Failed to load from storage:', error);
