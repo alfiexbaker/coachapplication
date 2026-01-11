@@ -966,7 +966,12 @@ export type NotificationType =
   | 'PAYMENT_RECEIVED'
   | 'PAYMENT_FAILED'
   | 'GOAL_COMPLETED'
-  | 'VIDEO_SHARED';
+  | 'VIDEO_SHARED'
+  | 'MATCH_INVITE'
+  | 'MATCH_RESPONSE'
+  | 'MATCH_LINEUP'
+  | 'MATCH_REMINDER'
+  | 'MATCH_CANCELLED';
 
 export interface Notification {
   id: string;
@@ -1260,9 +1265,13 @@ export interface ClubEvent {
   date: string;
   startTime: string;
   endTime?: string;
+  // Backward compatibility aliases
+  startDate?: string; // alias for date
+  endDate?: string;   // alias for endTime
 
   // Location
   venue: string;
+  location?: string; // alias for venue
   address?: string;
   isVirtual: boolean;
   meetingLink?: string;
@@ -1270,10 +1279,14 @@ export interface ClubEvent {
   // Attendance
   targetAudience: EventTargetAudience;
   squadIds?: string[]; // if squad-specific
+  allClub?: boolean; // true if all club members invited (alias for targetAudience === 'ALL')
   maxAttendees?: number;
+  maxParticipants?: number; // alias for maxAttendees
+  currentParticipants?: number; // count of confirmed attendees
 
   // Cost
   price: number; // 0 = free
+  priceUsd?: number; // alias for price
   currency: string;
 
   // RSVP

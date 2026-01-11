@@ -24,9 +24,10 @@ import {
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering, ClubRole } from '@/constants/types';
+import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering, ClubRole, Match } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
 import { groupSessionService } from '@/services/group-session-service';
+import { matchService } from '@/services/match-service';
 import type { GroupSession } from '@/constants/types';
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
@@ -390,6 +391,7 @@ export default function ClubHubScreen() {
   const [squads] = useState<ClubSquad[]>(membership ? getClubSquads(membership.clubId) : []);
   const [invites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
   const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
+  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
 
   // Member management state
   const [members, setMembers] = useState<ClubMember[]>([]);
@@ -439,11 +441,24 @@ export default function ClubHubScreen() {
     }
   }, [membership?.clubId]);
 
+  // Load upcoming matches
+  const loadUpcomingMatches = useCallback(async () => {
+    if (membership?.clubId) {
+      try {
+        const matches = await matchService.getUpcomingMatches(membership.clubId);
+        setUpcomingMatches(matches.slice(0, 3)); // Show max 3 upcoming
+      } catch (error) {
+        console.error('Failed to load upcoming matches:', error);
+      }
+    }
+  }, [membership?.clubId]);
+
   useEffect(() => {
     loadFeed();
     loadMembers();
     loadTrainingSessions();
-  }, [loadFeed, loadMembers, loadTrainingSessions]);
+    loadUpcomingMatches();
+  }, [loadFeed, loadMembers, loadTrainingSessions, loadUpcomingMatches]);
 
   // Handle member removal
   const handleRemoveMember = (member: ClubMember) => {
@@ -701,6 +716,75 @@ export default function ClubHubScreen() {
                   </ThemedText>
                 )}
               </View>
+            </SurfaceCard>
+          )}
+
+          {/* Upcoming Matches Section */}
+          {upcomingMatches.length > 0 && (
+            <SurfaceCard style={styles.matchesCard}>
+              <View style={styles.matchesSectionHeader}>
+                <View style={styles.matchesHeaderLeft}>
+                  <Ionicons name="trophy" size={20} color={palette.tint} />
+                  <ThemedText type="defaultSemiBold">Upcoming Matches</ThemedText>
+                </View>
+                <TouchableOpacity
+                  style={styles.viewAllButton}
+                  onPress={() => router.push('/matches')}
+                >
+                  <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
+                  <Ionicons name="chevron-forward" size={16} color={palette.tint} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.matchesList}>
+                {upcomingMatches.map((match) => {
+                  const matchDate = new Date(match.date);
+                  const dateLabel = matchDate.toLocaleDateString('en-GB', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                  });
+                  const typeColor = matchService.getMatchTypeColor(match.matchType);
+
+                  return (
+                    <TouchableOpacity
+                      key={match.id}
+                      style={[styles.matchItem, { borderColor: palette.border }]}
+                      onPress={() => router.push({
+                        pathname: '/matches/[id]',
+                        params: { id: match.id },
+                      })}
+                    >
+                      <View style={styles.matchItemLeft}>
+                        <View style={[styles.matchTypeBadge, { backgroundColor: `${typeColor}15` }]}>
+                          <ThemedText style={[styles.matchTypeText, { color: typeColor }]}>
+                            {matchService.formatMatchType(match.matchType)}
+                          </ThemedText>
+                        </View>
+                        <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }} numberOfLines={1}>
+                          vs {match.opponent}
+                        </ThemedText>
+                        <ThemedText style={[styles.matchMeta, { color: palette.muted }]}>
+                          {dateLabel} · {match.kickoffTime} · {match.isHome ? 'Home' : 'Away'}
+                        </ThemedText>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {isCoach && (
+                <TouchableOpacity
+                  style={[styles.createMatchButton, { borderColor: palette.tint }]}
+                  onPress={() => router.push('/matches/create')}
+                >
+                  <Ionicons name="add-circle" size={18} color={palette.tint} />
+                  <ThemedText style={[styles.createMatchText, { color: palette.tint }]}>
+                    Create Match
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
             </SurfaceCard>
           )}
 
@@ -1214,6 +1298,74 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  // Matches section styles
+  matchesCard: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    gap: Spacing.md,
+  },
+  matchesSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  matchesHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  matchesList: {
+    gap: Spacing.sm,
+  },
+  matchItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  matchItemLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  matchTypeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 2,
+    borderRadius: Radii.sm,
+    marginBottom: 2,
+  },
+  matchTypeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  matchMeta: {
+    fontSize: 12,
+  },
+  createMatchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  createMatchText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  // Training section styles
   trainingCard: {
     marginHorizontal: Spacing.md,
     marginTop: Spacing.md,
