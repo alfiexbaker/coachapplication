@@ -1,7 +1,7 @@
 import { storageService } from './storage-service';
 import { badgeService } from './badge-service';
 import { createLogger } from '@/utils/logger';
-import type { FootballObjective, Goal, GoalMilestone, SkillProgress } from '@/constants/types';
+import type { FootballObjective, Goal, GoalMilestone, SkillProgress, GroupFeedback } from '@/constants/types';
 
 const logger = createLogger('ProgressService');
 
@@ -415,6 +415,135 @@ async function getAthleteProgress(
 // EXPORTS
 // ============================================================================
 
+// ============================================================================
+// GROUP SESSION FEEDBACK INTEGRATION
+// ============================================================================
+
+/**
+ * Process group session feedback and update athlete skill levels
+ * This integrates group feedback with the existing skill tracking system
+ */
+async function addGroupSessionFeedback(
+  feedback: GroupFeedback
+): Promise<{ skillsUpdated: boolean; updatedSkills: string[] }> {
+  const updatedSkills: string[] = [];
+
+  // Update skill levels for each skill worked on
+  // For group sessions, we use effort rating as a proxy for skill improvement
+  // Effort 5 = +0.3 to skill, Effort 3 = +0.1, Effort 1 = no change
+  if (feedback.skillsWorkedOn && feedback.skillsWorkedOn.length > 0 && feedback.effortRating >= 3) {
+    const skillBoost = feedback.effortRating === 5 ? 0.3 : feedback.effortRating === 4 ? 0.2 : 0.1;
+
+    for (const skill of feedback.skillsWorkedOn) {
+      try {
+        const currentLevels = await getAthleteSkillLevels(feedback.athleteId);
+        const currentLevel = currentLevels?.skills[skill]?.level ?? 3; // Default starting level
+        const newLevel = Math.min(10, currentLevel + skillBoost);
+
+        await updateSkillLevel(feedback.athleteId, skill, newLevel, feedback.coachId);
+        updatedSkills.push(skill);
+      } catch (error) {
+        logger.error('group_skill_update_failed', { skill, athleteId: feedback.athleteId, error });
+      }
+    }
+  }
+
+  logger.info('group_feedback_processed', {
+    feedbackId: feedback.id,
+    athleteId: feedback.athleteId,
+    sessionId: feedback.sessionId,
+    skillsUpdated: updatedSkills.length,
+  });
+
+  return {
+    skillsUpdated: updatedSkills.length > 0,
+    updatedSkills,
+  };
+}
+
+/**
+ * Get combined feedback from both 1:1 and group sessions for an athlete
+ */
+async function getAllFeedbackForAthlete(
+  athleteId: string,
+  viewerRole: 'coach' | 'parent' | 'athlete',
+  limit?: number
+): Promise<{
+  oneOnOneFeedback: SessionFeedback[];
+  groupFeedback: GroupFeedback[];
+  combined: Array<{
+    type: '1on1' | 'group';
+    date: string;
+    coachName: string;
+    overallRating: number;
+    effortRating: number;
+    publicNotes?: string;
+    skillsWorkedOn: string[];
+  }>;
+}> {
+  // Get 1:1 feedback using existing function
+  const oneOnOneFeedback = await getFeedbackForAthlete(athleteId, viewerRole, limit);
+
+  // Import group session service dynamically to avoid circular dependency
+  const { groupSessionService } = await import('./group-session-service');
+  let groupFeedback = await groupSessionService.getAthleteFeedbackFromGroupSessions(athleteId);
+
+  // Filter group feedback based on visibility for non-coaches
+  if (viewerRole !== 'coach') {
+    // Remove private notes for parents and athletes
+    groupFeedback = groupFeedback.map(f => ({ ...f, privateNotes: '' }));
+  }
+
+  // Create combined array sorted by date
+  const combined: Array<{
+    type: '1on1' | 'group';
+    date: string;
+    coachName: string;
+    overallRating: number;
+    effortRating: number;
+    publicNotes?: string;
+    skillsWorkedOn: string[];
+  }> = [];
+
+  // Add 1:1 feedback to combined
+  for (const fb of oneOnOneFeedback) {
+    combined.push({
+      type: '1on1',
+      date: fb.createdAt,
+      coachName: fb.coachName,
+      overallRating: fb.overallPerformance,
+      effortRating: fb.effortRating,
+      publicNotes: fb.publicSummary,
+      skillsWorkedOn: fb.skillsWorkedOn,
+    });
+  }
+
+  // Add group feedback to combined
+  for (const fb of groupFeedback) {
+    combined.push({
+      type: 'group',
+      date: fb.sessionDate,
+      coachName: fb.coachName,
+      overallRating: fb.overallRating,
+      effortRating: fb.effortRating,
+      publicNotes: fb.publicNotes,
+      skillsWorkedOn: fb.skillsWorkedOn,
+    });
+  }
+
+  // Sort by date, most recent first
+  combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Apply limit if specified
+  const limitedCombined = limit ? combined.slice(0, limit) : combined;
+
+  return {
+    oneOnOneFeedback,
+    groupFeedback,
+    combined: limitedCombined,
+  };
+}
+
 export const progressService = {
   // Skill levels
   getAthleteSkillLevels,
@@ -425,6 +554,10 @@ export const progressService = {
   addSessionFeedback,
   getSessionFeedback,
   getFeedbackForAthlete,
+
+  // Group session feedback
+  addGroupSessionFeedback,
+  getAllFeedbackForAthlete,
 
   // Goals
   getGoalsForAthlete,

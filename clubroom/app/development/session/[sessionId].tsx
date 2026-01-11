@@ -10,6 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
+import { VideoThumbnail } from '@/components/video/video-thumbnail';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -19,7 +20,8 @@ import { progressService } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { videoService, type LocalVideo } from '@/services/video-service';
 import { BadgeAwardModal } from '@/components/badges/badge-award-modal';
-import type { Session, BadgeAward } from '@/constants/types';
+import type { Session } from '@/constants/app-types';
+import type { BadgeAward } from '@/constants/types';
 
 const logger = createLogger('SessionDetailScreen');
 
@@ -648,27 +650,25 @@ export default function SessionDetailScreen() {
             </View>
 
             {sessionVideos.length > 0 ? (
-              <View style={styles.mediaList}>
+              <View style={styles.videoGrid}>
                 {sessionVideos.map((video, index) => (
-                  <SurfaceCard key={video.id} style={styles.mediaCard}>
-                    <View style={styles.mediaInfo}>
-                      <View style={[styles.videoThumbnail, { backgroundColor: `${palette.tint}15` }]}>
-                        <Ionicons name="videocam" size={18} color={palette.tint} />
+                  <View key={video.id} style={styles.videoItemWrapper}>
+                    <VideoThumbnail
+                      video={video}
+                      showTitle
+                      onPlaybackError={(error) => {
+                        logger.warn('Video playback error', { videoId: video.id, error });
+                      }}
+                    />
+                    <Clickable
+                      onPress={() => handleRemoveVideo(index, video.id)}
+                      style={styles.videoDeleteButton}
+                    >
+                      <View style={[styles.deleteButtonInner, { backgroundColor: Colors.light.error }]}>
+                        <Ionicons name="trash" size={14} color="#fff" />
                       </View>
-                      <View style={styles.videoDetails}>
-                        <ThemedText style={styles.mediaName} numberOfLines={1}>
-                          {video.title}
-                        </ThemedText>
-                        <ThemedText style={[styles.videoDuration, { color: palette.muted }]}>
-                          {video.duration ? `${Math.floor(video.duration / 60)}:${String(Math.floor(video.duration % 60)).padStart(2, '0')}` : 'Video'}
-                          {video.visibility === 'SHARED' && ' - Shared'}
-                        </ThemedText>
-                      </View>
-                    </View>
-                    <Clickable onPress={() => handleRemoveVideo(index, video.id)}>
-                      <Ionicons name="trash-outline" size={20} color={Colors.light.error} />
                     </Clickable>
-                  </SurfaceCard>
+                  </View>
                 ))}
               </View>
             ) : (
@@ -1005,6 +1005,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
     fontWeight: '500',
+  },
+  videoGrid: {
+    gap: Spacing.md,
+  },
+  videoItemWrapper: {
+    position: 'relative',
+  },
+  videoDeleteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  deleteButtonInner: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
   },
   videoThumbnail: {
     width: 40,

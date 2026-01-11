@@ -776,6 +776,25 @@ export interface GroupRegistration {
   paidAt?: string;
   attendedDates: string[];
   notes?: string;
+  isWalkIn?: boolean; // True for walk-in attendees not in system
+}
+
+export interface GroupFeedback {
+  id: string;
+  sessionId: string;
+  sessionName: string;
+  sessionDate: string;
+  athleteId: string;
+  athleteName: string;
+  coachId: string;
+  coachName: string;
+  overallRating: number; // 1-5
+  effortRating: number; // 1-5
+  skillsWorkedOn: FootballObjective[];
+  publicNotes: string; // Parent-visible notes
+  privateNotes: string; // Coach-only notes
+  badgesAwarded?: string[];
+  createdAt: string;
 }
 
 // ============================================================================

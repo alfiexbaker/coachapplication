@@ -14,7 +14,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective, RecurringPattern } from '@/constants/types';
+import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective, RecurringPattern, GroupFeedback } from '@/constants/types';
 import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
 import { clubSettingsService } from './club-settings-service';
@@ -22,6 +22,7 @@ import { clubService } from './club-service';
 
 const SESSIONS_STORAGE_KEY = 'group_sessions';
 const REGISTRATIONS_STORAGE_KEY = 'group_registrations';
+const GROUP_FEEDBACK_STORAGE_KEY = '@group_feedback';
 const USE_MOCK = true;
 
 // Mock group sessions
@@ -916,5 +917,377 @@ export const groupSessionService = {
   getNextTrainingDate(session: GroupSession): GroupSessionSchedule | null {
     const today = new Date().toISOString().split('T')[0];
     return session.schedule.find((s) => s.date >= today) || null;
+  },
+
+  /**
+   * Add attendee to session (manual add / walk-in)
+   * Used by coaches to manually add athletes or walk-ins to a session
+   */
+  async addAttendee(
+    sessionId: string,
+    attendee: {
+      athleteId?: string;
+      athleteName: string;
+      parentId?: string;
+      parentName?: string;
+      isWalkIn: boolean;
+      overrideCapacity?: boolean;
+    }
+  ): Promise<GroupRegistration> {
+    if (USE_MOCK) {
+      sessionsCache = await loadSessions();
+      registrationsCache = await loadRegistrations();
+
+      const session = sessionsCache.find((s) => s.id === sessionId);
+      if (!session) throw new Error('Session not found');
+
+      // Check if athlete is already registered (if not a walk-in)
+      if (attendee.athleteId) {
+        const existingReg = registrationsCache.find(
+          (r) => r.sessionId === sessionId &&
+                 r.athleteId === attendee.athleteId &&
+                 r.status !== 'CANCELLED'
+        );
+        if (existingReg) {
+          throw new Error('Athlete is already registered for this session');
+        }
+      }
+
+      // Check capacity (unless override)
+      const isFull = session.currentParticipants >= session.maxParticipants;
+      const shouldWaitlist = isFull && !attendee.overrideCapacity && session.waitlistEnabled;
+
+      const registration: GroupRegistration = {
+        id: `reg_${Date.now()}`,
+        sessionId,
+        athleteId: attendee.athleteId || `walkin_${Date.now()}`,
+        athleteName: attendee.athleteName,
+        parentId: attendee.parentId || '',
+        parentName: attendee.parentName || '',
+        status: shouldWaitlist ? 'WAITLISTED' : 'REGISTERED',
+        registeredAt: new Date().toISOString(),
+        paidAt: shouldWaitlist ? undefined : new Date().toISOString(),
+        attendedDates: [],
+        isWalkIn: attendee.isWalkIn,
+      };
+
+      registrationsCache.push(registration);
+      await saveRegistrations(registrationsCache);
+
+      // Update session counts
+      if (shouldWaitlist) {
+        session.waitlistCount += 1;
+      } else {
+        session.currentParticipants += 1;
+        if (session.currentParticipants >= session.maxParticipants && !attendee.overrideCapacity) {
+          session.status = 'FULL';
+        }
+      }
+      await saveSessions(sessionsCache);
+
+      // Send notification to parent if applicable
+      if (attendee.parentId && !attendee.isWalkIn) {
+        try {
+          await notificationService.create({
+            id: `notif_session_added_${Date.now()}_${attendee.parentId}`,
+            type: 'booking',
+            notificationType: 'SESSION_REMINDER',
+            title: 'Added to Session',
+            body: `${attendee.athleteName} was added to "${session.title}"`,
+            recipientId: attendee.parentId,
+            recipientRole: 'parent',
+            deepLink: `/group-sessions/${sessionId}`,
+            data: { sessionId },
+            timeLabel: 'Just now',
+          });
+        } catch (error) {
+          console.error('[GroupSessionService] Failed to send notification:', error);
+        }
+      }
+
+      return registration;
+    }
+
+    const response = await fetch(`/api/group-sessions/${sessionId}/attendees`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(attendee),
+    });
+    return response.json();
+  },
+
+  /**
+   * Mark attendance for multiple registrations at once (bulk operation)
+   */
+  async markBulkAttendance(
+    sessionId: string,
+    registrationIds: string[],
+    attended: boolean,
+    date: string
+  ): Promise<GroupRegistration[]> {
+    if (USE_MOCK) {
+      registrationsCache = await loadRegistrations();
+      const updated: GroupRegistration[] = [];
+
+      for (const regId of registrationIds) {
+        const registration = registrationsCache.find((r) => r.id === regId);
+        if (!registration || registration.sessionId !== sessionId) continue;
+
+        if (attended) {
+          if (!registration.attendedDates.includes(date)) {
+            registration.attendedDates.push(date);
+          }
+          registration.status = 'ATTENDED';
+        } else {
+          registration.attendedDates = registration.attendedDates.filter((d) => d !== date);
+          if (registration.attendedDates.length === 0) {
+            registration.status = 'REGISTERED';
+          }
+        }
+        updated.push(registration);
+      }
+
+      await saveRegistrations(registrationsCache);
+      return updated;
+    }
+
+    const response = await fetch(`/api/group-sessions/${sessionId}/attendance/bulk`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ registrationIds, attended, date }),
+    });
+    return response.json();
+  },
+
+  /**
+   * Auto-mark no-shows after session end time passes
+   * Anyone not marked as ATTENDED becomes NO_SHOW
+   */
+  async autoMarkNoShows(sessionId: string, date: string): Promise<number> {
+    if (USE_MOCK) {
+      registrationsCache = await loadRegistrations();
+      let noShowCount = 0;
+
+      for (const registration of registrationsCache) {
+        if (
+          registration.sessionId === sessionId &&
+          registration.status === 'REGISTERED' &&
+          !registration.attendedDates.includes(date)
+        ) {
+          registration.status = 'NO_SHOW';
+          noShowCount++;
+        }
+      }
+
+      if (noShowCount > 0) {
+        await saveRegistrations(registrationsCache);
+      }
+
+      return noShowCount;
+    }
+
+    const response = await fetch(`/api/group-sessions/${sessionId}/no-shows`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date }),
+    });
+    const result = await response.json();
+    return result.noShowCount;
+  },
+
+  /**
+   * Get attendance stats for a session
+   */
+  async getAttendanceStats(sessionId: string): Promise<{
+    registered: number;
+    attended: number;
+    noShow: number;
+    waitlisted: number;
+  }> {
+    if (USE_MOCK) {
+      registrationsCache = await loadRegistrations();
+      const sessionRegs = registrationsCache.filter(
+        (r) => r.sessionId === sessionId && r.status !== 'CANCELLED'
+      );
+
+      return {
+        registered: sessionRegs.filter((r) => r.status === 'REGISTERED').length,
+        attended: sessionRegs.filter((r) => r.status === 'ATTENDED').length,
+        noShow: sessionRegs.filter((r) => r.status === 'NO_SHOW').length,
+        waitlisted: sessionRegs.filter((r) => r.status === 'WAITLISTED').length,
+      };
+    }
+
+    const response = await fetch(`/api/group-sessions/${sessionId}/attendance/stats`);
+    return response.json();
+  },
+
+  // =========================================================================
+  // GROUP SESSION FEEDBACK
+  // =========================================================================
+
+  /**
+   * Save feedback for one athlete in a group session
+   */
+  async saveGroupSessionFeedback(
+    sessionId: string,
+    athleteId: string,
+    feedback: Omit<GroupFeedback, 'id' | 'createdAt'>
+  ): Promise<GroupFeedback> {
+    const storageKey = `${GROUP_FEEDBACK_STORAGE_KEY}_${sessionId}`;
+
+    try {
+      const existingJson = await AsyncStorage.getItem(storageKey);
+      const existing: GroupFeedback[] = existingJson ? JSON.parse(existingJson) : [];
+
+      // Check if feedback already exists for this athlete
+      const existingIndex = existing.findIndex(f => f.athleteId === athleteId);
+
+      const newFeedback: GroupFeedback = {
+        ...feedback,
+        id: existingIndex >= 0 ? existing[existingIndex].id : `gf_${Date.now()}_${athleteId}`,
+        createdAt: existingIndex >= 0 ? existing[existingIndex].createdAt : new Date().toISOString(),
+      };
+
+      if (existingIndex >= 0) {
+        // Update existing feedback
+        existing[existingIndex] = newFeedback;
+      } else {
+        // Add new feedback
+        existing.push(newFeedback);
+      }
+
+      await AsyncStorage.setItem(storageKey, JSON.stringify(existing));
+
+      console.log('[GroupSessionService] Feedback saved:', {
+        sessionId,
+        athleteId,
+        feedbackId: newFeedback.id,
+      });
+
+      return newFeedback;
+    } catch (error) {
+      console.error('[GroupSessionService] Failed to save feedback:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get all feedback for a group session
+   */
+  async getGroupSessionFeedback(sessionId: string): Promise<GroupFeedback[]> {
+    const storageKey = `${GROUP_FEEDBACK_STORAGE_KEY}_${sessionId}`;
+
+    try {
+      const json = await AsyncStorage.getItem(storageKey);
+      return json ? JSON.parse(json) : [];
+    } catch (error) {
+      console.error('[GroupSessionService] Failed to get feedback:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get feedback for a specific athlete in a group session
+   */
+  async getAthleteFeedbackForSession(sessionId: string, athleteId: string): Promise<GroupFeedback | null> {
+    const feedback = await this.getGroupSessionFeedback(sessionId);
+    return feedback.find(f => f.athleteId === athleteId) || null;
+  },
+
+  /**
+   * Mark a group session as completed (all feedback done)
+   */
+  async completeGroupSession(sessionId: string): Promise<GroupSession> {
+    if (USE_MOCK) {
+      sessionsCache = await loadSessions();
+      const session = sessionsCache.find((s) => s.id === sessionId);
+      if (!session) throw new Error('Session not found');
+
+      session.status = 'COMPLETED';
+      await saveSessions(sessionsCache);
+
+      console.log('[GroupSessionService] Session marked complete:', sessionId);
+      return session;
+    }
+
+    const response = await fetch(`/api/group-sessions/${sessionId}/complete`, {
+      method: 'PATCH',
+    });
+    return response.json();
+  },
+
+  /**
+   * Get all group session feedback for a specific athlete (across all sessions)
+   */
+  async getAthleteFeedbackFromGroupSessions(athleteId: string): Promise<GroupFeedback[]> {
+    const allFeedback: GroupFeedback[] = [];
+
+    try {
+      // Get all storage keys that match the feedback pattern
+      const allKeys = await AsyncStorage.getAllKeys();
+      const feedbackKeys = allKeys.filter(key => key.startsWith(GROUP_FEEDBACK_STORAGE_KEY));
+
+      for (const key of feedbackKeys) {
+        const json = await AsyncStorage.getItem(key);
+        if (json) {
+          const sessionFeedback: GroupFeedback[] = JSON.parse(json);
+          const athleteFeedback = sessionFeedback.filter(f => f.athleteId === athleteId);
+          allFeedback.push(...athleteFeedback);
+        }
+      }
+
+      // Sort by date, most recent first
+      allFeedback.sort((a, b) =>
+        new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
+      );
+
+      return allFeedback;
+    } catch (error) {
+      console.error('[GroupSessionService] Failed to get athlete feedback:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Check if feedback has been given for a session
+   */
+  async hasFeedbackForSession(sessionId: string): Promise<boolean> {
+    const feedback = await this.getGroupSessionFeedback(sessionId);
+    return feedback.length > 0;
+  },
+
+  /**
+   * Get feedback completion status for a session
+   */
+  async getFeedbackCompletionStatus(sessionId: string): Promise<{
+    total: number;
+    completed: number;
+    pending: number;
+    athletes: Array<{ athleteId: string; athleteName: string; hasFeedback: boolean }>;
+  }> {
+    const [roster, feedback] = await Promise.all([
+      this.getSessionRoster(sessionId),
+      this.getGroupSessionFeedback(sessionId),
+    ]);
+
+    // Only count attended athletes
+    const attendedRoster = roster.filter(r => r.status === 'ATTENDED');
+    const feedbackAthleteIds = new Set(feedback.map(f => f.athleteId));
+
+    const athletes = attendedRoster.map(r => ({
+      athleteId: r.athleteId,
+      athleteName: r.athleteName,
+      hasFeedback: feedbackAthleteIds.has(r.athleteId),
+    }));
+
+    const completed = athletes.filter(a => a.hasFeedback).length;
+
+    return {
+      total: athletes.length,
+      completed,
+      pending: athletes.length - completed,
+      athletes,
+    };
   },
 };

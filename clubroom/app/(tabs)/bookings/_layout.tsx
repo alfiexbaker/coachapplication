@@ -25,6 +25,12 @@ export default function BookingsLayout() {
         }}
       />
       <Stack.Screen
+        name="today"
+        options={{
+          headerShown: false, // Hide header on today's sessions dashboard
+        }}
+      />
+      <Stack.Screen
         name="[id]"
         options={{
           title: 'Session Details',
@@ -40,6 +46,12 @@ export default function BookingsLayout() {
         name="statistics"
         options={{
           title: 'Progress & Stats',
+        }}
+      />
+      <Stack.Screen
+        name="session-feedback"
+        options={{
+          title: 'Session Feedback',
         }}
       />
       <Stack.Screen

@@ -2,7 +2,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
+import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
 
@@ -23,19 +23,49 @@ function Clickable({ onPress, style, children }: ClickableProps) {
   );
 }
 
-export type TabType = 'list' | 'create';
+export type TabType = 'today' | 'list' | 'create';
 
 export interface CoachTabNavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  todaySessionCount?: number;
 }
 
-export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigationProps) {
+export function CoachTabNavigation({ activeTab, onTabChange, todaySessionCount = 0 }: CoachTabNavigationProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
   return (
     <View style={styles.tabContainer}>
+      <Clickable
+        onPress={() => onTabChange('today')}
+        style={[
+          styles.tab,
+          activeTab === 'today' && { ...styles.activeTab, borderBottomColor: palette.success },
+        ]}>
+        <View style={styles.tabContent}>
+          <Ionicons
+            name="today-outline"
+            size={20}
+            color={activeTab === 'today' ? palette.success : palette.icon}
+          />
+          <ThemedText
+            style={[
+              styles.tabText,
+              activeTab === 'today' && { color: palette.success, fontWeight: '700' },
+            ]}>
+            Today
+          </ThemedText>
+          {todaySessionCount > 0 && (
+            <View style={[styles.badge, { backgroundColor: palette.success }]}>
+              <ThemedText style={styles.badgeText} lightColor="#FFFFFF" darkColor="#000000">
+                {todaySessionCount}
+              </ThemedText>
+            </View>
+          )}
+        </View>
+      </Clickable>
+
       <Clickable
         onPress={() => onTabChange('list')}
         style={[
@@ -52,7 +82,7 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
             styles.tabText,
             activeTab === 'list' && { color: palette.tint, fontWeight: '700' },
           ]}>
-          Bookings List
+          All Sessions
         </ThemedText>
       </Clickable>
 
@@ -72,7 +102,7 @@ export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigatio
             styles.tabText,
             activeTab === 'create' && { color: palette.tint, fontWeight: '700' },
           ]}>
-          Create Booking
+          Create
         </ThemedText>
       </Clickable>
     </View>
@@ -84,7 +114,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     marginBottom: 12,
-    gap: 10,
+    gap: 6,
   },
   tab: {
     flex: 1,
@@ -96,12 +126,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   activeTab: {
     borderBottomWidth: 2,
   },
   tabText: {
-    fontSize: scaleFont(14),
-    fontWeight: '700',
+    fontSize: scaleFont(13),
+    fontWeight: '600',
     letterSpacing: -0.2,
+  },
+  badge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -23,6 +23,9 @@ import { BookingsList, TimeFilter } from '@/components/bookings/BookingsList';
 import { CreateSessionForm, SessionType, RecurrenceType } from '@/components/bookings/CreateSessionForm';
 import { CoachTabNavigation, TabType } from '@/components/bookings/CoachTabNavigation';
 
+// Inline Today's Dashboard component
+import TodayDashboard from './today';
+
 const logger = createLogger('BookingsScreen');
 
 export default function BookingsScreen() {
@@ -31,11 +34,13 @@ export default function BookingsScreen() {
   const { currentUser } = useAuth();
   const [sessionBookings, setSessionBookings] = useState<BookingSummary[]>([]);
   const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
-  const [activeTab, setActiveTab] = useState<TabType>('list');
+  // Default to "today" tab for coaches
+  const [activeTab, setActiveTab] = useState<TabType>('today');
   const [sessionType, setSessionType] = useState<SessionType>('1on1');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [todaySessionCount, setTodaySessionCount] = useState(0);
 
   // Form state for creating session offerings
   const [sessionTitle, setSessionTitle] = useState('');
@@ -101,12 +106,47 @@ export default function BookingsScreen() {
     }
   }, []);
 
+  // Count today's sessions
+  const loadTodaySessionCount = useCallback(async () => {
+    if (currentUser?.role !== 'COACH') return;
+
+    const todayString = new Date().toISOString().split('T')[0];
+    let count = 0;
+
+    try {
+      // Count session bookings for today
+      const storedBookings = await AsyncStorage.getItem('session_bookings');
+      if (storedBookings) {
+        const bookings = JSON.parse(storedBookings);
+        count += bookings.filter((b: any) => {
+          const bookingDate = b.scheduledAt?.split('T')[0];
+          return bookingDate === todayString && b.coachId === currentUser?.id;
+        }).length;
+      }
+
+      // Count session offerings for today
+      const storedOfferings = await AsyncStorage.getItem('session_offerings');
+      if (storedOfferings) {
+        const offerings = JSON.parse(storedOfferings);
+        count += offerings.filter((o: SessionOffering) => {
+          const offeringDate = o.scheduledAt?.split('T')[0];
+          return offeringDate === todayString && o.coachId === currentUser?.id;
+        }).length;
+      }
+
+      setTodaySessionCount(count);
+    } catch (error) {
+      logger.error('Failed to count today sessions', error);
+    }
+  }, [currentUser]);
+
   // Reload bookings when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadSessionBookings();
       loadSessionOfferings();
-    }, [loadSessionBookings, loadSessionOfferings])
+      loadTodaySessionCount();
+    }, [loadSessionBookings, loadSessionOfferings, loadTodaySessionCount])
   );
 
   // Create a new session offering
@@ -289,21 +329,32 @@ export default function BookingsScreen() {
 
       {/* Tab Navigation for Coaches */}
       {userRole === 'COACH' && (
-        <CoachTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <CoachTabNavigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          todaySessionCount={todaySessionCount}
+        />
       )}
 
-      {/* Quick Actions - Role-based */}
-      <QuickActions
-        userRole={userRole}
-        onMyGoalsPress={handleMyGoalsPress}
-        onProgressPress={handleProgressPress}
-        onCalendarPress={handleCalendarPress}
-        onSettingsPress={handleSettingsPress}
-        showCoachActions={activeTab === 'list'}
-      />
+      {/* Today's Dashboard - Only for coaches on 'today' tab */}
+      {userRole === 'COACH' && activeTab === 'today' && (
+        <TodayDashboard embedded />
+      )}
+
+      {/* Quick Actions - Role-based (hide for coaches on 'today' tab) */}
+      {!(userRole === 'COACH' && activeTab === 'today') && (
+        <QuickActions
+          userRole={userRole}
+          onMyGoalsPress={handleMyGoalsPress}
+          onProgressPress={handleProgressPress}
+          onCalendarPress={handleCalendarPress}
+          onSettingsPress={handleSettingsPress}
+          showCoachActions={activeTab === 'list'}
+        />
+      )}
 
       {/* Bookings List - Show for all users, or coaches on 'list' tab */}
-      {(userRole !== 'COACH' || activeTab === 'list') && (
+      {(userRole !== 'COACH' || activeTab === 'list') && activeTab !== 'today' && (
         <BookingsList
           items={displayItems}
           timeFilter={timeFilter}

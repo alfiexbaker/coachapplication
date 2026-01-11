@@ -27,6 +27,11 @@ export default function GroupSessionDetailScreen() {
   const [roster, setRoster] = useState<GroupRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState<{
+    total: number;
+    completed: number;
+    pending: number;
+  } | null>(null);
 
   const isCoach = currentUser?.id === session?.coachId;
   const isParent = currentUser?.role === 'PARENT';
@@ -39,12 +44,18 @@ export default function GroupSessionDetailScreen() {
     if (!id) return;
     setLoading(true);
     try {
-      const [sessionData, rosterData] = await Promise.all([
+      const [sessionData, rosterData, feedbackData] = await Promise.all([
         groupSessionService.getSession(id),
         groupSessionService.getSessionRoster(id),
+        groupSessionService.getFeedbackCompletionStatus(id),
       ]);
       setSession(sessionData);
       setRoster(rosterData);
+      setFeedbackStatus({
+        total: feedbackData.total,
+        completed: feedbackData.completed,
+        pending: feedbackData.pending,
+      });
     } catch (error) {
       console.error('Failed to load session:', error);
     } finally {
@@ -137,7 +148,10 @@ export default function GroupSessionDetailScreen() {
     TEAM_TRAINING: '#2E8B57',
     OPEN_SESSION: '#4169E1',
     TRIAL: '#20B2AA',
+    TRAINING: '#3B82F6',
   };
+
+  const isCompleted = session.status === 'COMPLETED';
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -171,6 +185,12 @@ export default function GroupSessionDetailScreen() {
               {groupSessionService.formatSessionType(session.sessionType)}
             </ThemedText>
           </View>
+          {isCompleted && (
+            <View style={[styles.completedBadge, { backgroundColor: palette.success }]}>
+              <Ionicons name="checkmark-circle" size={14} color="#fff" />
+              <ThemedText style={styles.completedText}>Completed</ThemedText>
+            </View>
+          )}
         </View>
 
         <View style={styles.content}>
@@ -362,13 +382,50 @@ export default function GroupSessionDetailScreen() {
                   View Roster ({roster.length})
                 </ThemedText>
               </Clickable>
-              <Clickable
-                onPress={handleCancel}
-                style={[styles.coachActionButton, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}
-              >
-                <Ionicons name="close-circle" size={20} color={palette.error} />
-                <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Cancel Session</ThemedText>
-              </Clickable>
+
+              {/* Feedback Card */}
+              {feedbackStatus && feedbackStatus.total > 0 && (
+                <Clickable
+                  onPress={() => router.push(`/group-sessions/${id}/feedback`)}
+                  style={[
+                    styles.coachActionButton,
+                    {
+                      backgroundColor: feedbackStatus.completed === feedbackStatus.total
+                        ? `${palette.success}10`
+                        : `${palette.tint}08`,
+                      borderColor: feedbackStatus.completed === feedbackStatus.total
+                        ? palette.success
+                        : palette.tint,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={feedbackStatus.completed === feedbackStatus.total ? 'checkmark-circle' : 'clipboard-outline'}
+                    size={20}
+                    color={feedbackStatus.completed === feedbackStatus.total ? palette.success : palette.tint}
+                  />
+                  <ThemedText
+                    style={{
+                      color: feedbackStatus.completed === feedbackStatus.total ? palette.success : palette.tint,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {feedbackStatus.completed === feedbackStatus.total
+                      ? 'Feedback Complete'
+                      : `Give Feedback (${feedbackStatus.completed}/${feedbackStatus.total})`}
+                  </ThemedText>
+                </Clickable>
+              )}
+
+              {session.status !== 'COMPLETED' && (
+                <Clickable
+                  onPress={handleCancel}
+                  style={[styles.coachActionButton, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}
+                >
+                  <Ionicons name="close-circle" size={20} color={palette.error} />
+                  <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Cancel Session</ThemedText>
+                </Clickable>
+              )}
             </View>
           )}
 
@@ -452,6 +509,24 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   typeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  completedBadge: {
+    position: 'absolute',
+    bottom: Spacing.md,
+    right: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: Radii.sm,
+  },
+  completedText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '700',

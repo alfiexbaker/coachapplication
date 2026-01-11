@@ -1,15 +1,20 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { VideoThumbnail, VideoEmptyState, VideoUnavailable } from '@/components/video/video-thumbnail';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_SESSIONS, formatDate } from '@/constants/mock-data';
+import { videoService, type LocalVideo } from '@/services/video-service';
 import { createLogger } from '@/utils/logger';
+import type { Session } from '@/constants/app-types';
 
 const logger = createLogger('AthleteSessionDetailScreen');
 
@@ -18,20 +23,106 @@ export default function AthleteSessionDetailScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const session = MOCK_SESSIONS.find(s => s.id === sessionId);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sessionVideos, setSessionVideos] = useState<LocalVideo[]>([]);
+  const [unavailableVideos, setUnavailableVideos] = useState<string[]>([]);
+
+  // Load session from AsyncStorage or mock data
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        // Try AsyncStorage first (for real sessions)
+        const storedSessions = await AsyncStorage.getItem('coach_sessions');
+        let foundSession: Session | undefined;
+
+        if (storedSessions) {
+          const sessions = JSON.parse(storedSessions);
+          foundSession = sessions.find((s: Session) => s.id === sessionId);
+        }
+
+        // Fallback to mock data if not in AsyncStorage
+        if (!foundSession) {
+          foundSession = MOCK_SESSIONS.find(s => s.id === sessionId);
+        }
+
+        if (foundSession) {
+          setSession(foundSession);
+
+          // Load real videos for this session
+          const videos = await videoService.getVideosBySession(sessionId!);
+          setSessionVideos(videos);
+
+          logger.debug('Session and videos loaded', {
+            sessionId,
+            videoCount: videos.length,
+          });
+        }
+      } catch (error) {
+        logger.error('Failed to load session', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSession();
+  }, [sessionId]);
+
+  const handleVideoError = (videoTitle: string) => {
+    Alert.alert(
+      'Video Unavailable',
+      `"${videoTitle}" could not be loaded. The video file may have been moved or deleted.`
+    );
+  };
+
+  const handleRemoveUnavailableVideo = async (videoId: string) => {
+    Alert.alert(
+      'Remove Video Reference',
+      'This will remove the broken video reference. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            await videoService.deleteLocalVideo(videoId);
+            setSessionVideos(prev => prev.filter(v => v.id !== videoId));
+          },
+        },
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <View style={styles.loadingContainer}>
+          <ThemedText>Loading session...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!session) {
-    return null;
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
+        <View style={styles.loadingContainer}>
+          <ThemedText>Session not found</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   const hasNotes = session.notes && session.notes.trim() !== '';
-  const hasVideos = session.videoUrls && session.videoUrls.length > 0;
+  // Now check for real videos, not just legacy videoUrls
+  const hasVideos = sessionVideos.length > 0 || (session.videoUrls && session.videoUrls.length > 0);
   const hasSkills = session.skillsWorkedOn && session.skillsWorkedOn.length > 0;
 
   logger.debug('Athlete session detail rendered', {
     sessionId,
     hasNotes,
     hasVideos,
+    videoCount: sessionVideos.length,
     hasSkills,
   });
 
@@ -97,7 +188,7 @@ export default function AthleteSessionDetailScreen() {
             </ThemedText>
             <SurfaceCard style={styles.skillsCard}>
               <View style={styles.skillsGrid}>
-                {session.skillsWorkedOn.map((skill, index) => (
+                {session.skillsWorkedOn.map((skill: string, index: number) => (
                   <View
                     key={index}
                     style={[styles.skillChip, { backgroundColor: palette.tint + '20' }]}
@@ -145,7 +236,7 @@ export default function AthleteSessionDetailScreen() {
               Next Session Focus
             </ThemedText>
             <SurfaceCard style={styles.focusCard}>
-              {session.nextFocusAreas.map((area, index) => (
+              {session.nextFocusAreas.map((area: string, index: number) => (
                 <View key={index} style={styles.focusItem}>
                   <Ionicons name="checkmark-circle" size={20} color={palette.tint} />
                   <ThemedText style={styles.focusText}>{area}</ThemedText>
@@ -161,19 +252,59 @@ export default function AthleteSessionDetailScreen() {
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               Session Videos
             </ThemedText>
+            <ThemedText style={[styles.videoHint, { color: palette.muted }]}>
+              Tap a video to watch
+            </ThemedText>
             <View style={styles.videoList}>
-              {session.videoUrls!.map((url, index) => (
-                <SurfaceCard key={index} style={styles.videoCard}>
-                  <View style={styles.videoInfo}>
-                    <Ionicons name="videocam" size={20} color={palette.tint} />
-                    <ThemedText style={styles.videoName}>
-                      Video {index + 1}
-                    </ThemedText>
-                  </View>
-                  <Ionicons name="play-circle-outline" size={24} color={palette.tint} />
-                </SurfaceCard>
+              {/* Real videos from videoService */}
+              {sessionVideos.map((video) => (
+                <VideoThumbnail
+                  key={video.id}
+                  video={video}
+                  onPlaybackError={() => handleVideoError(video.title)}
+                  showTitle
+                />
               ))}
+
+              {/* Legacy video URLs (for backward compatibility) */}
+              {sessionVideos.length === 0 && session.videoUrls && session.videoUrls.map((url: string, index: number) => {
+                // Convert legacy URL to LocalVideo format for thumbnail
+                const legacyVideo: LocalVideo = {
+                  id: `legacy_${index}`,
+                  localUri: url,
+                  title: `Session Video ${index + 1}`,
+                  athleteId: session.athleteId,
+                  athleteIds: [session.athleteId],
+                  athleteNames: [],
+                  coachId: '',
+                  coachName: session.coachName || 'Coach',
+                  sessionId: session.id,
+                  createdAt: session.completedAt,
+                  tags: [],
+                  visibility: 'SHARED',
+                  sharedWith: [],
+                  sharedToFeed: false,
+                };
+                return (
+                  <VideoThumbnail
+                    key={`legacy_${index}`}
+                    video={legacyVideo}
+                    onPlaybackError={() => handleVideoError(`Video ${index + 1}`)}
+                    showTitle
+                  />
+                );
+              })}
             </View>
+          </View>
+        )}
+
+        {/* No videos message when session has no videos */}
+        {!hasVideos && (
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Session Videos
+            </ThemedText>
+            <VideoEmptyState message="No videos have been added to this session yet" />
           </View>
         )}
       </ScrollView>
@@ -287,22 +418,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   videoList: {
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
-  videoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.md,
+  videoHint: {
+    fontSize: 13,
+    marginBottom: Spacing.xs,
   },
-  videoInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
+  loadingContainer: {
     flex: 1,
-  },
-  videoName: {
-    fontSize: 14,
-    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
