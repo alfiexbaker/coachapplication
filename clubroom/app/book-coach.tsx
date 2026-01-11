@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Alert, ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -15,7 +15,6 @@ import { ThemedText } from '@/components/themed-text';
 import {
   FOOTBALL_OBJECTIVES,
   SERVICES,
-  buildAvailability,
   formatServicePrice,
   resolveCoachAndProfile,
 } from '@/constants/booking-types';
@@ -24,8 +23,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useBookingPersona } from '@/hooks/use-booking-persona';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getChildrenForParent } from '@/constants/mock-data';
-import type { DayAvailability } from '@/constants/booking-types';
-import type { FootballObjective } from '@/constants/types';
+import { availabilityService } from '@/services/availability-service';
+import type { DayAvailability, SlotInstance } from '@/constants/booking-types';
+import type { FootballObjective, AvailabilitySlot } from '@/constants/types';
 import type { User } from '@/constants/app-types';
 
 const TOTAL_STEPS = { parent: 4, athlete: 3 } as const;
@@ -39,16 +39,102 @@ export default function BookCoachScreen() {
   const { persona, isParent, userId } = useBookingPersona();
 
   const { coach, coachProfile } = resolveCoachAndProfile(coachId);
-  const availability = useMemo(() => buildAvailability(), []);
 
-  // TODO: replace mock availability generation with live schedule data so parents and athletes stay in sync once APIs land.
+  // Real availability from coach's schedule
+  const [availability, setAvailability] = useState<DayAvailability[]>([]);
+  const [loadingAvailability, setLoadingAvailability] = useState(true);
   const [children, setChildren] = useState<User[]>([]);
   const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
   const [step, setStep] = useState(isParent ? 0 : 1);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
-  const [selectedDayId, setSelectedDayId] = useState<string | undefined>(availability[0]?.id);
+  const [selectedDayId, setSelectedDayId] = useState<string | undefined>();
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
   const [selectedObjectives, setSelectedObjectives] = useState<FootballObjective[]>([]);
+
+  // Fetch real availability from coach's schedule
+  const fetchAvailability = useCallback(async () => {
+    if (!coachId) return;
+
+    setLoadingAvailability(true);
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startDate = today.toISOString().split('T')[0];
+
+      // Get 14 days of availability
+      const endDateObj = new Date(today);
+      endDateObj.setDate(endDateObj.getDate() + 14);
+      const endDate = endDateObj.toISOString().split('T')[0];
+
+      // Get duration from selected service or default to 60 min
+      const duration = selectedServiceId
+        ? SERVICES.find(s => s.id === selectedServiceId)?.id === 'small-group' ? 90 : 60
+        : 60;
+
+      const slots = await availabilityService.getAvailableSlots(coachId, startDate, endDate, duration);
+
+      // Convert AvailabilitySlot[] to DayAvailability[]
+      const dayMap = new Map<string, SlotInstance[]>();
+
+      for (const slot of slots) {
+        if (!slot.isAvailable) continue; // Only show available slots
+
+        const slotDate = new Date(slot.date);
+        const [hours, minutes] = slot.startTime.split(':').map(Number);
+        slotDate.setHours(hours, minutes, 0, 0);
+
+        // Calculate duration from start and end time
+        const [endHours, endMinutes] = slot.endTime.split(':').map(Number);
+        const durationMinutes = (endHours * 60 + endMinutes) - (hours * 60 + minutes);
+
+        // Determine service type based on location or use default
+        const serviceType = selectedServiceId || '1-on-1';
+
+        const slotInstance: SlotInstance = {
+          id: `${slot.date}-${slot.startTime}`,
+          templateId: 'real',
+          title: selectedServiceId === 'small-group' ? 'Small Group Training' : '1-on-1 Training',
+          focus: 'Personalized coaching session',
+          start: slotDate,
+          durationMinutes,
+          tag: slot.bookedCount > 0 ? `${slot.maxBookings - slot.bookedCount} left` : 'Available',
+          serviceType,
+        };
+
+        const dayKey = slot.date;
+        if (!dayMap.has(dayKey)) {
+          dayMap.set(dayKey, []);
+        }
+        dayMap.get(dayKey)!.push(slotInstance);
+      }
+
+      // Convert map to array
+      const availabilityDays: DayAvailability[] = Array.from(dayMap.entries())
+        .map(([dateStr, daySlots]) => ({
+          id: dateStr,
+          date: new Date(dateStr),
+          slots: daySlots,
+        }))
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      setAvailability(availabilityDays);
+
+      // Set default selected day
+      if (availabilityDays.length > 0 && !selectedDayId) {
+        setSelectedDayId(availabilityDays[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch availability:', error);
+      setAvailability([]);
+    } finally {
+      setLoadingAvailability(false);
+    }
+  }, [coachId, selectedServiceId]);
+
+  // Fetch availability on mount and when service changes
+  useEffect(() => {
+    fetchAvailability();
+  }, [fetchAvailability]);
 
   useEffect(() => {
     if (persona === 'parent' && userId) {
@@ -227,14 +313,34 @@ export default function BookCoachScreen() {
         )}
 
         {step === 2 && (
-          <AvailabilityPicker
-            availability={filteredAvailability}
-            selectedDayId={selectedDayId}
-            selectedSlotId={selectedSlotId}
-            selectedService={selectedService}
-            onSelectDay={setSelectedDayId as (dayId: string) => void}
-            onSelectSlot={setSelectedSlotId as (slotId: string) => void}
-          />
+          loadingAvailability ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={palette.tint} />
+              <ThemedText style={{ color: palette.muted, marginTop: Spacing.md }}>
+                Loading available times...
+              </ThemedText>
+            </View>
+          ) : filteredAvailability.length === 0 ? (
+            <View style={styles.emptyAvailability}>
+              <Ionicons name="calendar-outline" size={48} color={palette.muted} />
+              <ThemedText type="defaultSemiBold" style={{ marginTop: Spacing.md }}>
+                No available slots
+              </ThemedText>
+              <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.xs }}>
+                This coach has no available times in the next 2 weeks.
+                Try a different service type or check back later.
+              </ThemedText>
+            </View>
+          ) : (
+            <AvailabilityPicker
+              availability={filteredAvailability}
+              selectedDayId={selectedDayId}
+              selectedSlotId={selectedSlotId}
+              selectedService={selectedService}
+              onSelectDay={setSelectedDayId as (dayId: string) => void}
+              onSelectSlot={setSelectedSlotId as (slotId: string) => void}
+            />
+          )
         )}
 
         {step === 3 && (
@@ -300,5 +406,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing['3xl'],
+  },
+  emptyAvailability: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing['3xl'],
+    paddingHorizontal: Spacing.xl,
   },
 });

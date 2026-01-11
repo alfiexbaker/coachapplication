@@ -12,11 +12,35 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot } from '@/constants/types';
+import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot, SessionOffering } from '@/constants/types';
 
 const TEMPLATE_STORAGE_KEY = 'availability_templates';
 const OVERRIDE_STORAGE_KEY = 'availability_overrides';
+const BOOKINGS_STORAGE_KEY = 'session_bookings';
+const SESSION_OFFERINGS_KEY = 'session_offerings';
 const USE_MOCK = true;
+
+// Helper to load existing bookings from storage
+async function loadBookings(): Promise<any[]> {
+  try {
+    const stored = await AsyncStorage.getItem(BOOKINGS_STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch (error) {
+    console.error('[AvailabilityService] Failed to load bookings:', error);
+  }
+  return [];
+}
+
+// Helper to load session offerings from storage
+async function loadSessionOfferings(): Promise<SessionOffering[]> {
+  try {
+    const stored = await AsyncStorage.getItem(SESSION_OFFERINGS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch (error) {
+    console.error('[AvailabilityService] Failed to load session offerings:', error);
+  }
+  return [];
+}
 
 // Mock templates for development
 const MOCK_TEMPLATES: AvailabilityTemplate[] = [
@@ -293,6 +317,7 @@ export const availabilityService = {
 
   /**
    * Get available slots for a date range (used by booking system)
+   * Now checks against existing bookings to show only truly available slots
    */
   async getAvailableSlots(
     coachId: string,
@@ -302,6 +327,26 @@ export const availabilityService = {
   ): Promise<AvailabilitySlot[]> {
     const templates = await this.getTemplates(coachId);
     const overrides = await this.getOverrides(coachId, startDate, endDate);
+
+    // Load existing bookings to check availability
+    const existingBookings = await loadBookings();
+    const sessionOfferings = await loadSessionOfferings();
+
+    // Filter bookings for this coach in the date range
+    const coachBookings = existingBookings.filter((booking: any) => {
+      if (booking.coachId !== coachId) return false;
+      if (booking.status === 'CANCELLED') return false;
+      const bookingDate = booking.scheduledAt?.split('T')[0];
+      return bookingDate >= startDate && bookingDate <= endDate;
+    });
+
+    // Filter session offerings for this coach
+    const coachOfferings = sessionOfferings.filter((offering) => {
+      if (offering.coachId !== coachId) return false;
+      if (offering.status === 'cancelled') return false;
+      const offeringDate = offering.scheduledAt?.split('T')[0];
+      return offeringDate >= startDate && offeringDate <= endDate;
+    });
 
     const slots: AvailabilitySlot[] = [];
     const start = new Date(startDate);
@@ -323,12 +368,19 @@ export const availabilityService = {
       if (override?.customSlots) {
         // Use custom slots for this date
         for (const customSlot of override.customSlots) {
+          const bookedCount = this.countBookingsForSlot(
+            coachBookings,
+            coachOfferings,
+            dateStr,
+            customSlot.startTime
+          );
+
           slots.push({
             date: dateStr,
             startTime: customSlot.startTime,
             endTime: customSlot.endTime,
-            isAvailable: true,
-            bookedCount: 0, // Would check bookings in real implementation
+            isAvailable: bookedCount < 1,
+            bookedCount,
             maxBookings: 1,
             location: customSlot.location,
           });
@@ -358,12 +410,22 @@ export const availabilityService = {
           const slotEndHour = Math.floor(slotEndMinutes / 60);
           const slotEndMin = slotEndMinutes % 60;
 
+          const slotStartTime = `${slotStartHour.toString().padStart(2, '0')}:${slotStartMin.toString().padStart(2, '0')}`;
+          const slotEndTime = `${slotEndHour.toString().padStart(2, '0')}:${slotEndMin.toString().padStart(2, '0')}`;
+
+          const bookedCount = this.countBookingsForSlot(
+            coachBookings,
+            coachOfferings,
+            dateStr,
+            slotStartTime
+          );
+
           slots.push({
             date: dateStr,
-            startTime: `${slotStartHour.toString().padStart(2, '0')}:${slotStartMin.toString().padStart(2, '0')}`,
-            endTime: `${slotEndHour.toString().padStart(2, '0')}:${slotEndMin.toString().padStart(2, '0')}`,
-            isAvailable: true,
-            bookedCount: 0, // Would check bookings in real implementation
+            startTime: slotStartTime,
+            endTime: slotEndTime,
+            isAvailable: bookedCount < template.maxConcurrent,
+            bookedCount,
             maxBookings: template.maxConcurrent,
             location: template.location,
           });
@@ -376,6 +438,81 @@ export const availabilityService = {
       if (dateCompare !== 0) return dateCompare;
       return a.startTime.localeCompare(b.startTime);
     });
+  },
+
+  /**
+   * Count bookings for a specific slot
+   */
+  countBookingsForSlot(
+    bookings: any[],
+    offerings: SessionOffering[],
+    date: string,
+    startTime: string
+  ): number {
+    let count = 0;
+
+    // Count from regular bookings
+    for (const booking of bookings) {
+      const bookingDate = booking.scheduledAt?.split('T')[0];
+      const bookingTime = booking.scheduledAt?.split('T')[1]?.substring(0, 5);
+      if (bookingDate === date && bookingTime === startTime) {
+        count++;
+      }
+    }
+
+    // Count from session offerings (for group sessions, count registrations)
+    for (const offering of offerings) {
+      const offeringDate = offering.scheduledAt?.split('T')[0];
+      const offeringTime = offering.scheduledAt?.split('T')[1]?.substring(0, 5);
+      if (offeringDate === date && offeringTime === startTime) {
+        // For session offerings, the slot is occupied
+        count += offering.registrations?.filter(r => r.status === 'confirmed').length || 1;
+      }
+    }
+
+    return count;
+  },
+
+  /**
+   * Get bookings for a coach within a date range
+   */
+  async getCoachBookings(
+    coachId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<any[]> {
+    const bookings = await loadBookings();
+    const offerings = await loadSessionOfferings();
+
+    // Filter bookings for this coach
+    const coachBookings = bookings.filter((booking: any) => {
+      if (booking.coachId !== coachId) return false;
+      const bookingDate = booking.scheduledAt?.split('T')[0];
+      return bookingDate >= startDate && bookingDate <= endDate;
+    });
+
+    // Get registrations from offerings
+    const coachOfferingBookings = offerings
+      .filter((offering) => offering.coachId === coachId)
+      .filter((offering) => {
+        const offeringDate = offering.scheduledAt?.split('T')[0];
+        return offeringDate >= startDate && offeringDate <= endDate;
+      })
+      .map((offering) => ({
+        id: offering.id,
+        coachId: offering.coachId,
+        coachName: offering.coachName,
+        scheduledAt: offering.scheduledAt,
+        service: offering.title,
+        location: offering.location,
+        status: offering.status === 'active' ? 'CONFIRMED' : offering.status?.toUpperCase(),
+        isGroupSession: offering.sessionType === 'group',
+        maxParticipants: offering.maxParticipants,
+        currentParticipants: offering.registrations?.filter(r => r.status === 'confirmed').length || 0,
+        registrations: offering.registrations,
+      }));
+
+    return [...coachBookings, ...coachOfferingBookings];
   },
 
   /**

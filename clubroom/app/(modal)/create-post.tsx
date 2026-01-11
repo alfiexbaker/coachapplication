@@ -1,137 +1,81 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Image, ScrollView } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { router } from 'expo-router';
-import { socialFeedService } from '@/services/social-feed-service';
+import { getClubMembershipForUser } from '@/constants/mock-data';
 
+/**
+ * Legacy create post screen.
+ * Redirects to club-centric posting if user has a club membership.
+ */
 export default function CreatePostScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
-  const [content, setContent] = useState('');
-  const [imageUri, setImageUri] = useState<string | null>(null);
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
-    });
+  const membership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+  useEffect(() => {
+    // Auto-redirect to club post creation if user has a club
+    if (membership?.clubId) {
+      router.replace({
+        pathname: '/(modal)/create-club-post',
+        params: { clubId: membership.clubId }
+      });
     }
-  };
+  }, [membership?.clubId]);
 
-  const removeImage = () => {
-    setImageUri(null);
-  };
-
-  const handlePost = () => {
-    if (!content.trim() && !imageUri) return;
-    if (!currentUser) return;
-
-    socialFeedService.addPost({
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      authorAvatar: currentUser.avatar,
-      content: content.trim(),
-      imageUrl: imageUri || undefined,
-      context: 'manual',
-    });
-
-    // Navigate back
-    router.back();
-  };
-
-  const canPost = content.trim().length > 0 || imageUri !== null;
-
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
-      {/* Header - Twitter/Facebook style */}
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="close" size={24} color={palette.foreground} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handlePost}
-          disabled={!canPost}
-          style={[
-            styles.postButton,
-            {
-              backgroundColor: canPost ? palette.tint : palette.border,
-              opacity: canPost ? 1 : 0.5,
-            },
-          ]}
-        >
-          <ThemedText style={styles.postButtonText}>Post</ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Author section - minimal like Twitter */}
-        <View style={styles.composerRow}>
-          <View style={[styles.avatar, { backgroundColor: palette.tint + '15' }]}>
-            <ThemedText style={styles.avatarEmoji}>{currentUser?.avatar || 'AA'}</ThemedText>
-          </View>
-
-          <View style={styles.composerContent}>
-            <TextInput
-              style={[styles.input, { color: palette.text }]}
-              placeholder="What's happening?"
-              placeholderTextColor={palette.muted}
-              value={content}
-              onChangeText={setContent}
-              multiline
-              autoFocus
-              maxLength={280}
-            />
-
-            {/* Image preview */}
-            {imageUri && (
-              <View style={styles.imagePreviewContainer}>
-                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                <TouchableOpacity
-                  style={[styles.removeImageButton, { backgroundColor: palette.background }]}
-                  onPress={removeImage}
-                >
-                  <Ionicons name="close" size={16} color={palette.foreground} />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
+  // Show redirect UI if no club membership
+  if (!membership?.clubId) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
+        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close" size={24} color={palette.foreground} />
+          </TouchableOpacity>
+          <ThemedText type="defaultSemiBold">New Post</ThemedText>
+          <View style={{ width: 24 }} />
         </View>
 
-        {/* Character count */}
-        {content.length > 0 && (
-          <View style={styles.charCountContainer}>
-            <ThemedText style={[styles.charCount, { color: content.length > 280 ? palette.error : palette.muted }]}>
-              {content.length}/280
+        <View style={styles.content}>
+          <SurfaceCard style={styles.card}>
+            <View style={[styles.iconContainer, { backgroundColor: `${palette.tint}10` }]}>
+              <Ionicons name="people" size={40} color={palette.tint} />
+            </View>
+            <ThemedText type="subtitle" style={styles.title}>
+              Join a Club to Post
             </ThemedText>
-          </View>
-        )}
-      </ScrollView>
+            <ThemedText style={[styles.description, { color: palette.muted }]}>
+              Social features are now part of your club experience. Join or create a club to start sharing with your community.
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: palette.tint }]}
+              onPress={() => {
+                router.back();
+                setTimeout(() => router.push('/(tabs)/club-hub'), 100);
+              }}
+            >
+              <Ionicons name="people" size={18} color="#fff" />
+              <ThemedText style={styles.buttonText}>Go to Club Hub</ThemedText>
+            </TouchableOpacity>
+          </SurfaceCard>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-      {/* Footer toolbar - like Twitter/Facebook */}
-      <View style={[styles.toolbar, { borderTopColor: palette.border, backgroundColor: palette.background }]}>
-        <TouchableOpacity
-          style={styles.toolbarButton}
-          onPress={pickImage}
-        >
-          <Ionicons name="image-outline" size={22} color={palette.tint} />
-        </TouchableOpacity>
-        <View style={styles.toolbarSpacer} />
+  // Show loading while redirecting
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
+      <View style={styles.loading}>
+        <ThemedText style={{ color: palette.muted }}>Loading...</ThemedText>
       </View>
     </SafeAreaView>
   );
@@ -141,7 +85,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Header - minimal Twitter/Facebook style
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -150,111 +93,48 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderBottomWidth: 0.5,
   },
-  postButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs / 2,
-    borderRadius: Radii.pill,
-    height: 32,
+  content: {
+    flex: 1,
     justifyContent: 'center',
-    minWidth: 64,
+    padding: Spacing.lg,
   },
-  postButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
+  card: {
+    alignItems: 'center',
+    padding: Spacing.xl,
+    gap: Spacing.md,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
     textAlign: 'center',
-  },
-
-  // Content area
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-
-  // Composer - Twitter layout with avatar on left
-  composerRow: {
-    flexDirection: 'row',
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarEmoji: {
-    fontSize: 20,
-  },
-  composerContent: {
-    flex: 1,
-    gap: Spacing.sm,
-  },
-  input: {
-    fontSize: 17,
-    lineHeight: 24,
-    fontWeight: '400',
-    minHeight: 100,
-    paddingTop: 2,
-  },
-
-  // Image preview
-  imagePreviewContainer: {
-    position: 'relative',
     marginTop: Spacing.sm,
-    borderRadius: Radii.md,
-    overflow: 'hidden',
   },
-  imagePreview: {
-    width: '100%',
-    height: 200,
-    borderRadius: Radii.md,
+  description: {
+    textAlign: 'center',
+    lineHeight: 22,
   },
-  removeImageButton: {
-    position: 'absolute',
-    top: Spacing.xs,
-    right: Spacing.xs,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-
-  // Character count
-  charCountContainer: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.xs,
-    alignItems: 'flex-end',
-  },
-  charCount: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-
-  // Footer toolbar - like Twitter
-  toolbar: {
+  button: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 0.5,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: Radii.md,
+    marginTop: Spacing.md,
   },
-  toolbarButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  loading: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  toolbarSpacer: {
-    flex: 1,
   },
 });

@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
-import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
+import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
+import { useToast } from '@/components/ui/toast';
+import { ClubHeader, ClubStatsRow } from '@/components/club/ClubHeader';
+import { MembersPanel } from '@/components/club/MembersPanel';
+import { SessionsPanel } from '@/components/club/SessionsPanel';
+import { MatchesPanel } from '@/components/club/MatchesPanel';
+import { FeedPost } from '@/components/club/FeedPost';
+import { JoinClubCard } from '@/components/club/JoinClubCard';
 import {
   clubInvites,
   getClubById,
@@ -17,82 +23,31 @@ import {
   getClubMembershipForUser,
   getClubSessions,
   getClubSquads,
+  togglePinPost,
 } from '@/constants/mock-data';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import type { BadgeAward, Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering } from '@/constants/types';
-import { badgeService } from '@/services/badge-service';
+import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering, Match } from '@/constants/types';
+import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
+import { groupSessionService } from '@/services/group-session-service';
+import { matchService } from '@/services/match-service';
+import type { GroupSession } from '@/constants/types';
 
-function FeedPost({ post }: { post: ClubFeedPost }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
-  const initials = post.postAs === 'club'
-    ? 'CL'
-    : (post.authorName?.slice(0, 2).toUpperCase() || 'ME');
+type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
 
-  return (
-    <View style={[styles.feedCard, { borderColor: palette.border }]}> 
-      <View style={styles.feedHeader}>
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}10`, borderColor: palette.border, borderWidth: 1 }]}>
-          <ThemedText style={styles.avatarText}>{initials}</ThemedText>
-        </View>
-        <View style={{ flex: 1, gap: 4 }}>
-          <ThemedText type="defaultSemiBold">{post.title}</ThemedText>
-          <ThemedText style={{ color: palette.muted }}>
-            {post.authorName} · {post.audienceLabel || post.audience}
-          </ThemedText>
-        </View>
-        {post.badgeAwarded ? <Chip dense active>{post.badgeAwarded}</Chip> : null}
-      </View>
-      <ThemedText style={{ lineHeight: 20 }}>{post.body}</ThemedText>
-      <View style={styles.feedFooter}>
-        <View style={styles.metaRow}>
-          <Ionicons name="time-outline" size={14} color={palette.icon} />
-          <ThemedText style={{ color: palette.muted }}>
-            {new Date(post.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </ThemedText>
-        </View>
-        <View style={styles.metaPills}>
-          {post.attachments?.length ? <Chip dense>Attachments ({post.attachments.length})</Chip> : null}
-          <Chip dense>{post.reactionCount ?? 0} reacts</Chip>
-          <Chip dense>{post.commentCount ?? 0} comments</Chip>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function SessionRow({ session }: { session: SessionOffering }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
-  return (
-    <View style={[styles.sessionRow, { borderColor: palette.border }]}> 
-      <View style={{ flex: 1, gap: 4 }}>
-        <ThemedText type="defaultSemiBold">{session.title}</ThemedText>
-        <ThemedText style={{ color: palette.muted }}>
-          {session.clubScope === 'squad' ? 'Squad' : 'Club'} · {session.location}
-        </ThemedText>
-        <View style={styles.metaRow}>
-          <Ionicons name="calendar" size={14} color={palette.icon} />
-          <ThemedText style={{ color: palette.muted }}>
-            {new Date(session.scheduledAt).toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' })}
-          </ThemedText>
-          <Ionicons name="person" size={14} color={palette.icon} />
-          <ThemedText style={{ color: palette.muted }}>
-            {session.registrations.length}/{session.maxParticipants} booked
-          </ThemedText>
-        </View>
-      </View>
-      <Chip dense>{session.footballSkill || 'Club'}</Chip>
-    </View>
-  );
-}
+const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = [
+  { key: 'all', label: 'All', icon: 'grid-outline' },
+  { key: 'announcement', label: 'Announcements', icon: 'megaphone-outline' },
+  { key: 'photo', label: 'Photos', icon: 'images-outline' },
+  { key: 'event', label: 'Events', icon: 'calendar-outline' },
+];
 
 export default function ClubHubScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const { showUndoToast, showToast } = useToast();
 
   const [membership, setMembership] = useState<ClubMembership | undefined>(() =>
     currentUser ? getClubMembershipForUser(currentUser.id) : undefined,
@@ -100,76 +55,155 @@ export default function ClubHubScreen() {
   const [club, setClub] = useState<Club | undefined>(() =>
     membership ? getClubById(membership.clubId) : undefined,
   );
-  const [feed, setFeed] = useState<ClubFeedPost[]>(membership ? getClubFeed(membership.clubId) : []);
-  const [sessions, setSessions] = useState<SessionOffering[]>(membership ? getClubSessions(membership.clubId) : []);
-  const [squads, setSquads] = useState<ClubSquad[]>(membership ? getClubSquads(membership.clubId) : []);
-  const [invites, setInvites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
-  const [joinCode, setJoinCode] = useState('');
-  const [newClubName, setNewClubName] = useState('');
-  const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
+  const [feed, setFeed] = useState<ClubFeedPost[]>([]);
+  const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
+  const [sessions] = useState<SessionOffering[]>(membership ? getClubSessions(membership.clubId) : []);
+  const [squads] = useState<ClubSquad[]>(membership ? getClubSquads(membership.clubId) : []);
+  const [invites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
+  const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
+  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
 
-  const statTiles = useMemo(
-    () => [
-      { label: 'Members', value: membership && club ? club.memberCount : '—' },
-      { label: 'Coaches', value: membership && club ? club.coachCount ?? '—' : '—' },
-      { label: 'Squads', value: membership && club ? squads.length : '—' },
-      { label: 'Sessions', value: membership && club ? sessions.length : '—' },
-    ],
-    [club, membership, squads.length, sessions.length],
-  );
+  // Member management state
+  const [members, setMembers] = useState<ClubMember[]>([]);
+  const [showMembersSection, setShowMembersSection] = useState(false);
+  const [selectedMemberForRemoval, setSelectedMemberForRemoval] = useState<ClubMember | null>(null);
+  const [showMemberRemovalModal, setShowMemberRemovalModal] = useState(false);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
+  const lastMemberRemovalRef = useRef<ClubMemberRemovalRecord | null>(null);
+
+  // Check if user can manage posts (pin, etc.)
+  const canManagePosts = membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
+
+  // Check if user can remove members
+  const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
+
+  // Load and refresh feed
+  const loadFeed = useCallback(() => {
+    if (membership?.clubId) {
+      const posts = getClubFeed(membership.clubId, feedFilter === 'all' ? undefined : feedFilter);
+      setFeed(posts);
+    } else {
+      setFeed([]);
+    }
+  }, [membership?.clubId, feedFilter]);
+
+  // Load members
+  const loadMembers = useCallback(async () => {
+    if (membership?.clubId) {
+      try {
+        const memberList = await clubService.getMembers(membership.clubId);
+        setMembers(memberList);
+      } catch (error) {
+        console.error('Failed to load members:', error);
+      }
+    }
+  }, [membership?.clubId]);
+
+  // Load training sessions
+  const loadTrainingSessions = useCallback(async () => {
+    if (membership?.clubId) {
+      try {
+        const sessions = await groupSessionService.getClubTrainingSessions(membership.clubId);
+        setTrainingSessions(sessions);
+      } catch (error) {
+        console.error('Failed to load training sessions:', error);
+      }
+    }
+  }, [membership?.clubId]);
+
+  // Load upcoming matches
+  const loadUpcomingMatches = useCallback(async () => {
+    if (membership?.clubId) {
+      try {
+        const matches = await matchService.getUpcomingMatches(membership.clubId);
+        setUpcomingMatches(matches.slice(0, 3)); // Show max 3 upcoming
+      } catch (error) {
+        console.error('Failed to load upcoming matches:', error);
+      }
+    }
+  }, [membership?.clubId]);
+
+  useEffect(() => {
+    loadFeed();
+    loadMembers();
+    loadTrainingSessions();
+    loadUpcomingMatches();
+  }, [loadFeed, loadMembers, loadTrainingSessions, loadUpcomingMatches]);
+
+  // Handle member removal
+  const handleRemoveMember = (member: ClubMember) => {
+    if (!clubService.canBeRemoved(member.role)) {
+      Alert.alert('Cannot remove owner', 'The club owner cannot be removed.');
+      return;
+    }
+    setSelectedMemberForRemoval(member);
+    setShowMemberRemovalModal(true);
+  };
+
+  const handleConfirmMemberRemoval = async (reason: MemberRemovalReason, customReason?: string) => {
+    if (!selectedMemberForRemoval || !membership?.clubId || !currentUser) return;
+
+    setIsRemovingMember(true);
+    try {
+      const removalRecord = await clubService.removeMember(
+        membership.clubId,
+        selectedMemberForRemoval.userId,
+        reason,
+        { id: currentUser.id, name: currentUser.fullName || currentUser.username || 'Coach' },
+        { customReason }
+      );
+
+      lastMemberRemovalRef.current = removalRecord;
+      setShowMemberRemovalModal(false);
+      setSelectedMemberForRemoval(null);
+
+      // Reload members
+      await loadMembers();
+
+      // Show undo toast
+      showUndoToast(
+        `${removalRecord.userName} removed from club`,
+        async () => {
+          try {
+            await clubService.undoRemoval(membership.clubId, removalRecord.id);
+            await loadMembers();
+            showToast('Member restored', 'success');
+          } catch (error) {
+            console.error('Failed to undo removal:', error);
+            showToast('Failed to restore member', 'error');
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+      showToast('Failed to remove member', 'error');
+    } finally {
+      setIsRemovingMember(false);
+    }
+  };
 
   useEffect(() => {
     if (!membership?.clubId) {
       setClub(undefined);
       setFeed([]);
-      setSessions([]);
-      setSquads([]);
-      setInvites([]);
       return;
     }
-    setClub((prev) => getClubById(membership.clubId) || prev);
-    setFeed((prev) => {
-      const next = getClubFeed(membership.clubId);
-      return next.length ? next : prev;
-    });
-    setSessions((prev) => {
-      const next = getClubSessions(membership.clubId);
-      return next.length ? next : prev;
-    });
-    setSquads((prev) => {
-      const next = getClubSquads(membership.clubId);
-      return next.length ? next : prev;
-    });
-    setInvites((prev) => {
-      const next = getClubInvites(membership.clubId);
-      return next.length ? next : prev;
-    });
-    badgeService.listAwards().then((awards) => setRecentBadges(awards.slice(0, 6)));
+    setClub(getClubById(membership.clubId));
   }, [membership?.clubId]);
 
-  const roleLabel = useMemo(() => {
-    if (!membership) return 'No club';
-    switch (membership.role) {
-      case 'OWNER':
-        return 'Owner';
-      case 'HEAD_COACH':
-        return 'Head coach';
-      case 'ADMIN':
-        return 'Admin';
-      case 'COACH':
-        return 'Coach';
-      default:
-        return 'Member';
-    }
-  }, [membership]);
+  const handlePinToggle = useCallback((postId: string) => {
+    if (!currentUser) return;
+    togglePinPost(postId, currentUser.id);
+    loadFeed();
+  }, [currentUser, loadFeed]);
 
-  const handleJoinWithCode = () => {
-    const code = joinCode.trim().toUpperCase();
-    if (!code) {
+  const handleJoinWithCode = (code: string) => {
+    const trimmedCode = code.trim().toUpperCase();
+    if (!trimmedCode) {
       Alert.alert('Enter invite code', 'Paste the club code shared with you.');
       return;
     }
-    const invite = clubInvites.find((item) => item.code.toUpperCase() === code);
+    const invite = clubInvites.find((item) => item.code.toUpperCase() === trimmedCode);
     if (!invite) {
       Alert.alert('Code not found', 'Check the code or request a new one from the club admin.');
       return;
@@ -184,29 +218,28 @@ export default function ClubHubScreen() {
       canPostAsClub: invite.role === 'OWNER' || invite.role === 'ADMIN',
     };
     setMembership(newMembership);
-    setJoinCode('');
     Alert.alert('Joined club', `You are now part of ${invite.clubName}`);
   };
 
-  const handleCreateClub = () => {
-    const name = newClubName.trim();
-    if (!name) {
-      Alert.alert('Add club name', 'Give your club a name to generate invites.');
+  const handleCreateClub = (name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      Alert.alert('Add club name', 'Give your club a name to get started.');
       return;
     }
 
     const created: Club = {
       id: `club_${Date.now()}`,
-      name,
+      name: trimmedName,
       city: 'Your city',
       country: 'UK',
-      badge: name.slice(0, 2).toUpperCase(),
+      badge: trimmedName.slice(0, 2).toUpperCase(),
       memberCount: 1,
       coachCount: 1,
       squadCount: 0,
       ownerId: currentUser?.id || 'owner',
       ownerName: currentUser?.fullName || currentUser?.username || 'You',
-      inviteCode: `${name.slice(0, 5).toUpperCase()}-${Math.floor(Math.random() * 9999)}`,
+      inviteCode: `${trimmedName.slice(0, 5).toUpperCase()}-${Math.floor(Math.random() * 9999)}`,
     };
 
     setClub(created);
@@ -219,418 +252,308 @@ export default function ClubHubScreen() {
       inviteCode: created.inviteCode,
       canPostAsClub: true,
     });
-    setFeed([
-      {
-        id: 'club_post_new',
-        clubId: created.id,
-        title: 'Club created',
-        body: 'You can now invite coaches, spin up squads, and publish club-only sessions.',
-        createdAt: new Date().toISOString(),
-        audience: 'club',
-        audienceLabel: 'Club-wide',
-        authorName: created.ownerName,
-        postAs: 'club',
-        reactionCount: 0,
-        commentCount: 0,
-      },
-    ]);
-    setSessions([]);
-    setSquads([]);
-    setInvites([
-      {
-        code: created.inviteCode,
-        clubId: created.id,
-        clubName: created.name,
-        createdBy: created.ownerId,
-        createdByName: created.ownerName,
-        role: 'COACH',
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        remainingUses: 15,
-      },
-    ]);
-    Alert.alert('Club hub ready', 'Share the code to invite your coaching team.');
+    setFeed([{
+      id: 'club_post_welcome',
+      clubId: created.id,
+      title: 'Welcome to your new club!',
+      body: 'Your club is ready. Invite coaches with your invite code, create squads, and start posting updates to your members.',
+      createdAt: new Date().toISOString(),
+      audience: 'club',
+      audienceLabel: 'Club-wide',
+      authorName: created.ownerName,
+      authorId: created.ownerId,
+      postAs: 'club',
+      postType: 'announcement',
+      reactionCount: 0,
+      commentCount: 0,
+    }]);
+    Alert.alert('Club created!', `Share code ${created.inviteCode} to invite your team.`);
   };
 
   const handleLeaveClub = () => {
-    Alert.alert('Leave club', 'You will lose access to feeds and internal sessions.', [
+    Alert.alert('Club options', 'What would you like to do?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Leave',
+        text: 'Leave club',
         style: 'destructive',
         onPress: () => {
           setMembership(undefined);
           setClub(undefined);
           setFeed([]);
-          setSessions([]);
-          setSquads([]);
         },
       },
     ]);
   };
 
-  const headline = membership && club
-    ? `${club.name} · ${roleLabel}`
-    : 'Join or create a club';
-  const badgeText = club?.name?.slice(0, 2).toUpperCase() || 'CL';
+  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+
+  // Get counts for filter badges
+  const filterCounts = useMemo(() => {
+    if (!membership?.clubId) return {};
+    const allPosts = getClubFeed(membership.clubId);
+    return {
+      all: allPosts.length,
+      announcement: allPosts.filter(p => p.postType === 'announcement').length,
+      photo: allPosts.filter(p => p.postType === 'photo').length,
+      event: allPosts.filter(p => p.postType === 'event').length,
+    };
+  }, [membership?.clubId, feed]);
 
   return (
     <PageContainer
-      header={<PageHeader title="Club" subtitle="Your club membership and activity" />}
-      gap={Spacing.md}
-      contentStyle={{ paddingBottom: Spacing.xl }}
+      header={
+        <PageHeader
+          title="Club"
+          subtitle={club?.name || 'Your club community'}
+          action={membership ? 'New Post' : undefined}
+          actionIcon="add"
+          onActionPress={membership ? () => router.push({
+            pathname: '/(modal)/create-club-post',
+            params: { clubId: membership.clubId }
+          }) : undefined}
+        />
+      }
+      gap={0}
+      horizontalSpacing={0}
     >
       {membership && club ? (
-        <SurfaceCard style={styles.heroCard} animateElevation={false}>
-          <View style={styles.heroRow}>
-            <View style={[styles.avatar, { backgroundColor: `${palette.tint}08` }]}>
-              <ThemedText style={styles.avatarText}>{badgeText}</ThemedText>
-            </View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <ThemedText type="heading">{club.name}</ThemedText>
-              <ThemedText style={{ color: palette.muted }}>{roleLabel}</ThemedText>
-            </View>
-            <Clickable onPress={handleLeaveClub}>
-              <Ionicons name="log-out-outline" size={22} color={palette.muted} />
-            </Clickable>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Club header */}
+          <View style={styles.section}>
+            <ClubHeader club={club} membership={membership} onLeave={handleLeaveClub} />
           </View>
-          <View style={styles.statRow}>
-            {statTiles.map((stat) => (
-              <View key={stat.label} style={styles.statTile}>
-                <ThemedText type="heading">{stat.value}</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{stat.label}</ThemedText>
-              </View>
-            ))}
-          </View>
-        </SurfaceCard>
-      ) : (
-        <SurfaceCard style={styles.heroCard} animateElevation={false}>
-          <ThemedText type="heading">Join or create a club</ThemedText>
-          <ThemedText style={{ color: palette.muted }}>
-            Connect with your coaching team, share updates, and manage sessions.
-          </ThemedText>
-          <View style={styles.joinForm}>
-            <TextInput
-              placeholder="Enter invite code"
-              placeholderTextColor={palette.muted}
-              value={joinCode}
-              onChangeText={setJoinCode}
-              autoCapitalize="characters"
-              style={[styles.input, { backgroundColor: palette.background, color: palette.text }]}
-            />
-            <Clickable
-              style={[styles.primaryButton, { backgroundColor: palette.tint }]}
-              onPress={handleJoinWithCode}
-            >
-              <ThemedText style={styles.primaryButtonText}>Join</ThemedText>
-            </Clickable>
-          </View>
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
-          <View style={styles.createForm}>
-            <TextInput
-              placeholder="New club name"
-              placeholderTextColor={palette.muted}
-              value={newClubName}
-              onChangeText={setNewClubName}
-              style={[styles.input, { backgroundColor: palette.background, color: palette.text }]}
-            />
-            <Clickable
-              style={[styles.secondaryButton, { borderColor: palette.border }]}
-              onPress={handleCreateClub}
-            >
-              <ThemedText style={{ color: palette.text, fontWeight: '600' }}>Create</ThemedText>
-            </Clickable>
-          </View>
-        </SurfaceCard>
-      )}
 
-      {recentBadges.length > 0 ? (
-        <SurfaceCard style={styles.sectionCard} animateElevation={false}>
-          <View style={styles.sectionHeader}>
-            <ThemedText type="defaultSemiBold">Recent badges</ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
-              Shared for squads and supporters
-            </ThemedText>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.xs }}>
-            {recentBadges.map((award) => (
-              <Clickable
-                key={award.id}
-                onPress={() =>
-                  router.push({ pathname: '/development/athlete/[athleteId]', params: { athleteId: award.athleteId } })
-                }
+          {/* Quick stats */}
+          <ClubStatsRow
+            memberCount={members.length || club.memberCount}
+            squads={squads}
+            sessions={sessions}
+            invites={invites}
+            canManageMembers={!!canRemoveMembers}
+            showMembersSection={showMembersSection}
+            onToggleMembersSection={() => setShowMembersSection(!showMembersSection)}
+          />
+
+          {/* Members section (expandable) */}
+          {showMembersSection && canRemoveMembers && (
+            <MembersPanel
+              members={members}
+              canRemoveMembers={!!canRemoveMembers}
+              onRemoveMember={handleRemoveMember}
+            />
+          )}
+
+          {/* Upcoming Matches Section */}
+          <MatchesPanel
+            matches={upcomingMatches}
+            isCoach={isCoach}
+          />
+
+          {/* Training Schedule Section */}
+          <SessionsPanel
+            sessions={trainingSessions}
+            isCoach={isCoach}
+          />
+
+          {/* Feed filter tabs */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+            contentContainerStyle={styles.filterContainer}
+          >
+            {FEED_FILTERS.map((filter) => (
+              <TouchableOpacity
+                key={filter.key}
+                style={[
+                  styles.filterTab,
+                  feedFilter === filter.key && { backgroundColor: `${palette.tint}15`, borderColor: palette.tint },
+                  { borderColor: palette.border }
+                ]}
+                onPress={() => setFeedFilter(filter.key)}
               >
-                <View style={[styles.badgeCard, { borderColor: palette.border }]}>               
-                  <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
-                  <ThemedText style={{ color: palette.muted }}>
-                    {award.athleteName || 'Athlete'} · {new Date(award.awardedAt).toLocaleDateString()}
-                  </ThemedText>
-                </View>
-              </Clickable>
+                <Ionicons
+                  name={filter.icon as any}
+                  size={16}
+                  color={feedFilter === filter.key ? palette.tint : palette.muted}
+                />
+                <ThemedText
+                  style={[
+                    styles.filterLabel,
+                    { color: feedFilter === filter.key ? palette.tint : palette.muted }
+                  ]}
+                >
+                  {filter.label}
+                </ThemedText>
+                {(filterCounts[filter.key] ?? 0) > 0 && (
+                  <View style={[
+                    styles.filterCount,
+                    { backgroundColor: feedFilter === filter.key ? palette.tint : palette.muted }
+                  ]}>
+                    <ThemedText style={styles.filterCountText}>{filterCounts[filter.key]}</ThemedText>
+                  </View>
+                )}
+              </TouchableOpacity>
             ))}
           </ScrollView>
-        </SurfaceCard>
-      ) : null}
 
-      {membership && club ? (
-        <View style={styles.grid}>
-          <SurfaceCard style={[styles.sectionCard, styles.halfCard]} animateElevation={false}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="defaultSemiBold">Invites & posting</ThemedText>
-              <Chip dense>{invites.length} active</Chip>
-            </View>
-            <View style={{ gap: Spacing.xs }}>
-              {invites.map((invite) => (
-                <View key={invite.code} style={[styles.inviteRow, { borderColor: palette.border }]}>
-                  <View style={{ flex: 1 }}>
-                    <ThemedText type="defaultSemiBold">{invite.code}</ThemedText>
-                    <ThemedText style={{ color: palette.muted }}>
-                      {invite.role} · {invite.remainingUses} left
-                    </ThemedText>
-                  </View>
-                  <Chip dense>{new Date(invite.expiresAt).toLocaleDateString()}</Chip>
-                </View>
-              ))}
-            </View>
-            <ThemedText style={{ color: palette.muted }}>
-              Coaches post as themselves; admins and owners can post as the club.
-            </ThemedText>
-          </SurfaceCard>
-
-          <SurfaceCard style={[styles.sectionCard, styles.halfCard]} animateElevation={false}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="defaultSemiBold">Internal sessions</ThemedText>
-              <Chip dense>{sessions.length} live</Chip>
-            </View>
-            <View style={{ gap: Spacing.xs }}>
-              {sessions.map((session) => (
-                <SessionRow key={session.id} session={session} />
-              ))}
-            </View>
-            <ThemedText style={{ color: palette.muted }}>
-              Keep sessions private until you publish them from Bookings.
-            </ThemedText>
-          </SurfaceCard>
-
-          <SurfaceCard style={[styles.sectionCard, styles.fullCard]} animateElevation={false}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="defaultSemiBold">Club-only feed</ThemedText>
-              <Chip dense>{feed.length} updates</Chip>
-            </View>
-            <View style={{ gap: Spacing.sm }}>
-              {feed.slice(0, 3).map((post) => (
-                <FeedPost key={post.id} post={post} />
-              ))}
-              {feed.length > 3 ? (
-                <ThemedText style={{ color: palette.muted }}>
-                  {feed.length - 3} more posts in history
+          {/* Feed posts */}
+          <View style={styles.feedSection}>
+            {feed.length > 0 ? (
+              feed.map((post) => (
+                <FeedPost
+                  key={post.id}
+                  post={post}
+                  canPin={canManagePosts}
+                  onPinToggle={handlePinToggle}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyFeed}>
+                <Ionicons name="newspaper-outline" size={48} color={palette.muted} />
+                <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
+                  {feedFilter === 'all'
+                    ? 'No posts yet. Be the first to share!'
+                    : `No ${feedFilter} posts yet.`}
                 </ThemedText>
-              ) : null}
-            </View>
-          </SurfaceCard>
-
-          <SurfaceCard style={[styles.sectionCard, styles.halfCard]} animateElevation={false}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="defaultSemiBold">Squads & classes</ThemedText>
-              <Chip dense>{squads.length} spaces</Chip>
-            </View>
-            <View style={{ gap: Spacing.xs }}>
-              {squads.map((squad) => (
-                <View key={squad.id} style={[styles.squadRow, { borderColor: palette.border }]}>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
-                    <ThemedText style={{ color: palette.muted }}>
-                      {squad.level} · {squad.memberCount} members
-                    </ThemedText>
-                    <View style={styles.metaRow}>
-                      <Ionicons name="person" size={14} color={palette.icon} />
-                      <ThemedText style={{ color: palette.muted }}>Lead: {squad.primaryCoach}</ThemedText>
-                      <Ionicons name="location" size={14} color={palette.icon} />
-                      <ThemedText style={{ color: palette.muted }}>{squad.meetLocation}</ThemedText>
-                    </View>
-                  </View>
-                  <View style={styles.metaPills}>
-                    {squad.tags?.map((tag) => (
-                      <Chip key={tag} dense>
-                        {tag}
-                      </Chip>
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </View>
-          </SurfaceCard>
-        </View>
-      ) : (
-        <SurfaceCard style={[styles.sectionCard, styles.fullCard]} animateElevation={false}>
-          <ThemedText type="defaultSemiBold">Why join?</ThemedText>
-          <View style={{ gap: Spacing.xs }}>
-            <ThemedText>• Keep club work in one tidy hub—no extra tabs.</ThemedText>
-            <ThemedText>• Share invite codes, spin up squads, and run private sessions.</ThemedText>
-            <ThemedText>• Post as yourself or the club without losing chat history.</ThemedText>
+              </View>
+            )}
           </View>
-        </SurfaceCard>
+        </ScrollView>
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, styles.centeredContent]}
+        >
+          <JoinClubCard
+            isCoach={isCoach}
+            onJoin={handleJoinWithCode}
+            onCreate={handleCreateClub}
+          />
+
+          <SurfaceCard style={styles.benefitsCard}>
+            <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>
+              {isCoach ? 'Why create a club?' : 'Why join a club?'}
+            </ThemedText>
+            <View style={styles.benefitsList}>
+              {isCoach ? (
+                <>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
+                    <ThemedText style={{ flex: 1 }}>Share updates and announcements with your community</ThemedText>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
+                    <ThemedText style={{ flex: 1 }}>Organize squads and manage private sessions</ThemedText>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
+                    <ThemedText style={{ flex: 1 }}>Post photos and celebrate achievements</ThemedText>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
+                    <ThemedText style={{ flex: 1 }}>Stay updated with club news and events</ThemedText>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
+                    <ThemedText style={{ flex: 1 }}>Access exclusive sessions and content</ThemedText>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
+                    <ThemedText style={{ flex: 1 }}>Connect with coaches and other families</ThemedText>
+                  </View>
+                </>
+              )}
+            </View>
+          </SurfaceCard>
+        </ScrollView>
       )}
+
+      {/* Member Removal Modal */}
+      <RemovalConfirmationModal
+        visible={showMemberRemovalModal}
+        onClose={() => {
+          setShowMemberRemovalModal(false);
+          setSelectedMemberForRemoval(null);
+        }}
+        onConfirm={(reason, customReason) => handleConfirmMemberRemoval(reason as MemberRemovalReason, customReason)}
+        type="member"
+        name={selectedMemberForRemoval?.userName || ''}
+        isLoading={isRemovingMember}
+      />
     </PageContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  heroCard: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: Spacing.xl * 2,
+  },
+  centeredContent: {
+    padding: Spacing.md,
     gap: Spacing.md,
   },
-  heroRow: {
+  section: {
+    padding: Spacing.md,
+  },
+  filterScroll: {
+    marginTop: Spacing.sm,
+  },
+  filterContainer: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+  },
+  filterTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  statTile: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-    paddingVertical: Spacing.xs,
-  },
-  joinForm: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
-  createForm: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
-  divider: {
-    height: 1,
-  },
-  primaryButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
-    borderRadius: Radii.lg,
-  },
-  primaryButtonText: {
-    fontWeight: '600',
-    color: '#fff',
-  },
-  secondaryButton: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-  },
-  input: {
-    flex: 1,
-    borderRadius: Radii.lg,
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 15,
-  },
-  sectionCard: {
-    gap: Spacing.sm,
-  },
-  badgeCard: {
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
+    borderRadius: Radii.pill,
     borderWidth: 1,
-    minWidth: 180,
-    gap: Spacing.xs,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  filterCount: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  filterCountText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  feedSection: {
+    padding: Spacing.md,
     gap: Spacing.md,
   },
-  fullCard: {
-    width: '100%',
-  },
-  halfCard: {
-    flexGrow: 1,
-    flexBasis: '48%',
-    minWidth: '48%',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
+  emptyFeed: {
     alignItems: 'center',
-    justifyContent: 'space-between',
+    padding: Spacing.xl,
+    gap: Spacing.md,
   },
-  inviteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radii.card,
-  },
-  feedCard: {
-    gap: Spacing.xs,
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
-  },
-  feedHeader: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    alignItems: 'center',
-  },
-  feedFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
-  metaPills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  benefitsCard: {
     gap: Spacing.xs,
   },
-  statRow: {
-    flexDirection: 'row',
-    flexWrap: 'nowrap',
-    paddingVertical: Spacing.xs,
-    gap: Spacing.xs,
-  },
-  statTile: {
-    borderWidth: 1,
-    borderRadius: Radii.card,
-    padding: Spacing.sm,
-    flexGrow: 1,
-    flexBasis: '48%',
-    minWidth: 120,
-    gap: 2,
-  },
-  sessionRow: {
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+  benefitsList: {
     gap: Spacing.sm,
   },
-  squadRow: {
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
+  benefitItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,

@@ -1,5 +1,27 @@
 export type SportCategory = 'Football';
 
+// ============================================================================
+// SOCIAL MEDIA LINKS
+// ============================================================================
+
+export type SocialPlatform = 'instagram' | 'twitter' | 'facebook' | 'linkedin' | 'youtube' | 'tiktok' | 'website';
+
+export interface SocialLink {
+  platform: SocialPlatform;
+  url: string;
+  username?: string; // Optional display username (e.g., @coachsarah)
+}
+
+export interface SocialLinks {
+  instagram?: string;
+  twitter?: string;
+  facebook?: string;
+  linkedin?: string;
+  youtube?: string;
+  tiktok?: string;
+  website?: string;
+}
+
 export type FootballObjective =
   | 'Dribbling'
   | 'Passing'
@@ -49,6 +71,9 @@ export interface BadgeAward {
   visibility: BadgeVisibility;
   shared?: boolean;
   feedPostId?: string;
+  // Parent view tracking
+  seenByParent?: boolean;
+  seenAt?: string;
   // Progression fields (copied from badge definition at award time)
   badgeCategory?: BadgeCategory;
   badgeTier?: BadgeTier;
@@ -124,7 +149,51 @@ export interface ClubSquad {
   meetLocation: string;
   nextSession?: string;
   tags?: string[];
+  ageMin?: number;
+  ageMax?: number;
 }
+
+// Squad member types for squad-based invites
+export interface SquadMember {
+  id: string;
+  squadId: string;
+  athleteId: string;
+  athleteName: string;
+  athleteAge?: number;
+  athletePhotoUrl?: string;
+  parentId: string;
+  parentName: string;
+  parentEmail?: string;
+  parentPhone?: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  joinedAt: string;
+  position?: string;
+  jerseyNumber?: number;
+}
+
+// Squad invite tracking
+export interface SquadInvite {
+  id: string;
+  squadId: string;
+  squadName: string;
+  targetType: 'SESSION' | 'MATCH' | 'EVENT';
+  targetId: string;
+  targetTitle: string;
+  invitedBy: string;
+  invitedByName: string;
+  invitedAt: string;
+  memberCount: number;
+  excludedMemberIds?: string[];
+  responses: {
+    accepted: number;
+    declined: number;
+    pending: number;
+  };
+}
+
+// Match types moved to MATCHES / FIXTURES section below
+
+// Club event types moved to CLUB EVENTS section below
 
 export interface ClubInvite {
   code: string;
@@ -137,6 +206,8 @@ export interface ClubInvite {
   remainingUses: number;
 }
 
+export type ClubPostType = 'announcement' | 'photo' | 'event' | 'general' | 'achievement' | 'session' | 'match';
+
 export interface ClubFeedPost {
   id: string;
   clubId: string;
@@ -146,11 +217,30 @@ export interface ClubFeedPost {
   audience: 'club' | 'squad' | 'staff';
   audienceLabel?: string;
   authorName: string;
+  authorId?: string;
   postAs?: 'club' | 'self';
+  postType?: ClubPostType;
   badgeAwarded?: string;
   attachments?: string[];
+  imageUrl?: string;
   reactionCount?: number;
   commentCount?: number;
+  isPinned?: boolean;
+  pinnedBy?: string;
+  pinnedAt?: string;
+  eventDate?: string;
+  eventLocation?: string;
+  // Achievement post fields
+  athleteId?: string;
+  athleteName?: string;
+  badgeId?: string;
+  badgeAwardId?: string;
+  // Session/Match post fields
+  sessionId?: string;
+  matchId?: string;
+  // Parent who shared this (for achievement shares)
+  sharedByParentId?: string;
+  sharedByParentName?: string;
 }
 
 // Enhanced Coach Profile (Facebook-style)
@@ -245,6 +335,7 @@ export interface CoachProfile {
   videoGallery: string[];
   languages: CoachLanguage[];
   achievements: string[];
+  socialLinks?: SocialLinks;
 }
 
 export interface CoachSearchParams {
@@ -424,6 +515,7 @@ export interface UserProfile {
     name: string;
     age: number;
   }>;
+  socialLinks?: SocialLinks;
 }
 
 export interface CoachFeedback {
@@ -442,12 +534,6 @@ export interface CoachFeedback {
     newLevel: number;
   }>;
   createdAt: string;
-}
-
-export interface SkillLevel {
-  skill: FootballObjective;
-  level: number; // 0-100
-  lastUpdated: string;
 }
 
 export interface NotificationItem {
@@ -480,6 +566,7 @@ export interface SessionInvite {
   coachId: string;
   coachName: string;
   coachPhotoUrl?: string;
+  clubName?: string; // Club or Academy name (e.g., "Bradwell Boys")
   athleteIds: string[];
   athleteNames: string[];
   parentId: string;
@@ -493,8 +580,10 @@ export interface SessionInvite {
   expiresAt: string;
   createdAt: string;
   respondedAt?: string;
+  selectedSlot?: TimeSlot; // The slot chosen when accepting
   counterProposal?: TimeSlot[];
   counterNote?: string;
+  groupId?: string; // Links invites that were sent as part of a group/bulk send
 }
 
 // ============================================================================
@@ -632,6 +721,13 @@ export interface GroupSessionSchedule {
   endTime: string;
 }
 
+export interface RecurringPattern {
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  startTime: string; // HH:mm format
+  endTime: string;   // HH:mm format
+  until?: string;    // ISO date string - when the recurring pattern ends
+}
+
 export interface GroupSession {
   id: string;
   coachId: string;
@@ -641,7 +737,7 @@ export interface GroupSession {
   clubName?: string;
   title: string;
   description: string;
-  sessionType: 'CAMP' | 'CLINIC' | 'TEAM_TRAINING' | 'OPEN_SESSION' | 'TRIAL';
+  sessionType: 'CAMP' | 'CLINIC' | 'TEAM_TRAINING' | 'OPEN_SESSION' | 'TRIAL' | 'TRAINING';
   schedule: GroupSessionSchedule[];
   maxParticipants: number;
   currentParticipants: number;
@@ -659,6 +755,13 @@ export interface GroupSession {
   focus?: FootballObjective[];
   equipment?: string[];
   imageUrl?: string;
+  // Training/Recurring session fields
+  isRecurring?: boolean;
+  recurringPattern?: RecurringPattern;
+  squadId?: string;      // Link to specific squad
+  squadName?: string;
+  parentSessionId?: string; // For recurring instances, links to the template
+  isFree?: boolean;         // Quick flag for free sessions
 }
 
 export interface GroupRegistration {
@@ -868,7 +971,12 @@ export type NotificationType =
   | 'PAYMENT_RECEIVED'
   | 'PAYMENT_FAILED'
   | 'GOAL_COMPLETED'
-  | 'VIDEO_SHARED';
+  | 'VIDEO_SHARED'
+  | 'MATCH_INVITE'
+  | 'MATCH_RESPONSE'
+  | 'MATCH_LINEUP'
+  | 'MATCH_REMINDER'
+  | 'MATCH_CANCELLED';
 
 export interface Notification {
   id: string;
@@ -1024,4 +1132,176 @@ export interface PackagePurchase {
   purchasedAt: string;
   expiresAt: string;
   status: 'ACTIVE' | 'EXPIRED' | 'EXHAUSTED';
+}
+
+// ============================================================================
+// MATCHES / FIXTURES
+// ============================================================================
+
+export type MatchType = 'FRIENDLY' | 'LEAGUE' | 'CUP' | 'TOURNAMENT';
+
+export type MatchStatus = 'SCHEDULED' | 'LINEUP_SET' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export type MatchPlayerStatus = 'INVITED' | 'AVAILABLE' | 'UNAVAILABLE' | 'SELECTED' | 'RESERVE';
+
+export interface MatchPlayer {
+  athleteId: string;
+  athleteName: string;
+  parentId: string;
+  parentName?: string;
+  status: MatchPlayerStatus;
+  responseAt?: string;
+  parentNote?: string;
+  position?: string;
+  jerseyNumber?: number;
+}
+
+export interface MatchResult {
+  home: number;
+  away: number;
+}
+
+export interface Match {
+  id: string;
+  clubId: string;
+  clubName: string;
+  squadId?: string;
+  squadName?: string;
+  coachId: string;
+  coachName?: string;
+
+  // Match details
+  title: string; // "Under 11's vs Hackney FC"
+  matchType: MatchType;
+  opponent: string;
+  isHome: boolean;
+
+  // Schedule
+  date: string;
+  kickoffTime: string;
+  meetTime?: string; // arrive 30min early
+
+  // Location
+  venue: string;
+  address?: string;
+
+  // Squad
+  maxPlayers: number;
+  selectedPlayers: MatchPlayer[];
+
+  // Status
+  status: MatchStatus;
+
+  // Result (after match)
+  result?: MatchResult;
+
+  // Metadata
+  createdAt: string;
+  updatedAt?: string;
+  notes?: string;
+}
+
+export interface MatchInviteNotification {
+  matchId: string;
+  matchTitle: string;
+  opponent: string;
+  date: string;
+  kickoffTime: string;
+  venue: string;
+  clubName: string;
+  coachName: string;
+  athleteName: string;
+}
+
+export interface MatchSelectionNotification {
+  matchId: string;
+  matchTitle: string;
+  opponent: string;
+  date: string;
+  kickoffTime: string;
+  venue: string;
+  isSelected: boolean; // true = selected, false = reserve
+  athleteName: string;
+}
+
+// ============================================================================
+// CLUB EVENTS
+// ============================================================================
+
+export type ClubEventType =
+  | 'TOURNAMENT'
+  | 'SOCIAL'
+  | 'MEETING'
+  | 'PRESENTATION'
+  | 'FUNDRAISER'
+  | 'TRIAL_DAY'
+  | 'TRAINING_CAMP'
+  | 'OTHER';
+
+export type EventTargetAudience = 'ALL' | 'COACHES' | 'PARENTS' | 'ATHLETES' | 'SQUAD';
+
+export type EventStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
+
+export type RSVPStatus = 'GOING' | 'MAYBE' | 'NOT_GOING';
+
+export interface EventAttendee {
+  userId: string;
+  userName: string;
+  userPhotoUrl?: string;
+  userRole: 'COACH' | 'PARENT' | 'ATHLETE';
+  status: RSVPStatus;
+  guestCount: number;
+  respondedAt: string;
+}
+
+export interface ClubEvent {
+  id: string;
+  clubId: string;
+  clubName: string;
+  createdBy: string;
+  createdByName: string;
+
+  // Event details
+  title: string;
+  description: string;
+  eventType: ClubEventType;
+
+  // Schedule
+  date: string;
+  startTime: string;
+  endTime?: string;
+  // Backward compatibility aliases
+  startDate?: string; // alias for date
+  endDate?: string;   // alias for endTime
+
+  // Location
+  venue: string;
+  location?: string; // alias for venue
+  address?: string;
+  isVirtual: boolean;
+  meetingLink?: string;
+
+  // Attendance
+  targetAudience: EventTargetAudience;
+  squadIds?: string[]; // if squad-specific
+  allClub?: boolean; // true if all club members invited (alias for targetAudience === 'ALL')
+  maxAttendees?: number;
+  maxParticipants?: number; // alias for maxAttendees
+  currentParticipants?: number; // count of confirmed attendees
+
+  // Cost
+  price: number; // 0 = free
+  priceUsd?: number; // alias for price
+  currency: string;
+
+  // RSVP
+  rsvpRequired: boolean;
+  rsvpDeadline?: string;
+  attendees: EventAttendee[];
+
+  // Status
+  status: EventStatus;
+
+  imageUrl?: string;
+  createdAt: string;
 }

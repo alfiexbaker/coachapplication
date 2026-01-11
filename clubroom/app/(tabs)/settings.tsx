@@ -29,13 +29,14 @@ const NAV_LINKS: Record<string, { title: string; subtitle?: string; icon: string
     { title: 'My Bookings', subtitle: 'Upcoming & past sessions', icon: 'calendar-outline', route: '/(tabs)/bookings' },
     { title: 'Messages', subtitle: 'Chat with coaches', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Feed & Community', subtitle: 'Posts, drills, highlights', icon: 'newspaper-outline', route: '/(tabs)/feed' },
-    { title: 'Badges & Progress', subtitle: 'Recognition and session pathway', icon: 'ribbon-outline', route: '/(tabs)/badges' },
+    { title: 'Badges & Achievements', subtitle: 'All badges and progress tracking', icon: 'ribbon-outline', route: '/badges' },
   ],
   PARENT: [
     { title: 'Kids & Bookings', subtitle: 'See all children', icon: 'people-outline', route: '/(tabs)/bookings' },
     { title: 'Messages', subtitle: 'Coaches and updates', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Discover Coaches', subtitle: 'Find local sessions', icon: 'search-outline', route: '/(tabs)/more' },
     { title: 'Activity Feed', subtitle: 'Goals and highlights', icon: 'newspaper-outline', route: '/(tabs)/feed' },
+    { title: 'Badges & Achievements', subtitle: 'View earned badges and milestones', icon: 'ribbon-outline', route: '/badges' },
   ],
   ADMIN: [
     { title: 'User Directory', subtitle: 'Moderate accounts', icon: 'person-circle-outline', route: '/(tabs)/index' },
@@ -157,9 +158,24 @@ export default function SettingsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>
-            Settings
-          </ThemedText>
+          <View style={styles.headerRow}>
+            <ThemedText type="title" style={styles.title}>
+              Settings
+            </ThemedText>
+            <Clickable
+              onPress={() => {
+                logger.press('SettingsHub', { targetRoute: '/settings' });
+                router.push('/settings');
+              }}
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.settingsButton,
+                { backgroundColor: pressed ? `${palette.accent}20` : `${palette.accent}10` },
+              ]}
+            >
+              <Ionicons name="settings-outline" size={22} color={palette.accent} />
+            </Clickable>
+          </View>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Collated controls, profile, and alerts</ThemedText>
         </View>
 
@@ -233,35 +249,41 @@ export default function SettingsScreen() {
           </View>
         </SurfaceCard>
 
-        <View style={styles.section}>
-          <SectionHeader title="Navigation hub" subtitle="Jump to the places you need" />
-          <View style={styles.navGrid}>
-            {navLinks.map((link) => (
-              <SurfaceCard key={link.title} style={styles.navCard} onPress={() => router.push(link.route as any)}>
-                <View style={[styles.navIcon, { backgroundColor: `${palette.accent}12` }]}>
-                  <Ionicons name={link.icon as any} size={22} color={palette.accent} />
-                </View>
-                <View style={styles.navText}>
-                  <ThemedText type="defaultSemiBold">{link.title}</ThemedText>
-                  {link.subtitle && (
-                    <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{link.subtitle}</ThemedText>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-              </SurfaceCard>
-            ))}
+        {/* Navigation hub - only show for non-USER roles */}
+        {currentUser?.role !== 'USER' && (
+          <View style={styles.section}>
+            <SectionHeader title="Navigation hub" subtitle="Jump to the places you need" />
+            <View style={styles.navGrid}>
+              {navLinks.map((link) => (
+                <SurfaceCard key={link.title} style={styles.navCard} onPress={() => router.push(link.route as any)}>
+                  <View style={[styles.navIcon, { backgroundColor: `${palette.accent}12` }]}>
+                    <Ionicons name={link.icon as any} size={22} color={palette.accent} />
+                  </View>
+                  <View style={styles.navText}>
+                    <ThemedText type="defaultSemiBold">{link.title}</ThemedText>
+                    {link.subtitle && (
+                      <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{link.subtitle}</ThemedText>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+                </SurfaceCard>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
-        <View style={styles.section}>
-          <SectionHeader title="Latest alerts" subtitle="Inline so they never take a full page" />
-          <SurfaceCard style={styles.card}>
-            <NotificationsPanel limit={3} />
-            <ThemedText style={[styles.helperText, { color: palette.muted }]}>
-              Alerts stay inline here; manage the toggles below.
-            </ThemedText>
-          </SurfaceCard>
-        </View>
+        {/* Latest alerts - only show for non-USER roles */}
+        {currentUser?.role !== 'USER' && (
+          <View style={styles.section}>
+            <SectionHeader title="Latest alerts" subtitle="Inline so they never take a full page" />
+            <SurfaceCard style={styles.card}>
+              <NotificationsPanel limit={3} />
+              <ThemedText style={[styles.helperText, { color: palette.muted }]}>
+                Alerts stay inline here; manage the toggles below.
+              </ThemedText>
+            </SurfaceCard>
+          </View>
+        )}
 
         <View style={styles.section}>
           <SectionHeader title="Account" />
@@ -276,25 +298,27 @@ export default function SettingsScreen() {
               }}
             />
             {currentUser?.role === 'COACH' && (
-              <SettingRow
-                icon="briefcase"
-                title="Coach profile"
-                subtitle="Services, identity, and badges"
-                onPress={() => {
-                  logger.press('EditCoachProfile');
-                  router.push('/(tabs)/coach-profile');
-                }}
-              />
+              <>
+                <SettingRow
+                  icon="briefcase"
+                  title="Coach profile"
+                  subtitle="Services, identity, and badges"
+                  onPress={() => {
+                    logger.press('EditCoachProfile');
+                    router.push('/(tabs)/coach-profile');
+                  }}
+                />
+                <SettingRow
+                  icon="shield-checkmark"
+                  title="Verification"
+                  subtitle="Background checks and credentials"
+                  onPress={() => {
+                    logger.press('Verification');
+                    Alert.alert('Coming Soon', 'Verification badges coming in Sprint 2');
+                  }}
+                />
+              </>
             )}
-            <SettingRow
-              icon="shield-checkmark"
-              title="Verification"
-              subtitle="Background checks and credentials"
-              onPress={() => {
-                logger.press('Verification');
-                Alert.alert('Coming Soon', 'Verification badges coming in Sprint 2');
-              }}
-            />
           </SurfaceCard>
         </View>
 
@@ -333,17 +357,19 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <SectionHeader title="Social & privacy" />
+          <SectionHeader title={currentUser?.role === 'USER' ? 'Privacy' : 'Social & privacy'} />
           <SurfaceCard style={styles.card}>
-            <SettingRow
-              icon="people"
-              title="Social profile"
-              subtitle="Manage your social presence and posts"
-              onPress={() => {
-                logger.press('SocialProfile');
-                router.push('/(tabs)/feed');
-              }}
-            />
+            {currentUser?.role !== 'USER' && (
+              <SettingRow
+                icon="people"
+                title="Social profile"
+                subtitle="Manage your social presence and posts"
+                onPress={() => {
+                  logger.press('SocialProfile');
+                  router.push('/(tabs)/feed');
+                }}
+              />
+            )}
             <ToggleRow
               icon="eye"
               title="Profile visibility"
@@ -482,6 +508,18 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: Spacing.xs,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,

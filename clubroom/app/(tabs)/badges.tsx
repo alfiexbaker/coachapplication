@@ -278,6 +278,28 @@ export default function UserBadgesScreen() {
         </SurfaceCard>
       )}
 
+      {/* View All Achievements CTA */}
+      <SurfaceCard style={styles.progressCard}>
+        <View style={styles.progressCardHeader}>
+          <View style={styles.allBadgesIcon}>
+            <Ionicons name="trophy" size={24} color={palette.tint} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <ThemedText type="defaultSemiBold">View All Achievements</ThemedText>
+            <ThemedText style={[styles.progressHint, { color: palette.muted }]}>
+              See all badges, milestones, and progress
+            </ThemedText>
+          </View>
+        </View>
+        <Clickable
+          onPress={() => router.push('/badges')}
+          style={[styles.primaryButton, { backgroundColor: palette.tint }]}
+        >
+          <Ionicons name="grid-outline" size={18} color="#FFFFFF" />
+          <ThemedText style={styles.primaryButtonText}>Browse All Badges</ThemedText>
+        </Clickable>
+      </SurfaceCard>
+
       {/* Ready for Progression CTA */}
       <SurfaceCard style={styles.progressCard}>
         <View style={styles.progressCardHeader}>
@@ -598,7 +620,17 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   progressCardHeader: {
-    gap: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  allBadgesIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#0F172A12',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   progressHint: {
     fontSize: 13,
@@ -609,8 +641,11 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
+    flexDirection: 'row',
     borderRadius: Radii.md,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
     paddingVertical: 12,
   },
   primaryButtonText: {

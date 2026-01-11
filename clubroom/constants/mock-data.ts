@@ -6,7 +6,6 @@ import type {
   Relationship,
   Booking,
   Session,
-  Goal,
   Conversation,
   Message,
   Post,
@@ -14,7 +13,6 @@ import type {
   Review,
   SkillLevel,
   BookingStatus,
-  GoalStatus,
 } from './app-types';
 
 import type {
@@ -32,6 +30,7 @@ import type {
   ClubInvite,
   ClubSquad,
   SessionOffering,
+  SocialLinks,
 } from './types';
 
 // ===== USERS =====
@@ -828,49 +827,6 @@ export const MOCK_SESSIONS: Session[] = [
   },
 ];
 
-// ===== GOALS =====
-export const MOCK_GOALS: Goal[] = [
-  {
-    id: 'goal1',
-    userId: 'user1',
-    title: 'Make School Team',
-    description: 'Get selected for the school football team tryouts in January',
-    targetDate: '2026-01-15',
-    status: 'ACTIVE',
-    progress: 60,
-    createdAt: new Date(today.getTime() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'goal2',
-    userId: 'user1',
-    title: 'Improve Weak Foot',
-    description: 'Be comfortable shooting and passing with my left foot',
-    status: 'ACTIVE',
-    progress: 45,
-    createdAt: new Date(today.getTime() - 40 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'goal3',
-    userId: 'user2',
-    title: 'Complete 10 Sessions',
-    description: 'Attend 10 coaching sessions to build fundamentals',
-    targetDate: '2026-03-01',
-    status: 'ACTIVE',
-    progress: 20,
-    createdAt: new Date(today.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'goal4',
-    userId: 'user3',
-    title: 'Join Academy',
-    description: 'Trial for a professional academy',
-    targetDate: '2026-06-01',
-    status: 'ACTIVE',
-    progress: 75,
-    createdAt: new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
 // ===== CONVERSATIONS =====
 export const MOCK_CONVERSATIONS: Conversation[] = [
   {
@@ -1450,6 +1406,12 @@ export function getChildrenForParent(parentId: string): User[] {
   return MOCK_USERS.filter((u) => childIds.includes(u.id));
 }
 
+export function getParentForAthlete(athleteId: string): User | undefined {
+  const relationship = MOCK_RELATIONSHIPS.find((r) => r.childId === athleteId);
+  if (!relationship) return undefined;
+  return MOCK_USERS.find((u) => u.id === relationship.parentId);
+}
+
 export function getBookingsForCoach(coachId: string): Booking[] {
   return MOCK_BOOKINGS.filter((b) => b.coachId === coachId);
 }
@@ -1486,10 +1448,6 @@ export function getRecentBadgeAwards(limit = 5): BadgeAward[] {
   return [...badgeAwards]
     .sort((a, b) => new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime())
     .slice(0, limit);
-}
-
-export function getGoalsForUser(userId: string): Goal[] {
-  return MOCK_GOALS.filter((g) => g.userId === userId);
 }
 
 export function getConversationsForUser(userId: string): Conversation[] {
@@ -2144,9 +2102,25 @@ export const clubs: Club[] = [
     ownerName: 'Director Kelly',
     inviteCode: 'LIONS-CLUB',
   },
+  {
+    id: 'club_eagles',
+    name: 'East London Eagles',
+    city: 'London',
+    country: 'UK',
+    badge: 'ELE',
+    photoUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&w=800&q=80',
+    tagline: 'Developing champions through dedication and teamwork.',
+    memberCount: 38,
+    coachCount: 5,
+    squadCount: 2,
+    ownerId: 'coach2',
+    ownerName: 'Sarah Mitchell',
+    inviteCode: 'EAGLES-JOIN',
+  },
 ];
 
 export const clubMemberships: ClubMembership[] = [
+  // Lions FC memberships
   {
     clubId: 'club_lions',
     userId: 'coach1',
@@ -2174,6 +2148,50 @@ export const clubMemberships: ClubMembership[] = [
     joinSource: 'invite',
     inviteCode: 'LIONS-TRIAL',
     squadIds: ['squad_juniors'],
+  },
+  // Parent memberships at Lions FC
+  {
+    clubId: 'club_lions',
+    userId: 'parent1',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-PARENT',
+    squadIds: ['squad_u15'],
+  },
+  {
+    clubId: 'club_lions',
+    userId: 'parent2',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-PARENT',
+    squadIds: ['squad_juniors'],
+  },
+  // Eagles memberships
+  {
+    clubId: 'club_eagles',
+    userId: 'coach2',
+    role: 'OWNER',
+    status: 'active',
+    joinSource: 'created',
+    canPostAsClub: true,
+  },
+  {
+    clubId: 'club_eagles',
+    userId: 'coach1',
+    role: 'COACH',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'EAGLES-COACH',
+  },
+  {
+    clubId: 'club_eagles',
+    userId: 'parent1',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'EAGLES-JOIN',
   },
 ];
 
@@ -2246,6 +2264,26 @@ export const clubInvites: ClubInvite[] = [
 ];
 
 export const clubFeedPosts: ClubFeedPost[] = [
+  // Pinned announcement at top
+  {
+    id: 'club_post_pinned_1',
+    clubId: 'club_lions',
+    title: 'Club Registration Now Open for Spring Season',
+    body: 'Spring 2026 registration is live! Early bird pricing available until Jan 31. All returning members get priority placement. New families welcome — share with friends!',
+    createdAt: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
+    postAs: 'club',
+    postType: 'announcement',
+    isPinned: true,
+    pinnedBy: 'coach_kelly',
+    pinnedAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    reactionCount: 45,
+    commentCount: 12,
+  },
+  // Recent announcement
   {
     id: 'club_post_1',
     clubId: 'club_lions',
@@ -2255,11 +2293,31 @@ export const clubFeedPosts: ClubFeedPost[] = [
     audience: 'club',
     audienceLabel: 'Club-wide',
     authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
     postAs: 'club',
+    postType: 'announcement',
     attachments: ['Indoor waiver.pdf'],
     reactionCount: 12,
     commentCount: 4,
   },
+  // Photo post
+  {
+    id: 'club_post_photo_1',
+    clubId: 'club_lions',
+    title: 'U12 Tournament Champions!',
+    body: 'Incredible weekend at the Regional Cup! Our U12s went undefeated and brought home the trophy. So proud of this group!',
+    createdAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Coach Mike',
+    authorId: 'coach_mike',
+    postAs: 'self',
+    postType: 'photo',
+    imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800',
+    reactionCount: 34,
+    commentCount: 8,
+  },
+  // Badge/general post
   {
     id: 'club_post_2',
     clubId: 'club_lions',
@@ -2269,24 +2327,190 @@ export const clubFeedPosts: ClubFeedPost[] = [
     audience: 'squad',
     audienceLabel: 'Squad · U15',
     authorName: 'Coach Sarah',
+    authorId: 'coach1',
     postAs: 'self',
+    postType: 'general',
     badgeAwarded: 'Clinical Finisher',
     reactionCount: 7,
     commentCount: 2,
   },
+  // Event post
+  {
+    id: 'club_post_event_1',
+    clubId: 'club_lions',
+    title: 'Family Fun Day - Save the Date',
+    body: 'Mark your calendars! Annual Family Fun Day is coming up. BBQ, skills challenges, and mini tournaments for all ages. Families and friends welcome!',
+    createdAt: new Date(today.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
+    postAs: 'club',
+    postType: 'event',
+    eventDate: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+    eventLocation: 'Lions Sports Complex',
+    reactionCount: 28,
+    commentCount: 15,
+  },
+  // Staff only post
   {
     id: 'club_post_3',
     clubId: 'club_lions',
     title: 'Staff approvals',
-    body: 'Drafting next month’s schedule. Drop proposed camps and indoor blocks for approval.',
+    body: 'Drafting next month\'s schedule. Drop proposed camps and indoor blocks for approval.',
     createdAt: new Date(today.getTime() - 20 * 60 * 1000).toISOString(),
     audience: 'staff',
     audienceLabel: 'Staff',
     authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
     postAs: 'club',
+    postType: 'general',
     attachments: ['Schedule template'],
     reactionCount: 3,
     commentCount: 1,
+  },
+  // Another photo
+  {
+    id: 'club_post_photo_2',
+    clubId: 'club_lions',
+    title: 'Training highlights',
+    body: 'Great energy at yesterday\'s session! The passing drills are really paying off.',
+    createdAt: new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'squad',
+    audienceLabel: 'Squad · U15',
+    authorName: 'Coach Sarah',
+    authorId: 'coach1',
+    postAs: 'self',
+    postType: 'photo',
+    imageUrl: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800',
+    reactionCount: 19,
+    commentCount: 3,
+  },
+  // General update
+  {
+    id: 'club_post_general_1',
+    clubId: 'club_lions',
+    title: 'Welcome new members!',
+    body: 'Big welcome to the 8 new families joining us this month. Looking forward to seeing everyone on the pitch!',
+    createdAt: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Director Kelly',
+    authorId: 'coach_kelly',
+    postAs: 'club',
+    postType: 'general',
+    reactionCount: 22,
+    commentCount: 6,
+  },
+  // Eagles club posts
+  {
+    id: 'eagles_post_1',
+    clubId: 'club_eagles',
+    title: 'Match Day Update',
+    body: 'Great result yesterday! U14s won 3-1 against Hackney Rovers. Solid defensive performance and clinical finishing. Well done everyone!',
+    createdAt: new Date(today.getTime() - 5 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'announcement',
+    reactionCount: 31,
+    commentCount: 9,
+  },
+  {
+    id: 'eagles_post_photo_1',
+    clubId: 'club_eagles',
+    title: 'New Training Kits Arrived!',
+    body: 'Fresh gear for the new season. Pick up yours at the next session. Looking sharp, Eagles!',
+    createdAt: new Date(today.getTime() - 8 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'photo',
+    imageUrl: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
+    reactionCount: 24,
+    commentCount: 5,
+  },
+  {
+    id: 'eagles_post_event_1',
+    clubId: 'club_eagles',
+    title: 'Winter Training Camp',
+    body: 'Intensive 3-day training camp during half term. Focus on technical skills and match preparation. Limited spots available!',
+    createdAt: new Date(today.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'event',
+    eventDate: new Date(today.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+    eventLocation: 'Victoria Park Sports Centre',
+    reactionCount: 18,
+    commentCount: 7,
+  },
+  // Achievement posts (auto-created when badges awarded)
+  {
+    id: 'achievement_post_1',
+    clubId: 'club_lions',
+    title: 'Tom Henderson earned a badge!',
+    body: 'Congratulations to Tom Henderson for earning the "Team Captain" badge! Excellent leadership during training sessions.',
+    createdAt: new Date(today.getTime() - 3 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Coach Sarah',
+    authorId: 'coach1',
+    postAs: 'club',
+    postType: 'achievement',
+    badgeAwarded: 'Team Captain',
+    badgeId: 'badge_leadership',
+    badgeAwardId: 'award_tom_1',
+    athleteId: 'user1',
+    athleteName: 'Tom Henderson',
+    reactionCount: 15,
+    commentCount: 4,
+  },
+  {
+    id: 'achievement_post_2',
+    clubId: 'club_eagles',
+    title: 'Emma Davis earned a badge!',
+    body: 'Congratulations to Emma Davis for earning the "Sharp Shooter" badge! Incredible goal-scoring performance this week.',
+    createdAt: new Date(today.getTime() - 6 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Sarah Mitchell',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'achievement',
+    badgeAwarded: 'Sharp Shooter',
+    badgeId: 'badge_technique',
+    badgeAwardId: 'award_emma_1',
+    athleteId: 'athlete_emma',
+    athleteName: 'Emma Davis',
+    reactionCount: 22,
+    commentCount: 6,
+  },
+  {
+    id: 'achievement_post_3',
+    clubId: 'club_lions',
+    title: 'Jake Thompson earned a badge!',
+    body: 'Congratulations to Jake Thompson for earning the "Never Give Up" badge! Great resilience during the tough match.',
+    createdAt: new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    audience: 'club',
+    audienceLabel: 'Club-wide',
+    authorName: 'Mike Thompson',
+    authorId: 'coach2',
+    postAs: 'club',
+    postType: 'achievement',
+    badgeAwarded: 'Never Give Up',
+    badgeId: 'badge_resilience',
+    badgeAwardId: 'award_jake_1',
+    athleteId: 'athlete_jake',
+    athleteName: 'Jake Thompson',
+    reactionCount: 18,
+    commentCount: 3,
   },
 ];
 
@@ -2350,16 +2574,106 @@ export function getClubMembershipForUser(userId: string): ClubMembership | undef
   return clubMemberships.find((membership) => membership.userId === userId && membership.status === 'active');
 }
 
+export function getAllClubMembershipsForUser(userId: string): ClubMembership[] {
+  return clubMemberships.filter((membership) => membership.userId === userId && membership.status === 'active');
+}
+
 export function getClubById(clubId: string): Club | undefined {
   return clubs.find((club) => club.id === clubId);
+}
+
+export function getUserClubs(userId: string): Club[] {
+  const memberships = getAllClubMembershipsForUser(userId);
+  return memberships
+    .map((m) => getClubById(m.clubId))
+    .filter((club): club is Club => club !== undefined);
+}
+
+export type AggregatedFeedPost = ClubFeedPost & {
+  clubName: string;
+  clubBadge?: string;
+};
+
+export function getAggregatedFeed(
+  userId: string,
+  filter?: 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match'
+): AggregatedFeedPost[] {
+  const memberships = getAllClubMembershipsForUser(userId);
+  const clubIds = memberships.map((m) => m.clubId);
+
+  let posts: AggregatedFeedPost[] = clubFeedPosts
+    .filter((post) => clubIds.includes(post.clubId))
+    .map((post) => {
+      const club = getClubById(post.clubId);
+      return {
+        ...post,
+        clubName: club?.name || 'Unknown Club',
+        clubBadge: club?.badge,
+      };
+    });
+
+  if (filter && filter !== 'all') {
+    posts = posts.filter((post) => post.postType === filter);
+  }
+
+  // Sort by date descending (no pinning for aggregated feed)
+  return posts.sort((a, b) => {
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 }
 
 export function getClubSquads(clubId: string): ClubSquad[] {
   return clubSquads.filter((squad) => squad.clubId === clubId);
 }
 
-export function getClubFeed(clubId: string): ClubFeedPost[] {
-  return clubFeedPosts.filter((post) => post.clubId === clubId);
+export function getClubFeed(clubId: string, filter?: 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match'): ClubFeedPost[] {
+  let posts = clubFeedPosts.filter((post) => post.clubId === clubId);
+
+  if (filter && filter !== 'all') {
+    posts = posts.filter((post) => post.postType === filter);
+  }
+
+  // Sort: pinned first, then by date descending
+  return posts.sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
+
+export function addClubFeedPost(post: Omit<ClubFeedPost, 'id' | 'createdAt' | 'reactionCount' | 'commentCount'>): ClubFeedPost {
+  const newPost: ClubFeedPost = {
+    ...post,
+    id: `club_post_${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    reactionCount: 0,
+    commentCount: 0,
+  };
+  clubFeedPosts.unshift(newPost);
+  return newPost;
+}
+
+export function togglePinPost(postId: string, pinnedBy: string): boolean {
+  const post = clubFeedPosts.find((p) => p.id === postId);
+  if (!post) return false;
+
+  post.isPinned = !post.isPinned;
+  if (post.isPinned) {
+    post.pinnedBy = pinnedBy;
+    post.pinnedAt = new Date().toISOString();
+  } else {
+    post.pinnedBy = undefined;
+    post.pinnedAt = undefined;
+  }
+  return post.isPinned;
+}
+
+export function getPinnedPosts(clubId: string): ClubFeedPost[] {
+  return clubFeedPosts.filter((post) => post.clubId === clubId && post.isPinned);
+}
+
+export function getAnnouncements(clubId: string): ClubFeedPost[] {
+  return clubFeedPosts.filter((post) => post.clubId === clubId && post.postType === 'announcement');
 }
 
 export function getClubSessions(clubId: string): SessionOffering[] {
@@ -2697,6 +3011,13 @@ export const coachProfiles: EnhancedCoachProfile[] = [
       'Over 230 successful training sessions',
       'Helped 15+ athletes join academy programs',
     ],
+    socialLinks: {
+      instagram: '@coachsarahmitchell',
+      twitter: '@SarahMitchellGK',
+      youtube: '@SarahMitchellCoaching',
+      linkedin: 'sarah-mitchell-coaching',
+      website: 'https://sarahmitchellcoaching.com',
+    },
   },
 ];
 

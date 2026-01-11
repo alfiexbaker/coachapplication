@@ -12,6 +12,7 @@ import { Chip } from '@/components/primitives/chip';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { chatThreads } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 import { ChatThreadSummary } from '@/constants/types';
 import { EmptyState } from '@/components/ui/empty-state';
 import { messagingService } from '@/services/messaging-service';
@@ -144,11 +145,15 @@ export default function MessagesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const params = useLocalSearchParams<{ coachId?: string }>();
+  const { currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [threads, setThreads] = useState<ChatThreadSummary[]>(chatThreads);
   const [viewMode, setViewMode] = useState<'direct' | 'groups'>('direct');
   const [groupFilter, setGroupFilter] = useState<'all' | 'club' | 'squad' | 'class'>('all');
+
+  // Check if current user is a coach (can create clubs) or parent (can only join)
+  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   // Auto-open thread if coachId param is provided
   useEffect(() => {
@@ -265,9 +270,11 @@ export default function MessagesScreen() {
               <EmptyState
                 icon="chatbubbles"
                 title="No group chats yet"
-                message="Create a squad or club space to coordinate with coaches, teams, and classes."
-                actionLabel="Browse coaches"
-                onPressAction={() => router.push('/more')}
+                message={isCoach
+                  ? "Create a squad or club space to coordinate with coaches, teams, and classes."
+                  : "Join a club with an invite code to access group chats with coaches and teams."}
+                actionLabel={isCoach ? "Go to Club Hub" : "Join a Club"}
+                onPressAction={() => router.push('/club-hub')}
               />
             ) : (
               groupThreads.map((thread, index) => (

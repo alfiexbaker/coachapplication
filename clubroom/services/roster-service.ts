@@ -9,13 +9,34 @@
  * - GET /api/coaches/:id/roster/:athleteId - Get detail
  * - POST /api/coaches/:id/roster/:athleteId/notes - Add note
  * - PATCH /api/coaches/:id/roster/:athleteId - Update status/tags
+ * - DELETE /api/coaches/:id/roster/:athleteId - Remove athlete
+ * - GET /api/coaches/:id/roster/removed - Get removal history
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { RosterEntry, RosterNote, FootballObjective } from '@/constants/types';
 
 const STORAGE_KEY = 'coach_roster';
+const REMOVAL_HISTORY_KEY = 'roster_removal_history';
 const USE_MOCK = true;
+
+export type RemovalReason = 'GRADUATED' | 'MOVED' | 'INACTIVE' | 'OTHER';
+
+export interface AthleteRemovalRecord {
+  id: string;
+  coachId: string;
+  athleteId: string;
+  athleteName: string;
+  reason: RemovalReason;
+  customReason?: string;
+  archived: boolean; // true = archived (keep history), false = deleted
+  removedAt: string;
+  previousStatus: RosterEntry['status'];
+  totalSessions: number;
+  totalRevenue: number;
+  // Store the full entry for potential undo
+  originalEntry?: RosterEntry;
+}
 
 // Mock roster data
 const MOCK_ROSTER: RosterEntry[] = [
@@ -178,6 +199,25 @@ const MOCK_ROSTER: RosterEntry[] = [
 ];
 
 let rosterCache: RosterEntry[] = [...MOCK_ROSTER];
+let removalHistoryCache: AthleteRemovalRecord[] = [];
+
+async function loadRemovalHistory(): Promise<AthleteRemovalRecord[]> {
+  try {
+    const stored = await AsyncStorage.getItem(REMOVAL_HISTORY_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch (error) {
+    console.error('[RosterService] Failed to load removal history:', error);
+  }
+  return [];
+}
+
+async function saveRemovalHistory(history: AthleteRemovalRecord[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(REMOVAL_HISTORY_KEY, JSON.stringify(history));
+  } catch (error) {
+    console.error('[RosterService] Failed to save removal history:', error);
+  }
+}
 
 async function loadFromStorage(): Promise<RosterEntry[]> {
   try {
@@ -514,5 +554,132 @@ export const rosterService = {
       INACTIVE: '#6B7280',
     };
     return colors[status] || '#6B7280';
+  },
+
+  /**
+   * Remove athlete from roster
+   */
+  async removeAthlete(
+    coachId: string,
+    athleteId: string,
+    reason: RemovalReason,
+    options?: {
+      customReason?: string;
+      archive?: boolean; // If true, keep history; if false, permanently delete
+    }
+  ): Promise<AthleteRemovalRecord> {
+    const archive = options?.archive ?? true; // Default to archiving
+
+    if (USE_MOCK) {
+      rosterCache = await loadFromStorage();
+      const entryIndex = rosterCache.findIndex(
+        (r) => r.coachId === coachId && r.athleteId === athleteId
+      );
+
+      if (entryIndex === -1) {
+        throw new Error('Athlete not found in roster');
+      }
+
+      const entry = rosterCache[entryIndex];
+
+      // Create removal record
+      const removalRecord: AthleteRemovalRecord = {
+        id: `removal_${Date.now()}`,
+        coachId,
+        athleteId,
+        athleteName: entry.athleteName,
+        reason,
+        customReason: options?.customReason,
+        archived: archive,
+        removedAt: new Date().toISOString(),
+        previousStatus: entry.status,
+        totalSessions: entry.totalSessions,
+        totalRevenue: entry.totalRevenue,
+        originalEntry: archive ? entry : undefined,
+      };
+
+      // Remove from roster
+      rosterCache.splice(entryIndex, 1);
+      await saveToStorage(rosterCache);
+
+      // Save to removal history
+      removalHistoryCache = await loadRemovalHistory();
+      removalHistoryCache.unshift(removalRecord);
+      await saveRemovalHistory(removalHistoryCache);
+
+      return removalRecord;
+    }
+
+    const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason, customReason: options?.customReason, archive }),
+    });
+    return response.json();
+  },
+
+  /**
+   * Undo athlete removal (restore from archive)
+   */
+  async undoRemoval(coachId: string, removalId: string): Promise<RosterEntry | null> {
+    if (USE_MOCK) {
+      removalHistoryCache = await loadRemovalHistory();
+      const recordIndex = removalHistoryCache.findIndex(
+        (r) => r.id === removalId && r.coachId === coachId
+      );
+
+      if (recordIndex === -1) {
+        throw new Error('Removal record not found');
+      }
+
+      const record = removalHistoryCache[recordIndex];
+
+      if (!record.originalEntry) {
+        throw new Error('Cannot restore - athlete was permanently deleted');
+      }
+
+      // Restore to roster
+      rosterCache = await loadFromStorage();
+      rosterCache.push(record.originalEntry);
+      await saveToStorage(rosterCache);
+
+      // Remove from removal history
+      removalHistoryCache.splice(recordIndex, 1);
+      await saveRemovalHistory(removalHistoryCache);
+
+      return record.originalEntry;
+    }
+
+    const response = await fetch(`/api/coaches/${coachId}/roster/removed/${removalId}/undo`, {
+      method: 'POST',
+    });
+    if (!response.ok) return null;
+    return response.json();
+  },
+
+  /**
+   * Get removal history for a coach
+   */
+  async getRemovalHistory(coachId: string): Promise<AthleteRemovalRecord[]> {
+    if (USE_MOCK) {
+      removalHistoryCache = await loadRemovalHistory();
+      return removalHistoryCache.filter((r) => r.coachId === coachId);
+    }
+
+    const response = await fetch(`/api/coaches/${coachId}/roster/removed`);
+    return response.json();
+  },
+
+  /**
+   * Format removal reason for display
+   */
+  formatRemovalReason(reason: RemovalReason): string {
+    const labels: Record<RemovalReason, string> = {
+      GRADUATED: 'Graduated',
+      MOVED: 'Moved away',
+      INACTIVE: 'Inactive',
+      OTHER: 'Other',
+    };
+    return labels[reason] || reason;
   },
 };

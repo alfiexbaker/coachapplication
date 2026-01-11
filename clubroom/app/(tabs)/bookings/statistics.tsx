@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, View, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -10,6 +10,8 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { sessionHistory, athleteSkillLevels, getChildrenForParent, getSessionsForAthlete } from '@/constants/mock-data';
+import { badgeService } from '@/services/badge-service';
+import { router } from 'expo-router';
 
 export default function StatisticsScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -27,6 +29,21 @@ export default function StatisticsScreen() {
   const [selectedChildId, setSelectedChildId] = useState<string>(
     children.length > 0 ? children[0].id : ''
   );
+  const [badgeCount, setBadgeCount] = useState(0);
+
+  // Compute targetId for badge fetching
+  const targetId = currentUser?.role === 'PARENT' ? selectedChildId : currentUser?.id;
+
+  // Load badge count
+  useEffect(() => {
+    const fetchBadges = async () => {
+      if (targetId) {
+        const badges = await badgeService.listAwardsForAthlete(targetId);
+        setBadgeCount(badges.filter(b => b.visibility !== 'coach_only').length);
+      }
+    };
+    fetchBadges();
+  }, [currentUser, selectedChildId, targetId]);
 
   // Get sessions filtered by selected child for parents
   const sessions = useMemo(() => {
@@ -58,10 +75,10 @@ export default function StatisticsScreen() {
       color: '#3B82F6',
     },
     {
-      id: 'coaches',
-      icon: 'people' as const,
-      label: 'Coaches',
-      value: uniqueCoaches.toString(),
+      id: 'badges',
+      icon: 'ribbon' as const,
+      label: 'Badges Earned',
+      value: badgeCount.toString(),
       color: '#8B5CF6',
     },
     {
@@ -203,6 +220,55 @@ export default function StatisticsScreen() {
                 </View>
               ))}
           </SurfaceCard>
+        </View>
+
+        {/* Quick Links to Related Screens */}
+        <View style={styles.section}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Explore More
+          </ThemedText>
+          <View style={styles.quickLinksGrid}>
+            <Pressable
+              style={[styles.quickLink, { backgroundColor: `${palette.tint}10`, borderColor: `${palette.tint}30` }]}
+              onPress={() => {
+                if (currentUser?.role === 'PARENT' && selectedChildId) {
+                  router.push({ pathname: '/development/child-progress/[childId]', params: { childId: selectedChildId } });
+                } else {
+                  router.push('/development/my-progress');
+                }
+              }}
+            >
+              <Ionicons name="analytics-outline" size={24} color={palette.tint} />
+              <ThemedText style={[styles.quickLinkText, { color: palette.tint }]}>Full Progress</ThemedText>
+            </Pressable>
+            <Pressable
+              style={[styles.quickLink, { backgroundColor: '#8B5CF610', borderColor: '#8B5CF630' }]}
+              onPress={() => {
+                if (currentUser?.role === 'PARENT' && selectedChildId) {
+                  router.push({ pathname: '/children/badges/[childId]', params: { childId: selectedChildId } });
+                } else {
+                  router.push('/(tabs)/badges');
+                }
+              }}
+            >
+              <Ionicons name="ribbon-outline" size={24} color="#8B5CF6" />
+              <ThemedText style={[styles.quickLinkText, { color: '#8B5CF6' }]}>View Badges</ThemedText>
+            </Pressable>
+            <Pressable
+              style={[styles.quickLink, { backgroundColor: '#F59E0B10', borderColor: '#F59E0B30' }]}
+              onPress={() => router.push('/(tabs)/bookings')}
+            >
+              <Ionicons name="calendar-outline" size={24} color="#F59E0B" />
+              <ThemedText style={[styles.quickLinkText, { color: '#F59E0B' }]}>Book Session</ThemedText>
+            </Pressable>
+            <Pressable
+              style={[styles.quickLink, { backgroundColor: '#10B98110', borderColor: '#10B98130' }]}
+              onPress={() => router.push('/(tabs)/messages')}
+            >
+              <Ionicons name="chatbubble-outline" size={24} color="#10B981" />
+              <ThemedText style={[styles.quickLinkText, { color: '#10B981' }]}>Messages</ThemedText>
+            </Pressable>
+          </View>
         </View>
 
       </ScrollView>
@@ -371,5 +437,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.5,
     textAlign: 'center',
+  },
+  quickLinksGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  quickLink: {
+    flex: 1,
+    minWidth: '47%',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  quickLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

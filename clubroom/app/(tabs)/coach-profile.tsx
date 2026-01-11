@@ -28,6 +28,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
+import { SocialLinks } from '@/components/profile/social-links';
 
 type TabType = 'posts' | 'about' | 'photos' | 'sessions' | 'reviews';
 
@@ -353,6 +354,14 @@ export default function CoachProfileScreen() {
                   </Pressable>
                 )}
               </SurfaceCard>
+
+              {/* Social Links */}
+              {coach.socialLinks && Object.values(coach.socialLinks).some(v => v) && (
+                <SurfaceCard style={styles.section}>
+                  <ThemedText type="subtitle">Social Media</ThemedText>
+                  <SocialLinks socialLinks={coach.socialLinks} size="md" variant="icons" />
+                </SurfaceCard>
+              )}
 
               {/* Experience */}
               <SurfaceCard style={styles.section}>

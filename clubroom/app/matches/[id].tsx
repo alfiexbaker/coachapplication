@@ -1,0 +1,701 @@
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, View, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+
+import { PageContainer } from '@/components/primitives/page-container';
+import { PageHeader } from '@/components/primitives/page-header';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
+import { LineupSelector } from '@/components/match/lineup-selector';
+import { AvailabilityResponse } from '@/components/match/availability-response';
+import { Colors, Radii, Spacing } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+import type { Match, MatchPlayer } from '@/constants/types';
+import { matchService } from '@/services/match-service';
+
+export default function MatchDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const { currentUser } = useAuth();
+
+  const [match, setMatch] = useState<Match | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showLineupSelector, setShowLineupSelector] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+
+  // For parent view, find their child in the match
+  const currentPlayerInfo = match?.selectedPlayers.find(
+    (p) => p.parentId === currentUser?.id || p.parentId === 'parent_1' // demo fallback
+  );
+
+  const loadMatch = async () => {
+    try {
+      if (!id) return;
+      const data = await matchService.getMatch(id);
+      setMatch(data);
+    } catch (error) {
+      console.error('Failed to load match:', error);
+    }
+  };
+
+  useEffect(() => {
+    setIsLoading(true);
+    loadMatch().finally(() => setIsLoading(false));
+  }, [id]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadMatch();
+    setIsRefreshing(false);
+  };
+
+  const handleSetLineup = async (
+    lineup: Array<{
+      athleteId: string;
+      position?: string;
+      jerseyNumber?: number;
+      isReserve?: boolean;
+    }>
+  ) => {
+    if (!match) return;
+    setIsSubmitting(true);
+
+    try {
+      const updated = await matchService.setLineup({
+        matchId: match.id,
+        lineup,
+      });
+      setMatch(updated);
+      setShowLineupSelector(false);
+      Alert.alert('Lineup Set', 'The lineup has been confirmed and players notified.');
+    } catch (error) {
+      console.error('Failed to set lineup:', error);
+      Alert.alert('Error', 'Failed to set lineup. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePlayerResponse = async (status: 'AVAILABLE' | 'UNAVAILABLE', note?: string) => {
+    if (!match || !currentPlayerInfo) return;
+    setIsSubmitting(true);
+
+    try {
+      const updated = await matchService.respondToMatch({
+        matchId: match.id,
+        athleteId: currentPlayerInfo.athleteId,
+        parentId: currentPlayerInfo.parentId,
+        status,
+        note,
+      });
+      setMatch(updated);
+    } catch (error) {
+      console.error('Failed to respond:', error);
+      throw error;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRecordResult = () => {
+    Alert.prompt(
+      'Record Result',
+      'Enter the final score (home-away, e.g., 3-1)',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Save',
+          onPress: async (score) => {
+            if (!score || !match) return;
+            const [home, away] = score.split('-').map(Number);
+            if (isNaN(home) || isNaN(away)) {
+              Alert.alert('Invalid Score', 'Please enter a valid score like 3-1');
+              return;
+            }
+            try {
+              const updated = await matchService.recordResult(match.id, { home, away });
+              setMatch(updated);
+              Alert.alert('Result Recorded', 'The match result has been saved.');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to record result.');
+            }
+          },
+        },
+      ],
+      'plain-text'
+    );
+  };
+
+  const handleCancelMatch = () => {
+    Alert.alert(
+      'Cancel Match',
+      'Are you sure you want to cancel this match? All players will be notified.',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Cancel Match',
+          style: 'destructive',
+          onPress: async () => {
+            if (!match) return;
+            try {
+              const updated = await matchService.cancelMatch(match.id);
+              setMatch(updated);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel match.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  if (isLoading || !match) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={<PageHeader title="Loading..." showBack onBackPress={() => router.back()} />}
+        >
+          <View style={styles.loadingContainer}>
+            <ThemedText style={{ color: palette.muted }}>Loading match details...</ThemedText>
+          </View>
+        </PageContainer>
+      </>
+    );
+  }
+
+  const matchDate = new Date(match.date);
+  const dateLabel = matchDate.toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const typeColor = matchService.getMatchTypeColor(match.matchType);
+  const statusColor = matchService.getStatusColor(match.status);
+  const availability = matchService.getAvailabilitySummary(match);
+
+  const isUpcoming = match.status === 'SCHEDULED' || match.status === 'LINEUP_SET';
+  const isComplete = match.status === 'COMPLETED';
+  const isCancelled = match.status === 'CANCELLED';
+
+  // Show lineup selector view
+  if (showLineupSelector && isCoach) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <PageContainer
+          header={
+            <PageHeader
+              title="Set Lineup"
+              subtitle={match.title}
+              showBack
+              onBackPress={() => setShowLineupSelector(false)}
+            />
+          }
+          gap={0}
+          horizontalSpacing={Spacing.md}
+        >
+          <LineupSelector
+            match={match}
+            onSetLineup={handleSetLineup}
+            isLoading={isSubmitting}
+          />
+        </PageContainer>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <PageContainer
+        header={
+          <PageHeader
+            title="Match Details"
+            subtitle={match.clubName}
+            showBack
+            onBackPress={() => router.back()}
+          />
+        }
+        gap={0}
+        horizontalSpacing={0}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+          }
+        >
+          {/* Match header card */}
+          <SurfaceCard
+            style={styles.headerCard}
+            outlineGradient={isUpcoming ? [typeColor, `${typeColor}60`] : undefined}
+          >
+            {/* Status badges */}
+            <View style={styles.badgeRow}>
+              <View style={[styles.typeBadge, { backgroundColor: `${typeColor}15` }]}>
+                <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
+                  {matchService.formatMatchType(match.matchType)}
+                </ThemedText>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
+                <ThemedText style={[styles.statusBadgeText, { color: statusColor }]}>
+                  {matchService.formatStatus(match.status)}
+                </ThemedText>
+              </View>
+              <View style={[styles.homeAwayBadge, { backgroundColor: palette.surface }]}>
+                <Ionicons
+                  name={match.isHome ? 'home' : 'airplane'}
+                  size={12}
+                  color={palette.muted}
+                />
+                <ThemedText style={[styles.homeAwayText, { color: palette.muted }]}>
+                  {match.isHome ? 'Home' : 'Away'}
+                </ThemedText>
+              </View>
+            </View>
+
+            {/* Title and opponent */}
+            <ThemedText type="title" style={styles.title}>{match.title}</ThemedText>
+            <View style={styles.opponentRow}>
+              <ThemedText style={[styles.vsText, { color: palette.muted }]}>vs</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.opponent}>
+                {match.opponent}
+              </ThemedText>
+            </View>
+
+            {/* Result if completed */}
+            {match.result && (
+              <View style={styles.resultContainer}>
+                <View style={[styles.resultBox, { backgroundColor: palette.surface }]}>
+                  <ThemedText style={styles.resultScore}>
+                    {match.isHome
+                      ? `${match.result.home} - ${match.result.away}`
+                      : `${match.result.away} - ${match.result.home}`}
+                  </ThemedText>
+                  <ThemedText style={[styles.resultLabel, { color: palette.muted }]}>
+                    Final Score
+                  </ThemedText>
+                </View>
+              </View>
+            )}
+
+            {/* Schedule details */}
+            <View style={styles.detailsSection}>
+              <View style={styles.detailRow}>
+                <Ionicons name="calendar" size={20} color={palette.tint} />
+                <ThemedText style={styles.detailText}>{dateLabel}</ThemedText>
+              </View>
+              <View style={styles.detailRow}>
+                <Ionicons name="time" size={20} color={palette.tint} />
+                <ThemedText style={styles.detailText}>
+                  Kickoff: {match.kickoffTime}
+                  {match.meetTime && (
+                    <ThemedText style={{ color: palette.muted }}>
+                      {' '}(Meet: {match.meetTime})
+                    </ThemedText>
+                  )}
+                </ThemedText>
+              </View>
+              <View style={styles.detailRow}>
+                <Ionicons name="location" size={20} color={palette.tint} />
+                <View style={{ flex: 1 }}>
+                  <ThemedText style={styles.detailText}>{match.venue}</ThemedText>
+                  {match.address && (
+                    <ThemedText style={[styles.addressText, { color: palette.muted }]}>
+                      {match.address}
+                    </ThemedText>
+                  )}
+                </View>
+              </View>
+              {match.squadName && (
+                <View style={styles.detailRow}>
+                  <Ionicons name="people" size={20} color={palette.tint} />
+                  <ThemedText style={styles.detailText}>{match.squadName}</ThemedText>
+                </View>
+              )}
+            </View>
+
+            {/* Notes */}
+            {match.notes && (
+              <View style={[styles.notesBox, { backgroundColor: palette.surface }]}>
+                <Ionicons name="chatbubble-outline" size={16} color={palette.muted} />
+                <ThemedText style={styles.notesText}>{match.notes}</ThemedText>
+              </View>
+            )}
+          </SurfaceCard>
+
+          {/* Parent view - availability response */}
+          {!isCoach && currentPlayerInfo && isUpcoming && (
+            <View style={styles.section}>
+              <AvailabilityResponse
+                match={match}
+                player={currentPlayerInfo}
+                onRespond={handlePlayerResponse}
+                isLoading={isSubmitting}
+              />
+            </View>
+          )}
+
+          {/* Coach view - availability stats and actions */}
+          {isCoach && isUpcoming && (
+            <View style={styles.section}>
+              <SurfaceCard style={styles.statsCard}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                  Squad Availability
+                </ThemedText>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <View style={[styles.statDot, { backgroundColor: palette.success }]} />
+                    <ThemedText type="title" style={{ color: palette.success }}>
+                      {availability.available}
+                    </ThemedText>
+                    <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                      Available
+                    </ThemedText>
+                  </View>
+                  <View style={styles.statItem}>
+                    <View style={[styles.statDot, { backgroundColor: palette.error }]} />
+                    <ThemedText type="title" style={{ color: palette.error }}>
+                      {availability.unavailable}
+                    </ThemedText>
+                    <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                      Unavailable
+                    </ThemedText>
+                  </View>
+                  <View style={styles.statItem}>
+                    <View style={[styles.statDot, { backgroundColor: palette.warning }]} />
+                    <ThemedText type="title" style={{ color: palette.warning }}>
+                      {availability.pending}
+                    </ThemedText>
+                    <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                      Pending
+                    </ThemedText>
+                  </View>
+                  {match.status === 'LINEUP_SET' && (
+                    <View style={styles.statItem}>
+                      <View style={[styles.statDot, { backgroundColor: '#7C3AED' }]} />
+                      <ThemedText type="title" style={{ color: '#7C3AED' }}>
+                        {availability.selected}
+                      </ThemedText>
+                      <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
+                        Selected
+                      </ThemedText>
+                    </View>
+                  )}
+                </View>
+
+                {match.status === 'SCHEDULED' && availability.available > 0 && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: palette.tint }]}
+                    onPress={() => setShowLineupSelector(true)}
+                  >
+                    <Ionicons name="people" size={20} color="#fff" />
+                    <ThemedText style={styles.actionButtonText}>Set Lineup</ThemedText>
+                  </TouchableOpacity>
+                )}
+              </SurfaceCard>
+            </View>
+          )}
+
+          {/* Player list */}
+          {match.selectedPlayers.length > 0 && (
+            <View style={styles.section}>
+              <SurfaceCard style={styles.playersCard}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                  {match.status === 'LINEUP_SET' ? 'Match Day Squad' : 'Invited Players'}
+                </ThemedText>
+                <View style={styles.playersList}>
+                  {match.selectedPlayers.map((player) => {
+                    const statusColor = matchService.getPlayerStatusColor(player.status);
+                    return (
+                      <View
+                        key={player.athleteId}
+                        style={[styles.playerRow, { borderBottomColor: palette.border }]}
+                      >
+                        <View
+                          style={[styles.playerAvatar, { backgroundColor: `${statusColor}15` }]}
+                        >
+                          <ThemedText style={[styles.avatarText, { color: statusColor }]}>
+                            {player.athleteName.slice(0, 2).toUpperCase()}
+                          </ThemedText>
+                        </View>
+                        <View style={styles.playerInfo}>
+                          <ThemedText type="defaultSemiBold">{player.athleteName}</ThemedText>
+                          {player.position && (
+                            <ThemedText style={[styles.playerPosition, { color: palette.muted }]}>
+                              {player.position}
+                              {player.jerseyNumber && ` #${player.jerseyNumber}`}
+                            </ThemedText>
+                          )}
+                        </View>
+                        <View
+                          style={[styles.statusPill, { backgroundColor: `${statusColor}15` }]}
+                        >
+                          <ThemedText style={[styles.statusPillText, { color: statusColor }]}>
+                            {matchService.formatPlayerStatus(player.status)}
+                          </ThemedText>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </SurfaceCard>
+            </View>
+          )}
+
+          {/* Coach actions */}
+          {isCoach && (
+            <View style={styles.section}>
+              <View style={styles.coachActions}>
+                {isComplete && !match.result && (
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, { borderColor: palette.tint }]}
+                    onPress={handleRecordResult}
+                  >
+                    <Ionicons name="trophy" size={18} color={palette.tint} />
+                    <ThemedText style={[styles.secondaryButtonText, { color: palette.tint }]}>
+                      Record Result
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+                {isUpcoming && !isCancelled && (
+                  <TouchableOpacity
+                    style={[styles.secondaryButton, { borderColor: palette.error }]}
+                    onPress={handleCancelMatch}
+                  >
+                    <Ionicons name="close-circle" size={18} color={palette.error} />
+                    <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
+                      Cancel Match
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </PageContainer>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: Spacing.xl * 2,
+  },
+  headerCard: {
+    margin: Spacing.md,
+    gap: Spacing.sm,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  typeBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  statusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  homeAwayBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  homeAwayText: {
+    fontSize: 11,
+  },
+  title: {
+    fontSize: 22,
+    marginTop: Spacing.xs,
+  },
+  opponentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  vsText: {
+    fontSize: 14,
+  },
+  opponent: {
+    fontSize: 16,
+  },
+  resultContainer: {
+    alignItems: 'center',
+    marginVertical: Spacing.sm,
+  },
+  resultBox: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+  },
+  resultScore: {
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  resultLabel: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  detailsSection: {
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  detailText: {
+    fontSize: 14,
+    flex: 1,
+  },
+  addressText: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  notesBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
+  notesText: {
+    fontSize: 13,
+    flex: 1,
+    fontStyle: 'italic',
+  },
+  section: {
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    marginBottom: Spacing.sm,
+  },
+  statsCard: {
+    gap: Spacing.sm,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  statDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    marginTop: Spacing.sm,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  playersCard: {
+    gap: Spacing.sm,
+  },
+  playersList: {
+    gap: 0,
+  },
+  playerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: Spacing.sm,
+  },
+  playerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  playerInfo: {
+    flex: 1,
+  },
+  playerPosition: {
+    fontSize: 12,
+  },
+  statusPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  coachActions: {
+    gap: Spacing.sm,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+});

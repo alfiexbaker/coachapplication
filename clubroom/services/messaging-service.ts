@@ -1,6 +1,7 @@
 import { chatThreads, chatMessages } from '@/constants/mock-data';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { storageService } from './storage-service';
+import { notificationService } from './notification-service';
 
 const STORAGE_KEY = 'clubroom.messages';
 
@@ -16,6 +17,10 @@ export class MessagingService {
 
   async listThreads(): Promise<ChatThreadSummary[]> {
     return this.inMemoryThreads;
+  }
+
+  async getThread(threadId: string): Promise<ChatThreadSummary | undefined> {
+    return this.inMemoryThreads.find((t) => t.id === threadId);
   }
 
   async listMessages(threadId: string): Promise<ChatMessage[]> {
@@ -46,23 +51,54 @@ export class MessagingService {
     };
 
     await this.persistMessage(threadId, newMessage);
+
+    // Notify the recipient
+    const thread = await this.getThread(threadId);
+    if (thread) {
+      if (sender === 'parent') {
+        // Parent sent message, notify coach
+        await notificationService.notifyCoachNewMessage({
+          coachId: 'coach_1', // In production, get from thread
+          parentName: senderName || thread.coachName || 'Parent',
+          threadId,
+        });
+      } else {
+        // Coach sent message, notify parent
+        await notificationService.notifyParentNewMessage({
+          parentId: 'parent_1', // In production, get from thread
+          coachName: senderName || thread.coachName || 'Coach',
+          threadId,
+        });
+      }
+    }
+
     setTimeout(() => this.updateStatus(threadId, newMessage.id, 'sent'), 500);
     setTimeout(() => this.updateStatus(threadId, newMessage.id, 'delivered'), 1000);
     setTimeout(() => this.updateStatus(threadId, newMessage.id, 'seen'), 1500);
     return newMessage;
   }
 
-  async simulateIncoming(threadId: string, body: string) {
+  async simulateIncoming(threadId: string, body: string, senderName?: string) {
     const timestamp = new Date().toISOString();
     const incoming: ChatMessage = {
       id: `msg_${Date.now()}_coach`,
       threadId,
       sender: 'coach',
+      senderName,
       body,
       createdAt: timestamp,
       status: 'delivered',
     };
     await this.persistMessage(threadId, incoming);
+
+    // Notify parent of incoming message
+    const thread = await this.getThread(threadId);
+    await notificationService.notifyParentNewMessage({
+      parentId: 'parent_1',
+      coachName: senderName || thread?.coachName || 'Coach',
+      threadId,
+    });
+
     return incoming;
   }
 

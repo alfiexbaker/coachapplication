@@ -1,14 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   TextInput,
   Pressable,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -22,15 +24,45 @@ import {
   formatGBP,
   getChildrenForParent,
 } from '@/constants/mock-data';
+import { availabilityService } from '@/services/availability-service';
+import { sessionInviteService } from '@/services/session-invite-service';
 import { createLogger } from '@/utils/logger';
+import type { AvailabilitySlot, SessionInvite } from '@/constants/types';
 
 const logger = createLogger('ParentDiscoverScreen');
+
+// Cache for next available slots to avoid repeated API calls
+const nextAvailableCache: Record<string, { slot: AvailabilitySlot | null; timestamp: number }> = {};
 
 export function ParentDiscoverScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
   const [postcode, setPostcode] = useState('');
+  const [nextAvailableSlots, setNextAvailableSlots] = useState<Record<string, AvailabilitySlot | null>>({});
+  const [pendingInvites, setPendingInvites] = useState<SessionInvite[]>([]);
+
+  // Load pending invites when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (currentUser?.id) {
+        loadPendingInvites();
+      }
+    }, [currentUser?.id])
+  );
+
+  const loadPendingInvites = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const invites = await sessionInviteService.getInvitesForParent(currentUser.id);
+      const pending = invites.filter(
+        (inv) => inv.status === 'PENDING' && new Date(inv.expiresAt) > new Date()
+      );
+      setPendingInvites(pending.slice(0, 3)); // Show max 3 on home
+    } catch (error) {
+      logger.error('Failed to load pending invites', { error });
+    }
+  };
 
   if (!currentUser) return null;
 
@@ -50,6 +82,64 @@ export function ParentDiscoverScreen() {
       .filter((coach) => coach.distance <= 5)
       .sort((a, b) => a.distance - b.distance);
   }, [postcode, currentUser]);
+
+  // Fetch next available slot for each coach
+  useEffect(() => {
+    const fetchNextAvailableSlots = async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const twoWeeksLater = new Date();
+      twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
+      const endDate = twoWeeksLater.toISOString().split('T')[0];
+
+      const slotsMap: Record<string, AvailabilitySlot | null> = {};
+
+      for (const coach of nearbyCoaches) {
+        // Check cache first (valid for 5 minutes)
+        const cached = nextAvailableCache[coach.id];
+        if (cached && Date.now() - cached.timestamp < 5 * 60 * 1000) {
+          slotsMap[coach.id] = cached.slot;
+          continue;
+        }
+
+        try {
+          const slots = await availabilityService.getAvailableSlots(coach.id, today, endDate);
+          const nextSlot = slots.find((s) => s.isAvailable) || null;
+          slotsMap[coach.id] = nextSlot;
+          nextAvailableCache[coach.id] = { slot: nextSlot, timestamp: Date.now() };
+        } catch (error) {
+          logger.error('Failed to fetch availability for coach', { coachId: coach.id, error });
+          slotsMap[coach.id] = null;
+        }
+      }
+
+      setNextAvailableSlots(slotsMap);
+    };
+
+    if (nearbyCoaches.length > 0) {
+      fetchNextAvailableSlots();
+    }
+  }, [nearbyCoaches]);
+
+  // Format next available slot for display
+  const formatNextAvailable = (slot: AvailabilitySlot | null): string => {
+    if (!slot) return 'Check availability';
+
+    const slotDate = new Date(slot.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (slotDate.toDateString() === today.toDateString()) {
+      return `Today at ${slot.startTime}`;
+    } else if (slotDate.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow at ${slot.startTime}`;
+    } else {
+      const dayName = slotDate.toLocaleDateString('en-US', { weekday: 'short' });
+      return `${dayName} at ${slot.startTime}`;
+    }
+  };
 
   const handlePostcodeChange = (value: string) => {
     const stripped = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -145,6 +235,79 @@ export function ParentDiscoverScreen() {
           )}
         </View>
 
+        {/* Pending Session Invites */}
+        {pendingInvites.length > 0 && (
+          <Animated.View entering={FadeInDown.springify()} style={styles.pendingInvitesSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="mail" size={18} color={palette.warning} />
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                  Pending Invites ({pendingInvites.length})
+                </ThemedText>
+              </View>
+              <Clickable onPress={() => router.push('/session-invites')}>
+                <ThemedText style={[styles.viewAllLink, { color: palette.tint }]}>View All</ThemedText>
+              </Clickable>
+            </View>
+
+            {pendingInvites.map((invite, index) => {
+              const coachFirstName = invite.coachName.split(' ')[0];
+              const athleteDisplay = invite.athleteNames.length === 1
+                ? invite.athleteNames[0]
+                : `${invite.athleteNames.length} athletes`;
+              const message = invite.clubName
+                ? `Coach ${coachFirstName} invited ${athleteDisplay} to ${invite.clubName}`
+                : `Coach ${coachFirstName} invited ${athleteDisplay} to ${invite.sessionType.toLowerCase()}`;
+
+              return (
+                <Clickable
+                  key={invite.id}
+                  onPress={() => router.push({ pathname: '/session-invites/[id]', params: { id: invite.id } })}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                >
+                  <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+                    <SurfaceCard style={[styles.inviteCard, { borderLeftColor: palette.warning }]}>
+                      <View style={styles.inviteCardContent}>
+                        <View style={[styles.inviteAvatar, { backgroundColor: `${palette.tint}10` }]}>
+                          <ThemedText style={[styles.inviteAvatarText, { color: palette.tint }]}>
+                            {invite.coachName.split(' ').map((n) => n[0]).join('')}
+                          </ThemedText>
+                        </View>
+                        <View style={styles.inviteInfo}>
+                          <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.inviteMessage}>
+                            {message}
+                          </ThemedText>
+                          <View style={styles.inviteMeta}>
+                            <View style={styles.metaItem}>
+                              <Ionicons name="calendar-outline" size={12} color={palette.muted} />
+                              <ThemedText style={[styles.inviteMetaText, { color: palette.muted }]}>
+                                {invite.proposedSlots[0]
+                                  ? new Date(invite.proposedSlots[0].date).toLocaleDateString('en-GB', {
+                                      weekday: 'short',
+                                      day: 'numeric',
+                                      month: 'short',
+                                    })
+                                  : 'View times'}
+                              </ThemedText>
+                            </View>
+                            <View style={[styles.expiryBadge, { backgroundColor: `${palette.warning}15` }]}>
+                              <Ionicons name="time-outline" size={10} color={palette.warning} />
+                              <ThemedText style={[styles.expiryText, { color: palette.warning }]}>
+                                Respond soon
+                              </ThemedText>
+                            </View>
+                          </View>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+                      </View>
+                    </SurfaceCard>
+                  </Animated.View>
+                </Clickable>
+              );
+            })}
+          </Animated.View>
+        )}
+
         {/* Content */}
         {children.length === 0 ? (
           <View style={styles.emptyState}>
@@ -230,6 +393,13 @@ export function ParentDiscoverScreen() {
                         per session
                       </ThemedText>
                     </View>
+                  </View>
+                  {/* Next Available Slot */}
+                  <View style={[styles.nextAvailable, { backgroundColor: palette.tint + '10' }]}>
+                    <Ionicons name="time-outline" size={14} color={palette.tint} />
+                    <ThemedText style={[styles.nextAvailableText, { color: palette.tint }]}>
+                      {formatNextAvailable(nextAvailableSlots[coach.id])}
+                    </ThemedText>
                   </View>
                   {coach.footballFocuses && coach.footballFocuses.length > 0 && (
                     <View style={styles.focuses}>
@@ -410,6 +580,91 @@ const styles = StyleSheet.create({
   },
   focusText: {
     fontSize: 12,
+    fontWeight: '600',
+  },
+  nextAvailable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    alignSelf: 'flex-start',
+  },
+  nextAvailableText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // Pending Invites Section
+  pendingInvitesSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.xs,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  sectionTitle: {
+    fontSize: 15,
+  },
+  viewAllLink: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  inviteCard: {
+    padding: Spacing.md,
+    borderLeftWidth: 3,
+  },
+  inviteCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  inviteAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inviteAvatarText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  inviteInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  inviteMessage: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  inviteMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  inviteMetaText: {
+    fontSize: 12,
+  },
+  expiryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radii.sm,
+  },
+  expiryText: {
+    fontSize: 10,
     fontWeight: '600',
   },
 });

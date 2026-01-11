@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -19,6 +18,8 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
+import { bookingService } from '@/services/booking-service';
+import { notificationService } from '@/services/notification-service';
 
 export default function ConfirmBookingScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -146,66 +147,88 @@ export default function ConfirmBookingScreen() {
 
     setIsProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(async () => {
-      try {
-        // Create one booking for each athlete
-        const existingBookings = await AsyncStorage.getItem('session_bookings');
-        const bookings = existingBookings ? JSON.parse(existingBookings) : [];
+    try {
+      // Create bookings for each athlete using the booking service
+      const results = await Promise.all(
+        athletesInfo.map((athleteInfo) =>
+          bookingService.createBooking({
+            coachId,
+            coachName,
+            athleteId: athleteInfo.id,
+            athleteName: athleteInfo.name,
+            bookedById: currentUser?.id || 'unknown',
+            bookedByName: currentUser?.name || currentUser?.fullName || 'Parent',
+            scheduledAt: slotStart,
+            duration: slotDuration,
+            location: 'Training Ground',
+            service: slotTitle,
+            serviceType,
+            objectives,
+            price,
+          })
+        )
+      );
 
-        const newBookings = athletesInfo.map((athleteInfo, index) => ({
-          id: `booking-${Date.now()}-${index}`,
-          coachId,
-          coachName,
-          athleteId: athleteInfo.id,
-          athleteName: athleteInfo.name,
-          bookedById: currentUser?.id,
-          scheduledAt: slotStart,
-          status: 'CONFIRMED',
-          duration: slotDuration,
-          location: 'Training Ground',
-          service: slotTitle,
-          serviceType,
-          focus: slotFocus,
-          objectives,
-          price,
-          paymentMethod: `Card ending in ${cardNumber.slice(-4)}`,
-          createdAt: new Date().toISOString(),
-        }));
-
-        bookings.push(...newBookings);
-        await AsyncStorage.setItem('session_bookings', JSON.stringify(bookings));
-
+      // Check if any bookings failed
+      const failedBookings = results.filter((r) => !r.success);
+      if (failedBookings.length > 0) {
         setIsProcessing(false);
-
-        const athleteNames = athletesInfo.map((a) => a.name).join(', ');
-        const message = athletesInfo.length === 1
-          ? `Your session with ${coachName} has been booked for ${formattedDate} at ${formattedTime}`
-          : `${athletesInfo.length} sessions booked for ${athleteNames} with ${coachName} on ${formattedDate} at ${formattedTime}`;
-
         Alert.alert(
-          'Booking Confirmed',
-          message,
-          [
-            {
-              text: 'View Bookings',
-              onPress: () => {
-                router.replace('/(tabs)/bookings');
-              },
-            },
-            {
-              text: 'Find More Coaches',
-              onPress: () => {
-                router.replace('/(tabs)');
-              },
-            },
-          ]
+          'Booking Issue',
+          failedBookings[0].error || 'Some bookings could not be completed. Please try again.'
         );
-      } catch (error) {
-        setIsProcessing(false);
-        Alert.alert('Error', 'Failed to process booking. Please try again.');
+        return;
       }
-    }, 2000);
+
+      // Create notifications for coach and parent
+      for (const athleteInfo of athletesInfo) {
+        // Notify coach of new booking
+        await notificationService.notifyCoachNewBooking({
+          coachId,
+          parentName: currentUser?.name || currentUser?.fullName || 'Parent',
+          childName: athleteInfo.name,
+          date: formattedDate,
+          bookingId: results[0]?.booking?.id || 'new',
+        });
+
+        // Notify parent of confirmed booking
+        await notificationService.notifyParentBookingConfirmed({
+          parentId: currentUser?.id || 'parent',
+          coachName,
+          date: `${formattedDate} at ${formattedTime}`,
+          bookingId: results[0]?.booking?.id || 'new',
+        });
+      }
+
+      setIsProcessing(false);
+
+      const athleteNames = athletesInfo.map((a) => a.name).join(', ');
+      const message = athletesInfo.length === 1
+        ? `Your session with ${coachName} has been booked for ${formattedDate} at ${formattedTime}`
+        : `${athletesInfo.length} sessions booked for ${athleteNames} with ${coachName} on ${formattedDate} at ${formattedTime}`;
+
+      Alert.alert(
+        'Booking Confirmed',
+        message,
+        [
+          {
+            text: 'View Bookings',
+            onPress: () => {
+              router.replace('/(tabs)/bookings');
+            },
+          },
+          {
+            text: 'Find More Coaches',
+            onPress: () => {
+              router.replace('/(tabs)');
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      setIsProcessing(false);
+      Alert.alert('Error', 'Failed to process booking. Please try again.');
+    }
   };
 
   return (
