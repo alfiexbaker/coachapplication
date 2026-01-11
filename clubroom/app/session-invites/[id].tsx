@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,15 @@ export default function SessionInviteDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+
+  // Counter-propose state
+  const [showCounterPropose, setShowCounterPropose] = useState(false);
+  const [counterSlots, setCounterSlots] = useState<TimeSlot[]>([]);
+  const [counterNote, setCounterNote] = useState('');
+  const [newSlotDate, setNewSlotDate] = useState('');
+  const [newSlotStartTime, setNewSlotStartTime] = useState('');
+  const [newSlotEndTime, setNewSlotEndTime] = useState('');
+  const [newSlotLocation, setNewSlotLocation] = useState('');
 
   const isCoach = currentUser?.role === 'COACH';
   const isOwner = invite?.coachId === currentUser?.id;
@@ -115,6 +124,73 @@ export default function SessionInviteDetailScreen() {
         },
       },
     ]);
+  };
+
+  const addCounterSlot = () => {
+    if (!newSlotDate || !newSlotStartTime || !newSlotEndTime) {
+      Alert.alert('Missing Info', 'Please fill in date, start time, and end time');
+      return;
+    }
+
+    const newSlot: TimeSlot = {
+      date: newSlotDate,
+      startTime: newSlotStartTime,
+      endTime: newSlotEndTime,
+      location: newSlotLocation || undefined,
+    };
+
+    setCounterSlots([...counterSlots, newSlot]);
+    setNewSlotDate('');
+    setNewSlotStartTime('');
+    setNewSlotEndTime('');
+    setNewSlotLocation('');
+  };
+
+  const removeCounterSlot = (index: number) => {
+    setCounterSlots(counterSlots.filter((_, i) => i !== index));
+  };
+
+  const handleCounterPropose = async () => {
+    if (!invite || counterSlots.length === 0) {
+      Alert.alert('Add Times', 'Please add at least one alternative time slot');
+      return;
+    }
+
+    setResponding(true);
+    try {
+      await sessionInviteService.respondToInvite({
+        inviteId: invite.id,
+        response: 'COUNTERED',
+        counterProposal: counterSlots,
+        counterNote: counterNote || undefined,
+      });
+      Alert.alert(
+        'Counter Proposal Sent',
+        'Your alternative times have been sent to the coach. They will review and respond.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    } catch (error) {
+      console.error('Failed to send counter proposal:', error);
+      Alert.alert('Error', 'Failed to send counter proposal. Please try again.');
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  const handleAcceptCounter = async (slot: TimeSlot) => {
+    if (!invite) return;
+    setResponding(true);
+    try {
+      await sessionInviteService.acceptCounterProposal(invite.id, slot);
+      Alert.alert('Accepted!', 'The session has been confirmed with the proposed time.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      console.error('Failed to accept counter proposal:', error);
+      Alert.alert('Error', 'Failed to accept counter proposal. Please try again.');
+    } finally {
+      setResponding(false);
+    }
   };
 
   const statusColors: Record<string, { bg: string; text: string }> = {
@@ -354,9 +430,171 @@ export default function SessionInviteDetailScreen() {
           </SurfaceCard>
         </Animated.View>
 
+        {/* Counter Proposal Section (for parent) */}
+        {canRespond && showCounterPropose && (
+          <Animated.View entering={FadeInDown.delay(250).springify()}>
+            <SurfaceCard style={styles.counterProposeCard}>
+              <View style={styles.counterHeader}>
+                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                  Propose Alternative Times
+                </ThemedText>
+                <Clickable onPress={() => setShowCounterPropose(false)}>
+                  <Ionicons name="close" size={20} color={palette.muted} />
+                </Clickable>
+              </View>
+              <ThemedText style={[styles.counterDescription, { color: palette.muted }]}>
+                Add one or more times that work better for you
+              </ThemedText>
+
+              {/* Counter slots list */}
+              {counterSlots.map((slot, index) => (
+                <View
+                  key={index}
+                  style={[styles.counterSlotItem, { backgroundColor: `${palette.tint}10`, borderColor: palette.tint }]}
+                >
+                  <View style={styles.slotDetails}>
+                    <ThemedText type="defaultSemiBold">
+                      {new Date(slot.date).toLocaleDateString('en-GB', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </ThemedText>
+                    <ThemedText style={{ color: palette.muted }}>
+                      {slot.startTime} - {slot.endTime}
+                    </ThemedText>
+                  </View>
+                  <Clickable onPress={() => removeCounterSlot(index)}>
+                    <Ionicons name="trash-outline" size={18} color={palette.error} />
+                  </Clickable>
+                </View>
+              ))}
+
+              {/* Add new slot form */}
+              <View style={styles.counterFormSection}>
+                <View style={styles.counterFormRow}>
+                  <View style={styles.counterFormInput}>
+                    <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Date</ThemedText>
+                    <TextInput
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={palette.muted}
+                      value={newSlotDate}
+                      onChangeText={setNewSlotDate}
+                    />
+                  </View>
+                </View>
+                <View style={styles.counterFormRow}>
+                  <View style={styles.counterFormInput}>
+                    <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Start</ThemedText>
+                    <TextInput
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                      placeholder="10:00"
+                      placeholderTextColor={palette.muted}
+                      value={newSlotStartTime}
+                      onChangeText={setNewSlotStartTime}
+                    />
+                  </View>
+                  <View style={styles.counterFormInput}>
+                    <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>End</ThemedText>
+                    <TextInput
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                      placeholder="11:00"
+                      placeholderTextColor={palette.muted}
+                      value={newSlotEndTime}
+                      onChangeText={setNewSlotEndTime}
+                    />
+                  </View>
+                </View>
+                <View style={styles.counterFormRow}>
+                  <View style={[styles.counterFormInput, { flex: 1 }]}>
+                    <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Location (optional)</ThemedText>
+                    <TextInput
+                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
+                      placeholder="e.g., Local Park"
+                      placeholderTextColor={palette.muted}
+                      value={newSlotLocation}
+                      onChangeText={setNewSlotLocation}
+                    />
+                  </View>
+                </View>
+                <Clickable
+                  onPress={addCounterSlot}
+                  style={[styles.addSlotButton, { backgroundColor: `${palette.tint}10` }]}
+                >
+                  <Ionicons name="add" size={16} color={palette.tint} />
+                  <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Time Slot</ThemedText>
+                </Clickable>
+              </View>
+
+              {/* Note to coach */}
+              <View style={styles.counterFormSection}>
+                <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Note to coach (optional)</ThemedText>
+                <TextInput
+                  style={[styles.textArea, { color: palette.text, borderColor: palette.border }]}
+                  placeholder="Let the coach know why you're suggesting alternative times..."
+                  placeholderTextColor={palette.muted}
+                  value={counterNote}
+                  onChangeText={setCounterNote}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </SurfaceCard>
+          </Animated.View>
+        )}
+
+        {/* Counter Proposal Display (for coach when status is COUNTERED) */}
+        {status === 'COUNTERED' && isOwner && invite.counterProposal && (
+          <Animated.View entering={FadeInDown.delay(250).springify()}>
+            <SurfaceCard style={styles.counterProposeCard}>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                Counter Proposal from Parent
+              </ThemedText>
+              {invite.counterNote && (
+                <ThemedText style={[styles.counterNote, { color: palette.muted }]}>
+                  "{invite.counterNote}"
+                </ThemedText>
+              )}
+              {invite.counterProposal.map((slot, index) => (
+                <Clickable
+                  key={index}
+                  onPress={() =>
+                    Alert.alert('Accept This Time?', `Confirm session for ${new Date(slot.date).toLocaleDateString('en-GB', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                    })} at ${slot.startTime}?`, [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Accept', onPress: () => handleAcceptCounter(slot) },
+                    ])
+                  }
+                  style={[styles.counterSlotSelectable, { backgroundColor: palette.surface, borderColor: palette.border }]}
+                >
+                  <View style={styles.slotDetails}>
+                    <ThemedText type="defaultSemiBold">
+                      {new Date(slot.date).toLocaleDateString('en-GB', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </ThemedText>
+                    <ThemedText style={{ color: palette.muted }}>
+                      {slot.startTime} - {slot.endTime}
+                    </ThemedText>
+                  </View>
+                  <View style={[styles.acceptCounterButton, { backgroundColor: palette.tint }]}>
+                    <ThemedText style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Accept</ThemedText>
+                  </View>
+                </Clickable>
+              ))}
+            </SurfaceCard>
+          </Animated.View>
+        )}
+
         {/* Expiry Info */}
         {status === 'PENDING' && (
-          <Animated.View entering={FadeInDown.delay(250).springify()}>
+          <Animated.View entering={FadeInDown.delay(300).springify()}>
             <View style={[styles.expiryBanner, { backgroundColor: `${palette.warning}10` }]}>
               <Ionicons name="time-outline" size={16} color={palette.warning} />
               <ThemedText style={{ color: palette.warning, fontSize: 13 }}>
@@ -374,7 +612,7 @@ export default function SessionInviteDetailScreen() {
       </ScrollView>
 
       {/* Action Buttons */}
-      {canRespond && (
+      {canRespond && !showCounterPropose && (
         <View style={[styles.footer, { borderTopColor: palette.border }]}>
           <Clickable
             onPress={handleDecline}
@@ -382,6 +620,12 @@ export default function SessionInviteDetailScreen() {
             style={[styles.declineButton, { borderColor: palette.border }]}
           >
             <ThemedText style={{ fontWeight: '600' }}>Decline</ThemedText>
+          </Clickable>
+          <Clickable
+            onPress={() => setShowCounterPropose(true)}
+            style={[styles.counterButton, { borderColor: palette.tint }]}
+          >
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Counter</ThemedText>
           </Clickable>
           <Clickable
             onPress={handleAccept}
@@ -395,7 +639,36 @@ export default function SessionInviteDetailScreen() {
             ]}
           >
             <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
-              {responding ? 'Accepting...' : 'Accept & Confirm'}
+              {responding ? 'Accepting...' : 'Accept'}
+            </ThemedText>
+          </Clickable>
+        </View>
+      )}
+
+      {/* Counter propose footer */}
+      {canRespond && showCounterPropose && (
+        <View style={[styles.footer, { borderTopColor: palette.border }]}>
+          <Clickable
+            onPress={() => setShowCounterPropose(false)}
+            style={[styles.declineButton, { borderColor: palette.border }]}
+          >
+            <ThemedText style={{ fontWeight: '600' }}>Cancel</ThemedText>
+          </Clickable>
+          <Clickable
+            onPress={handleCounterPropose}
+            disabled={responding || counterSlots.length === 0}
+            style={[
+              styles.acceptButton,
+              {
+                backgroundColor: palette.tint,
+                opacity: responding || counterSlots.length === 0 ? 0.5 : 1,
+                flex: 2,
+              },
+            ]}
+          >
+            <Ionicons name="swap-horizontal" size={18} color="#fff" />
+            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+              {responding ? 'Sending...' : 'Send Counter Proposal'}
             </ThemedText>
           </Clickable>
         </View>
@@ -550,10 +823,97 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
-  acceptButton: {
-    flex: 2,
+  counterButton: {
+    flex: 1,
     paddingVertical: Spacing.md,
     alignItems: 'center',
     borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  acceptButton: {
+    flex: 2,
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radii.md,
+  },
+  // Counter-propose styles
+  counterProposeCard: {
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  counterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  counterDescription: {
+    fontSize: 13,
+    marginTop: -Spacing.sm,
+  },
+  counterSlotItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    gap: Spacing.md,
+  },
+  counterSlotSelectable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    gap: Spacing.md,
+  },
+  counterFormSection: {
+    gap: Spacing.sm,
+  },
+  counterFormRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  counterFormInput: {
+    flex: 1,
+    gap: 4,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  input: {
+    height: 44,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    fontSize: 15,
+  },
+  textArea: {
+    height: 80,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    fontSize: 15,
+    textAlignVertical: 'top',
+  },
+  addSlotButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  counterNote: {
+    fontSize: 13,
+    fontStyle: 'italic',
+  },
+  acceptCounterButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
   },
 });

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -6,14 +7,16 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { SessionInvite } from '@/constants/types';
+import type { SessionInvite, TimeSlot } from '@/constants/types';
 
 interface SessionInviteCardProps {
   invite: SessionInvite;
   onPress: () => void;
-  onAccept?: () => void;
+  onAccept?: (selectedSlot?: TimeSlot) => void;
   onDecline?: () => void;
+  onCounterPropose?: () => void;
   compact?: boolean;
+  showSlotSelector?: boolean;
 }
 
 const statusColors: Record<string, { bg: string; text: string; icon: string }> = {
@@ -29,10 +32,13 @@ export function SessionInviteCard({
   onPress,
   onAccept,
   onDecline,
+  onCounterPropose,
   compact = false,
+  showSlotSelector = false,
 }: SessionInviteCardProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
 
   const isExpired = new Date(invite.expiresAt) < new Date();
   const status = isExpired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
@@ -62,6 +68,27 @@ export function SessionInviteCard({
   const invitationMessage = invite.clubName
     ? `Coach ${coachFirstName} has invited ${athleteDisplay} to ${invite.clubName}`
     : `Coach ${coachFirstName} has invited ${athleteDisplay} to a ${invite.sessionType.toLowerCase()}`;
+
+  // Calculate expiry countdown
+  const getExpiryCountdown = () => {
+    const now = new Date();
+    const expiry = new Date(invite.expiresAt);
+    const diffMs = expiry.getTime() - now.getTime();
+    if (diffMs <= 0) return 'Expired';
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (diffDays > 1) return `${diffDays} days left`;
+    if (diffDays === 1) return `${diffDays} day ${diffHours}h left`;
+    if (diffHours > 0) return `${diffHours} hours left`;
+    return 'Expires soon';
+  };
+
+  const handleAccept = () => {
+    if (onAccept) {
+      const slot = selectedSlotIndex !== null ? invite.proposedSlots[selectedSlotIndex] : undefined;
+      onAccept(slot);
+    }
+  };
 
   if (compact) {
     return (
@@ -140,34 +167,82 @@ export function SessionInviteCard({
       {/* Divider */}
       <View style={[styles.divider, { backgroundColor: palette.border }]} />
 
-      {/* Details */}
-      <View style={styles.details}>
-        <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={16} color={palette.muted} />
-          <ThemedText style={styles.detailText}>
-            {slotDate} at {firstSlot?.startTime}
-            {invite.proposedSlots.length > 1 && (
-              <ThemedText style={{ color: palette.muted }}>
-                {' '}(+{invite.proposedSlots.length - 1} options)
-              </ThemedText>
-            )}
+      {/* Time Slots - with optional selector */}
+      {showSlotSelector && invite.proposedSlots.length > 1 ? (
+        <View style={styles.slotSelector}>
+          <ThemedText style={[styles.slotSelectorLabel, { color: palette.muted }]}>
+            Select a time slot:
           </ThemedText>
+          {invite.proposedSlots.map((slot, index) => {
+            const isSelected = selectedSlotIndex === index;
+            return (
+              <Clickable
+                key={index}
+                onPress={() => setSelectedSlotIndex(index)}
+                style={[
+                  styles.slotOption,
+                  {
+                    backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
+              >
+                <View style={styles.slotOptionContent}>
+                  <ThemedText type="defaultSemiBold">
+                    {new Date(slot.date).toLocaleDateString('en-GB', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </ThemedText>
+                  <ThemedText style={{ color: palette.muted }}>
+                    {slot.startTime} - {slot.endTime}
+                  </ThemedText>
+                </View>
+                <View
+                  style={[
+                    styles.slotRadio,
+                    {
+                      backgroundColor: isSelected ? palette.tint : 'transparent',
+                      borderColor: isSelected ? palette.tint : palette.border,
+                    },
+                  ]}
+                >
+                  {isSelected && <Ionicons name="checkmark" size={12} color="#fff" />}
+                </View>
+              </Clickable>
+            );
+          })}
         </View>
-
-        {firstSlot?.location && (
+      ) : (
+        <View style={styles.details}>
           <View style={styles.detailRow}>
-            <Ionicons name="location-outline" size={16} color={palette.muted} />
-            <ThemedText style={styles.detailText}>{firstSlot.location}</ThemedText>
+            <Ionicons name="calendar-outline" size={16} color={palette.muted} />
+            <ThemedText style={styles.detailText}>
+              {slotDate} at {firstSlot?.startTime}
+              {invite.proposedSlots.length > 1 && (
+                <ThemedText style={{ color: palette.muted }}>
+                  {' '}(+{invite.proposedSlots.length - 1} options)
+                </ThemedText>
+              )}
+            </ThemedText>
           </View>
-        )}
 
-        {invite.priceUsd && (
-          <View style={styles.detailRow}>
-            <Ionicons name="pricetag-outline" size={16} color={palette.muted} />
-            <ThemedText style={styles.detailText}>${invite.priceUsd}</ThemedText>
-          </View>
-        )}
-      </View>
+          {firstSlot?.location && (
+            <View style={styles.detailRow}>
+              <Ionicons name="location-outline" size={16} color={palette.muted} />
+              <ThemedText style={styles.detailText}>{firstSlot.location}</ThemedText>
+            </View>
+          )}
+
+          {invite.priceUsd && (
+            <View style={styles.detailRow}>
+              <Ionicons name="pricetag-outline" size={16} color={palette.muted} />
+              <ThemedText style={styles.detailText}>${invite.priceUsd}</ThemedText>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Notes */}
       {invite.notes && (
@@ -187,26 +262,40 @@ export function SessionInviteCard({
             <ThemedText style={styles.actionText}>Decline</ThemedText>
           </Clickable>
 
+          {onCounterPropose && (
+            <Clickable
+              onPress={onCounterPropose}
+              style={[styles.actionButton, styles.counterButton, { borderColor: palette.tint }]}
+            >
+              <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
+              <ThemedText style={[styles.actionText, { color: palette.tint }]}>Counter</ThemedText>
+            </Clickable>
+          )}
+
           <Clickable
-            onPress={onAccept}
-            style={[styles.actionButton, styles.acceptButton, { backgroundColor: palette.tint }]}
+            onPress={handleAccept}
+            disabled={showSlotSelector && invite.proposedSlots.length > 1 && selectedSlotIndex === null}
+            style={[
+              styles.actionButton,
+              styles.acceptButton,
+              {
+                backgroundColor: palette.tint,
+                opacity: showSlotSelector && invite.proposedSlots.length > 1 && selectedSlotIndex === null ? 0.5 : 1,
+              },
+            ]}
           >
             <Ionicons name="checkmark-outline" size={18} color="#fff" />
-            <ThemedText style={[styles.actionText, { color: '#fff' }]}>View & Accept</ThemedText>
+            <ThemedText style={[styles.actionText, { color: '#fff' }]}>Accept</ThemedText>
           </Clickable>
         </View>
       )}
 
-      {/* Expiry Warning */}
+      {/* Expiry Warning with countdown */}
       {canRespond && (
         <View style={styles.expiryRow}>
           <Ionicons name="time-outline" size={14} color={palette.warning} />
           <ThemedText style={[styles.expiryText, { color: palette.warning }]}>
-            Expires {new Date(invite.expiresAt).toLocaleDateString('en-GB', {
-              weekday: 'short',
-              day: 'numeric',
-              month: 'short',
-            })}
+            {getExpiryCountdown()}
           </ThemedText>
         </View>
       )}
@@ -344,6 +433,9 @@ const styles = StyleSheet.create({
   declineButton: {
     borderWidth: 1,
   },
+  counterButton: {
+    borderWidth: 1,
+  },
   acceptButton: {},
   actionText: {
     fontSize: 14,
@@ -358,5 +450,32 @@ const styles = StyleSheet.create({
   },
   expiryText: {
     fontSize: 12,
+  },
+  // Slot selector styles
+  slotSelector: {
+    gap: Spacing.sm,
+  },
+  slotSelectorLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  slotOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  slotOptionContent: {
+    gap: 2,
+  },
+  slotRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

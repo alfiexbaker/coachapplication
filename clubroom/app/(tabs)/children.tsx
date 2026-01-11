@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Image, ScrollView } from 'react-native';
+import { View, StyleSheet, Image, ScrollView, RefreshControl } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -11,11 +11,13 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ParentProgressSummary } from '@/components/progress';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getSessionsForAthlete, formatDate } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
+import { progressService, AthleteProgress } from '@/services/progress-service';
 import type { User, BadgeAward } from '@/constants/types';
 
 type HubSection = {
@@ -115,13 +117,18 @@ export default function ChildrenHubScreen() {
   const totalBadges = Object.values(childStats).reduce((sum, s) => sum + s.badges, 0);
   const totalUnseenBadges = Object.values(childStats).reduce((sum, s) => sum + s.unseenBadges, 0);
 
+  // Navigate to first child's progress, or show list if multiple
+  const progressRoute = children.length === 1
+    ? `/development/child-progress/${children[0].id}`
+    : '/(tabs)/children';
+
   const hubSections: HubSection[] = [
     {
       id: 'progress',
       title: 'Progress',
-      subtitle: 'Track skills and development',
+      subtitle: 'View skill ratings and feedback',
       icon: 'trending-up-outline',
-      route: '/(tabs)/more',
+      route: progressRoute,
       stat: `${totalSessions} sessions`,
       color: palette.tint,
     },
@@ -251,7 +258,7 @@ export default function ChildrenHubScreen() {
                 >
                   <Clickable
                     onPress={() => router.push({
-                      pathname: '/children/badges/[childId]',
+                      pathname: '/development/child-progress/[childId]',
                       params: { childId: child.id },
                     })}
                   >
