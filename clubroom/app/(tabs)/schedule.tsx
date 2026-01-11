@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +16,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate, SessionOffering } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ScheduleHub');
 
 type HubSection = {
   id: string;
@@ -36,9 +39,17 @@ export default function ScheduleHubScreen() {
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [weeklyHours, setWeeklyHours] = useState(0);
   const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!currentUser?.id) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
 
     // Load availability templates
     try {
@@ -52,8 +63,10 @@ export default function ScheduleHubScreen() {
         return total + (endH * 60 + endM - startH * 60 - startM) / 60;
       }, 0);
       setWeeklyHours(hours);
-    } catch (error) {
-      console.error('Failed to load templates:', error);
+      logger.debug('Loaded templates', { count: data.length, weeklyHours: hours });
+    } catch (err) {
+      logger.error('Failed to load templates', err);
+      setError('Failed to load availability');
     }
 
     // Load session offerings
@@ -70,10 +83,16 @@ export default function ScheduleHubScreen() {
           new Date(o.scheduledAt) >= now || o.isRecurring
         );
         setUpcomingCount(upcoming.length);
+        logger.debug('Loaded session offerings', { total: myOfferings.length, upcoming: upcoming.length });
+      } else {
+        setSessionOfferings([]);
+        setUpcomingCount(0);
       }
-    } catch (error) {
-      console.error('Failed to load offerings:', error);
+    } catch (err) {
+      logger.error('Failed to load offerings', err);
     }
+
+    setLoading(false);
   }, [currentUser?.id]);
 
   useFocusEffect(
@@ -81,6 +100,12 @@ export default function ScheduleHubScreen() {
       loadData();
     }, [loadData])
   );
+
+  // Navigation handlers with logging
+  const handleNavigate = useCallback((route: string, label: string) => {
+    logger.press(label, { route });
+    router.push(route as any);
+  }, []);
 
   const hubSections: HubSection[] = [
     {
@@ -124,6 +149,52 @@ export default function ScheduleHubScreen() {
     .filter(o => new Date(o.scheduledAt) >= new Date())
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
 
+  // Loading state
+  if (loading) {
+    return (
+      <PageContainer
+        header={<PageHeader title="Schedule" subtitle="Manage your calendar and bookings" />}
+        gap={Spacing.md}
+      >
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={palette.tint} />
+          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
+            Loading your schedule...
+          </ThemedText>
+        </View>
+      </PageContainer>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <PageContainer
+        header={<PageHeader title="Schedule" subtitle="Manage your calendar and bookings" />}
+        gap={Spacing.md}
+      >
+        <SurfaceCard style={styles.errorCard}>
+          <Ionicons name="alert-circle-outline" size={48} color={palette.error} />
+          <ThemedText type="defaultSemiBold" style={{ textAlign: 'center' }}>
+            Something went wrong
+          </ThemedText>
+          <ThemedText style={[styles.errorText, { color: palette.muted }]}>
+            {error}
+          </ThemedText>
+          <Clickable
+            style={[styles.retryButton, { backgroundColor: palette.tint }]}
+            onPress={loadData}
+          >
+            <ThemedText style={styles.retryButtonText}>Try Again</ThemedText>
+          </Clickable>
+        </SurfaceCard>
+      </PageContainer>
+    );
+  }
+
+  // Check if user has any data set up
+  const hasNoData = templates.length === 0 && sessionOfferings.length === 0;
+
   return (
     <PageContainer
       header={<PageHeader title="Schedule" subtitle="Manage your calendar and bookings" />}
@@ -132,7 +203,7 @@ export default function ScheduleHubScreen() {
       {/* Quick Stats Row */}
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <View style={styles.statsRow}>
-          {quickStats.map((stat, index) => (
+          {quickStats.map((stat) => (
             <SurfaceCard
               key={stat.label}
               style={[styles.statCard, { borderColor: palette.border }]}
@@ -148,6 +219,41 @@ export default function ScheduleHubScreen() {
         </View>
       </Animated.View>
 
+      {/* Empty State for new coaches */}
+      {hasNoData && (
+        <Animated.View entering={FadeInDown.delay(100).springify()}>
+          <SurfaceCard style={styles.emptyStateCard}>
+            <View style={[styles.emptyIconContainer, { backgroundColor: `${palette.tint}15` }]}>
+              <Ionicons name="calendar-outline" size={40} color={palette.tint} />
+            </View>
+            <ThemedText type="subtitle" style={styles.emptyTitle}>
+              Set Up Your Schedule
+            </ThemedText>
+            <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>
+              Start by adding your availability and creating your first session offering.
+            </ThemedText>
+            <View style={styles.emptyActions}>
+              <Clickable
+                style={[styles.emptyActionButton, { backgroundColor: palette.tint }]}
+                onPress={() => handleNavigate('/availability', 'EmptyState-SetAvailability')}
+              >
+                <Ionicons name="time-outline" size={18} color="#FFFFFF" />
+                <ThemedText style={styles.emptyActionText}>Set Availability</ThemedText>
+              </Clickable>
+              <Clickable
+                style={[styles.emptyActionButtonOutline, { borderColor: palette.tint }]}
+                onPress={() => handleNavigate('/sessions/create', 'EmptyState-CreateSession')}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
+                <ThemedText style={[styles.emptyActionText, { color: palette.tint }]}>
+                  Create Session
+                </ThemedText>
+              </Clickable>
+            </View>
+          </SurfaceCard>
+        </Animated.View>
+      )}
+
       {/* Hub Sections */}
       <View style={styles.sectionsContainer}>
         {hubSections.map((section, index) => (
@@ -155,7 +261,7 @@ export default function ScheduleHubScreen() {
             key={section.id}
             entering={FadeInDown.delay(100 + index * 50).springify()}
           >
-            <Clickable onPress={() => router.push(section.route as any)}>
+            <Clickable onPress={() => handleNavigate(section.route, `HubSection-${section.id}`)}>
               <SurfaceCard style={styles.sectionCard}>
                 <View style={styles.sectionRow}>
                   <View
@@ -192,11 +298,11 @@ export default function ScheduleHubScreen() {
       </View>
 
       {/* Next Session Preview */}
-      {nextSession && (
+      {nextSession ? (
         <Animated.View entering={FadeInDown.delay(300).springify()}>
           <SurfaceCard
             style={styles.previewCard}
-            onPress={() => router.push('/(tabs)/bookings')}
+            onPress={() => handleNavigate('/bookings', 'NextSession-ViewBookings')}
           >
             <View style={styles.previewHeader}>
               <ThemedText type="defaultSemiBold">Next Session</ThemedText>
@@ -234,6 +340,21 @@ export default function ScheduleHubScreen() {
             </View>
           </SurfaceCard>
         </Animated.View>
+      ) : !hasNoData && (
+        // Empty state for no upcoming sessions (but user has data)
+        <Animated.View entering={FadeInDown.delay(300).springify()}>
+          <SurfaceCard style={styles.noSessionCard}>
+            <View style={styles.noSessionContent}>
+              <Ionicons name="calendar-clear-outline" size={32} color={palette.muted} />
+              <View style={styles.noSessionText}>
+                <ThemedText type="defaultSemiBold">No Upcoming Sessions</ThemedText>
+                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                  Create a new session to get started
+                </ThemedText>
+              </View>
+            </View>
+          </SurfaceCard>
+        </Animated.View>
       )}
 
       {/* Quick Actions */}
@@ -241,14 +362,14 @@ export default function ScheduleHubScreen() {
         <View style={styles.quickActions}>
           <Clickable
             style={[styles.actionButton, { backgroundColor: palette.tint }]}
-            onPress={() => router.push('/(tabs)/bookings')}
+            onPress={() => handleNavigate('/sessions/create', 'QuickAction-CreateSession')}
           >
             <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
             <ThemedText style={styles.actionButtonText}>Create Session</ThemedText>
           </Clickable>
           <Clickable
             style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
-            onPress={() => router.push('/(tabs)/availability')}
+            onPress={() => handleNavigate('/availability', 'QuickAction-EditAvailability')}
           >
             <Ionicons name="time-outline" size={20} color={palette.tint} />
             <ThemedText style={[styles.actionButtonTextSecondary, { color: palette.tint }]}>
@@ -262,6 +383,101 @@ export default function ScheduleHubScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Loading state styles
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing['2xl'],
+    gap: Spacing.md,
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  // Error state styles
+  errorCard: {
+    alignItems: 'center',
+    padding: Spacing.xl,
+    gap: Spacing.md,
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radii.md,
+    marginTop: Spacing.sm,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  // Empty state styles
+  emptyStateCard: {
+    alignItems: 'center',
+    padding: Spacing.xl,
+    gap: Spacing.md,
+  },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  emptyTitle: {
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 20,
+    paddingHorizontal: Spacing.md,
+  },
+  emptyActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  emptyActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  emptyActionButtonOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  emptyActionText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // No session card
+  noSessionCard: {
+    padding: Spacing.lg,
+  },
+  noSessionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  noSessionText: {
+    flex: 1,
+    gap: 2,
+  },
+  // Main content styles
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
