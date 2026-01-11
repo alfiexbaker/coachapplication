@@ -31,8 +31,10 @@ import {
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import type { Club, ClubFeedPost, ClubMembership, ClubSquad, SessionOffering, ClubInvite } from '@/constants/types';
+import type { Club, ClubFeedPost, ClubMembership, ClubSquad, SessionOffering, ClubInvite, ClubEvent } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
+import { eventService } from '@/services/event-service';
+import { EventCard } from '@/components/event/event-card';
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
 
@@ -338,6 +340,7 @@ export default function ClubDetailScreen() {
   const [sessions, setSessions] = useState<SessionOffering[]>([]);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [invites, setInvites] = useState<ClubInvite[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<ClubEvent[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   // Member management state
@@ -389,6 +392,16 @@ export default function ClubDetailScreen() {
     }
   }, [id]);
 
+  const loadEvents = useCallback(async () => {
+    if (!id) return;
+    try {
+      const events = await eventService.getUpcomingEvents(id);
+      setUpcomingEvents(events);
+    } catch (error) {
+      console.error('Failed to load events:', error);
+    }
+  }, [id]);
+
   useEffect(() => {
     loadClubData();
   }, [loadClubData]);
@@ -396,7 +409,8 @@ export default function ClubDetailScreen() {
   useEffect(() => {
     loadFeed();
     loadMembers();
-  }, [loadFeed, loadMembers]);
+    loadEvents();
+  }, [loadFeed, loadMembers, loadEvents]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -404,8 +418,9 @@ export default function ClubDetailScreen() {
     loadClubData();
     loadFeed();
     loadMembers();
+    loadEvents();
     setRefreshing(false);
-  }, [loadClubData, loadFeed, loadMembers]);
+  }, [loadClubData, loadFeed, loadMembers, loadEvents]);
 
   const handlePinToggle = useCallback(
     (postId: string) => {
@@ -615,21 +630,62 @@ export default function ClubDetailScreen() {
             </SurfaceCard>
           )}
 
-          {/* Create post button for coaches */}
+          {/* Upcoming Events Section */}
+          {upcomingEvents.length > 0 && (
+            <View style={styles.eventsSection}>
+              <View style={styles.eventsSectionHeader}>
+                <View style={styles.eventsTitleRow}>
+                  <Ionicons name="calendar" size={20} color={palette.tint} />
+                  <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>
+                    Upcoming Events
+                  </ThemedText>
+                </View>
+                <TouchableOpacity
+                  onPress={() => router.push('/events')}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <ThemedText style={{ color: palette.tint, fontSize: 14, fontWeight: '600' }}>
+                    See All
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+              {upcomingEvents.slice(0, 2).map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  compact
+                  onPress={() =>
+                    router.push({ pathname: '/events/[id]', params: { id: event.id } })
+                  }
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Create event button for coaches */}
           {canManagePosts && (
             <View style={styles.createPostContainer}>
-              <TouchableOpacity
-                style={[styles.createPostButton, { backgroundColor: palette.tint }]}
-                onPress={() =>
-                  router.push({
-                    pathname: '/(modal)/create-club-post',
-                    params: { clubId: id },
-                  })
-                }
-              >
-                <Ionicons name="add" size={20} color="#fff" />
-                <ThemedText style={{ color: '#fff', fontWeight: '600' }}>New Post</ThemedText>
-              </TouchableOpacity>
+              <View style={styles.actionButtonsRow}>
+                <TouchableOpacity
+                  style={[styles.actionButtonSplit, { backgroundColor: palette.tint }]}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/(modal)/create-club-post',
+                      params: { clubId: id },
+                    })
+                  }
+                >
+                  <Ionicons name="create-outline" size={18} color="#fff" />
+                  <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>New Post</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButtonSplit, { backgroundColor: palette.success }]}
+                  onPress={() => router.push('/events/create')}
+                >
+                  <Ionicons name="calendar-outline" size={18} color="#fff" />
+                  <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Create Event</ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -797,6 +853,35 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  actionButtonSplit: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  eventsSection: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  eventsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
+  eventsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   filterScroll: {
     marginTop: Spacing.md,
