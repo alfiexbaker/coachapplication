@@ -66,8 +66,5 @@ export function IconSymbol({
     return <MaterialIcons color={color} size={size} name="help-outline" style={style} />;
   }
 
-  // Log icon mappings to verify they're working
-  console.log('[IconSymbol] Rendering:', name, '->', mappedName);
-
   return <MaterialIcons color={color} size={size} name={mappedName} style={style} />;
 }
