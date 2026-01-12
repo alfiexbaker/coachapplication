@@ -19,7 +19,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService } from '@/services/roster-service';
 import { bookingService } from '@/services/booking-service';
+import { createLogger } from '@/utils/logger';
 import type { RosterEntry } from '@/constants/types';
+
+const logger = createLogger('AthletesScreen');
 
 type FilterType = 'all' | 'active' | 'needs_attention';
 
@@ -53,7 +56,7 @@ export default function AthletesScreen() {
       });
       setUpcomingSessions(sessionsMap);
     } catch (error) {
-      console.error('Failed to load athletes:', error);
+      logger.error('Failed to load athletes', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

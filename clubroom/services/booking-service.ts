@@ -4,6 +4,9 @@ import { storageService } from './storage-service';
 import { availabilityService } from './availability-service';
 import { notificationService } from './notification-service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('BookingService');
 
 const STORAGE_KEY = 'clubroom.bookings';
 const SESSION_BOOKINGS_KEY = 'session_bookings';
@@ -88,10 +91,10 @@ class BookingService {
           })
         : 'upcoming date';
 
-      if (cancelledBy === 'parent') {
+      if (cancelledBy === 'parent' && booking.coachId) {
         // Notify coach when parent cancels
         await notificationService.notifyCoachBookingCancelled({
-          coachId: booking.coachId || 'coach_1',
+          coachId: booking.coachId,
           parentName: 'Parent',
           date,
           bookingId: id,
@@ -140,7 +143,7 @@ class BookingService {
 
       return { valid: true };
     } catch (error) {
-      console.error('[BookingService] Validation error:', error);
+      logger.error('Validation error', error);
       return { valid: false, reason: 'Unable to validate availability. Please try again.' };
     }
   }
@@ -210,7 +213,7 @@ class BookingService {
 
       return { success: true, booking: newBooking };
     } catch (error) {
-      console.error('[BookingService] Failed to create booking:', error);
+      logger.error('Failed to create booking', error);
       return { success: false, error: 'Failed to save booking. Please try again.' };
     }
   }
@@ -271,7 +274,7 @@ class BookingService {
           return [];
       }
     } catch (error) {
-      console.error('[BookingService] Failed to get bookings:', error);
+      logger.error('Failed to get bookings', error);
       return [];
     }
   }
@@ -305,7 +308,7 @@ class BookingService {
 
       return { success: true };
     } catch (error) {
-      console.error('[BookingService] Failed to confirm booking:', error);
+      logger.error('Failed to confirm booking', error);
       return { success: false, error: 'Failed to confirm booking' };
     }
   }
@@ -314,22 +317,30 @@ class BookingService {
     const draft = this.draft;
     const bookings = await this.list();
 
+    // Validate required draft fields
+    if (!draft.coachId || !draft.coachName) {
+      throw new Error('Cannot create booking: missing coach information');
+    }
+    if (!draft.athleteId || !draft.athleteName) {
+      throw new Error('Cannot create booking: missing athlete information');
+    }
+
     const formattedDate = draft.date
       ? new Date(draft.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : 'upcoming date';
 
     const newBooking: Booking = {
       id: `draft_${Date.now()}`,
-      coachId: draft.coachId || 'coach1',
-      athleteId: draft.athleteId || 'user1',
-      bookedById: 'parent1',
+      coachId: draft.coachId,
+      athleteId: draft.athleteId,
+      bookedById: draft.athleteId, // Use athleteId as bookedById (parent booking for their child)
       status: 'PENDING',
       scheduledAt: `${draft.date || new Date().toISOString().split('T')[0]}T${draft.slot || '10:00'}`,
       duration: draft.duration || 60,
       location: draft.locationText || 'Coach preferred venue',
       notes: draft.notes || '',
-      coachName: draft.coachName || 'Sarah Mitchell',
-      athleteName: draft.athleteName || 'Tom Henderson',
+      coachName: draft.coachName,
+      athleteName: draft.athleteName,
       service: draft.sessionType || '1-on-1',
       locationLabel: draft.locationOption || 'Coach preferred location',
       start: `${draft.date || new Date().toISOString().split('T')[0]}T${draft.slot || '10:00'}`,
@@ -367,20 +378,24 @@ class BookingService {
     });
 
     for (const session of upcomingSessions) {
-      // Notify coach
-      await notificationService.notifyCoachSessionReminder({
-        coachId: session.coachId,
-        athleteName: session.athleteName || 'Athlete',
-        bookingId: session.id,
-      });
+      // Notify coach if we have a valid coachId
+      if (session.coachId) {
+        await notificationService.notifyCoachSessionReminder({
+          coachId: session.coachId,
+          athleteName: session.athleteName || 'Athlete',
+          bookingId: session.id,
+        });
+      }
 
-      // Notify parent
-      await notificationService.notifyParentSessionReminder({
-        parentId: session.bookedById || 'parent_1',
-        childName: session.athleteName || 'Athlete',
-        coachName: session.coachName || 'Coach',
-        bookingId: session.id,
-      });
+      // Notify parent if we have a valid bookedById
+      if (session.bookedById) {
+        await notificationService.notifyParentSessionReminder({
+          parentId: session.bookedById,
+          childName: session.athleteName || 'Athlete',
+          coachName: session.coachName || 'Coach',
+          bookingId: session.id,
+        });
+      }
     }
   }
 

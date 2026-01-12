@@ -31,6 +31,9 @@ import type {
   TrendDirection,
 } from '@/constants/types';
 import { DAY_NAMES } from '@/constants/booking-types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AnalyticsService');
 
 const ANALYTICS_STORAGE_KEY = 'athlete_analytics';
 const GOALS_STORAGE_KEY = 'athlete_goals';
@@ -199,7 +202,7 @@ async function loadAnalytics(): Promise<AthleteAnalytics[]> {
     const stored = await AsyncStorage.getItem(ANALYTICS_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AnalyticsService] Failed to load analytics:', error);
+    logger.error('Failed to load analytics', error);
   }
   return [...MOCK_ANALYTICS];
 }
@@ -209,7 +212,7 @@ async function loadGoals(): Promise<Goal[]> {
     const stored = await AsyncStorage.getItem(GOALS_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AnalyticsService] Failed to load goals:', error);
+    logger.error('Failed to load goals', error);
   }
   return [...MOCK_GOALS];
 }
@@ -218,7 +221,7 @@ async function saveGoals(goals: Goal[]): Promise<void> {
   try {
     await AsyncStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(goals));
   } catch (error) {
-    console.error('[AnalyticsService] Failed to save goals:', error);
+    logger.error('Failed to save goals', error);
   }
 }
 
@@ -904,7 +907,7 @@ async function loadCoachAnalytics(): Promise<Record<string, CoachAnalytics>> {
     const stored = await AsyncStorage.getItem(COACH_ANALYTICS_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AnalyticsService] Failed to load coach analytics:', error);
+    logger.error('Failed to load coach analytics', error);
   }
   return { ...MOCK_COACH_ANALYTICS };
 }
@@ -913,7 +916,7 @@ async function saveCoachAnalytics(analytics: Record<string, CoachAnalytics>): Pr
   try {
     await AsyncStorage.setItem(COACH_ANALYTICS_STORAGE_KEY, JSON.stringify(analytics));
   } catch (error) {
-    console.error('[AnalyticsService] Failed to save coach analytics:', error);
+    logger.error('Failed to save coach analytics', error);
   }
 }
 
