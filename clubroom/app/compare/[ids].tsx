@@ -7,7 +7,7 @@
 
 import { useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -15,6 +15,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CompareScreen');
 
 export default function DynamicCompareScreen() {
   const { ids } = useLocalSearchParams<{ ids: string }>();
@@ -36,12 +39,19 @@ export default function DynamicCompareScreen() {
     [coachIds]
   );
 
-  const handleShare = useCallback(() => {
-    // In a real app, this would open a share sheet
-    // For now, just show the shareable URL
+  const handleShare = useCallback(async () => {
+    logger.press('ShareComparison', { coachCount: coachIds.length });
     const shareUrl = `clubroom://compare/${coachIds.join(',')}`;
-    // Could use Sharing.shareAsync here
-    console.log('Share URL:', shareUrl);
+    try {
+      await Share.share({
+        message: `Compare these coaches on Clubroom: ${shareUrl}`,
+        url: shareUrl,
+        title: 'Coach Comparison',
+      });
+    } catch (error) {
+      logger.error('Failed to share', error);
+      Alert.alert('Share', `Share this link: ${shareUrl}`);
+    }
   }, [coachIds]);
 
   if (coachIds.length === 0) {
@@ -80,7 +90,7 @@ export default function DynamicCompareScreen() {
                 },
               ]}
             >
-              <Ionicons name="arrow-back" size={18} color="#fff" />
+              <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
               <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
             </Pressable>
           </View>
@@ -125,7 +135,7 @@ export default function DynamicCompareScreen() {
                 },
               ]}
             >
-              <Ionicons name="arrow-back" size={18} color="#fff" />
+              <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
               <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
             </Pressable>
           </View>
@@ -248,7 +258,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.button,
   },
   backButtonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
   },

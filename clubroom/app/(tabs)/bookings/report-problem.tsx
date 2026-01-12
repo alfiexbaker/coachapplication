@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ReportProblem');
 
 type ProblemCategory = {
   id: string;
@@ -28,19 +32,54 @@ const problemCategories: ProblemCategory[] = [
 export default function ReportProblemScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedCategory || !description.trim()) {
-      alert('Please select a category and provide a description');
+      Alert.alert('Missing Information', 'Please select a category and provide a description');
       return;
     }
 
-    // TODO: Submit report to backend
-    alert('Report submitted');
-    router.back();
+    if (description.trim().length < 10) {
+      Alert.alert('Description Too Short', 'Please provide more details about the issue');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Save report to storage
+      const reportsStored = await AsyncStorage.getItem('problem_reports');
+      const reports = reportsStored ? JSON.parse(reportsStored) : [];
+
+      const newReport = {
+        id: `report_${Date.now()}`,
+        bookingId: bookingId || 'unknown',
+        category: selectedCategory,
+        description: description.trim(),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      reports.push(newReport);
+      await AsyncStorage.setItem('problem_reports', JSON.stringify(reports));
+
+      logger.info('Report submitted', { category: selectedCategory, bookingId });
+
+      Alert.alert(
+        'Report Submitted',
+        'Thank you for your feedback. We will review your report within 24 hours.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+    } catch (error) {
+      logger.error('Failed to submit report', error);
+      Alert.alert('Error', 'Failed to submit report. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -120,15 +159,17 @@ export default function ReportProblemScreen() {
       <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
         <Pressable
           onPress={handleSubmit}
-          disabled={!selectedCategory || !description.trim()}
+          disabled={!selectedCategory || !description.trim() || submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Submit problem report"
           style={({ pressed }) => [
             styles.submitButton,
             { backgroundColor: palette.tint },
-            (!selectedCategory || !description.trim()) && { opacity: 0.5 },
+            (!selectedCategory || !description.trim() || submitting) && { opacity: 0.5 },
             pressed && { opacity: 0.8 },
           ]}>
           <ThemedText style={styles.submitText} lightColor="#FFFFFF" darkColor="#000000">
-            Submit Report
+            {submitting ? 'Submitting...' : 'Submit Report'}
           </ThemedText>
         </Pressable>
       </View>

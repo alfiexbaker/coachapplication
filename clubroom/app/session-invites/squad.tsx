@@ -29,7 +29,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { squadBulkInviteService } from '@/services/squad-bulk-invite-service';
 import { squadService } from '@/services/squad-service';
+import { createLogger } from '@/utils/logger';
 import type { TimeSlot, BulkInviteResult, ClubSquad, SquadSessionInvite, SquadInvitedMember } from '@/constants/types';
+
+const logger = createLogger('SquadBulkInvite');
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Training'];
 const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
@@ -68,7 +71,8 @@ export default function SquadBulkInviteScreen() {
   const [slotEndTime, setSlotEndTime] = useState('');
   const [slotLocation, setSlotLocation] = useState('');
 
-  const clubId = 'club_lions'; // TODO: Get from context/auth
+  // Get club ID from current user's club membership
+  const clubId = currentUser?.clubId || currentUser?.primaryClubId || 'default_club';
 
   // Load squad when ID changes
   useEffect(() => {
@@ -88,7 +92,8 @@ export default function SquadBulkInviteScreen() {
         setSessionTitle(`${squad.name} Training Session`);
       }
     } catch (error) {
-      console.error('Failed to load squad:', error);
+      logger.error('Failed to load squad', error);
+      Alert.alert('Error', 'Failed to load squad details');
     } finally {
       setLoading(false);
     }

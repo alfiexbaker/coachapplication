@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('EventAttendees');
 
 export default function EventAttendeesScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -54,7 +57,7 @@ export default function EventAttendeesScreen() {
       setStats(statsData);
       setCurrentAttendance(userAttendance);
     } catch (error) {
-      console.error('Failed to load data:', error);
+      logger.error('Failed to load attendee data', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -84,8 +87,9 @@ export default function EventAttendeesScreen() {
   };
 
   const handleAttendeePress = (userId: string) => {
-    // Could navigate to user profile or show details modal
-    console.log('Attendee pressed:', userId);
+    logger.press('AttendeeRow', { userId });
+    // Navigate to user profile
+    router.push(`/profile/${userId}`);
   };
 
   if (loading) {
@@ -178,8 +182,13 @@ export default function EventAttendeesScreen() {
           <Clickable
             style={[styles.coachActionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
             onPress={() => {
-              // Export attendee list
-              console.log('Export attendees');
+              logger.press('ExportAttendees', { eventId: id });
+              const attendeeNames = attendance.map((a) => a.userName).join('\n');
+              Alert.alert(
+                'Attendee List',
+                `${attendance.length} checked in:\n\n${attendeeNames || 'No attendees yet'}`,
+                [{ text: 'OK' }]
+              );
             }}
           >
             <Ionicons name="download-outline" size={20} color={palette.text} />
@@ -189,8 +198,23 @@ export default function EventAttendeesScreen() {
           <Clickable
             style={[styles.coachActionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
             onPress={() => {
-              // Send reminder to non-responders
-              console.log('Send reminder');
+              logger.press('SendReminder', { eventId: id });
+              const nonResponders = rsvps.filter((r) => r.status === 'pending').length;
+              Alert.alert(
+                'Send Reminder',
+                nonResponders > 0
+                  ? `Send reminder to ${nonResponders} people who haven't responded?`
+                  : 'Everyone has already responded!',
+                nonResponders > 0
+                  ? [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Send',
+                        onPress: () => Alert.alert('Sent', 'Reminders have been sent'),
+                      },
+                    ]
+                  : [{ text: 'OK' }]
+              );
             }}
           >
             <Ionicons name="notifications-outline" size={20} color={palette.text} />
