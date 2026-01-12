@@ -19,6 +19,9 @@ import type {
   CalendarSyncSettings,
   CalendarProvider,
 } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CalendarService');
 
 const SETTINGS_STORAGE_KEY = 'calendar_sync_settings';
 const USE_MOCK = true;
@@ -235,7 +238,7 @@ export const calendarService = {
 
       return { success: true, filePath };
     } catch (error) {
-      console.error('[CalendarService] Failed to generate ICS file:', error);
+      logger.error('Failed to generate ICS file', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to generate calendar file',
@@ -271,7 +274,7 @@ export const calendarService = {
 
       return { success: true };
     } catch (error) {
-      console.error('[CalendarService] Failed to export to calendar:', error);
+      logger.error('Failed to export to calendar', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to export to calendar',
@@ -309,7 +312,7 @@ export const calendarService = {
 
       return { success: true };
     } catch (error) {
-      console.error('[CalendarService] Failed to export multiple to calendar:', error);
+      logger.error('Failed to export multiple to calendar', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to export to calendar',
@@ -329,7 +332,7 @@ export const calendarService = {
         }
         return null;
       } catch (error) {
-        console.error('[CalendarService] Failed to get sync settings:', error);
+        logger.error('Failed to get sync settings', error);
         return null;
       }
     }
@@ -339,7 +342,7 @@ export const calendarService = {
       if (!response.ok) return null;
       return response.json();
     } catch (error) {
-      console.error('[CalendarService] Failed to fetch sync settings:', error);
+      logger.error('Failed to fetch sync settings', error);
       return null;
     }
   },
@@ -368,7 +371,7 @@ export const calendarService = {
 
         return { success: true, settings: updated };
       } catch (error) {
-        console.error('[CalendarService] Failed to update sync settings:', error);
+        logger.error('Failed to update sync settings', error);
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to save settings',
@@ -390,7 +393,7 @@ export const calendarService = {
       const updated = await response.json();
       return { success: true, settings: updated };
     } catch (error) {
-      console.error('[CalendarService] Failed to update sync settings:', error);
+      logger.error('Failed to update sync settings', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to save settings',

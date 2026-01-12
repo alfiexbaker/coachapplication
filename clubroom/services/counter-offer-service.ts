@@ -29,6 +29,9 @@ import type {
   NotificationItem,
 } from '@/constants/types';
 import { notificationService } from './notification-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CounterOfferService');
 
 const COUNTER_OFFERS_KEY = 'counter_offers';
 const NEGOTIATIONS_KEY = 'negotiations';
@@ -112,7 +115,7 @@ async function loadCounterOffersFromStorage(): Promise<CounterOffer[]> {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.error('[CounterOfferService] Failed to load counter offers:', error);
+    logger.error('Failed to load counter offers', error);
   }
   return [...MOCK_COUNTER_OFFERS];
 }
@@ -121,7 +124,7 @@ async function saveCounterOffersToStorage(offers: CounterOffer[]): Promise<void>
   try {
     await AsyncStorage.setItem(COUNTER_OFFERS_KEY, JSON.stringify(offers));
   } catch (error) {
-    console.error('[CounterOfferService] Failed to save counter offers:', error);
+    logger.error('Failed to save counter offers', error);
   }
 }
 
@@ -132,7 +135,7 @@ async function loadNegotiationsFromStorage(): Promise<NegotiationHistory[]> {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.error('[CounterOfferService] Failed to load negotiations:', error);
+    logger.error('Failed to load negotiations', error);
   }
   return [...MOCK_NEGOTIATIONS];
 }
@@ -141,7 +144,7 @@ async function saveNegotiationsToStorage(negotiations: NegotiationHistory[]): Pr
   try {
     await AsyncStorage.setItem(NEGOTIATIONS_KEY, JSON.stringify(negotiations));
   } catch (error) {
-    console.error('[CounterOfferService] Failed to save negotiations:', error);
+    logger.error('Failed to save negotiations', error);
   }
 }
 
@@ -571,7 +574,7 @@ export const counterOfferService = {
     await saveNegotiationsToStorage(MOCK_NEGOTIATIONS);
     counterOffersCache = [...MOCK_COUNTER_OFFERS];
     negotiationsCache = [...MOCK_NEGOTIATIONS];
-    console.log('[CounterOfferService] Demo data seeded');
+    logger.info('Demo data seeded');
   },
 
   /**

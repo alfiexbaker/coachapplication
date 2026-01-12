@@ -15,6 +15,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('VideoService');
 
 const STORAGE_KEY = 'session_videos';
 const USE_MOCK = true;
@@ -100,7 +103,7 @@ async function loadFromStorage(): Promise<SessionVideo[]> {
     const stored = await AsyncStorage.getItem(STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[VideoService] Failed to load from storage:', error);
+    logger.error('Failed to load from storage', error);
   }
   return [...MOCK_VIDEOS];
 }
@@ -109,7 +112,7 @@ async function saveToStorage(videos: SessionVideo[]): Promise<void> {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(videos));
   } catch (error) {
-    console.error('[VideoService] Failed to save to storage:', error);
+    logger.error('Failed to save to storage', error);
   }
 }
 

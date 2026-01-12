@@ -14,6 +14,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Academy, AcademyMembership, AcademyInvite, AcademyPermission, SportCategory, FootballObjective } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AcademyService');
 
 const ACADEMIES_STORAGE_KEY = 'academies';
 const MEMBERSHIPS_STORAGE_KEY = 'academy_memberships';
@@ -142,7 +145,7 @@ async function loadAcademies(): Promise<Academy[]> {
     const stored = await AsyncStorage.getItem(ACADEMIES_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AcademyService] Failed to load academies:', error);
+    logger.error('Failed to load academies', error);
   }
   return [...MOCK_ACADEMIES];
 }
@@ -151,7 +154,7 @@ async function saveAcademies(academies: Academy[]): Promise<void> {
   try {
     await AsyncStorage.setItem(ACADEMIES_STORAGE_KEY, JSON.stringify(academies));
   } catch (error) {
-    console.error('[AcademyService] Failed to save academies:', error);
+    logger.error('Failed to save academies', error);
   }
 }
 
@@ -160,7 +163,7 @@ async function loadMemberships(): Promise<AcademyMembership[]> {
     const stored = await AsyncStorage.getItem(MEMBERSHIPS_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AcademyService] Failed to load memberships:', error);
+    logger.error('Failed to load memberships', error);
   }
   return [...MOCK_MEMBERSHIPS];
 }
@@ -169,7 +172,7 @@ async function saveMemberships(memberships: AcademyMembership[]): Promise<void> 
   try {
     await AsyncStorage.setItem(MEMBERSHIPS_STORAGE_KEY, JSON.stringify(memberships));
   } catch (error) {
-    console.error('[AcademyService] Failed to save memberships:', error);
+    logger.error('Failed to save memberships', error);
   }
 }
 
@@ -178,7 +181,7 @@ async function loadInvites(): Promise<AcademyInvite[]> {
     const stored = await AsyncStorage.getItem(INVITES_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AcademyService] Failed to load invites:', error);
+    logger.error('Failed to load invites', error);
   }
   return [...MOCK_INVITES];
 }
@@ -187,7 +190,7 @@ async function saveInvites(invites: AcademyInvite[]): Promise<void> {
   try {
     await AsyncStorage.setItem(INVITES_STORAGE_KEY, JSON.stringify(invites));
   } catch (error) {
-    console.error('[AcademyService] Failed to save invites:', error);
+    logger.error('Failed to save invites', error);
   }
 }
 
