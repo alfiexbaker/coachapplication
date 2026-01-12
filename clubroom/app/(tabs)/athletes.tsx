@@ -229,7 +229,7 @@ export default function AthletesScreen() {
                 style={[styles.actionButton, { backgroundColor: palette.tint }]}
                 onPress={() =>
                   router.push({
-                    pathname: '/session-invites/create',
+                    pathname: '/roster/[athleteId]/add-to-session',
                     params: { athleteId: athlete.athleteId, athleteName: athlete.athleteName },
                   })
                 }
