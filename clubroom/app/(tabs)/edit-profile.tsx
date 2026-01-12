@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -18,18 +19,13 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { SocialLinksEditor } from '@/components/profile/social-links-editor';
 import { Colors, Radii, Spacing, Components } from '@/constants/theme';
+import { FOOTBALL_OBJECTIVES } from '@/constants/booking-types';
 import { coachProfiles } from '@/constants/mock-data';
 import { CoachExperience, CoachLanguage, FootballObjective, SocialLinks } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 
-const footballObjectives: FootballObjective[] = [
-  'Dribbling',
-  'Passing',
-  'Defending',
-  'Finishing',
-  'Goalkeeping',
-  'Conditioning',
-];
+const logger = createLogger('EditProfile');
 
 const languageOptions = ['English', 'Spanish', 'French', 'Portuguese', 'German', 'Arabic', 'Italian'];
 const languageProficiencyOptions: CoachLanguage['proficiency'][] = [
@@ -93,7 +89,7 @@ export default function EditProfileScreen() {
 
   const saveExperience = () => {
     if (!experienceDraft.title || !experienceDraft.organization || !experienceDraft.startDate) {
-      alert('Please add a role title, organisation, and start date.');
+      Alert.alert('Missing Information', 'Please add a role title, organisation, and start date.');
       return;
     }
 
@@ -118,7 +114,7 @@ export default function EditProfileScreen() {
 
   const saveLanguage = () => {
     if (!languageDraft.name) {
-      alert('Add a language name to continue.');
+      Alert.alert('Missing Information', 'Please add a language name to continue.');
       return;
     }
 
@@ -155,14 +151,23 @@ export default function EditProfileScreen() {
       socialLinks,
     };
 
-    console.log('Profile payload ready for API sync', payload);
-    alert('Profile updated');
-    router.back();
+    logger.info('Profile payload ready for API sync', payload);
+    Alert.alert('Success', 'Profile updated successfully', [
+      { text: 'OK', onPress: () => router.back() },
+    ]);
   };
 
   const pickImage = (type: 'profile' | 'cover') => {
     // In production, use expo-image-picker
-    alert(`Select ${type} photo`);
+    Alert.alert(
+      `Change ${type === 'profile' ? 'Profile' : 'Cover'} Photo`,
+      'Choose how you want to select a photo',
+      [
+        { text: 'Take Photo', onPress: () => logger.info(`Camera selected for ${type}`) },
+        { text: 'Choose from Library', onPress: () => logger.info(`Library selected for ${type}`) },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   return (
@@ -325,7 +330,7 @@ export default function EditProfileScreen() {
             <ThemedText style={styles.subtitle}>Select the areas you specialize in</ThemedText>
 
             <View style={styles.focusGrid}>
-              {footballObjectives.map((focus) => {
+              {FOOTBALL_OBJECTIVES.map((focus) => {
                 const isSelected = selectedFocuses.includes(focus);
                 return (
                   <Pressable
@@ -536,7 +541,7 @@ export default function EditProfileScreen() {
           <SurfaceCard style={styles.section}>
             <View style={styles.sectionHeader}>
               <ThemedText type="subtitle">Certifications</ThemedText>
-              <Pressable onPress={() => alert('Add certification')}>
+              <Pressable onPress={() => Alert.alert('Coming Soon', 'Certification management will be available in a future update.')}>
                 <Ionicons name="add-circle" size={24} color={palette.tint} />
               </Pressable>
             </View>

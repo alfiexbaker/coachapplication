@@ -13,6 +13,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot, SessionOffering } from '@/constants/types';
+import { DAY_NAMES } from '@/constants/booking-types';
 
 const TEMPLATE_STORAGE_KEY = 'availability_templates';
 const OVERRIDE_STORAGE_KEY = 'availability_overrides';
@@ -147,8 +148,6 @@ async function saveOverrides(overrides: AvailabilityOverride[]): Promise<void> {
     console.error('[AvailabilityService] Failed to save overrides:', error);
   }
 }
-
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const availabilityService = {
   /**

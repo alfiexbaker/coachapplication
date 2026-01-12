@@ -8,7 +8,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { badgeService, type AllBadgeWithProgress } from '@/services/badge-service';
 import { progressService, type AthleteProgress, type SessionFeedback } from '@/services/progress-service';
+import { createLogger } from '@/utils/logger';
 import type { BadgeAward, Goal } from '@/constants/types';
+
+const logger = createLogger('useAthleteData');
 
 // ============================================================================
 // TYPES
@@ -180,7 +183,7 @@ export function useAthleteData(
     } catch (e) {
       const errorInstance = e instanceof Error ? e : new Error(String(e));
       setError(errorInstance);
-      console.error('[useAthleteData] Error fetching athlete data:', e);
+      logger.error('Error fetching athlete data', e);
     } finally {
       setLoading(false);
     }

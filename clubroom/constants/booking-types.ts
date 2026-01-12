@@ -50,6 +50,30 @@ export const FOOTBALL_OBJECTIVES: FootballObjective[] = [
   'Conditioning',
 ];
 
+/**
+ * Day names indexed by JavaScript Date.getDay() (0 = Sunday, 6 = Saturday)
+ */
+export const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
+
+/**
+ * Short day name abbreviations
+ */
+export const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
+/**
+ * Get the full name for a day of week
+ */
+export function getDayName(dayOfWeek: number): string {
+  return DAY_NAMES[dayOfWeek] || 'Unknown';
+}
+
+/**
+ * Get the abbreviated name for a day of week
+ */
+export function getDayAbbrev(dayOfWeek: number): string {
+  return DAY_ABBREVS[dayOfWeek] || '???';
+}
+
 export const SERVICES: ServiceType[] = [
   {
     id: '1-on-1',

@@ -7,25 +7,17 @@ import {
   CreateRecurringBookingParams,
   GeneratedBookingSummary,
 } from '@/constants/types';
+import { getDayName } from '@/constants/booking-types';
 import { storageService } from './storage-service';
 import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
 
+// Re-export getDayName for consumers that imported it from here
+export { getDayName };
+
 const STORAGE_KEY = 'clubroom.recurring_bookings';
 const GENERATED_BOOKINGS_KEY = 'clubroom.generated_bookings';
 const logger = createLogger('RecurringBookingService');
-
-/**
- * Day of week names for display
- */
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-/**
- * Get the day name from day of week number
- */
-export function getDayName(dayOfWeek: number): string {
-  return DAY_NAMES[dayOfWeek] || 'Unknown';
-}
 
 /**
  * Get display label for frequency

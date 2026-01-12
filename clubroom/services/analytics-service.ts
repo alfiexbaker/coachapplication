@@ -30,6 +30,7 @@ import type {
   TopSkillData,
   TrendDirection,
 } from '@/constants/types';
+import { DAY_NAMES } from '@/constants/booking-types';
 
 const ANALYTICS_STORAGE_KEY = 'athlete_analytics';
 const GOALS_STORAGE_KEY = 'athlete_goals';
@@ -37,7 +38,6 @@ const COACH_ANALYTICS_STORAGE_KEY = 'coach_analytics';
 const USE_MOCK = true;
 
 // Helper constants
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PLATFORM_FEE_PERCENT = 10;
 
 // Mock analytics data

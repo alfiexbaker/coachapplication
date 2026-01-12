@@ -10,13 +10,18 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
+import { useAuth } from '@/hooks/use-auth';
 import { bookingService } from '@/services/booking-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ConfirmationScreen');
 
 export default function ConfirmationScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { draft, reset } = useBookingFlow();
+  const { currentUser } = useAuth();
 
   const [isCreating, setIsCreating] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -41,8 +46,8 @@ export default function ConfirmationScreen() {
         coachName: draft.coachName || 'Sarah Mitchell',
         athleteId: draft.childId || 'athlete_1',
         athleteName: draft.athleteName || 'Tom Henderson',
-        bookedById: 'parent_1', // Would come from auth context in real app
-        bookedByName: 'Parent', // Would come from auth context in real app
+        bookedById: currentUser?.id || 'unknown',
+        bookedByName: currentUser?.name || currentUser?.fullName || 'Unknown',
         scheduledAt: `${draft.date}T${draft.slot}:00`,
         duration: draft.duration || 60,
         location: draft.locationText || draft.locationOption || 'Coach preferred location',
@@ -61,7 +66,7 @@ export default function ConfirmationScreen() {
         setError(result.error || 'Failed to create booking. The slot may no longer be available.');
       }
     } catch (err) {
-      console.error('[ConfirmationScreen] Error creating booking:', err);
+      logger.error('Error creating booking', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsCreating(false);
@@ -131,7 +136,7 @@ export default function ConfirmationScreen() {
           )}
         </Clickable>
         <Clickable
-          onPress={() => router.push('/chat/conv1')}
+          onPress={() => router.push(`/chat/${coachId || 'new'}`)}
           style={[styles.secondary, { borderColor: palette.tint }]}
           disabled={isCreating}
         >

@@ -8,7 +8,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { clubService, type ClubMember, type ClubMemberRemovalRecord } from '@/services/club-service';
 import { groupSessionService } from '@/services/group-session-service';
+import { createLogger } from '@/utils/logger';
 import type { Club, ClubSquad, GroupSession, ClubEvent, ClubFeedPost, ClubRole } from '@/constants/types';
+
+const logger = createLogger('useClubData');
 
 // ============================================================================
 // TYPES
@@ -203,7 +206,7 @@ export function useClubData(
     } catch (e) {
       const errorInstance = e instanceof Error ? e : new Error(String(e));
       setError(errorInstance);
-      console.error('[useClubData] Error fetching club data:', e);
+      logger.error('Error fetching club data', e);
     } finally {
       setLoading(false);
     }
