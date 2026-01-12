@@ -15,6 +15,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createLogger } from '@/utils/logger';
 import type {
   ClubEvent,
   ClubEventType,
@@ -33,6 +34,7 @@ const EVENTS_STORAGE_KEY = 'club_events';
 const RSVPS_STORAGE_KEY = 'event_rsvps';
 const ATTENDANCE_STORAGE_KEY = 'event_attendance';
 const USE_MOCK = true;
+const logger = createLogger('EventService');
 
 // Location validation threshold in meters
 const LOCATION_VALIDATION_THRESHOLD = 500;
@@ -251,7 +253,7 @@ async function loadRSVPs(): Promise<EventRSVP[]> {
     const stored = await AsyncStorage.getItem(RSVPS_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[EventService] Failed to load RSVPs:', error);
+    logger.error('Failed to load RSVPs', error);
   }
   return [...MOCK_RSVPS];
 }
@@ -261,7 +263,7 @@ async function saveRSVPs(rsvps: EventRSVP[]): Promise<void> {
     await AsyncStorage.setItem(RSVPS_STORAGE_KEY, JSON.stringify(rsvps));
     rsvpsCache = rsvps;
   } catch (error) {
-    console.error('[EventService] Failed to save RSVPs:', error);
+    logger.error('Failed to save RSVPs', error);
   }
 }
 
@@ -270,7 +272,7 @@ async function loadAttendance(): Promise<EventAttendance[]> {
     const stored = await AsyncStorage.getItem(ATTENDANCE_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[EventService] Failed to load attendance:', error);
+    logger.error('Failed to load attendance', error);
   }
   return [...MOCK_ATTENDANCE];
 }
