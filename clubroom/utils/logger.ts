@@ -22,7 +22,7 @@ interface LogContext {
 
 class Logger {
   private context: LogContext = {};
-  private enabled = __DEV__; // Only log in development
+  private enabled = typeof __DEV__ !== 'undefined' ? __DEV__ : true; // Only log in development
 
   /**
    * Set global context for all subsequent logs

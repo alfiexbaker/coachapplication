@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Components } from '@/constants/theme';
@@ -23,6 +24,16 @@ export interface PageHeaderProps {
   left?: ReactNode;
 
   /**
+   * Show back button automatically
+   */
+  showBack?: boolean;
+
+  /**
+   * Handler for back button press (optional, defaults to router.back())
+   */
+  onBackPress?: () => void;
+
+  /**
    * Optional right action button text
    */
   action?: string;
@@ -41,6 +52,11 @@ export interface PageHeaderProps {
    * Custom right element (overrides action/actionIcon)
    */
   right?: ReactNode;
+
+  /**
+   * Alias for right (for convenience)
+   */
+  rightAction?: ReactNode;
 }
 
 /**
@@ -62,18 +78,49 @@ export function PageHeader({
   title,
   subtitle,
   left,
+  showBack,
+  onBackPress,
   action,
   actionIcon,
   onActionPress,
   right,
+  rightAction,
 }: PageHeaderProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const router = useRouter();
+
+  const handleBackPress = () => {
+    if (onBackPress) {
+      onBackPress();
+    } else {
+      router.back();
+    }
+  };
+
+  const renderLeft = () => {
+    if (left) return left;
+    if (showBack) {
+      return (
+        <TouchableOpacity
+          onPress={handleBackPress}
+          style={[styles.backButton, { backgroundColor: palette.surface }]}
+          hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+        >
+          <Ionicons name="chevron-back" size={20} color={palette.foreground} />
+        </TouchableOpacity>
+      );
+    }
+    return null;
+  };
+
+  // Support rightAction as an alias for right
+  const rightContent = right ?? rightAction;
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        {left}
+        {renderLeft()}
         <View style={styles.titleContainer}>
           <ThemedText type="title" style={styles.title}>
             {title}
@@ -84,9 +131,9 @@ export function PageHeader({
             </ThemedText>
           ) : null}
         </View>
-        {right || (action || actionIcon) ? (
+        {rightContent || (action || actionIcon) ? (
           <View style={styles.rightContainer}>
-            {right || (
+            {rightContent || (
               <TouchableOpacity
                 style={[
                   styles.actionButton,
@@ -165,5 +212,12 @@ const styles = StyleSheet.create({
   },
   actionTextOnly: {
     paddingHorizontal: Spacing.xs / 2,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

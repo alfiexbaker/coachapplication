@@ -1,21 +1,52 @@
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
+import type { AvailabilitySlot } from '@/constants/types';
 
-const SLOTS = ['09:00', '10:00', '11:00', '13:00', '15:00', '17:00', '18:00'];
+interface TimeSlotPickerProps {
+  selectedSlot?: string;
+  onSelect: (slot: string) => void;
+  slots?: AvailabilitySlot[];
+  isLoading?: boolean;
+}
 
-export function TimeSlotPicker({ selectedSlot, onSelect }: { selectedSlot?: string; onSelect: (slot: string) => void }) {
+export function TimeSlotPicker({ selectedSlot, onSelect, slots, isLoading }: TimeSlotPickerProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+
+  if (isLoading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="small" color={palette.tint} />
+        <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm }}>
+          Loading available times...
+        </ThemedText>
+      </View>
+    );
+  }
+
+  // Filter to only show available slots
+  const availableSlots = slots?.filter((slot) => slot.isAvailable) || [];
+
+  if (availableSlots.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
+          No available slots for this date.{'\n'}Please select another date.
+        </ThemedText>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap}>
-      {SLOTS.map((slot) => {
-        const active = selectedSlot === slot;
+      {availableSlots.map((slot) => {
+        const active = selectedSlot === slot.startTime;
         return (
           <Clickable
-            key={slot}
+            key={`${slot.date}-${slot.startTime}`}
             style={[
               styles.slot,
               {
@@ -23,9 +54,14 @@ export function TimeSlotPicker({ selectedSlot, onSelect }: { selectedSlot?: stri
                 borderColor: active ? palette.tint : palette.border,
               },
             ]}
-            onPress={() => onSelect(slot)}
+            onPress={() => onSelect(slot.startTime)}
           >
-            <ThemedText type="defaultSemiBold">{slot}</ThemedText>
+            <ThemedText type="defaultSemiBold">{slot.startTime}</ThemedText>
+            {slot.location && (
+              <ThemedText style={[styles.location, { color: palette.muted }]} numberOfLines={1}>
+                {slot.location}
+              </ThemedText>
+            )}
           </Clickable>
         );
       })}
@@ -44,5 +80,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: Radii.md,
     borderWidth: 1.5,
+    minWidth: 90,
+  },
+  location: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  centered: {
+    paddingVertical: Spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

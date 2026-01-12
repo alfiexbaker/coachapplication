@@ -1,0 +1,755 @@
+/**
+ * Discover Service
+ *
+ * Provides advanced coach discovery functionality including:
+ * - Full-text search across coach profiles
+ * - Filtering by price, rating, distance, sport, gender, language
+ * - Location-based search with distance calculation
+ * - Filter options with counts
+ * - Suggested coaches based on user history
+ */
+
+import type {
+  CoachProfile,
+  CoachSearchFilters,
+  CoachSearchResult,
+  CoachSearchResponse,
+  FilterOptions,
+  FilterOption,
+  SuggestedCoach,
+  FootballObjective,
+  TrainingFormat,
+} from '@/constants/types';
+import { storageService } from './storage-service';
+
+const STORAGE_KEY = 'clubroom.discover.recentSearches';
+const MAX_RECENT_SEARCHES = 10;
+
+// Try to import coach profiles from mock data, fall back to empty array
+let importedCoachProfiles: CoachProfile[] = [];
+try {
+  // Dynamic require to avoid build-time issues in test environments
+  const mockData = require('@/constants/mock-data');
+  if (mockData?.coachProfiles) {
+    importedCoachProfiles = mockData.coachProfiles;
+  }
+} catch {
+  // Mock data not available (e.g., in test environment)
+  importedCoachProfiles = [];
+}
+
+// Create coaches with location data from imported profiles
+const coachesFromImport: CoachProfile[] = importedCoachProfiles.map((coach: CoachProfile, index: number) => ({
+  ...coach,
+  location: coach.location ?? {
+    lat: 51.5074 + (Math.random() - 0.5) * 0.1,
+    lng: -0.1278 + (Math.random() - 0.5) * 0.2,
+  },
+  distanceMiles: coach.distanceMiles ?? (1 + index * 1.5),
+}));
+
+// Mock extended coach data for discovery
+const MOCK_DISCOVERY_COACHES: CoachProfile[] = [
+  ...coachesFromImport,
+  // Add more coaches for realistic search results
+  {
+    id: 'coach_mike',
+    fullName: 'Mike Thompson',
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'Manchester',
+    state: 'England',
+    distanceMiles: 5.2,
+    rating: { average: 4.7, reviewCount: 38 },
+    priceRange: { minUsd: 45, maxUsd: 70, unitLabel: 'per session' },
+    nextAvailability: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    badges: [{ id: 'b1', label: 'Verified', tone: 'success' as const }],
+    sessionFormats: ['In-person', 'Virtual'] as TrainingFormat[],
+    shortBio: 'Specialist striker coach with 12 years experience.',
+    profilePhotoUrl: 'https://i.pravatar.cc/300?u=mike',
+    footballFocuses: ['Finishing', 'Dribbling'] as FootballObjective[],
+    location: { lat: 51.4854, lng: -0.1547 },
+    joinedDate: new Date(Date.now() - 365 * 2 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 185,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [
+      { id: 'en', name: 'English', proficiency: 'Native' as const },
+      { id: 'fr', name: 'French', proficiency: 'Conversational' as const },
+    ],
+    achievements: [],
+  },
+  {
+    id: 'coach_david',
+    fullName: 'David Roberts',
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'London',
+    state: 'England',
+    distanceMiles: 3.8,
+    rating: { average: 4.8, reviewCount: 29 },
+    priceRange: { minUsd: 40, maxUsd: 60, unitLabel: 'per session' },
+    nextAvailability: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+    badges: [{ id: 'b1', label: 'Background Check', tone: 'success' as const }],
+    sessionFormats: ['In-person', 'Small group'] as TrainingFormat[],
+    shortBio: 'Youth development specialist focusing on technical skills.',
+    profilePhotoUrl: 'https://i.pravatar.cc/300?u=david',
+    footballFocuses: ['Dribbling', 'Passing'] as FootballObjective[],
+    location: { lat: 51.4621, lng: -0.1142 },
+    joinedDate: new Date(Date.now() - 365 * 1.5 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 142,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [{ id: 'en', name: 'English', proficiency: 'Native' as const }],
+    achievements: [],
+  },
+  {
+    id: 'coach_amy',
+    fullName: 'Amy Taylor',
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'London',
+    state: 'England',
+    distanceMiles: 4.1,
+    rating: { average: 4.6, reviewCount: 22 },
+    priceRange: { minUsd: 55, maxUsd: 85, unitLabel: 'per session' },
+    nextAvailability: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    badges: [{ id: 'b1', label: 'Verified', tone: 'success' as const }],
+    sessionFormats: ['In-person'] as TrainingFormat[],
+    shortBio: 'Speed and agility specialist for wingers.',
+    profilePhotoUrl: 'https://i.pravatar.cc/300?u=amy',
+    footballFocuses: ['Conditioning', 'Dribbling'] as FootballObjective[],
+    location: { lat: 51.5231, lng: -0.0876 },
+    joinedDate: new Date(Date.now() - 365 * 2.5 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 120,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [
+      { id: 'en', name: 'English', proficiency: 'Native' as const },
+      { id: 'es', name: 'Spanish', proficiency: 'Fluent' as const },
+    ],
+    achievements: [],
+  },
+  {
+    id: 'coach_oliver',
+    fullName: 'Oliver Jones',
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'Birmingham',
+    state: 'England',
+    distanceMiles: 8.5,
+    rating: { average: 4.9, reviewCount: 55 },
+    priceRange: { minUsd: 60, maxUsd: 90, unitLabel: 'per session' },
+    nextAvailability: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+    badges: [
+      { id: 'b1', label: 'Premium Coach', tone: 'warning' as const },
+      { id: 'b2', label: 'Top Rated', tone: 'success' as const },
+    ],
+    sessionFormats: ['In-person', 'Virtual', 'Small group'] as TrainingFormat[],
+    shortBio: 'Data-driven analysis coach with video review expertise.',
+    profilePhotoUrl: 'https://i.pravatar.cc/300?u=oliver',
+    footballFocuses: ['Passing', 'Defending'] as FootballObjective[],
+    location: { lat: 51.5412, lng: -0.1654 },
+    joinedDate: new Date(Date.now() - 365 * 4 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 260,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [
+      { id: 'en', name: 'English', proficiency: 'Native' as const },
+      { id: 'de', name: 'German', proficiency: 'Conversational' as const },
+    ],
+    achievements: [],
+  },
+  {
+    id: 'coach_lucy',
+    fullName: 'Lucy Brown',
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'London',
+    state: 'England',
+    distanceMiles: 2.9,
+    rating: { average: 4.7, reviewCount: 33 },
+    priceRange: { minUsd: 58, maxUsd: 75, unitLabel: 'per session' },
+    nextAvailability: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+    badges: [{ id: 'b1', label: 'Verified', tone: 'success' as const }],
+    sessionFormats: ['In-person', 'Small group'] as TrainingFormat[],
+    shortBio: 'Academy-level forward coach specializing in finishing.',
+    profilePhotoUrl: 'https://i.pravatar.cc/300?u=lucy',
+    footballFocuses: ['Finishing', 'Conditioning'] as FootballObjective[],
+    location: { lat: 51.4923, lng: -0.1421 },
+    joinedDate: new Date(Date.now() - 365 * 3 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 188,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [{ id: 'en', name: 'English', proficiency: 'Native' as const }],
+    achievements: [],
+  },
+  {
+    id: 'coach_harry',
+    fullName: 'Harry Clark',
+    primarySport: 'Football',
+    sports: ['Football'],
+    city: 'Leeds',
+    state: 'England',
+    distanceMiles: 12.3,
+    rating: { average: 4.5, reviewCount: 18 },
+    priceRange: { minUsd: 35, maxUsd: 50, unitLabel: 'per session' },
+    nextAvailability: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    badges: [],
+    sessionFormats: ['In-person', 'Virtual'] as TrainingFormat[],
+    shortBio: 'Psychology-focused mentor for decision-making.',
+    profilePhotoUrl: 'https://i.pravatar.cc/300?u=harry',
+    footballFocuses: ['Passing', 'Defending'] as FootballObjective[],
+    location: { lat: 51.4532, lng: -0.1876 },
+    joinedDate: new Date(Date.now() - 365 * 1 * 24 * 60 * 60 * 1000).toISOString(),
+    totalSessions: 90,
+    experiences: [],
+    certifications: [],
+    posts: [],
+    photoGallery: [],
+    videoGallery: [],
+    languages: [
+      { id: 'en', name: 'English', proficiency: 'Native' as const },
+      { id: 'pt', name: 'Portuguese', proficiency: 'Basic' as const },
+    ],
+    achievements: [],
+  },
+];
+
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ */
+function calculateDistance(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Convert kilometers to miles
+ */
+function kmToMiles(km: number): number {
+  return km * 0.621371;
+}
+
+/**
+ * Check if coach matches text search query
+ */
+function matchesQuery(coach: CoachProfile, query: string): boolean {
+  if (!query) return true;
+  const searchTerms = query.toLowerCase().split(' ').filter(Boolean);
+  const searchableText = [
+    coach.fullName,
+    coach.shortBio,
+    coach.bio,
+    coach.city,
+    coach.state,
+    ...coach.footballFocuses,
+    ...(coach.languages?.map((l) => l.name) ?? []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return searchTerms.every((term) => searchableText.includes(term));
+}
+
+/**
+ * Calculate relevance score for search ranking
+ */
+function calculateRelevanceScore(
+  coach: CoachProfile,
+  filters: CoachSearchFilters,
+  distanceKm?: number
+): number {
+  let score = 50; // Base score
+
+  // Rating boost (up to 25 points)
+  score += coach.rating.average * 5;
+
+  // Review count boost (up to 10 points)
+  score += Math.min(coach.rating.reviewCount / 10, 10);
+
+  // Distance penalty (up to -20 points for far coaches)
+  if (distanceKm !== undefined) {
+    score -= Math.min(distanceKm / 5, 20);
+  }
+
+  // Verified badge boost
+  if (coach.badges?.some((b) => b.label === 'Verified')) {
+    score += 10;
+  }
+
+  // Query match boost
+  if (filters.query) {
+    const queryLower = filters.query.toLowerCase();
+    if (coach.fullName.toLowerCase().includes(queryLower)) {
+      score += 15;
+    }
+    if (coach.footballFocuses.some((f) => f.toLowerCase().includes(queryLower))) {
+      score += 10;
+    }
+  }
+
+  return Math.max(0, Math.min(100, score));
+}
+
+class DiscoverService {
+  private coaches: CoachProfile[] = MOCK_DISCOVERY_COACHES;
+
+  /**
+   * Search coaches with comprehensive filtering
+   */
+  async searchCoaches(
+    filters: CoachSearchFilters = {},
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<CoachSearchResponse> {
+    let results = [...this.coaches];
+
+    // Apply text search
+    if (filters.query) {
+      results = results.filter((coach) => matchesQuery(coach, filters.query!));
+    }
+
+    // Apply price filter
+    if (filters.priceMin !== undefined) {
+      results = results.filter((coach) => coach.priceRange.maxUsd >= filters.priceMin!);
+    }
+    if (filters.priceMax !== undefined) {
+      results = results.filter((coach) => coach.priceRange.minUsd <= filters.priceMax!);
+    }
+
+    // Apply rating filter
+    if (filters.rating !== undefined) {
+      results = results.filter((coach) => coach.rating.average >= filters.rating!);
+    }
+
+    // Apply focuses filter
+    if (filters.focuses && filters.focuses.length > 0) {
+      results = results.filter((coach) =>
+        filters.focuses!.some((focus) => coach.footballFocuses.includes(focus))
+      );
+    }
+
+    // Apply formats filter
+    if (filters.formats && filters.formats.length > 0) {
+      results = results.filter((coach) =>
+        filters.formats!.some((format) => coach.sessionFormats.includes(format))
+      );
+    }
+
+    // Apply languages filter
+    if (filters.languages && filters.languages.length > 0) {
+      results = results.filter((coach) =>
+        filters.languages!.some((lang) =>
+          coach.languages?.some((l) => l.name.toLowerCase() === lang.toLowerCase())
+        )
+      );
+    }
+
+    // Apply location/distance filter
+    let resultsWithDistance: { coach: CoachProfile; distanceKm?: number }[] = results.map(
+      (coach) => ({ coach })
+    );
+
+    if (filters.location) {
+      resultsWithDistance = results.map((coach) => {
+        const distanceKm = calculateDistance(
+          filters.location!.lat,
+          filters.location!.lng,
+          coach.location.lat,
+          coach.location.lng
+        );
+        return { coach, distanceKm };
+      });
+
+      // Filter by radius
+      if (filters.distance) {
+        resultsWithDistance = resultsWithDistance.filter(
+          (r) => r.distanceKm !== undefined && r.distanceKm <= filters.distance!
+        );
+      }
+    }
+
+    // Calculate relevance scores and create search results
+    const searchResults: CoachSearchResult[] = resultsWithDistance.map((r) => ({
+      coach: r.coach,
+      relevanceScore: calculateRelevanceScore(r.coach, filters, r.distanceKm),
+      distanceKm: r.distanceKm,
+      matchedTerms: filters.query
+        ? filters.query.split(' ').filter((term) => matchesQuery(r.coach, term))
+        : undefined,
+    }));
+
+    // Sort results
+    switch (filters.sortBy) {
+      case 'distance':
+        searchResults.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+        break;
+      case 'rating':
+        searchResults.sort((a, b) => b.coach.rating.average - a.coach.rating.average);
+        break;
+      case 'price_low':
+        searchResults.sort((a, b) => a.coach.priceRange.minUsd - b.coach.priceRange.minUsd);
+        break;
+      case 'price_high':
+        searchResults.sort((a, b) => b.coach.priceRange.maxUsd - a.coach.priceRange.maxUsd);
+        break;
+      case 'reviews':
+        searchResults.sort((a, b) => b.coach.rating.reviewCount - a.coach.rating.reviewCount);
+        break;
+      default:
+        // Default: sort by relevance
+        searchResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    }
+
+    // Paginate
+    const totalCount = searchResults.length;
+    const startIndex = (page - 1) * pageSize;
+    const paginatedResults = searchResults.slice(startIndex, startIndex + pageSize);
+
+    // Save search to recent searches
+    if (filters.query) {
+      await this.saveRecentSearch(filters.query);
+    }
+
+    return {
+      results: paginatedResults,
+      totalCount,
+      page,
+      pageSize,
+      hasMore: startIndex + pageSize < totalCount,
+      filterOptions: await this.getFilterOptions(filters),
+    };
+  }
+
+  /**
+   * Get coaches near a specific location
+   */
+  async getCoachesNearLocation(
+    lat: number,
+    lng: number,
+    radiusKm: number = 10
+  ): Promise<CoachSearchResult[]> {
+    const results = this.coaches
+      .map((coach) => {
+        const distanceKm = calculateDistance(lat, lng, coach.location.lat, coach.location.lng);
+        return {
+          coach,
+          relevanceScore: calculateRelevanceScore(coach, {}, distanceKm),
+          distanceKm,
+        };
+      })
+      .filter((r) => r.distanceKm <= radiusKm)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    return results;
+  }
+
+  /**
+   * Get available filter options with counts
+   */
+  async getFilterOptions(currentFilters: CoachSearchFilters = {}): Promise<FilterOptions> {
+    // Get all coaches that match current filters (except the filter being counted)
+    const matchingCoaches = this.coaches.filter((coach) => {
+      if (currentFilters.query && !matchesQuery(coach, currentFilters.query)) return false;
+      if (currentFilters.priceMin && coach.priceRange.maxUsd < currentFilters.priceMin) return false;
+      if (currentFilters.priceMax && coach.priceRange.minUsd > currentFilters.priceMax) return false;
+      if (currentFilters.rating && coach.rating.average < currentFilters.rating) return false;
+      return true;
+    });
+
+    // Collect unique values with counts
+    const focusCounts = new Map<string, number>();
+    const languageCounts = new Map<string, number>();
+    const formatCounts = new Map<string, number>();
+    let minPrice = Infinity;
+    let maxPrice = 0;
+    const ratingCounts = new Map<number, number>();
+
+    matchingCoaches.forEach((coach) => {
+      // Focuses
+      coach.footballFocuses.forEach((focus) => {
+        focusCounts.set(focus, (focusCounts.get(focus) ?? 0) + 1);
+      });
+
+      // Languages
+      coach.languages?.forEach((lang) => {
+        languageCounts.set(lang.name, (languageCounts.get(lang.name) ?? 0) + 1);
+      });
+
+      // Formats
+      coach.sessionFormats.forEach((format) => {
+        formatCounts.set(format, (formatCounts.get(format) ?? 0) + 1);
+      });
+
+      // Price range
+      minPrice = Math.min(minPrice, coach.priceRange.minUsd);
+      maxPrice = Math.max(maxPrice, coach.priceRange.maxUsd);
+
+      // Rating distribution
+      const ratingBucket = Math.floor(coach.rating.average);
+      ratingCounts.set(ratingBucket, (ratingCounts.get(ratingBucket) ?? 0) + 1);
+    });
+
+    // Convert to FilterOption arrays
+    const focuses: FilterOption[] = Array.from(focusCounts.entries())
+      .map(([value, count]) => ({
+        value,
+        label: value,
+        count,
+        selected: currentFilters.focuses?.includes(value as FootballObjective),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const languages: FilterOption[] = Array.from(languageCounts.entries())
+      .map(([value, count]) => ({
+        value,
+        label: value,
+        count,
+        selected: currentFilters.languages?.includes(value),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const formats: FilterOption[] = Array.from(formatCounts.entries())
+      .map(([value, count]) => ({
+        value,
+        label: value,
+        count,
+        selected: currentFilters.formats?.includes(value as TrainingFormat),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const genders: FilterOption[] = [
+      { value: 'Any', label: 'Any', count: matchingCoaches.length },
+      { value: 'Male', label: 'Male', count: Math.floor(matchingCoaches.length * 0.6) },
+      { value: 'Female', label: 'Female', count: Math.floor(matchingCoaches.length * 0.4) },
+    ];
+
+    const verificationLevels: FilterOption[] = [
+      {
+        value: 'VERIFIED',
+        label: 'Verified',
+        count: matchingCoaches.filter((c) =>
+          c.badges?.some((b) => b.label === 'Verified')
+        ).length,
+      },
+      {
+        value: 'PREMIUM',
+        label: 'Premium',
+        count: matchingCoaches.filter((c) =>
+          c.badges?.some((b) => b.label === 'Premium Coach')
+        ).length,
+      },
+    ];
+
+    const ratingDistribution = Array.from(ratingCounts.entries())
+      .map(([rating, count]) => ({ rating, count }))
+      .sort((a, b) => b.rating - a.rating);
+
+    return {
+      sports: [{ value: 'Football', label: 'Football', count: matchingCoaches.length }],
+      focuses,
+      languages,
+      genders,
+      verificationLevels,
+      formats,
+      priceRange: {
+        min: minPrice === Infinity ? 0 : minPrice,
+        max: maxPrice === 0 ? 100 : maxPrice,
+      },
+      ratingDistribution,
+      totalCount: matchingCoaches.length,
+    };
+  }
+
+  /**
+   * Get suggested coaches for a user
+   */
+  async getSuggestedCoaches(userId: string): Promise<SuggestedCoach[]> {
+    // For demo, return a mix of suggestions
+    const suggestions: SuggestedCoach[] = [];
+
+    // Top rated coaches
+    const topRated = [...this.coaches]
+      .sort((a, b) => b.rating.average - a.rating.average)
+      .slice(0, 2);
+
+    topRated.forEach((coach) => {
+      suggestions.push({
+        coach,
+        reason: 'highly_rated',
+        reasonText: `Highly rated with ${coach.rating.average.toFixed(1)} stars`,
+        confidence: 0.9,
+      });
+    });
+
+    // Nearby coaches
+    const nearby = [...this.coaches]
+      .sort((a, b) => a.distanceMiles - b.distanceMiles)
+      .slice(0, 2);
+
+    nearby.forEach((coach) => {
+      if (!suggestions.find((s) => s.coach.id === coach.id)) {
+        suggestions.push({
+          coach,
+          reason: 'nearby',
+          reasonText: `Only ${coach.distanceMiles.toFixed(1)} miles away`,
+          confidence: 0.85,
+        });
+      }
+    });
+
+    // Popular coaches (by review count)
+    const popular = [...this.coaches]
+      .sort((a, b) => b.rating.reviewCount - a.rating.reviewCount)
+      .slice(0, 2);
+
+    popular.forEach((coach) => {
+      if (!suggestions.find((s) => s.coach.id === coach.id)) {
+        suggestions.push({
+          coach,
+          reason: 'popular',
+          reasonText: `${coach.rating.reviewCount} reviews`,
+          confidence: 0.8,
+        });
+      }
+    });
+
+    // New coaches (by join date)
+    const newCoaches = [...this.coaches]
+      .sort((a, b) => new Date(b.joinedDate).getTime() - new Date(a.joinedDate).getTime())
+      .slice(0, 1);
+
+    newCoaches.forEach((coach) => {
+      if (!suggestions.find((s) => s.coach.id === coach.id)) {
+        suggestions.push({
+          coach,
+          reason: 'new',
+          reasonText: 'Recently joined',
+          confidence: 0.7,
+        });
+      }
+    });
+
+    return suggestions.slice(0, 6);
+  }
+
+  /**
+   * Save a recent search query
+   */
+  private async saveRecentSearch(query: string): Promise<void> {
+    const recent = await this.getRecentSearches();
+    const updated = [query, ...recent.filter((q) => q !== query)].slice(0, MAX_RECENT_SEARCHES);
+    await storageService.setItem(STORAGE_KEY, updated);
+  }
+
+  /**
+   * Get recent search queries
+   */
+  async getRecentSearches(): Promise<string[]> {
+    return storageService.getItem<string[]>(STORAGE_KEY, []);
+  }
+
+  /**
+   * Clear recent searches
+   */
+  async clearRecentSearches(): Promise<void> {
+    await storageService.setItem(STORAGE_KEY, []);
+  }
+
+  /**
+   * Get a specific coach by ID
+   */
+  async getCoachById(coachId: string): Promise<CoachProfile | null> {
+    return this.coaches.find((c) => c.id === coachId) ?? null;
+  }
+
+  /**
+   * Get all coaches (for map view)
+   */
+  async getAllCoaches(): Promise<CoachProfile[]> {
+    return this.coaches;
+  }
+
+  /**
+   * Count coaches matching filters (for filter count badges)
+   */
+  async countCoaches(filters: CoachSearchFilters): Promise<number> {
+    const response = await this.searchCoaches(filters, 1, 1);
+    return response.totalCount;
+  }
+
+  /**
+   * Check if any filters are active
+   */
+  hasActiveFilters(filters: CoachSearchFilters): boolean {
+    return !!(
+      filters.query ||
+      filters.priceMin !== undefined ||
+      filters.priceMax !== undefined ||
+      filters.rating !== undefined ||
+      filters.distance !== undefined ||
+      (filters.focuses && filters.focuses.length > 0) ||
+      (filters.formats && filters.formats.length > 0) ||
+      (filters.languages && filters.languages.length > 0) ||
+      filters.gender ||
+      filters.verified
+    );
+  }
+
+  /**
+   * Get count of active filters
+   */
+  getActiveFilterCount(filters: CoachSearchFilters): number {
+    let count = 0;
+    if (filters.priceMin !== undefined || filters.priceMax !== undefined) count++;
+    if (filters.rating !== undefined) count++;
+    if (filters.distance !== undefined) count++;
+    if (filters.focuses && filters.focuses.length > 0) count++;
+    if (filters.formats && filters.formats.length > 0) count++;
+    if (filters.languages && filters.languages.length > 0) count++;
+    if (filters.gender) count++;
+    if (filters.verified) count++;
+    return count;
+  }
+
+  /**
+   * Reset to mock data (for testing)
+   */
+  async resetToMockData(): Promise<void> {
+    this.coaches = [...MOCK_DISCOVERY_COACHES];
+    await this.clearRecentSearches();
+  }
+}
+
+export const discoverService = new DiscoverService();

@@ -1,0 +1,111 @@
+/**
+ * Log Injury Screen
+ *
+ * Multi-step form for logging a new injury.
+ * Guides user through body part selection, severity, and details.
+ */
+
+import { useState, useCallback } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+
+import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
+import { InjuryForm } from '@/components/health';
+import { Colors, Spacing } from '@/constants/theme';
+import type { LogInjuryInput } from '@/constants/types';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+import { injuryService } from '@/services/injury-service';
+import { scaleFont } from '@/utils/scale';
+
+/**
+ * Log injury screen with multi-step form.
+ */
+export default function LogInjuryScreen() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const { currentUser } = useAuth();
+
+  const [loading, setLoading] = useState(false);
+
+  const userId = currentUser?.id ?? 'user1';
+  const userName = currentUser?.fullName ?? currentUser?.name ?? 'User';
+
+  const handleSubmit = useCallback(
+    async (data: LogInjuryInput) => {
+      setLoading(true);
+      try {
+        await injuryService.logInjury(userId, data, userName);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.back();
+      } catch (error) {
+        console.error('Failed to log injury:', error);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [userId, userName]
+  );
+
+  const handleCancel = useCallback(() => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.back();
+  }, []);
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Clickable onPress={handleCancel} hitSlop={8}>
+            <Ionicons name="close" size={24} color={palette.text} />
+          </Clickable>
+          <ThemedText type="title" style={styles.headerTitle}>
+            Log Injury
+          </ThemedText>
+        </View>
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={100}
+      >
+        <InjuryForm
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          loading={loading}
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  headerTitle: {
+    fontSize: scaleFont(24),
+  },
+  content: {
+    flex: 1,
+  },
+});

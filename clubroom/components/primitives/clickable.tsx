@@ -6,6 +6,8 @@ import React from 'react';
  */
 export interface ClickableProps {
   onPress?: () => void;
+  onLongPress?: () => void;
+  delayLongPress?: number;
   style?: ViewStyle | ViewStyle[] | ((state: { pressed: boolean }) => ViewStyle | ViewStyle[]);
   children: React.ReactNode;
   disabled?: boolean;
@@ -17,6 +19,8 @@ export interface ClickableProps {
 
 export function Clickable({
   onPress,
+  onLongPress,
+  delayLongPress,
   style,
   children,
   disabled,
@@ -26,12 +30,15 @@ export function Clickable({
   accessibilityRole,
 }: ClickableProps) {
   const handlePress = disabled ? undefined : onPress;
+  const handleLongPress = disabled ? undefined : onLongPress;
   const resolveStyle = typeof style === 'function' ? style : () => style;
 
   return (
     <Pressable
       onPress={handlePress}
-      disabled={disabled || !onPress}
+      onLongPress={handleLongPress}
+      delayLongPress={delayLongPress}
+      disabled={disabled || (!onPress && !onLongPress)}
       hitSlop={hitSlop}
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}

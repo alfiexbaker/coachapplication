@@ -1,3 +1,5 @@
+import type { Goal } from './types';
+
 // Core User Types
 export type UserRole = 'COACH' | 'USER' | 'PARENT';
 

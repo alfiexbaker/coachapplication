@@ -3,35 +3,76 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
+import type { AvailabilitySlot } from '@/constants/types';
 
-const DAYS = Array.from({ length: 14 }).map((_, idx) => {
-  const date = new Date();
-  date.setDate(date.getDate() + idx);
-  return date;
-});
+interface CalendarPickerProps {
+  selectedDate?: string;
+  onSelect: (iso: string) => void;
+  availabilityByDate?: Record<string, AvailabilitySlot[]>;
+  daysToShow?: number;
+}
 
-export function CalendarPicker({ selectedDate, onSelect }: { selectedDate?: string; onSelect: (iso: string) => void }) {
+export function CalendarPicker({
+  selectedDate,
+  onSelect,
+  availabilityByDate,
+  daysToShow = 14,
+}: CalendarPickerProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+
+  const days = Array.from({ length: daysToShow }).map((_, idx) => {
+    const date = new Date();
+    date.setDate(date.getDate() + idx);
+    return date;
+  });
+
   return (
     <View style={styles.row}>
-      {DAYS.map((date) => {
+      {days.map((date) => {
         const iso = date.toISOString().split('T')[0];
         const active = selectedDate === iso;
+
+        // Check if this date has available slots
+        const slotsForDate = availabilityByDate?.[iso] || [];
+        const hasAvailableSlots = slotsForDate.some((slot) => slot.isAvailable);
+        const totalAvailableSlots = slotsForDate.filter((slot) => slot.isAvailable).length;
+
+        // If we have availability data and no slots, disable the date
+        const isDisabled = availabilityByDate && !hasAvailableSlots;
+
         return (
           <Clickable
             key={iso}
-            onPress={() => onSelect(iso)}
+            onPress={() => !isDisabled && onSelect(iso)}
+            disabled={isDisabled}
             style={[
               styles.day,
               {
                 backgroundColor: active ? `${palette.tint}15` : palette.surface,
                 borderColor: active ? palette.tint : palette.border,
+                opacity: isDisabled ? 0.4 : 1,
               },
             ]}
           >
-            <ThemedText type="defaultSemiBold">{date.toLocaleDateString('en-GB', { weekday: 'short' })}</ThemedText>
+            <ThemedText type="defaultSemiBold">
+              {date.toLocaleDateString('en-GB', { weekday: 'short' })}
+            </ThemedText>
             <ThemedText style={{ color: palette.muted }}>{date.getDate()}</ThemedText>
+            {availabilityByDate && (
+              <View style={styles.indicator}>
+                {hasAvailableSlots ? (
+                  <View style={[styles.dot, { backgroundColor: palette.tint }]} />
+                ) : (
+                  <ThemedText style={[styles.noSlots, { color: palette.muted }]}>-</ThemedText>
+                )}
+                {hasAvailableSlots && totalAvailableSlots > 0 && (
+                  <ThemedText style={[styles.slotCount, { color: palette.tint }]}>
+                    {totalAvailableSlots}
+                  </ThemedText>
+                )}
+              </View>
+            )}
           </Clickable>
         );
       })}
@@ -50,6 +91,24 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
-    gap: 6,
+    gap: 4,
+  },
+  indicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  slotCount: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  noSlots: {
+    fontSize: 10,
   },
 });

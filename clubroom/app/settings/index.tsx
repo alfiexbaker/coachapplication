@@ -146,6 +146,15 @@ export default function SettingsHubScreen() {
             }}
           />
           <SettingsRow
+            icon="calendar"
+            title="Calendar Sync"
+            subtitle="Export sessions to Google/Apple Calendar"
+            onPress={() => {
+              logger.press('CalendarSync');
+              router.push('/settings/calendar-sync');
+            }}
+          />
+          <SettingsRow
             icon="moon"
             title="Appearance"
             subtitle="Dark mode and display settings"
