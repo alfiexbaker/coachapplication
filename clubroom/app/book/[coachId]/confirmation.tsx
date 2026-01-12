@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { BookingWizardHeader } from '@/components/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
@@ -13,6 +14,7 @@ import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
+import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 
 const logger = createLogger('ConfirmationScreen');
 
@@ -26,6 +28,7 @@ export default function ConfirmationScreen() {
   const [isCreating, setIsCreating] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const celebrationRef = useRef<CelebrationOverlayRef>(null);
 
   const handleViewBooking = async () => {
     if (bookingId) {
@@ -60,8 +63,22 @@ export default function ConfirmationScreen() {
 
       if (result.success && result.booking) {
         setBookingId(result.booking.id);
-        reset();
-        router.replace(`/booking/${result.booking.id}`);
+
+        // Trigger celebration with haptics
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        celebrationRef.current?.celebrate({
+          title: 'Booking Confirmed!',
+          subtitle: `Session with ${draft.coachName || 'your coach'} is all set`,
+          icon: 'checkmark-circle',
+          iconColor: '#10B981',
+          duration: 2500,
+        });
+
+        // Navigate after celebration
+        setTimeout(() => {
+          reset();
+          router.replace(`/booking/${result.booking!.id}`);
+        }, 2600);
       } else {
         setError(result.error || 'Failed to create booking. The slot may no longer be available.');
       }
@@ -143,6 +160,8 @@ export default function ConfirmationScreen() {
           <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Message coach</ThemedText>
         </Clickable>
       </View>
+
+      <CelebrationOverlay ref={celebrationRef} />
     </SafeAreaView>
   );
 }

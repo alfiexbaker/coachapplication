@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, View, Switch, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -11,6 +12,7 @@ import { badgeService } from '@/services/badge-service';
 import { BadgeAward, BadgeDefinition } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
 import { createLogger } from '@/utils/logger';
+import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
 
 export const BADGE_REASONS = ['Leadership', 'Consistency', 'Technique', 'Mindset', 'Teamwork', 'Resilience'];
 
@@ -116,6 +118,7 @@ export function BadgeAwardModal({
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isCompactLayout = width < 380;
+  const celebrationRef = useRef<CelebrationOverlayRef>(null);
 
   // Calculate dynamic max height accounting for safe areas and padding
   const availableHeight = height - insets.top - insets.bottom - Spacing.lg * 2;
@@ -231,6 +234,17 @@ export function BadgeAwardModal({
         overrideNote: overrideNote.trim() || undefined,
         context: sessionId ? 'session' : 'athlete_profile',
       });
+
+      // Trigger celebration animation
+      const badgeLabel = definitions.find((d) => d.id === selectedBadgeId)?.label || 'Badge';
+      celebrationRef.current?.celebrate({
+        title: 'Badge Awarded!',
+        subtitle: `${badgeLabel} sent to ${resolvedAthleteName}`,
+        icon: 'ribbon',
+        iconColor: '#FFD700',
+        duration: 2500,
+      });
+
       onAwarded?.(award);
       logger.info('badge_award_submitted', {
         athleteId,
@@ -241,7 +255,11 @@ export function BadgeAwardModal({
         context: sessionId ? 'session' : 'athlete_profile',
         hasCustomNote: Boolean(customNote.trim()),
       });
-      onClose();
+
+      // Delay close to let celebration play
+      setTimeout(() => {
+        onClose();
+      }, 2600);
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Unable to award badge right now.');
       logger.error('badge_award_failed', { error });
@@ -546,6 +564,8 @@ export function BadgeAwardModal({
             </View>
           </ScrollView>
         </SurfaceCard>
+
+        <CelebrationOverlay ref={celebrationRef} />
       </View>
     </Modal>
   );

@@ -63,10 +63,10 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
       }),
     ]).start();
 
-    // Auto-hide after 4 seconds
+    // Auto-hide after 6 seconds (extended for better user visibility)
     timeoutRef.current = setTimeout(() => {
       hideToast();
-    }, 4000);
+    }, 6000);
   }, [slideAnim, opacityAnim]);
 
   const hideToast = useCallback(() => {

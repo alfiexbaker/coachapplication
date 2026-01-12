@@ -30,6 +30,12 @@ export function UserHomeScreen() {
   const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [stats, setStats] = useState({ sessions: 0, badges: 0, level: 1 });
+  const [streakInfo, setStreakInfo] = useState<{
+    currentStreak: number;
+    nextMilestone: number;
+    daysToNextMilestone: number;
+    streakLabel: string;
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -51,6 +57,10 @@ export function UserHomeScreen() {
         badges: progress.totalBadges,
         level: progress.currentLevel.level,
       });
+
+      // Load streak info
+      const streak = await badgeService.getStreakInfo(currentUser.id);
+      setStreakInfo(streak);
     } catch (err) {
       logger.error('Failed to load home data', err);
       setError('Failed to load data. Pull down to refresh.');
@@ -154,6 +164,38 @@ export function UserHomeScreen() {
             </View>
           </View>
         </View>
+
+        {/* Streak Card - WOW Factor */}
+        {streakInfo && (
+          <TouchableOpacity
+            style={[styles.streakCard, { backgroundColor: '#FF6B3520', borderColor: '#FF6B3540' }]}
+            onPress={() => router.push('/badges')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.streakContent}>
+              <View style={[styles.streakIconContainer, { backgroundColor: '#FF6B3530' }]}>
+                <Ionicons name="flame" size={28} color="#FF6B35" />
+              </View>
+              <View style={styles.streakInfo}>
+                <View style={styles.streakHeader}>
+                  <ThemedText style={styles.streakNumber}>{streakInfo.currentStreak}</ThemedText>
+                  <ThemedText style={[styles.streakWeeks, { color: '#FF6B35' }]}>week streak</ThemedText>
+                </View>
+                <ThemedText style={[styles.streakLabel, { color: palette.text }]}>
+                  {streakInfo.streakLabel}
+                </ThemedText>
+              </View>
+              <View style={styles.streakProgress}>
+                <ThemedText style={[styles.streakProgressText, { color: palette.muted }]}>
+                  {streakInfo.daysToNextMilestone > 0
+                    ? `${streakInfo.daysToNextMilestone} to next badge`
+                    : 'Max streak!'}
+                </ThemedText>
+                <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.quickActionsGrid}>
@@ -387,6 +429,55 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 32,
+  },
+  // Streak card
+  streakCard: {
+    padding: Spacing.md,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+  },
+  streakContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  streakIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  streakHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: Spacing.xs,
+  },
+  streakNumber: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FF6B35',
+  },
+  streakWeeks: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  streakLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  streakProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  streakProgressText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
   // Quick actions
   quickActionsGrid: {
