@@ -6,6 +6,7 @@ import {
   TextInput,
   Pressable,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -41,6 +42,22 @@ export function ParentDiscoverScreen() {
   const [postcode, setPostcode] = useState('');
   const [nextAvailableSlots, setNextAvailableSlots] = useState<Record<string, AvailabilitySlot | null>>({});
   const [pendingInvites, setPendingInvites] = useState<SessionInvite[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string | undefined>(undefined);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [invitesError, setInvitesError] = useState<string | null>(null);
+
+  // Get children for the current parent
+  const children = useMemo(() => {
+    if (!currentUser) return [];
+    return getChildrenForParent(currentUser.id);
+  }, [currentUser]);
+
+  // Initialize selectedChildId when children change
+  useEffect(() => {
+    if (children.length > 0 && !selectedChildId) {
+      setSelectedChildId(children[0].id);
+    }
+  }, [children, selectedChildId]);
 
   // Load pending invites when screen comes into focus
   useFocusEffect(
@@ -53,6 +70,8 @@ export function ParentDiscoverScreen() {
 
   const loadPendingInvites = async () => {
     if (!currentUser?.id) return;
+    setLoadingInvites(true);
+    setInvitesError(null);
     try {
       const invites = await sessionInviteService.getInvitesForParent(currentUser.id);
       const pending = invites.filter(
@@ -61,13 +80,13 @@ export function ParentDiscoverScreen() {
       setPendingInvites(pending.slice(0, 3)); // Show max 3 on home
     } catch (error) {
       logger.error('Failed to load pending invites', { error });
+      setInvitesError('Failed to load invites');
+    } finally {
+      setLoadingInvites(false);
     }
   };
 
   if (!currentUser) return null;
-
-  const children = getChildrenForParent(currentUser.id);
-  const [selectedChildId, setSelectedChildId] = useState(children[0]?.id);
 
   const nearbyCoaches = useMemo(() => {
     if (!postcode || postcode.length < 3 || !currentUser) return [];
@@ -235,8 +254,26 @@ export function ParentDiscoverScreen() {
           )}
         </View>
 
+        {/* Loading State for Invites */}
+        {loadingInvites && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={palette.tint} />
+          </View>
+        )}
+
+        {/* Error State for Invites */}
+        {invitesError && !loadingInvites && (
+          <View style={[styles.errorContainer, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}>
+            <Ionicons name="alert-circle" size={16} color={palette.error} />
+            <ThemedText style={[styles.errorText, { color: palette.error }]}>{invitesError}</ThemedText>
+            <Clickable onPress={loadPendingInvites}>
+              <ThemedText style={[styles.retryLink, { color: palette.tint }]}>Retry</ThemedText>
+            </Clickable>
+          </View>
+        )}
+
         {/* Pending Session Invites */}
-        {pendingInvites.length > 0 && (
+        {!loadingInvites && pendingInvites.length > 0 && (
           <Animated.View entering={FadeInDown.springify()} style={styles.pendingInvitesSection}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
@@ -449,6 +486,27 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  loadingContainer: {
+    padding: Spacing.lg,
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+  },
+  retryLink: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   singleChild: {
     marginTop: 2,

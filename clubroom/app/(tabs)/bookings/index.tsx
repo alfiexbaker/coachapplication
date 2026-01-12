@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { StyleSheet, Alert } from 'react-native';
+import { StyleSheet, Alert, ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,15 +50,19 @@ export default function BookingsScreen() {
   const [ageMin, setAgeMin] = useState('');
   const [ageMax, setAgeMax] = useState('');
   const [footballSkill, setFootballSkill] = useState<FootballObjective | ''>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const userRole = currentUser?.role;
 
-  // Load session bookings from AsyncStorage
-  const loadSessionBookings = useCallback(async () => {
+  // Load all data
+  const loadData = useCallback(async () => {
+    setError(null);
     try {
-      const stored = await AsyncStorage.getItem('session_bookings');
-      if (stored) {
-        const bookings = JSON.parse(stored);
+      // Load session bookings from AsyncStorage
+      const storedBookings = await AsyncStorage.getItem('session_bookings');
+      if (storedBookings) {
+        const bookings = JSON.parse(storedBookings);
         // Convert to BookingSummary format
         const summaries: BookingSummary[] = bookings.map((booking: any) => ({
           id: booking.id,
@@ -82,31 +86,27 @@ export default function BookingsScreen() {
         setSessionBookings(summaries);
         logger.debug('Loaded session bookings', { count: summaries.length });
       }
-    } catch (error) {
-      logger.error('Failed to load session bookings', error);
-    }
-  }, []);
 
-  // Load session offerings from AsyncStorage
-  const loadSessionOfferings = useCallback(async () => {
-    try {
-      const stored = await AsyncStorage.getItem('session_offerings');
-      if (stored) {
-        const offerings = JSON.parse(stored);
+      // Load session offerings from AsyncStorage
+      const storedOfferings = await AsyncStorage.getItem('session_offerings');
+      if (storedOfferings) {
+        const offerings = JSON.parse(storedOfferings);
         setSessionOfferings(offerings);
         logger.debug('Loaded session offerings', { count: offerings.length });
       }
-    } catch (error) {
-      logger.error('Failed to load session offerings', error);
+    } catch (err) {
+      logger.error('Failed to load bookings data', err);
+      setError('Failed to load bookings. Pull down to refresh.');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   // Reload bookings when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      loadSessionBookings();
-      loadSessionOfferings();
-    }, [loadSessionBookings, loadSessionOfferings])
+      loadData();
+    }, [loadData])
   );
 
   // Create a new session offering
@@ -272,8 +272,7 @@ export default function BookingsScreen() {
   };
 
   const handleModalUpdate = () => {
-    loadSessionOfferings();
-    loadSessionBookings();
+    loadData();
   };
 
   return (
@@ -298,8 +297,22 @@ export default function BookingsScreen() {
         showCoachActions={activeTab === 'list'}
       />
 
+      {/* Loading State */}
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={palette.tint} />
+        </View>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <View style={[styles.errorContainer, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}>
+          <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
+        </View>
+      )}
+
       {/* Bookings List - Show for all users, or coaches on 'list' tab */}
-      {(userRole !== 'COACH' || activeTab === 'list') && (
+      {!loading && (userRole !== 'COACH' || activeTab === 'list') && (
         <BookingsList
           items={displayItems}
           timeFilter={timeFilter}
@@ -363,5 +376,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 14,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorContainer: {
+    margin: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  errorText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

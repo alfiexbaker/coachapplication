@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,8 @@ export function UserHomeScreen() {
   const { currentUser } = useAuth();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [stats, setStats] = useState({ sessions: 0, badges: 0, level: 1 });
@@ -32,6 +34,7 @@ export function UserHomeScreen() {
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
 
+    setError(null);
     try {
       // Load recent badges
       const badges = await badgeService.listAwardsForAthlete(currentUser.id);
@@ -48,8 +51,11 @@ export function UserHomeScreen() {
         badges: progress.totalBadges,
         level: progress.currentLevel.level,
       });
-    } catch (error) {
-      logger.error('Failed to load home data', error);
+    } catch (err) {
+      logger.error('Failed to load home data', err);
+      setError('Failed to load data. Pull down to refresh.');
+    } finally {
+      setLoading(false);
     }
   }, [currentUser?.id]);
 
@@ -100,6 +106,21 @@ export function UserHomeScreen() {
             Your training journey
           </ThemedText>
         </View>
+
+        {/* Loading State */}
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={palette.tint} />
+          </View>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <View style={[styles.errorContainer, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}>
+            <Ionicons name="alert-circle" size={20} color={palette.error} />
+            <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
+          </View>
+        )}
 
         {/* Stats Row */}
         <View style={[styles.statsRow, { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20` }]}>
@@ -318,6 +339,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
+  },
+  loadingContainer: {
+    padding: Spacing['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
   },
   // Stats row
   statsRow: {
