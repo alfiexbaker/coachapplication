@@ -5,8 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
+
+const logger = createLogger('DownloadButton');
 
 // ============================================================================
 // TYPES
@@ -59,7 +62,7 @@ export function DownloadButton({
         onDownloadComplete?.(false);
       }
     } catch (error) {
-      console.error('Download error:', error);
+      logger.error('Download error', error);
       Alert.alert('Download Failed', 'An error occurred while downloading the invoice.');
       onDownloadComplete?.(false);
     } finally {
@@ -79,7 +82,7 @@ export function DownloadButton({
         Alert.alert('Share Failed', 'Could not share the invoice. Please try again.');
       }
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share error', error);
       Alert.alert('Share Failed', 'An error occurred while sharing the invoice.');
     } finally {
       setSharing(false);

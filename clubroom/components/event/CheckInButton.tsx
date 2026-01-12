@@ -8,8 +8,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import type { ClubEvent, EventAttendance, CheckInInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('CheckInButton');
 
 // Location types for optional location functionality
 interface LocationCoords {
@@ -90,7 +93,7 @@ export function CheckInButton({
 
       await onCheckIn(checkInInput);
     } catch (error) {
-      console.error('Check-in failed:', error);
+      logger.error('Check-in failed', error);
       Alert.alert('Check-in Failed', 'Please try again.');
     } finally {
       setLoading(false);
@@ -113,7 +116,7 @@ export function CheckInButton({
             try {
               await onUndoCheckIn();
             } catch (error) {
-              console.error('Undo check-in failed:', error);
+              logger.error('Undo check-in failed', error);
               Alert.alert('Failed', 'Please try again.');
             } finally {
               setLoading(false);
