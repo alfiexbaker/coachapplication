@@ -97,6 +97,17 @@ export function BookingCard({ booking, onUpdate }: BookingCardProps) {
     });
   };
 
+  const handleRateCoach = () => {
+    logger.press('RateCoach', { bookingId: booking.id, coachId: booking.coachId });
+    router.push({
+      pathname: '/review/[bookingId]',
+      params: { bookingId: booking.id },
+    });
+  };
+
+  const isPastSession = booking.status === 'Completed' ||
+    (new Date(booking.start) < new Date() && booking.status === 'Confirmed');
+
   const renderRightActions = () => (
     <View style={styles.actionsContainer}>
       <Clickable
@@ -158,6 +169,19 @@ export function BookingCard({ booking, onUpdate }: BookingCardProps) {
           <Ionicons name="location-outline" size={16} color={palette.icon} />
           <ThemedText style={styles.locationText}>{booking.locationLabel}</ThemedText>
         </View>
+
+        {/* Rate Coach button for past sessions */}
+        {isPastSession && (
+          <Clickable
+            onPress={handleRateCoach}
+            style={[styles.rateButton, { backgroundColor: `${palette.warning}15`, borderColor: `${palette.warning}30` }]}
+          >
+            <Ionicons name="star" size={16} color={palette.warning} />
+            <ThemedText style={[styles.rateButtonText, { color: palette.warning }]}>
+              Rate this session
+            </ThemedText>
+          </Clickable>
+        )}
       </SurfaceCard>
     </Swipeable>
   );
@@ -253,6 +277,20 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     ...Typography.sm,
+    fontWeight: '600',
+  },
+  rateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    marginTop: Spacing.xs,
+  },
+  rateButtonText: {
+    fontSize: 14,
     fontWeight: '600',
   },
 });

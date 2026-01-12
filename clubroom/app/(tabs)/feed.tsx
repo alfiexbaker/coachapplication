@@ -295,9 +295,9 @@ function OnboardingTipsCard() {
   const palette = Colors[scheme];
 
   const tips = [
-    { icon: 'person-circle', title: 'Complete Your Profile', desc: 'Add your photo and bio' },
-    { icon: 'calendar', title: 'Book a Session', desc: 'Train with expert coaches' },
-    { icon: 'trophy', title: 'Track Progress', desc: 'View your skills and badges' },
+    { icon: 'person-circle', title: 'Complete Your Profile', desc: 'Add your photo and bio', route: '/(tabs)/edit-profile' },
+    { icon: 'calendar', title: 'Book a Session', desc: 'Train with expert coaches', route: '/(tabs)/more' },
+    { icon: 'trophy', title: 'Track Progress', desc: 'View your skills and badges', route: '/development/my-progress' },
   ];
 
   return (
@@ -308,7 +308,12 @@ function OnboardingTipsCard() {
       </View>
       <View style={styles.tipsList}>
         {tips.map((tip, index) => (
-          <View key={index} style={styles.tipItem}>
+          <TouchableOpacity
+            key={index}
+            style={styles.tipItem}
+            onPress={() => router.push(tip.route as any)}
+            activeOpacity={0.7}
+          >
             <View style={[styles.tipIcon, { backgroundColor: `${palette.tint}10` }]}>
               <Ionicons name={tip.icon as any} size={18} color={palette.tint} />
             </View>
@@ -317,7 +322,7 @@ function OnboardingTipsCard() {
               <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{tip.desc}</ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={16} color={palette.muted} />
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </SurfaceCard>

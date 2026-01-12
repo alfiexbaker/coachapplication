@@ -45,25 +45,10 @@ export function QuickActions({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  // Quick Actions for Users/Parents - Rate Coach and Find New Coach
+  // Quick Actions for Users/Parents - Removed per UX simplification
+  // Rate coach is now integrated into past booking cards
   if (userRole === 'USER' || userRole === 'PARENT') {
-    return (
-      <View style={styles.quickActions}>
-        <Clickable onPress={onRateCoachPress}>
-          <SurfaceCard style={styles.actionCard}>
-            <Ionicons name="star-outline" size={24} color={palette.warning} />
-            <ThemedText style={styles.actionText}>Rate Coach</ThemedText>
-          </SurfaceCard>
-        </Clickable>
-
-        <Clickable onPress={onFindCoachPress}>
-          <SurfaceCard style={styles.actionCard}>
-            <Ionicons name="search-outline" size={24} color={palette.tint} />
-            <ThemedText style={styles.actionText}>Find Coach</ThemedText>
-          </SurfaceCard>
-        </Clickable>
-      </View>
-    );
+    return null;
   }
 
   // Quick Actions for Coaches - only show on list tab
