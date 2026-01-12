@@ -8,8 +8,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
+import { createLogger } from '@/utils/logger';
 import { ExtendedNotificationItem } from '@/services/notification-service';
 import { useNotificationToast } from '@/hooks/use-notifications';
+
+const logger = createLogger('NotificationToast');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -89,7 +92,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
       try {
         router.push(toast.notification.deepLink as any);
       } catch (error) {
-        console.error('[NotificationToast] Navigation error:', error);
+        logger.error('Navigation error', error);
       }
     }
   }, [toast.notification, hideToast, router]);

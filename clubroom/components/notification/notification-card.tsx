@@ -4,9 +4,12 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import { NotificationItem } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
 import { ExtendedNotificationItem } from '@/services/notification-service';
+
+const logger = createLogger('NotificationCard');
 
 const ICONS: Record<NotificationItem['type'], string> = {
   booking: 'calendar',
@@ -54,7 +57,7 @@ export function NotificationCard({
       try {
         router.push(item.deepLink as any);
       } catch (error) {
-        console.error('[NotificationCard] Failed to navigate:', item.deepLink, error);
+        logger.error('Failed to navigate', { deepLink: item.deepLink, error });
       }
     }
   };
