@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,10 +49,26 @@ export default function ChatScreen() {
     refresh();
   };
 
-  const onLongPressMessage = () => {
+  const onLongPressMessage = (message: ChatMessage) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert('Message options', 'Choose an action', [
-      { text: 'Copy', onPress: () => {} },
-      { text: 'Delete', style: 'destructive', onPress: () => {} },
+      {
+        text: 'Copy',
+        onPress: async () => {
+          await Clipboard.setStringAsync(message.body);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          if (!threadId) return;
+          await messagingService.deleteMessage(threadId, message.id);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          refresh();
+        },
+      },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -129,7 +147,7 @@ export default function ChatScreen() {
             key={message.id}
             message={message}
             isOwnMessage={message.sender === 'parent'}
-            onLongPress={onLongPressMessage}
+            onLongPress={() => onLongPressMessage(message)}
             showSenderLabel={isGroup}
           />
         ))}

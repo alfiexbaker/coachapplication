@@ -110,6 +110,18 @@ export class MessagingService {
     return thread;
   }
 
+  async deleteMessage(threadId: string, messageId: string) {
+    const persisted = await storageService.getItem<Record<string, ChatMessage[]>>(STORAGE_KEY, {});
+    const current = persisted[threadId] || this.inMemoryMessages[threadId] || [];
+    const updated = current.filter((msg) => msg.id !== messageId);
+    persisted[threadId] = updated;
+    await storageService.setItem(STORAGE_KEY, persisted);
+    // Also update in-memory cache
+    if (this.inMemoryMessages[threadId]) {
+      this.inMemoryMessages[threadId] = this.inMemoryMessages[threadId].filter((msg) => msg.id !== messageId);
+    }
+  }
+
   private async updateStatus(threadId: string, messageId: string, status: ChatMessage['status']) {
     const persisted = await storageService.getItem<Record<string, ChatMessage[]>>(STORAGE_KEY, {});
     const current = persisted[threadId] || this.inMemoryMessages[threadId] || [];
