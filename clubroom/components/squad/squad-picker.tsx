@@ -14,8 +14,11 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import type { ClubSquad } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
+
+const logger = createLogger('SquadPicker');
 
 interface SquadPickerProps {
   visible: boolean;
@@ -62,7 +65,7 @@ export function SquadPicker({
       }
       setSquads(data);
     } catch (error) {
-      console.error('Failed to load squads:', error);
+      logger.error('Failed to load squads', error);
     } finally {
       setLoading(false);
     }
@@ -312,7 +315,7 @@ export function InlineSquadSelector({
       }
       setSquads(data);
     } catch (error) {
-      console.error('Failed to load squads:', error);
+      logger.error('Failed to load squads', error);
     } finally {
       setLoading(false);
     }

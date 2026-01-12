@@ -19,7 +19,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import type { SquadMember } from '@/constants/types';
+
+const logger = createLogger('SquadMemberSelect');
 import {
   squadBulkInviteService,
   type SquadMemberWithSelection,
@@ -64,7 +67,7 @@ export function SquadMemberSelect({
       const data = await squadBulkInviteService.getSquadMembersWithMetadata(squadId, sessionId);
       setMembers(data);
     } catch (err) {
-      console.error('Failed to load squad members:', err);
+      logger.error('Failed to load squad members', err);
       setError('Failed to load squad members');
     } finally {
       setLoading(false);

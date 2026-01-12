@@ -7,9 +7,12 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { createLogger } from '@/utils/logger';
 import { walletService } from '@/services/wallet-service';
 import { packageService } from '@/services/package-service';
 import type { SessionPackage } from '@/constants/types';
+
+const logger = createLogger('PurchaseButton');
 
 /**
  * Props for the PurchaseButton component
@@ -55,7 +58,7 @@ export function PurchaseButton({
         const walletBalance = await walletService.getBalance(currentUser.id);
         setBalance(walletBalance);
       } catch (error) {
-        console.error('Failed to get wallet balance:', error);
+        logger.error('Failed to get wallet balance', error);
       } finally {
         setLoading(false);
       }

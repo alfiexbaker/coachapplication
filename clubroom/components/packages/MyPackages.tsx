@@ -10,8 +10,11 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { createLogger } from '@/utils/logger';
 import { packageService } from '@/services/package-service';
 import type { PackagePurchase, PackagePurchaseStatus } from '@/constants/types';
+
+const logger = createLogger('MyPackages');
 
 /**
  * Props for the MyPackages component
@@ -58,7 +61,7 @@ export function MyPackages({
             : await packageService.getUserPackages(currentUser.id);
           setPurchases(limit ? data.slice(0, limit) : data);
         } catch (error) {
-          console.error('Failed to load purchases:', error);
+          logger.error('Failed to load purchases', error);
         } finally {
           setLoading(false);
         }

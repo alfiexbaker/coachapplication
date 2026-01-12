@@ -10,11 +10,14 @@ import { Chip } from '@/components/primitives/chip';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { createLogger } from '@/utils/logger';
 import { getBookingsForAthlete, formatDate } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { progressService } from '@/services/progress-service';
 import type { BadgeAward, Club } from '@/constants/types';
+
+const logger = createLogger('UserHomeScreen');
 
 export function UserHomeScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -46,7 +49,7 @@ export function UserHomeScreen() {
         level: progress.currentLevel.level,
       });
     } catch (error) {
-      console.error('Failed to load home data:', error);
+      logger.error('Failed to load home data', error);
     }
   }, [currentUser?.id]);
 

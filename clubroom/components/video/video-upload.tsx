@@ -9,6 +9,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('VideoUpload');
 
 interface VideoUploadProps {
   onUpload: (videoData: {
@@ -94,7 +97,7 @@ export function VideoUpload({
         });
       }
     } catch (error) {
-      console.error('Failed to pick video:', error);
+      logger.error('Failed to pick video', error);
       Alert.alert('Error', 'Failed to select video. Please try again.');
     }
   };
@@ -125,7 +128,7 @@ export function VideoUpload({
         });
       }
     } catch (error) {
-      console.error('Failed to record video:', error);
+      logger.error('Failed to record video', error);
       Alert.alert('Error', 'Failed to record video. Please try again.');
     }
   };

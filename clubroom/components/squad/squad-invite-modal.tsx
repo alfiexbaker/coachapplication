@@ -18,6 +18,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SquadInviteModal');
 import type { ClubSquad, SquadMember, TimeSlot } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
 import {
@@ -116,7 +119,7 @@ export function SquadInviteModal({
       data = data.filter((s) => !s.name.toLowerCase().includes('staff'));
       setSquads(data);
     } catch (error) {
-      console.error('Failed to load squads:', error);
+      logger.error('Failed to load squads', error);
     } finally {
       setLoading(false);
     }
@@ -132,7 +135,7 @@ export function SquadInviteModal({
       );
       setPreview(previews);
     } catch (error) {
-      console.error('Failed to load preview:', error);
+      logger.error('Failed to load preview', error);
     } finally {
       setLoading(false);
     }
@@ -297,7 +300,7 @@ export function SquadInviteModal({
         onClose();
       }
     } catch (error) {
-      console.error('Failed to send invites:', error);
+      logger.error('Failed to send invites', error);
       Alert.alert('Error', 'Failed to send invites. Please try again.');
     } finally {
       setSending(false);
