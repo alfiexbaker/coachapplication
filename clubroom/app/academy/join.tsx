@@ -15,9 +15,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import { createLogger } from '@/utils/logger';
 
-const logger = createLogger('JoinAcademy');
+const logger = createLogger('JoinTeam');
 
-export default function JoinAcademyScreen() {
+export default function JoinTeamScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
@@ -33,7 +33,7 @@ export default function JoinAcademyScreen() {
     }
 
     if (!currentUser?.id) {
-      Alert.alert('Error', 'You must be logged in to join an academy');
+      Alert.alert('Error', 'You must be logged in to join a team');
       return;
     }
 
@@ -41,14 +41,14 @@ export default function JoinAcademyScreen() {
     try {
       const membership = await academyService.joinWithCode(code, currentUser.id);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      logger.info('academy_joined', { academyId: membership.academyId });
-      Alert.alert('Welcome!', 'You have successfully joined the academy', [
-        { text: 'View Academy', onPress: () => router.replace(`/academy/${membership.academyId}`) },
+      logger.info('team_joined', { teamId: membership.academyId });
+      Alert.alert('Welcome!', 'You have successfully joined the team', [
+        { text: 'View Team', onPress: () => router.replace(`/academy/${membership.academyId}`) },
       ]);
     } catch (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      const message = error instanceof Error ? error.message : 'Failed to join academy';
-      logger.error('academy_join_failed', { error: message });
+      const message = error instanceof Error ? error.message : 'Failed to join team';
+      logger.error('team_join_failed', { error: message });
       Alert.alert('Unable to Join', message);
     } finally {
       setLoading(false);
@@ -67,7 +67,7 @@ export default function JoinAcademyScreen() {
             <Ionicons name="arrow-back" size={24} color={palette.text} />
           </Clickable>
           <ThemedText type="title" style={{ flex: 1 }}>
-            Join Academy
+            Join Team
           </ThemedText>
         </View>
 
@@ -75,13 +75,13 @@ export default function JoinAcademyScreen() {
           {/* Hero */}
           <View style={styles.heroSection}>
             <View style={[styles.iconCircle, { backgroundColor: `${palette.tint}15` }]}>
-              <Ionicons name="school" size={48} color={palette.tint} />
+              <Ionicons name="people" size={48} color={palette.tint} />
             </View>
             <ThemedText type="subtitle" style={styles.heroTitle}>
               Join with Invite Code
             </ThemedText>
             <ThemedText style={[styles.heroDescription, { color: palette.muted }]}>
-              Enter the invite code you received from your academy to join their team.
+              Enter the invite code you received from your coach to join the team.
             </ThemedText>
           </View>
 
@@ -101,7 +101,7 @@ export default function JoinAcademyScreen() {
               ]}
               value={inviteCode}
               onChangeText={(text) => setInviteCode(text.toUpperCase())}
-              placeholder="e.g. ACADEMY123"
+              placeholder="e.g. TEAM2024"
               placeholderTextColor={palette.muted}
               autoCapitalize="characters"
               autoCorrect={false}
@@ -114,14 +114,14 @@ export default function JoinAcademyScreen() {
 
           {/* Join Button */}
           <Button onPress={handleJoin} disabled={loading || !inviteCode.trim()}>
-            {loading ? 'Joining...' : 'Join Academy'}
+            {loading ? 'Joining...' : 'Join Team'}
           </Button>
 
           {/* Info */}
           <View style={[styles.infoCard, { backgroundColor: `${palette.info}10` }]}>
             <Ionicons name="information-circle" size={20} color={palette.info} />
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-              Don't have a code? Ask your coach or academy administrator for an invite.
+              Don't have a code? Ask your coach or club administrator for an invite.
             </ThemedText>
           </View>
         </View>

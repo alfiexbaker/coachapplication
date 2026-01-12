@@ -320,7 +320,7 @@ export default function AcademyDetailScreen() {
                 onPress={() => router.push('/academy/join')}
                 style={[styles.joinButton, { backgroundColor: primaryColor }]}
               >
-                <ThemedText style={styles.joinButtonText}>Join Academy</ThemedText>
+                <ThemedText style={styles.joinButtonText}>Join Team</ThemedText>
               </Clickable>
             </View>
           )}
