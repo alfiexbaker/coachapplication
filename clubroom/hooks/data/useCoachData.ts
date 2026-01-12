@@ -9,8 +9,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { rosterService, type RosterStats, type AthleteRemovalRecord } from '@/services/roster-service';
 import { bookingService } from '@/services/booking-service';
 import { groupSessionService, type CreateGroupSessionInput } from '@/services/group-session-service';
+import { createLogger } from '@/utils/logger';
 import type { RosterEntry, GroupSession } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
+
+const logger = createLogger('useCoachData');
 
 // ============================================================================
 // TYPES
@@ -199,7 +202,7 @@ export function useCoachData(
     } catch (e) {
       const errorInstance = e instanceof Error ? e : new Error(String(e));
       setError(errorInstance);
-      console.error('[useCoachData] Error fetching coach data:', e);
+      logger.error('Error fetching coach data', e);
     } finally {
       setLoading(false);
     }

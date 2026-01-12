@@ -23,7 +23,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Follow, FollowRequest, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('FollowService');
 const STORAGE_KEY = 'follows';
 const REQUESTS_KEY = 'follow_requests';
 const USE_MOCK = true;
@@ -78,7 +80,7 @@ async function loadFollows(): Promise<Follow[]> {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.error('[FollowService] Failed to load follows:', error);
+    logger.error('Failed to load follows', error);
   }
   return [...MOCK_FOLLOWS];
 }
@@ -87,7 +89,7 @@ async function saveFollows(follows: Follow[]): Promise<void> {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(follows));
   } catch (error) {
-    console.error('[FollowService] Failed to save follows:', error);
+    logger.error('Failed to save follows', error);
   }
 }
 
@@ -98,7 +100,7 @@ async function loadRequests(): Promise<FollowRequest[]> {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.error('[FollowService] Failed to load requests:', error);
+    logger.error('Failed to load requests', error);
   }
   return [];
 }
@@ -107,7 +109,7 @@ async function saveRequests(requests: FollowRequest[]): Promise<void> {
   try {
     await AsyncStorage.setItem(REQUESTS_KEY, JSON.stringify(requests));
   } catch (error) {
-    console.error('[FollowService] Failed to save requests:', error);
+    logger.error('Failed to save requests', error);
   }
 }
 
@@ -138,7 +140,7 @@ export const followService = {
     );
 
     if (existing) {
-      console.log('[FollowService] Already following:', input.followingId);
+      logger.debug('Already following', { followingId: input.followingId });
       return existing;
     }
 
@@ -172,7 +174,7 @@ export const followService = {
 
     await notificationService.create(notification);
 
-    console.log('[FollowService] Created follow:', newFollow.id);
+    logger.debug('Created follow', { id: newFollow.id });
     return newFollow;
   },
 
@@ -188,14 +190,14 @@ export const followService = {
     );
 
     if (index === -1) {
-      console.log('[FollowService] Not following:', followingId);
+      logger.debug('Not following', { followingId });
       return;
     }
 
     followsCache.splice(index, 1);
     await saveFollows(followsCache);
 
-    console.log('[FollowService] Unfollowed:', followingId);
+    logger.debug('Unfollowed', { followingId });
   },
 
   /**

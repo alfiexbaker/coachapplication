@@ -169,20 +169,6 @@ export default function TabLayout() {
     return undefined;
   };
 
-  // Debug logging to track role detection and tab rendering
-  // Enhanced to show new simplified type fields
-  console.log('[TabLayout] Current user:', currentUser ? {
-    username: currentUser.username,
-    role: currentUser.role,
-    type: (currentUser as any).type,
-    hasChildren: hasChildren(currentUser),
-    isAthleteUser: isAthlete(currentUser),
-    isCoachUser: isCoach(currentUser),
-    isOrgCoach: isOrganization(currentUser),
-  } : 'Not logged in');
-  console.log('[TabLayout] Rendering tabs for role:', userRole, roleConfig.primary.map((tab) => tab.title));
-  console.log('[TabLayout] Notification count:', notificationCount, 'Message count:', messageCount);
-
   // Consolidate bottom navigation to 4-5 role-aware hubs (home, schedule, comms, profile)
   const tabBarOptions = {
     tabBarActiveTintColor: palette.tint,

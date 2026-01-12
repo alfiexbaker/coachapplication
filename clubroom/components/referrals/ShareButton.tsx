@@ -14,7 +14,10 @@ import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import { referralService } from '@/services/referral-service';
+
+const logger = createLogger('ShareButton');
 
 interface ShareButtonProps {
   /** The referral code to share */
@@ -108,7 +111,7 @@ export function ShareButton({
         onShareComplete?.(false);
       }
     } catch (error) {
-      console.error('Share error:', error);
+      logger.error('Share error', error);
       Alert.alert('Error', 'Failed to open share dialog');
       onShareComplete?.(false);
     }

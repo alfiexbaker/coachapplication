@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('StorageService');
 
 /**
  * Lightweight storage helper that hides AsyncStorage errors and keeps
@@ -13,7 +16,7 @@ class StorageService {
     try {
       await AsyncStorage.setItem(key, serialized);
     } catch (err) {
-      console.warn('[storage] falling back to memory', err);
+      logger.warn('Falling back to memory storage', { key, error: err });
     }
   }
 
@@ -22,7 +25,7 @@ class StorageService {
       const value = await AsyncStorage.getItem(key);
       if (value) return JSON.parse(value) as T;
     } catch (err) {
-      console.warn('[storage] read failed, using memory', err);
+      logger.warn('Read failed, using memory fallback', { key, error: err });
     }
     if (this.memory[key]) {
       return JSON.parse(this.memory[key]) as T;
@@ -35,7 +38,7 @@ class StorageService {
     try {
       await AsyncStorage.removeItem(key);
     } catch (err) {
-      console.warn('[storage] remove failed, ignoring', err);
+      logger.warn('Remove failed, ignoring', { key, error: err });
     }
   }
 }

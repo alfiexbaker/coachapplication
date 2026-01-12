@@ -1,7 +1,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Appearance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { logger } from '@/utils/logger';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 
 interface Props {
   children: ReactNode;
@@ -74,30 +75,34 @@ export class ErrorBoundary extends Component<Props, State> {
         );
       }
 
+      // Get current color scheme
+      const scheme = Appearance.getColorScheme() ?? 'light';
+      const palette = Colors[scheme];
+
       // Default error UI
       return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
           <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>Something went wrong</Text>
-            <Text style={styles.message}>
+            <Text style={[styles.title, { color: palette.foreground }]}>Something went wrong</Text>
+            <Text style={[styles.message, { color: palette.muted }]}>
               The app encountered an unexpected error. This has been logged for debugging.
             </Text>
 
             {__DEV__ && this.state.error && (
-              <View style={styles.errorDetails}>
-                <Text style={styles.errorTitle}>Error Details (Dev Only):</Text>
-                <Text style={styles.errorName}>{this.state.error.name}</Text>
-                <Text style={styles.errorMessage}>{this.state.error.message}</Text>
+              <View style={[styles.errorDetails, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                <Text style={[styles.errorTitle, { color: palette.error }]}>Error Details (Dev Only):</Text>
+                <Text style={[styles.errorName, { color: palette.error }]}>{this.state.error.name}</Text>
+                <Text style={[styles.errorMessage, { color: palette.muted }]}>{this.state.error.message}</Text>
                 {this.state.error.stack && (
-                  <ScrollView style={styles.stackContainer} horizontal>
-                    <Text style={styles.errorStack}>{this.state.error.stack}</Text>
+                  <ScrollView style={[styles.stackContainer, { backgroundColor: palette.surfaceSecondary }]} horizontal>
+                    <Text style={[styles.errorStack, { color: palette.foreground }]}>{this.state.error.stack}</Text>
                   </ScrollView>
                 )}
                 {this.state.errorInfo && (
                   <>
-                    <Text style={styles.componentStackTitle}>Component Stack:</Text>
-                    <ScrollView style={styles.stackContainer}>
-                      <Text style={styles.componentStack}>
+                    <Text style={[styles.componentStackTitle, { color: palette.error }]}>Component Stack:</Text>
+                    <ScrollView style={[styles.stackContainer, { backgroundColor: palette.surfaceSecondary }]}>
+                      <Text style={[styles.componentStack, { color: palette.muted }]}>
                         {this.state.errorInfo.componentStack}
                       </Text>
                     </ScrollView>
@@ -109,7 +114,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <Pressable
               style={({ pressed }) => [
                 styles.button,
-                pressed && styles.buttonPressed,
+                { backgroundColor: pressed ? palette.tintPressed : palette.tint },
               ]}
               onPress={this.resetError}
             >
@@ -127,93 +132,74 @@ export class ErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    gap: 16,
-  },
-  emoji: {
-    fontSize: 64,
+    padding: Spacing.lg,
+    gap: Spacing.md,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1a1a1a',
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
     maxWidth: 400,
     lineHeight: 24,
   },
   errorDetails: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: Radii.lg,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
     width: '100%',
     maxWidth: 600,
-    gap: 8,
+    gap: Spacing.sm,
   },
   errorTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#d32f2f',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   errorName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#d32f2f',
   },
   errorMessage: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   stackContainer: {
     maxHeight: 200,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 4,
+    borderRadius: Radii.md,
+    padding: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   errorStack: {
     fontSize: 10,
     fontFamily: 'monospace',
-    color: '#333',
   },
   componentStackTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#d32f2f',
-    marginTop: 12,
+    marginTop: Spacing.md,
   },
   componentStack: {
     fontSize: 10,
     fontFamily: 'monospace',
-    color: '#666',
   },
   button: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 20,
-  },
-  buttonPressed: {
-    backgroundColor: '#0051D5',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.lg,
+    marginTop: Spacing.lg,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },

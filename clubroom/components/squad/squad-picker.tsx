@@ -14,8 +14,11 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import type { ClubSquad } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
+
+const logger = createLogger('SquadPicker');
 
 interface SquadPickerProps {
   visible: boolean;
@@ -44,6 +47,7 @@ export function SquadPicker({
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>(selectedSquadIds);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSquads();
@@ -55,14 +59,16 @@ export function SquadPicker({
 
   const loadSquads = async () => {
     setLoading(true);
+    setError(null);
     try {
       let data = await squadService.getSquads(clubId);
       if (excludeStaffSquad) {
         data = data.filter((s) => !s.name.toLowerCase().includes('staff'));
       }
       setSquads(data);
-    } catch (error) {
-      console.error('Failed to load squads:', error);
+    } catch (err) {
+      logger.error('Failed to load squads', err);
+      setError('Failed to load squads. Tap to retry.');
     } finally {
       setLoading(false);
     }
@@ -189,6 +195,13 @@ export function SquadPicker({
                 Loading squads...
               </ThemedText>
             </View>
+          ) : error ? (
+            <Clickable onPress={loadSquads} style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={24} color={palette.error} />
+              <ThemedText style={{ color: palette.error, textAlign: 'center' }}>
+                {error}
+              </ThemedText>
+            </Clickable>
           ) : squads.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={48} color={palette.muted} />
@@ -298,6 +311,7 @@ export function InlineSquadSelector({
 
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSquads();
@@ -305,14 +319,16 @@ export function InlineSquadSelector({
 
   const loadSquads = async () => {
     setLoading(true);
+    setError(null);
     try {
       let data = await squadService.getSquads(clubId);
       if (excludeStaffSquad) {
         data = data.filter((s) => !s.name.toLowerCase().includes('staff'));
       }
       setSquads(data);
-    } catch (error) {
-      console.error('Failed to load squads:', error);
+    } catch (err) {
+      logger.error('Failed to load squads', err);
+      setError('Failed to load squads');
     } finally {
       setLoading(false);
     }
@@ -336,6 +352,17 @@ export function InlineSquadSelector({
           Loading squads...
         </ThemedText>
       </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <Clickable onPress={loadSquads} style={styles.inlineError}>
+        <Ionicons name="alert-circle" size={16} color={palette.error} />
+        <ThemedText style={{ color: palette.error, fontSize: 13 }}>
+          {error}. Tap to retry.
+        </ThemedText>
+      </Clickable>
     );
   }
 
@@ -431,6 +458,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing['2xl'],
     alignItems: 'center',
   },
+  errorContainer: {
+    paddingVertical: Spacing['2xl'],
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing['2xl'],
@@ -495,6 +527,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   inlineLoading: {
+    paddingVertical: Spacing.md,
+  },
+  inlineError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
     paddingVertical: Spacing.md,
   },
 });

@@ -14,6 +14,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ClubMembership, ClubRole } from '@/constants/types';
 import { clubMemberships } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ClubService');
 
 const CLUB_MEMBERS_KEY = 'club_members';
 const MEMBER_REMOVAL_KEY = 'club_member_removals';
@@ -95,7 +98,7 @@ async function loadMembers(clubId: string): Promise<ClubMember[]> {
     const stored = await AsyncStorage.getItem(`${CLUB_MEMBERS_KEY}_${clubId}`);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[ClubService] Failed to load members:', error);
+    logger.error('Failed to load members', error);
   }
   return [...MOCK_MEMBERS];
 }
@@ -105,7 +108,7 @@ async function saveMembers(clubId: string, members: ClubMember[]): Promise<void>
     await AsyncStorage.setItem(`${CLUB_MEMBERS_KEY}_${clubId}`, JSON.stringify(members));
     membersCache.set(clubId, members);
   } catch (error) {
-    console.error('[ClubService] Failed to save members:', error);
+    logger.error('Failed to save members', error);
   }
 }
 
@@ -114,7 +117,7 @@ async function loadRemovalHistory(): Promise<ClubMemberRemovalRecord[]> {
     const stored = await AsyncStorage.getItem(MEMBER_REMOVAL_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[ClubService] Failed to load removal history:', error);
+    logger.error('Failed to load removal history', error);
   }
   return [];
 }
@@ -123,7 +126,7 @@ async function saveRemovalHistory(history: ClubMemberRemovalRecord[]): Promise<v
   try {
     await AsyncStorage.setItem(MEMBER_REMOVAL_KEY, JSON.stringify(history));
   } catch (error) {
-    console.error('[ClubService] Failed to save removal history:', error);
+    logger.error('Failed to save removal history', error);
   }
 }
 

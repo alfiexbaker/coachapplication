@@ -13,6 +13,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ClubSquad, SquadMember } from '@/constants/types';
 import { clubSquads } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SquadService');
 
 const SQUAD_MEMBERS_KEY = 'squad_members';
 const USE_MOCK = true;
@@ -184,7 +187,7 @@ async function loadMembers(): Promise<SquadMember[]> {
     const stored = await AsyncStorage.getItem(SQUAD_MEMBERS_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[SquadService] Failed to load members:', error);
+    logger.error('Failed to load members', error);
   }
   return [...MOCK_SQUAD_MEMBERS];
 }
@@ -194,7 +197,7 @@ async function saveMembers(members: SquadMember[]): Promise<void> {
     await AsyncStorage.setItem(SQUAD_MEMBERS_KEY, JSON.stringify(members));
     membersCache = members;
   } catch (error) {
-    console.error('[SquadService] Failed to save members:', error);
+    logger.error('Failed to save members', error);
   }
 }
 

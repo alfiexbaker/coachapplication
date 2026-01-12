@@ -8,7 +8,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import type { Attachment } from '@/constants/types';
+
+const logger = createLogger('AttachmentPicker');
 
 interface AttachmentPickerProps {
   visible: boolean;
@@ -95,7 +98,7 @@ export function AttachmentPicker({
         onClose();
       }
     } catch (error) {
-      console.error('Failed to pick photo:', error);
+      logger.error('Failed to pick photo', error);
       Alert.alert('Error', 'Failed to select photo. Please try again.');
     }
   };
@@ -126,7 +129,7 @@ export function AttachmentPicker({
         onClose();
       }
     } catch (error) {
-      console.error('Failed to take photo:', error);
+      logger.error('Failed to take photo', error);
       Alert.alert('Error', 'Failed to take photo. Please try again.');
     }
   };
@@ -153,7 +156,7 @@ export function AttachmentPicker({
         onClose();
       }
     } catch (error) {
-      console.error('Failed to pick video:', error);
+      logger.error('Failed to pick video', error);
       Alert.alert('Error', 'Failed to select video. Please try again.');
     }
   };
@@ -177,7 +180,7 @@ export function AttachmentPicker({
         onClose();
       }
     } catch (error) {
-      console.error('Failed to pick document:', error);
+      logger.error('Failed to pick document', error);
       Alert.alert('Error', 'Failed to select document. Please try again.');
     }
   };

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { BookingWizardHeader } from '@/components/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
@@ -10,17 +11,24 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
+import { useAuth } from '@/hooks/use-auth';
 import { bookingService } from '@/services/booking-service';
+import { createLogger } from '@/utils/logger';
+import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
+
+const logger = createLogger('ConfirmationScreen');
 
 export default function ConfirmationScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { draft, reset } = useBookingFlow();
+  const { currentUser } = useAuth();
 
   const [isCreating, setIsCreating] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const celebrationRef = useRef<CelebrationOverlayRef>(null);
 
   const handleViewBooking = async () => {
     if (bookingId) {
@@ -41,8 +49,8 @@ export default function ConfirmationScreen() {
         coachName: draft.coachName || 'Sarah Mitchell',
         athleteId: draft.childId || 'athlete_1',
         athleteName: draft.athleteName || 'Tom Henderson',
-        bookedById: 'parent_1', // Would come from auth context in real app
-        bookedByName: 'Parent', // Would come from auth context in real app
+        bookedById: currentUser?.id || 'unknown',
+        bookedByName: currentUser?.name || currentUser?.fullName || 'Unknown',
         scheduledAt: `${draft.date}T${draft.slot}:00`,
         duration: draft.duration || 60,
         location: draft.locationText || draft.locationOption || 'Coach preferred location',
@@ -55,13 +63,27 @@ export default function ConfirmationScreen() {
 
       if (result.success && result.booking) {
         setBookingId(result.booking.id);
-        reset();
-        router.replace(`/booking/${result.booking.id}`);
+
+        // Trigger celebration with haptics
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        celebrationRef.current?.celebrate({
+          title: 'Booking Confirmed!',
+          subtitle: `Session with ${draft.coachName || 'your coach'} is all set`,
+          icon: 'checkmark-circle',
+          iconColor: '#10B981',
+          duration: 2500,
+        });
+
+        // Navigate after celebration
+        setTimeout(() => {
+          reset();
+          router.replace(`/booking/${result.booking!.id}`);
+        }, 2600);
       } else {
         setError(result.error || 'Failed to create booking. The slot may no longer be available.');
       }
     } catch (err) {
-      console.error('[ConfirmationScreen] Error creating booking:', err);
+      logger.error('Error creating booking', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsCreating(false);
@@ -131,13 +153,15 @@ export default function ConfirmationScreen() {
           )}
         </Clickable>
         <Clickable
-          onPress={() => router.push('/chat/conv1')}
+          onPress={() => router.push(`/chat/${coachId || 'new'}`)}
           style={[styles.secondary, { borderColor: palette.tint }]}
           disabled={isCreating}
         >
           <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Message coach</ThemedText>
         </Clickable>
       </View>
+
+      <CelebrationOverlay ref={celebrationRef} />
     </SafeAreaView>
   );
 }

@@ -7,7 +7,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
+
+const logger = createLogger('VideoAnnotation');
 
 const ANNOTATION_TYPES: { type: VideoAnnotationType; label: string; color: string; icon: string }[] = [
   { type: 'HIGHLIGHT', label: 'Highlight', color: '#4CAF50', icon: 'star' },
@@ -61,7 +64,7 @@ export function AddAnnotationModal({
       });
       handleClose();
     } catch (error) {
-      console.error('Failed to save annotation:', error);
+      logger.error('Failed to save annotation', error);
       Alert.alert('Error', 'Failed to save annotation. Please try again.');
     } finally {
       setSaving(false);

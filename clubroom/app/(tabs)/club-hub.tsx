@@ -13,6 +13,7 @@ import { ClubHeader, ClubStatsRow } from '@/components/club/ClubHeader';
 import { MembersPanel } from '@/components/club/MembersPanel';
 import { SessionsPanel } from '@/components/club/SessionsPanel';
 import { MatchesPanel } from '@/components/club/MatchesPanel';
+import { TeamsPanel } from '@/components/club/TeamsPanel';
 import { FeedPost } from '@/components/club/FeedPost';
 import { JoinClubCard } from '@/components/club/JoinClubCard';
 import {
@@ -346,6 +347,13 @@ export default function ClubHubScreen() {
               onRemoveMember={handleRemoveMember}
             />
           )}
+
+          {/* Teams Section */}
+          <TeamsPanel
+            squads={squads}
+            isCoach={isCoach}
+            clubId={membership?.clubId}
+          />
 
           {/* Upcoming Matches Section */}
           <MatchesPanel

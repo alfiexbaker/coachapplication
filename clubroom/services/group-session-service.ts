@@ -17,6 +17,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective, RecurringPattern } from '@/constants/types';
 import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('GroupSessionService');
 
 const SESSIONS_STORAGE_KEY = 'group_sessions';
 const REGISTRATIONS_STORAGE_KEY = 'group_registrations';
@@ -299,7 +302,7 @@ async function loadSessions(): Promise<GroupSession[]> {
     const stored = await AsyncStorage.getItem(SESSIONS_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[GroupSessionService] Failed to load sessions:', error);
+    logger.error('Failed to load sessions', error);
   }
   return [...MOCK_SESSIONS];
 }
@@ -308,7 +311,7 @@ async function saveSessions(sessions: GroupSession[]): Promise<void> {
   try {
     await AsyncStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
   } catch (error) {
-    console.error('[GroupSessionService] Failed to save sessions:', error);
+    logger.error('Failed to save sessions', error);
   }
 }
 
@@ -317,7 +320,7 @@ async function loadRegistrations(): Promise<GroupRegistration[]> {
     const stored = await AsyncStorage.getItem(REGISTRATIONS_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[GroupSessionService] Failed to load registrations:', error);
+    logger.error('Failed to load registrations', error);
   }
   return [...MOCK_REGISTRATIONS];
 }
@@ -326,7 +329,7 @@ async function saveRegistrations(registrations: GroupRegistration[]): Promise<vo
   try {
     await AsyncStorage.setItem(REGISTRATIONS_STORAGE_KEY, JSON.stringify(registrations));
   } catch (error) {
-    console.error('[GroupSessionService] Failed to save registrations:', error);
+    logger.error('Failed to save registrations', error);
   }
 }
 

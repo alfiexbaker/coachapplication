@@ -23,6 +23,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SessionInvite, TimeSlot, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SessionInviteService');
 
 const STORAGE_KEY = 'session_invites';
 const USE_MOCK = true;
@@ -135,7 +138,7 @@ async function loadFromStorage(): Promise<SessionInvite[]> {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.error('[SessionInviteService] Failed to load from storage:', error);
+    logger.error('Failed to load from storage', error);
   }
   return [...MOCK_INVITES];
 }
@@ -144,7 +147,7 @@ async function saveToStorage(invites: SessionInvite[]): Promise<void> {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(invites));
   } catch (error) {
-    console.error('[SessionInviteService] Failed to save to storage:', error);
+    logger.error('Failed to save to storage', error);
   }
 }
 

@@ -24,6 +24,9 @@ import type {
 import { squadService } from './squad-service';
 import { sessionInviteService } from './session-invite-service';
 import { notificationService } from './notification-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SquadBulkInviteService');
 
 const SQUAD_SESSION_INVITES_KEY = 'squad_session_invites';
 const SQUAD_INVITE_HISTORY_KEY = 'squad_invite_history';
@@ -39,7 +42,7 @@ async function loadSquadSessionInvites(): Promise<SquadSessionInvite[]> {
     const stored = await AsyncStorage.getItem(SQUAD_SESSION_INVITES_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[SquadBulkInviteService] Failed to load squad session invites:', error);
+    logger.error('Failed to load squad session invites', error);
   }
   return [];
 }
@@ -49,7 +52,7 @@ async function saveSquadSessionInvites(invites: SquadSessionInvite[]): Promise<v
     await AsyncStorage.setItem(SQUAD_SESSION_INVITES_KEY, JSON.stringify(invites));
     squadSessionInvitesCache = invites;
   } catch (error) {
-    console.error('[SquadBulkInviteService] Failed to save squad session invites:', error);
+    logger.error('Failed to save squad session invites', error);
   }
 }
 

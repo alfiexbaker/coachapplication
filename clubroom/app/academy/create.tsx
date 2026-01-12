@@ -130,21 +130,21 @@ export default function CreateAcademyScreen() {
           <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
             <View style={styles.stepHeader}>
               <View style={[styles.stepIcon, { backgroundColor: palette.tint }]}>
-                <Ionicons name="school" size={28} color="#fff" />
+                <Ionicons name="people" size={28} color="#fff" />
               </View>
               <ThemedText type="title" style={styles.stepTitle}>
-                Create Your Academy
+                Create Your Team
               </ThemedText>
               <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>
-                Build your coaching brand and manage your team
+                Set up a team to manage coaches, athletes, and training
               </ThemedText>
             </View>
 
             <View style={styles.inputGroup}>
-              <ThemedText style={styles.inputLabel}>Academy Name *</ThemedText>
+              <ThemedText style={styles.inputLabel}>Team Name *</ThemedText>
               <TextInput
                 style={[styles.input, { backgroundColor: palette.surface, color: palette.text }]}
-                placeholder="e.g., East London FC Academy"
+                placeholder="e.g., Under 12s, Girls Academy, First Team"
                 placeholderTextColor={palette.muted}
                 value={name}
                 onChangeText={setName}
@@ -183,14 +183,14 @@ export default function CreateAcademyScreen() {
               Tell us more
             </ThemedText>
             <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>
-              Help parents discover your academy
+              Help parents discover your team
             </ThemedText>
 
             <View style={styles.inputGroup}>
               <ThemedText style={styles.inputLabel}>Description</ThemedText>
               <TextInput
                 style={[styles.textArea, { backgroundColor: palette.surface, color: palette.text }]}
-                placeholder="Describe your academy, philosophy, and what makes you unique..."
+                placeholder="Describe your team, training philosophy, and what makes you unique..."
                 placeholderTextColor={palette.muted}
                 value={description}
                 onChangeText={setDescription}

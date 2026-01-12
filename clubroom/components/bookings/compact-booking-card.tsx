@@ -1,5 +1,5 @@
 import { Image, Pressable, StyleSheet, TouchableOpacity, View, Platform } from 'react-native';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -8,24 +8,30 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { BookingSummary } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CompactBookingCard');
 
 type CompactBookingCardProps = {
   booking: BookingSummary;
 };
 
+interface ExtendedBooking extends BookingSummary {
+  coach?: { photoUrl?: string };
+  athleteId?: string;
+}
+
 export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   const { currentUser } = useAuth();
-  console.log('[CompactBookingCard] COMPONENT RENDERING - Booking ID:', booking.id, 'Service:', booking.service);
-
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
   const getStatusColor = () => {
     switch (booking.status) {
       case 'Confirmed':
-        return '#10B981'; // green
+        return palette.success;
       case 'Pending':
-        return '#F59E0B'; // orange
+        return palette.warning;
       case 'Completed':
         return palette.muted;
       default:
@@ -43,43 +49,20 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   const { day, time } = formatDateTime();
 
   // Get coach photo from the extended booking data
-  const coachPhotoUrl = (booking as any).coach?.photoUrl || 'https://i.pravatar.cc/100';
+  const extendedBooking = booking as ExtendedBooking;
+  const coachPhotoUrl = extendedBooking.coach?.photoUrl || 'https://i.pravatar.cc/100';
 
   const handlePress = () => {
-    const route = `/bookings/${booking.id}`;
-    console.log('[CompactBookingCard] PRESS FIRED - Navigating to:', route);
-    console.log('[CompactBookingCard] Booking details:', {
-      id: booking.id,
-      service: booking.service,
-      coachName: booking.coachName,
-      status: booking.status
-    });
-    router.push(route);
-    console.log('[CompactBookingCard] router.push() called');
+    logger.press('BookingCard', { bookingId: booking.id });
+    router.push(`/bookings/${booking.id}`);
   };
 
-  const handlePressIn = () => {
-    console.log('[CompactBookingCard] PRESS IN detected for booking:', booking.id);
-  };
-
-  const handlePressOut = () => {
-    console.log('[CompactBookingCard] PRESS OUT detected for booking:', booking.id);
-  };
-
-  // Web-specific: onMouseUp triggers navigation since onClick doesn't work on RN View
-  const handleWebClick = (e: any) => {
-    console.log('[CompactBookingCard] WEB CLICK detected for booking:', booking.id);
-    handlePressOut();
-    handlePress();
-  };
-
-  const handleAthleteClick = (e: any) => {
-    // Stop propagation to prevent navigating to booking detail
-    e.stopPropagation();
-    const athleteId = (booking as any).athleteId;
+  const handleAthleteClick = (e: { stopPropagation?: () => void }) => {
+    e.stopPropagation?.();
+    const athleteId = extendedBooking.athleteId;
     if (athleteId) {
-      console.log('[CompactBookingCard] Navigating to development hub for athlete:', athleteId);
-      router.push(`/development/athlete/${athleteId}` as any);
+      logger.press('AthleteLink', { athleteId });
+      router.push(`/development/athlete/${athleteId}`);
     }
   };
 
@@ -104,6 +87,8 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
                 onPress={isCoach ? handleAthleteClick : undefined}
                 style={styles.childRow}
                 disabled={!isCoach}
+                accessibilityRole="button"
+                accessibilityLabel={`View ${booking.childName}'s profile`}
               >
                 <Ionicons name="person" size={14} color={palette.tint} />
                 <ThemedText style={[
@@ -141,9 +126,11 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   if (Platform.OS === 'web') {
     return (
       <View
-        onMouseDown={handlePressIn as any}
-        onMouseUp={handleWebClick as any}
-        style={[styles.touchable, { cursor: 'pointer' }]}>
+        onMouseUp={handlePress as any}
+        style={[styles.touchable, { cursor: 'pointer' } as any]}
+        accessibilityRole="button"
+        accessibilityLabel={`${booking.service} with ${booking.coachName} on ${day}`}
+      >
         <CardContent />
       </View>
     );
@@ -152,10 +139,11 @@ export function CompactBookingCard({ booking }: CompactBookingCardProps) {
   return (
     <TouchableOpacity
       onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
       activeOpacity={0.7}
-      style={styles.touchable}>
+      style={styles.touchable}
+      accessibilityRole="button"
+      accessibilityLabel={`${booking.service} with ${booking.coachName} on ${day}`}
+    >
       <CardContent />
     </TouchableOpacity>
   );

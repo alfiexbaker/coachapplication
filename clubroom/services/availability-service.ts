@@ -13,6 +13,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot, SessionOffering } from '@/constants/types';
+import { DAY_NAMES } from '@/constants/booking-types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AvailabilityService');
 
 const TEMPLATE_STORAGE_KEY = 'availability_templates';
 const OVERRIDE_STORAGE_KEY = 'availability_overrides';
@@ -26,7 +30,7 @@ async function loadBookings(): Promise<any[]> {
     const stored = await AsyncStorage.getItem(BOOKINGS_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AvailabilityService] Failed to load bookings:', error);
+    logger.error('Failed to load bookings', error);
   }
   return [];
 }
@@ -37,7 +41,7 @@ async function loadSessionOfferings(): Promise<SessionOffering[]> {
     const stored = await AsyncStorage.getItem(SESSION_OFFERINGS_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AvailabilityService] Failed to load session offerings:', error);
+    logger.error('Failed to load session offerings', error);
   }
   return [];
 }
@@ -117,7 +121,7 @@ async function loadTemplates(): Promise<AvailabilityTemplate[]> {
     const stored = await AsyncStorage.getItem(TEMPLATE_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AvailabilityService] Failed to load templates:', error);
+    logger.error('Failed to load templates', error);
   }
   return [...MOCK_TEMPLATES];
 }
@@ -126,7 +130,7 @@ async function saveTemplates(templates: AvailabilityTemplate[]): Promise<void> {
   try {
     await AsyncStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(templates));
   } catch (error) {
-    console.error('[AvailabilityService] Failed to save templates:', error);
+    logger.error('Failed to save templates', error);
   }
 }
 
@@ -135,7 +139,7 @@ async function loadOverrides(): Promise<AvailabilityOverride[]> {
     const stored = await AsyncStorage.getItem(OVERRIDE_STORAGE_KEY);
     if (stored) return JSON.parse(stored);
   } catch (error) {
-    console.error('[AvailabilityService] Failed to load overrides:', error);
+    logger.error('Failed to load overrides', error);
   }
   return [...MOCK_OVERRIDES];
 }
@@ -144,11 +148,9 @@ async function saveOverrides(overrides: AvailabilityOverride[]): Promise<void> {
   try {
     await AsyncStorage.setItem(OVERRIDE_STORAGE_KEY, JSON.stringify(overrides));
   } catch (error) {
-    console.error('[AvailabilityService] Failed to save overrides:', error);
+    logger.error('Failed to save overrides', error);
   }
 }
-
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export const availabilityService = {
   /**

@@ -7,8 +7,11 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { router, useLocalSearchParams } from 'expo-router';
-import { getPostById, getCommentsForPost, MOCK_COMMENTS, MOCK_POSTS } from '@/constants/mock-data';
+import { getPostById, getCommentsForPost, MOCK_COMMENTS } from '@/constants/mock-data';
+import { createLogger } from '@/utils/logger';
 import type { Comment } from '@/constants/app-types';
+
+const logger = createLogger('PostDetail');
 
 export default function PostDetailScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -30,9 +33,18 @@ export default function PostDetailScreen() {
 
   const isLiked = post.likes.includes(currentUser?.id || '');
 
+  const [liked, setLiked] = useState(isLiked);
+  const [likeCount, setLikeCount] = useState(post.likes.length);
+
   const handleLike = () => {
-    // Mock implementation - in production would call API
-    console.log('Like post:', post.id);
+    logger.press('LikePost', { postId: post.id });
+    // Toggle like state locally
+    if (liked) {
+      setLikeCount((c) => c - 1);
+    } else {
+      setLikeCount((c) => c + 1);
+    }
+    setLiked(!liked);
   };
 
   const handleAddComment = () => {
@@ -61,9 +73,14 @@ export default function PostDetailScreen() {
     setNewComment('');
   };
 
+  const [commentLikes, setCommentLikes] = useState<Record<string, boolean>>({});
+
   const handleCommentLike = (commentId: string) => {
-    // Mock implementation
-    console.log('Like comment:', commentId);
+    logger.press('LikeComment', { commentId });
+    setCommentLikes((prev) => ({
+      ...prev,
+      [commentId]: !prev[commentId],
+    }));
   };
 
   return (
@@ -98,12 +115,12 @@ export default function PostDetailScreen() {
           <View style={styles.postActions}>
             <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
               <IconSymbol
-                name={isLiked ? 'heart.fill' : 'heart'}
+                name={liked ? 'heart.fill' : 'heart'}
                 size={20}
-                color={isLiked ? '#FF3B30' : palette.muted}
+                color={liked ? palette.error : palette.muted}
               />
               <ThemedText style={[styles.actionText, { color: palette.muted }]}>
-                {post.likes.length}
+                {likeCount}
               </ThemedText>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionButton}>
@@ -122,7 +139,8 @@ export default function PostDetailScreen() {
           </ThemedText>
 
           {comments.map((comment) => {
-            const commentLiked = comment.likes.includes(currentUser?.id || '');
+            const isCommentLiked = commentLikes[comment.id] || comment.likes.includes(currentUser?.id || '');
+            const commentLikeCount = comment.likes.length + (commentLikes[comment.id] ? 1 : 0);
             return (
               <View
                 key={comment.id}
@@ -143,15 +161,17 @@ export default function PostDetailScreen() {
                 <TouchableOpacity
                   style={styles.commentLike}
                   onPress={() => handleCommentLike(comment.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={isCommentLiked ? 'Unlike comment' : 'Like comment'}
                 >
                   <IconSymbol
-                    name={commentLiked ? 'heart.fill' : 'heart'}
+                    name={isCommentLiked ? 'heart.fill' : 'heart'}
                     size={16}
-                    color={commentLiked ? '#FF3B30' : palette.muted}
+                    color={isCommentLiked ? palette.error : palette.muted}
                   />
-                  {comment.likes.length > 0 && (
+                  {commentLikeCount > 0 && (
                     <ThemedText style={[styles.likeCount, { color: palette.muted }]}>
-                      {comment.likes.length}
+                      {commentLikeCount}
                     </ThemedText>
                   )}
                 </TouchableOpacity>
@@ -179,7 +199,7 @@ export default function PostDetailScreen() {
           onPress={handleAddComment}
           disabled={!newComment.trim()}
         >
-          <IconSymbol name="arrow.up" size={20} color="#fff" />
+          <IconSymbol name="arrow.up" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>

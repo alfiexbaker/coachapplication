@@ -34,6 +34,9 @@ import type {
 } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { socialFeedService } from './social-feed-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('MatchService');
 
 const STORAGE_KEY = 'matches';
 const USE_MOCK = true;
@@ -217,7 +220,7 @@ async function loadFromStorage(): Promise<Match[]> {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.error('[MatchService] Failed to load from storage:', error);
+    logger.error('Failed to load from storage', error);
   }
   return [...MOCK_MATCHES];
 }
@@ -226,7 +229,7 @@ async function saveToStorage(matches: Match[]): Promise<void> {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(matches));
   } catch (error) {
-    console.error('[MatchService] Failed to save to storage:', error);
+    logger.error('Failed to save to storage', error);
   }
 }
 

@@ -20,7 +20,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FavouriteCoach, SportCategory } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('FavouriteService');
 const STORAGE_KEY = 'favourites';
 const USE_MOCK = true;
 
@@ -79,7 +81,7 @@ async function loadFavourites(): Promise<FavouriteCoach[]> {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.error('[FavouriteService] Failed to load favourites:', error);
+    logger.error('Failed to load favourites', error);
   }
   return [...MOCK_FAVOURITES];
 }
@@ -88,7 +90,7 @@ async function saveFavourites(favourites: FavouriteCoach[]): Promise<void> {
   try {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(favourites));
   } catch (error) {
-    console.error('[FavouriteService] Failed to save favourites:', error);
+    logger.error('Failed to save favourites', error);
   }
 }
 
@@ -119,7 +121,7 @@ export const favouriteService = {
     );
 
     if (existing) {
-      console.log('[FavouriteService] Already favourited:', input.coachId);
+      logger.debug('Already favourited', { coachId: input.coachId });
       return existing;
     }
 
@@ -144,7 +146,7 @@ export const favouriteService = {
       }
 
       await saveFavourites(favouritesCache);
-      console.log('[FavouriteService] Restored favourite:', softDeleted.id);
+      logger.debug('Restored favourite', { id: softDeleted.id });
       return softDeleted;
     }
 
@@ -167,7 +169,7 @@ export const favouriteService = {
     favouritesCache.push(newFavourite);
     await saveFavourites(favouritesCache);
 
-    console.log('[FavouriteService] Created favourite:', newFavourite.id);
+    logger.debug('Created favourite', { id: newFavourite.id });
     return newFavourite;
   },
 
@@ -182,7 +184,7 @@ export const favouriteService = {
     );
 
     if (!favourite) {
-      console.log('[FavouriteService] Not favourited:', coachId);
+      logger.debug('Not favourited', { coachId });
       return;
     }
 
@@ -191,7 +193,7 @@ export const favouriteService = {
     favourite.updatedAt = new Date().toISOString();
 
     await saveFavourites(favouritesCache);
-    console.log('[FavouriteService] Removed favourite:', favourite.id);
+    logger.debug('Removed favourite', { id: favourite.id });
   },
 
   /**
