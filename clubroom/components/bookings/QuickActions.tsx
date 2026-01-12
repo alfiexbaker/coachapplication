@@ -26,8 +26,8 @@ function Clickable({ onPress, style, children }: ClickableProps) {
 
 export interface QuickActionsProps {
   userRole: 'USER' | 'PARENT' | 'COACH' | string | undefined;
-  onMyGoalsPress: () => void;
-  onProgressPress: () => void;
+  onRateCoachPress?: () => void;
+  onFindCoachPress?: () => void;
   onCalendarPress: () => void;
   onSettingsPress: () => void;
   /** For coaches, only show when on list tab */
@@ -36,8 +36,8 @@ export interface QuickActionsProps {
 
 export function QuickActions({
   userRole,
-  onMyGoalsPress,
-  onProgressPress,
+  onRateCoachPress,
+  onFindCoachPress,
   onCalendarPress,
   onSettingsPress,
   showCoachActions = true,
@@ -45,21 +45,21 @@ export function QuickActions({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  // Quick Actions for Users/Parents
+  // Quick Actions for Users/Parents - Rate Coach and Find New Coach
   if (userRole === 'USER' || userRole === 'PARENT') {
     return (
       <View style={styles.quickActions}>
-        <Clickable onPress={onMyGoalsPress}>
+        <Clickable onPress={onRateCoachPress}>
           <SurfaceCard style={styles.actionCard}>
-            <Ionicons name="football-outline" size={24} color={palette.tint} />
-            <ThemedText style={styles.actionText}>My Goals</ThemedText>
+            <Ionicons name="star-outline" size={24} color={palette.warning} />
+            <ThemedText style={styles.actionText}>Rate Coach</ThemedText>
           </SurfaceCard>
         </Clickable>
 
-        <Clickable onPress={onProgressPress}>
+        <Clickable onPress={onFindCoachPress}>
           <SurfaceCard style={styles.actionCard}>
-            <Ionicons name="stats-chart-outline" size={24} color={palette.tint} />
-            <ThemedText style={styles.actionText}>Progress</ThemedText>
+            <Ionicons name="search-outline" size={24} color={palette.tint} />
+            <ThemedText style={styles.actionText}>Find Coach</ThemedText>
           </SurfaceCard>
         </Clickable>
       </View>

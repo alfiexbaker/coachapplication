@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -8,12 +10,16 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { BookingSummary } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('BookingCard');
 
 interface BookingCardProps {
   booking: BookingSummary;
+  onUpdate?: () => void;
 }
 
-export function BookingCard({ booking }: BookingCardProps) {
+export function BookingCard({ booking, onUpdate }: BookingCardProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const statusMeta = getStatusMeta(booking.status, palette);
@@ -28,16 +34,79 @@ export function BookingCard({ booking }: BookingCardProps) {
     minute: '2-digit',
   });
 
+  const handleReschedule = () => {
+    logger.press('RescheduleButton', { bookingId: booking.id });
+    Alert.alert(
+      'Reschedule Session',
+      `Would you like to reschedule your session with ${booking.coachName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reschedule',
+          onPress: () => {
+            // Navigate to reschedule flow
+            router.push({
+              pathname: '/(tabs)/bookings/[id]',
+              params: { id: booking.id, action: 'reschedule' },
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCancel = async () => {
+    logger.press('CancelButton', { bookingId: booking.id });
+    Alert.alert(
+      'Cancel Booking',
+      `Are you sure you want to cancel your session with ${booking.coachName}?`,
+      [
+        { text: 'Keep Booking', style: 'cancel' },
+        {
+          text: 'Cancel Booking',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Update booking status in storage
+              const stored = await AsyncStorage.getItem('session_bookings');
+              if (stored) {
+                const bookings = JSON.parse(stored);
+                const updated = bookings.map((b: any) =>
+                  b.id === booking.id ? { ...b, status: 'CANCELLED' } : b
+                );
+                await AsyncStorage.setItem('session_bookings', JSON.stringify(updated));
+                logger.info('Booking cancelled', { bookingId: booking.id });
+                Alert.alert('Cancelled', 'Your booking has been cancelled.');
+                onUpdate?.();
+              }
+            } catch (error) {
+              logger.error('Failed to cancel booking', error);
+              Alert.alert('Error', 'Failed to cancel booking. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleOpenDetail = () => {
+    logger.press('BookingDetail', { bookingId: booking.id });
+    router.push({
+      pathname: '/(tabs)/bookings/[id]',
+      params: { id: booking.id },
+    });
+  };
+
   const renderRightActions = () => (
     <View style={styles.actionsContainer}>
       <Clickable
-        onPress={() => console.log('Reschedule booking', booking.id)}
+        onPress={handleReschedule}
         style={[styles.actionButton, { backgroundColor: palette.tint }]}>
         <Ionicons name="refresh" size={18} color={scheme === 'light' ? '#FFFFFF' : '#000000'} />
         <ThemedText style={styles.actionLabel} lightColor="#FFFFFF" darkColor="#000000">Reschedule</ThemedText>
       </Clickable>
       <Clickable
-        onPress={() => console.log('Cancel booking', booking.id)}
+        onPress={handleCancel}
         style={[styles.actionButton, { backgroundColor: palette.error }]}>
         <Ionicons name="close" size={18} color="#FFFFFF" />
         <ThemedText style={styles.actionLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">Cancel</ThemedText>
@@ -50,7 +119,7 @@ export function BookingCard({ booking }: BookingCardProps) {
       <SurfaceCard
         style={styles.card}
         outlineGradient={[statusMeta.color, withAlpha(statusMeta.color, 0.4)]}
-        onPress={() => console.log('Open booking detail', booking.id)}>
+        onPress={handleOpenDetail}>
         <View style={styles.row}>
           <Ionicons name={statusMeta.icon} size={22} color={statusMeta.color} />
           <View style={styles.meta}>

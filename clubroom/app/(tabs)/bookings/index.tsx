@@ -240,14 +240,10 @@ export default function BookingsScreen() {
   }
 
   // Navigation handlers
-  const handleMyGoalsPress = () => {
-    logger.press('MyGoalsButton', { route: '/(tabs)/bookings/objectives' });
-    router.push('/(tabs)/bookings/objectives');
-  };
-
-  const handleProgressPress = () => {
-    logger.press('ProgressButton', { route: '/(tabs)/bookings/statistics' });
-    router.push('/(tabs)/bookings/statistics');
+  const handleRateCoachPress = () => {
+    logger.press('RateCoachButton', { route: '/rate-coach' });
+    // Navigate to rate coach selection screen
+    router.push('/rate-coach');
   };
 
   const handleCalendarPress = () => {
@@ -295,8 +291,8 @@ export default function BookingsScreen() {
       {/* Quick Actions - Role-based */}
       <QuickActions
         userRole={userRole}
-        onMyGoalsPress={handleMyGoalsPress}
-        onProgressPress={handleProgressPress}
+        onRateCoachPress={handleRateCoachPress}
+        onFindCoachPress={handleFindCoachPress}
         onCalendarPress={handleCalendarPress}
         onSettingsPress={handleSettingsPress}
         showCoachActions={activeTab === 'list'}

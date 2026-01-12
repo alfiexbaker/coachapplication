@@ -89,7 +89,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
             style={isLocked ? styles.lockedIcon : undefined}
           />
           {isLocked && (
-            <View style={styles.lockOverlay}>
+            <View style={[styles.lockOverlay, { backgroundColor: palette.background }]}>
               <Ionicons name="lock-closed" size={10} color={palette.muted} />
             </View>
           )}
@@ -151,7 +151,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
             style={isLocked ? styles.lockedIcon : undefined}
           />
           {isLocked && (
-            <View style={styles.lockOverlay}>
+            <View style={[styles.lockOverlay, { backgroundColor: palette.background }]}>
               <Ionicons name="lock-closed" size={12} color={palette.muted} />
             </View>
           )}
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   lockedCard: {
-    opacity: 0.85,
+    opacity: 0.6,
   },
   iconRow: {
     flexDirection: 'row',
@@ -296,7 +296,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 2,
   },

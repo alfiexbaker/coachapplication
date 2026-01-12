@@ -65,7 +65,7 @@ export function RatingFilter({
             key={star}
             name={star <= rating ? 'star' : 'star-outline'}
             size={16}
-            color={star <= rating ? '#FFA500' : palette.muted}
+            color={star <= rating ? palette.warning : palette.muted}
             style={styles.star}
           />
         ))}

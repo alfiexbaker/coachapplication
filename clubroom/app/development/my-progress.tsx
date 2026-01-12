@@ -135,12 +135,13 @@ export default function MyProgressScreen() {
 
   const trend = getTrendInfo();
 
+  // Compact tabs for better mobile display
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: 'grid-outline' },
-    { id: 'skills', label: 'Skills', icon: 'analytics-outline' },
-    { id: 'goals', label: 'Goals', icon: 'flag-outline' },
-    { id: 'feedback', label: 'Feedback', icon: 'chatbubble-outline' },
-    { id: 'badges', label: 'Badges', icon: 'ribbon-outline' },
+    { id: 'overview', label: 'Overview', shortLabel: 'Home', icon: 'grid-outline' },
+    { id: 'skills', label: 'Skills', shortLabel: 'Skills', icon: 'analytics-outline' },
+    { id: 'goals', label: 'Goals', shortLabel: 'Goals', icon: 'flag-outline' },
+    { id: 'feedback', label: 'Feedback', shortLabel: 'Notes', icon: 'chatbubble-outline' },
+    { id: 'badges', label: 'Badges', shortLabel: 'Awards', icon: 'ribbon-outline' },
   ];
 
   return (
@@ -199,34 +200,40 @@ export default function MyProgressScreen() {
         </View>
       </View>
 
-      {/* Tab Bar */}
+      {/* Tab Bar - Icon-only for compact display */}
       <View style={[styles.tabBar, { borderBottomColor: palette.border }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
+        <View style={styles.tabsRow}>
           {tabs.map((tab) => (
             <Clickable
               key={tab.id}
               onPress={() => setActiveTab(tab.id as typeof activeTab)}
               style={[
                 styles.tab,
-                activeTab === tab.id && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
+                activeTab === tab.id && [styles.activeTab, { borderBottomColor: palette.tint }],
               ]}
             >
-              <Ionicons
-                name={tab.icon as any}
-                size={18}
-                color={activeTab === tab.id ? palette.tint : palette.muted}
-              />
+              <View style={[
+                styles.tabIconContainer,
+                activeTab === tab.id && { backgroundColor: `${palette.tint}15` }
+              ]}>
+                <Ionicons
+                  name={tab.icon as any}
+                  size={20}
+                  color={activeTab === tab.id ? palette.tint : palette.muted}
+                />
+              </View>
               <ThemedText
                 style={[
                   styles.tabLabel,
                   { color: activeTab === tab.id ? palette.tint : palette.muted },
                 ]}
+                numberOfLines={1}
               >
-                {tab.label}
+                {tab.shortLabel}
               </ThemedText>
             </Clickable>
           ))}
-        </ScrollView>
+        </View>
       </View>
 
       <ScrollView
@@ -552,22 +559,33 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     borderBottomWidth: 1,
+    paddingHorizontal: Spacing.sm,
   },
   tabsRow: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.xs,
+    justifyContent: 'space-between',
   },
   tab: {
-    flexDirection: 'row',
+    flex: 1,
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
     marginBottom: -1,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+  },
+  tabIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
   },
   content: {
