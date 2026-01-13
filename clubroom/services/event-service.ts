@@ -1095,6 +1095,94 @@ export const eventService = {
   },
 
   // ============================================================================
+  // CALENDAR INTEGRATION
+  // ============================================================================
+
+  /**
+   * Get events for calendar display - returns events user has RSVP'd to or public club events
+   */
+  async getEventsForCalendar(
+    userId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<Array<{
+    id: string;
+    title: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    type: 'EVENT';
+    eventType: ClubEventType;
+    status: RSVPStatus | null;
+  }>> {
+    if (USE_MOCK) {
+      eventsCache = await loadEvents();
+      rsvpsCache = await loadRSVPs();
+
+      const start = new Date(startDate).getTime();
+      const end = new Date(endDate).getTime();
+
+      // Get events in date range
+      const eventsInRange = eventsCache.filter((event) => {
+        const eventDate = new Date(event.date).getTime();
+        return eventDate >= start && eventDate <= end && event.status === 'PUBLISHED';
+      });
+
+      // Get user's RSVPs
+      const userRSVPs = rsvpsCache.filter((r) => r.userId === userId);
+      const rsvpMap = new Map(userRSVPs.map((r) => [r.eventId, r.status]));
+
+      return eventsInRange.map((event) => ({
+        id: event.id,
+        title: event.title,
+        date: event.date,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        location: event.venue || event.address || 'TBD',
+        type: 'EVENT' as const,
+        eventType: event.eventType,
+        status: rsvpMap.get(event.id) || null,
+      }));
+    }
+
+    const response = await fetch(
+      `/api/users/${userId}/calendar-events?start=${startDate}&end=${endDate}`
+    );
+    return response.json();
+  },
+
+  /**
+   * Get upcoming events for a user (events they've RSVP'd to or are invited to)
+   */
+  async getUpcomingUserEvents(userId: string, limit: number = 5): Promise<ClubEvent[]> {
+    if (USE_MOCK) {
+      eventsCache = await loadEvents();
+      rsvpsCache = await loadRSVPs();
+
+      const now = new Date().getTime();
+      const userRSVPs = rsvpsCache
+        .filter((r) => r.userId === userId && r.status === 'GOING')
+        .map((r) => r.eventId);
+
+      return eventsCache
+        .filter((event) => {
+          const eventDate = new Date(event.date).getTime();
+          return (
+            eventDate > now &&
+            event.status === 'PUBLISHED' &&
+            userRSVPs.includes(event.id)
+          );
+        })
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, limit);
+    }
+
+    const response = await fetch(`/api/users/${userId}/events/upcoming?limit=${limit}`);
+    return response.json();
+  },
+
+  // ============================================================================
   // UTILITY METHODS
   // ============================================================================
 

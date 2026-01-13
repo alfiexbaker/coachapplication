@@ -323,7 +323,7 @@ export default function ScheduleScreen() {
         {/* TODAY Hero Card */}
         {todayData && (
           <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.tint }]}>
+            <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }]}>
               <View style={styles.todayHeader}>
                 <View>
                   <ThemedText style={styles.todayLabel}>TODAY</ThemedText>
@@ -646,13 +646,13 @@ const styles = StyleSheet.create({
   todayLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.7)',
+    color: '#6B7280',
     letterSpacing: 1,
   },
   todayDate: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F172A',
     marginTop: 2,
   },
   todayStats: {
@@ -661,16 +661,16 @@ const styles = StyleSheet.create({
   todayStatValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F172A',
   },
   todayStatLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
+    color: '#6B7280',
   },
   nextSessionBanner: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#F3F4F6',
     borderRadius: Radii.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -681,17 +681,17 @@ const styles = StyleSheet.create({
   nextSessionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F172A',
   },
   nextSessionMeta: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
+    color: '#6B7280',
     marginTop: 2,
   },
   nextSessionCountdown: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#0F172A',
     borderRadius: Radii.md,
   },
   countdownText: {
@@ -703,10 +703,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.2)',
+    borderTopColor: '#E5E7EB',
   },
   todayEmptyText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#6B7280',
     fontSize: 14,
   },
   // Week Strip
