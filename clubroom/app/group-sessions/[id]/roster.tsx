@@ -1,19 +1,22 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Modal } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ParticipantCard } from '@/components/group/participant-card';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Button } from '@/components/primitives/button';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { groupSessionService } from '@/services/group-session-service';
-import type { GroupSession, GroupRegistration } from '@/constants/types';
+import { injuryService } from '@/services/injury-service';
+import type { GroupSession, GroupRegistration, BodyPart, InjurySeverity } from '@/constants/types';
 
 type FilterType = 'all' | 'registered' | 'waitlisted' | 'attended';
 type AttendanceStatus = 'present' | 'absent' | 'late' | 'unmarked';
@@ -29,6 +32,14 @@ export default function SessionRosterScreen() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [showRollCall, setShowRollCall] = useState(false);
   const [rollCallAttendance, setRollCallAttendance] = useState<Record<string, AttendanceStatus>>({});
+
+  // Injury Report State
+  const [showInjuryReport, setShowInjuryReport] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<GroupRegistration | null>(null);
+  const [injuryBodyPart, setInjuryBodyPart] = useState<BodyPart | null>(null);
+  const [injurySeverity, setInjurySeverity] = useState<InjurySeverity>('MINOR');
+  const [injuryDescription, setInjuryDescription] = useState('');
+  const [savingInjury, setSavingInjury] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -130,6 +141,101 @@ export default function SessionRosterScreen() {
       Alert.alert('Error', 'Failed to save roll call. Please try again.');
     }
   };
+
+  // Injury Report Functions
+  const openInjuryReport = (registration: GroupRegistration) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedParticipant(registration);
+    setInjuryBodyPart(null);
+    setInjurySeverity('MINOR');
+    setInjuryDescription('');
+    setShowInjuryReport(true);
+  };
+
+  const submitInjuryReport = async () => {
+    if (!selectedParticipant || !injuryBodyPart || !injuryDescription.trim()) {
+      Alert.alert('Missing Information', 'Please select a body part and provide a description.');
+      return;
+    }
+
+    setSavingInjury(true);
+    try {
+      const sessionContext = session ? ` during ${session.title}` : '';
+      await injuryService.logInjury(
+        selectedParticipant.athleteId,
+        {
+          bodyPart: injuryBodyPart,
+          severity: injurySeverity,
+          description: injuryDescription.trim() + sessionContext,
+          occurredAt: new Date().toISOString(),
+          sharedWithCoach: true,
+        },
+        selectedParticipant.athleteName
+      );
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowInjuryReport(false);
+      Alert.alert(
+        'Injury Reported',
+        `Injury logged for ${selectedParticipant.athleteName}. The athlete can track their recovery in the Health section.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Failed to report injury:', error);
+      Alert.alert('Error', 'Failed to report injury. Please try again.');
+    } finally {
+      setSavingInjury(false);
+    }
+  };
+
+  // Body parts grouped by category for quick selection
+  const bodyPartCategories: { label: string; parts: { part: BodyPart; label: string }[] }[] = [
+    {
+      label: 'Lower Body',
+      parts: [
+        { part: 'LEFT_ANKLE', label: 'L. Ankle' },
+        { part: 'RIGHT_ANKLE', label: 'R. Ankle' },
+        { part: 'LEFT_KNEE', label: 'L. Knee' },
+        { part: 'RIGHT_KNEE', label: 'R. Knee' },
+        { part: 'LEFT_THIGH', label: 'L. Thigh' },
+        { part: 'RIGHT_THIGH', label: 'R. Thigh' },
+        { part: 'LEFT_CALF', label: 'L. Calf' },
+        { part: 'RIGHT_CALF', label: 'R. Calf' },
+        { part: 'LEFT_FOOT', label: 'L. Foot' },
+        { part: 'RIGHT_FOOT', label: 'R. Foot' },
+      ],
+    },
+    {
+      label: 'Upper Body',
+      parts: [
+        { part: 'LEFT_SHOULDER', label: 'L. Shoulder' },
+        { part: 'RIGHT_SHOULDER', label: 'R. Shoulder' },
+        { part: 'LEFT_ARM', label: 'L. Arm' },
+        { part: 'RIGHT_ARM', label: 'R. Arm' },
+        { part: 'LEFT_WRIST', label: 'L. Wrist' },
+        { part: 'RIGHT_WRIST', label: 'R. Wrist' },
+        { part: 'LEFT_HAND', label: 'L. Hand' },
+        { part: 'RIGHT_HAND', label: 'R. Hand' },
+      ],
+    },
+    {
+      label: 'Core & Head',
+      parts: [
+        { part: 'HEAD', label: 'Head' },
+        { part: 'NECK', label: 'Neck' },
+        { part: 'CHEST', label: 'Chest' },
+        { part: 'UPPER_BACK', label: 'Upper Back' },
+        { part: 'LOWER_BACK', label: 'Lower Back' },
+        { part: 'ABDOMEN', label: 'Abdomen' },
+      ],
+    },
+  ];
+
+  const severityOptions: { value: InjurySeverity; label: string; color: string }[] = [
+    { value: 'MINOR', label: 'Minor', color: '#F59E0B' },
+    { value: 'MODERATE', label: 'Moderate', color: '#F97316' },
+    { value: 'SEVERE', label: 'Severe', color: '#EF4444' },
+  ];
 
   // Calculate roll call stats
   const rollCallStats = useMemo(() => {
@@ -424,6 +530,15 @@ export default function SessionRosterScreen() {
                         color={status === 'absent' ? '#fff' : palette.error}
                       />
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.injuryButton,
+                        { backgroundColor: `${palette.error}15`, borderColor: `${palette.error}30` },
+                      ]}
+                      onPress={() => openInjuryReport(registration)}
+                    >
+                      <Ionicons name="medkit" size={16} color={palette.error} />
+                    </TouchableOpacity>
                   </View>
                 </Animated.View>
               );
@@ -455,6 +570,130 @@ export default function SessionRosterScreen() {
               <Ionicons name="refresh" size={18} color={palette.muted} />
               <ThemedText style={{ color: palette.muted, fontWeight: '600', fontSize: 13 }}>Reset</ThemedText>
             </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Injury Report Modal */}
+      <Modal
+        visible={showInjuryReport}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowInjuryReport(false)}
+      >
+        <SafeAreaView style={[styles.injuryModalContainer, { backgroundColor: palette.background }]} edges={['top']}>
+          {/* Header */}
+          <View style={[styles.injuryModalHeader, { borderBottomColor: palette.border }]}>
+            <TouchableOpacity onPress={() => setShowInjuryReport(false)}>
+              <Ionicons name="close" size={24} color={palette.text} />
+            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <ThemedText type="defaultSemiBold" style={{ fontSize: 17 }}>Report Injury</ThemedText>
+              {selectedParticipant && (
+                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                  {selectedParticipant.athleteName}
+                </ThemedText>
+              )}
+            </View>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView style={styles.injuryModalContent} showsVerticalScrollIndicator={false}>
+            {/* Severity Selector */}
+            <View style={styles.injurySection}>
+              <ThemedText type="defaultSemiBold" style={styles.injurySectionTitle}>Severity</ThemedText>
+              <View style={styles.severityRow}>
+                {severityOptions.map(option => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.severityOption,
+                      {
+                        backgroundColor: injurySeverity === option.value ? option.color : `${option.color}15`,
+                        borderColor: option.color,
+                      },
+                    ]}
+                    onPress={() => setInjurySeverity(option.value)}
+                  >
+                    <ThemedText style={{ color: injurySeverity === option.value ? '#fff' : option.color, fontWeight: '600', fontSize: 13 }}>
+                      {option.label}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Body Part Selector */}
+            <View style={styles.injurySection}>
+              <ThemedText type="defaultSemiBold" style={styles.injurySectionTitle}>Body Part *</ThemedText>
+              {bodyPartCategories.map(category => (
+                <View key={category.label} style={styles.bodyPartCategory}>
+                  <ThemedText style={[styles.categoryLabel, { color: palette.muted }]}>{category.label}</ThemedText>
+                  <View style={styles.bodyPartGrid}>
+                    {category.parts.map(({ part, label }) => (
+                      <TouchableOpacity
+                        key={part}
+                        style={[
+                          styles.bodyPartChip,
+                          {
+                            backgroundColor: injuryBodyPart === part ? palette.tint : palette.surface,
+                            borderColor: injuryBodyPart === part ? palette.tint : palette.border,
+                          },
+                        ]}
+                        onPress={() => setInjuryBodyPart(part)}
+                      >
+                        <ThemedText style={{ color: injuryBodyPart === part ? '#fff' : palette.text, fontSize: 12, fontWeight: '500' }}>
+                          {label}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Description */}
+            <View style={styles.injurySection}>
+              <ThemedText type="defaultSemiBold" style={styles.injurySectionTitle}>Description *</ThemedText>
+              <TextInput
+                style={[
+                  styles.injuryTextInput,
+                  {
+                    backgroundColor: palette.surface,
+                    borderColor: palette.border,
+                    color: palette.text,
+                  },
+                ]}
+                value={injuryDescription}
+                onChangeText={setInjuryDescription}
+                placeholder="What happened? How did the injury occur?"
+                placeholderTextColor={palette.muted}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* Info Note */}
+            <View style={[styles.injuryInfoNote, { backgroundColor: `${palette.tint}10` }]}>
+              <Ionicons name="information-circle" size={20} color={palette.tint} />
+              <ThemedText style={{ color: palette.muted, fontSize: 13, flex: 1 }}>
+                This injury will be logged to the athlete's health records and automatically shared with their parent/guardian.
+              </ThemedText>
+            </View>
+
+            <View style={{ height: 100 }} />
+          </ScrollView>
+
+          {/* Submit Button */}
+          <View style={[styles.injuryModalFooter, { borderTopColor: palette.border, backgroundColor: palette.background }]}>
+            <Button
+              onPress={submitInjuryReport}
+              disabled={savingInjury || !injuryBodyPart || !injuryDescription.trim()}
+              style={{ flex: 1 }}
+            >
+              {savingInjury ? 'Submitting...' : 'Report Injury'}
+            </Button>
           </View>
         </SafeAreaView>
       </Modal>
@@ -612,5 +851,87 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
+  },
+  // Injury Button in Roll Call
+  injuryButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  // Injury Modal Styles
+  injuryModalContainer: {
+    flex: 1,
+  },
+  injuryModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  injuryModalContent: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  injurySection: {
+    marginBottom: Spacing.lg,
+  },
+  injurySectionTitle: {
+    marginBottom: Spacing.sm,
+  },
+  severityRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  severityOption: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 2,
+    alignItems: 'center',
+  },
+  bodyPartCategory: {
+    marginBottom: Spacing.md,
+  },
+  categoryLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
+  },
+  bodyPartGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  bodyPartChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+  },
+  injuryTextInput: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    padding: Spacing.md,
+    fontSize: 15,
+    minHeight: 100,
+  },
+  injuryInfoNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  injuryModalFooter: {
+    padding: Spacing.lg,
+    borderTopWidth: 1,
   },
 });
