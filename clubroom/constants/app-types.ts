@@ -61,9 +61,11 @@ export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 export interface Booking {
   id: string;
   coachId: string;
-  athleteId: string; // The user being coached
+  athleteIds: string[]; // The users being coached (supports multiple athletes)
+  athleteId?: string; // Deprecated: kept for backwards compatibility
   bookedById: string; // Could be parent or athlete
   status: BookingStatus;
+  isSharedSession?: boolean; // True if multiple athletes share this session
   scheduledAt: string; // ISO date string
   duration: number; // minutes (default 60)
   location: string;

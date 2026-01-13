@@ -33,8 +33,8 @@ export type BookingDraft = {
 export interface CreateBookingParams {
   coachId: string;
   coachName: string;
-  athleteId: string;
-  athleteName: string;
+  athleteIds: string[]; // Array of athlete IDs (supports multiple athletes)
+  athleteNames: string[]; // Array of athlete names matching athleteIds
   bookedById: string;
   bookedByName: string;
   scheduledAt: string; // ISO date string with time
@@ -43,7 +43,7 @@ export interface CreateBookingParams {
   service: string;
   serviceType: string;
   objectives?: string[];
-  price?: number;
+  price?: number; // Base price per athlete
   notes?: string;
   sessionInviteId?: string; // Link to session invite if created from one
 }
@@ -155,8 +155,8 @@ class BookingService {
     const {
       coachId,
       coachName,
-      athleteId,
-      athleteName,
+      athleteIds,
+      athleteNames,
       bookedById,
       bookedByName,
       scheduledAt,
@@ -180,13 +180,19 @@ class BookingService {
       return { success: false, error: validation.reason };
     }
 
+    // Calculate total price (base price * number of athletes)
+    const basePrice = price || 0;
+    const totalPrice = basePrice * athleteIds.length;
+    const isSharedSession = athleteIds.length > 1;
+
     // Create the booking
     const newBooking = {
       id: `booking-${Date.now()}`,
       coachId,
       coachName,
-      athleteId,
-      athleteName,
+      athleteIds,
+      athleteId: athleteIds[0], // Backwards compatibility: first athlete
+      athleteName: athleteNames.join(', '), // Combined names for display
       bookedById,
       scheduledAt,
       status: 'CONFIRMED',
@@ -195,7 +201,8 @@ class BookingService {
       service,
       serviceType,
       objectives: objectives || [],
-      price,
+      price: totalPrice,
+      isSharedSession,
       notes: notes || '',
       createdAt: new Date().toISOString(),
       sessionInviteId, // Link to session invite if created from one
