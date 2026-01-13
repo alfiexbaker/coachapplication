@@ -449,6 +449,23 @@ class BookingService {
     const bookings = await this.list();
     return bookings.find((b) => b.id === id);
   }
+
+  /**
+   * Save a booking directly without validation (for internal service use only)
+   * Used by recurringBookingService and other trusted callers
+   */
+  async saveBookingDirect(booking: any): Promise<{ success: boolean; error?: string }> {
+    try {
+      const existingBookings = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
+      const bookings = existingBookings ? JSON.parse(existingBookings) : [];
+      bookings.push(booking);
+      await AsyncStorage.setItem(SESSION_BOOKINGS_KEY, JSON.stringify(bookings));
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to save booking directly', error);
+      return { success: false, error: 'Failed to save booking' };
+    }
+  }
 }
 
 export const bookingService = new BookingService();

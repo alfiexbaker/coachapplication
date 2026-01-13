@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import {
   RecurringBooking,
   RecurrenceFrequency,
@@ -10,6 +8,7 @@ import {
 import { getDayName } from '@/constants/booking-types';
 import { storageService } from './storage-service';
 import { notificationService } from './notification-service';
+import { bookingService } from './booking-service';
 import { createLogger } from '@/utils/logger';
 
 // Re-export getDayName for consumers that imported it from here
@@ -463,11 +462,8 @@ class RecurringBookingService {
           isRecurringGenerated: true,
         };
 
-        // Store the generated booking
-        const existingBookings = await AsyncStorage.getItem('session_bookings');
-        const sessionBookings = existingBookings ? JSON.parse(existingBookings) : [];
-        sessionBookings.push(booking);
-        await AsyncStorage.setItem('session_bookings', JSON.stringify(sessionBookings));
+        // Store the generated booking through bookingService (centralized storage)
+        await bookingService.saveBookingDirect(booking);
 
         generatedBookings.push({
           bookingId,
