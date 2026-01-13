@@ -485,9 +485,6 @@ function EmptyFeedState({
           </ThemedText>
         </View>
 
-        {/* Club Hub - Prominent Position */}
-        <ClubHubCard clubs={clubs} />
-
         {/* Discover Coaches */}
         <DiscoverCoachesCard />
 
