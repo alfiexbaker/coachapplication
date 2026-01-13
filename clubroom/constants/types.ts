@@ -3522,6 +3522,69 @@ export interface CancellationStats {
   revenueLost: number;
 }
 
+// ============================================================================
+// CANCELLATION POLICY
+// ============================================================================
+// Configurable policies for refund calculations based on time before session
+
+/**
+ * A single refund tier - defines refund percentage for a time window
+ */
+export interface RefundTier {
+  /** Hours before session start (e.g., 24 means "24+ hours before") */
+  hoursBeforeSession: number;
+  /** Refund percentage for this tier (0-100) */
+  refundPercentage: number;
+  /** Description shown to users */
+  description: string;
+}
+
+/**
+ * Cancellation policy configuration for a coach
+ */
+export interface CancellationPolicy {
+  id: string;
+  coachId: string;
+  /** Policy name (e.g., "Standard", "Strict", "Flexible") */
+  name: string;
+  /** Detailed description of the policy */
+  description: string;
+  /** Refund tiers ordered from most hours to least */
+  tiers: RefundTier[];
+  /** Minimum notice required to cancel (hours) */
+  minimumNoticeHours: number;
+  /** Whether coach allows cancellations at all */
+  allowCancellations: boolean;
+  /** Whether this is the default policy for new bookings */
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Result of calculating a refund
+ */
+export interface RefundCalculation {
+  /** Original booking amount */
+  originalAmount: number;
+  /** Refund amount to give back */
+  refundAmount: number;
+  /** Platform fee deducted from refund */
+  platformFee: number;
+  /** Net refund after fees */
+  netRefundAmount: number;
+  /** Percentage being refunded */
+  refundPercentage: number;
+  /** Hours until session start */
+  hoursUntilSession: number;
+  /** Which tier was applied */
+  appliedTier: RefundTier | null;
+  /** Human-readable explanation */
+  explanation: string;
+  /** Whether a refund is eligible */
+  isEligible: boolean;
+}
+
 /**
  * Session statistics for a period
  */

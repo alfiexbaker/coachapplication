@@ -67,6 +67,42 @@ class BookingService {
     return storageService.getItem<Booking[]>(STORAGE_KEY, MOCK_BOOKINGS);
   }
 
+  /**
+   * Get a single booking by ID
+   */
+  async getBooking(id: string): Promise<Booking | null> {
+    const bookings = await this.list();
+    const booking = bookings.find((b) => b.id === id);
+    if (booking) return booking;
+
+    // Also check session bookings
+    try {
+      const sessionBookingsRaw = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
+      if (sessionBookingsRaw) {
+        const sessionBookings = JSON.parse(sessionBookingsRaw);
+        const sessionBooking = sessionBookings.find((b: any) => b.id === id);
+        if (sessionBooking) {
+          return {
+            id: sessionBooking.id,
+            coachId: sessionBooking.coachId,
+            coachName: sessionBooking.coachName,
+            athleteId: sessionBooking.athleteId,
+            athleteName: sessionBooking.athleteName,
+            scheduledAt: sessionBooking.scheduledAt,
+            location: sessionBooking.location,
+            service: sessionBooking.service,
+            status: sessionBooking.status,
+            price: sessionBooking.price || 35,
+          } as Booking;
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to check session bookings', error);
+    }
+
+    return null;
+  }
+
   async updateStatus(id: string, status: Booking['status']) {
     const bookings = await this.list();
     const updated = bookings.map((b) => (b.id === id ? { ...b, status } : b));
