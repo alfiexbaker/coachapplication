@@ -147,7 +147,10 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
           activeOpacity={1}
           onPress={() => setShowMenu(false)}
         >
-          <View style={[styles.menuContainer, { backgroundColor: palette.surface }]}>
+          <View
+            onStartShouldSetResponder={() => true}
+            style={[styles.menuContainer, { backgroundColor: palette.surface }]}
+          >
             <View style={styles.menuHeader}>
               <ThemedText type="defaultSemiBold">{club.name}</ThemedText>
               <TouchableOpacity onPress={() => setShowMenu(false)}>
