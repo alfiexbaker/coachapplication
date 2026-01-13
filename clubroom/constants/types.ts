@@ -1055,6 +1055,32 @@ export interface AvailabilitySlot {
   location?: string;
 }
 
+/**
+ * Coach scheduling rules - configurable booking constraints
+ */
+export interface CoachSchedulingRules {
+  id: string;
+  coachId: string;
+  /** Minimum hours before a session that bookings can be made */
+  minimumAdvanceBookingHours: number;
+  /** Maximum days in advance that bookings can be made */
+  maxAdvanceBookingDays: number;
+  /** Default buffer minutes between sessions */
+  bufferMinutesDefault: number;
+  /** Default max concurrent sessions */
+  maxConcurrentDefault: number;
+  /** Whether to allow same-day bookings */
+  allowSameDayBookings: boolean;
+  /** Cancellation policy ID for this coach */
+  cancellationPolicyId?: string;
+  /** Whether clients can reschedule bookings */
+  allowRescheduling: boolean;
+  /** Maximum hours before session that rescheduling is allowed */
+  rescheduleDeadlineHours: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ============================================================================
 // VIDEO MANAGEMENT
 // ============================================================================
