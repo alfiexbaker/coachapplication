@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Alert, Pressable } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -451,26 +451,14 @@ export function RecurringTemplateModal({
             {showLocationInput && (
               <View style={[styles.customLocationInput, { borderColor: palette.border, backgroundColor: palette.surface }]}>
                 <Ionicons name="location-outline" size={18} color={palette.muted} />
-                <ThemedText
-                  style={[styles.customLocationPlaceholder, { color: location ? palette.text : palette.muted }]}
-                  onPress={() => {
-                    Alert.prompt(
-                      'Custom Location',
-                      'Enter the location name:',
-                      [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Set',
-                          onPress: (text: string | undefined) => text && setLocation(text),
-                        },
-                      ],
-                      'plain-text',
-                      location
-                    );
-                  }}
-                >
-                  {location || 'Tap to enter custom location'}
-                </ThemedText>
+                <TextInput
+                  style={[styles.customLocationTextInput, { color: palette.text }]}
+                  placeholder="Enter custom location"
+                  placeholderTextColor={palette.muted}
+                  value={location}
+                  onChangeText={setLocation}
+                  autoFocus
+                />
               </View>
             )}
           </View>
@@ -740,6 +728,11 @@ const styles = StyleSheet.create({
   customLocationPlaceholder: {
     flex: 1,
     fontSize: 15,
+  },
+  customLocationTextInput: {
+    flex: 1,
+    fontSize: 15,
+    padding: 0,
   },
   settingsCard: {
     padding: Spacing.md,

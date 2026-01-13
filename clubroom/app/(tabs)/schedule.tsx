@@ -323,47 +323,47 @@ export default function ScheduleScreen() {
         {/* TODAY Hero Card */}
         {todayData && (
           <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.tint }]}>
+            <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.surface }]}>
               <View style={styles.todayHeader}>
                 <View>
-                  <ThemedText style={styles.todayLabel}>TODAY</ThemedText>
-                  <ThemedText style={styles.todayDate}>
+                  <ThemedText style={[styles.todayLabel, { color: palette.muted }]}>TODAY</ThemedText>
+                  <ThemedText style={[styles.todayDate, { color: palette.text }]}>
                     {todayData.dayName}, {todayData.date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
                   </ThemedText>
                 </View>
                 <View style={styles.todayStats}>
-                  <ThemedText style={styles.todayStatValue}>{todaySessions.length}</ThemedText>
-                  <ThemedText style={styles.todayStatLabel}>
+                  <ThemedText style={[styles.todayStatValue, { color: palette.tint }]}>{todaySessions.length}</ThemedText>
+                  <ThemedText style={[styles.todayStatLabel, { color: palette.muted }]}>
                     session{todaySessions.length !== 1 ? 's' : ''}
                   </ThemedText>
                 </View>
               </View>
 
               {nextSession ? (
-                <View style={styles.nextSessionBanner}>
+                <View style={[styles.nextSessionBanner, { backgroundColor: `${palette.tint}10` }]}>
                   <View style={styles.nextSessionInfo}>
-                    <ThemedText style={styles.nextSessionTitle}>
+                    <ThemedText style={[styles.nextSessionTitle, { color: palette.text }]}>
                       {nextSession.athleteName || nextSession.title}
                     </ThemedText>
-                    <ThemedText style={styles.nextSessionMeta}>
+                    <ThemedText style={[styles.nextSessionMeta, { color: palette.muted }]}>
                       {nextSession.time} · {nextSession.location || 'Location TBD'}
                     </ThemedText>
                   </View>
-                  <View style={styles.nextSessionCountdown}>
+                  <View style={[styles.nextSessionCountdown, { backgroundColor: palette.tint }]}>
                     <ThemedText style={styles.countdownText}>
                       {getTimeUntil(nextSession.time)}
                     </ThemedText>
                   </View>
                 </View>
               ) : todaySessions.length === 0 ? (
-                <View style={styles.todayEmpty}>
-                  <ThemedText style={styles.todayEmptyText}>
+                <View style={[styles.todayEmpty, { borderTopColor: palette.border }]}>
+                  <ThemedText style={[styles.todayEmptyText, { color: palette.muted }]}>
                     No sessions today - enjoy your free time!
                   </ThemedText>
                 </View>
               ) : (
-                <View style={styles.todayEmpty}>
-                  <ThemedText style={styles.todayEmptyText}>
+                <View style={[styles.todayEmpty, { borderTopColor: palette.border }]}>
+                  <ThemedText style={[styles.todayEmptyText, { color: palette.muted }]}>
                     All done for today!
                   </ThemedText>
                 </View>
