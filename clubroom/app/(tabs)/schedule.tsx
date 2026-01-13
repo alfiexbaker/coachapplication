@@ -16,6 +16,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate, SessionOffering } from '@/constants/types';
+import { WeeklyScheduleView } from '@/components/coach/weekly-schedule-view';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ScheduleHub');
@@ -39,6 +40,7 @@ export default function ScheduleHubScreen() {
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [weeklyHours, setWeeklyHours] = useState(0);
   const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,6 +94,25 @@ export default function ScheduleHubScreen() {
       logger.error('Failed to load offerings', err);
     }
 
+    // Load bookings for weekly view
+    try {
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      const coachBookings = await availabilityService.getCoachBookings(
+        currentUser.id,
+        weekStart.toISOString().split('T')[0],
+        weekEnd.toISOString().split('T')[0]
+      );
+      setBookings(coachBookings);
+      logger.debug('Loaded bookings', { count: coachBookings.length });
+    } catch (err) {
+      logger.error('Failed to load bookings', err);
+    }
+
     setLoading(false);
   }, [currentUser?.id]);
 
@@ -109,22 +130,21 @@ export default function ScheduleHubScreen() {
 
   const hubSections: HubSection[] = [
     {
-      id: 'calendar',
-      title: 'Calendar',
-      subtitle: 'View and manage your schedule',
-      icon: 'calendar-outline',
-      route: '/(tabs)/availability',
-      stat: `${weeklyHours.toFixed(0)}h/week`,
-      color: palette.tint,
-    },
-    {
       id: 'availability',
       title: 'Availability',
-      subtitle: 'Set recurring time slots',
+      subtitle: 'Set your weekly coaching hours',
       icon: 'time-outline',
       route: '/(tabs)/availability',
       stat: `${templates.length} slots`,
       color: palette.success,
+    },
+    {
+      id: 'rules',
+      title: 'Scheduling Rules',
+      subtitle: 'Booking notice, buffer time & more',
+      icon: 'settings-outline',
+      route: '/availability/scheduling-rules',
+      color: palette.warning,
     },
     {
       id: 'bookings',
@@ -296,6 +316,16 @@ export default function ScheduleHubScreen() {
           </Animated.View>
         ))}
       </View>
+
+      {/* Weekly Schedule View */}
+      {!hasNoData && (
+        <Animated.View entering={FadeInDown.delay(250).springify()}>
+          <WeeklyScheduleView
+            bookings={bookings}
+            offerings={sessionOfferings}
+          />
+        </Animated.View>
+      )}
 
       {/* Next Session Preview */}
       {nextSession ? (
