@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, View, Alert, Modal, Dimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, Alert, Modal, Dimensions, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -444,28 +444,23 @@ export default function AvailabilityScreen() {
     );
   };
 
-  const handleBlockDate = () => {
-    Alert.prompt(
-      'Block Date',
-      'Enter the date to block (YYYY-MM-DD):',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Block',
-          onPress: async (date: string | undefined) => {
-            if (!date) return;
-            try {
-              await availabilityService.blockDate(coachId, date, 'Blocked via app');
-              Alert.alert('Date Blocked', `${date} has been blocked.`);
-            } catch (error) {
-              console.error('Failed to block date:', error);
-            }
-          },
-        },
-      ],
-      'plain-text',
-      new Date().toISOString().split('T')[0]
-    );
+  const [showBlockDateModal, setShowBlockDateModal] = useState(false);
+  const [blockDateInput, setBlockDateInput] = useState(new Date().toISOString().split('T')[0]);
+
+  const handleBlockDate = async () => {
+    if (!blockDateInput) {
+      Alert.alert('Error', 'Please enter a valid date.');
+      return;
+    }
+    try {
+      await availabilityService.blockDate(coachId, blockDateInput, 'Blocked via app');
+      Alert.alert('Date Blocked', `${blockDateInput} has been blocked.`);
+      setShowBlockDateModal(false);
+      setBlockDateInput(new Date().toISOString().split('T')[0]);
+    } catch (error) {
+      console.error('Failed to block date:', error);
+      Alert.alert('Error', 'Failed to block date. Please try again.');
+    }
   };
 
   const getDayTemplates = (dayOfWeek: number) => {
@@ -839,7 +834,7 @@ export default function AvailabilityScreen() {
             </Clickable>
             <Clickable
               style={[styles.actionButton, { borderColor: palette.border }]}
-              onPress={handleBlockDate}
+              onPress={() => setShowBlockDateModal(true)}
             >
               <Ionicons name="close-circle-outline" size={20} color={palette.warning} />
               <ThemedText style={{ color: palette.warning, fontWeight: '600' }}>Block Date</ThemedText>
@@ -881,6 +876,52 @@ export default function AvailabilityScreen() {
         templates={templates}
         onCopy={handleCopySchedule}
       />
+
+      {/* Block Date Modal */}
+      <Modal visible={showBlockDateModal} animationType="fade" transparent onRequestClose={() => setShowBlockDateModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.copyModal, { backgroundColor: palette.surface }]}>
+            <View style={styles.copyModalHeader}>
+              <ThemedText type="subtitle">Block a Date</ThemedText>
+              <Clickable onPress={() => setShowBlockDateModal(false)}>
+                <Ionicons name="close" size={24} color={palette.muted} />
+              </Clickable>
+            </View>
+
+            <ThemedText style={{ color: palette.muted, marginBottom: Spacing.md }}>
+              Block a specific date to prevent bookings. Athletes won't be able to book on this day.
+            </ThemedText>
+
+            <View style={[styles.blockDateInput, { borderColor: palette.border, backgroundColor: palette.background }]}>
+              <Ionicons name="calendar-outline" size={20} color={palette.muted} />
+              <TextInput
+                style={[styles.blockDateTextInput, { color: palette.text }]}
+                value={blockDateInput}
+                onChangeText={setBlockDateInput}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={palette.muted}
+                keyboardType="default"
+              />
+            </View>
+
+            <View style={styles.copyModalActions}>
+              <Clickable
+                onPress={() => setShowBlockDateModal(false)}
+                style={[styles.copyModalButton, { borderColor: palette.border }]}
+              >
+                <ThemedText>Cancel</ThemedText>
+              </Clickable>
+              <Clickable
+                onPress={handleBlockDate}
+                style={[styles.copyModalButton, { backgroundColor: palette.warning, borderColor: palette.warning }]}
+              >
+                <Ionicons name="close-circle-outline" size={16} color="#fff" />
+                <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Block Date</ThemedText>
+              </Clickable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1260,5 +1301,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
+  },
+  blockDateInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  blockDateTextInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
   },
 });

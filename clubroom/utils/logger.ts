@@ -119,6 +119,13 @@ class Logger {
   }
 
   /**
+   * Log a user action (form submit, create, update, delete)
+   */
+  action(actionName: string, metadata?: any) {
+    this.event(`ACTION: ${actionName}`, metadata);
+  }
+
+  /**
    * Log navigation event
    */
   navigate(from: string, to: string, params?: any) {
@@ -204,6 +211,10 @@ class ScopedLogger {
 
   press(elementName: string, metadata?: any) {
     this.parent.press(`${this.scope}.${elementName}`, metadata);
+  }
+
+  action(actionName: string, metadata?: any) {
+    this.parent.action(`${this.scope}.${actionName}`, metadata);
   }
 
   navigate(to: string, params?: any) {
