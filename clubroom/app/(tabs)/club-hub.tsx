@@ -225,55 +225,6 @@ export default function ClubHubScreen() {
     Alert.alert('Joined club', `You are now part of ${invite.clubName}`);
   };
 
-  const handleCreateClub = (name: string) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      Alert.alert('Add club name', 'Give your club a name to get started.');
-      return;
-    }
-
-    const created: Club = {
-      id: `club_${Date.now()}`,
-      name: trimmedName,
-      city: 'Your city',
-      country: 'UK',
-      badge: trimmedName.slice(0, 2).toUpperCase(),
-      memberCount: 1,
-      coachCount: 1,
-      squadCount: 0,
-      ownerId: currentUser?.id || 'owner',
-      ownerName: currentUser?.fullName || currentUser?.username || 'You',
-      inviteCode: `${trimmedName.slice(0, 5).toUpperCase()}-${Math.floor(Math.random() * 9999)}`,
-    };
-
-    setClub(created);
-    setMembership({
-      clubId: created.id,
-      userId: created.ownerId,
-      role: 'OWNER',
-      status: 'active',
-      joinSource: 'created',
-      inviteCode: created.inviteCode,
-      canPostAsClub: true,
-    });
-    setFeed([{
-      id: 'club_post_welcome',
-      clubId: created.id,
-      title: 'Welcome to your new club!',
-      body: 'Your club is ready. Invite coaches with your invite code, create squads, and start posting updates to your members.',
-      createdAt: new Date().toISOString(),
-      audience: 'club',
-      audienceLabel: 'Club-wide',
-      authorName: created.ownerName,
-      authorId: created.ownerId,
-      postAs: 'club',
-      postType: 'announcement',
-      reactionCount: 0,
-      commentCount: 0,
-    }]);
-    Alert.alert('Club created!', `Share code ${created.inviteCode} to invite your team.`);
-  };
-
   const handleLeaveClub = () => {
     Alert.alert('Club options', 'What would you like to do?', [
       { text: 'Cancel', style: 'cancel' },
@@ -443,7 +394,6 @@ export default function ClubHubScreen() {
           <JoinClubCard
             isCoach={isCoach}
             onJoin={handleJoinWithCode}
-            onCreate={handleCreateClub}
           />
 
           <SurfaceCard style={styles.benefitsCard}>

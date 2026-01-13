@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -10,14 +11,17 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export interface JoinClubCardProps {
   isCoach: boolean;
   onJoin: (code: string) => void;
-  onCreate: (name: string) => void;
+  onCreate?: (name: string) => void;
 }
 
 export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [joinCode, setJoinCode] = useState('');
-  const [newClubName, setNewClubName] = useState('');
+
+  const handleCreateClub = () => {
+    router.push('/club/create');
+  };
 
   return (
     <SurfaceCard style={styles.joinCard}>
@@ -59,21 +63,13 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
           <View style={[styles.divider, { backgroundColor: palette.border }]}>
             <ThemedText style={[styles.dividerText, { backgroundColor: palette.surface, color: palette.muted }]}>or</ThemedText>
           </View>
-          <View style={styles.joinForm}>
-            <TextInput
-              placeholder="New club name"
-              placeholderTextColor={palette.muted}
-              value={newClubName}
-              onChangeText={setNewClubName}
-              style={[styles.input, { backgroundColor: palette.background, color: palette.text, borderColor: palette.border }]}
-            />
-            <TouchableOpacity
-              style={[styles.secondaryButton, { borderColor: palette.border }]}
-              onPress={() => onCreate(newClubName)}
-            >
-              <ThemedText style={{ color: palette.text, fontWeight: '600' }}>Create</ThemedText>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[styles.createButton, { backgroundColor: `${palette.tint}10`, borderColor: palette.tint }]}
+            onPress={handleCreateClub}
+          >
+            <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Create New Club</ThemedText>
+          </TouchableOpacity>
         </>
       )}
     </SurfaceCard>
@@ -123,6 +119,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     borderRadius: Radii.md,
     borderWidth: 1,
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
   },
   divider: {
     height: 1,

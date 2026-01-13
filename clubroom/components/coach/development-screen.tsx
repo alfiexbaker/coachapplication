@@ -172,11 +172,11 @@ export function CoachDevelopmentScreen() {
   });
 
   const quickActions = [
+    { icon: 'calendar-number' as const, label: 'Bookings', route: '/(tabs)/bookings', color: '#DC2626' },
     { icon: 'chatbubbles' as const, label: 'Messages', route: '/(tabs)/messages', color: '#2563EB' },
     { icon: 'calendar' as const, label: 'Schedule', route: '/(tabs)/schedule', color: '#059669' },
     { icon: 'people' as const, label: 'Athletes', route: '/(tabs)/athletes', color: palette.tint },
     { icon: 'mail' as const, label: 'Invites', route: '/session-invites', color: '#7C3AED' },
-    { icon: 'videocam' as const, label: 'Videos', route: '/videos', color: '#DC2626' },
   ];
 
   return (

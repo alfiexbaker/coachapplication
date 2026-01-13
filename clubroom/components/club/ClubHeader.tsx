@@ -55,8 +55,8 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
     } else {
       // Navigate to club settings/management
       router.push({
-        pathname: '/club/[id]',
-        params: { id: club.id, manage: 'true' },
+        pathname: '/club/settings',
+        params: { clubId: club.id },
       });
     }
   };
@@ -84,7 +84,7 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
   const handleCreateGroup = () => {
     setShowMenu(false);
     router.push({
-      pathname: '/(modal)/create-squad',
+      pathname: '/club/squad/create',
       params: { clubId: club.id },
     });
   };
