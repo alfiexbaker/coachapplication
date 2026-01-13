@@ -20,6 +20,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
 import { bookingService } from '@/services/booking-service';
 import { notificationService } from '@/services/notification-service';
+import { hasChildren } from '@/utils/user-helpers';
 
 export default function ConfirmBookingScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -77,9 +78,9 @@ export default function ConfirmBookingScreen() {
   useEffect(() => {
     if (!currentUser || athleteIds.length === 0) return;
 
-    if (currentUser.role === 'PARENT') {
-      const parentChildren = getChildrenForParent(currentUser.id);
-      const selectedChildren = parentChildren.filter((child) => athleteIds.includes(child.id));
+    if (hasChildren(currentUser)) {
+      const userChildren = getChildrenForParent(currentUser.id);
+      const selectedChildren = userChildren.filter((child) => athleteIds.includes(child.id));
       setAthletesInfo(selectedChildren.map((child) => ({
         id: child.id,
         name: child.name,

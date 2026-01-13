@@ -16,6 +16,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { MOCK_USERS, MOCK_COACH_PROFILES, getChildrenForParent } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
+import { hasChildren } from '@/utils/user-helpers';
 
 const logger = createLogger('SubscribeScreen');
 
@@ -80,7 +81,7 @@ export default function SubscribeScreen() {
   const athletes = useMemo(() => {
     if (!currentUser?.id || currentUser.role === 'COACH') return undefined;
 
-    if (currentUser.role === 'PARENT') {
+    if (hasChildren(currentUser)) {
       const children = getChildrenForParent(currentUser.id);
       return children.map((child) => ({
         id: child.id,

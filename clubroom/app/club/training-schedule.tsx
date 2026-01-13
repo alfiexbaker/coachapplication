@@ -14,6 +14,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
 import { getClubMembershipForUser, getClubById, getClubSquads } from '@/constants/mock-data';
+import { hasChildren } from '@/utils/user-helpers';
 import type { GroupSession, ClubSquad } from '@/constants/types';
 
 type ViewMode = 'list' | 'calendar';
@@ -23,11 +24,11 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 function TrainingCard({
   session,
   index,
-  isParentView,
+  userHasChildrenView,
 }: {
   session: GroupSession;
   index: number;
-  isParentView: boolean;
+  userHasChildrenView: boolean;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -139,7 +140,7 @@ function TrainingCard({
           <ThemedText style={{ color: palette.muted, flex: 1, fontSize: 13 }}>
             Coach {session.coachName}
           </ThemedText>
-          {isParentView && (
+          {userHasChildrenView && (
             <TouchableOpacity
               style={[styles.rsvpButton, { backgroundColor: palette.tint }]}
             >
@@ -156,10 +157,10 @@ function TrainingCard({
 
 function WeeklyCalendarView({
   sessions,
-  isParentView,
+  userHasChildrenView,
 }: {
   sessions: GroupSession[];
-  isParentView: boolean;
+  userHasChildrenView: boolean;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -227,7 +228,7 @@ export default function TrainingScheduleScreen() {
   const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
   const [clubName, setClubName] = useState('');
 
-  const isParent = currentUser?.role === 'PARENT';
+  const userHasChildren = hasChildren(currentUser);
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   useEffect(() => {
@@ -393,16 +394,16 @@ export default function TrainingScheduleScreen() {
                 key={session.id}
                 session={session}
                 index={index}
-                isParentView={isParent}
+                userHasChildrenView={userHasChildren}
               />
             ))}
           </View>
         ) : (
-          <WeeklyCalendarView sessions={filteredSessions} isParentView={isParent} />
+          <WeeklyCalendarView sessions={filteredSessions} userHasChildrenView={userHasChildren} />
         )}
 
         {/* Parent-specific: Attendance summary */}
-        {isParent && filteredSessions.length > 0 && (
+        {userHasChildren && filteredSessions.length > 0 && (
           <SurfaceCard style={styles.attendanceCard}>
             <View style={styles.attendanceHeader}>
               <Ionicons name="checkmark-circle" size={20} color={palette.success} />

@@ -10,6 +10,7 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { activeObjectives, getChildrenForParent } from '@/constants/mock-data';
+import { hasChildren } from '@/utils/user-helpers';
 import { AthleteObjective, FootballObjective } from '@/constants/types';
 
 const FOOTBALL_OBJECTIVES: FootballObjective[] = [
@@ -35,7 +36,7 @@ export default function ObjectivesScreen() {
 
   // Parent-specific: child selection
   const children = useMemo(() => {
-    if (currentUser?.role === 'PARENT') {
+    if (hasChildren(currentUser)) {
       return getChildrenForParent(currentUser.id);
     }
     return [];
@@ -47,7 +48,7 @@ export default function ObjectivesScreen() {
 
   // Filter objectives by selected child for parents
   const filteredObjectives = useMemo(() => {
-    if (currentUser?.role === 'PARENT' && selectedChildId) {
+    if (hasChildren(currentUser) && selectedChildId) {
       // For parents, filter by child (in real DB, objectives would have athleteId)
       // For now, showing all objectives but would filter by athleteId === selectedChildId
       return objectives;
@@ -125,7 +126,7 @@ export default function ObjectivesScreen() {
         ListHeaderComponent={
           <ThemedView style={styles.header}>
             {/* Child Selector for Parents */}
-            {currentUser?.role === 'PARENT' && children.length > 0 && (
+            {hasChildren(currentUser) && children.length > 0 && (
               <View style={styles.childSelector}>
                 <ThemedText style={[styles.childLabel, { color: palette.muted }]}>
                   ATHLETE
@@ -166,7 +167,7 @@ export default function ObjectivesScreen() {
               </View>
             )}
             <ThemedText type="subtitle" style={styles.subtitle}>
-              Track {currentUser?.role === 'PARENT' ? 'development' : 'your'} football goals
+              Track {hasChildren(currentUser) ? 'development' : 'your'} football goals
             </ThemedText>
           </ThemedView>
         }

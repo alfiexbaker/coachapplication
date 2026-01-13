@@ -15,6 +15,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { sessionInviteService } from '@/services/session-invite-service';
+import { hasChildren } from '@/utils/user-helpers';
 import type { SessionInvite } from '@/constants/types';
 
 type ViewMode = 'sent' | 'received';
@@ -279,7 +280,7 @@ export default function SessionInvitesScreen() {
   ).length;
 
   const isCoach = currentUser?.role === 'COACH';
-  const isParent = currentUser?.role === 'PARENT';
+  const userHasChildren = hasChildren(currentUser);
 
   // Apply filter
   const filteredInvites = invites.filter((invite) => {
@@ -330,7 +331,7 @@ export default function SessionInvitesScreen() {
       )}
 
       {/* Filter chips for parents */}
-      {(isParent || mode === 'received') && invites.length > 0 && (
+      {(userHasChildren || mode === 'received') && invites.length > 0 && (
         <View style={styles.filterRow}>
           <Chip
             label="All"
@@ -358,7 +359,7 @@ export default function SessionInvitesScreen() {
         }
       >
         {/* Pending invites highlight for parents */}
-        {isParent && pendingCount > 0 && filter === 'all' && (
+        {userHasChildren && pendingCount > 0 && filter === 'all' && (
           <View style={[styles.pendingBanner, { backgroundColor: `${palette.warning}15` }]}>
             <Ionicons name="alert-circle" size={20} color={palette.warning} />
             <ThemedText style={[styles.pendingBannerText, { color: palette.text }]}>

@@ -11,6 +11,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import { hasChildren } from '@/utils/user-helpers';
 
 const logger = createLogger('NotificationSettings');
 
@@ -41,7 +42,7 @@ export default function NotificationSettingsScreen() {
   const [progressUpdates, setProgressUpdates] = useState(true);
 
   const isCoach = currentUser?.role === 'COACH';
-  const isParent = currentUser?.role === 'PARENT';
+  const userHasChildren = hasChildren(currentUser);
 
   const handleToggle = (name: string, value: boolean, setter: (v: boolean) => void) => {
     logger.debug(`Toggle ${name}`, { newValue: value });
@@ -163,7 +164,7 @@ export default function NotificationSettingsScreen() {
         )}
 
         {/* Parent-specific notifications */}
-        {isParent && (
+        {userHasChildren && (
           <SettingsSection title="Parent Notifications">
             <SettingsToggleRow
               icon="people"

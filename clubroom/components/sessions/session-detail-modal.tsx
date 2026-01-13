@@ -12,6 +12,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent } from '@/constants/mock-data';
 import { scale, scaleFont } from '@/utils/scale';
+import { hasChildren } from '@/utils/user-helpers';
 import { badgeService } from '@/services/badge-service';
 import type { BadgeAward } from '@/constants/types';
 
@@ -46,7 +47,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
     r => r.userId === currentUser?.id && r.status === 'confirmed'
   );
 
-  const children = currentUser?.role === 'PARENT' ? getChildrenForParent(currentUser.id) : [];
+  const children = hasChildren(currentUser) ? getChildrenForParent(currentUser.id) : [];
   const hasMultipleKids = children.length > 1;
 
   const handleBook = async () => {

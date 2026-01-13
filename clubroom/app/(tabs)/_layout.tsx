@@ -86,9 +86,7 @@ const BASE_HIDDEN_ROUTES = [
 
 // Uber-style grouped navigation - max 5 tabs with cascading hub screens
 // Feed shows aggregated posts from all clubs, club-hub is for managing clubs (accessible from Feed/Profile)
-// NOTE: This role-based config is maintained for backwards compatibility.
-// Screens should transition to using the helper functions (hasChildren, isAthlete, isCoach, etc.)
-// to determine UI based on user capabilities rather than role.
+// NOTE: Uses helper functions (hasChildren, isAthlete, isCoach, etc.) to determine UI based on user capabilities
 const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
   // COACH: Home, Schedule hub, Athletes hub, Feed, Profile
   // Club management accessible from Feed screen or Profile -> My Clubs
@@ -102,8 +100,9 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
   },
-  // USER (Athlete): Home, Feed, Bookings, Messages, Profile
-  // Note: Find Coach accessible from Feed screen (DiscoverCoachesCard) and via /more route
+  // USER: Home, Feed, Bookings, Messages, Profile
+  // Users with children can access child management via Profile > Children
+  // Booking flow supports "Book for Child" when user has children
   USER: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
@@ -113,18 +112,6 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
-  },
-  // PARENT: Home, Book, Children hub, Feed, Profile
-  // Bookings accessible via Children hub
-  PARENT: {
-    primary: [
-      { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
-      { name: 'more', title: 'Book', icon: 'magnifyingglass' },
-      { name: 'children', title: 'Children', icon: 'person.2.fill' },
-      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
-      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
-    ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'schedule', 'athletes', 'bookings', 'messages'],
   },
   // ADMIN: Users, Bookings, Feed, Messages, Settings
   ADMIN: {

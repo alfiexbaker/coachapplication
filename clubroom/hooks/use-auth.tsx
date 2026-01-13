@@ -8,11 +8,11 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAuth');
 
-export type UserRole = 'USER' | 'PARENT' | 'COACH' | 'ADMIN';
+export type UserRole = 'USER' | 'COACH' | 'ADMIN';
 export type SimplifiedUserType = 'USER' | 'COACH';
 
 type DemoUser = Omit<User, 'role'> & {
-  role: UserRole | 'ADMIN';
+  role: UserRole;
   username: string;
   password: string;
   fullName?: string;
@@ -20,12 +20,11 @@ type DemoUser = Omit<User, 'role'> & {
   schoolName?: string;
   // Simplified user type fields
   type?: SimplifiedUserType;
-  // For USER type - parent properties
+  // For USER type - optional children (for booking on behalf of kids)
   children?: ChildReference[];
   // For USER type - athlete properties
   skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE';
   position?: string;
-  parentId?: string;
   // For COACH type - organization properties
   isOrganization?: boolean;
   organizationName?: string;
@@ -118,7 +117,7 @@ const DEMO_USERS: DemoUser[] = [
       },
     ],
   },
-  // Users (Athletes - managed by parents)
+  // Users (Athletes)
   {
     id: 'user1',
     username: 'user1',
@@ -132,8 +131,6 @@ const DEMO_USERS: DemoUser[] = [
     dateOfBirth: '2008-05-12',
     skillLevel: 'INTERMEDIATE',
     position: 'Midfielder',
-    parentId: 'parent1', // Managed by John Henderson
-    children: [], // Not a parent
   },
   {
     id: 'user2',
@@ -148,8 +145,6 @@ const DEMO_USERS: DemoUser[] = [
     dateOfBirth: '2009-08-20',
     skillLevel: 'BEGINNER',
     position: 'Striker',
-    parentId: 'parent1', // Managed by John Henderson
-    children: [], // Not a parent
   },
   {
     id: 'user3',
@@ -164,15 +159,13 @@ const DEMO_USERS: DemoUser[] = [
     dateOfBirth: '2007-01-05',
     skillLevel: 'ADVANCED',
     position: 'Goalkeeper',
-    parentId: 'parent2', // Managed by Lisa Wilson
-    children: [], // Not a parent
   },
-  // Parents (Users with children)
+  // Users with children (can book for their kids)
   {
-    id: 'parent1',
+    id: 'user4',
     username: 'parent1',
-    password: 'parent',
-    role: 'PARENT',
+    password: 'user',
+    role: 'USER',
     type: 'USER',
     fullName: 'John Henderson',
     email: 'john.henderson@email.com',
@@ -185,10 +178,10 @@ const DEMO_USERS: DemoUser[] = [
     ],
   },
   {
-    id: 'parent2',
+    id: 'user5',
     username: 'parent2',
-    password: 'parent',
-    role: 'PARENT',
+    password: 'user',
+    role: 'USER',
     type: 'USER',
     fullName: 'Lisa Wilson',
     email: 'lisa.wilson@email.com',
@@ -199,12 +192,12 @@ const DEMO_USERS: DemoUser[] = [
       { childId: 'user3', childName: 'James Wilson', relationshipType: 'PARENT_CHILD', addedAt: '2020-01-01' },
     ],
   },
-  // User who is both an athlete AND a parent (demonstrates flexibility of new system)
+  // User who is both an athlete AND has children
   {
-    id: 'athlete_parent1',
+    id: 'user6',
     username: 'athleteparent',
-    password: 'both',
-    role: 'PARENT', // Legacy role for nav compatibility
+    password: 'user',
+    role: 'USER',
     type: 'USER',
     fullName: 'Mike Wilson',
     email: 'mike.wilson@email.com',

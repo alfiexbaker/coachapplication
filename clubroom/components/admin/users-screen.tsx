@@ -7,6 +7,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_USERS } from '@/constants/mock-data';
+import { hasChildren } from '@/utils/user-helpers';
 
 export function AdminUsersScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -15,7 +16,7 @@ export function AdminUsersScreen() {
   const userCounts = {
     coaches: MOCK_USERS.filter((u) => u.role === 'COACH').length,
     users: MOCK_USERS.filter((u) => u.role === 'USER').length,
-    parents: MOCK_USERS.filter((u) => u.role === 'PARENT').length,
+    parents: MOCK_USERS.filter((u) => hasChildren(u)).length,
   };
 
   return (
