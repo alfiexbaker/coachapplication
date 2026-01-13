@@ -4,9 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
+import { AthletePicker } from '@/components/booking/AthletePicker';
 import { AvailabilityPicker } from '@/components/booking/book-coach/availability-picker';
 import { BookingStepper } from '@/components/booking/book-coach/booking-stepper';
-import { ChildSelectionGrid } from '@/components/booking/book-coach/child-selection-grid';
 import { CoachSummaryCard } from '@/components/booking/book-coach/coach-summary-card';
 import { ObjectiveSelector } from '@/components/booking/book-coach/objective-selector';
 import { ServiceSelectionList } from '@/components/booking/book-coach/service-selection-list';
@@ -22,7 +22,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useBookingPersona } from '@/hooks/use-booking-persona';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { getChildrenForParent } from '@/constants/mock-data';
+import { hasChildren, isAthlete } from '@/utils/user-helpers';
 import { availabilityService } from '@/services/availability-service';
 import type { DayAvailability, SlotInstance } from '@/constants/booking-types';
 import type { FootballObjective, AvailabilitySlot } from '@/constants/types';
@@ -40,12 +40,15 @@ export default function BookCoachScreen() {
 
   const { coach, coachProfile } = resolveCoachAndProfile(coachId);
 
+  // Check if user has children to determine flow
+  const userHasChildren = hasChildren(currentUser);
+  const userIsAthlete = isAthlete(currentUser);
+
   // Real availability from coach's schedule
   const [availability, setAvailability] = useState<DayAvailability[]>([]);
   const [loadingAvailability, setLoadingAvailability] = useState(true);
-  const [children, setChildren] = useState<User[]>([]);
-  const [selectedChildIds, setSelectedChildIds] = useState<string[]>([]);
-  const [step, setStep] = useState(isParent ? 0 : 1);
+  const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>([]);
+  const [step, setStep] = useState(userHasChildren ? 0 : 1);
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
   const [selectedDayId, setSelectedDayId] = useState<string | undefined>();
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
@@ -136,12 +139,6 @@ export default function BookCoachScreen() {
     fetchAvailability();
   }, [fetchAvailability]);
 
-  useEffect(() => {
-    if (persona === 'parent' && userId) {
-      setChildren(getChildrenForParent(userId));
-    }
-  }, [persona, userId]);
-
   const filteredAvailability: DayAvailability[] = useMemo(() => {
     if (!selectedServiceId) return availability;
     return availability.map((day) => ({
@@ -181,18 +178,10 @@ export default function BookCoachScreen() {
     }
   };
 
-  const toggleChild = (childId: string) => {
-    if (selectedChildIds.includes(childId)) {
-      setSelectedChildIds(selectedChildIds.filter((id) => id !== childId));
-    } else {
-      setSelectedChildIds([...selectedChildIds, childId]);
-    }
-  };
-
   const handleContinue = () => {
     if (step === 0) {
-      if (selectedChildIds.length === 0) {
-        Alert.alert('Select children', 'Please select at least one child');
+      if (selectedAthleteIds.length === 0) {
+        Alert.alert('Select athletes', 'Please select at least one athlete');
         return;
       }
       setStep(1);
@@ -218,7 +207,7 @@ export default function BookCoachScreen() {
   };
 
   const handleBack = () => {
-    const minStep = isParent ? 0 : 1;
+    const minStep = userHasChildren ? 0 : 1;
     if (step > minStep) {
       setStep(step - 1);
     } else {
@@ -231,7 +220,10 @@ export default function BookCoachScreen() {
       return;
     }
 
-    const athleteIds = isParent && selectedChildIds.length > 0 ? selectedChildIds : userId ? [userId] : [];
+    // Use selected athletes if user has children, otherwise auto-select themselves
+    const athleteIds = userHasChildren && selectedAthleteIds.length > 0
+      ? selectedAthleteIds
+      : userId ? [userId] : [];
 
     router.push({
       pathname: '/confirm-booking',
@@ -276,7 +268,7 @@ export default function BookCoachScreen() {
   }));
 
   const continueDisabled =
-    (step === 0 && selectedChildIds.length === 0) ||
+    (step === 0 && selectedAthleteIds.length === 0) ||
     (step === 1 && !selectedServiceId) ||
     (step === 2 && !selectedSlot) ||
     (step === 3 && selectedObjectives.length === 0);
@@ -288,8 +280,8 @@ export default function BookCoachScreen() {
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
         <ThemedText type="subtitle">
-          {step === 0 && isParent
-            ? 'Select Children'
+          {step === 0 && userHasChildren
+            ? 'Select Athletes'
             : step === 1
               ? 'Choose Service'
               : step === 2
@@ -299,13 +291,25 @@ export default function BookCoachScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <BookingStepper step={step} totalSteps={TOTAL_STEPS[isParent ? 'parent' : 'athlete']} isParent={isParent} />
+      <BookingStepper step={step} totalSteps={TOTAL_STEPS[userHasChildren ? 'parent' : 'athlete']} isParent={userHasChildren} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <CoachSummaryCard coach={coach} coachProfile={coachProfile} />
 
-        {step === 0 && isParent && (
-          <ChildSelectionGrid childrenOptions={children} selectedChildIds={selectedChildIds} onToggle={toggleChild} />
+        {step === 0 && userHasChildren && (
+          <View style={{ paddingHorizontal: Spacing.lg }}>
+            <AthletePicker
+              athletes={(currentUser?.children ?? []).map((child) => ({
+                id: child.childId,
+                name: child.childName,
+              }))}
+              selectedIds={selectedAthleteIds}
+              onSelectionChange={setSelectedAthleteIds}
+              includeSelf={userIsAthlete}
+              selfId={currentUser?.id}
+              selfName="Myself"
+            />
+          </View>
         )}
 
         {step === 1 && (

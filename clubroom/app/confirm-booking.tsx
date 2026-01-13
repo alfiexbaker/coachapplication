@@ -149,64 +149,58 @@ export default function ConfirmBookingScreen() {
     setIsProcessing(true);
 
     try {
-      // Create bookings for each athlete using the booking service
-      const results = await Promise.all(
-        athletesInfo.map((athleteInfo) =>
-          bookingService.createBooking({
-            coachId,
-            coachName,
-            athleteId: athleteInfo.id,
-            athleteName: athleteInfo.name,
-            bookedById: currentUser?.id || 'unknown',
-            bookedByName: currentUser?.name || currentUser?.fullName || 'Parent',
-            scheduledAt: slotStart,
-            duration: slotDuration,
-            location: 'Training Ground',
-            service: slotTitle,
-            serviceType,
-            objectives,
-            price,
-          })
-        )
-      );
+      // Create a single shared booking for all athletes
+      const result = await bookingService.createBooking({
+        coachId,
+        coachName,
+        athleteIds: athletesInfo.map((a) => a.id),
+        athleteNames: athletesInfo.map((a) => a.name),
+        bookedById: currentUser?.id || 'unknown',
+        bookedByName: currentUser?.name || currentUser?.fullName || 'Parent',
+        scheduledAt: slotStart,
+        duration: slotDuration,
+        location: 'Training Ground',
+        service: slotTitle,
+        serviceType,
+        objectives,
+        price, // Base price per athlete - service will multiply
+      });
 
-      // Check if any bookings failed
-      const failedBookings = results.filter((r) => !r.success);
-      if (failedBookings.length > 0) {
+      if (!result.success) {
         setIsProcessing(false);
         Alert.alert(
           'Booking Issue',
-          failedBookings[0].error || 'Some bookings could not be completed. Please try again.'
+          result.error || 'Booking could not be completed. Please try again.'
         );
         return;
       }
 
-      // Create notifications for coach and parent
-      for (const athleteInfo of athletesInfo) {
-        // Notify coach of new booking
-        await notificationService.notifyCoachNewBooking({
-          coachId,
-          parentName: currentUser?.name || currentUser?.fullName || 'Parent',
-          childName: athleteInfo.name,
-          date: formattedDate,
-          bookingId: results[0]?.booking?.id || 'new',
-        });
+      // Create notifications
+      const athleteNames = athletesInfo.map((a) => a.name).join(' & ');
 
-        // Notify parent of confirmed booking
-        await notificationService.notifyParentBookingConfirmed({
-          parentId: currentUser?.id || 'parent',
-          coachName,
-          date: `${formattedDate} at ${formattedTime}`,
-          bookingId: results[0]?.booking?.id || 'new',
-        });
-      }
+      // Notify coach of new booking
+      await notificationService.notifyCoachNewBooking({
+        coachId,
+        parentName: currentUser?.name || currentUser?.fullName || 'Parent',
+        childName: athleteNames,
+        date: formattedDate,
+        bookingId: result.booking?.id || 'new',
+      });
+
+      // Notify parent of confirmed booking
+      await notificationService.notifyParentBookingConfirmed({
+        parentId: currentUser?.id || 'parent',
+        coachName,
+        date: `${formattedDate} at ${formattedTime}`,
+        bookingId: result.booking?.id || 'new',
+      });
 
       setIsProcessing(false);
 
-      const athleteNames = athletesInfo.map((a) => a.name).join(', ');
+      const totalPrice = price * athletesInfo.length;
       const message = athletesInfo.length === 1
         ? `Your session with ${coachName} has been booked for ${formattedDate} at ${formattedTime}`
-        : `${athletesInfo.length} sessions booked for ${athleteNames} with ${coachName} on ${formattedDate} at ${formattedTime}`;
+        : `Shared session booked for ${athleteNames} with ${coachName} on ${formattedDate} at ${formattedTime}`;
 
       Alert.alert(
         'Booking Confirmed',

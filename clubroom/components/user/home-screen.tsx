@@ -7,10 +7,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
+import { ChildSwitcher } from '@/components/ChildSwitcher';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import { hasChildren } from '@/utils/user-helpers';
 import { getBookingsForAthlete, formatDate } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
 import { socialFeedService } from '@/services/social-feed-service';
@@ -36,6 +38,7 @@ export function UserHomeScreen() {
     daysToNextMilestone: number;
     streakLabel: string;
   } | null>(null);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -116,6 +119,15 @@ export function UserHomeScreen() {
             Your training journey
           </ThemedText>
         </View>
+
+        {/* Child Switcher */}
+        {hasChildren(currentUser) && currentUser.children && (
+          <ChildSwitcher
+            children={currentUser.children}
+            selectedId={selectedChildId}
+            onSelect={setSelectedChildId}
+          />
+        )}
 
         {/* Loading State */}
         {loading && (
