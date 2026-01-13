@@ -32,6 +32,8 @@ export interface QuickActionsProps {
   onSettingsPress: () => void;
   onGroupSessionsPress?: () => void;
   onDiscoverSessionsPress?: () => void;
+  onInvitesPress?: () => void;
+  pendingInvites?: number;
   /** For coaches, only show when on list tab */
   showCoachActions?: boolean;
 }
@@ -44,20 +46,36 @@ export function QuickActions({
   onSettingsPress,
   onGroupSessionsPress,
   onDiscoverSessionsPress,
+  onInvitesPress,
+  pendingInvites = 0,
   showCoachActions = true,
 }: QuickActionsProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  // Quick Actions for Users/Parents - Discover Sessions
+  // Quick Actions for Users/Parents - Invites, Discover, Find Coach
   if (userRole === 'USER' || userRole === 'PARENT') {
     return (
       <View style={styles.quickActions}>
         <Clickable
+          onPress={onInvitesPress || (() => {})}
+          style={[styles.actionPill, { borderColor: pendingInvites > 0 ? palette.tint : palette.border }]}>
+          <View style={styles.iconWithBadge}>
+            <Ionicons name="mail-outline" size={18} color={palette.tint} />
+            {pendingInvites > 0 && (
+              <View style={[styles.badge, { backgroundColor: palette.error }]}>
+                <ThemedText style={styles.badgeText}>{pendingInvites}</ThemedText>
+              </View>
+            )}
+          </View>
+          <ThemedText style={[styles.actionText, { color: palette.text }]}>Invites</ThemedText>
+        </Clickable>
+
+        <Clickable
           onPress={onDiscoverSessionsPress || (() => {})}
           style={[styles.actionPill, { borderColor: palette.border }]}>
           <Ionicons name="search-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.actionText, { color: palette.text }]}>Discover Sessions</ThemedText>
+          <ThemedText style={[styles.actionText, { color: palette.text }]}>Discover</ThemedText>
         </Clickable>
 
         <Clickable
@@ -129,5 +147,24 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
+  },
+  iconWithBadge: {
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

@@ -15,6 +15,7 @@ import {
 } from '@/constants/mock-data';
 import { BookingSummary, SessionOffering } from '@/constants/types';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
+import { sessionInviteService } from '@/services/session-invite-service';
 import { createLogger } from '@/utils/logger';
 import { hasChildren } from '@/utils/user-helpers';
 
@@ -35,6 +36,7 @@ export default function BookingsScreen() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingInvites, setPendingInvites] = useState(0);
 
   const userRole = currentUser?.role;
 
@@ -77,13 +79,24 @@ export default function BookingsScreen() {
         setSessionOfferings(offerings);
         logger.debug('Loaded session offerings', { count: offerings.length });
       }
+
+      // Load pending invites count for parents/athletes
+      if (currentUser && currentUser.role !== 'COACH') {
+        try {
+          const invites = await sessionInviteService.getPendingInvites(currentUser.id);
+          setPendingInvites(invites.length);
+          logger.debug('Loaded pending invites', { count: invites.length });
+        } catch (inviteErr) {
+          logger.error('Failed to load pending invites', inviteErr);
+        }
+      }
     } catch (err) {
       logger.error('Failed to load bookings data', err);
       setError('Failed to load bookings. Pull down to refresh.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser]);
 
   // Reload bookings when screen comes into focus
   useFocusEffect(
@@ -159,6 +172,11 @@ export default function BookingsScreen() {
     router.push('/discover-sessions');
   };
 
+  const handleInvitesPress = () => {
+    logger.press('InvitesButton', { route: '/invites' });
+    router.push('/invites');
+  };
+
   const handleCreateSessionPress = () => {
     logger.press('CreateSessionButton', { route: '/session/create' });
     router.push('/session/create');
@@ -200,6 +218,8 @@ export default function BookingsScreen() {
         onSettingsPress={handleSettingsPress}
         onGroupSessionsPress={handleGroupSessionsPress}
         onDiscoverSessionsPress={handleDiscoverSessionsPress}
+        onInvitesPress={handleInvitesPress}
+        pendingInvites={pendingInvites}
         showCoachActions={true}
       />
 
