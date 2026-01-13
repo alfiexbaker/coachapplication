@@ -385,22 +385,28 @@ export function CreateSessionForm({
 
         {/* Price */}
         <View style={styles.fieldContainer}>
-          <ThemedText style={styles.label}>Price (USD) - Optional</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: palette.card,
-                borderColor: palette.border,
-                color: palette.text,
-              },
-            ]}
-            placeholder="e.g., 50"
-            placeholderTextColor={palette.muted}
-            value={price}
-            onChangeText={onPriceChange}
-            keyboardType="decimal-pad"
-          />
+          <ThemedText style={styles.label}>Price (£) - Optional</ThemedText>
+          <View style={styles.priceInputRow}>
+            <View style={[styles.currencyPrefix, { backgroundColor: palette.border }]}>
+              <ThemedText style={styles.currencyText}>£</ThemedText>
+            </View>
+            <TextInput
+              style={[
+                styles.input,
+                styles.priceInput,
+                {
+                  backgroundColor: palette.card,
+                  borderColor: palette.border,
+                  color: palette.text,
+                },
+              ]}
+              placeholder="e.g., 35"
+              placeholderTextColor={palette.muted}
+              value={price}
+              onChangeText={onPriceChange}
+              keyboardType="decimal-pad"
+            />
+          </View>
         </View>
 
         {/* Age Range */}
@@ -585,6 +591,25 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(18),
     fontWeight: '700',
     letterSpacing: -0.4,
+  },
+  priceInputRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  currencyPrefix: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+  },
+  currencyText: {
+    fontSize: scaleFont(18),
+    fontWeight: '700',
+  },
+  priceInput: {
+    flex: 1,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
   },
   ageRangeRow: {
     flexDirection: 'row',

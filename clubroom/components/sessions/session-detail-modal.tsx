@@ -183,9 +183,9 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                 </ThemedText>
               </View>
             )}
-            {offering.priceUsd !== undefined && (
+            {offering.priceUsd !== undefined && offering.priceUsd > 0 && (
               <ThemedText type="defaultSemiBold" style={styles.price}>
-                ${offering.priceUsd}
+                £{offering.priceUsd}
               </ThemedText>
             )}
           </View>
