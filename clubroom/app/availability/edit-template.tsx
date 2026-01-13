@@ -91,10 +91,13 @@ export default function EditTemplateScreen() {
 
     setSaving(true);
     try {
-      await availabilityService.updateTemplate(template.id, {
+      await availabilityService.saveTemplate({
+        id: template.id,
+        coachId: template.coachId,
         dayOfWeek,
         startTime,
         endTime,
+        isRecurring: true,
         maxConcurrent: maxSlots,
         bufferMinutes,
       });
