@@ -2893,6 +2893,114 @@ export interface FamilyMember {
   addedAt: string;
 }
 
+// ============================================================================
+// FAMILY SHARING & GUARDIAN MANAGEMENT
+// ============================================================================
+// Types for multi-guardian support, invitations, and access permissions
+
+/**
+ * Permission levels for guardians accessing family data
+ */
+export type GuardianPermission =
+  | 'VIEW_SCHEDULE'    // View sessions and calendar
+  | 'VIEW_PROGRESS'    // View badges, notes, progress
+  | 'BOOK_SESSIONS'    // Book and cancel sessions
+  | 'MANAGE_PAYMENTS'  // View and manage payments
+  | 'MANAGE_PROFILE'   // Edit child profile
+  | 'ADMIN';           // Full access including adding other guardians
+
+/**
+ * Guardian role types
+ */
+export type GuardianRole = 'PRIMARY' | 'GUARDIAN' | 'VIEWER';
+
+/**
+ * A guardian with access to the family account
+ */
+export interface FamilyGuardian {
+  id: string;
+  userId: string;
+  userName: string;
+  email: string;
+  avatar?: string;
+  /** Role in the family */
+  role: GuardianRole;
+  /** Specific permissions granted */
+  permissions: GuardianPermission[];
+  /** Relationship description (e.g., "Parent", "Grandparent", "Nanny") */
+  relationship: string;
+  /** Whether this guardian is the primary account holder */
+  isPrimary: boolean;
+  /** Children this guardian has access to (empty = all children) */
+  childAccess: string[]; // Child IDs, empty array means all children
+  /** When guardian was added */
+  addedAt: string;
+  /** Who invited this guardian */
+  invitedBy?: string;
+  /** Last active timestamp */
+  lastActiveAt?: string;
+}
+
+/**
+ * Status of a guardian invitation
+ */
+export type GuardianInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+
+/**
+ * Invitation to join a family account as a guardian
+ */
+export interface GuardianInvite {
+  id: string;
+  /** ID of the family being invited to */
+  familyId: string;
+  /** Email of the person being invited */
+  inviteeEmail: string;
+  /** Name to display while pending (from inviter) */
+  inviteeName?: string;
+  /** Role the invitee will have */
+  role: GuardianRole;
+  /** Permissions the invitee will receive */
+  permissions: GuardianPermission[];
+  /** Relationship description */
+  relationship: string;
+  /** Which children they'll have access to */
+  childAccess: string[];
+  /** Status of the invitation */
+  status: GuardianInviteStatus;
+  /** ID of the user who sent the invite */
+  invitedBy: string;
+  /** Name of inviter for display */
+  inviterName: string;
+  /** When the invite was created */
+  createdAt: string;
+  /** When the invite expires */
+  expiresAt: string;
+  /** When the invite was responded to */
+  respondedAt?: string;
+  /** Optional message from the inviter */
+  message?: string;
+}
+
+/**
+ * Family account that groups children and guardians
+ */
+export interface FamilyAccount {
+  id: string;
+  /** Display name for the family */
+  name: string;
+  /** ID of the primary guardian (account creator) */
+  primaryGuardianId: string;
+  /** All guardians with access */
+  guardians: FamilyGuardian[];
+  /** All children in the family */
+  children: FamilyMember[];
+  /** Pending invitations */
+  pendingInvites: GuardianInvite[];
+  /** When the family was created */
+  createdAt: string;
+  updatedAt: string;
+}
+
 /**
  * Spending summary for a child in the family
  */
