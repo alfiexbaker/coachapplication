@@ -259,6 +259,11 @@ export default function BookingsScreen() {
     router.push('/(tabs)/settings');
   };
 
+  const handleGroupSessionsPress = () => {
+    logger.press('GroupSessionsButton', { route: '/group-sessions' });
+    router.push('/group-sessions');
+  };
+
   const handleFindCoachPress = () => {
     logger.press('FindCoachButton', { route: '/(tabs)/index' });
     router.push('/(tabs)/index');
@@ -297,6 +302,7 @@ export default function BookingsScreen() {
         onFindCoachPress={handleFindCoachPress}
         onCalendarPress={handleCalendarPress}
         onSettingsPress={handleSettingsPress}
+        onGroupSessionsPress={handleGroupSessionsPress}
         showCoachActions={activeTab === 'list'}
       />
 

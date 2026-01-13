@@ -30,6 +30,7 @@ export interface QuickActionsProps {
   onFindCoachPress?: () => void;
   onCalendarPress: () => void;
   onSettingsPress: () => void;
+  onGroupSessionsPress?: () => void;
   /** For coaches, only show when on list tab */
   showCoachActions?: boolean;
 }
@@ -40,6 +41,7 @@ export function QuickActions({
   onFindCoachPress,
   onCalendarPress,
   onSettingsPress,
+  onGroupSessionsPress,
   showCoachActions = true,
 }: QuickActionsProps) {
   const scheme = useColorScheme() ?? 'light';
@@ -55,6 +57,13 @@ export function QuickActions({
   if (userRole === 'COACH' && showCoachActions) {
     return (
       <View style={styles.quickActions}>
+        <Clickable
+          onPress={onGroupSessionsPress || (() => {})}
+          style={[styles.actionPill, { borderColor: palette.border }]}>
+          <Ionicons name="people-outline" size={18} color={palette.tint} />
+          <ThemedText style={[styles.actionText, { color: palette.text }]}>Groups</ThemedText>
+        </Clickable>
+
         <Clickable
           onPress={onCalendarPress}
           style={[styles.actionPill, { borderColor: palette.border }]}>
