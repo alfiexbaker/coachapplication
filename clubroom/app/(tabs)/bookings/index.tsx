@@ -5,7 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -286,9 +286,10 @@ export default function BookingsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">Bookings</ThemedText>
-      </ThemedView>
+      <PageHeader
+        title="Bookings"
+        subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+      />
 
       {/* Tab Navigation for Coaches */}
       {userRole === 'COACH' && (
@@ -380,11 +381,6 @@ export default function BookingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 14,
   },
   loadingContainer: {
     flex: 1,
