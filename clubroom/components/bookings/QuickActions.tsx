@@ -31,6 +31,7 @@ export interface QuickActionsProps {
   onCalendarPress: () => void;
   onSettingsPress: () => void;
   onGroupSessionsPress?: () => void;
+  onDiscoverSessionsPress?: () => void;
   /** For coaches, only show when on list tab */
   showCoachActions?: boolean;
 }
@@ -42,15 +43,31 @@ export function QuickActions({
   onCalendarPress,
   onSettingsPress,
   onGroupSessionsPress,
+  onDiscoverSessionsPress,
   showCoachActions = true,
 }: QuickActionsProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  // Quick Actions for Users/Parents - Removed per UX simplification
-  // Rate coach is now integrated into past booking cards
+  // Quick Actions for Users/Parents - Discover Sessions
   if (userRole === 'USER' || userRole === 'PARENT') {
-    return null;
+    return (
+      <View style={styles.quickActions}>
+        <Clickable
+          onPress={onDiscoverSessionsPress || (() => {})}
+          style={[styles.actionPill, { borderColor: palette.border }]}>
+          <Ionicons name="search-outline" size={18} color={palette.tint} />
+          <ThemedText style={[styles.actionText, { color: palette.text }]}>Discover Sessions</ThemedText>
+        </Clickable>
+
+        <Clickable
+          onPress={onFindCoachPress || (() => {})}
+          style={[styles.actionPill, { borderColor: palette.border }]}>
+          <Ionicons name="people-outline" size={18} color={palette.tint} />
+          <ThemedText style={[styles.actionText, { color: palette.text }]}>Find Coach</ThemedText>
+        </Clickable>
+      </View>
+    );
   }
 
   // Quick Actions for Coaches - only show on list tab

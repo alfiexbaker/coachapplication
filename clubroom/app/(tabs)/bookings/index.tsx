@@ -154,6 +154,11 @@ export default function BookingsScreen() {
     router.push('/group-sessions');
   };
 
+  const handleDiscoverSessionsPress = () => {
+    logger.press('DiscoverSessionsButton', { route: '/discover-sessions' });
+    router.push('/discover-sessions');
+  };
+
   const handleCreateSessionPress = () => {
     logger.press('CreateSessionButton', { route: '/session/create' });
     router.push('/session/create');
@@ -194,6 +199,7 @@ export default function BookingsScreen() {
         onCalendarPress={handleCalendarPress}
         onSettingsPress={handleSettingsPress}
         onGroupSessionsPress={handleGroupSessionsPress}
+        onDiscoverSessionsPress={handleDiscoverSessionsPress}
         showCoachActions={true}
       />
 
