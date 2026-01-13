@@ -20,3 +20,31 @@ These notes cover the entire repository. They are meant to maximize how we (you 
 - Build off existing features whenever possible; avoid creating parallel flows.
 - Maintain concise standards and reusability throughout the codebase.
 - When in doubt, ask: "Does this make it easier to book a coach, track development, or grow a coaching business?"
+
+## Recent Refactoring (January 2026)
+
+A major codebase consolidation was completed. Key points for agents:
+
+### Service Consolidation
+- **Invites**: Use `invite-service.ts` (not session-invite, bulk-invite, or squad-bulk-invite - these were deleted)
+- **Progress**: Use `progress-service.ts` for goals, session notes, and skill tracking (goal-service and session-notes-service were merged in)
+- **Video**: Use `video-service.ts` for both videos AND annotations (annotation-service was merged in)
+- **Family**: Use `family-service.ts` for family members AND guardian sharing (family-sharing-service was merged in)
+- **Scheduling**: Use `scheduling-rules-service.ts` for rules AND cancellation policies (cancellation-policy-service was merged in)
+
+### Booking Creation
+**ALL booking creation MUST go through `bookingService.createBooking()`**. There is now a single path:
+- Invite acceptance → calls bookingService.createBooking()
+- Recurring bookings → calls bookingService.saveBookingDirect()
+- Direct booking → calls bookingService.createBooking()
+
+### Component Imports
+- Use `/components/ui/booking/` for booking wizard components (not /components/booking/ - deleted)
+- All component folders now have `index.ts` exports for cleaner imports
+- Example: `import { StatusBadge } from '@/components/ui'`
+
+### Storage Keys
+- All 74 storage keys are documented in `/clubroom/constants/storage-keys.ts`
+- Use the centralized constants instead of hardcoding strings
+
+For full details, see `CODEBASE_AUDIT_REPORT.md`.

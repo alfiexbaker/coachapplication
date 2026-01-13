@@ -1,6 +1,43 @@
-# Welcome to your Expo app 👋
+# Clubroom - Coach Booking Platform
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native / Expo app for connecting athletes with coaches. Built with file-based routing and a modular service architecture.
+
+## Architecture Overview
+
+```
+clubroom/
+├── app/                    # Expo Router screens (file-based routing)
+│   ├── (tabs)/            # Tab navigation screens
+│   ├── book/              # Booking wizard flow
+│   ├── sessions/          # Session management
+│   └── ...
+├── components/            # Reusable UI components (50 folders with index.ts exports)
+│   ├── ui/               # Core UI primitives and booking components
+│   ├── bookings/         # Booking list/card components
+│   └── ...
+├── services/             # Business logic layer (43 services)
+│   ├── booking-service.ts      # All booking creation
+│   ├── invite-service.ts       # Unified invites (session, bulk, squad)
+│   ├── progress-service.ts     # Goals, notes, skill tracking
+│   └── ...
+├── constants/            # App constants and configuration
+│   ├── storage-keys.ts   # All 74 AsyncStorage keys
+│   └── ...
+└── hooks/                # Custom React hooks
+```
+
+### Key Services
+
+| Service | Responsibility |
+|---------|---------------|
+| `booking-service.ts` | Single source of truth for all booking creation |
+| `invite-service.ts` | Session, bulk, and squad invites (unified) |
+| `progress-service.ts` | Goals, session notes, skill levels |
+| `video-service.ts` | Video management + annotations |
+| `family-service.ts` | Family members + guardian sharing |
+| `scheduling-rules-service.ts` | Availability rules + cancellation policies |
+
+For full architecture details, see `../CODEBASE_AUDIT_REPORT.md`.
 
 ## Get started
 
