@@ -1,586 +1,872 @@
-import { useCallback, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+/**
+ * Coach Schedule - The Command Center
+ *
+ * Design Philosophy (Steve Jobs style):
+ * - TODAY is the hero - what's happening right now matters most
+ * - One screen does everything - no menu of links to elsewhere
+ * - Progressive disclosure - simple surface, power underneath
+ * - Every element is actionable - no dead ends
+ */
+
+import { useCallback, useState, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, Modal, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
-import { PageContainer } from '@/components/primitives/page-container';
-import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
-import type { AvailabilityTemplate, SessionOffering } from '@/constants/types';
+import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import type { AvailabilityTemplate, SessionOffering, CoachSchedulingRules } from '@/constants/types';
+import { RecurringTemplateModal } from '@/components/coach/recurring-template-modal';
 import { createLogger } from '@/utils/logger';
 
-const logger = createLogger('ScheduleHub');
+const logger = createLogger('Schedule');
 
-type HubSection = {
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+interface DayData {
+  date: Date;
+  dateStr: string;
+  dayName: string;
+  dayShort: string;
+  dayNum: number;
+  isToday: boolean;
+  isPast: boolean;
+  sessions: SessionData[];
+  availabilitySlots: number;
+  isBlocked: boolean;
+}
+
+interface SessionData {
   id: string;
   title: string;
-  subtitle: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  route: string;
-  stat?: string | number;
-  color?: string;
-};
+  time: string;
+  endTime: string;
+  athleteName?: string;
+  athleteCount?: number;
+  location?: string;
+  status: 'confirmed' | 'pending';
+  type: 'booking' | 'offering';
+}
 
-export default function ScheduleHubScreen() {
+export default function ScheduleScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
 
   const [templates, setTemplates] = useState<AvailabilityTemplate[]>([]);
-  const [upcomingCount, setUpcomingCount] = useState(0);
-  const [weeklyHours, setWeeklyHours] = useState(0);
-  const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
+  const [offerings, setOfferings] = useState<SessionOffering[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [showAddSlotModal, setShowAddSlotModal] = useState(false);
+  const [preselectedDay, setPreselectedDay] = useState<number | undefined>();
 
+  const coachId = currentUser?.id || 'coach_1';
+
+  // Load all data
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
-    setError(null);
-
-    // Load availability templates
     try {
-      const data = await availabilityService.getTemplates(currentUser.id);
-      setTemplates(data);
+      // Load in parallel
+      const [templatesData, rulesData] = await Promise.all([
+        availabilityService.getTemplates(coachId),
+        schedulingRulesService.getCoachRules(coachId),
+      ]);
+      setTemplates(templatesData);
+      setRules(rulesData);
 
-      // Calculate weekly hours
-      const hours = data.reduce((total, t) => {
-        const [startH, startM] = t.startTime.split(':').map(Number);
-        const [endH, endM] = t.endTime.split(':').map(Number);
-        return total + (endH * 60 + endM - startH * 60 - startM) / 60;
-      }, 0);
-      setWeeklyHours(hours);
-      logger.debug('Loaded templates', { count: data.length, weeklyHours: hours });
-    } catch (err) {
-      logger.error('Failed to load templates', err);
-      setError('Failed to load availability');
-    }
-
-    // Load session offerings
-    try {
-      const stored = await AsyncStorage.getItem('session_offerings');
-      if (stored) {
-        const offerings: SessionOffering[] = JSON.parse(stored);
-        const myOfferings = offerings.filter(o => o.coachId === currentUser.id);
-        setSessionOfferings(myOfferings);
-
-        // Count upcoming sessions
-        const now = new Date();
-        const upcoming = myOfferings.filter(o =>
-          new Date(o.scheduledAt) >= now || o.isRecurring
-        );
-        setUpcomingCount(upcoming.length);
-        logger.debug('Loaded session offerings', { total: myOfferings.length, upcoming: upcoming.length });
-      } else {
-        setSessionOfferings([]);
-        setUpcomingCount(0);
+      // Load offerings
+      const storedOfferings = await AsyncStorage.getItem('session_offerings');
+      if (storedOfferings) {
+        const all: SessionOffering[] = JSON.parse(storedOfferings);
+        setOfferings(all.filter(o => o.coachId === coachId));
       }
-    } catch (err) {
-      logger.error('Failed to load offerings', err);
-    }
 
-    setLoading(false);
-  }, [currentUser?.id]);
+      // Load bookings for this week
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 13); // Two weeks
+
+      const coachBookings = await availabilityService.getCoachBookings(
+        coachId,
+        weekStart.toISOString().split('T')[0],
+        weekEnd.toISOString().split('T')[0]
+      );
+      setBookings(coachBookings);
+
+      logger.debug('Loaded schedule data', {
+        templates: templatesData.length,
+        bookings: coachBookings.length,
+      });
+    } catch (err) {
+      logger.error('Failed to load schedule', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [coachId]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
+      // Default to today
+      setSelectedDayIndex(new Date().getDay());
     }, [loadData])
   );
 
-  // Navigation handlers with logging
-  const handleNavigate = useCallback((route: string, label: string) => {
-    logger.press(label, { route });
-    router.push(route as any);
-  }, []);
+  // Build week data
+  const weekData = useMemo((): DayData[] => {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - currentDay);
 
-  const hubSections: HubSection[] = [
-    {
-      id: 'calendar',
-      title: 'Calendar',
-      subtitle: 'View and manage your schedule',
-      icon: 'calendar-outline',
-      route: '/(tabs)/availability',
-      stat: `${weeklyHours.toFixed(0)}h/week`,
-      color: palette.tint,
-    },
-    {
-      id: 'availability',
-      title: 'Availability',
-      subtitle: 'Set recurring time slots',
-      icon: 'time-outline',
-      route: '/(tabs)/availability',
-      stat: `${templates.length} slots`,
-      color: palette.success,
-    },
-    {
-      id: 'bookings',
-      title: 'Bookings',
-      subtitle: 'Upcoming and past sessions',
-      icon: 'calendar-number-outline',
-      route: '/(tabs)/bookings',
-      stat: `${upcomingCount} upcoming`,
-      color: palette.accent,
-    },
-  ];
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayOfWeek = date.getDay();
 
-  // Quick stats for the header area
-  const quickStats = [
-    { label: 'Weekly Hours', value: `${weeklyHours.toFixed(0)}h` },
-    { label: 'Time Slots', value: templates.length },
-    { label: 'Upcoming', value: upcomingCount },
-  ];
+      // Get sessions for this day
+      const daySessions: SessionData[] = [];
 
-  // Get next session for preview
-  const nextSession = sessionOfferings
-    .filter(o => new Date(o.scheduledAt) >= new Date())
-    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())[0];
+      // From bookings
+      bookings.forEach((b: any) => {
+        const bDate = b.scheduledAt?.split('T')[0];
+        if (bDate === dateStr && b.status !== 'CANCELLED') {
+          const startDate = new Date(b.scheduledAt);
+          const endDate = new Date(startDate);
+          endDate.setMinutes(endDate.getMinutes() + (b.duration || 60));
+
+          daySessions.push({
+            id: b.id,
+            title: b.service || 'Session',
+            time: startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            endTime: endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            athleteName: b.athleteName,
+            location: b.location,
+            status: b.status === 'CONFIRMED' ? 'confirmed' : 'pending',
+            type: 'booking',
+          });
+        }
+      });
+
+      // From offerings
+      offerings.forEach((o) => {
+        const oDate = o.scheduledAt?.split('T')[0];
+        if (oDate === dateStr && o.status !== 'cancelled') {
+          const startDate = new Date(o.scheduledAt);
+          const endDate = new Date(startDate);
+          endDate.setMinutes(endDate.getMinutes() + (o.duration || 60));
+
+          daySessions.push({
+            id: o.id,
+            title: o.title,
+            time: startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            endTime: endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            athleteCount: o.registrations?.filter((r: any) => r.status === 'confirmed').length || 0,
+            location: o.location,
+            status: 'confirmed',
+            type: 'offering',
+          });
+        }
+      });
+
+      daySessions.sort((a, b) => a.time.localeCompare(b.time));
+
+      // Count availability slots
+      const dayTemplates = templates.filter(t => t.dayOfWeek === dayOfWeek);
+      const availabilitySlots = dayTemplates.length;
+
+      return {
+        date,
+        dateStr,
+        dayName: DAYS_FULL[dayOfWeek],
+        dayShort: DAYS[dayOfWeek],
+        dayNum: date.getDate(),
+        isToday: dateStr === today.toISOString().split('T')[0],
+        isPast: date < new Date(today.toISOString().split('T')[0]),
+        sessions: daySessions,
+        availabilitySlots,
+        isBlocked: false, // TODO: Check overrides
+      };
+    });
+  }, [templates, bookings, offerings]);
+
+  // Today's data
+  const todayData = weekData.find(d => d.isToday);
+  const todaySessions = todayData?.sessions || [];
+  const nextSession = todaySessions.find(s => {
+    const now = new Date();
+    const sessionTime = new Date();
+    const [h, m] = s.time.split(':').map(Number);
+    sessionTime.setHours(h, m, 0, 0);
+    return sessionTime > now;
+  });
+
+  // Calculate time until next session
+  const getTimeUntil = (timeStr: string): string => {
+    const now = new Date();
+    const sessionTime = new Date();
+    const [h, m] = timeStr.split(':').map(Number);
+    sessionTime.setHours(h, m, 0, 0);
+    const diff = sessionTime.getTime() - now.getTime();
+    if (diff < 0) return 'Now';
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours > 0) return `in ${hours}h ${mins}m`;
+    return `in ${mins}m`;
+  };
+
+  // Weekly summary
+  const weekSummary = useMemo(() => {
+    const totalSessions = weekData.reduce((sum, d) => sum + d.sessions.length, 0);
+    const daysWithSessions = weekData.filter(d => d.sessions.length > 0).length;
+    const totalHours = templates.reduce((sum, t) => {
+      const [sh, sm] = t.startTime.split(':').map(Number);
+      const [eh, em] = t.endTime.split(':').map(Number);
+      return sum + ((eh * 60 + em) - (sh * 60 + sm)) / 60;
+    }, 0);
+    return { totalSessions, daysWithSessions, totalHours };
+  }, [weekData, templates]);
+
+  // Selected day
+  const selectedDay = selectedDayIndex !== null ? weekData[selectedDayIndex] : null;
+
+  // Handlers
+  const handleDayPress = (index: number) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedDayIndex(index);
+  };
+
+  const handleSessionPress = (session: SessionData) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push(`/booking/${session.id}` as any);
+  };
+
+  const handleAddSlot = (dayIndex?: number) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPreselectedDay(dayIndex);
+    setShowAddSlotModal(true);
+  };
+
+  const handleBlockDay = async (dateStr: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      'Block This Day?',
+      'This will prevent any new bookings for this day.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block Day',
+          style: 'destructive',
+          onPress: async () => {
+            await availabilityService.blockDate(coachId, dateStr, 'Blocked from schedule');
+            await loadData();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSaveTemplate = async (templateData: Omit<AvailabilityTemplate, 'id' | 'coachId'>) => {
+    await availabilityService.saveTemplate({ ...templateData, coachId });
+    await loadData();
+    setShowAddSlotModal(false);
+  };
+
+  const handleOpenSettings = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/availability/scheduling-rules' as any);
+  };
 
   // Loading state
   if (loading) {
     return (
-      <PageContainer
-        header={<PageHeader title="Schedule" subtitle="Manage your calendar and bookings" />}
-        gap={Spacing.md}
-      >
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={palette.tint} />
-          <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-            Loading your schedule...
-          </ThemedText>
+          <ThemedText style={{ color: palette.muted }}>Loading schedule...</ThemedText>
         </View>
-      </PageContainer>
+      </SafeAreaView>
     );
   }
-
-  // Error state
-  if (error) {
-    return (
-      <PageContainer
-        header={<PageHeader title="Schedule" subtitle="Manage your calendar and bookings" />}
-        gap={Spacing.md}
-      >
-        <SurfaceCard style={styles.errorCard}>
-          <Ionicons name="alert-circle-outline" size={48} color={palette.error} />
-          <ThemedText type="defaultSemiBold" style={{ textAlign: 'center' }}>
-            Something went wrong
-          </ThemedText>
-          <ThemedText style={[styles.errorText, { color: palette.muted }]}>
-            {error}
-          </ThemedText>
-          <Clickable
-            style={[styles.retryButton, { backgroundColor: palette.tint }]}
-            onPress={loadData}
-          >
-            <ThemedText style={styles.retryButtonText}>Try Again</ThemedText>
-          </Clickable>
-        </SurfaceCard>
-      </PageContainer>
-    );
-  }
-
-  // Check if user has any data set up
-  const hasNoData = templates.length === 0 && sessionOfferings.length === 0;
 
   return (
-    <PageContainer
-      header={<PageHeader title="Schedule" subtitle="Manage your calendar and bookings" />}
-      gap={Spacing.md}
-    >
-      {/* Quick Stats Row */}
-      <Animated.View entering={FadeInDown.delay(50).springify()}>
-        <View style={styles.statsRow}>
-          {quickStats.map((stat) => (
-            <SurfaceCard
-              key={stat.label}
-              style={[styles.statCard, { borderColor: palette.border }]}
-            >
-              <ThemedText type="heading" style={styles.statValue}>
-                {stat.value}
-              </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
-                {stat.label}
-              </ThemedText>
-            </SurfaceCard>
-          ))}
-        </View>
-      </Animated.View>
-
-      {/* Empty State for new coaches */}
-      {hasNoData && (
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <SurfaceCard style={styles.emptyStateCard}>
-            <View style={[styles.emptyIconContainer, { backgroundColor: `${palette.tint}15` }]}>
-              <Ionicons name="calendar-outline" size={40} color={palette.tint} />
-            </View>
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              Set Up Your Schedule
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        {/* Header */}
+        <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
+          <View>
+            <ThemedText type="title" style={styles.title}>Schedule</ThemedText>
+            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
+              {weekSummary.totalSessions} sessions this week
             </ThemedText>
-            <ThemedText style={[styles.emptySubtitle, { color: palette.muted }]}>
-              Start by adding your availability and creating your first session offering.
-            </ThemedText>
-            <View style={styles.emptyActions}>
-              <Clickable
-                style={[styles.emptyActionButton, { backgroundColor: palette.tint }]}
-                onPress={() => handleNavigate('/availability', 'EmptyState-SetAvailability')}
-              >
-                <Ionicons name="time-outline" size={18} color="#FFFFFF" />
-                <ThemedText style={styles.emptyActionText}>Set Availability</ThemedText>
-              </Clickable>
-              <Clickable
-                style={[styles.emptyActionButtonOutline, { borderColor: palette.tint }]}
-                onPress={() => handleNavigate('/sessions/create', 'EmptyState-CreateSession')}
-              >
-                <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
-                <ThemedText style={[styles.emptyActionText, { color: palette.tint }]}>
-                  Create Session
-                </ThemedText>
-              </Clickable>
-            </View>
-          </SurfaceCard>
+          </View>
+          <Clickable onPress={handleOpenSettings} style={[styles.settingsButton, { backgroundColor: palette.surface }]}>
+            <Ionicons name="settings-outline" size={22} color={palette.muted} />
+          </Clickable>
         </Animated.View>
-      )}
 
-      {/* Hub Sections */}
-      <View style={styles.sectionsContainer}>
-        {hubSections.map((section, index) => (
-          <Animated.View
-            key={section.id}
-            entering={FadeInDown.delay(100 + index * 50).springify()}
-          >
-            <Clickable onPress={() => handleNavigate(section.route, `HubSection-${section.id}`)}>
-              <SurfaceCard style={styles.sectionCard}>
-                <View style={styles.sectionRow}>
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      { backgroundColor: `${section.color || palette.tint}15` },
-                    ]}
-                  >
-                    <Ionicons
-                      name={section.icon}
-                      size={24}
-                      color={section.color || palette.tint}
-                    />
-                  </View>
-                  <View style={styles.sectionContent}>
-                    <View style={styles.sectionTitleRow}>
-                      <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                        {section.title}
-                      </ThemedText>
-                      {section.stat && (
-                        <Chip dense>{section.stat}</Chip>
-                      )}
-                    </View>
-                    <ThemedText style={[styles.sectionSubtitle, { color: palette.muted }]}>
-                      {section.subtitle}
+        {/* TODAY Hero Card */}
+        {todayData && (
+          <Animated.View entering={FadeInDown.delay(100).springify()}>
+            <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.tint }]}>
+              <View style={styles.todayHeader}>
+                <View>
+                  <ThemedText style={styles.todayLabel}>TODAY</ThemedText>
+                  <ThemedText style={styles.todayDate}>
+                    {todayData.dayName}, {todayData.date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
+                  </ThemedText>
+                </View>
+                <View style={styles.todayStats}>
+                  <ThemedText style={styles.todayStatValue}>{todaySessions.length}</ThemedText>
+                  <ThemedText style={styles.todayStatLabel}>
+                    session{todaySessions.length !== 1 ? 's' : ''}
+                  </ThemedText>
+                </View>
+              </View>
+
+              {nextSession ? (
+                <View style={styles.nextSessionBanner}>
+                  <View style={styles.nextSessionInfo}>
+                    <ThemedText style={styles.nextSessionTitle}>
+                      {nextSession.athleteName || nextSession.title}
+                    </ThemedText>
+                    <ThemedText style={styles.nextSessionMeta}>
+                      {nextSession.time} · {nextSession.location || 'Location TBD'}
                     </ThemedText>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+                  <View style={styles.nextSessionCountdown}>
+                    <ThemedText style={styles.countdownText}>
+                      {getTimeUntil(nextSession.time)}
+                    </ThemedText>
+                  </View>
                 </View>
+              ) : todaySessions.length === 0 ? (
+                <View style={styles.todayEmpty}>
+                  <ThemedText style={styles.todayEmptyText}>
+                    No sessions today - enjoy your free time!
+                  </ThemedText>
+                </View>
+              ) : (
+                <View style={styles.todayEmpty}>
+                  <ThemedText style={styles.todayEmptyText}>
+                    All done for today!
+                  </ThemedText>
+                </View>
+              )}
+            </SurfaceCard>
+          </Animated.View>
+        )}
+
+        {/* Week Strip */}
+        <Animated.View entering={FadeInDown.delay(200).springify()}>
+          <View style={styles.weekSection}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>This Week</ThemedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekStrip}>
+              <View style={styles.weekDays}>
+                {weekData.map((day, index) => {
+                  const isSelected = selectedDayIndex === index;
+                  const hasSession = day.sessions.length > 0;
+                  const hasAvailability = day.availabilitySlots > 0;
+
+                  return (
+                    <Clickable
+                      key={day.dateStr}
+                      onPress={() => handleDayPress(index)}
+                      style={[
+                        styles.dayPill,
+                        {
+                          backgroundColor: isSelected
+                            ? palette.tint
+                            : day.isToday
+                            ? `${palette.tint}15`
+                            : palette.surface,
+                          borderColor: day.isToday && !isSelected ? palette.tint : 'transparent',
+                          borderWidth: day.isToday && !isSelected ? 1.5 : 0,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.dayPillLabel,
+                          { color: isSelected ? '#fff' : day.isPast ? palette.muted : palette.text },
+                        ]}
+                      >
+                        {day.dayShort}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.dayPillNum,
+                          { color: isSelected ? '#fff' : day.isPast ? palette.muted : palette.text },
+                        ]}
+                      >
+                        {day.dayNum}
+                      </ThemedText>
+                      {hasSession && !isSelected && (
+                        <View style={[styles.dayDot, { backgroundColor: palette.success }]} />
+                      )}
+                      {!hasSession && hasAvailability && !isSelected && (
+                        <View style={[styles.dayDot, { backgroundColor: palette.border }]} />
+                      )}
+                    </Clickable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        </Animated.View>
+
+        {/* Selected Day Detail */}
+        {selectedDay && (
+          <Animated.View entering={FadeInDown.delay(300).springify()}>
+            <SurfaceCard style={styles.dayDetailCard}>
+              <View style={styles.dayDetailHeader}>
+                <View>
+                  <ThemedText type="subtitle">
+                    {selectedDay.dayName}
+                    {selectedDay.isToday && (
+                      <ThemedText style={{ color: palette.tint }}> (Today)</ThemedText>
+                    )}
+                  </ThemedText>
+                  <ThemedText style={[styles.dayDetailSub, { color: palette.muted }]}>
+                    {selectedDay.sessions.length} session{selectedDay.sessions.length !== 1 ? 's' : ''} · {selectedDay.availabilitySlots} slot{selectedDay.availabilitySlots !== 1 ? 's' : ''} available
+                  </ThemedText>
+                </View>
+                <View style={styles.dayActions}>
+                  <Clickable
+                    onPress={() => handleAddSlot(selectedDay.date.getDay())}
+                    style={[styles.dayActionBtn, { borderColor: palette.tint }]}
+                  >
+                    <Ionicons name="add" size={18} color={palette.tint} />
+                  </Clickable>
+                  {!selectedDay.isPast && (
+                    <Clickable
+                      onPress={() => handleBlockDay(selectedDay.dateStr)}
+                      style={[styles.dayActionBtn, { borderColor: palette.border }]}
+                    >
+                      <Ionicons name="close" size={18} color={palette.muted} />
+                    </Clickable>
+                  )}
+                </View>
+              </View>
+
+              {selectedDay.sessions.length === 0 ? (
+                <View style={[styles.emptyDay, { backgroundColor: palette.background }]}>
+                  <Ionicons name="calendar-outline" size={32} color={palette.muted} />
+                  <ThemedText style={[styles.emptyDayText, { color: palette.muted }]}>
+                    {selectedDay.availabilitySlots > 0
+                      ? 'Available but no bookings yet'
+                      : 'No availability set for this day'}
+                  </ThemedText>
+                  {selectedDay.availabilitySlots === 0 && (
+                    <Clickable
+                      onPress={() => handleAddSlot(selectedDay.date.getDay())}
+                      style={[styles.addSlotBtn, { backgroundColor: palette.tint }]}
+                    >
+                      <Ionicons name="add" size={16} color="#fff" />
+                      <ThemedText style={styles.addSlotBtnText}>Add Availability</ThemedText>
+                    </Clickable>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.sessionsList}>
+                  {selectedDay.sessions.map((session) => (
+                    <Clickable
+                      key={session.id}
+                      onPress={() => handleSessionPress(session)}
+                      style={[
+                        styles.sessionItem,
+                        {
+                          backgroundColor: palette.background,
+                          borderLeftColor: session.status === 'pending' ? palette.warning : palette.success,
+                        },
+                      ]}
+                    >
+                      <View style={styles.sessionTime}>
+                        <ThemedText type="defaultSemiBold" style={styles.sessionTimeText}>
+                          {session.time}
+                        </ThemedText>
+                        <ThemedText style={[styles.sessionEndTime, { color: palette.muted }]}>
+                          {session.endTime}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.sessionInfo}>
+                        <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                          {session.athleteName || session.title}
+                        </ThemedText>
+                        {session.location && (
+                          <View style={styles.sessionMeta}>
+                            <Ionicons name="location-outline" size={12} color={palette.muted} />
+                            <ThemedText style={[styles.sessionMetaText, { color: palette.muted }]}>
+                              {session.location}
+                            </ThemedText>
+                          </View>
+                        )}
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+                    </Clickable>
+                  ))}
+                </View>
+              )}
+            </SurfaceCard>
+          </Animated.View>
+        )}
+
+        {/* Quick Actions */}
+        <Animated.View entering={FadeInDown.delay(400).springify()}>
+          <View style={styles.quickActions}>
+            <Clickable
+              onPress={() => router.push('/(tabs)/availability' as any)}
+              style={[styles.quickAction, { backgroundColor: palette.surface }]}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.success}15` }]}>
+                <Ionicons name="time-outline" size={22} color={palette.success} />
+              </View>
+              <ThemedText type="defaultSemiBold" style={styles.quickActionLabel}>
+                Availability
+              </ThemedText>
+            </Clickable>
+
+            <Clickable
+              onPress={() => router.push('/(tabs)/bookings' as any)}
+              style={[styles.quickAction, { backgroundColor: palette.surface }]}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.accent}15` }]}>
+                <Ionicons name="calendar-outline" size={22} color={palette.accent} />
+              </View>
+              <ThemedText type="defaultSemiBold" style={styles.quickActionLabel}>
+                Bookings
+              </ThemedText>
+            </Clickable>
+
+            <Clickable
+              onPress={() => router.push('/sessions/create' as any)}
+              style={[styles.quickAction, { backgroundColor: palette.surface }]}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <Ionicons name="add-circle-outline" size={22} color={palette.tint} />
+              </View>
+              <ThemedText type="defaultSemiBold" style={styles.quickActionLabel}>
+                New Session
+              </ThemedText>
+            </Clickable>
+          </View>
+        </Animated.View>
+
+        {/* Rules Summary (if set) */}
+        {rules && (
+          <Animated.View entering={FadeInDown.delay(500).springify()}>
+            <Clickable onPress={handleOpenSettings}>
+              <SurfaceCard style={styles.rulesCard}>
+                <View style={styles.rulesHeader}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color={palette.muted} />
+                  <ThemedText style={[styles.rulesTitle, { color: palette.muted }]}>
+                    Booking Rules Active
+                  </ThemedText>
+                </View>
+                <ThemedText style={[styles.rulesText, { color: palette.muted }]}>
+                  {rules.minimumAdvanceBookingHours}h notice · {rules.bufferMinutesDefault}m buffer · {rules.allowSameDayBookings ? 'Same-day OK' : 'No same-day'}
+                </ThemedText>
               </SurfaceCard>
             </Clickable>
           </Animated.View>
-        ))}
-      </View>
+        )}
+      </ScrollView>
 
-      {/* Next Session Preview */}
-      {nextSession ? (
-        <Animated.View entering={FadeInDown.delay(300).springify()}>
-          <SurfaceCard
-            style={styles.previewCard}
-            onPress={() => handleNavigate('/bookings', 'NextSession-ViewBookings')}
-          >
-            <View style={styles.previewHeader}>
-              <ThemedText type="defaultSemiBold">Next Session</ThemedText>
-              <Chip dense active>
-                {new Date(nextSession.scheduledAt).toLocaleDateString('en-GB', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </Chip>
-            </View>
-            <View style={styles.previewContent}>
-              <View style={styles.previewDetails}>
-                <ThemedText type="subtitle">{nextSession.title}</ThemedText>
-                <View style={styles.previewMeta}>
-                  <Ionicons name="time-outline" size={14} color={palette.muted} />
-                  <ThemedText style={{ color: palette.muted }}>
-                    {new Date(nextSession.scheduledAt).toLocaleTimeString([], {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </ThemedText>
-                  <Ionicons name="location-outline" size={14} color={palette.muted} />
-                  <ThemedText style={{ color: palette.muted }}>
-                    {nextSession.location}
-                  </ThemedText>
-                </View>
-                <View style={styles.previewMeta}>
-                  <Ionicons name="people-outline" size={14} color={palette.muted} />
-                  <ThemedText style={{ color: palette.muted }}>
-                    {nextSession.registrations.length}/{nextSession.maxParticipants} registered
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
-          </SurfaceCard>
-        </Animated.View>
-      ) : !hasNoData && (
-        // Empty state for no upcoming sessions (but user has data)
-        <Animated.View entering={FadeInDown.delay(300).springify()}>
-          <SurfaceCard style={styles.noSessionCard}>
-            <View style={styles.noSessionContent}>
-              <Ionicons name="calendar-clear-outline" size={32} color={palette.muted} />
-              <View style={styles.noSessionText}>
-                <ThemedText type="defaultSemiBold">No Upcoming Sessions</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-                  Create a new session to get started
-                </ThemedText>
-              </View>
-            </View>
-          </SurfaceCard>
-        </Animated.View>
-      )}
-
-      {/* Quick Actions */}
-      <Animated.View entering={FadeInDown.delay(350).springify()}>
-        <View style={styles.quickActions}>
-          <Clickable
-            style={[styles.actionButton, { backgroundColor: palette.tint }]}
-            onPress={() => handleNavigate('/sessions/create', 'QuickAction-CreateSession')}
-          >
-            <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
-            <ThemedText style={styles.actionButtonText}>Create Session</ThemedText>
-          </Clickable>
-          <Clickable
-            style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
-            onPress={() => handleNavigate('/availability', 'QuickAction-EditAvailability')}
-          >
-            <Ionicons name="time-outline" size={20} color={palette.tint} />
-            <ThemedText style={[styles.actionButtonTextSecondary, { color: palette.tint }]}>
-              Edit Availability
-            </ThemedText>
-          </Clickable>
-        </View>
-      </Animated.View>
-    </PageContainer>
+      {/* Add Slot Modal */}
+      <RecurringTemplateModal
+        visible={showAddSlotModal}
+        onClose={() => setShowAddSlotModal(false)}
+        onSave={handleSaveTemplate}
+        preselectedDay={preselectedDay}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // Loading state styles
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.lg,
+  },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing['2xl'],
-    gap: Spacing.md,
   },
-  loadingText: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 15,
+    marginTop: 2,
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // TODAY Card
+  todayCard: {
+    padding: Spacing.lg,
+    borderRadius: Radii.lg,
+  },
+  todayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  todayLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1,
+  },
+  todayDate: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+    marginTop: 2,
+  },
+  todayStats: {
+    alignItems: 'flex-end',
+  },
+  todayStatValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  todayStatLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  nextSessionBanner: {
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: Radii.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nextSessionInfo: {
+    flex: 1,
+  },
+  nextSessionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  nextSessionMeta: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  nextSessionCountdown: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: Radii.md,
+  },
+  countdownText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  todayEmpty: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.2)',
+  },
+  todayEmptyText: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
   },
-  // Error state styles
-  errorCard: {
+  // Week Strip
+  weekSection: {
+    gap: Spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: 15,
+  },
+  weekStrip: {
+    marginHorizontal: -Spacing.lg,
+  },
+  weekDays: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+  },
+  dayPill: {
+    width: 52,
+    height: 72,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  dayPillLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  dayPillNum: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  dayDot: {
+    position: 'absolute',
+    bottom: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  // Day Detail
+  dayDetailCard: {
+    padding: Spacing.lg,
+  },
+  dayDetailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  dayDetailSub: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  dayActions: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  dayActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyDay: {
     alignItems: 'center',
     padding: Spacing.xl,
-    gap: Spacing.md,
+    borderRadius: Radii.md,
+    gap: Spacing.sm,
   },
-  errorText: {
+  emptyDayText: {
     fontSize: 14,
     textAlign: 'center',
   },
-  retryButton: {
+  addSlotBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.lg,
     borderRadius: Radii.md,
     marginTop: Spacing.sm,
   },
-  retryButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  // Empty state styles
-  emptyStateCard: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-    gap: Spacing.md,
-  },
-  emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  emptyTitle: {
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-    paddingHorizontal: Spacing.md,
-  },
-  emptyActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  emptyActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  emptyActionButtonOutline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  emptyActionText: {
-    color: '#FFFFFF',
+  addSlotBtnText: {
+    color: '#fff',
     fontWeight: '600',
     fontSize: 14,
   },
-  // No session card
-  noSessionCard: {
-    padding: Spacing.lg,
-  },
-  noSessionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  noSessionText: {
-    flex: 1,
-    gap: 2,
-  },
-  // Main content styles
-  statsRow: {
-    flexDirection: 'row',
+  sessionsList: {
     gap: Spacing.sm,
   },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  sectionsContainer: {
-    gap: Spacing.sm,
-  },
-  sectionCard: {
-    padding: Spacing.md,
-  },
-  sectionRow: {
+  sessionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
+    padding: Spacing.md,
     borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderLeftWidth: 3,
+    gap: Spacing.md,
   },
-  sectionContent: {
+  sessionTime: {
+    alignItems: 'center',
+    minWidth: 50,
+  },
+  sessionTimeText: {
+    fontSize: 14,
+  },
+  sessionEndTime: {
+    fontSize: 11,
+  },
+  sessionInfo: {
     flex: 1,
     gap: 4,
   },
-  sectionTitleRow: {
+  sessionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 4,
   },
-  sectionTitle: {
-    fontSize: 16,
+  sessionMetaText: {
+    fontSize: 12,
   },
-  sectionSubtitle: {
-    fontSize: 13,
-  },
-  previewCard: {
-    gap: Spacing.sm,
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  previewContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  previewDetails: {
-    flex: 1,
-    gap: 6,
-  },
-  previewMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
+  // Quick Actions
   quickActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  actionButton: {
+  quickAction: {
     flex: 1,
-    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    gap: Spacing.sm,
+  },
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
   },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 15,
+  quickActionLabel: {
+    fontSize: 12,
   },
-  actionButtonSecondary: {
-    flex: 1,
+  // Rules Card
+  rulesCard: {
+    padding: Spacing.md,
+  },
+  rulesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-    borderWidth: 1.5,
   },
-  actionButtonTextSecondary: {
-    fontWeight: '700',
-    fontSize: 15,
+  rulesTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  rulesText: {
+    fontSize: 12,
+    marginTop: 4,
   },
 });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ScrollView, StyleSheet, View, Alert, Modal, Dimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, Alert, Modal, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -18,188 +18,34 @@ import type { AvailabilityTemplate } from '@/constants/types';
 
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am to 8pm
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Quick template presets
-const QUICK_TEMPLATES = [
+// Quick presets for common schedules
+const QUICK_PRESETS = [
   {
-    id: 'full-time',
-    name: 'Full-time',
-    description: '9am - 5pm',
-    icon: 'briefcase-outline' as const,
-    slots: [
-      { days: [1, 2, 3, 4, 5], startTime: '09:00', endTime: '17:00' },
-    ],
+    id: 'weekday-mornings',
+    name: 'Weekday Mornings',
+    icon: 'sunny-outline' as const,
+    slots: [{ days: [1, 2, 3, 4, 5], start: '08:00', end: '12:00' }],
   },
   {
-    id: 'afternoons',
-    name: 'Afternoons',
-    description: '2pm - 6pm',
-    icon: 'sunny-outline' as const,
-    slots: [
-      { days: [1, 2, 3, 4, 5], startTime: '14:00', endTime: '18:00' },
-    ],
+    id: 'weekday-afternoons',
+    name: 'Weekday Afternoons',
+    icon: 'partly-sunny-outline' as const,
+    slots: [{ days: [1, 2, 3, 4, 5], start: '13:00', end: '17:00' }],
   },
   {
     id: 'evenings',
-    name: 'Evenings',
-    description: '5pm - 8pm',
+    name: 'Evenings Only',
     icon: 'moon-outline' as const,
-    slots: [
-      { days: [1, 2, 3, 4, 5], startTime: '17:00', endTime: '20:00' },
-    ],
+    slots: [{ days: [1, 2, 3, 4, 5], start: '17:00', end: '20:00' }],
   },
   {
     id: 'weekends',
-    name: 'Weekends',
-    description: '10am - 4pm',
+    name: 'Weekend Sessions',
     icon: 'calendar-outline' as const,
-    slots: [
-      { days: [0, 6], startTime: '10:00', endTime: '16:00' },
-    ],
+    slots: [{ days: [0, 6], start: '09:00', end: '16:00' }],
   },
 ];
-
-interface CopyScheduleModalProps {
-  visible: boolean;
-  onClose: () => void;
-  sourceDay: number;
-  templates: AvailabilityTemplate[];
-  onCopy: (targetDays: number[]) => void;
-}
-
-function CopyScheduleModal({ visible, onClose, sourceDay, templates, onCopy }: CopyScheduleModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
-
-  const sourceTemplates = templates.filter(t => t.dayOfWeek === sourceDay);
-
-  const toggleDay = (day: number) => {
-    if (day === sourceDay) return;
-    setSelectedDays(prev =>
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-    );
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  const handleCopy = () => {
-    if (selectedDays.length === 0) {
-      Alert.alert('Select Days', 'Please select at least one day to copy to.');
-      return;
-    }
-    onCopy(selectedDays);
-    setSelectedDays([]);
-    onClose();
-  };
-
-  useEffect(() => {
-    if (!visible) {
-      setSelectedDays([]);
-    }
-  }, [visible]);
-
-  return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.copyModal, { backgroundColor: palette.surface }]}>
-          <View style={styles.copyModalHeader}>
-            <ThemedText type="subtitle">Copy Schedule</ThemedText>
-            <Clickable onPress={onClose}>
-              <Ionicons name="close" size={24} color={palette.muted} />
-            </Clickable>
-          </View>
-
-          <ThemedText style={{ color: palette.muted, marginBottom: Spacing.md }}>
-            Copy {DAYS_FULL[sourceDay]}'s {sourceTemplates.length} slot{sourceTemplates.length !== 1 ? 's' : ''} to other days:
-          </ThemedText>
-
-          <View style={styles.copyDaysGrid}>
-            {DAYS_FULL.map((day, index) => {
-              const isSource = index === sourceDay;
-              const isSelected = selectedDays.includes(index);
-              const existingSlots = templates.filter(t => t.dayOfWeek === index).length;
-
-              return (
-                <Clickable
-                  key={day}
-                  onPress={() => toggleDay(index)}
-                  disabled={isSource}
-                  style={[
-                    styles.copyDayButton,
-                    {
-                      backgroundColor: isSource
-                        ? `${palette.success}15`
-                        : isSelected
-                        ? `${palette.tint}15`
-                        : palette.background,
-                      borderColor: isSource
-                        ? palette.success
-                        : isSelected
-                        ? palette.tint
-                        : palette.border,
-                      opacity: isSource ? 0.6 : 1,
-                    },
-                  ]}
-                >
-                  <ThemedText
-                    style={[
-                      styles.copyDayText,
-                      { color: isSource ? palette.success : isSelected ? palette.tint : palette.text },
-                    ]}
-                  >
-                    {day}
-                  </ThemedText>
-                  {isSource && (
-                    <ThemedText style={{ fontSize: 10, color: palette.success }}>Source</ThemedText>
-                  )}
-                  {!isSource && existingSlots > 0 && (
-                    <ThemedText style={{ fontSize: 10, color: palette.muted }}>
-                      {existingSlots} slot{existingSlots !== 1 ? 's' : ''}
-                    </ThemedText>
-                  )}
-                  {isSelected && (
-                    <View style={[styles.checkmark, { backgroundColor: palette.tint }]}>
-                      <Ionicons name="checkmark" size={12} color="#fff" />
-                    </View>
-                  )}
-                </Clickable>
-              );
-            })}
-          </View>
-
-          {selectedDays.length > 0 && (
-            <ThemedText style={{ color: palette.warning, fontSize: 12, marginTop: Spacing.sm }}>
-              Note: Existing slots on target days will be replaced.
-            </ThemedText>
-          )}
-
-          <View style={styles.copyModalActions}>
-            <Clickable
-              onPress={onClose}
-              style={[styles.copyModalButton, { borderColor: palette.border }]}
-            >
-              <ThemedText>Cancel</ThemedText>
-            </Clickable>
-            <Clickable
-              onPress={handleCopy}
-              style={[
-                styles.copyModalButton,
-                { backgroundColor: palette.tint, borderColor: palette.tint },
-              ]}
-            >
-              <Ionicons name="copy-outline" size={16} color="#fff" />
-              <ThemedText style={{ color: '#fff', fontWeight: '600' }}>
-                Copy to {selectedDays.length} day{selectedDays.length !== 1 ? 's' : ''}
-              </ThemedText>
-            </Clickable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
 
 export default function AvailabilityScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -209,18 +55,19 @@ export default function AvailabilityScreen() {
   const [templates, setTemplates] = useState<AvailabilityTemplate[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<AvailabilityTemplate | null>(null);
   const [preselectedDay, setPreselectedDay] = useState<number | undefined>();
   const [preselectedHour, setPreselectedHour] = useState<number | undefined>();
-  const [showCopyModal, setShowCopyModal] = useState(false);
-  const [copySourceDay, setCopySourceDay] = useState<number>(0);
-  const [scheduleMode, setScheduleMode] = useState<'same' | 'custom'>('custom');
+  const [showQuickSetup, setShowQuickSetup] = useState(false);
 
   const coachId = currentUser?.id || 'coach_1';
 
-  // Calculate summary stats
+  // Get today's day index for highlighting
+  const todayIndex = new Date().getDay();
+
+  // Summary stats
   const summaryStats = useMemo(() => {
     let totalMinutes = 0;
     const daysWithSlots = new Set<number>();
@@ -244,6 +91,10 @@ export default function AvailabilityScreen() {
     try {
       const data = await availabilityService.getTemplates(coachId);
       setTemplates(data);
+      // Show quick setup if no templates exist
+      if (data.length === 0) {
+        setShowQuickSetup(true);
+      }
     } catch (error) {
       console.error('Failed to load templates:', error);
     } finally {
@@ -281,42 +132,23 @@ export default function AvailabilityScreen() {
     }, [loadUpcomingBookings])
   );
 
-  // Get slot status for grid cell
-  const getSlotStatus = useCallback(
-    (dayOfWeek: number, hour: number): { available: boolean; template?: AvailabilityTemplate } => {
-      const template = templates.find((t) => {
-        if (t.dayOfWeek !== dayOfWeek) return false;
-        const [startHour] = t.startTime.split(':').map(Number);
-        const [endHour] = t.endTime.split(':').map(Number);
-        return hour >= startHour && hour < endHour;
-      });
-      return { available: !!template, template };
-    },
-    [templates]
-  );
-
-  const handleSlotPress = (dayOfWeek: number, hour: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setPreselectedDay(dayOfWeek);
-    setPreselectedHour(hour);
-    setEditingTemplate(null);
-    setShowTemplateModal(true);
+  const getDayTemplates = (dayOfWeek: number) => {
+    return templates
+      .filter(t => t.dayOfWeek === dayOfWeek)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
   };
 
-  const handleSlotLongPress = (dayOfWeek: number, hour: number) => {
-    const { template } = getSlotStatus(dayOfWeek, hour);
-    if (template) {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      setEditingTemplate(template);
-      setPreselectedDay(undefined);
-      setPreselectedHour(undefined);
-      setShowTemplateModal(true);
-    }
+  const formatTimeRange = (start: string, end: string) => {
+    const formatTime = (time: string) => {
+      const [h] = time.split(':').map(Number);
+      if (h === 12) return '12pm';
+      if (h === 0) return '12am';
+      return h > 12 ? `${h - 12}pm` : `${h}am`;
+    };
+    return `${formatTime(start)} - ${formatTime(end)}`;
   };
 
-  const handleSaveTemplate = async (
-    templateData: Omit<AvailabilityTemplate, 'id' | 'coachId'>
-  ) => {
+  const handleSaveTemplate = async (templateData: Omit<AvailabilityTemplate, 'id' | 'coachId'>) => {
     try {
       if (editingTemplate) {
         await availabilityService.saveTemplate({
@@ -331,6 +163,7 @@ export default function AvailabilityScreen() {
         });
       }
       await loadTemplates();
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       throw error;
     }
@@ -340,439 +173,286 @@ export default function AvailabilityScreen() {
     try {
       await availabilityService.deleteTemplate(templateId);
       await loadTemplates();
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error) {
       console.error('Failed to delete template:', error);
     }
   };
 
-  const handleApplyQuickTemplate = async (templateId: string) => {
-    const quickTemplate = QUICK_TEMPLATES.find(t => t.id === templateId);
-    if (!quickTemplate) return;
-
-    Alert.alert(
-      `Apply ${quickTemplate.name} Schedule`,
-      `This will add availability for ${quickTemplate.description}. Existing slots will be kept.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Apply',
-          onPress: async () => {
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            try {
-              for (const slotDef of quickTemplate.slots) {
-                for (const day of slotDef.days) {
-                  await availabilityService.saveTemplate({
-                    coachId,
-                    dayOfWeek: day as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-                    startTime: slotDef.startTime,
-                    endTime: slotDef.endTime,
-                    isRecurring: true,
-                    maxConcurrent: 1,
-                    bufferMinutes: 15,
-                  });
-                }
-              }
-              await loadTemplates();
-            } catch (error) {
-              console.error('Failed to apply template:', error);
-              Alert.alert('Error', 'Failed to apply template. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleCopySchedule = async (targetDays: number[]) => {
-    const sourceTemplates = templates.filter(t => t.dayOfWeek === copySourceDay);
+  const handleApplyPreset = async (presetId: string) => {
+    const preset = QUICK_PRESETS.find(p => p.id === presetId);
+    if (!preset) return;
 
     try {
-      // Delete existing templates on target days
-      for (const day of targetDays) {
-        const existingTemplates = templates.filter(t => t.dayOfWeek === day);
-        for (const template of existingTemplates) {
-          await availabilityService.deleteTemplate(template.id);
-        }
-      }
-
-      // Copy source templates to target days
-      for (const sourceTemplate of sourceTemplates) {
-        for (const targetDay of targetDays) {
+      for (const slotDef of preset.slots) {
+        for (const day of slotDef.days) {
           await availabilityService.saveTemplate({
             coachId,
-            dayOfWeek: targetDay as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-            startTime: sourceTemplate.startTime,
-            endTime: sourceTemplate.endTime,
+            dayOfWeek: day as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+            startTime: slotDef.start,
+            endTime: slotDef.end,
             isRecurring: true,
-            maxConcurrent: sourceTemplate.maxConcurrent,
-            bufferMinutes: sourceTemplate.bufferMinutes,
-            location: sourceTemplate.location,
+            maxConcurrent: 1,
+            bufferMinutes: 15,
           });
         }
       }
-
       await loadTemplates();
+      setShowQuickSetup(false);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error('Failed to copy schedule:', error);
-      Alert.alert('Error', 'Failed to copy schedule. Please try again.');
+      console.error('Failed to apply preset:', error);
+      Alert.alert('Error', 'Failed to apply preset. Please try again.');
     }
   };
 
-  const handleClearAllSlots = () => {
+  const handleAddSlot = (day?: number) => {
+    setEditingTemplate(null);
+    setPreselectedDay(day ?? selectedDay);
+    setPreselectedHour(9); // Default to 9am
+    setShowTemplateModal(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleEditSlot = (template: AvailabilityTemplate) => {
+    setEditingTemplate(template);
+    setPreselectedDay(undefined);
+    setPreselectedHour(undefined);
+    setShowTemplateModal(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleDeleteSlot = (template: AvailabilityTemplate) => {
     Alert.alert(
-      'Clear All Availability',
-      'This will remove all your availability slots. This action cannot be undone.',
+      'Delete Slot',
+      `Remove this ${formatTimeRange(template.startTime, template.endTime)} slot from ${DAYS_FULL[template.dayOfWeek]}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear All',
+          text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              for (const template of templates) {
-                await availabilityService.deleteTemplate(template.id);
-              }
-              await loadTemplates();
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            } catch (error) {
-              console.error('Failed to clear slots:', error);
-            }
-          },
+          onPress: () => handleDeleteTemplate(template.id),
         },
       ]
     );
   };
 
-  const handleBlockDate = () => {
-    Alert.prompt(
-      'Block Date',
-      'Enter the date to block (YYYY-MM-DD):',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Block',
-          onPress: async (date: string | undefined) => {
-            if (!date) return;
-            try {
-              await availabilityService.blockDate(coachId, date, 'Blocked via app');
-              Alert.alert('Date Blocked', `${date} has been blocked.`);
-            } catch (error) {
-              console.error('Failed to block date:', error);
-            }
-          },
-        },
-      ],
-      'plain-text',
-      new Date().toISOString().split('T')[0]
-    );
-  };
-
-  const getDayTemplates = (dayOfWeek: number) => {
-    return templates.filter(t => t.dayOfWeek === dayOfWeek);
-  };
+  const selectedDaySlots = getDayTemplates(selectedDay);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header with explanation */}
+        {/* Header */}
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>Availability</ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Set your weekly coaching hours. Athletes will only be able to book during these times.
+            Set when athletes can book sessions with you
           </ThemedText>
         </View>
 
-        {/* Summary Stats Card */}
-        <SurfaceCard style={[styles.summaryCard, { backgroundColor: palette.tint }]}>
-          <View style={styles.summaryContent}>
-            <Ionicons name="time" size={32} color="#fff" style={styles.summaryIcon} />
-            <View style={styles.summaryTextContainer}>
-              <ThemedText style={styles.summaryValue}>
-                {summaryStats.totalHours} hours/week
+        {/* Week Overview - Interactive Day Selector */}
+        <SurfaceCard style={styles.weekCard}>
+          <View style={styles.weekHeader}>
+            <ThemedText type="defaultSemiBold">Your Weekly Schedule</ThemedText>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: palette.tint }]}
+              onPress={() => handleAddSlot()}
+            >
+              <Ionicons name="add" size={18} color="#fff" />
+              <ThemedText style={styles.addButtonText}>Add</ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          {/* Day Pills */}
+          <View style={styles.dayPills}>
+            {DAYS_SHORT.map((day, index) => {
+              const daySlots = getDayTemplates(index);
+              const hasSlots = daySlots.length > 0;
+              const isSelected = selectedDay === index;
+              const isToday = todayIndex === index;
+
+              return (
+                <TouchableOpacity
+                  key={day}
+                  onPress={() => {
+                    setSelectedDay(index);
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  style={[
+                    styles.dayPill,
+                    {
+                      backgroundColor: isSelected
+                        ? palette.tint
+                        : hasSlots
+                        ? `${palette.success}15`
+                        : palette.background,
+                      borderColor: isToday ? palette.tint : palette.border,
+                      borderWidth: isToday ? 2 : 1,
+                    },
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.dayPillText,
+                      {
+                        color: isSelected
+                          ? '#fff'
+                          : hasSlots
+                          ? palette.success
+                          : palette.muted,
+                        fontWeight: isSelected || isToday ? '700' : '500',
+                      },
+                    ]}
+                  >
+                    {day}
+                  </ThemedText>
+                  {hasSlots && !isSelected && (
+                    <View style={[styles.dayDot, { backgroundColor: palette.success }]} />
+                  )}
+                  {isSelected && (
+                    <ThemedText style={styles.slotCount}>
+                      {daySlots.length}
+                    </ThemedText>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Summary */}
+          <View style={[styles.summaryRow, { borderTopColor: palette.border }]}>
+            <View style={styles.summaryItem}>
+              <ThemedText style={[styles.summaryValue, { color: palette.tint }]}>
+                {summaryStats.totalHours}
               </ThemedText>
-              <ThemedText style={styles.summarySubtext}>
-                {summaryStats.slotsCount} slot{summaryStats.slotsCount !== 1 ? 's' : ''} across {summaryStats.daysCount} day{summaryStats.daysCount !== 1 ? 's' : ''}
+              <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
+                hrs/week
+              </ThemedText>
+            </View>
+            <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
+            <View style={styles.summaryItem}>
+              <ThemedText style={[styles.summaryValue, { color: palette.tint }]}>
+                {summaryStats.daysCount}
+              </ThemedText>
+              <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
+                days
+              </ThemedText>
+            </View>
+            <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
+            <View style={styles.summaryItem}>
+              <ThemedText style={[styles.summaryValue, { color: palette.tint }]}>
+                {summaryStats.slotsCount}
+              </ThemedText>
+              <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
+                slots
               </ThemedText>
             </View>
           </View>
-          {summaryStats.totalHours === 0 && (
-            <View style={styles.emptyPrompt}>
-              <Ionicons name="arrow-down" size={16} color="rgba(255,255,255,0.7)" />
-              <ThemedText style={styles.emptyPromptText}>
-                Use quick templates below or tap the grid to add slots
+        </SurfaceCard>
+
+        {/* Selected Day Details */}
+        <SurfaceCard style={styles.dayDetailCard}>
+          <View style={styles.dayDetailHeader}>
+            <View>
+              <ThemedText type="subtitle" style={styles.dayDetailTitle}>
+                {DAYS_FULL[selectedDay]}
               </ThemedText>
+              <ThemedText style={[styles.dayDetailSubtitle, { color: palette.muted }]}>
+                {selectedDaySlots.length === 0
+                  ? 'No availability set'
+                  : `${selectedDaySlots.length} slot${selectedDaySlots.length !== 1 ? 's' : ''}`}
+              </ThemedText>
+            </View>
+            {selectedDaySlots.length > 0 && (
+              <TouchableOpacity
+                style={[styles.miniAddButton, { borderColor: palette.tint }]}
+                onPress={() => handleAddSlot(selectedDay)}
+              >
+                <Ionicons name="add" size={16} color={palette.tint} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {selectedDaySlots.length === 0 ? (
+            <View style={[styles.emptyState, { backgroundColor: palette.background }]}>
+              <Ionicons name="calendar-outline" size={40} color={palette.muted} />
+              <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
+                Not available
+              </ThemedText>
+              <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+                Add availability so athletes can book on {DAYS_FULL[selectedDay]}
+              </ThemedText>
+              <TouchableOpacity
+                style={[styles.emptyAddButton, { backgroundColor: palette.tint }]}
+                onPress={() => handleAddSlot(selectedDay)}
+              >
+                <Ionicons name="add" size={18} color="#fff" />
+                <ThemedText style={styles.emptyAddButtonText}>Add Slot</ThemedText>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.slotsList}>
+              {selectedDaySlots.map((template) => {
+                const [startH] = template.startTime.split(':').map(Number);
+                const [endH] = template.endTime.split(':').map(Number);
+                const duration = endH - startH;
+
+                return (
+                  <View
+                    key={template.id}
+                    style={[styles.slotCard, { backgroundColor: palette.background, borderColor: palette.border }]}
+                  >
+                    <View style={[styles.slotTime, { backgroundColor: `${palette.success}12` }]}>
+                      <Ionicons name="time-outline" size={16} color={palette.success} />
+                      <ThemedText style={[styles.slotTimeText, { color: palette.success }]}>
+                        {formatTimeRange(template.startTime, template.endTime)}
+                      </ThemedText>
+                    </View>
+
+                    <View style={styles.slotInfo}>
+                      <ThemedText style={styles.slotDuration}>
+                        {duration} hour{duration !== 1 ? 's' : ''}
+                      </ThemedText>
+                      {template.location && (
+                        <View style={styles.slotMeta}>
+                          <Ionicons name="location-outline" size={12} color={palette.muted} />
+                          <ThemedText style={[styles.slotMetaText, { color: palette.muted }]}>
+                            {template.location}
+                          </ThemedText>
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.slotActions}>
+                      <TouchableOpacity
+                        style={[styles.slotActionBtn, { borderColor: palette.border }]}
+                        onPress={() => handleEditSlot(template)}
+                      >
+                        <Ionicons name="pencil-outline" size={16} color={palette.tint} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.slotActionBtn, { borderColor: palette.border }]}
+                        onPress={() => handleDeleteSlot(template)}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={palette.error} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           )}
         </SurfaceCard>
 
-        {/* Quick Templates */}
-        <View style={styles.section}>
-          <SectionHeader
-            title="Quick Templates"
-            subtitle="Apply a preset schedule instantly"
-          />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.templatesScroll}
-          >
-            {QUICK_TEMPLATES.map((template) => (
-              <Clickable
-                key={template.id}
-                onPress={() => handleApplyQuickTemplate(template.id)}
-                style={[styles.quickTemplateCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
-              >
-                <View style={[styles.quickTemplateIcon, { backgroundColor: `${palette.tint}10` }]}>
-                  <Ionicons name={template.icon} size={24} color={palette.tint} />
-                </View>
-                <ThemedText type="defaultSemiBold" style={styles.quickTemplateName}>
-                  {template.name}
-                </ThemedText>
-                <ThemedText style={[styles.quickTemplateDesc, { color: palette.muted }]}>
-                  {template.description}
-                </ThemedText>
-              </Clickable>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Weekly Schedule Grid */}
-        <View style={styles.section}>
-          <SectionHeader
-            title="Weekly Schedule"
-            subtitle="Tap to add slots, long press to edit"
-          />
-
-          <SurfaceCard style={styles.gridCard}>
-            {/* Day Headers Row */}
-            <View style={styles.gridHeader}>
-              <View style={styles.timeColumnHeader} />
-              {DAYS_SHORT.map((day, index) => {
-                const daySlots = getDayTemplates(index);
-                const hasSlots = daySlots.length > 0;
-                const isSelected = selectedDay === index;
-
-                return (
-                  <Clickable
-                    key={day}
-                    onPress={() => setSelectedDay(isSelected ? null : index)}
-                    style={[
-                      styles.dayHeaderCell,
-                      {
-                        backgroundColor: isSelected
-                          ? `${palette.tint}15`
-                          : hasSlots
-                          ? `${palette.success}08`
-                          : 'transparent',
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[
-                        styles.dayHeaderText,
-                        { color: isSelected ? palette.tint : hasSlots ? palette.success : palette.muted },
-                      ]}
-                    >
-                      {day}
-                    </ThemedText>
-                    {hasSlots && (
-                      <View style={[styles.dayDot, { backgroundColor: palette.success }]} />
-                    )}
-                  </Clickable>
-                );
-              })}
-            </View>
-
-            {/* Grid Body */}
-            <ScrollView style={styles.gridScroll} showsVerticalScrollIndicator={false}>
-              {HOURS.map((hour) => (
-                <View key={hour} style={styles.gridRow}>
-                  <View style={styles.timeColumn}>
-                    <ThemedText style={[styles.timeLabel, { color: palette.muted }]}>
-                      {hour === 12 ? '12pm' : hour > 12 ? `${hour - 12}pm` : `${hour}am`}
-                    </ThemedText>
-                  </View>
-
-                  {DAYS_SHORT.map((_, dayIndex) => {
-                    const { available } = getSlotStatus(dayIndex, hour);
-                    const isSelected = selectedDay === dayIndex;
-
-                    return (
-                      <Clickable
-                        key={`${dayIndex}-${hour}`}
-                        onPress={() => handleSlotPress(dayIndex, hour)}
-                        onLongPress={() => handleSlotLongPress(dayIndex, hour)}
-                        delayLongPress={400}
-                        style={[
-                          styles.gridCell,
-                          {
-                            backgroundColor: available
-                              ? `${palette.success}25`
-                              : isSelected
-                              ? `${palette.tint}05`
-                              : palette.background,
-                            borderColor: available ? palette.success : palette.border,
-                            borderWidth: available ? 1.5 : 0.5,
-                          },
-                        ]}
-                      >
-                        {available && (
-                          <View style={[styles.slotDot, { backgroundColor: palette.success }]} />
-                        )}
-                      </Clickable>
-                    );
-                  })}
-                </View>
-              ))}
-            </ScrollView>
-
-            {/* Legend */}
-            <View style={[styles.legend, { borderTopColor: palette.border }]}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: palette.success }]} />
-                <ThemedText style={[styles.legendText, { color: palette.muted }]}>Available</ThemedText>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: palette.border }]} />
-                <ThemedText style={[styles.legendText, { color: palette.muted }]}>Not set</ThemedText>
-              </View>
-            </View>
-          </SurfaceCard>
-        </View>
-
-        {/* Selected Day Detail */}
-        {selectedDay !== null && (
-          <SurfaceCard style={styles.dayDetailCard}>
-            <View style={styles.dayDetailHeader}>
-              <View>
-                <ThemedText type="subtitle">{DAYS_FULL[selectedDay]}</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-                  {getDayTemplates(selectedDay).length} availability slot{getDayTemplates(selectedDay).length !== 1 ? 's' : ''}
-                </ThemedText>
-              </View>
-              <View style={styles.dayDetailActions}>
-                {getDayTemplates(selectedDay).length > 0 && (
-                  <Clickable
-                    onPress={() => {
-                      setCopySourceDay(selectedDay);
-                      setShowCopyModal(true);
-                    }}
-                    style={[styles.dayActionButton, { borderColor: palette.border }]}
-                  >
-                    <Ionicons name="copy-outline" size={16} color={palette.tint} />
-                    <ThemedText style={{ color: palette.tint, fontSize: 13, fontWeight: '600' }}>
-                      Copy
-                    </ThemedText>
-                  </Clickable>
-                )}
-                <Clickable
-                  onPress={() => {
-                    setPreselectedDay(selectedDay);
-                    setPreselectedHour(undefined);
-                    setEditingTemplate(null);
-                    setShowTemplateModal(true);
-                  }}
-                  style={[styles.dayActionButton, { backgroundColor: palette.tint, borderColor: palette.tint }]}
-                >
-                  <Ionicons name="add" size={16} color="#fff" />
-                  <ThemedText style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
-                    Add Slot
-                  </ThemedText>
-                </Clickable>
-              </View>
-            </View>
-
-            {getDayTemplates(selectedDay).length === 0 ? (
-              <View style={[styles.emptyDayState, { backgroundColor: palette.background }]}>
-                <Ionicons name="calendar-outline" size={40} color={palette.muted} />
-                <ThemedText style={{ color: palette.muted, marginTop: Spacing.sm, textAlign: 'center' }}>
-                  No availability set for {DAYS_FULL[selectedDay]}
-                </ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 13, marginTop: Spacing.xs }}>
-                  Tap "Add Slot" to set your hours
-                </ThemedText>
-              </View>
-            ) : (
-              <View style={styles.slotsList}>
-                {getDayTemplates(selectedDay)
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                  .map((template) => {
-                    const [startH] = template.startTime.split(':').map(Number);
-                    const [endH] = template.endTime.split(':').map(Number);
-                    const duration = endH - startH;
-
-                    return (
-                      <View
-                        key={template.id}
-                        style={[styles.slotItem, { backgroundColor: palette.background, borderColor: palette.border }]}
-                      >
-                        <View style={[styles.slotTimeBlock, { backgroundColor: `${palette.success}12` }]}>
-                          <ThemedText type="defaultSemiBold" style={{ color: palette.success, fontSize: 15 }}>
-                            {template.startTime}
-                          </ThemedText>
-                          <View style={[styles.slotTimeLine, { backgroundColor: palette.success }]} />
-                          <ThemedText type="defaultSemiBold" style={{ color: palette.success, fontSize: 15 }}>
-                            {template.endTime}
-                          </ThemedText>
-                        </View>
-
-                        <View style={styles.slotDetails}>
-                          <ThemedText style={{ fontWeight: '600' }}>
-                            {duration} hour{duration !== 1 ? 's' : ''}
-                          </ThemedText>
-                          {template.location && (
-                            <View style={styles.slotDetailRow}>
-                              <Ionicons name="location-outline" size={14} color={palette.muted} />
-                              <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-                                {template.location}
-                              </ThemedText>
-                            </View>
-                          )}
-                          <View style={styles.slotDetailRow}>
-                            <Ionicons name="people-outline" size={14} color={palette.muted} />
-                            <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-                              Max {template.maxConcurrent} concurrent
-                            </ThemedText>
-                          </View>
-                        </View>
-
-                        <View style={styles.slotActions}>
-                          <Clickable
-                            onPress={() => {
-                              setEditingTemplate(template);
-                              setPreselectedDay(undefined);
-                              setPreselectedHour(undefined);
-                              setShowTemplateModal(true);
-                            }}
-                            style={[styles.slotActionBtn, { borderColor: palette.border }]}
-                          >
-                            <Ionicons name="pencil-outline" size={16} color={palette.tint} />
-                          </Clickable>
-                          <Clickable
-                            onPress={() => handleDeleteTemplate(template.id)}
-                            style={[styles.slotActionBtn, { borderColor: palette.border }]}
-                          >
-                            <Ionicons name="trash-outline" size={16} color={palette.error} />
-                          </Clickable>
-                        </View>
-                      </View>
-                    );
-                  })}
-              </View>
-            )}
-          </SurfaceCard>
-        )}
-
         {/* Upcoming Bookings */}
         {upcomingBookings.length > 0 && (
-          <>
+          <View style={styles.section}>
             <SectionHeader
               title="Upcoming Bookings"
               subtitle={`${upcomingBookings.length} session${upcomingBookings.length > 1 ? 's' : ''} scheduled`}
             />
             <SurfaceCard style={styles.bookingsCard}>
-              {upcomingBookings.slice(0, 5).map((booking, index) => {
+              {upcomingBookings.slice(0, 3).map((booking, index) => {
                 const bookingDate = new Date(booking.scheduledAt);
                 const dayName = bookingDate.toLocaleDateString('en-US', { weekday: 'short' });
                 const dateStr = bookingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -785,80 +465,85 @@ export default function AvailabilityScreen() {
                       onPress={() => router.push(`/booking/${booking.id}`)}
                       style={styles.bookingItem}
                     >
-                      <View style={[styles.bookingDateBadge, { backgroundColor: `${palette.tint}10` }]}>
+                      <View style={[styles.bookingDate, { backgroundColor: `${palette.tint}10` }]}>
                         <ThemedText style={[styles.bookingDayName, { color: palette.tint }]}>{dayName}</ThemedText>
-                        <ThemedText style={[styles.bookingDate, { color: palette.tint }]}>{dateStr}</ThemedText>
+                        <ThemedText style={[styles.bookingDateStr, { color: palette.tint }]}>{dateStr}</ThemedText>
                       </View>
                       <View style={styles.bookingInfo}>
                         <ThemedText type="defaultSemiBold" numberOfLines={1}>
                           {booking.athleteName || booking.service || 'Session'}
                         </ThemedText>
-                        <View style={styles.bookingMeta}>
-                          <Ionicons name="time-outline" size={14} color={palette.muted} />
-                          <ThemedText style={[styles.bookingMetaText, { color: palette.muted }]}>
-                            {timeStr}
-                          </ThemedText>
-                        </View>
-                      </View>
-                      <View style={[
-                        styles.statusBadge,
-                        { backgroundColor: booking.status === 'CONFIRMED' ? `${palette.success}20` : `${palette.warning}20` }
-                      ]}>
-                        <ThemedText style={[
-                          styles.statusText,
-                          { color: booking.status === 'CONFIRMED' ? palette.success : palette.warning }
-                        ]}>
-                          {booking.status === 'CONFIRMED' ? 'Confirmed' : 'Pending'}
+                        <ThemedText style={[styles.bookingTime, { color: palette.muted }]}>
+                          {timeStr}
                         </ThemedText>
                       </View>
+                      <Ionicons name="chevron-forward" size={18} color={palette.muted} />
                     </Clickable>
                   </View>
                 );
               })}
             </SurfaceCard>
-          </>
+          </View>
         )}
 
         {/* Quick Actions */}
-        <SurfaceCard style={styles.actionsCard}>
-          <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>
-            Quick Actions
-          </ThemedText>
-          <View style={styles.actionsRow}>
-            <Clickable
-              style={[styles.actionButton, { borderColor: palette.border }]}
-              onPress={() => {
-                setEditingTemplate(null);
-                setPreselectedDay(undefined);
-                setPreselectedHour(undefined);
-                setShowTemplateModal(true);
-              }}
+        <View style={styles.section}>
+          <SectionHeader title="Quick Actions" />
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              onPress={() => setShowQuickSetup(true)}
             >
-              <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Slot</ThemedText>
-            </Clickable>
-            <Clickable
-              style={[styles.actionButton, { borderColor: palette.border }]}
-              onPress={handleBlockDate}
+              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <Ionicons name="flash-outline" size={20} color={palette.tint} />
+              </View>
+              <ThemedText style={styles.quickActionText}>Quick Setup</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              onPress={() => router.push('/availability/scheduling-rules' as any)}
             >
-              <Ionicons name="close-circle-outline" size={20} color={palette.warning} />
-              <ThemedText style={{ color: palette.warning, fontWeight: '600' }}>Block Date</ThemedText>
-            </Clickable>
+              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.warning}15` }]}>
+                <Ionicons name="settings-outline" size={20} color={palette.warning} />
+              </View>
+              <ThemedText style={styles.quickActionText}>Rules</ThemedText>
+            </TouchableOpacity>
+
+            {templates.length > 0 && (
+              <TouchableOpacity
+                style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
+                onPress={() => {
+                  Alert.alert(
+                    'Clear All',
+                    'Remove all availability slots? Athletes won\'t be able to book.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Clear',
+                        style: 'destructive',
+                        onPress: async () => {
+                          for (const template of templates) {
+                            await availabilityService.deleteTemplate(template.id);
+                          }
+                          await loadTemplates();
+                        },
+                      },
+                    ]
+                  );
+                }}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: `${palette.error}15` }]}>
+                  <Ionicons name="trash-outline" size={20} color={palette.error} />
+                </View>
+                <ThemedText style={styles.quickActionText}>Clear All</ThemedText>
+              </TouchableOpacity>
+            )}
           </View>
-          {templates.length > 0 && (
-            <Clickable
-              style={[styles.clearAllButton, { borderColor: palette.error }]}
-              onPress={handleClearAllSlots}
-            >
-              <Ionicons name="trash-outline" size={18} color={palette.error} />
-              <ThemedText style={{ color: palette.error, fontWeight: '500' }}>
-                Clear All Availability
-              </ThemedText>
-            </Clickable>
-          )}
-        </SurfaceCard>
+        </View>
       </ScrollView>
 
+      {/* Template Modal */}
       <RecurringTemplateModal
         visible={showTemplateModal}
         onClose={() => {
@@ -874,13 +559,58 @@ export default function AvailabilityScreen() {
         preselectedHour={preselectedHour}
       />
 
-      <CopyScheduleModal
-        visible={showCopyModal}
-        onClose={() => setShowCopyModal(false)}
-        sourceDay={copySourceDay}
-        templates={templates}
-        onCopy={handleCopySchedule}
-      />
+      {/* Quick Setup Modal */}
+      <Modal visible={showQuickSetup} animationType="slide" transparent onRequestClose={() => setShowQuickSetup(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.setupModal, { backgroundColor: palette.surface }]}>
+            <View style={styles.setupHeader}>
+              <View>
+                <ThemedText type="subtitle">Quick Setup</ThemedText>
+                <ThemedText style={{ color: palette.muted, fontSize: 13, marginTop: 2 }}>
+                  Choose a preset to get started
+                </ThemedText>
+              </View>
+              <TouchableOpacity onPress={() => setShowQuickSetup(false)}>
+                <Ionicons name="close" size={24} color={palette.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.presetList}>
+              {QUICK_PRESETS.map((preset) => (
+                <TouchableOpacity
+                  key={preset.id}
+                  style={[styles.presetCard, { backgroundColor: palette.background, borderColor: palette.border }]}
+                  onPress={() => handleApplyPreset(preset.id)}
+                >
+                  <View style={[styles.presetIcon, { backgroundColor: `${palette.tint}15` }]}>
+                    <Ionicons name={preset.icon} size={24} color={palette.tint} />
+                  </View>
+                  <View style={styles.presetInfo}>
+                    <ThemedText type="defaultSemiBold">{preset.name}</ThemedText>
+                    <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                      {preset.slots[0].days.map(d => DAYS_SHORT[d]).join(', ')} • {formatTimeRange(preset.slots[0].start, preset.slots[0].end)}
+                    </ThemedText>
+                  </View>
+                  <Ionicons name="add-circle" size={24} color={palette.tint} />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[styles.customButton, { borderColor: palette.border }]}
+              onPress={() => {
+                setShowQuickSetup(false);
+                handleAddSlot();
+              }}
+            >
+              <Ionicons name="create-outline" size={18} color={palette.tint} />
+              <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+                Create Custom Schedule
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -910,152 +640,81 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.sm,
   },
-  summaryCard: {
-    padding: Spacing.lg,
-    borderRadius: Radii.lg,
-  },
-  summaryContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  summaryIcon: {
-    marginRight: Spacing.md,
-  },
-  summaryTextContainer: {
-    flex: 1,
-  },
-  summaryValue: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: -0.3,
-  },
-  summarySubtext: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  emptyPrompt: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.2)',
-  },
-  emptyPromptText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 13,
-  },
-  templatesScroll: {
-    gap: Spacing.sm,
-  },
-  quickTemplateCard: {
-    width: 120,
+
+  // Week Card
+  weekCard: {
     padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    alignItems: 'center',
+    gap: Spacing.md,
   },
-  quickTemplateIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  quickTemplateName: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  quickTemplateDesc: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  gridCard: {
-    padding: Spacing.sm,
-    minHeight: 400,
-  },
-  gridHeader: {
+  weekHeader: {
     flexDirection: 'row',
-    paddingVertical: Spacing.xs,
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  timeColumnHeader: {
-    width: 44,
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: Radii.md,
   },
-  dayHeaderCell: {
+  addButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dayPills: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 4,
+  },
+  dayPill: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-    marginHorizontal: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    gap: 4,
   },
-  dayHeaderText: {
+  dayPillText: {
     fontSize: 12,
-    fontWeight: '600',
   },
   dayDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 2,
   },
-  gridScroll: {
-    maxHeight: 350,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    height: 32,
-  },
-  timeColumn: {
-    width: 44,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingRight: Spacing.xs,
-  },
-  timeLabel: {
+  slotCount: {
     fontSize: 10,
-    fontWeight: '500',
+    color: '#fff',
+    fontWeight: '700',
   },
-  gridCell: {
-    flex: 1,
-    marginHorizontal: 1,
-    marginVertical: 0.5,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slotDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  legend: {
+  summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.lg,
+    justifyContent: 'space-around',
     paddingTop: Spacing.md,
-    marginTop: Spacing.sm,
     borderTopWidth: 1,
   },
-  legendItem: {
-    flexDirection: 'row',
+  summaryItem: {
     alignItems: 'center',
-    gap: Spacing.xs,
+    flex: 1,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: '700',
   },
-  legendText: {
-    fontSize: 12,
+  summaryLabel: {
+    fontSize: 11,
+    marginTop: 2,
   },
+  summaryDivider: {
+    width: 1,
+    height: 30,
+  },
+
+  // Day Detail Card
   dayDetailCard: {
-    padding: Spacing.lg,
+    padding: Spacing.md,
   },
   dayDetailHeader: {
     flexDirection: 'row',
@@ -1063,59 +722,91 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
-  dayDetailActions: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
+  dayDetailTitle: {
+    fontSize: 18,
   },
-  dayActionButton: {
-    flexDirection: 'row',
+  dayDetailSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  miniAddButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.md,
-    borderWidth: 1,
+    justifyContent: 'center',
   },
-  emptyDayState: {
+  emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
     borderRadius: Radii.md,
+    gap: Spacing.xs,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: Spacing.sm,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+    maxWidth: 240,
+  },
+  emptyAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    marginTop: Spacing.md,
+  },
+  emptyAddButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   slotsList: {
     gap: Spacing.sm,
   },
-  slotItem: {
+  slotCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
+    padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
-  slotTimeBlock: {
+  slotTime: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingVertical: 6,
     borderRadius: Radii.sm,
   },
-  slotTimeLine: {
-    width: 2,
-    height: 12,
-    marginVertical: 2,
-    borderRadius: 1,
+  slotTimeText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
-  slotDetails: {
+  slotInfo: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
-  slotDetailRow: {
+  slotDuration: {
+    fontWeight: '500',
+  },
+  slotMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  slotMetaText: {
+    fontSize: 12,
   },
   slotActions: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: 6,
   },
   slotActionBtn: {
     width: 32,
@@ -1125,6 +816,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // Bookings
   bookingsCard: {
     padding: 0,
     overflow: 'hidden',
@@ -1139,120 +832,96 @@ const styles = StyleSheet.create({
     height: 1,
     marginHorizontal: Spacing.md,
   },
-  bookingDateBadge: {
+  bookingDate: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xs,
+    paddingVertical: 6,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.sm,
-    minWidth: 56,
+    minWidth: 50,
   },
   bookingDayName: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
-  bookingDate: {
-    fontSize: 13,
+  bookingDateStr: {
+    fontSize: 12,
     fontWeight: '700',
   },
   bookingInfo: {
     flex: 1,
-    gap: 2,
   },
-  bookingMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  bookingMetaText: {
+  bookingTime: {
     fontSize: 12,
+    marginTop: 2,
   },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Radii.sm,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  actionsCard: {
-    padding: Spacing.lg,
-  },
-  actionsRow: {
+
+  // Quick Actions
+  quickActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  actionButton: {
+  quickAction: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  clearAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
-    marginTop: Spacing.sm,
+    gap: Spacing.xs,
   },
+  quickActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
+    justifyContent: 'flex-end',
   },
-  copyModal: {
-    width: '100%',
-    maxWidth: 360,
-    borderRadius: Radii.lg,
+  setupModal: {
+    borderTopLeftRadius: Radii.xl,
+    borderTopRightRadius: Radii.xl,
     padding: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
   },
-  copyModalHeader: {
+  setupHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+    alignItems: 'flex-start',
+    marginBottom: Spacing.lg,
   },
-  copyDaysGrid: {
-    gap: Spacing.xs,
+  presetList: {
+    gap: Spacing.sm,
   },
-  copyDayButton: {
+  presetCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
+    gap: Spacing.md,
   },
-  copyDayText: {
-    fontWeight: '600',
-    flex: 1,
-  },
-  checkmark: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  presetIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  copyModalActions: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  copyModalButton: {
+  presetInfo: {
     flex: 1,
+    gap: 2,
+  },
+  customButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1260,5 +929,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
+    marginTop: Spacing.lg,
   },
 });

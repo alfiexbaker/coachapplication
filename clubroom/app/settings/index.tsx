@@ -118,7 +118,7 @@ export default function SettingsHubScreen() {
               subtitle="Set your schedule and time slots"
               onPress={() => {
                 logger.press('Availability');
-                router.push('/availability/set-schedule');
+                router.push('/(tabs)/availability');
               }}
             />
           )}

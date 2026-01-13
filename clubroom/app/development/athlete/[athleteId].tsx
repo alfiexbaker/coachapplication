@@ -185,28 +185,35 @@ export default function AthleteDetailScreen() {
             </ThemedText>
           </View>
           <View style={styles.heroInfo}>
-            <ThemedText type="heading" style={styles.athleteName}>
+            <ThemedText type="heading" style={styles.athleteName} numberOfLines={2}>
               {athlete.name}
             </ThemedText>
-              <View style={styles.badges}>
-                <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
-                  <View style={styles.badgeRow}>
-                    <Ionicons name={trendIcon} size={14} color={trendColor} />
-                    <ThemedText style={[styles.badgeText, { color: trendColor }]}>
-                      {trendText}
-                    </ThemedText>
-                  </View>
-                </View>
-                <View style={[styles.levelBadge, { backgroundColor: level.color + '15' }]}>
-                  <View style={styles.badgeRow}>
-                    <Ionicons name={level.icon} size={14} color={level.color} />
-                    <ThemedText style={[styles.badgeText, { color: level.color }]}>
-                      {level.name}
-                    </ThemedText>
-                  </View>
-                </View>
+            <ThemedText style={[styles.sessionCountLabel, { color: palette.muted }]}>
+              {sessions.length} session{sessions.length !== 1 ? 's' : ''} completed
+            </ThemedText>
+          </View>
+        </View>
+
+        {/* Badges Row - separated for better layout */}
+        <View style={styles.badgesRow}>
+          <View style={styles.badges}>
+            <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
+              <View style={styles.badgeRow}>
+                <Ionicons name={trendIcon} size={14} color={trendColor} />
+                <ThemedText style={[styles.badgeText, { color: trendColor }]}>
+                  {trendText}
+                </ThemedText>
               </View>
             </View>
+            <View style={[styles.levelBadge, { backgroundColor: level.color + '15' }]}>
+              <View style={styles.badgeRow}>
+                <Ionicons name={level.icon} size={14} color={level.color} />
+                <ThemedText style={[styles.badgeText, { color: level.color }]}>
+                  {level.name}
+                </ThemedText>
+              </View>
+            </View>
+          </View>
           <View style={styles.heroButtons}>
             <TouchableOpacity
               style={[styles.ctaButton, { backgroundColor: palette.tint }]}
@@ -542,17 +549,27 @@ const styles = StyleSheet.create({
   },
   heroInfo: {
     flex: 1,
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
   athleteName: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 20,
+    fontWeight: '600',
     letterSpacing: -0.3,
+  },
+  sessionCountLabel: {
+    fontSize: 13,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
   },
   badges: {
     flexDirection: 'row',
     gap: Spacing.xs,
     flexWrap: 'wrap',
+    flex: 1,
   },
   badgeRow: {
     flexDirection: 'row',

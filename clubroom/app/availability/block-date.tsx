@@ -89,7 +89,7 @@ export default function BlockDateScreen() {
 
     setSaving(true);
     try {
-      await availabilityService.createOverride({
+      await availabilityService.saveOverride({
         coachId: currentUser.id,
         date: selectedDate.toISOString().split('T')[0],
         isBlocked: true,

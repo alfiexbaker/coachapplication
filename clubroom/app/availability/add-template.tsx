@@ -64,7 +64,7 @@ export default function AddTemplateScreen() {
 
     setSaving(true);
     try {
-      await availabilityService.createTemplate({
+      await availabilityService.saveTemplate({
         coachId: currentUser.id,
         dayOfWeek,
         startTime,
