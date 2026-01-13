@@ -24,11 +24,13 @@ import {
   getDistanceBetweenPostcodes,
   formatGBP,
   getChildrenForParent,
+  clubs,
+  clubMemberships,
 } from '@/constants/mock-data';
 import { availabilityService } from '@/services/availability-service';
 import { sessionInviteService } from '@/services/session-invite-service';
 import { createLogger } from '@/utils/logger';
-import type { AvailabilitySlot, SessionInvite } from '@/constants/types';
+import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
 
 const logger = createLogger('ParentDiscoverScreen');
 
@@ -51,6 +53,28 @@ export function ParentDiscoverScreen() {
     if (!currentUser) return [];
     return getChildrenForParent(currentUser.id);
   }, [currentUser]);
+
+  // Get clubs for the current parent
+  const userClubs = useMemo((): Club[] => {
+    if (!currentUser) return [];
+    const memberships = clubMemberships.filter((m) => m.userId === currentUser.id && m.status === 'active');
+    return memberships
+      .map((m) => clubs.find((c) => c.id === m.clubId))
+      .filter((c): c is Club => c !== undefined);
+  }, [currentUser]);
+
+  const [clubInviteCode, setClubInviteCode] = useState('');
+
+  const handleJoinClub = () => {
+    if (clubInviteCode.trim()) {
+      router.push({
+        pathname: '/(tabs)/club-hub',
+        params: { code: clubInviteCode.trim().toUpperCase() },
+      });
+    } else {
+      router.push('/(tabs)/club-hub');
+    }
+  };
 
   // Initialize selectedChildId when children change
   useEffect(() => {
@@ -253,6 +277,94 @@ export function ParentDiscoverScreen() {
             </View>
           )}
         </View>
+
+        {/* Club Hub Section - Prominent Position */}
+        <Animated.View entering={FadeInDown.springify()} style={styles.clubHubSection}>
+          <SurfaceCard style={styles.clubHubCard}>
+            <View style={styles.clubHubHeader}>
+              <View style={[styles.clubHubIconCircle, { backgroundColor: `${palette.tint}15` }]}>
+                <Ionicons name="shield" size={24} color={palette.tint} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText type="defaultSemiBold" style={{ fontSize: 17 }}>
+                  Club Hub
+                </ThemedText>
+                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                  {userClubs.length > 0 ? `${userClubs.length} club${userClubs.length > 1 ? 's' : ''} joined` : 'Join your team'}
+                </ThemedText>
+              </View>
+              <Pressable
+                onPress={() => router.push('/(tabs)/club-hub')}
+                style={({ pressed }) => [
+                  styles.clubHubViewButton,
+                  { backgroundColor: palette.tint, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>
+                  {userClubs.length > 0 ? 'View All' : 'Browse'}
+                </ThemedText>
+              </Pressable>
+            </View>
+
+            {/* Show user's clubs */}
+            {userClubs.length > 0 && (
+              <View style={styles.clubHubList}>
+                {userClubs.slice(0, 2).map((club) => (
+                  <Pressable
+                    key={club.id}
+                    onPress={() => router.push({ pathname: '/club/[id]', params: { id: club.id } })}
+                    style={({ pressed }) => [
+                      styles.clubHubItem,
+                      { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20`, opacity: pressed ? 0.8 : 1 },
+                    ]}
+                  >
+                    <View style={[styles.clubHubItemIcon, { backgroundColor: palette.tint }]}>
+                      <ThemedText style={styles.clubHubItemIconText}>
+                        {club.badge?.slice(0, 2) || club.name.slice(0, 2).toUpperCase()}
+                      </ThemedText>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }} numberOfLines={1}>
+                        {club.name}
+                      </ThemedText>
+                      <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                        {club.memberCount} members
+                      </ThemedText>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            {/* Join with code section */}
+            <View style={[styles.clubHubJoinSection, { borderTopColor: palette.border }]}>
+              <View style={styles.clubHubJoinRow}>
+                <View style={[styles.clubInviteInput, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+                  <Ionicons name="key-outline" size={16} color={palette.muted} />
+                  <TextInput
+                    value={clubInviteCode}
+                    onChangeText={setClubInviteCode}
+                    placeholder="Have an invite code?"
+                    placeholderTextColor={palette.muted}
+                    autoCapitalize="characters"
+                    style={[styles.clubInviteText, { color: palette.text }]}
+                  />
+                </View>
+                <Pressable
+                  onPress={handleJoinClub}
+                  disabled={!clubInviteCode.trim()}
+                  style={({ pressed }) => [
+                    styles.clubJoinButton,
+                    { backgroundColor: clubInviteCode.trim() ? palette.success : palette.border, opacity: pressed ? 0.8 : 1 },
+                  ]}
+                >
+                  <Ionicons name="arrow-forward" size={18} color={clubInviteCode.trim() ? '#fff' : palette.muted} />
+                </Pressable>
+              </View>
+            </View>
+          </SurfaceCard>
+        </Animated.View>
 
         {/* Loading State for Invites */}
         {loadingInvites && (
@@ -724,5 +836,83 @@ const styles = StyleSheet.create({
   expiryText: {
     fontSize: 10,
     fontWeight: '600',
+  },
+  // Club Hub Section
+  clubHubSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  clubHubCard: {
+    gap: Spacing.md,
+  },
+  clubHubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  clubHubIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clubHubViewButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  clubHubList: {
+    gap: Spacing.sm,
+  },
+  clubHubItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  clubHubItemIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clubHubItemIconText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  clubHubJoinSection: {
+    borderTopWidth: 1,
+    paddingTop: Spacing.md,
+  },
+  clubHubJoinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  clubInviteInput: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  clubInviteText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  clubJoinButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

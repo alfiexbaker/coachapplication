@@ -236,6 +236,110 @@ function DiscoverCoachesCard() {
   );
 }
 
+function ClubHubCard({ clubs }: { clubs: Club[] }) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const [inviteCode, setInviteCode] = useState('');
+
+  const handleJoinWithCode = () => {
+    if (inviteCode.trim()) {
+      router.push({
+        pathname: '/(tabs)/club-hub',
+        params: { code: inviteCode.trim().toUpperCase() },
+      });
+    }
+  };
+
+  return (
+    <SurfaceCard style={styles.clubHubCard}>
+      {/* Header */}
+      <View style={styles.clubHubHeader}>
+        <View style={[styles.clubHubIconCircle, { backgroundColor: `${palette.tint}15` }]}>
+          <Ionicons name="shield" size={24} color={palette.tint} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <ThemedText type="defaultSemiBold" style={{ fontSize: 17 }}>
+            Club Hub
+          </ThemedText>
+          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+            {clubs.length > 0 ? `${clubs.length} club${clubs.length > 1 ? 's' : ''} joined` : 'Your club community'}
+          </ThemedText>
+        </View>
+        <TouchableOpacity
+          style={[styles.clubHubButton, { backgroundColor: palette.tint }]}
+          onPress={() => router.push('/(tabs)/club-hub')}
+        >
+          <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>
+            {clubs.length > 0 ? 'View' : 'Join'}
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      {/* Your Clubs List */}
+      {clubs.length > 0 && (
+        <View style={styles.clubHubList}>
+          {clubs.slice(0, 3).map((club) => (
+            <TouchableOpacity
+              key={club.id}
+              style={[styles.clubHubItem, { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20` }]}
+              onPress={() => router.push({ pathname: '/club/[id]', params: { id: club.id } })}
+            >
+              <View style={[styles.clubHubItemIcon, { backgroundColor: palette.tint }]}>
+                <ThemedText style={styles.clubHubItemIconText}>
+                  {club.badge?.slice(0, 2) || club.name.slice(0, 2).toUpperCase()}
+                </ThemedText>
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }} numberOfLines={1}>
+                  {club.name}
+                </ThemedText>
+                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                  {club.memberCount} members
+                </ThemedText>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+            </TouchableOpacity>
+          ))}
+          {clubs.length > 3 && (
+            <TouchableOpacity
+              style={styles.clubHubViewMore}
+              onPress={() => router.push('/(tabs)/club-hub')}
+            >
+              <ThemedText style={{ color: palette.tint, fontSize: 13, fontWeight: '600' }}>
+                View all {clubs.length} clubs
+              </ThemedText>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Join with Code Section */}
+      <View style={[styles.clubHubJoinSection, { borderTopColor: palette.border }]}>
+        <View style={styles.clubHubJoinRow}>
+          <View style={[styles.inviteCodeInput, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+            <Ionicons name="key-outline" size={16} color={palette.muted} />
+            <TextInput
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              placeholder="Have an invite code?"
+              placeholderTextColor={palette.muted}
+              autoCapitalize="characters"
+              style={[styles.inviteCodeText, { color: palette.text }]}
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.joinCodeButton, { backgroundColor: inviteCode.trim() ? palette.success : palette.border }]}
+            onPress={handleJoinWithCode}
+            disabled={!inviteCode.trim()}
+          >
+            <Ionicons name="arrow-forward" size={18} color={inviteCode.trim() ? '#fff' : palette.muted} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SurfaceCard>
+  );
+}
+
 function JoinClubCard() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -359,9 +463,11 @@ function QuickActionsCard() {
 function EmptyFeedState({
   hasClubs,
   filter,
+  clubs,
 }: {
   hasClubs: boolean;
   filter: FeedFilter;
+  clubs: Club[];
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -379,14 +485,14 @@ function EmptyFeedState({
           </ThemedText>
         </View>
 
-        {/* Quick Actions */}
-        <QuickActionsCard />
+        {/* Club Hub - Prominent Position */}
+        <ClubHubCard clubs={clubs} />
 
         {/* Discover Coaches */}
         <DiscoverCoachesCard />
 
-        {/* Join a Club */}
-        <JoinClubCard />
+        {/* Quick Actions */}
+        <QuickActionsCard />
 
         {/* Getting Started Tips */}
         <OnboardingTipsCard />
@@ -508,8 +614,10 @@ export default function FeedScreen() {
           />
         }
       >
-        {/* Club chips */}
-        <ClubChips clubs={clubs} />
+        {/* Club Hub Card - Always visible and prominent */}
+        <View style={styles.clubHubSection}>
+          <ClubHubCard clubs={clubs} />
+        </View>
 
         {/* Feed filter tabs */}
         <ScrollView
@@ -563,7 +671,7 @@ export default function FeedScreen() {
           {feed.length > 0 ? (
             feed.map((post) => <FeedPost key={post.id} post={post} />)
           ) : (
-            <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} />
+            <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} clubs={clubs} />
           )}
         </View>
       </ScrollView>
@@ -901,6 +1009,74 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Club Hub Card Styles
+  clubHubSection: {
+    padding: Spacing.md,
+    paddingBottom: 0,
+  },
+  clubHubCard: {
+    gap: Spacing.md,
+  },
+  clubHubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  clubHubIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clubHubButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  clubHubList: {
+    gap: Spacing.sm,
+  },
+  clubHubItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  clubHubItemIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clubHubItemIconText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  clubHubViewMore: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  clubHubJoinSection: {
+    borderTopWidth: 1,
+    paddingTop: Spacing.md,
+  },
+  clubHubJoinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  joinCodeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },

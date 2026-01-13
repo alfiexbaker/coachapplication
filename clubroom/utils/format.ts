@@ -1,13 +1,13 @@
 import { CoachProfile } from '@/constants/types';
 
-const shortWeekdayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
-const shortMonthDayFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const longDateFormatter = new Intl.DateTimeFormat('en-US', {
+const shortWeekdayFormatter = new Intl.DateTimeFormat('en-GB', { weekday: 'short' });
+const shortMonthDayFormatter = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' });
+const longDateFormatter = new Intl.DateTimeFormat('en-GB', {
   weekday: 'long',
   month: 'long',
   day: 'numeric',
 });
-const timeFormatter = new Intl.DateTimeFormat('en-US', {
+const timeFormatter = new Intl.DateTimeFormat('en-GB', {
   hour: 'numeric',
   minute: '2-digit',
 });
@@ -15,18 +15,21 @@ const timeFormatter = new Intl.DateTimeFormat('en-US', {
 const toDate = (value: string | number | Date) => (value instanceof Date ? value : new Date(value));
 
 export const formatPriceRange = (price: CoachProfile['priceRange']) =>
-  `$${price.minUsd.toLocaleString()}–$${price.maxUsd.toLocaleString()} / ${price.unitLabel}`;
+  `£${price.minUsd.toLocaleString()}–£${price.maxUsd.toLocaleString()} / ${price.unitLabel}`;
 
 export const formatDistance = (distanceMiles: number) => `${distanceMiles.toFixed(1)} mi away`;
 
 export const formatNextAvailability = (isoString: string) => {
   const date = new Date(isoString);
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat('en-GB', {
     weekday: 'short',
     hour: 'numeric',
     minute: '2-digit',
   }).format(date);
 };
+
+// Currency formatting helper
+export const formatGBP = (amount: number) => `£${amount.toLocaleString('en-GB')}`;
 
 export const formatWeekday = (value: string | number | Date) => shortWeekdayFormatter.format(toDate(value));
 
