@@ -18,6 +18,7 @@ import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
 import { useToast } from '@/components/ui/toast';
+import { ClubHeader } from '@/components/club/ClubHeader';
 import {
   getClubById,
   getClubFeed,
@@ -194,67 +195,6 @@ function FeedPost({
   );
 }
 
-function ClubHeader({
-  club,
-  membership,
-  onOptions,
-}: {
-  club: Club;
-  membership?: ClubMembership;
-  onOptions: () => void;
-}) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
-
-  const roleLabel = useMemo(() => {
-    if (!membership) return 'Not a member';
-    switch (membership.role) {
-      case 'OWNER':
-        return 'Owner';
-      case 'HEAD_COACH':
-        return 'Head Coach';
-      case 'ADMIN':
-        return 'Admin';
-      case 'COACH':
-        return 'Coach';
-      default:
-        return 'Member';
-    }
-  }, [membership]);
-
-  const badgeText = club.badge?.slice(0, 2) || club.name?.slice(0, 2).toUpperCase() || 'CL';
-
-  return (
-    <View style={styles.clubHeader}>
-      <View style={[styles.clubAvatar, { backgroundColor: `${palette.tint}10` }]}>
-        {club.photoUrl ? (
-          <Image source={{ uri: club.photoUrl }} style={styles.clubAvatarImage} />
-        ) : (
-          <ThemedText style={styles.clubAvatarText}>{badgeText}</ThemedText>
-        )}
-      </View>
-      <View style={{ flex: 1 }}>
-        <ThemedText type="title" style={{ fontSize: 20 }}>
-          {club.name}
-        </ThemedText>
-        <ThemedText style={{ color: palette.muted }}>
-          {roleLabel} · {club.memberCount} members
-        </ThemedText>
-        {club.tagline && (
-          <ThemedText style={{ color: palette.muted, fontSize: 13, marginTop: 2 }}>
-            {club.tagline}
-          </ThemedText>
-        )}
-      </View>
-      {membership && (
-        <TouchableOpacity onPress={onOptions} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
 function MemberRow({
   member,
   canRemove,
@@ -350,9 +290,12 @@ export default function ClubDetailScreen() {
   const [showMemberRemovalModal, setShowMemberRemovalModal] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState(false);
 
-  // Check if user can manage posts (pin, etc.)
+  // Check if user can manage posts (pin, etc.) - coaches only
   const canManagePosts =
     membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
+
+  // All members can create posts
+  const canCreatePosts = !!membership;
 
   // Check if user can remove members
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
@@ -475,24 +418,15 @@ export default function ClubDetailScreen() {
     }
   };
 
-  const handleOptions = () => {
-    Alert.alert('Club options', 'What would you like to do?', [
+  const handleLeaveClub = () => {
+    Alert.alert('Leave club', 'Are you sure you want to leave this club?', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Leave club',
+        text: 'Leave',
         style: 'destructive',
         onPress: () => {
-          Alert.alert('Leave club', 'Are you sure you want to leave this club?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Leave',
-              style: 'destructive',
-              onPress: () => {
-                setMembership(undefined);
-                router.back();
-              },
-            },
-          ]);
+          setMembership(undefined);
+          router.back();
         },
       },
     ]);
@@ -555,7 +489,9 @@ export default function ClubDetailScreen() {
         >
           {/* Club header */}
           <View style={styles.section}>
-            <ClubHeader club={club} membership={membership} onOptions={handleOptions} />
+{membership && (
+              <ClubHeader club={club} membership={membership} onLeave={handleLeaveClub} />
+            )}
           </View>
 
           {/* Quick stats */}
@@ -662,8 +598,8 @@ export default function ClubDetailScreen() {
             </View>
           )}
 
-          {/* Create event button for coaches */}
-          {canManagePosts && (
+          {/* Action buttons - New Post for all members, Create Event for coaches */}
+          {canCreatePosts && (
             <View style={styles.createPostContainer}>
               <View style={styles.actionButtonsRow}>
                 <TouchableOpacity
@@ -678,13 +614,15 @@ export default function ClubDetailScreen() {
                   <Ionicons name="create-outline" size={18} color="#fff" />
                   <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>New Post</ThemedText>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButtonSplit, { backgroundColor: palette.success }]}
-                  onPress={() => router.push('/events/create')}
-                >
-                  <Ionicons name="calendar-outline" size={18} color="#fff" />
-                  <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Create Event</ThemedText>
-                </TouchableOpacity>
+                {canManagePosts && (
+                  <TouchableOpacity
+                    style={[styles.actionButtonSplit, { backgroundColor: palette.success }]}
+                    onPress={() => router.push('/events/create')}
+                  >
+                    <Ionicons name="calendar-outline" size={18} color="#fff" />
+                    <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Create Event</ThemedText>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
@@ -804,28 +742,6 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: Spacing.md,
-  },
-  clubHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
-  },
-  clubAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  clubAvatarImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  clubAvatarText: {
-    fontSize: 24,
-    fontWeight: '700',
   },
   statsRow: {
     flexDirection: 'row',

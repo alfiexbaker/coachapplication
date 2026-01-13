@@ -72,8 +72,11 @@ export default function ClubHubScreen() {
   const [isRemovingMember, setIsRemovingMember] = useState(false);
   const lastMemberRemovalRef = useRef<ClubMemberRemovalRecord | null>(null);
 
-  // Check if user can manage posts (pin, etc.)
+  // Check if user can manage posts (pin, etc.) - coaches only
   const canManagePosts = membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
+
+  // All members can create posts
+  const canCreatePosts = !!membership;
 
   // Check if user can remove members
   const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
@@ -306,11 +309,11 @@ export default function ClubHubScreen() {
         <PageHeader
           title="Club"
           subtitle={club?.name || 'Your club community'}
-          action={membership ? 'New Post' : undefined}
+          action={canCreatePosts ? 'New Post' : undefined}
           actionIcon="add"
-          onActionPress={membership ? () => router.push({
+          onActionPress={canCreatePosts ? () => router.push({
             pathname: '/(modal)/create-club-post',
-            params: { clubId: membership.clubId }
+            params: { clubId: membership!.clubId }
           }) : undefined}
         />
       }
