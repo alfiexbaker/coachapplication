@@ -38,31 +38,41 @@ export function UserHomeScreen() {
     daysToNextMilestone: number;
     streakLabel: string;
   } | null>(null);
-  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+
+  // Default to first child if user has children (no "All" for badges)
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(() => {
+    if (hasChildren(currentUser) && currentUser?.children?.[0]) {
+      return currentUser.children[0].childId;
+    }
+    return null;
+  });
+
+  // Get the athlete ID to use for data loading
+  const athleteId = selectedChildId || currentUser?.id;
 
   const loadData = useCallback(async () => {
-    if (!currentUser?.id) return;
+    if (!athleteId) return;
 
     setError(null);
     try {
-      // Load recent badges
-      const badges = await badgeService.listAwardsForAthlete(currentUser.id);
+      // Load recent badges for selected child/athlete
+      const badges = await badgeService.listAwardsForAthlete(athleteId);
       setRecentBadges(badges.slice(0, 3));
 
       // Load clubs
-      const userClubs = socialFeedService.getUserClubs(currentUser.id);
+      const userClubs = socialFeedService.getUserClubs(currentUser?.id || '');
       setClubs(userClubs);
 
-      // Load progress stats
-      const progress = await progressService.getAthleteProgress(currentUser.id, 'athlete');
+      // Load progress stats for selected child/athlete
+      const progress = await progressService.getAthleteProgress(athleteId, 'athlete');
       setStats({
         sessions: progress.totalSessions,
         badges: progress.totalBadges,
         level: progress.currentLevel.level,
       });
 
-      // Load streak info
-      const streak = await badgeService.getStreakInfo(currentUser.id);
+      // Load streak info for selected child/athlete
+      const streak = await badgeService.getStreakInfo(athleteId);
       setStreakInfo(streak);
     } catch (err) {
       logger.error('Failed to load home data', err);
@@ -70,7 +80,7 @@ export function UserHomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id]);
+  }, [athleteId, currentUser?.id]);
 
   useEffect(() => {
     loadData();
@@ -120,12 +130,13 @@ export function UserHomeScreen() {
           </ThemedText>
         </View>
 
-        {/* Child Switcher */}
+        {/* Child Switcher - no "All" option to avoid messy badge aggregation */}
         {hasChildren(currentUser) && currentUser.children && (
           <ChildSwitcher
             children={currentUser.children}
             selectedId={selectedChildId}
             onSelect={setSelectedChildId}
+            showAll={false}
           />
         )}
 

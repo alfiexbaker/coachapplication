@@ -349,6 +349,59 @@ const lastWeek = new Date(today);
 lastWeek.setDate(lastWeek.getDate() - 7);
 
 export const MOCK_BOOKINGS: Booking[] = [
+  // Past completed bookings (for review testing)
+  {
+    id: 'book_past1',
+    coachId: 'coach1',
+    athleteId: 'user1',
+    bookedById: 'user4',
+    status: 'COMPLETED',
+    scheduledAt: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week ago
+    duration: 60,
+    location: 'Hyde Park',
+    notes: 'Great session focusing on positioning',
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'book_past2',
+    coachId: 'coach2',
+    athleteId: 'user1',
+    bookedById: 'user4',
+    status: 'COMPLETED',
+    scheduledAt: new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 2 weeks ago
+    duration: 90,
+    location: 'Hackney Marshes',
+    notes: 'Worked on finishing and weak foot',
+    coachName: 'Mike Thompson',
+    athleteName: 'Tom Henderson',
+  },
+  {
+    id: 'book_past3',
+    coachId: 'coach1',
+    athleteId: 'user2',
+    bookedById: 'user4',
+    status: 'COMPLETED',
+    scheduledAt: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+    duration: 60,
+    location: 'Regent\'s Park',
+    notes: 'First assessment session - excellent potential',
+    coachName: 'Sarah Mitchell',
+    athleteName: 'Emma Henderson',
+  },
+  {
+    id: 'book_past4',
+    coachId: 'coach3',
+    athleteId: 'user2',
+    bookedById: 'user4',
+    status: 'COMPLETED',
+    scheduledAt: new Date(today.getTime() - 21 * 24 * 60 * 60 * 1000).toISOString(), // 3 weeks ago
+    duration: 60,
+    location: 'Clapham Common',
+    notes: 'Ball control drills',
+    coachName: 'David Roberts',
+    athleteName: 'Emma Henderson',
+  },
   // Upcoming bookings
   {
     id: 'book1',
