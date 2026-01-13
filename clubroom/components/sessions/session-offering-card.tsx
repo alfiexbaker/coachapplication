@@ -123,9 +123,9 @@ export function SessionOfferingCard({
           </View>
         )}
 
-        {offering.priceUsd !== undefined && (
+        {offering.priceUsd !== undefined && offering.priceUsd > 0 && (
           <View style={styles.priceContainer}>
-            <ThemedText style={styles.priceText}>${offering.priceUsd}</ThemedText>
+            <ThemedText style={styles.priceText}>£{offering.priceUsd}</ThemedText>
           </View>
         )}
       </View>

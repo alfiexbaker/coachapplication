@@ -33,8 +33,8 @@ export type BookingDraft = {
 export interface CreateBookingParams {
   coachId: string;
   coachName: string;
-  athleteId: string;
-  athleteName: string;
+  athleteIds: string[]; // Array of athlete IDs (supports multiple athletes)
+  athleteNames: string[]; // Array of athlete names matching athleteIds
   bookedById: string;
   bookedByName: string;
   scheduledAt: string; // ISO date string with time
@@ -43,7 +43,7 @@ export interface CreateBookingParams {
   service: string;
   serviceType: string;
   objectives?: string[];
-  price?: number;
+  price?: number; // Base price per athlete
   notes?: string;
   sessionInviteId?: string; // Link to session invite if created from one
 }
@@ -65,6 +65,42 @@ class BookingService {
 
   async list(): Promise<Booking[]> {
     return storageService.getItem<Booking[]>(STORAGE_KEY, MOCK_BOOKINGS);
+  }
+
+  /**
+   * Get a single booking by ID
+   */
+  async getBooking(id: string): Promise<Booking | null> {
+    const bookings = await this.list();
+    const booking = bookings.find((b) => b.id === id);
+    if (booking) return booking;
+
+    // Also check session bookings
+    try {
+      const sessionBookingsRaw = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
+      if (sessionBookingsRaw) {
+        const sessionBookings = JSON.parse(sessionBookingsRaw);
+        const sessionBooking = sessionBookings.find((b: any) => b.id === id);
+        if (sessionBooking) {
+          return {
+            id: sessionBooking.id,
+            coachId: sessionBooking.coachId,
+            coachName: sessionBooking.coachName,
+            athleteId: sessionBooking.athleteId,
+            athleteName: sessionBooking.athleteName,
+            scheduledAt: sessionBooking.scheduledAt,
+            location: sessionBooking.location,
+            service: sessionBooking.service,
+            status: sessionBooking.status,
+            price: sessionBooking.price || 35,
+          } as Booking;
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to check session bookings', error);
+    }
+
+    return null;
   }
 
   async updateStatus(id: string, status: Booking['status']) {
@@ -155,8 +191,8 @@ class BookingService {
     const {
       coachId,
       coachName,
-      athleteId,
-      athleteName,
+      athleteIds,
+      athleteNames,
       bookedById,
       bookedByName,
       scheduledAt,
@@ -180,13 +216,19 @@ class BookingService {
       return { success: false, error: validation.reason };
     }
 
+    // Calculate total price (base price * number of athletes)
+    const basePrice = price || 0;
+    const totalPrice = basePrice * athleteIds.length;
+    const isSharedSession = athleteIds.length > 1;
+
     // Create the booking
     const newBooking = {
       id: `booking-${Date.now()}`,
       coachId,
       coachName,
-      athleteId,
-      athleteName,
+      athleteIds,
+      athleteId: athleteIds[0], // Backwards compatibility: first athlete
+      athleteName: athleteNames.join(', '), // Combined names for display
       bookedById,
       scheduledAt,
       status: 'CONFIRMED',
@@ -195,7 +237,8 @@ class BookingService {
       service,
       serviceType,
       objectives: objectives || [],
-      price,
+      price: totalPrice,
+      isSharedSession,
       notes: notes || '',
       createdAt: new Date().toISOString(),
       sessionInviteId, // Link to session invite if created from one

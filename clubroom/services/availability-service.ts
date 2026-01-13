@@ -46,70 +46,130 @@ async function loadSessionOfferings(): Promise<SessionOffering[]> {
   return [];
 }
 
-// Mock templates for development
+// Mock templates for development - coach availability
 const MOCK_TEMPLATES: AvailabilityTemplate[] = [
+  // Coach 1 - Sarah Mitchell (Goalkeeping)
   {
     id: 'tmpl_1',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     dayOfWeek: 1, // Monday
     startTime: '16:00',
     endTime: '19:00',
     isRecurring: true,
     maxConcurrent: 1,
     bufferMinutes: 15,
-    location: 'Hackney Marshes',
+    location: 'Hyde Park',
   },
   {
     id: 'tmpl_2',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     dayOfWeek: 3, // Wednesday
     startTime: '16:00',
     endTime: '19:00',
     isRecurring: true,
     maxConcurrent: 1,
     bufferMinutes: 15,
-    location: 'Hackney Marshes',
+    location: 'Hyde Park',
   },
   {
     id: 'tmpl_3',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     dayOfWeek: 5, // Friday
-    startTime: '16:00',
+    startTime: '15:00',
     endTime: '18:00',
     isRecurring: true,
     maxConcurrent: 1,
     bufferMinutes: 15,
-    location: 'Hackney Marshes',
+    location: "Regent's Park",
   },
   {
     id: 'tmpl_4',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     dayOfWeek: 6, // Saturday
     startTime: '09:00',
     endTime: '13:00',
     isRecurring: true,
     maxConcurrent: 2,
     bufferMinutes: 15,
+    location: 'Hyde Park',
+  },
+  // Coach 2 - Mike Thompson (Striker Training)
+  {
+    id: 'tmpl_5',
+    coachId: 'coach2',
+    dayOfWeek: 2, // Tuesday
+    startTime: '17:00',
+    endTime: '20:00',
+    isRecurring: true,
+    maxConcurrent: 1,
+    bufferMinutes: 15,
     location: 'Victoria Park',
+  },
+  {
+    id: 'tmpl_6',
+    coachId: 'coach2',
+    dayOfWeek: 4, // Thursday
+    startTime: '17:00',
+    endTime: '20:00',
+    isRecurring: true,
+    maxConcurrent: 1,
+    bufferMinutes: 15,
+    location: 'Victoria Park',
+  },
+  {
+    id: 'tmpl_7',
+    coachId: 'coach2',
+    dayOfWeek: 6, // Saturday
+    startTime: '10:00',
+    endTime: '14:00',
+    isRecurring: true,
+    maxConcurrent: 2,
+    bufferMinutes: 15,
+    location: 'Hackney Marshes',
+  },
+  // Coach 3 - David Roberts (Youth Development)
+  {
+    id: 'tmpl_8',
+    coachId: 'coach3',
+    dayOfWeek: 1, // Monday
+    startTime: '16:30',
+    endTime: '19:30',
+    isRecurring: true,
+    maxConcurrent: 1,
+    bufferMinutes: 15,
+    location: 'Clapham Common',
+  },
+  {
+    id: 'tmpl_9',
+    coachId: 'coach3',
+    dayOfWeek: 3, // Wednesday
+    startTime: '16:30',
+    endTime: '19:30',
+    isRecurring: true,
+    maxConcurrent: 1,
+    bufferMinutes: 15,
+    location: 'Clapham Common',
+  },
+  {
+    id: 'tmpl_10',
+    coachId: 'coach3',
+    dayOfWeek: 0, // Sunday
+    startTime: '09:00',
+    endTime: '12:00',
+    isRecurring: true,
+    maxConcurrent: 2,
+    bufferMinutes: 15,
+    location: 'Battersea Park',
   },
 ];
 
 const MOCK_OVERRIDES: AvailabilityOverride[] = [
   {
     id: 'ovr_1',
-    coachId: 'coach_1',
-    date: '2026-01-15',
+    coachId: 'coach1',
+    date: '2026-01-20',
     isBlocked: true,
     reason: 'Personal appointment',
-  },
-  {
-    id: 'ovr_2',
-    coachId: 'coach_1',
-    date: '2026-01-25',
-    isBlocked: false,
-    customSlots: [
-      { date: '2026-01-25', startTime: '10:00', endTime: '14:00', location: 'Special Event Venue' },
-    ],
   },
 ];
 

@@ -21,6 +21,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { goalService } from '@/services/goal-service';
 import { scaleFont } from '@/utils/scale';
+import { hasChildren } from '@/utils/user-helpers';
 
 /**
  * Screen for creating or editing a goal.
@@ -63,7 +64,7 @@ export default function CreateGoalScreen() {
   const getCreatorType = useCallback((): GoalCreator => {
     if (!currentUser) return 'ATHLETE';
     if (currentUser.role === 'COACH') return 'COACH';
-    if (currentUser.role === 'PARENT') return 'PARENT';
+    if (hasChildren(currentUser)) return 'PARENT';
     return 'ATHLETE';
   }, [currentUser]);
 

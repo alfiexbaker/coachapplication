@@ -11,6 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { sessionHistory, athleteSkillLevels, getChildrenForParent, getSessionsForAthlete } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
+import { hasChildren } from '@/utils/user-helpers';
 import { router } from 'expo-router';
 
 export default function StatisticsScreen() {
@@ -20,7 +21,7 @@ export default function StatisticsScreen() {
 
   // Parent-specific: child selection
   const children = useMemo(() => {
-    if (currentUser?.role === 'PARENT') {
+    if (hasChildren(currentUser)) {
       return getChildrenForParent(currentUser.id);
     }
     return [];
@@ -32,7 +33,7 @@ export default function StatisticsScreen() {
   const [badgeCount, setBadgeCount] = useState(0);
 
   // Compute targetId for badge fetching
-  const targetId = currentUser?.role === 'PARENT' ? selectedChildId : currentUser?.id;
+  const targetId = hasChildren(currentUser) ? selectedChildId : currentUser?.id;
 
   // Load badge count
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function StatisticsScreen() {
 
   // Get sessions filtered by selected child for parents
   const sessions = useMemo(() => {
-    if (currentUser?.role === 'PARENT' && selectedChildId) {
+    if (hasChildren(currentUser) && selectedChildId) {
       return getSessionsForAthlete(selectedChildId);
     }
     // For USER, show their own sessions
@@ -95,7 +96,7 @@ export default function StatisticsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
         {/* Child Selector for Parents */}
-        {currentUser?.role === 'PARENT' && children.length > 0 && (
+        {hasChildren(currentUser) && children.length > 0 && (
           <View style={styles.childSelector}>
             <ThemedText style={[styles.childLabel, { color: palette.muted }]}>
               ATHLETE
@@ -231,7 +232,7 @@ export default function StatisticsScreen() {
             <Pressable
               style={[styles.quickLink, { backgroundColor: `${palette.tint}10`, borderColor: `${palette.tint}30` }]}
               onPress={() => {
-                if (currentUser?.role === 'PARENT' && selectedChildId) {
+                if (hasChildren(currentUser) && selectedChildId) {
                   router.push({ pathname: '/development/child-progress/[childId]', params: { childId: selectedChildId } });
                 } else {
                   router.push('/development/my-progress');
@@ -244,7 +245,7 @@ export default function StatisticsScreen() {
             <Pressable
               style={[styles.quickLink, { backgroundColor: '#8B5CF610', borderColor: '#8B5CF630' }]}
               onPress={() => {
-                if (currentUser?.role === 'PARENT' && selectedChildId) {
+                if (hasChildren(currentUser) && selectedChildId) {
                   router.push({ pathname: '/children/badges/[childId]', params: { childId: selectedChildId } });
                 } else {
                   router.push('/(tabs)/badges');

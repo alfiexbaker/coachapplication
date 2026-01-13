@@ -1,7 +1,8 @@
 import type { Goal } from './types';
 
-// Core User Types
-export type UserRole = 'COACH' | 'USER' | 'PARENT';
+// Core User Types - Only USER and COACH roles
+// Users with children access child management via hasChildren() check
+export type UserRole = 'COACH' | 'USER';
 
 export interface User {
   id: string;
@@ -44,14 +45,13 @@ export interface UserProfile {
   skillLevel: SkillLevel;
   position?: string; // e.g., 'Midfielder', 'Striker'
   goals: Goal[];
-  parentId?: string; // If managed by parent
 }
 
-// Parent-Child Relationship
-export interface Relationship {
+// Child Relationship - Users can have children they book for
+export interface ChildRelationship {
   id: string;
-  parentId: string;
-  childId: string; // Child is a User with role='USER'
+  userId: string; // User who has children
+  childId: string; // Child is also a User
   relationshipType: 'PARENT_CHILD' | 'GUARDIAN';
 }
 
@@ -61,9 +61,11 @@ export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 export interface Booking {
   id: string;
   coachId: string;
-  athleteId: string; // The user being coached
+  athleteIds: string[]; // The users being coached (supports multiple athletes)
+  athleteId?: string; // Deprecated: kept for backwards compatibility
   bookedById: string; // Could be parent or athlete
   status: BookingStatus;
+  isSharedSession?: boolean; // True if multiple athletes share this session
   scheduledAt: string; // ISO date string
   duration: number; // minutes (default 60)
   location: string;

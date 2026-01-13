@@ -236,6 +236,48 @@ function DiscoverCoachesCard() {
   );
 }
 
+function ClubHubCard({ clubs }: { clubs: Club[] }) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  // If user has clubs, show compact club list
+  if (clubs.length > 0) {
+    return (
+      <View style={styles.clubsRow}>
+        {clubs.slice(0, 3).map((club) => (
+          <TouchableOpacity
+            key={club.id}
+            style={[styles.clubPill, { backgroundColor: `${palette.tint}10`, borderColor: `${palette.tint}25` }]}
+            onPress={() => router.push({ pathname: '/club/[id]', params: { id: club.id } })}
+          >
+            <View style={[styles.clubPillIcon, { backgroundColor: palette.tint }]}>
+              <ThemedText style={styles.clubPillIconText}>
+                {club.badge?.slice(0, 2) || club.name.slice(0, 2).toUpperCase()}
+              </ThemedText>
+            </View>
+            <ThemedText style={{ fontSize: 13, fontWeight: '600' }} numberOfLines={1}>
+              {club.name}
+            </ThemedText>
+          </TouchableOpacity>
+        ))}
+        {clubs.length > 3 && (
+          <TouchableOpacity
+            style={[styles.clubPill, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            onPress={() => router.push('/(tabs)/club-hub')}
+          >
+            <ThemedText style={{ fontSize: 13, color: palette.muted }}>
+              +{clubs.length - 3} more
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  // No clubs - show simple join prompt
+  return null;
+}
+
 function JoinClubCard() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -368,39 +410,43 @@ function EmptyFeedState({
 
   if (!hasClubs) {
     return (
-      <View style={styles.noClubsContent}>
-        {/* Welcome Header */}
-        <View style={styles.welcomeHeader}>
-          <ThemedText type="subtitle" style={styles.welcomeTitle}>
-            Welcome to Your Feed
-          </ThemedText>
-          <ThemedText style={[styles.welcomeDesc, { color: palette.muted }]}>
-            Here you will see updates from your clubs, coaches, and training community.
-          </ThemedText>
+      <View style={styles.emptyStateContainer}>
+        <View style={[styles.emptyStateIcon, { backgroundColor: `${palette.tint}10` }]}>
+          <Ionicons name="newspaper-outline" size={32} color={palette.tint} />
         </View>
-
-        {/* Quick Actions */}
-        <QuickActionsCard />
-
-        {/* Discover Coaches */}
-        <DiscoverCoachesCard />
-
-        {/* Join a Club */}
-        <JoinClubCard />
-
-        {/* Getting Started Tips */}
-        <OnboardingTipsCard />
+        <ThemedText type="defaultSemiBold" style={{ fontSize: 16, textAlign: 'center' }}>
+          Your feed is empty
+        </ThemedText>
+        <ThemedText style={{ color: palette.muted, textAlign: 'center', lineHeight: 20 }}>
+          Join a club or follow coaches to see updates here
+        </ThemedText>
+        <View style={styles.emptyStateActions}>
+          <TouchableOpacity
+            style={[styles.emptyStateButton, { backgroundColor: palette.tint }]}
+            onPress={() => router.push('/(tabs)/club-hub')}
+          >
+            <Ionicons name="shield-outline" size={18} color="#fff" />
+            <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Join Club</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.emptyStateButtonOutline, { borderColor: palette.border }]}
+            onPress={() => router.push('/(tabs)/more')}
+          >
+            <Ionicons name="search-outline" size={18} color={palette.text} />
+            <ThemedText style={{ fontWeight: '600' }}>Find Coach</ThemedText>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.emptyFeed}>
-      <Ionicons name="newspaper-outline" size={48} color={palette.muted} />
+    <View style={styles.emptyStateContainer}>
+      <View style={[styles.emptyStateIcon, { backgroundColor: `${palette.muted}15` }]}>
+        <Ionicons name="document-text-outline" size={28} color={palette.muted} />
+      </View>
       <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
-        {filter === 'all'
-          ? 'No posts yet. Check back later!'
-          : `No ${filter} posts yet.`}
+        {filter === 'all' ? 'No posts yet' : `No ${filter}s yet`}
       </ThemedText>
     </View>
   );
@@ -508,55 +554,46 @@ export default function FeedScreen() {
           />
         }
       >
-        {/* Club chips */}
-        <ClubChips clubs={clubs} />
+        {/* Compact club pills - only show if user has clubs */}
+        {clubs.length > 0 && (
+          <View style={styles.clubsSection}>
+            <ClubHubCard clubs={clubs} />
+          </View>
+        )}
 
-        {/* Feed filter tabs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={styles.filterContainer}
-        >
-          {FEED_FILTERS.map((filter) => (
-            <TouchableOpacity
-              key={filter.key}
-              style={[
-                styles.filterTab,
-                feedFilter === filter.key && {
-                  backgroundColor: `${palette.tint}15`,
-                  borderColor: palette.tint,
-                },
-                { borderColor: palette.border },
-              ]}
-              onPress={() => setFeedFilter(filter.key)}
-            >
-              <Ionicons
-                name={filter.icon as any}
-                size={16}
-                color={feedFilter === filter.key ? palette.tint : palette.muted}
-              />
-              <ThemedText
+        {/* Feed filter tabs - only show if there are posts or clubs */}
+        {(feed.length > 0 || clubs.length > 0) && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+            contentContainerStyle={styles.filterContainer}
+          >
+            {FEED_FILTERS.map((filter) => (
+              <TouchableOpacity
+                key={filter.key}
                 style={[
-                  styles.filterLabel,
-                  { color: feedFilter === filter.key ? palette.tint : palette.muted },
+                  styles.filterTab,
+                  feedFilter === filter.key && {
+                    backgroundColor: `${palette.tint}15`,
+                    borderColor: palette.tint,
+                  },
+                  { borderColor: palette.border },
                 ]}
+                onPress={() => setFeedFilter(filter.key)}
               >
-                {filter.label}
-              </ThemedText>
-              {(filterCounts[filter.key] ?? 0) > 0 && (
-                <View
+                <ThemedText
                   style={[
-                    styles.filterCount,
-                    { backgroundColor: feedFilter === filter.key ? palette.tint : palette.muted },
+                    styles.filterLabel,
+                    { color: feedFilter === filter.key ? palette.tint : palette.muted },
                   ]}
                 >
-                  <ThemedText style={styles.filterCountText}>{filterCounts[filter.key]}</ThemedText>
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                  {filter.label}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Feed posts */}
         <View style={styles.feedSection}>
@@ -578,44 +615,39 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: Spacing.xl * 2,
   },
-  clubChipsScroll: {
-    marginTop: Spacing.sm,
-  },
-  clubChipsContainer: {
+  // Compact club section
+  clubsSection: {
     paddingHorizontal: Spacing.md,
-    gap: Spacing.sm,
-    alignItems: 'center',
+    paddingTop: Spacing.sm,
   },
-  clubChipsLabel: {
-    fontSize: 13,
-    marginRight: Spacing.xs,
+  clubsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
   },
-  clubChip: {
+  clubPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 6,
     paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: 10,
+    paddingRight: 12,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  clubChipIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  clubPillIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clubChipIconText: {
+  clubPillIconText: {
     color: '#fff',
     fontSize: 9,
     fontWeight: '700',
   },
-  clubChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-    maxWidth: 120,
-  },
+  // Filter tabs
   filterScroll: {
     marginTop: Spacing.md,
   },
@@ -624,29 +656,14 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   filterTab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 8,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
   filterLabel: {
     fontSize: 13,
     fontWeight: '500',
-  },
-  filterCount: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  filterCountText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
   },
   feedSection: {
     padding: Spacing.md,
@@ -787,47 +804,42 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  emptyFeed: {
+  // Clean empty state
+  emptyStateContainer: {
     alignItems: 'center',
-    padding: Spacing.xl,
+    paddingVertical: Spacing.xl * 2,
+    paddingHorizontal: Spacing.lg,
     gap: Spacing.md,
   },
-  // New empty state styles for USER without clubs
-  noClubsContent: {
-    gap: Spacing.md,
-  },
-  welcomeHeader: {
+  emptyStateIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    gap: Spacing.xs,
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
   },
-  welcomeTitle: {
-    textAlign: 'center',
-    fontSize: 18,
-  },
-  welcomeDesc: {
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-    maxWidth: 300,
-  },
-  quickActionsGrid: {
+  emptyStateActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: Spacing.sm,
+    marginTop: Spacing.sm,
   },
-  quickActionItem: {
-    flexBasis: '47%',
+  emptyStateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
+    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  emptyStateButtonOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-  },
-  quickActionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   discoverCard: {
     gap: Spacing.sm,
@@ -901,6 +913,74 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Club Hub Card Styles
+  clubHubSection: {
+    padding: Spacing.md,
+    paddingBottom: 0,
+  },
+  clubHubCard: {
+    gap: Spacing.md,
+  },
+  clubHubHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  clubHubIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clubHubButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  clubHubList: {
+    gap: Spacing.sm,
+  },
+  clubHubItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  clubHubItemIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clubHubItemIconText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  clubHubViewMore: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  clubHubJoinSection: {
+    borderTopWidth: 1,
+    paddingTop: Spacing.md,
+  },
+  clubHubJoinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  joinCodeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },

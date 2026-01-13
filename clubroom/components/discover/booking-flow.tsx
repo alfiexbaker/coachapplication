@@ -363,7 +363,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
             }
           />
           <SummaryRow label="Venue" value="Austin Sports Academy · Pitch 2" />
-          <SummaryRow label="Investment" value={coach ? `$${coach.priceRange.minUsd}+ / session` : '$120 / session'} />
+          <SummaryRow label="Investment" value={coach ? `£${coach.priceRange.minUsd}+ / session` : '£120 / session'} />
         </View>
         <Pressable
           accessibilityRole="button"

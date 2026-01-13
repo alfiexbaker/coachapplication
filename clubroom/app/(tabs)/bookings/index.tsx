@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
-import { StyleSheet, Alert, ActivityIndicator, View } from 'react-native';
+import { StyleSheet, ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { PageHeader } from '@/components/primitives/page-header';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -13,15 +13,15 @@ import {
   upcomingBookings,
   getChildrenForParent,
 } from '@/constants/mock-data';
-import { BookingSummary, SessionOffering, FootballObjective } from '@/constants/types';
+import { BookingSummary, SessionOffering } from '@/constants/types';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
+import { sessionInviteService } from '@/services/session-invite-service';
 import { createLogger } from '@/utils/logger';
+import { hasChildren } from '@/utils/user-helpers';
 
 // Extracted components
 import { QuickActions } from '@/components/bookings/QuickActions';
 import { BookingsList, TimeFilter } from '@/components/bookings/BookingsList';
-import { CreateSessionForm, SessionType, RecurrenceType } from '@/components/bookings/CreateSessionForm';
-import { CoachTabNavigation, TabType } from '@/components/bookings/CoachTabNavigation';
 
 const logger = createLogger('BookingsScreen');
 
@@ -31,27 +31,12 @@ export default function BookingsScreen() {
   const { currentUser } = useAuth();
   const [sessionBookings, setSessionBookings] = useState<BookingSummary[]>([]);
   const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
-  const [activeTab, setActiveTab] = useState<TabType>('list');
-  const [sessionType, setSessionType] = useState<SessionType>('1on1');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-
-  // Form state for creating session offerings
-  const [sessionTitle, setSessionTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [maxParticipants, setMaxParticipants] = useState('');
-  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none');
-  const [price, setPrice] = useState('');
-  const [ageMin, setAgeMin] = useState('');
-  const [ageMax, setAgeMax] = useState('');
-  const [footballSkill, setFootballSkill] = useState<FootballObjective | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingInvites, setPendingInvites] = useState(0);
 
   const userRole = currentUser?.role;
 
@@ -94,13 +79,24 @@ export default function BookingsScreen() {
         setSessionOfferings(offerings);
         logger.debug('Loaded session offerings', { count: offerings.length });
       }
+
+      // Load pending invites count for parents/athletes
+      if (currentUser && currentUser.role !== 'COACH') {
+        try {
+          const invites = await sessionInviteService.getPendingInvites(currentUser.id);
+          setPendingInvites(invites.length);
+          logger.debug('Loaded pending invites', { count: invites.length });
+        } catch (inviteErr) {
+          logger.error('Failed to load pending invites', inviteErr);
+        }
+      }
     } catch (err) {
       logger.error('Failed to load bookings data', err);
       setError('Failed to load bookings. Pull down to refresh.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser]);
 
   // Reload bookings when screen comes into focus
   useFocusEffect(
@@ -108,98 +104,6 @@ export default function BookingsScreen() {
       loadData();
     }, [loadData])
   );
-
-  // Create a new session offering
-  const createSessionOffering = async () => {
-    // Validation
-    if (!sessionTitle.trim()) {
-      Alert.alert('Error', 'Please enter session title');
-      return;
-    }
-    if (!location.trim()) {
-      Alert.alert('Error', 'Please enter location');
-      return;
-    }
-
-    // Validate max participants is a valid integer
-    const maxParticipantsNum = sessionType === 'group' ? parseInt(maxParticipants) : 1;
-    if (sessionType === 'group') {
-      if (!maxParticipants.trim()) {
-        Alert.alert('Error', 'Please enter max participants for group session');
-        return;
-      }
-      if (isNaN(maxParticipantsNum) || maxParticipantsNum < 2) {
-        Alert.alert('Error', 'Max participants must be a number greater than 1');
-        return;
-      }
-    }
-
-    try {
-      // Parse optional fields
-      const priceNum = price.trim() ? parseFloat(price) : undefined;
-      const ageMinNum = ageMin.trim() ? parseInt(ageMin) : undefined;
-      const ageMaxNum = ageMax.trim() ? parseInt(ageMax) : undefined;
-
-      // Generate new session offering
-      const newOffering: SessionOffering = {
-        id: `offering_${Date.now()}`,
-        coachId: currentUser?.id || 'unknown',
-        coachName: currentUser?.fullName || 'Unknown Coach',
-        title: sessionTitle.trim(),
-        description: description.trim() || undefined,
-        sessionType: sessionType,
-        maxParticipants: maxParticipantsNum,
-        location: location.trim(),
-        scheduledAt: selectedDate.toISOString(),
-        isRecurring: recurrenceType === 'weekly',
-        recurrenceType: recurrenceType,
-        dayOfWeek: recurrenceType === 'weekly' ? selectedDate.getDay() : undefined,
-        timeOfDay: recurrenceType === 'weekly'
-          ? selectedDate.toTimeString().slice(0, 5)
-          : undefined,
-        status: 'active',
-        registrations: [],
-        createdAt: new Date().toISOString(),
-        priceUsd: priceNum,
-        ageMin: ageMinNum,
-        ageMax: ageMaxNum,
-        footballSkill: footballSkill || undefined,
-      };
-
-      // Load existing offerings
-      const stored = await AsyncStorage.getItem('session_offerings');
-      const existingOfferings = stored ? JSON.parse(stored) : [];
-
-      // Add new offering
-      const updatedOfferings = [...existingOfferings, newOffering];
-      await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
-
-      logger.debug('Created new session offering', newOffering);
-
-      // Reset form
-      setSessionTitle('');
-      setDescription('');
-      setLocation('');
-      setSelectedDate(new Date());
-      setMaxParticipants('');
-      setRecurrenceType('none');
-      setPrice('');
-      setAgeMin('');
-      setAgeMax('');
-      setFootballSkill('');
-
-      // Reload offerings
-      await loadSessionOfferings();
-
-      // Switch back to list tab
-      setActiveTab('list');
-
-      Alert.alert('Success', 'Session offering created');
-    } catch (error) {
-      logger.error('Failed to create session offering', error);
-      Alert.alert('Error', 'Failed to create session offering. Please try again.');
-    }
-  };
 
   // For COACHES: show their session offerings
   // For ATHLETES/PARENTS: show sessions they're registered for
@@ -224,14 +128,16 @@ export default function BookingsScreen() {
     // Also show old bookings
     const allBookings = [...upcomingBookings, ...sessionBookings];
     const filteredBookings = allBookings.filter((booking) => {
-      if (userRole === 'USER') {
-        return booking.clientId === currentUser?.id || booking.client?.name === currentUser?.fullName;
-      } else if (userRole === 'PARENT') {
+      // Check if user has children - show their children's bookings too
+      if (hasChildren(currentUser)) {
         const children = getChildrenForParent(currentUser?.id || '');
         const childrenIds = children.map(c => c.id);
-        return childrenIds.includes(booking.clientId || '');
+        return childrenIds.includes(booking.clientId || '') ||
+               booking.clientId === currentUser?.id ||
+               booking.client?.name === currentUser?.fullName;
       }
-      return true;
+      // Regular user - show their own bookings
+      return booking.clientId === currentUser?.id || booking.client?.name === currentUser?.fullName;
     });
 
     displayItems = timeFilter === 'upcoming'
@@ -256,6 +162,26 @@ export default function BookingsScreen() {
     router.push('/(tabs)/settings');
   };
 
+  const handleGroupSessionsPress = () => {
+    logger.press('GroupSessionsButton', { route: '/group-sessions' });
+    router.push('/group-sessions');
+  };
+
+  const handleDiscoverSessionsPress = () => {
+    logger.press('DiscoverSessionsButton', { route: '/discover-sessions' });
+    router.push('/discover-sessions');
+  };
+
+  const handleInvitesPress = () => {
+    logger.press('InvitesButton', { route: '/invites' });
+    router.push('/invites');
+  };
+
+  const handleCreateSessionPress = () => {
+    logger.press('CreateSessionButton', { route: '/session/create' });
+    router.push('/session/create');
+  };
+
   const handleFindCoachPress = () => {
     logger.press('FindCoachButton', { route: '/(tabs)/index' });
     router.push('/(tabs)/index');
@@ -278,14 +204,10 @@ export default function BookingsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">Bookings</ThemedText>
-      </ThemedView>
-
-      {/* Tab Navigation for Coaches */}
-      {userRole === 'COACH' && (
-        <CoachTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-      )}
+      <PageHeader
+        title="Bookings"
+        subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
+      />
 
       {/* Quick Actions - Role-based */}
       <QuickActions
@@ -294,7 +216,11 @@ export default function BookingsScreen() {
         onFindCoachPress={handleFindCoachPress}
         onCalendarPress={handleCalendarPress}
         onSettingsPress={handleSettingsPress}
-        showCoachActions={activeTab === 'list'}
+        onGroupSessionsPress={handleGroupSessionsPress}
+        onDiscoverSessionsPress={handleDiscoverSessionsPress}
+        onInvitesPress={handleInvitesPress}
+        pendingInvites={pendingInvites}
+        showCoachActions={true}
       />
 
       {/* Loading State */}
@@ -311,8 +237,8 @@ export default function BookingsScreen() {
         </View>
       )}
 
-      {/* Bookings List - Show for all users, or coaches on 'list' tab */}
-      {!loading && (userRole !== 'COACH' || activeTab === 'list') && (
+      {/* Bookings List */}
+      {!loading && (
         <BookingsList
           items={displayItems}
           timeFilter={timeFilter}
@@ -320,40 +246,7 @@ export default function BookingsScreen() {
           userRole={userRole}
           onOfferingPress={handleOfferingPress}
           onFindCoachPress={handleFindCoachPress}
-          onCreateSessionPress={() => setActiveTab('create')}
-        />
-      )}
-
-      {/* Create Booking Form - Only for coaches on 'create' tab */}
-      {userRole === 'COACH' && activeTab === 'create' && (
-        <CreateSessionForm
-          sessionType={sessionType}
-          onSessionTypeChange={setSessionType}
-          recurrenceType={recurrenceType}
-          onRecurrenceTypeChange={setRecurrenceType}
-          sessionTitle={sessionTitle}
-          onSessionTitleChange={setSessionTitle}
-          description={description}
-          onDescriptionChange={setDescription}
-          maxParticipants={maxParticipants}
-          onMaxParticipantsChange={setMaxParticipants}
-          location={location}
-          onLocationChange={setLocation}
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          showDatePicker={showDatePicker}
-          onShowDatePickerChange={setShowDatePicker}
-          showTimePicker={showTimePicker}
-          onShowTimePickerChange={setShowTimePicker}
-          price={price}
-          onPriceChange={setPrice}
-          ageMin={ageMin}
-          onAgeMinChange={setAgeMin}
-          ageMax={ageMax}
-          onAgeMaxChange={setAgeMax}
-          footballSkill={footballSkill}
-          onFootballSkillChange={setFootballSkill}
-          onSubmit={createSessionOffering}
+          onCreateSessionPress={handleCreateSessionPress}
         />
       )}
 
@@ -371,11 +264,6 @@ export default function BookingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 14,
   },
   loadingContainer: {
     flex: 1,

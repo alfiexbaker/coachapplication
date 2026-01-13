@@ -1,0 +1,415 @@
+import React, { useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+
+import { ThemedText } from '@/components/themed-text';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Colors, Spacing, Radii } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
+import { clubs } from '@/constants/mock-data';
+
+const AGE_GROUPS = [
+  { label: 'U8', min: 5, max: 8 },
+  { label: 'U10', min: 8, max: 10 },
+  { label: 'U12', min: 10, max: 12 },
+  { label: 'U14', min: 12, max: 14 },
+  { label: 'U16', min: 14, max: 16 },
+  { label: 'U18', min: 16, max: 18 },
+  { label: 'Adults', min: 18, max: 99 },
+];
+
+const SQUAD_LEVELS = [
+  'Development',
+  'Competitive',
+  'Elite',
+  'Performance',
+  'Foundation',
+  'Fun Football',
+];
+
+const SKILL_TAGS = [
+  'Ball Mastery',
+  'Finishing',
+  'Tactics',
+  'Teamwork',
+  'Confidence',
+  'Technical',
+  'Conditioning',
+  'Goalkeeping',
+  'Match Play',
+];
+
+export default function CreateSquadScreen() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const { currentUser } = useAuth();
+  const { clubId } = useLocalSearchParams<{ clubId: string }>();
+
+  const [squadName, setSquadName] = useState('');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<typeof AGE_GROUPS[0] | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState('');
+  const [meetLocation, setMeetLocation] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const club = clubs.find((c) => c.id === clubId);
+
+  const toggleTag = (tag: string) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(selectedTags.filter((t) => t !== tag));
+    } else if (selectedTags.length < 3) {
+      setSelectedTags([...selectedTags, tag]);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!squadName.trim()) {
+      Alert.alert('Error', 'Please enter a squad name');
+      return;
+    }
+    if (!selectedAgeGroup) {
+      Alert.alert('Error', 'Please select an age group');
+      return;
+    }
+    if (!selectedLevel) {
+      Alert.alert('Error', 'Please select a level');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // In a real app, this would call an API
+      // For now, we'll just show a success message
+      Alert.alert(
+        'Squad Created',
+        `${squadName} has been created successfully!`,
+        [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create squad. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!club) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
+        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close" size={24} color={palette.foreground} />
+          </TouchableOpacity>
+          <ThemedText type="defaultSemiBold">Create Group</ThemedText>
+          <View style={{ width: 24 }} />
+        </View>
+        <View style={styles.errorContent}>
+          <ThemedText style={{ color: palette.error }}>Club not found</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: palette.border }]}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="close" size={24} color={palette.foreground} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <ThemedText type="defaultSemiBold">Create Group</ThemedText>
+          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{club.name}</ThemedText>
+        </View>
+        <TouchableOpacity
+          onPress={handleCreate}
+          disabled={isSubmitting || !squadName.trim()}
+          style={[
+            styles.createButton,
+            { backgroundColor: squadName.trim() ? palette.tint : palette.border },
+          ]}
+        >
+          <ThemedText style={{ color: squadName.trim() ? '#fff' : palette.muted, fontWeight: '600', fontSize: 14 }}>
+            {isSubmitting ? 'Creating...' : 'Create'}
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Squad Name */}
+        <View style={styles.section}>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Group Name</ThemedText>
+          <TextInput
+            value={squadName}
+            onChangeText={setSquadName}
+            placeholder="e.g., U14 Development Squad"
+            placeholderTextColor={palette.muted}
+            style={[styles.textInput, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
+          />
+        </View>
+
+        {/* Age Group */}
+        <View style={styles.section}>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Age Group</ThemedText>
+          <View style={styles.optionsGrid}>
+            {AGE_GROUPS.map((age) => (
+              <TouchableOpacity
+                key={age.label}
+                style={[
+                  styles.optionPill,
+                  {
+                    backgroundColor: selectedAgeGroup?.label === age.label ? palette.tint : palette.surface,
+                    borderColor: selectedAgeGroup?.label === age.label ? palette.tint : palette.border,
+                  },
+                ]}
+                onPress={() => setSelectedAgeGroup(age)}
+              >
+                <ThemedText
+                  style={{
+                    color: selectedAgeGroup?.label === age.label ? '#fff' : palette.text,
+                    fontWeight: '600',
+                    fontSize: 14,
+                  }}
+                >
+                  {age.label}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Level */}
+        <View style={styles.section}>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Level</ThemedText>
+          <View style={styles.optionsGrid}>
+            {SQUAD_LEVELS.map((level) => (
+              <TouchableOpacity
+                key={level}
+                style={[
+                  styles.optionPill,
+                  {
+                    backgroundColor: selectedLevel === level ? palette.tint : palette.surface,
+                    borderColor: selectedLevel === level ? palette.tint : palette.border,
+                  },
+                ]}
+                onPress={() => setSelectedLevel(level)}
+              >
+                <ThemedText
+                  style={{
+                    color: selectedLevel === level ? '#fff' : palette.text,
+                    fontWeight: '500',
+                    fontSize: 13,
+                  }}
+                >
+                  {level}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Meeting Location */}
+        <View style={styles.section}>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Meeting Location</ThemedText>
+          <TextInput
+            value={meetLocation}
+            onChangeText={setMeetLocation}
+            placeholder="e.g., Main Pitch, Sports Hall"
+            placeholderTextColor={palette.muted}
+            style={[styles.textInput, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
+          />
+        </View>
+
+        {/* Skill Tags */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Focus Areas</ThemedText>
+            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Select up to 3</ThemedText>
+          </View>
+          <View style={styles.tagsGrid}>
+            {SKILL_TAGS.map((tag) => {
+              const isSelected = selectedTags.includes(tag);
+              return (
+                <TouchableOpacity
+                  key={tag}
+                  style={[
+                    styles.tagPill,
+                    {
+                      backgroundColor: isSelected ? `${palette.success}15` : palette.surface,
+                      borderColor: isSelected ? palette.success : palette.border,
+                    },
+                  ]}
+                  onPress={() => toggleTag(tag)}
+                >
+                  {isSelected && <Ionicons name="checkmark-circle" size={16} color={palette.success} />}
+                  <ThemedText
+                    style={{
+                      color: isSelected ? palette.success : palette.text,
+                      fontWeight: isSelected ? '600' : '500',
+                      fontSize: 13,
+                    }}
+                  >
+                    {tag}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Preview Card */}
+        {squadName && selectedAgeGroup && selectedLevel && (
+          <View style={styles.section}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Preview</ThemedText>
+            <SurfaceCard style={styles.previewCard}>
+              <View style={styles.previewHeader}>
+                <View style={[styles.previewBadge, { backgroundColor: palette.tint }]}>
+                  <ThemedText style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
+                    {squadName.slice(0, 2).toUpperCase()}
+                  </ThemedText>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>{squadName}</ThemedText>
+                  <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                    {selectedAgeGroup.label} · {selectedLevel}
+                  </ThemedText>
+                </View>
+              </View>
+              {meetLocation && (
+                <View style={styles.previewMeta}>
+                  <Ionicons name="location-outline" size={14} color={palette.muted} />
+                  <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{meetLocation}</ThemedText>
+                </View>
+              )}
+              {selectedTags.length > 0 && (
+                <View style={styles.previewTags}>
+                  {selectedTags.map((tag) => (
+                    <View key={tag} style={[styles.previewTag, { backgroundColor: `${palette.tint}15` }]}>
+                      <ThemedText style={{ color: palette.tint, fontSize: 11, fontWeight: '600' }}>{tag}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </SurfaceCard>
+          </View>
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  createButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+  },
+  content: {
+    flex: 1,
+    padding: Spacing.lg,
+  },
+  errorContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  section: {
+    marginBottom: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    marginBottom: Spacing.sm,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: 16,
+  },
+  optionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  optionPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  tagsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  tagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  previewCard: {
+    gap: Spacing.sm,
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  previewBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  previewTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  previewTag: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.sm,
+  },
+});

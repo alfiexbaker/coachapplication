@@ -11,6 +11,7 @@ import { Colors, Spacing, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import { hasChildren, isCoach as checkIsCoach } from '@/utils/user-helpers';
 import { mockUserProfile } from '@/constants/mock-data';
 
 const logger = createLogger('SettingsHub');
@@ -40,8 +41,8 @@ export default function SettingsHubScreen() {
     );
   };
 
-  const isCoach = currentUser?.role === 'COACH';
-  const isParent = currentUser?.role === 'PARENT';
+  const isCoach = checkIsCoach(currentUser);
+  const userHasChildren = hasChildren(currentUser);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -121,7 +122,7 @@ export default function SettingsHubScreen() {
               }}
             />
           )}
-          {isParent && (
+          {userHasChildren && (
             <SettingsRow
               icon="people"
               title="Children"
@@ -197,7 +198,7 @@ export default function SettingsHubScreen() {
         </SettingsSection>
 
         {/* Payments Section - Coach/Parent only */}
-        {(isCoach || isParent) && (
+        {(isCoach || userHasChildren) && (
           <SettingsSection title="Payments">
             <SettingsRow
               icon="card"

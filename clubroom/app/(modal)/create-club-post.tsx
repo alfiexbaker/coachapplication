@@ -21,8 +21,8 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubFeedService } from '@/services/social-feed-service';
-import { getClubById, getClubMembershipForUser } from '@/constants/mock-data';
-import type { ClubPostType } from '@/constants/types';
+import { getClubById, getClubMembershipForUser, clubSquads } from '@/constants/mock-data';
+import type { ClubPostType, ClubSquad } from '@/constants/types';
 
 type PostTypeOption = {
   key: ClubPostType;
@@ -57,6 +57,17 @@ export default function CreateClubPostScreen() {
   const [eventLocation, setEventLocation] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // Audience targeting state
+  const [audienceType, setAudienceType] = useState<'club' | 'squad'>('club');
+  const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
+
+  // Get squads for this club
+  const availableSquads = clubId ? clubSquads.filter(s => s.clubId === clubId) : [];
+  const selectedSquad = availableSquads.find(s => s.id === selectedSquadId);
+  const audienceLabel = audienceType === 'club'
+    ? 'Club-wide'
+    : selectedSquad?.name || 'Select a group';
+
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -81,6 +92,12 @@ export default function CreateClubPostScreen() {
     if (!body.trim() && !imageUri) return;
     if (!currentUser || !clubId) return;
 
+    // Determine audience
+    const audience = audienceType === 'squad' && selectedSquadId ? 'squad' : 'club';
+    const finalAudienceLabel = audienceType === 'squad' && selectedSquad
+      ? selectedSquad.name
+      : 'Club-wide';
+
     clubFeedService.createPost({
       clubId,
       authorId: currentUser.id,
@@ -89,8 +106,9 @@ export default function CreateClubPostScreen() {
       body: body.trim(),
       postType,
       postAs,
-      audience: 'club',
-      audienceLabel: 'Club-wide',
+      audience,
+      audienceLabel: finalAudienceLabel,
+      squadId: audienceType === 'squad' ? selectedSquadId || undefined : undefined,
       imageUrl: imageUri || undefined,
       eventDate: eventDate?.toISOString(),
       eventLocation: eventLocation.trim() || undefined,
@@ -141,7 +159,9 @@ export default function CreateClubPostScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <ThemedText type="defaultSemiBold">{club.name}</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Posting to club feed</ThemedText>
+                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                  Posting to {audienceLabel}
+                </ThemedText>
               </View>
             </View>
           )}
@@ -218,6 +238,86 @@ export default function CreateClubPostScreen() {
                   </ThemedText>
                 </TouchableOpacity>
               </View>
+            </View>
+          )}
+
+          {/* Audience selector */}
+          {availableSquads.length > 0 && (
+            <View style={styles.section}>
+              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
+              <View style={styles.audienceSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.audienceOption,
+                    { borderColor: audienceType === 'club' ? palette.tint : palette.border },
+                    audienceType === 'club' && { backgroundColor: `${palette.tint}10` }
+                  ]}
+                  onPress={() => {
+                    setAudienceType('club');
+                    setSelectedSquadId(null);
+                  }}
+                >
+                  <Ionicons
+                    name="people-outline"
+                    size={18}
+                    color={audienceType === 'club' ? palette.tint : palette.muted}
+                  />
+                  <ThemedText style={{ color: audienceType === 'club' ? palette.tint : palette.text }}>
+                    All Members
+                  </ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.audienceOption,
+                    { borderColor: audienceType === 'squad' ? palette.tint : palette.border },
+                    audienceType === 'squad' && { backgroundColor: `${palette.tint}10` }
+                  ]}
+                  onPress={() => setAudienceType('squad')}
+                >
+                  <Ionicons
+                    name="grid-outline"
+                    size={18}
+                    color={audienceType === 'squad' ? palette.tint : palette.muted}
+                  />
+                  <ThemedText style={{ color: audienceType === 'squad' ? palette.tint : palette.text }}>
+                    Specific Group
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+
+              {/* Squad selector when targeting a group */}
+              {audienceType === 'squad' && (
+                <View style={styles.squadSelector}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.squadList}>
+                    {availableSquads.map((squad) => (
+                      <TouchableOpacity
+                        key={squad.id}
+                        style={[
+                          styles.squadOption,
+                          {
+                            borderColor: selectedSquadId === squad.id ? palette.success : palette.border,
+                            backgroundColor: selectedSquadId === squad.id ? `${palette.success}10` : palette.surface,
+                          }
+                        ]}
+                        onPress={() => setSelectedSquadId(squad.id)}
+                      >
+                        <View style={[styles.squadBadge, { backgroundColor: selectedSquadId === squad.id ? palette.success : palette.muted }]}>
+                          <ThemedText style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                            {squad.name.slice(0, 2).toUpperCase()}
+                          </ThemedText>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <ThemedText style={{ fontWeight: '600', fontSize: 13 }}>{squad.name}</ThemedText>
+                          <ThemedText style={{ color: palette.muted, fontSize: 11 }}>{squad.memberCount} members</ThemedText>
+                        </View>
+                        {selectedSquadId === squad.id && (
+                          <Ionicons name="checkmark-circle" size={18} color={palette.success} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
           )}
 
@@ -514,5 +614,44 @@ const styles = StyleSheet.create({
   },
   toolbarSpacer: {
     flex: 1,
+  },
+  // Audience selector styles
+  audienceSelector: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  audienceOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  squadSelector: {
+    marginTop: Spacing.sm,
+  },
+  squadList: {
+    gap: Spacing.sm,
+  },
+  squadOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minWidth: 180,
+  },
+  squadBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

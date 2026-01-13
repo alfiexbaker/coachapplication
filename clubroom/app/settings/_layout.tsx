@@ -9,6 +9,7 @@ export default function SettingsLayout() {
       <Stack.Screen name="account" />
       <Stack.Screen name="appearance" />
       <Stack.Screen name="calendar-sync" />
+      <Stack.Screen name="scheduling" />
       <Stack.Screen name="help" />
     </Stack>
   );

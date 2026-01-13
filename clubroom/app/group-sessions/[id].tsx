@@ -15,6 +15,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
+import { hasChildren } from '@/utils/user-helpers';
 import type { GroupSession, GroupRegistration } from '@/constants/types';
 
 export default function GroupSessionDetailScreen() {
@@ -29,7 +30,7 @@ export default function GroupSessionDetailScreen() {
   const [registering, setRegistering] = useState(false);
 
   const isCoach = currentUser?.id === session?.coachId;
-  const isParent = currentUser?.role === 'PARENT';
+  const userHasChildren = hasChildren(currentUser);
 
   useEffect(() => {
     loadData();
@@ -377,7 +378,7 @@ export default function GroupSessionDetailScreen() {
       </ScrollView>
 
       {/* Registration Footer */}
-      {isParent && !isFull && (
+      {userHasChildren && !isFull && (
         <View style={[styles.footer, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
           <View>
             <ThemedText type="heading" style={{ color: palette.tint }}>
