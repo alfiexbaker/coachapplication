@@ -135,6 +135,56 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
     );
   };
 
+  // Cancel booking (parent/athlete action)
+  const handleCancelBooking = async () => {
+    if (!offering || !currentUser) return;
+
+    const myRegistration = offering.registrations.find(
+      r => r.userId === currentUser.id && r.status === 'confirmed'
+    );
+
+    if (!myRegistration) return;
+
+    Alert.alert(
+      'Cancel Booking',
+      `Are you sure you want to cancel your booking for "${offering.title}"? The coach will be notified.`,
+      [
+        { text: 'Keep Booking', style: 'cancel' },
+        {
+          text: 'Cancel Booking',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const stored = await AsyncStorage.getItem('session_offerings');
+              const offerings: SessionOffering[] = stored ? JSON.parse(stored) : [];
+              const updatedOfferings = offerings.map(o => {
+                if (o.id === offering.id) {
+                  const updatedRegistrations = o.registrations.map(reg =>
+                    reg.id === myRegistration.id
+                      ? { ...reg, status: 'cancelled' as const }
+                      : reg
+                  );
+                  return {
+                    ...o,
+                    registrations: updatedRegistrations,
+                    status: o.status === 'full' ? 'active' as const : o.status,
+                  };
+                }
+                return o;
+              });
+              await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
+              Alert.alert('Booking Cancelled', 'Your booking has been cancelled. The coach has been notified.');
+              onUpdate?.();
+              onClose();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel booking. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Cancel all future instances (end the series)
   const handleEndSeries = async () => {
     if (!offering) return;
@@ -523,9 +573,19 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
             <SurfaceCard style={[styles.card, { backgroundColor: `${palette.success}15` }]}>
               <View style={styles.registeredBanner}>
                 <Ionicons name="checkmark-circle" size={24} color={palette.success} />
-                <ThemedText style={[styles.registeredText, { color: palette.success }]}>
-                  Registered for this session
-                </ThemedText>
+                <View style={styles.registeredInfo}>
+                  <ThemedText style={[styles.registeredText, { color: palette.success }]}>
+                    Registered for this session
+                  </ThemedText>
+                  <Pressable
+                    style={styles.cancelBookingLink}
+                    onPress={handleCancelBooking}
+                  >
+                    <ThemedText style={[styles.cancelBookingText, { color: palette.error }]}>
+                      Cancel Booking
+                    </ThemedText>
+                  </Pressable>
+                </View>
               </View>
             </SurfaceCard>
           )}
@@ -723,14 +783,25 @@ const styles = StyleSheet.create({
   },
   registeredBanner: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
+  },
+  registeredInfo: {
+    flex: 1,
+    gap: 6,
   },
   registeredText: {
     fontSize: scaleFont(17),
     fontWeight: '700',
     letterSpacing: -0.3,
     lineHeight: scaleFont(23),
+  },
+  cancelBookingLink: {
+    alignSelf: 'flex-start',
+  },
+  cancelBookingText: {
+    fontSize: scaleFont(14),
+    fontWeight: '600',
   },
   footer: {
     padding: 20,
