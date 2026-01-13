@@ -11,6 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AvailabilityTemplate } from '@/constants/types';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 // Time options for picker
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am to 8pm
@@ -40,7 +41,6 @@ function TimePicker({ label, value, onChange, minHour = 6 }: TimePickerProps) {
   const [showPicker, setShowPicker] = useState(false);
 
   const [currentHour] = value.split(':').map(Number);
-
   const availableHours = HOURS.filter(h => h >= minHour);
 
   const handleSelectHour = (hour: number) => {
@@ -88,16 +88,11 @@ function TimePicker({ label, value, onChange, minHour = 6 }: TimePickerProps) {
                     ]}
                   >
                     <ThemedText
-                      style={[
-                        styles.pickerOptionText,
-                        { color: isSelected ? palette.tint : palette.text },
-                      ]}
+                      style={[styles.pickerOptionText, { color: isSelected ? palette.tint : palette.text }]}
                     >
                       {formatHour(hour)}
                     </ThemedText>
-                    {isSelected && (
-                      <Ionicons name="checkmark-circle" size={20} color={palette.tint} />
-                    )}
+                    {isSelected && <Ionicons name="checkmark-circle" size={20} color={palette.tint} />}
                   </Clickable>
                 );
               })}
@@ -108,6 +103,14 @@ function TimePicker({ label, value, onChange, minHour = 6 }: TimePickerProps) {
     </View>
   );
 }
+
+// Quick presets for common schedules
+const QUICK_PRESETS = [
+  { id: 'weekdays', label: 'Weekdays', days: [1, 2, 3, 4, 5], icon: 'briefcase-outline' },
+  { id: 'weekends', label: 'Weekends', days: [0, 6], icon: 'sunny-outline' },
+  { id: 'mwf', label: 'Mon/Wed/Fri', days: [1, 3, 5], icon: 'calendar-outline' },
+  { id: 'tth', label: 'Tue/Thu', days: [2, 4], icon: 'calendar-outline' },
+];
 
 interface RecurringTemplateModalProps {
   visible: boolean;
@@ -131,7 +134,8 @@ export function RecurringTemplateModal({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const [dayOfWeek, setDayOfWeek] = useState<number>(preselectedDay ?? 1);
+  // Multi-day selection (when adding new)
+  const [selectedDays, setSelectedDays] = useState<number[]>([1]); // Default to Monday
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [location, setLocation] = useState('');
@@ -139,6 +143,8 @@ export function RecurringTemplateModal({
   const [bufferMinutes, setBufferMinutes] = useState(15);
   const [saving, setSaving] = useState(false);
   const [showLocationInput, setShowLocationInput] = useState(false);
+
+  const isEditing = !!editingTemplate;
 
   // Common locations
   const COMMON_LOCATIONS = [
@@ -151,7 +157,8 @@ export function RecurringTemplateModal({
 
   useEffect(() => {
     if (editingTemplate) {
-      setDayOfWeek(editingTemplate.dayOfWeek);
+      // Editing single template
+      setSelectedDays([editingTemplate.dayOfWeek]);
       setStartTime(editingTemplate.startTime);
       setEndTime(editingTemplate.endTime);
       setLocation(editingTemplate.location || '');
@@ -159,8 +166,12 @@ export function RecurringTemplateModal({
       setBufferMinutes(editingTemplate.bufferMinutes);
       setShowLocationInput(!!editingTemplate.location && !COMMON_LOCATIONS.includes(editingTemplate.location));
     } else {
-      // Reset to defaults or preselected values
-      setDayOfWeek(preselectedDay ?? 1);
+      // Adding new - reset
+      if (preselectedDay !== undefined) {
+        setSelectedDays([preselectedDay]);
+      } else {
+        setSelectedDays([1]); // Default Monday
+      }
       if (preselectedHour !== undefined) {
         setStartTime(`${preselectedHour.toString().padStart(2, '0')}:00`);
         const endHour = Math.min(preselectedHour + 2, 20);
@@ -176,13 +187,27 @@ export function RecurringTemplateModal({
     }
   }, [editingTemplate, preselectedDay, preselectedHour, visible]);
 
-  // Calculate duration
+  const toggleDay = (dayIndex: number) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedDays(prev => {
+      if (prev.includes(dayIndex)) {
+        // Don't allow deselecting last day
+        if (prev.length === 1) return prev;
+        return prev.filter(d => d !== dayIndex);
+      }
+      return [...prev, dayIndex].sort((a, b) => a - b);
+    });
+  };
+
+  const applyPreset = (days: number[]) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSelectedDays(days);
+  };
+
   const calculateDuration = () => {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-    const durationMinutes = endMinutes - startMinutes;
+    const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
 
     if (durationMinutes <= 0) return null;
 
@@ -195,7 +220,6 @@ export function RecurringTemplateModal({
 
   const handleStartTimeChange = (newTime: string) => {
     setStartTime(newTime);
-    // Auto-adjust end time if needed
     const [newStartH] = newTime.split(':').map(Number);
     const [currentEndH] = endTime.split(':').map(Number);
     if (currentEndH <= newStartH) {
@@ -205,9 +229,8 @@ export function RecurringTemplateModal({
   };
 
   const handleSave = async () => {
-    // Validation
-    if (!startTime || !endTime) {
-      Alert.alert('Missing fields', 'Please fill in start and end times');
+    if (selectedDays.length === 0) {
+      Alert.alert('Select Days', 'Please select at least one day');
       return;
     }
 
@@ -223,15 +246,18 @@ export function RecurringTemplateModal({
 
     setSaving(true);
     try {
-      await onSave({
-        dayOfWeek: dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-        startTime,
-        endTime,
-        isRecurring: true,
-        maxConcurrent,
-        bufferMinutes,
-        location: location || undefined,
-      });
+      // Save template for each selected day
+      for (const dayOfWeek of selectedDays) {
+        await onSave({
+          dayOfWeek: dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+          startTime,
+          endTime,
+          isRecurring: true,
+          maxConcurrent,
+          bufferMinutes,
+          location: location || undefined,
+        });
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
@@ -266,29 +292,18 @@ export function RecurringTemplateModal({
     ]);
   };
 
-  const handleClose = () => {
-    if (!saving) {
-      onClose();
-    }
-  };
-
   const duration = calculateDuration();
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: palette.border }]}>
-          <Clickable onPress={handleClose} disabled={saving}>
+          <Clickable onPress={onClose} disabled={saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
           <ThemedText type="subtitle">
-            {editingTemplate ? 'Edit Availability' : 'Add Availability'}
+            {isEditing ? 'Edit Availability' : 'Add Availability'}
           </ThemedText>
           <Clickable onPress={handleSave} disabled={saving}>
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
@@ -298,64 +313,110 @@ export function RecurringTemplateModal({
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Day Selection */}
+          {/* Day Selection - Multi-select when adding, single when editing */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Day of Week</ThemedText>
-            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-              Select which day this availability applies to
+            <ThemedText style={styles.sectionTitle}>
+              {isEditing ? 'Day' : 'Select Days'}
             </ThemedText>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.daysScroll}>
-              <View style={styles.daysRow}>
-                {DAYS.map((day, index) => {
-                  const isSelected = dayOfWeek === index;
-                  const isWeekend = index === 0 || index === 6;
+            {!isEditing && (
+              <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                Select multiple days to set the same hours
+              </ThemedText>
+            )}
+
+            {/* Quick presets - only when adding new */}
+            {!isEditing && (
+              <View style={styles.presetsRow}>
+                {QUICK_PRESETS.map((preset) => {
+                  const isActive = preset.days.every(d => selectedDays.includes(d)) &&
+                                   selectedDays.every(d => preset.days.includes(d));
                   return (
                     <Clickable
-                      key={day}
-                      onPress={() => {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setDayOfWeek(index);
-                      }}
+                      key={preset.id}
+                      onPress={() => applyPreset(preset.days)}
                       style={[
-                        styles.dayButton,
+                        styles.presetChip,
                         {
-                          backgroundColor: isSelected ? palette.tint : palette.surface,
-                          borderColor: isSelected ? palette.tint : palette.border,
+                          backgroundColor: isActive ? palette.tint : palette.surface,
+                          borderColor: isActive ? palette.tint : palette.border,
                         },
                       ]}
                     >
-                      <ThemedText
-                        style={[
-                          styles.dayButtonText,
-                          { color: isSelected ? '#fff' : palette.text },
-                        ]}
-                      >
-                        {day.substring(0, 3)}
+                      <Ionicons
+                        name={preset.icon as any}
+                        size={14}
+                        color={isActive ? '#fff' : palette.muted}
+                      />
+                      <ThemedText style={[styles.presetText, { color: isActive ? '#fff' : palette.text }]}>
+                        {preset.label}
                       </ThemedText>
-                      {isWeekend && !isSelected && (
-                        <View style={[styles.weekendDot, { backgroundColor: palette.warning }]} />
-                      )}
                     </Clickable>
                   );
                 })}
               </View>
-            </ScrollView>
+            )}
+
+            {/* Day buttons */}
+            <View style={styles.daysGrid}>
+              {DAYS.map((day, index) => {
+                const isSelected = selectedDays.includes(index);
+                const isWeekend = index === 0 || index === 6;
+                return (
+                  <Clickable
+                    key={day}
+                    onPress={() => !isEditing && toggleDay(index)}
+                    disabled={isEditing}
+                    style={[
+                      styles.dayButton,
+                      {
+                        backgroundColor: isSelected ? palette.tint : palette.surface,
+                        borderColor: isSelected ? palette.tint : palette.border,
+                        opacity: isEditing && !isSelected ? 0.5 : 1,
+                      },
+                    ]}
+                  >
+                    {!isEditing && (
+                      <View style={[styles.checkbox, { borderColor: isSelected ? '#fff' : palette.border }]}>
+                        {isSelected && <Ionicons name="checkmark" size={12} color="#fff" />}
+                      </View>
+                    )}
+                    <ThemedText style={[styles.dayButtonText, { color: isSelected ? '#fff' : palette.text }]}>
+                      {day}
+                    </ThemedText>
+                    {isWeekend && !isSelected && (
+                      <View style={[styles.weekendDot, { backgroundColor: palette.warning }]} />
+                    )}
+                  </Clickable>
+                );
+              })}
+            </View>
+
+            {/* Selection summary */}
+            {!isEditing && selectedDays.length > 0 && (
+              <View style={[styles.selectionSummary, { backgroundColor: `${palette.success}10` }]}>
+                <Ionicons name="checkmark-circle" size={16} color={palette.success} />
+                <ThemedText style={{ color: palette.success, fontSize: 13 }}>
+                  {selectedDays.length === 7
+                    ? 'Every day'
+                    : selectedDays.length === 1
+                    ? DAYS[selectedDays[0]]
+                    : `${selectedDays.length} days: ${selectedDays.map(d => DAYS_SHORT[d]).join(', ')}`}
+                </ThemedText>
+              </View>
+            )}
           </View>
 
-          {/* Time Range with Visual Preview */}
+          {/* Time Range */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Time Range</ThemedText>
             <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-              Set your available hours for {DAYS[dayOfWeek]}
+              {isEditing
+                ? `Set your available hours for ${DAYS[selectedDays[0]]}`
+                : `Same hours will apply to all ${selectedDays.length} selected day${selectedDays.length > 1 ? 's' : ''}`}
             </ThemedText>
 
             <View style={styles.timeRow}>
-              <TimePicker
-                label="Start Time"
-                value={startTime}
-                onChange={handleStartTimeChange}
-                minHour={6}
-              />
+              <TimePicker label="Start Time" value={startTime} onChange={handleStartTimeChange} minHour={6} />
               <View style={styles.timeArrow}>
                 <Ionicons name="arrow-forward" size={20} color={palette.muted} />
               </View>
@@ -367,12 +428,11 @@ export function RecurringTemplateModal({
               />
             </View>
 
-            {/* Duration Summary */}
             {duration && (
               <View style={[styles.durationBadge, { backgroundColor: `${palette.success}15` }]}>
                 <Ionicons name="time-outline" size={16} color={palette.success} />
                 <ThemedText style={{ color: palette.success, fontWeight: '600' }}>
-                  {duration} availability
+                  {duration} availability {!isEditing && selectedDays.length > 1 && `× ${selectedDays.length} days`}
                 </ThemedText>
               </View>
             )}
@@ -381,9 +441,6 @@ export function RecurringTemplateModal({
           {/* Location */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Location (Optional)</ThemedText>
-            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-              Where will sessions take place?
-            </ThemedText>
 
             <View style={styles.locationOptions}>
               {COMMON_LOCATIONS.map((loc) => {
@@ -409,17 +466,9 @@ export function RecurringTemplateModal({
                       size={14}
                       color={isSelected ? palette.tint : palette.muted}
                     />
-                    <ThemedText
-                      style={[
-                        styles.locationChipText,
-                        { color: isSelected ? palette.tint : palette.text },
-                      ]}
-                    >
+                    <ThemedText style={[styles.locationChipText, { color: isSelected ? palette.tint : palette.text }]}>
                       {loc}
                     </ThemedText>
-                    {isSelected && (
-                      <Ionicons name="checkmark" size={14} color={palette.tint} />
-                    )}
                   </Clickable>
                 );
               })}
@@ -437,12 +486,7 @@ export function RecurringTemplateModal({
                 ]}
               >
                 <Ionicons name="add" size={14} color={showLocationInput ? palette.tint : palette.muted} />
-                <ThemedText
-                  style={[
-                    styles.locationChipText,
-                    { color: showLocationInput ? palette.tint : palette.text },
-                  ]}
-                >
+                <ThemedText style={[styles.locationChipText, { color: showLocationInput ? palette.tint : palette.text }]}>
                   Custom
                 </ThemedText>
               </Clickable>
@@ -476,7 +520,7 @@ export function RecurringTemplateModal({
                   <View style={styles.settingText}>
                     <ThemedText type="defaultSemiBold">Concurrent Sessions</ThemedText>
                     <ThemedText style={[styles.settingHint, { color: palette.muted }]}>
-                      How many sessions at once?
+                      Max sessions at once
                     </ThemedText>
                   </View>
                 </View>
@@ -535,12 +579,7 @@ export function RecurringTemplateModal({
                           },
                         ]}
                       >
-                        <ThemedText
-                          style={[
-                            styles.bufferOptionText,
-                            { color: isSelected ? '#fff' : palette.text },
-                          ]}
-                        >
+                        <ThemedText style={[styles.bufferOptionText, { color: isSelected ? '#fff' : palette.text }]}>
                           {mins === 0 ? 'None' : `${mins}m`}
                         </ThemedText>
                       </Clickable>
@@ -552,16 +591,14 @@ export function RecurringTemplateModal({
           </View>
 
           {/* Delete Button */}
-          {editingTemplate && onDelete && (
+          {isEditing && onDelete && (
             <Clickable
               onPress={handleDelete}
               disabled={saving}
               style={[styles.deleteButton, { borderColor: palette.error }]}
             >
               <Ionicons name="trash-outline" size={18} color={palette.error} />
-              <ThemedText style={{ color: palette.error, fontWeight: '600' }}>
-                Delete This Slot
-              </ThemedText>
+              <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Delete This Slot</ThemedText>
             </Clickable>
           )}
         </ScrollView>
@@ -598,21 +635,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: Spacing.xs,
   },
-  daysScroll: {
-    marginHorizontal: -Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-  },
-  daysRow: {
+  presetsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  presetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  presetText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  daysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.xs,
   },
   dayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1.5,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
     alignItems: 'center',
-    minWidth: 52,
+    justifyContent: 'center',
   },
   dayButtonText: {
     fontSize: 14,
@@ -622,7 +684,15 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 4,
+  },
+  selectionSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    marginTop: Spacing.xs,
   },
   timeRow: {
     flexDirection: 'row',
@@ -724,10 +794,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
     marginTop: Spacing.xs,
-  },
-  customLocationPlaceholder: {
-    flex: 1,
-    fontSize: 15,
   },
   customLocationTextInput: {
     flex: 1,
