@@ -189,7 +189,7 @@ export default function BookingsScreen() {
       setFootballSkill('');
 
       // Reload offerings
-      await loadSessionOfferings();
+      await loadData();
 
       // Switch back to list tab
       setActiveTab('list');
