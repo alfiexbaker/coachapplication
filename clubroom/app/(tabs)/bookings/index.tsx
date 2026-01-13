@@ -16,6 +16,7 @@ import {
 import { BookingSummary, SessionOffering, FootballObjective } from '@/constants/types';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { createLogger } from '@/utils/logger';
+import { hasChildren } from '@/utils/user-helpers';
 
 // Extracted components
 import { QuickActions } from '@/components/bookings/QuickActions';
@@ -224,14 +225,16 @@ export default function BookingsScreen() {
     // Also show old bookings
     const allBookings = [...upcomingBookings, ...sessionBookings];
     const filteredBookings = allBookings.filter((booking) => {
-      if (userRole === 'USER') {
-        return booking.clientId === currentUser?.id || booking.client?.name === currentUser?.fullName;
-      } else if (userRole === 'PARENT') {
+      // Check if user has children - show their children's bookings too
+      if (hasChildren(currentUser)) {
         const children = getChildrenForParent(currentUser?.id || '');
         const childrenIds = children.map(c => c.id);
-        return childrenIds.includes(booking.clientId || '');
+        return childrenIds.includes(booking.clientId || '') ||
+               booking.clientId === currentUser?.id ||
+               booking.client?.name === currentUser?.fullName;
       }
-      return true;
+      // Regular user - show their own bookings
+      return booking.clientId === currentUser?.id || booking.client?.name === currentUser?.fullName;
     });
 
     displayItems = timeFilter === 'upcoming'
