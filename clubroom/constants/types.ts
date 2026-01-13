@@ -788,9 +788,11 @@ export interface SessionOffering {
   location: string;
   scheduledAt: string; // ISO date string
   isRecurring: boolean;
-  recurrenceType: 'none' | 'weekly';
+  recurrenceType: 'none' | 'weekly' | 'biweekly';
   dayOfWeek?: number; // 0-6 (Sunday-Saturday) for recurring sessions
   timeOfDay?: string; // "18:00" format for recurring sessions
+  endDate?: string; // ISO date string - when recurring series ends
+  cancelledInstances?: string[]; // ISO date strings of cancelled individual instances
   status: 'active' | 'cancelled' | 'completed' | 'full';
   visibility?: 'club' | 'public';
   registrations: SessionRegistration[];

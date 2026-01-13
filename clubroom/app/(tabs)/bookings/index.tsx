@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { StyleSheet, Alert, ActivityIndicator, View } from 'react-native';
+import { StyleSheet, ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +13,7 @@ import {
   upcomingBookings,
   getChildrenForParent,
 } from '@/constants/mock-data';
-import { BookingSummary, SessionOffering, FootballObjective } from '@/constants/types';
+import { BookingSummary, SessionOffering } from '@/constants/types';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { createLogger } from '@/utils/logger';
 import { hasChildren } from '@/utils/user-helpers';
@@ -21,8 +21,6 @@ import { hasChildren } from '@/utils/user-helpers';
 // Extracted components
 import { QuickActions } from '@/components/bookings/QuickActions';
 import { BookingsList, TimeFilter } from '@/components/bookings/BookingsList';
-import { CreateSessionForm, SessionType, RecurrenceType } from '@/components/bookings/CreateSessionForm';
-import { CoachTabNavigation, TabType } from '@/components/bookings/CoachTabNavigation';
 
 const logger = createLogger('BookingsScreen');
 
@@ -32,25 +30,9 @@ export default function BookingsScreen() {
   const { currentUser } = useAuth();
   const [sessionBookings, setSessionBookings] = useState<BookingSummary[]>([]);
   const [sessionOfferings, setSessionOfferings] = useState<SessionOffering[]>([]);
-  const [activeTab, setActiveTab] = useState<TabType>('list');
-  const [sessionType, setSessionType] = useState<SessionType>('1on1');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('upcoming');
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-
-  // Form state for creating session offerings
-  const [sessionTitle, setSessionTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [maxParticipants, setMaxParticipants] = useState('');
-  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none');
-  const [price, setPrice] = useState('');
-  const [ageMin, setAgeMin] = useState('');
-  const [ageMax, setAgeMax] = useState('');
-  const [footballSkill, setFootballSkill] = useState<FootballObjective | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,98 +91,6 @@ export default function BookingsScreen() {
       loadData();
     }, [loadData])
   );
-
-  // Create a new session offering
-  const createSessionOffering = async () => {
-    // Validation
-    if (!sessionTitle.trim()) {
-      Alert.alert('Error', 'Please enter session title');
-      return;
-    }
-    if (!location.trim()) {
-      Alert.alert('Error', 'Please enter location');
-      return;
-    }
-
-    // Validate max participants is a valid integer
-    const maxParticipantsNum = sessionType === 'group' ? parseInt(maxParticipants) : 1;
-    if (sessionType === 'group') {
-      if (!maxParticipants.trim()) {
-        Alert.alert('Error', 'Please enter max participants for group session');
-        return;
-      }
-      if (isNaN(maxParticipantsNum) || maxParticipantsNum < 2) {
-        Alert.alert('Error', 'Max participants must be a number greater than 1');
-        return;
-      }
-    }
-
-    try {
-      // Parse optional fields
-      const priceNum = price.trim() ? parseFloat(price) : undefined;
-      const ageMinNum = ageMin.trim() ? parseInt(ageMin) : undefined;
-      const ageMaxNum = ageMax.trim() ? parseInt(ageMax) : undefined;
-
-      // Generate new session offering
-      const newOffering: SessionOffering = {
-        id: `offering_${Date.now()}`,
-        coachId: currentUser?.id || 'unknown',
-        coachName: currentUser?.fullName || 'Unknown Coach',
-        title: sessionTitle.trim(),
-        description: description.trim() || undefined,
-        sessionType: sessionType,
-        maxParticipants: maxParticipantsNum,
-        location: location.trim(),
-        scheduledAt: selectedDate.toISOString(),
-        isRecurring: recurrenceType === 'weekly',
-        recurrenceType: recurrenceType,
-        dayOfWeek: recurrenceType === 'weekly' ? selectedDate.getDay() : undefined,
-        timeOfDay: recurrenceType === 'weekly'
-          ? selectedDate.toTimeString().slice(0, 5)
-          : undefined,
-        status: 'active',
-        registrations: [],
-        createdAt: new Date().toISOString(),
-        priceUsd: priceNum,
-        ageMin: ageMinNum,
-        ageMax: ageMaxNum,
-        footballSkill: footballSkill || undefined,
-      };
-
-      // Load existing offerings
-      const stored = await AsyncStorage.getItem('session_offerings');
-      const existingOfferings = stored ? JSON.parse(stored) : [];
-
-      // Add new offering
-      const updatedOfferings = [...existingOfferings, newOffering];
-      await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
-
-      logger.debug('Created new session offering', newOffering);
-
-      // Reset form
-      setSessionTitle('');
-      setDescription('');
-      setLocation('');
-      setSelectedDate(new Date());
-      setMaxParticipants('');
-      setRecurrenceType('none');
-      setPrice('');
-      setAgeMin('');
-      setAgeMax('');
-      setFootballSkill('');
-
-      // Reload offerings
-      await loadData();
-
-      // Switch back to list tab
-      setActiveTab('list');
-
-      Alert.alert('Success', 'Session offering created');
-    } catch (error) {
-      logger.error('Failed to create session offering', error);
-      Alert.alert('Error', 'Failed to create session offering. Please try again.');
-    }
-  };
 
   // For COACHES: show their session offerings
   // For ATHLETES/PARENTS: show sessions they're registered for
@@ -264,6 +154,11 @@ export default function BookingsScreen() {
     router.push('/group-sessions');
   };
 
+  const handleCreateSessionPress = () => {
+    logger.press('CreateSessionButton', { route: '/session/create' });
+    router.push('/session/create');
+  };
+
   const handleFindCoachPress = () => {
     logger.press('FindCoachButton', { route: '/(tabs)/index' });
     router.push('/(tabs)/index');
@@ -291,11 +186,6 @@ export default function BookingsScreen() {
         subtitle={userRole === 'COACH' ? 'Manage your sessions' : 'Your upcoming sessions'}
       />
 
-      {/* Tab Navigation for Coaches */}
-      {userRole === 'COACH' && (
-        <CoachTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-      )}
-
       {/* Quick Actions - Role-based */}
       <QuickActions
         userRole={userRole}
@@ -304,7 +194,7 @@ export default function BookingsScreen() {
         onCalendarPress={handleCalendarPress}
         onSettingsPress={handleSettingsPress}
         onGroupSessionsPress={handleGroupSessionsPress}
-        showCoachActions={activeTab === 'list'}
+        showCoachActions={true}
       />
 
       {/* Loading State */}
@@ -321,8 +211,8 @@ export default function BookingsScreen() {
         </View>
       )}
 
-      {/* Bookings List - Show for all users, or coaches on 'list' tab */}
-      {!loading && (userRole !== 'COACH' || activeTab === 'list') && (
+      {/* Bookings List */}
+      {!loading && (
         <BookingsList
           items={displayItems}
           timeFilter={timeFilter}
@@ -330,40 +220,7 @@ export default function BookingsScreen() {
           userRole={userRole}
           onOfferingPress={handleOfferingPress}
           onFindCoachPress={handleFindCoachPress}
-          onCreateSessionPress={() => setActiveTab('create')}
-        />
-      )}
-
-      {/* Create Booking Form - Only for coaches on 'create' tab */}
-      {userRole === 'COACH' && activeTab === 'create' && (
-        <CreateSessionForm
-          sessionType={sessionType}
-          onSessionTypeChange={setSessionType}
-          recurrenceType={recurrenceType}
-          onRecurrenceTypeChange={setRecurrenceType}
-          sessionTitle={sessionTitle}
-          onSessionTitleChange={setSessionTitle}
-          description={description}
-          onDescriptionChange={setDescription}
-          maxParticipants={maxParticipants}
-          onMaxParticipantsChange={setMaxParticipants}
-          location={location}
-          onLocationChange={setLocation}
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          showDatePicker={showDatePicker}
-          onShowDatePickerChange={setShowDatePicker}
-          showTimePicker={showTimePicker}
-          onShowTimePickerChange={setShowTimePicker}
-          price={price}
-          onPriceChange={setPrice}
-          ageMin={ageMin}
-          onAgeMinChange={setAgeMin}
-          ageMax={ageMax}
-          onAgeMaxChange={setAgeMax}
-          footballSkill={footballSkill}
-          onFootballSkillChange={setFootballSkill}
-          onSubmit={createSessionOffering}
+          onCreateSessionPress={handleCreateSessionPress}
         />
       )}
 

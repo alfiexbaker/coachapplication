@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,6 +16,54 @@ import { hasChildren } from '@/utils/user-helpers';
 import { badgeService } from '@/services/badge-service';
 import type { BadgeAward } from '@/constants/types';
 
+// Helper to generate upcoming instances for a recurring session
+function getUpcomingInstances(offering: SessionOffering, count: number = 8): Date[] {
+  if (!offering.isRecurring || offering.dayOfWeek === undefined) return [];
+
+  const instances: Date[] = [];
+  const now = new Date();
+  const endDate = offering.endDate ? new Date(offering.endDate) : null;
+  const cancelledDates = new Set(offering.cancelledInstances || []);
+
+  // Start from the original scheduled date or today
+  let currentDate = new Date(offering.scheduledAt);
+  if (currentDate < now) {
+    // Move to the next occurrence
+    currentDate = new Date(now);
+    const targetDay = offering.dayOfWeek;
+    const currentDay = currentDate.getDay();
+    const daysUntilTarget = (targetDay - currentDay + 7) % 7;
+    currentDate.setDate(currentDate.getDate() + (daysUntilTarget === 0 ? 0 : daysUntilTarget));
+  }
+
+  // Set the time from timeOfDay
+  if (offering.timeOfDay) {
+    const [hours, minutes] = offering.timeOfDay.split(':').map(Number);
+    currentDate.setHours(hours, minutes, 0, 0);
+  }
+
+  // If today's time has passed, move to next week
+  if (currentDate <= now) {
+    const increment = offering.recurrenceType === 'biweekly' ? 14 : 7;
+    currentDate.setDate(currentDate.getDate() + increment);
+  }
+
+  const increment = offering.recurrenceType === 'biweekly' ? 14 : 7;
+
+  while (instances.length < count) {
+    if (endDate && currentDate > endDate) break;
+
+    const dateStr = currentDate.toISOString().split('T')[0];
+    if (!cancelledDates.has(dateStr)) {
+      instances.push(new Date(currentDate));
+    }
+
+    currentDate.setDate(currentDate.getDate() + increment);
+  }
+
+  return instances;
+}
+
 interface SessionDetailModalProps {
   visible: boolean;
   offering: SessionOffering | null;
@@ -30,12 +78,102 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [weeksToBook, setWeeksToBook] = useState(1);
   const [sessionAwards, setSessionAwards] = useState<BadgeAward[]>([]);
+  const [showInstanceManagement, setShowInstanceManagement] = useState(false);
 
   useEffect(() => {
     if (visible && offering) {
       badgeService.listAwardsForSession(offering.id).then(setSessionAwards);
+      setShowInstanceManagement(false);
     }
   }, [offering, visible]);
+
+  // Get upcoming instances for recurring sessions
+  const upcomingInstances = useMemo(() => {
+    if (!offering) return [];
+    return getUpcomingInstances(offering, 8);
+  }, [offering]);
+
+  // Cancel a specific instance
+  const handleCancelInstance = async (instanceDate: Date) => {
+    if (!offering) return;
+
+    const dateStr = instanceDate.toISOString().split('T')[0];
+    const formattedDate = instanceDate.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
+
+    Alert.alert(
+      'Cancel Session',
+      `Cancel the session on ${formattedDate}? Athletes will be notified.`,
+      [
+        { text: 'Keep Session', style: 'cancel' },
+        {
+          text: 'Cancel Session',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const stored = await AsyncStorage.getItem('session_offerings');
+              const offerings: SessionOffering[] = stored ? JSON.parse(stored) : [];
+              const updatedOfferings = offerings.map(o => {
+                if (o.id === offering.id) {
+                  const cancelledInstances = [...(o.cancelledInstances || []), dateStr];
+                  return { ...o, cancelledInstances };
+                }
+                return o;
+              });
+              await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
+              Alert.alert('Cancelled', `Session on ${formattedDate} has been cancelled.`);
+              onUpdate?.();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel session. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Cancel all future instances (end the series)
+  const handleEndSeries = async () => {
+    if (!offering) return;
+
+    Alert.alert(
+      'End Recurring Series',
+      'This will cancel all future sessions. Athletes will be notified. Are you sure?',
+      [
+        { text: 'Keep Sessions', style: 'cancel' },
+        {
+          text: 'End Series',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const stored = await AsyncStorage.getItem('session_offerings');
+              const offerings: SessionOffering[] = stored ? JSON.parse(stored) : [];
+              const updatedOfferings = offerings.map(o => {
+                if (o.id === offering.id) {
+                  // Set end date to today to stop future occurrences
+                  return {
+                    ...o,
+                    endDate: new Date().toISOString().split('T')[0],
+                    status: 'cancelled' as const,
+                  };
+                }
+                return o;
+              });
+              await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
+              Alert.alert('Series Ended', 'All future sessions have been cancelled.');
+              onUpdate?.();
+              onClose();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to end series. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (!offering) return null;
 
@@ -245,6 +383,80 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                       </ThemedText>
                     </View>
                   ))
+              )}
+            </SurfaceCard>
+          )}
+
+          {/* Coach View: Instance Management for Recurring Sessions */}
+          {isMyOffering && offering.isRecurring && (
+            <SurfaceCard style={styles.card}>
+              <Pressable
+                style={styles.instanceHeader}
+                onPress={() => setShowInstanceManagement(!showInstanceManagement)}
+              >
+                <View style={styles.instanceHeaderLeft}>
+                  <Ionicons name="calendar" size={20} color={palette.tint} />
+                  <ThemedText type="subtitle" style={styles.instanceTitle}>
+                    Manage Sessions
+                  </ThemedText>
+                </View>
+                <Ionicons
+                  name={showInstanceManagement ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={palette.icon}
+                />
+              </Pressable>
+
+              {showInstanceManagement && (
+                <View style={styles.instanceContent}>
+                  <ThemedText style={[styles.instanceSubtitle, { color: palette.muted }]}>
+                    Upcoming sessions ({upcomingInstances.length})
+                  </ThemedText>
+
+                  {upcomingInstances.length === 0 ? (
+                    <ThemedText style={styles.emptyText}>No upcoming sessions</ThemedText>
+                  ) : (
+                    upcomingInstances.map((instance, index) => (
+                      <View
+                        key={instance.toISOString()}
+                        style={[styles.instanceRow, { borderBottomColor: palette.border }]}
+                      >
+                        <View style={styles.instanceInfo}>
+                          <ThemedText style={styles.instanceDate}>
+                            {instance.toLocaleDateString('en-GB', {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                            })}
+                          </ThemedText>
+                          <ThemedText style={[styles.instanceTime, { color: palette.muted }]}>
+                            {instance.toLocaleTimeString('en-GB', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </ThemedText>
+                        </View>
+                        <Pressable
+                          style={[styles.cancelInstanceButton, { borderColor: palette.error }]}
+                          onPress={() => handleCancelInstance(instance)}
+                        >
+                          <Ionicons name="close" size={16} color={palette.error} />
+                        </Pressable>
+                      </View>
+                    ))
+                  )}
+
+                  {/* End Series Button */}
+                  <Pressable
+                    style={[styles.endSeriesButton, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}
+                    onPress={handleEndSeries}
+                  >
+                    <Ionicons name="stop-circle-outline" size={20} color={palette.error} />
+                    <ThemedText style={[styles.endSeriesText, { color: palette.error }]}>
+                      End Recurring Series
+                    </ThemedText>
+                  </Pressable>
+                </View>
               )}
             </SurfaceCard>
           )}
@@ -543,5 +755,68 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(18),
     fontWeight: '700',
     letterSpacing: -0.4,
+  },
+  // Instance Management Styles
+  instanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  instanceHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  instanceTitle: {
+    fontSize: scaleFont(16),
+  },
+  instanceContent: {
+    marginTop: 16,
+    gap: 12,
+  },
+  instanceSubtitle: {
+    fontSize: scaleFont(13),
+    fontWeight: '500',
+  },
+  instanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  instanceInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  instanceDate: {
+    fontSize: scaleFont(15),
+    fontWeight: '600',
+  },
+  instanceTime: {
+    fontSize: scaleFont(14),
+  },
+  cancelInstanceButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  endSeriesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  endSeriesText: {
+    fontSize: scaleFont(15),
+    fontWeight: '600',
   },
 });
