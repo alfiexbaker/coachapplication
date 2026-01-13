@@ -1,27 +1,161 @@
 "use strict";
-/**
- * Goal Service
- *
- * Handles goal and milestone management for athletes.
- * Athletes can set specific training goals, track milestones towards goals,
- * and coaches can view athlete goals when planning sessions.
- *
- * API Integration Notes:
- * - POST /api/goals - Create goal
- * - GET /api/goals?userId=X - Get user goals
- * - GET /api/goals/:id - Get goal details
- * - PATCH /api/goals/:id - Update goal
- * - DELETE /api/goals/:id - Delete goal
- * - POST /api/goals/:id/milestones - Add milestone
- * - PATCH /api/milestones/:id/complete - Complete milestone
- */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.goalService = void 0;
+exports.progressService = void 0;
 const storage_service_1 = require("./storage-service");
+const badge_service_1 = require("./badge-service");
 const logger_1 = require("@/utils/logger");
-const logger = (0, logger_1.createLogger)('GoalService');
-// Storage key for goals
-const GOALS_STORAGE_KEY = 'goals.all';
+const logger = (0, logger_1.createLogger)('ProgressService');
+// Storage keys
+const SKILL_LEVELS_KEY = 'progress.skill_levels';
+const SESSION_FEEDBACK_KEY = 'progress.session_feedback';
+const GOALS_KEY = 'progress.goals';
+const SESSION_NOTES_KEY = 'progress.session_notes';
+// ============================================================================
+// SKILL LEVEL MANAGEMENT
+// ============================================================================
+async function getAllSkillLevels() {
+    return storage_service_1.storageService.getItem(SKILL_LEVELS_KEY, {});
+}
+async function getAthleteSkillLevels(athleteId) {
+    const allLevels = await getAllSkillLevels();
+    return allLevels[athleteId] ?? null;
+}
+async function updateSkillLevel(athleteId, skill, newLevel, coachId) {
+    const allLevels = await getAllSkillLevels();
+    const athleteData = allLevels[athleteId] ?? {
+        athleteId,
+        skills: {},
+        lastUpdated: new Date().toISOString(),
+    };
+    const existingSkill = athleteData.skills[skill];
+    const previousLevel = existingSkill?.level ?? 0;
+    const history = existingSkill?.history ?? [];
+    // Add to history
+    history.push({
+        date: new Date().toISOString(),
+        level: newLevel,
+        coachId,
+    });
+    // Keep only last 20 entries
+    const trimmedHistory = history.slice(-20);
+    // Calculate trend based on last 3 entries
+    let trend = 'steady';
+    if (trimmedHistory.length >= 2) {
+        const recentLevels = trimmedHistory.slice(-3).map(h => h.level);
+        const avgRecent = recentLevels.reduce((a, b) => a + b, 0) / recentLevels.length;
+        const firstLevel = recentLevels[0];
+        if (avgRecent > firstLevel + 0.3)
+            trend = 'improving';
+        else if (avgRecent < firstLevel - 0.3)
+            trend = 'declining';
+    }
+    const updatedSkill = {
+        skill,
+        level: newLevel,
+        previousLevel,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: coachId,
+        trend,
+        history: trimmedHistory,
+    };
+    athleteData.skills[skill] = updatedSkill;
+    athleteData.lastUpdated = new Date().toISOString();
+    allLevels[athleteId] = athleteData;
+    await storage_service_1.storageService.setItem(SKILL_LEVELS_KEY, allLevels);
+    logger.info('skill_level_updated', {
+        athleteId,
+        skill,
+        previousLevel,
+        newLevel,
+        trend,
+    });
+    return updatedSkill;
+}
+async function updateMultipleSkillLevels(athleteId, skillUpdates, coachId) {
+    const results = [];
+    for (const update of skillUpdates) {
+        const result = await updateSkillLevel(athleteId, update.skill, update.level, coachId);
+        results.push(result);
+    }
+    return results;
+}
+// ============================================================================
+// SESSION FEEDBACK MANAGEMENT
+// ============================================================================
+async function getAllSessionFeedback() {
+    return storage_service_1.storageService.getItem(SESSION_FEEDBACK_KEY, []);
+}
+async function addSessionFeedback(feedback) {
+    const allFeedback = await getAllSessionFeedback();
+    const newFeedback = {
+        ...feedback,
+        id: `feedback_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+    };
+    // Update skill levels based on ratings
+    if (feedback.skillRatings && feedback.skillRatings.length > 0) {
+        await updateMultipleSkillLevels(feedback.athleteId, feedback.skillRatings.map(r => ({ skill: r.skill, level: r.rating })), feedback.coachId);
+    }
+    allFeedback.unshift(newFeedback);
+    await storage_service_1.storageService.setItem(SESSION_FEEDBACK_KEY, allFeedback);
+    logger.info('session_feedback_added', {
+        feedbackId: newFeedback.id,
+        sessionId: feedback.sessionId,
+        athleteId: feedback.athleteId,
+        coachId: feedback.coachId,
+        skillCount: feedback.skillRatings?.length ?? 0,
+    });
+    return newFeedback;
+}
+async function getSessionFeedback(sessionId) {
+    const allFeedback = await getAllSessionFeedback();
+    return allFeedback.find(f => f.sessionId === sessionId) ?? null;
+}
+async function getFeedbackForAthlete(athleteId, viewerRole, limit) {
+    const allFeedback = await getAllSessionFeedback();
+    let filtered = allFeedback.filter(f => f.athleteId === athleteId);
+    // Filter based on visibility
+    if (viewerRole === 'parent') {
+        filtered = filtered.filter(f => f.visibility !== 'coach_only');
+        // Remove private notes for parents
+        filtered = filtered.map(f => ({ ...f, privateNotes: undefined }));
+    }
+    else if (viewerRole === 'athlete') {
+        filtered = filtered.filter(f => f.visibility === 'athlete');
+        // Remove private notes for athletes
+        filtered = filtered.map(f => ({ ...f, privateNotes: undefined }));
+    }
+    if (limit) {
+        filtered = filtered.slice(0, limit);
+    }
+    return filtered;
+}
+// ============================================================================
+// SESSION NOTES MANAGEMENT
+// ============================================================================
+async function getAllSessionNotes() {
+    return storage_service_1.storageService.getItem(SESSION_NOTES_KEY, {});
+}
+async function getSessionNote(bookingId) {
+    const notes = await getAllSessionNotes();
+    return notes[bookingId] ?? null;
+}
+async function saveSessionNote(bookingId, payload) {
+    const existing = await getAllSessionNotes();
+    const record = {
+        ...payload,
+        updatedAt: new Date().toISOString(),
+    };
+    await storage_service_1.storageService.setItem(SESSION_NOTES_KEY, { ...existing, [bookingId]: record });
+    logger.info('session_note_saved', {
+        bookingId,
+        focusAreas: payload.focus.length,
+    });
+    return record;
+}
+// ============================================================================
+// GOALS MANAGEMENT
+// ============================================================================
 // Mock data for demonstration
 const MOCK_GOALS = [
     {
@@ -125,75 +259,75 @@ const MOCK_GOALS = [
         updatedAt: '2026-01-06T19:00:00Z',
     },
 ];
-/**
- * Get all goals from storage
- */
 async function getAllGoals() {
-    const goals = await storage_service_1.storageService.getItem(GOALS_STORAGE_KEY, []);
+    const goals = await storage_service_1.storageService.getItem(GOALS_KEY, []);
     // Return mock data if no goals stored
     if (goals.length === 0) {
         return [...MOCK_GOALS];
     }
     return goals;
 }
-/**
- * Save all goals to storage
- */
 async function saveGoals(goals) {
-    await storage_service_1.storageService.setItem(GOALS_STORAGE_KEY, goals);
+    await storage_service_1.storageService.setItem(GOALS_KEY, goals);
 }
-/**
- * Create a new goal for a user
- * @param userId - The user ID of the athlete
- * @param params - Goal creation parameters
- * @param createdBy - Who is creating the goal
- * @param createdById - User ID of the creator
- * @returns The created goal
- */
+async function getGoalsForAthlete(athleteId) {
+    const allGoals = await getAllGoals();
+    const athleteGoals = allGoals.filter(g => g.athleteId === athleteId);
+    return {
+        active: athleteGoals.filter(g => g.status === 'ACTIVE'),
+        completed: athleteGoals.filter(g => g.status === 'COMPLETED'),
+    };
+}
 async function createGoal(userId, params, createdBy = 'ATHLETE', createdById = userId) {
-    const goals = await getAllGoals();
+    const allGoals = await getAllGoals();
     const now = new Date().toISOString();
     const goalId = `goal_${Date.now()}`;
-    // Create milestones from provided titles
-    const milestones = (params.milestones ?? []).map((title, index) => ({
-        id: `ms_${Date.now()}_${index}`,
-        goalId,
-        title,
-        isCompleted: false,
-        order: index,
-    }));
+    // Handle both old and new parameter formats
+    const isCreateInput = 'milestones' in params && Array.isArray(params.milestones) &&
+        typeof params.milestones[0] === 'string';
+    let milestones;
+    if (isCreateInput) {
+        // New format: params.milestones is string[]
+        const input = params;
+        milestones = (input.milestones ?? []).map((title, index) => ({
+            id: `ms_${Date.now()}_${index}`,
+            goalId,
+            title,
+            isCompleted: false,
+            order: index,
+        }));
+    }
+    else {
+        // Old format: goal object with milestone objects
+        const goalParams = params;
+        milestones = goalParams.milestones || [];
+    }
     const newGoal = {
         id: goalId,
-        userId,
-        athleteId: userId,
+        userId: 'userId' in params ? params.userId : userId,
+        athleteId: 'athleteId' in params ? params.athleteId : userId,
         title: params.title,
         description: params.description,
         category: params.category,
         targetDate: params.targetDate,
-        status: 'ACTIVE',
-        progress: 0,
+        status: 'status' in params ? params.status : 'ACTIVE',
+        progress: 'progress' in params ? params.progress : 0,
         milestones,
-        createdBy,
-        createdById,
+        createdBy: 'createdBy' in params ? params.createdBy : createdBy,
+        createdById: 'createdById' in params ? params.createdById : createdById,
         createdAt: now,
         updatedAt: now,
     };
-    goals.unshift(newGoal);
-    await saveGoals(goals);
+    allGoals.unshift(newGoal);
+    await saveGoals(allGoals);
     logger.info('goal_created', {
         goalId: newGoal.id,
-        userId,
+        athleteId: newGoal.athleteId,
         category: params.category,
         milestoneCount: milestones.length,
     });
     return newGoal;
 }
-/**
- * Get all goals for a specific user
- * @param userId - The user ID of the athlete
- * @param status - Optional status filter
- * @returns Array of goals
- */
 async function getUserGoals(userId, status) {
     const goals = await getAllGoals();
     let filtered = goals.filter(g => g.userId === userId || g.athleteId === userId);
@@ -209,21 +343,10 @@ async function getUserGoals(userId, status) {
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
 }
-/**
- * Get a single goal by ID
- * @param id - The goal ID
- * @returns The goal or null if not found
- */
 async function getGoalById(id) {
     const goals = await getAllGoals();
     return goals.find(g => g.id === id) ?? null;
 }
-/**
- * Update an existing goal
- * @param id - The goal ID
- * @param updates - The fields to update
- * @returns The updated goal or null if not found
- */
 async function updateGoal(id, updates) {
     const goals = await getAllGoals();
     const goalIndex = goals.findIndex(g => g.id === id);
@@ -245,11 +368,6 @@ async function updateGoal(id, updates) {
     });
     return updatedGoal;
 }
-/**
- * Delete a goal
- * @param id - The goal ID
- * @returns True if deleted, false if not found
- */
 async function deleteGoal(id) {
     const goals = await getAllGoals();
     const goalIndex = goals.findIndex(g => g.id === id);
@@ -262,12 +380,38 @@ async function deleteGoal(id) {
     logger.info('goal_deleted', { goalId: id });
     return true;
 }
-/**
- * Add a milestone to a goal
- * @param goalId - The goal ID
- * @param title - The milestone title
- * @returns The updated goal or null if goal not found
- */
+async function updateGoalProgress(goalId, progress, completedMilestones) {
+    const allGoals = await getAllGoals();
+    const goalIndex = allGoals.findIndex(g => g.id === goalId);
+    if (goalIndex === -1)
+        return null;
+    const goal = allGoals[goalIndex];
+    goal.progress = progress;
+    goal.updatedAt = new Date().toISOString();
+    // Update milestones if provided
+    if (completedMilestones) {
+        goal.milestones = goal.milestones.map(m => ({
+            ...m,
+            isCompleted: completedMilestones.includes(m.id),
+            completedAt: completedMilestones.includes(m.id) ? new Date().toISOString() : m.completedAt,
+        }));
+    }
+    // Auto-complete if progress is 100
+    if (progress >= 100) {
+        goal.status = 'COMPLETED';
+    }
+    allGoals[goalIndex] = goal;
+    await saveGoals(allGoals);
+    logger.info('goal_progress_updated', {
+        goalId,
+        progress,
+        status: goal.status,
+    });
+    return goal;
+}
+// ============================================================================
+// MILESTONE MANAGEMENT
+// ============================================================================
 async function addMilestone(goalId, title) {
     const goals = await getAllGoals();
     const goalIndex = goals.findIndex(g => g.id === goalId);
@@ -296,11 +440,6 @@ async function addMilestone(goalId, title) {
     });
     return goal;
 }
-/**
- * Complete a milestone
- * @param milestoneId - The milestone ID
- * @returns The updated goal or null if milestone not found
- */
 async function completeMilestone(milestoneId) {
     const goals = await getAllGoals();
     // Find the goal containing this milestone
@@ -332,11 +471,6 @@ async function completeMilestone(milestoneId) {
     });
     return goal;
 }
-/**
- * Uncomplete a milestone (toggle back to incomplete)
- * @param milestoneId - The milestone ID
- * @returns The updated goal or null if milestone not found
- */
 async function uncompleteMilestone(milestoneId) {
     const goals = await getAllGoals();
     const goalIndex = goals.findIndex(g => g.milestones.some(m => m.id === milestoneId));
@@ -367,11 +501,6 @@ async function uncompleteMilestone(milestoneId) {
     });
     return goal;
 }
-/**
- * Delete a milestone from a goal
- * @param milestoneId - The milestone ID
- * @returns The updated goal or null if milestone not found
- */
 async function deleteMilestone(milestoneId) {
     const goals = await getAllGoals();
     const goalIndex = goals.findIndex(g => g.milestones.some(m => m.id === milestoneId));
@@ -396,11 +525,6 @@ async function deleteMilestone(milestoneId) {
     });
     return goal;
 }
-/**
- * Calculate goal progress based on completed milestones
- * @param goal - The goal to calculate progress for
- * @returns Progress percentage (0-100)
- */
 function calculateGoalProgress(goal) {
     if (goal.milestones.length === 0) {
         return 0;
@@ -408,11 +532,6 @@ function calculateGoalProgress(goal) {
     const completed = goal.milestones.filter(m => m.isCompleted).length;
     return Math.round((completed / goal.milestones.length) * 100);
 }
-/**
- * Get goal progress information
- * @param goalId - The goal ID
- * @returns Progress percentage
- */
 async function getGoalProgress(goalId) {
     const goal = await getGoalById(goalId);
     if (!goal) {
@@ -420,11 +539,6 @@ async function getGoalProgress(goalId) {
     }
     return calculateGoalProgress(goal);
 }
-/**
- * Get all goals for an athlete (for coaches to view)
- * @param athleteId - The athlete's user ID
- * @returns Object with active and completed goals
- */
 async function getAthleteGoals(athleteId) {
     const goals = await getUserGoals(athleteId);
     return {
@@ -433,11 +547,6 @@ async function getAthleteGoals(athleteId) {
         paused: goals.filter(g => g.status === 'PAUSED'),
     };
 }
-/**
- * Get summary statistics for a user's goals
- * @param userId - The user ID
- * @returns Summary statistics
- */
 async function getGoalStats(userId) {
     const goals = await getUserGoals(userId);
     const activeGoals = goals.filter(g => g.status === 'ACTIVE');
@@ -458,9 +567,9 @@ async function getGoalStats(userId) {
         goalsByCategory,
     };
 }
-/**
- * Get display information for goal categories
- */
+// ============================================================================
+// GOAL HELPER FUNCTIONS
+// ============================================================================
 function getCategoryInfo(category) {
     const categoryInfo = {
         SPEED: { label: 'Speed', icon: 'flash', color: '#F59E0B' },
@@ -472,9 +581,6 @@ function getCategoryInfo(category) {
     };
     return categoryInfo[category] ?? categoryInfo.OTHER;
 }
-/**
- * Get display information for goal status
- */
 function getStatusInfo(status) {
     const statusInfo = {
         ACTIVE: { label: 'Active', color: '#10B981' },
@@ -484,9 +590,6 @@ function getStatusInfo(status) {
     };
     return statusInfo[status] ?? statusInfo.ACTIVE;
 }
-/**
- * Format a target date for display
- */
 function formatTargetDate(date) {
     if (!date)
         return 'No deadline';
@@ -497,9 +600,6 @@ function formatTargetDate(date) {
         year: 'numeric',
     });
 }
-/**
- * Check if a goal's target date has passed
- */
 function isOverdue(goal) {
     if (!goal.targetDate || goal.status === 'COMPLETED')
         return false;
@@ -508,37 +608,120 @@ function isOverdue(goal) {
     today.setHours(0, 0, 0, 0);
     return target < today;
 }
-/**
- * Reset goals to mock data (for development/testing)
- */
 async function resetToMockData() {
     await saveGoals([...MOCK_GOALS]);
     logger.info('goals_reset_to_mock');
 }
-// Export the service
-exports.goalService = {
-    // CRUD operations
+// ============================================================================
+// COMPREHENSIVE PROGRESS DATA
+// ============================================================================
+async function getAthleteProgress(athleteId, viewerRole = 'parent') {
+    // Fetch all data in parallel
+    const [skillLevels, feedback, goals, badgeProgress, badges,] = await Promise.all([
+        getAthleteSkillLevels(athleteId),
+        getFeedbackForAthlete(athleteId, viewerRole, 10),
+        getGoalsForAthlete(athleteId),
+        badge_service_1.badgeService.getProgressToNextLevel(athleteId),
+        badge_service_1.badgeService.listAwardsForAthlete(athleteId),
+    ]);
+    // Convert skills to array
+    const skills = skillLevels
+        ? Object.values(skillLevels.skills)
+        : [];
+    // Calculate metrics from feedback
+    const totalSessions = feedback.length;
+    const now = new Date();
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sessionsThisMonth = feedback.filter(f => new Date(f.createdAt) >= monthAgo).length;
+    const avgPerformance = feedback.length > 0
+        ? feedback.reduce((sum, f) => sum + f.overallPerformance, 0) / feedback.length
+        : 0;
+    const avgEffort = feedback.length > 0
+        ? feedback.reduce((sum, f) => sum + f.effortRating, 0) / feedback.length
+        : 0;
+    // Calculate overall trend
+    const improvingSkills = skills.filter(s => s.trend === 'improving').length;
+    const decliningSkills = skills.filter(s => s.trend === 'declining').length;
+    let overallTrend = 'steady';
+    if (improvingSkills > decliningSkills + 1)
+        overallTrend = 'improving';
+    else if (decliningSkills > improvingSkills + 1)
+        overallTrend = 'declining';
+    // Calculate improvement rate
+    const improvementRate = skills.length > 0
+        ? Math.round((improvingSkills / skills.length) * 100)
+        : 0;
+    // Filter badges for visibility
+    const visibleBadges = viewerRole === 'coach'
+        ? badges
+        : badges.filter(b => b.visibility !== 'coach_only');
+    return {
+        athleteId,
+        athleteName: '', // Will be filled by caller
+        totalSessions,
+        sessionsThisMonth,
+        averagePerformance: Math.round(avgPerformance * 10) / 10,
+        averageEffort: Math.round(avgEffort * 10) / 10,
+        attendanceRate: 100, // Would calculate from actual session data
+        skills,
+        overallTrend,
+        improvementRate,
+        activeGoals: goals.active,
+        completedGoals: goals.completed,
+        recentFeedback: feedback.slice(0, 5),
+        totalBadges: visibleBadges.length,
+        recentBadges: visibleBadges.slice(0, 5).map(b => ({
+            id: b.id,
+            label: b.badgeLabel,
+            awardedAt: b.awardedAt,
+            category: b.badgeCategory,
+        })),
+        currentLevel: badgeProgress.currentLevel,
+        totalPoints: badgeProgress.totalPoints,
+        progressToNextLevel: badgeProgress.progressPercent,
+    };
+}
+// ============================================================================
+// EXPORTS
+// ============================================================================
+exports.progressService = {
+    // Skill levels
+    getAthleteSkillLevels,
+    updateSkillLevel,
+    updateMultipleSkillLevels,
+    // Session feedback
+    addSessionFeedback,
+    getSessionFeedback,
+    getFeedbackForAthlete,
+    // Session notes
+    getSessionNote,
+    saveSessionNote,
+    // Goals - CRUD operations
     createGoal,
     getUserGoals,
     getGoalById,
     updateGoal,
     deleteGoal,
-    // Milestone operations
+    getGoalsForAthlete,
+    updateGoalProgress,
+    // Milestones
     addMilestone,
     completeMilestone,
     uncompleteMilestone,
     deleteMilestone,
-    // Progress
+    // Goal progress
     getGoalProgress,
     calculateGoalProgress,
-    // Coach/athlete views
+    // Goal analytics
     getAthleteGoals,
     getGoalStats,
-    // Helpers
+    // Goal helpers
     getCategoryInfo,
     getStatusInfo,
     formatTargetDate,
     isOverdue,
     // Development
     resetToMockData,
+    // Comprehensive progress
+    getAthleteProgress,
 };

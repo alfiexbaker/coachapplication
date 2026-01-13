@@ -25,7 +25,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { bookingService } from '@/services/booking-service';
-import { cancellationPolicyService } from '@/services/cancellation-policy-service';
+import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, RefundCalculation } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
@@ -73,11 +73,11 @@ export default function CancelBookingScreen() {
         setCoachName(booking.coachName || 'Coach');
 
         // Load coach's cancellation policy
-        const coachPolicy = await cancellationPolicyService.getCoachPolicy(booking.coachId);
+        const coachPolicy = await schedulingRulesService.getCancellationPolicy(booking.coachId);
         setPolicy(coachPolicy);
 
         // Calculate refund
-        const calculation = cancellationPolicyService.calculateRefund(
+        const calculation = schedulingRulesService.calculateRefund(
           booking.price || 35,
           new Date(booking.scheduledAt),
           coachPolicy
@@ -93,7 +93,7 @@ export default function CancelBookingScreen() {
       setSessionTime(fallbackTime);
       setCoachName('Your Coach');
 
-      const calculation = cancellationPolicyService.calculateRefund(
+      const calculation = schedulingRulesService.calculateRefund(
         35,
         fallbackTime,
         null
@@ -163,7 +163,7 @@ export default function CancelBookingScreen() {
     );
   }
 
-  const effectivePolicy = policy || cancellationPolicyService.getDefaultPolicy();
+  const effectivePolicy = policy || schedulingRulesService.getDefaultCancellationPolicy();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

@@ -74,7 +74,7 @@ export default function FamilyCalendarScreen() {
 
   const handleEventPress = (event: FamilyCalendarEvent) => {
     router.push({
-      pathname: '/booking/[id]',
+      pathname: '/(tabs)/bookings/[id]',
       params: { id: event.id },
     });
   };

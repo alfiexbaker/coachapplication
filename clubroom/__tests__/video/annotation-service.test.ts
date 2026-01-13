@@ -8,14 +8,13 @@
 import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
-import { annotationService, ANNOTATION_TYPE_CONFIG, CreateAnnotationInput } from '../../services/annotation-service';
-import { videoService } from '../../services/video-service';
+import { videoService, ANNOTATION_TYPE_CONFIG, CreateAnnotationInput } from '../../services/video-service';
 import type { VideoAnnotationType } from '../../constants/types';
 
 describe('Annotation Service', () => {
   describe('getAnnotatedVideo', () => {
     test('should return annotated video with sorted annotations', async () => {
-      const video = await annotationService.getAnnotatedVideo('vid_1');
+      const video = await videoService.getAnnotatedVideo('vid_1');
 
       assert.ok(video);
       assert.strictEqual(video.id, 'vid_1');
@@ -31,7 +30,7 @@ describe('Annotation Service', () => {
     });
 
     test('should return null for non-existent video', async () => {
-      const video = await annotationService.getAnnotatedVideo('non_existent');
+      const video = await videoService.getAnnotatedVideo('non_existent');
 
       assert.strictEqual(video, null);
     });
@@ -39,7 +38,7 @@ describe('Annotation Service', () => {
 
   describe('getVideoAnnotations', () => {
     test('should return sorted annotations for a video', async () => {
-      const annotations = await annotationService.getVideoAnnotations('vid_1');
+      const annotations = await videoService.getVideoAnnotations('vid_1');
 
       assert.ok(Array.isArray(annotations));
       assert.ok(annotations.length > 0);
@@ -51,14 +50,14 @@ describe('Annotation Service', () => {
     });
 
     test('should return empty array for video with no annotations', async () => {
-      const annotations = await annotationService.getVideoAnnotations('vid_3');
+      const annotations = await videoService.getVideoAnnotations('vid_3');
 
       assert.ok(Array.isArray(annotations));
       // vid_3 has no annotations in mock data
     });
 
     test('should return empty array for non-existent video', async () => {
-      const annotations = await annotationService.getVideoAnnotations('non_existent');
+      const annotations = await videoService.getVideoAnnotations('non_existent');
 
       assert.deepStrictEqual(annotations, []);
     });
@@ -73,7 +72,7 @@ describe('Annotation Service', () => {
         type: 'HIGHLIGHT',
       };
 
-      const annotation = await annotationService.addAnnotation('vid_1', input);
+      const annotation = await videoService.addAnnotation('vid_1', input);
 
       assert.ok(annotation);
       assert.ok(annotation.id);
@@ -90,7 +89,7 @@ describe('Annotation Service', () => {
         type: 'TECHNIQUE',
       };
 
-      const annotation = await annotationService.addAnnotation(
+      const annotation = await videoService.addAnnotation(
         'vid_1',
         input,
         'coach_1',
@@ -111,10 +110,10 @@ describe('Annotation Service', () => {
         label: 'To Be Deleted',
         type: 'GENERAL',
       };
-      const annotation = await annotationService.addAnnotation('vid_1', input);
+      const annotation = await videoService.addAnnotation('vid_1', input);
 
       // Then delete it
-      const result = await annotationService.deleteAnnotation('vid_1', annotation.id);
+      const result = await videoService.deleteAnnotation('vid_1', annotation.id);
 
       assert.strictEqual(result, true);
     });
@@ -122,7 +121,7 @@ describe('Annotation Service', () => {
 
   describe('exportAnnotations', () => {
     test('should export annotations with formatted data', async () => {
-      const exportData = await annotationService.exportAnnotations('vid_1');
+      const exportData = await videoService.exportAnnotations('vid_1');
 
       assert.ok(exportData);
       assert.ok(exportData.videoTitle);
@@ -144,7 +143,7 @@ describe('Annotation Service', () => {
     });
 
     test('should return null for non-existent video', async () => {
-      const exportData = await annotationService.exportAnnotations('non_existent');
+      const exportData = await videoService.exportAnnotations('non_existent');
 
       assert.strictEqual(exportData, null);
     });
@@ -152,7 +151,7 @@ describe('Annotation Service', () => {
 
   describe('getAnnotationsByType', () => {
     test('should group annotations by type', async () => {
-      const grouped = await annotationService.getAnnotationsByType('vid_1');
+      const grouped = await videoService.getAnnotationsByType('vid_1');
 
       assert.ok(grouped.HIGHLIGHT !== undefined);
       assert.ok(grouped.IMPROVEMENT !== undefined);
@@ -171,7 +170,7 @@ describe('Annotation Service', () => {
 
   describe('getAnnotationStats', () => {
     test('should return annotation statistics', async () => {
-      const stats = await annotationService.getAnnotationStats('vid_1');
+      const stats = await videoService.getAnnotationStats('vid_1');
 
       assert.ok(typeof stats.total === 'number');
       assert.ok(stats.byType);
@@ -183,7 +182,7 @@ describe('Annotation Service', () => {
     });
 
     test('should return zero stats for non-existent video', async () => {
-      const stats = await annotationService.getAnnotationStats('non_existent');
+      const stats = await videoService.getAnnotationStats('non_existent');
 
       assert.strictEqual(stats.total, 0);
       assert.strictEqual(stats.byType.HIGHLIGHT, 0);
@@ -193,11 +192,11 @@ describe('Annotation Service', () => {
 
   describe('findAnnotationsNearTimestamp', () => {
     test('should find annotations near a timestamp', async () => {
-      const annotations = await annotationService.getVideoAnnotations('vid_1');
+      const annotations = await videoService.getVideoAnnotations('vid_1');
       if (annotations.length === 0) return;
 
       const firstAnnotation = annotations[0];
-      const nearby = await annotationService.findAnnotationsNearTimestamp(
+      const nearby = await videoService.findAnnotationsNearTimestamp(
         'vid_1',
         firstAnnotation.timestamp + 2,
         5
@@ -208,7 +207,7 @@ describe('Annotation Service', () => {
     });
 
     test('should return empty array if no nearby annotations', async () => {
-      const nearby = await annotationService.findAnnotationsNearTimestamp(
+      const nearby = await videoService.findAnnotationsNearTimestamp(
         'vid_1',
         99999,
         2
@@ -220,10 +219,10 @@ describe('Annotation Service', () => {
 
   describe('getNextAnnotation', () => {
     test('should return next annotation after timestamp', async () => {
-      const annotations = await annotationService.getVideoAnnotations('vid_1');
+      const annotations = await videoService.getVideoAnnotations('vid_1');
       if (annotations.length < 2) return;
 
-      const next = await annotationService.getNextAnnotation(
+      const next = await videoService.getNextAnnotation(
         'vid_1',
         annotations[0].timestamp
       );
@@ -233,7 +232,7 @@ describe('Annotation Service', () => {
     });
 
     test('should return null if no next annotation', async () => {
-      const next = await annotationService.getNextAnnotation('vid_1', 99999);
+      const next = await videoService.getNextAnnotation('vid_1', 99999);
 
       assert.strictEqual(next, null);
     });
@@ -241,10 +240,10 @@ describe('Annotation Service', () => {
 
   describe('getPreviousAnnotation', () => {
     test('should return previous annotation before timestamp', async () => {
-      const annotations = await annotationService.getVideoAnnotations('vid_1');
+      const annotations = await videoService.getVideoAnnotations('vid_1');
       if (annotations.length < 2) return;
 
-      const prev = await annotationService.getPreviousAnnotation(
+      const prev = await videoService.getPreviousAnnotation(
         'vid_1',
         annotations[annotations.length - 1].timestamp
       );
@@ -254,7 +253,7 @@ describe('Annotation Service', () => {
     });
 
     test('should return null if no previous annotation', async () => {
-      const prev = await annotationService.getPreviousAnnotation('vid_1', 0);
+      const prev = await videoService.getPreviousAnnotation('vid_1', 0);
 
       assert.strictEqual(prev, null);
     });
@@ -263,33 +262,33 @@ describe('Annotation Service', () => {
   describe('Helper Functions', () => {
     describe('formatTimestamp', () => {
       test('should format seconds to MM:SS', () => {
-        assert.strictEqual(annotationService.formatTimestamp(0), '0:00');
-        assert.strictEqual(annotationService.formatTimestamp(30), '0:30');
-        assert.strictEqual(annotationService.formatTimestamp(60), '1:00');
-        assert.strictEqual(annotationService.formatTimestamp(90), '1:30');
-        assert.strictEqual(annotationService.formatTimestamp(125), '2:05');
-        assert.strictEqual(annotationService.formatTimestamp(600), '10:00');
+        assert.strictEqual(videoService.formatTimestamp(0), '0:00');
+        assert.strictEqual(videoService.formatTimestamp(30), '0:30');
+        assert.strictEqual(videoService.formatTimestamp(60), '1:00');
+        assert.strictEqual(videoService.formatTimestamp(90), '1:30');
+        assert.strictEqual(videoService.formatTimestamp(125), '2:05');
+        assert.strictEqual(videoService.formatTimestamp(600), '10:00');
       });
 
       test('should handle fractional seconds', () => {
-        assert.strictEqual(annotationService.formatTimestamp(30.5), '0:30');
-        assert.strictEqual(annotationService.formatTimestamp(65.9), '1:05');
+        assert.strictEqual(videoService.formatTimestamp(30.5), '0:30');
+        assert.strictEqual(videoService.formatTimestamp(65.9), '1:05');
       });
     });
 
     describe('parseTimestamp', () => {
       test('should parse MM:SS to seconds', () => {
-        assert.strictEqual(annotationService.parseTimestamp('0:00'), 0);
-        assert.strictEqual(annotationService.parseTimestamp('0:30'), 30);
-        assert.strictEqual(annotationService.parseTimestamp('1:00'), 60);
-        assert.strictEqual(annotationService.parseTimestamp('1:30'), 90);
-        assert.strictEqual(annotationService.parseTimestamp('10:00'), 600);
+        assert.strictEqual(videoService.parseTimestamp('0:00'), 0);
+        assert.strictEqual(videoService.parseTimestamp('0:30'), 30);
+        assert.strictEqual(videoService.parseTimestamp('1:00'), 60);
+        assert.strictEqual(videoService.parseTimestamp('1:30'), 90);
+        assert.strictEqual(videoService.parseTimestamp('10:00'), 600);
       });
 
       test('should return 0 for invalid format', () => {
-        assert.strictEqual(annotationService.parseTimestamp('invalid'), 0);
-        assert.strictEqual(annotationService.parseTimestamp(''), 0);
-        assert.strictEqual(annotationService.parseTimestamp('1'), 0);
+        assert.strictEqual(videoService.parseTimestamp('invalid'), 0);
+        assert.strictEqual(videoService.parseTimestamp(''), 0);
+        assert.strictEqual(videoService.parseTimestamp('1'), 0);
       });
     });
 
@@ -298,7 +297,7 @@ describe('Annotation Service', () => {
         const types: VideoAnnotationType[] = ['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL'];
 
         for (const type of types) {
-          const info = annotationService.getTypeInfo(type);
+          const info = videoService.getTypeInfo(type);
 
           assert.ok(info.label);
           assert.ok(info.color);
@@ -311,7 +310,7 @@ describe('Annotation Service', () => {
 
     describe('getAllTypes', () => {
       test('should return all annotation types', () => {
-        const types = annotationService.getAllTypes();
+        const types = videoService.getAllTypes();
 
         assert.ok(Array.isArray(types));
         assert.strictEqual(types.length, 4);
@@ -326,7 +325,7 @@ describe('Annotation Service', () => {
       const videoDuration = 180;
 
       test('should pass for valid input', () => {
-        const errors = annotationService.validateInput(
+        const errors = videoService.validateInput(
           {
             timestamp: 60,
             label: 'Valid label',
@@ -339,7 +338,7 @@ describe('Annotation Service', () => {
       });
 
       test('should fail for empty label', () => {
-        const errors = annotationService.validateInput(
+        const errors = videoService.validateInput(
           {
             timestamp: 60,
             label: '',
@@ -352,7 +351,7 @@ describe('Annotation Service', () => {
       });
 
       test('should fail for label too long', () => {
-        const errors = annotationService.validateInput(
+        const errors = videoService.validateInput(
           {
             timestamp: 60,
             label: 'A'.repeat(101),
@@ -365,7 +364,7 @@ describe('Annotation Service', () => {
       });
 
       test('should fail for note too long', () => {
-        const errors = annotationService.validateInput(
+        const errors = videoService.validateInput(
           {
             timestamp: 60,
             label: 'Valid',
@@ -379,7 +378,7 @@ describe('Annotation Service', () => {
       });
 
       test('should fail for negative timestamp', () => {
-        const errors = annotationService.validateInput(
+        const errors = videoService.validateInput(
           {
             timestamp: -10,
             label: 'Valid',
@@ -392,7 +391,7 @@ describe('Annotation Service', () => {
       });
 
       test('should fail for timestamp exceeding duration', () => {
-        const errors = annotationService.validateInput(
+        const errors = videoService.validateInput(
           {
             timestamp: 200,
             label: 'Valid',
@@ -408,7 +407,7 @@ describe('Annotation Service', () => {
 
   describe('generateTextSummary', () => {
     test('should generate readable text summary', async () => {
-      const summary = await annotationService.generateTextSummary('vid_1');
+      const summary = await videoService.generateTextSummary('vid_1');
 
       assert.ok(typeof summary === 'string');
       assert.ok(summary.includes('Video:'));
@@ -418,7 +417,7 @@ describe('Annotation Service', () => {
     });
 
     test('should return empty string for non-existent video', async () => {
-      const summary = await annotationService.generateTextSummary('non_existent');
+      const summary = await videoService.generateTextSummary('non_existent');
 
       assert.strictEqual(summary, '');
     });

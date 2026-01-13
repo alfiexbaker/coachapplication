@@ -44,7 +44,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
-const goal_service_1 = require("../../services/goal-service");
+const progress_service_1 = require("../../services/progress-service");
 /**
  * Helper function to create a mock goal for testing
  */
@@ -94,7 +94,7 @@ function createMockGoal(overrides = {}) {
             const categories = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
             categories.forEach((category) => {
                 const goal = createMockGoal({ category });
-                const info = goal_service_1.goalService.getCategoryInfo(goal.category);
+                const info = progress_service_1.progressService.getCategoryInfo(goal.category);
                 node_assert_1.default.ok(info.label, `Category ${category} should have a label`);
                 node_assert_1.default.ok(info.icon, `Category ${category} should have an icon`);
                 node_assert_1.default.ok(info.color, `Category ${category} should have a color`);
@@ -102,17 +102,17 @@ function createMockGoal(overrides = {}) {
             });
         });
         (0, node_test_1.default)('SPEED category should have flash icon', () => {
-            const info = goal_service_1.goalService.getCategoryInfo('SPEED');
+            const info = progress_service_1.progressService.getCategoryInfo('SPEED');
             node_assert_1.default.strictEqual(info.icon, 'flash');
             node_assert_1.default.strictEqual(info.label, 'Speed');
         });
         (0, node_test_1.default)('TECHNIQUE category should have football icon', () => {
-            const info = goal_service_1.goalService.getCategoryInfo('TECHNIQUE');
+            const info = progress_service_1.progressService.getCategoryInfo('TECHNIQUE');
             node_assert_1.default.strictEqual(info.icon, 'football');
             node_assert_1.default.strictEqual(info.label, 'Technique');
         });
         (0, node_test_1.default)('FITNESS category should have fitness icon', () => {
-            const info = goal_service_1.goalService.getCategoryInfo('FITNESS');
+            const info = progress_service_1.progressService.getCategoryInfo('FITNESS');
             node_assert_1.default.strictEqual(info.icon, 'fitness');
             node_assert_1.default.strictEqual(info.label, 'Fitness');
         });
@@ -122,24 +122,24 @@ function createMockGoal(overrides = {}) {
             const statuses = ['ACTIVE', 'COMPLETED', 'PAUSED', 'ABANDONED'];
             statuses.forEach((status) => {
                 const goal = createMockGoal({ status });
-                const info = goal_service_1.goalService.getStatusInfo(goal.status);
+                const info = progress_service_1.progressService.getStatusInfo(goal.status);
                 node_assert_1.default.ok(info.label, `Status ${status} should have a label`);
                 node_assert_1.default.ok(info.color, `Status ${status} should have a color`);
                 node_assert_1.default.ok(info.color.startsWith('#'), `Status ${status} color should be hex`);
             });
         });
         (0, node_test_1.default)('ACTIVE status should be green', () => {
-            const info = goal_service_1.goalService.getStatusInfo('ACTIVE');
+            const info = progress_service_1.progressService.getStatusInfo('ACTIVE');
             node_assert_1.default.strictEqual(info.label, 'Active');
             node_assert_1.default.strictEqual(info.color, '#10B981'); // Green
         });
         (0, node_test_1.default)('COMPLETED status should be blue', () => {
-            const info = goal_service_1.goalService.getStatusInfo('COMPLETED');
+            const info = progress_service_1.progressService.getStatusInfo('COMPLETED');
             node_assert_1.default.strictEqual(info.label, 'Completed');
             node_assert_1.default.strictEqual(info.color, '#3B82F6'); // Blue
         });
         (0, node_test_1.default)('PAUSED status should be amber', () => {
-            const info = goal_service_1.goalService.getStatusInfo('PAUSED');
+            const info = progress_service_1.progressService.getStatusInfo('PAUSED');
             node_assert_1.default.strictEqual(info.label, 'Paused');
             node_assert_1.default.strictEqual(info.color, '#F59E0B'); // Amber
         });
@@ -147,14 +147,14 @@ function createMockGoal(overrides = {}) {
     (0, node_test_1.describe)('Target Date Display', () => {
         (0, node_test_1.default)('should format target date correctly', () => {
             const goal = createMockGoal({ targetDate: '2026-06-15' });
-            const formatted = goal_service_1.goalService.formatTargetDate(goal.targetDate);
+            const formatted = progress_service_1.progressService.formatTargetDate(goal.targetDate);
             node_assert_1.default.ok(formatted.includes('15'));
             node_assert_1.default.ok(formatted.includes('Jun'));
             node_assert_1.default.ok(formatted.includes('2026'));
         });
         (0, node_test_1.default)('should handle missing target date', () => {
             const goal = createMockGoal({ targetDate: undefined });
-            const formatted = goal_service_1.goalService.formatTargetDate(goal.targetDate);
+            const formatted = progress_service_1.progressService.formatTargetDate(goal.targetDate);
             node_assert_1.default.strictEqual(formatted, 'No deadline');
         });
     });
@@ -164,28 +164,28 @@ function createMockGoal(overrides = {}) {
                 targetDate: '2020-01-01',
                 status: 'ACTIVE',
             });
-            node_assert_1.default.strictEqual(goal_service_1.goalService.isOverdue(overdueGoal), true);
+            node_assert_1.default.strictEqual(progress_service_1.progressService.isOverdue(overdueGoal), true);
         });
         (0, node_test_1.default)('should not mark completed goal as overdue', () => {
             const completedGoal = createMockGoal({
                 targetDate: '2020-01-01',
                 status: 'COMPLETED',
             });
-            node_assert_1.default.strictEqual(goal_service_1.goalService.isOverdue(completedGoal), false);
+            node_assert_1.default.strictEqual(progress_service_1.progressService.isOverdue(completedGoal), false);
         });
         (0, node_test_1.default)('should not mark future goal as overdue', () => {
             const futureGoal = createMockGoal({
                 targetDate: '2030-12-31',
                 status: 'ACTIVE',
             });
-            node_assert_1.default.strictEqual(goal_service_1.goalService.isOverdue(futureGoal), false);
+            node_assert_1.default.strictEqual(progress_service_1.progressService.isOverdue(futureGoal), false);
         });
         (0, node_test_1.default)('should not mark goal without date as overdue', () => {
             const noDateGoal = createMockGoal({
                 targetDate: undefined,
                 status: 'ACTIVE',
             });
-            node_assert_1.default.strictEqual(goal_service_1.goalService.isOverdue(noDateGoal), false);
+            node_assert_1.default.strictEqual(progress_service_1.progressService.isOverdue(noDateGoal), false);
         });
     });
     (0, node_test_1.describe)('Progress Ring Logic', () => {
@@ -325,6 +325,6 @@ function createMockGoal(overrides = {}) {
         });
         // Should still render without errors
         node_assert_1.default.ok(futureGoal.createdAt);
-        node_assert_1.default.strictEqual(goal_service_1.goalService.isOverdue(futureGoal), false);
+        node_assert_1.default.strictEqual(progress_service_1.progressService.isOverdue(futureGoal), false);
     });
 });

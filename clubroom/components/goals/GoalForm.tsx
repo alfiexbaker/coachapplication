@@ -27,7 +27,7 @@ import { CategoryBadge } from './CategoryBadge';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import type { Goal, GoalCategory, CreateGoalInput, UpdateGoalInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { goalService } from '@/services/goal-service';
+import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
 const CATEGORIES: GoalCategory[] = ['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'];
@@ -178,7 +178,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
           <ThemedText style={styles.label}>Category</ThemedText>
           <View style={styles.categoryGrid}>
             {CATEGORIES.map((cat) => {
-              const { color, icon } = goalService.getCategoryInfo(cat);
+              const { color, icon } = progressService.getCategoryInfo(cat);
               const isSelected = category === cat;
 
               return (
@@ -204,7 +204,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
                       { color: isSelected ? color : palette.text },
                     ]}
                   >
-                    {goalService.getCategoryInfo(cat).label}
+                    {progressService.getCategoryInfo(cat).label}
                   </ThemedText>
                 </Clickable>
               );
@@ -327,7 +327,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
               <View style={styles.previewMeta}>
                 <Ionicons name="calendar-outline" size={14} color={palette.muted} />
                 <ThemedText style={[styles.previewMetaText, { color: palette.muted }]}>
-                  Target: {goalService.formatTargetDate(targetDate)}
+                  Target: {progressService.formatTargetDate(targetDate)}
                 </ThemedText>
               </View>
             )}

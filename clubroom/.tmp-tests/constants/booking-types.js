@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SERVICES = exports.FOOTBALL_OBJECTIVES = void 0;
+exports.SERVICES = exports.DAY_ABBREVS = exports.DAY_NAMES = exports.FOOTBALL_OBJECTIVES = void 0;
+exports.getDayName = getDayName;
+exports.getDayAbbrev = getDayAbbrev;
 exports.buildAvailability = buildAvailability;
 exports.formatServicePrice = formatServicePrice;
 exports.resolveCoachAndProfile = resolveCoachAndProfile;
@@ -13,6 +15,26 @@ exports.FOOTBALL_OBJECTIVES = [
     'Goalkeeping',
     'Conditioning',
 ];
+/**
+ * Day names indexed by JavaScript Date.getDay() (0 = Sunday, 6 = Saturday)
+ */
+exports.DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+/**
+ * Short day name abbreviations
+ */
+exports.DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/**
+ * Get the full name for a day of week
+ */
+function getDayName(dayOfWeek) {
+    return exports.DAY_NAMES[dayOfWeek] || 'Unknown';
+}
+/**
+ * Get the abbreviated name for a day of week
+ */
+function getDayAbbrev(dayOfWeek) {
+    return exports.DAY_ABBREVS[dayOfWeek] || '???';
+}
 exports.SERVICES = [
     {
         id: '1-on-1',

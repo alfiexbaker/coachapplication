@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Radii, Spacing } from '@/constants/theme';
 import type { GoalCategory } from '@/constants/types';
-import { goalService } from '@/services/goal-service';
+import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
 interface CategoryBadgeProps {
@@ -41,7 +41,7 @@ export function CategoryBadge({
   iconOnly = false,
   variant = 'filled',
 }: CategoryBadgeProps) {
-  const { label, icon, color } = goalService.getCategoryInfo(category);
+  const { label, icon, color } = progressService.getCategoryInfo(category);
 
   const sizeStyles = {
     small: {
@@ -119,7 +119,7 @@ export function CategoryBadgeRow({
   return (
     <View style={styles.badgeRow}>
       {categories.map((category) => {
-        const { color } = goalService.getCategoryInfo(category);
+        const { color } = progressService.getCategoryInfo(category);
         const isSelected = category === selectedCategory;
 
         return (

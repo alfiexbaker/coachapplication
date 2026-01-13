@@ -30,8 +30,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { videoService } from '@/services/video-service';
-import { annotationService, ANNOTATION_TYPE_CONFIG } from '@/services/annotation-service';
+import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType, AnnotatedVideo } from '@/constants/types';
 
 type ViewMode = 'timeline' | 'list';
@@ -69,7 +68,7 @@ export default function CoachAnnotateScreen() {
       setVideo(data);
 
       if (data) {
-        const stats = await annotationService.getAnnotationStats(id);
+        const stats = await videoService.getAnnotationStats(id);
         setAnnotationStats(stats);
       }
     } catch (error) {
@@ -124,7 +123,7 @@ export default function CoachAnnotateScreen() {
           onPress: async () => {
             if (!video) return;
             try {
-              await annotationService.deleteAnnotation(video.id, annotation.id);
+              await videoService.deleteAnnotation(video.id, annotation.id);
               await loadVideo();
             } catch (error) {
               console.error('Failed to delete annotation:', error);
@@ -143,13 +142,13 @@ export default function CoachAnnotateScreen() {
 
     try {
       if (editingAnnotation) {
-        await annotationService.updateAnnotation(video.id, editingAnnotation.id, {
+        await videoService.updateAnnotation(video.id, editingAnnotation.id, {
           label: annotation.label,
           note: annotation.note,
           type: annotation.type,
         });
       } else {
-        await annotationService.addAnnotation(
+        await videoService.createAnnotation(
           video.id,
           {
             timestamp: annotation.timestamp,
@@ -174,7 +173,7 @@ export default function CoachAnnotateScreen() {
     if (!video) return;
 
     try {
-      const textSummary = await annotationService.generateTextSummary(video.id);
+      const textSummary = await videoService.generateTextSummary(video.id);
 
       await Share.share({
         title: `Annotations: ${video.title}`,
@@ -198,7 +197,7 @@ export default function CoachAnnotateScreen() {
           onPress: async () => {
             if (!video) return;
             try {
-              await annotationService.clearAnnotations(video.id);
+              await videoService.clearAnnotations(video.id);
               await loadVideo();
             } catch (error) {
               console.error('Failed to clear annotations:', error);
@@ -305,7 +304,7 @@ export default function CoachAnnotateScreen() {
                 style={[styles.addButton, { backgroundColor: palette.tint }]}
               >
                 <Ionicons name="add" size={20} color="#fff" />
-                <ThemedText style={styles.addButtonText}>Add at {annotationService.formatTimestamp(currentTime)}</ThemedText>
+                <ThemedText style={styles.addButtonText}>Add at {videoService.formatTimestamp(currentTime)}</ThemedText>
               </Clickable>
             </View>
 

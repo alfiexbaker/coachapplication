@@ -9,7 +9,7 @@ import assert from 'node:assert';
 import test, { describe } from 'node:test';
 
 import type { Goal, GoalCategory, GoalStatus } from '../../constants/types';
-import { goalService } from '../../services/goal-service';
+import { progressService as goalService } from '../../services/progress-service';
 
 /**
  * Helper function to create a mock goal for testing

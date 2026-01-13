@@ -16,12 +16,12 @@
   },
   "files": [
     "app/book-coach.tsx",
-    "components/booking/book-coach/availability-picker.tsx",
-    "components/booking/book-coach/booking-stepper.tsx",
-    "components/booking/book-coach/child-selection-grid.tsx",
-    "components/booking/book-coach/coach-summary-card.tsx",
-    "components/booking/book-coach/objective-selector.tsx",
-    "components/booking/book-coach/service-selection-list.tsx",
+    "components/ui/booking/availability-picker.tsx",
+    "components/ui/booking/booking-stepper.tsx",
+    "components/ui/booking/child-selection-grid.tsx",
+    "components/ui/booking/coach-summary-card.tsx",
+    "components/ui/booking/objective-selector.tsx",
+    "components/ui/booking/service-selection-list.tsx",
     "components/primitives/selection-tile.tsx",
     "constants/booking-types.ts",
     "hooks/use-booking-persona.ts"

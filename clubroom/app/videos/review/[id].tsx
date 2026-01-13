@@ -28,8 +28,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { videoService } from '@/services/video-service';
-import { annotationService, ANNOTATION_TYPE_CONFIG } from '@/services/annotation-service';
+import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 
 export default function AthleteReviewScreen() {
@@ -67,7 +66,7 @@ export default function AthleteReviewScreen() {
       setVideo(data);
 
       if (data) {
-        const stats = await annotationService.getAnnotationStats(id);
+        const stats = await videoService.getAnnotationStats(id);
         setAnnotationStats(stats);
       }
     } catch (error) {
@@ -121,7 +120,7 @@ export default function AthleteReviewScreen() {
 
   const handleNextAnnotation = async () => {
     if (!video) return;
-    const next = await annotationService.getNextAnnotation(video.id, currentTime);
+    const next = await videoService.getNextAnnotation(video.id, currentTime);
     if (next) {
       handleAnnotationSelect(next);
     }
@@ -129,7 +128,7 @@ export default function AthleteReviewScreen() {
 
   const handlePreviousAnnotation = async () => {
     if (!video) return;
-    const prev = await annotationService.getPreviousAnnotation(video.id, currentTime);
+    const prev = await videoService.getPreviousAnnotation(video.id, currentTime);
     if (prev) {
       handleAnnotationSelect(prev);
     }
@@ -271,7 +270,7 @@ export default function AthleteReviewScreen() {
               <View style={styles.activeAnnotationHeader}>
                 <AnnotationBadge type={activeAnnotation.type} variant="filled" size="medium" />
                 <ThemedText style={[styles.activeTimestamp, { color: palette.muted }]}>
-                  {annotationService.formatTimestamp(activeAnnotation.timestamp)}
+                  {videoService.formatTimestamp(activeAnnotation.timestamp)}
                 </ThemedText>
               </View>
 

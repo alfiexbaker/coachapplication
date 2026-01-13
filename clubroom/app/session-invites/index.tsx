@@ -14,7 +14,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { sessionInviteService } from '@/services/session-invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite-service';
 import { hasChildren } from '@/utils/user-helpers';
 import type { SessionInvite } from '@/constants/types';
 

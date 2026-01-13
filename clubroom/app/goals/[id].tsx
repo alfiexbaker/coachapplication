@@ -45,7 +45,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import type { Goal, GoalStatus, UpdateGoalInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { goalService } from '@/services/goal-service';
+import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
 /**
@@ -72,7 +72,7 @@ export default function GoalDetailScreen() {
   const loadGoal = useCallback(async () => {
     if (!id) return;
     try {
-      const data = await goalService.getGoalById(id);
+      const data = await progressService.getGoalById(id);
       setGoal(data);
     } catch (error) {
       console.error('Failed to load goal:', error);
@@ -126,9 +126,9 @@ export default function GoalDetailScreen() {
       try {
         let updatedGoal: Goal | null;
         if (completed) {
-          updatedGoal = await goalService.completeMilestone(milestoneId);
+          updatedGoal = await progressService.completeMilestone(milestoneId);
         } else {
-          updatedGoal = await goalService.uncompleteMilestone(milestoneId);
+          updatedGoal = await progressService.uncompleteMilestone(milestoneId);
         }
 
         if (updatedGoal) {
@@ -153,7 +153,7 @@ export default function GoalDetailScreen() {
       if (!goal) return;
 
       try {
-        const updatedGoal = await goalService.addMilestone(goal.id, title);
+        const updatedGoal = await progressService.addMilestone(goal.id, title);
         if (updatedGoal) {
           setGoal(updatedGoal);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -172,7 +172,7 @@ export default function GoalDetailScreen() {
       if (!goal) return;
 
       try {
-        const updatedGoal = await goalService.deleteMilestone(milestoneId);
+        const updatedGoal = await progressService.deleteMilestone(milestoneId);
         if (updatedGoal) {
           setGoal(updatedGoal);
         }
@@ -190,7 +190,7 @@ export default function GoalDetailScreen() {
       if (!goal) return;
 
       try {
-        const updatedGoal = await goalService.updateGoal(goal.id, { status: newStatus });
+        const updatedGoal = await progressService.updateGoal(goal.id, { status: newStatus });
         if (updatedGoal) {
           setGoal(updatedGoal);
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -221,7 +221,7 @@ export default function GoalDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await goalService.deleteGoal(goal.id);
+              await progressService.deleteGoal(goal.id);
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               router.back();
             } catch (error) {
@@ -258,9 +258,9 @@ export default function GoalDetailScreen() {
     );
   }
 
-  const { color: categoryColor } = goalService.getCategoryInfo(goal.category);
-  const { label: statusLabel, color: statusColor } = goalService.getStatusInfo(goal.status);
-  const isOverdue = goalService.isOverdue(goal);
+  const { color: categoryColor } = progressService.getCategoryInfo(goal.category);
+  const { label: statusLabel, color: statusColor } = progressService.getStatusInfo(goal.status);
+  const isOverdue = progressService.isOverdue(goal);
   const isOwner = goal.userId === currentUser?.id || goal.athleteId === currentUser?.id;
   const completedMilestones = goal.milestones.filter((m) => m.isCompleted).length;
 
@@ -350,7 +350,7 @@ export default function GoalDetailScreen() {
                     type="defaultSemiBold"
                     style={{ color: isOverdue ? palette.error : palette.text }}
                   >
-                    {goalService.formatTargetDate(goal.targetDate)}
+                    {progressService.formatTargetDate(goal.targetDate)}
                   </ThemedText>
                 </View>
               </View>

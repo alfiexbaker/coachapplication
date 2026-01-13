@@ -24,9 +24,9 @@ const logger = createLogger('SquadInviteModal');
 import type { ClubSquad, SquadMember, TimeSlot } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
 import {
-  bulkInviteService,
+  inviteService as bulkInviteService,
   type SquadInvitePreview,
-} from '@/services/bulk-invite-service';
+} from '@/services/invite-service';
 
 type InviteType = 'SESSION' | 'MATCH' | 'EVENT';
 type Step = 'squads' | 'preview' | 'confirm';

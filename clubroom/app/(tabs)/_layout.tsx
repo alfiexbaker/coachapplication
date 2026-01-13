@@ -75,7 +75,6 @@ const BASE_HIDDEN_ROUTES = [
   'availability',
   'coach-profile',
   'edit-profile',
-  'edit-user-profile',
   'profile',
   'admin/invite-codes',
   'earnings',

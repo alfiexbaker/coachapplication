@@ -8,7 +8,7 @@
 import assert from 'node:assert';
 import test, { describe } from 'node:test';
 
-import { ANNOTATION_TYPE_CONFIG, annotationService } from '../../services/annotation-service';
+import { ANNOTATION_TYPE_CONFIG, videoService } from '../../services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '../../constants/types';
 
 /**
@@ -234,7 +234,7 @@ describe('AnnotationPanel Component Logic', () => {
 describe('AnnotationForm Component Logic', () => {
   describe('Input Validation', () => {
     test('should validate required label', () => {
-      const errors = annotationService.validateInput(
+      const errors = videoService.validateInput(
         { timestamp: 30, label: '', type: 'HIGHLIGHT' },
         180
       );
@@ -244,7 +244,7 @@ describe('AnnotationForm Component Logic', () => {
     });
 
     test('should validate label length', () => {
-      const errors = annotationService.validateInput(
+      const errors = videoService.validateInput(
         { timestamp: 30, label: 'A'.repeat(101), type: 'HIGHLIGHT' },
         180
       );
@@ -253,7 +253,7 @@ describe('AnnotationForm Component Logic', () => {
     });
 
     test('should validate note length', () => {
-      const errors = annotationService.validateInput(
+      const errors = videoService.validateInput(
         { timestamp: 30, label: 'Valid', note: 'A'.repeat(501), type: 'HIGHLIGHT' },
         180
       );
@@ -262,13 +262,13 @@ describe('AnnotationForm Component Logic', () => {
     });
 
     test('should validate timestamp range', () => {
-      const errorsNegative = annotationService.validateInput(
+      const errorsNegative = videoService.validateInput(
         { timestamp: -10, label: 'Valid', type: 'HIGHLIGHT' },
         180
       );
       assert.ok(errorsNegative.some((e) => e.toLowerCase().includes('negative')));
 
-      const errorsExceeds = annotationService.validateInput(
+      const errorsExceeds = videoService.validateInput(
         { timestamp: 200, label: 'Valid', type: 'HIGHLIGHT' },
         180
       );
@@ -276,7 +276,7 @@ describe('AnnotationForm Component Logic', () => {
     });
 
     test('should pass valid input', () => {
-      const errors = annotationService.validateInput(
+      const errors = videoService.validateInput(
         { timestamp: 60, label: 'Valid label', note: 'Valid note', type: 'TECHNIQUE' },
         180
       );
@@ -318,7 +318,7 @@ describe('AnnotationForm Component Logic', () => {
 
   describe('Type Selection', () => {
     test('should have all annotation types available', () => {
-      const types = annotationService.getAllTypes();
+      const types = videoService.getAllTypes();
 
       assert.ok(types.includes('HIGHLIGHT'));
       assert.ok(types.includes('IMPROVEMENT'));

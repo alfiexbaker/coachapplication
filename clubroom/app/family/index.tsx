@@ -78,7 +78,7 @@ export default function FamilyDashboardScreen() {
 
   const handleSessionPress = (session: FamilyCalendarEvent) => {
     router.push({
-      pathname: '/booking/[id]',
+      pathname: '/(tabs)/bookings/[id]',
       params: { id: session.id },
     });
   };

@@ -34,10 +34,10 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
-  familySharingService,
+  familyService,
   PERMISSION_DESCRIPTIONS,
   RELATIONSHIP_OPTIONS,
-} from '@/services/family-sharing-service';
+} from '@/services/family-service';
 import type {
   FamilyAccount,
   FamilyGuardian,
@@ -90,7 +90,7 @@ export default function FamilySharingScreen() {
     if (!currentUser?.id) return;
 
     try {
-      const account = await familySharingService.getFamilyAccount(
+      const account = await familyService.getFamilyAccount(
         currentUser.id,
         currentUser.fullName || 'Parent'
       );
@@ -118,7 +118,7 @@ export default function FamilySharingScreen() {
 
     setInviting(true);
     try {
-      await familySharingService.inviteGuardian(
+      await familyService.inviteGuardian(
         family.id,
         currentUser.id,
         currentUser.fullName || 'Parent',
@@ -161,7 +161,7 @@ export default function FamilySharingScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await familySharingService.removeGuardian(
+              await familyService.removeGuardian(
                 family.id,
                 currentUser.id,
                 guardian.id
@@ -190,7 +190,7 @@ export default function FamilySharingScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await familySharingService.cancelInvite(family.id, currentUser.id, inviteId);
+              await familyService.cancelInvite(family.id, currentUser.id, inviteId);
               loadFamilyData();
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to cancel invitation');

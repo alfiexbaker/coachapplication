@@ -1290,7 +1290,7 @@ export const SERVICE_MIGRATION_STATUS = {
   // HIGH PRIORITY - Core booking flow
   'availability-service': { status: 'READY', endpoints: 8 },
   'booking-service': { status: 'READY', endpoints: 6 },
-  'session-invite-service': { status: 'READY', endpoints: 5 },
+  'invite-service': { status: 'READY', endpoints: 5 },
   'family-service': { status: 'READY', endpoints: 10 },
   'wallet-service': { status: 'READY', endpoints: 4 },
   'earnings-service': { status: 'READY', endpoints: 4 },
@@ -1299,9 +1299,7 @@ export const SERVICE_MIGRATION_STATUS = {
   'notification-service': { status: 'READY', endpoints: 6 },
   'badge-service': { status: 'READY', endpoints: 4 },
   'review-service': { status: 'READY', endpoints: 2 },
-  'cancellation-policy-service': { status: 'READY', endpoints: 3 },
-  'scheduling-rules-service': { status: 'READY', endpoints: 3 },
-  'family-sharing-service': { status: 'READY', endpoints: 8 },
+  'scheduling-rules-service': { status: 'READY', endpoints: 6 }, // Includes cancellation policies
 
   // LOWER PRIORITY - Can use mock data longer
   'discover-service': { status: 'PARTIAL', endpoints: 2 },

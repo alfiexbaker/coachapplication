@@ -4,9 +4,9 @@ import { ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { BookingWizardHeader } from '@/components/booking/booking-wizard';
-import { CalendarPicker } from '@/components/booking/calendar-picker';
-import { TimeSlotPicker } from '@/components/booking/time-slot-picker';
+import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
+import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
+import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';

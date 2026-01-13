@@ -224,8 +224,8 @@ export default function SettingsScreen() {
                 },
               ]}
               onPress={() => {
-                logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-user-profile' });
-                router.push('/(tabs)/edit-user-profile');
+                logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-profile' });
+                router.push('/(tabs)/edit-profile');
               }}
             >
               <Ionicons name="create-outline" size={20} color="#FFFFFF" />
@@ -296,7 +296,7 @@ export default function SettingsScreen() {
               subtitle="Update your personal information"
               onPress={() => {
                 logger.press('EditProfile');
-                router.push('/(tabs)/edit-user-profile');
+                router.push('/(tabs)/edit-profile');
               }}
             />
             {currentUser?.role === 'COACH' && (

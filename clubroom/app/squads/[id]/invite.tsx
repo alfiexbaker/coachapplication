@@ -24,7 +24,7 @@ import { InviteResultCard } from '@/components/squad/InviteResultCard';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { squadBulkInviteService } from '@/services/squad-bulk-invite-service';
+import { inviteService as squadBulkInviteService } from '@/services/invite-service';
 import { squadService } from '@/services/squad-service';
 import type {
   ClubSquad,

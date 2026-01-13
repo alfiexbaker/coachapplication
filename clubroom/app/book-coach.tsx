@@ -4,12 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { AthletePicker } from '@/components/booking/AthletePicker';
-import { AvailabilityPicker } from '@/components/booking/book-coach/availability-picker';
-import { BookingStepper } from '@/components/booking/book-coach/booking-stepper';
-import { CoachSummaryCard } from '@/components/booking/book-coach/coach-summary-card';
-import { ObjectiveSelector } from '@/components/booking/book-coach/objective-selector';
-import { ServiceSelectionList } from '@/components/booking/book-coach/service-selection-list';
+import { AthletePicker } from '@/components/ui/booking/AthletePicker';
+import { AvailabilityPicker } from '@/components/ui/booking/availability-picker';
+import { BookingStepper } from '@/components/ui/booking/booking-stepper';
+import { CoachSummaryCard } from '@/components/ui/booking/coach-summary-card';
+import { ObjectiveSelector } from '@/components/ui/booking/objective-selector';
+import { ServiceSelectionList } from '@/components/ui/booking/service-selection-list';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import {

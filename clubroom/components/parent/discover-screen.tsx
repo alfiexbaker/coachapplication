@@ -28,7 +28,7 @@ import {
   clubMemberships,
 } from '@/constants/mock-data';
 import { availabilityService } from '@/services/availability-service';
-import { sessionInviteService } from '@/services/session-invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite-service';
 import { createLogger } from '@/utils/logger';
 import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
 

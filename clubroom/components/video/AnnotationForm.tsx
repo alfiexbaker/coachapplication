@@ -14,7 +14,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { ANNOTATION_TYPE_CONFIG, annotationService } from '@/services/annotation-service';
+import { ANNOTATION_TYPE_CONFIG, videoService } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 
 interface AnnotationFormProps {
@@ -67,7 +67,7 @@ export function AnnotationForm({
   };
 
   const validateAndSave = async () => {
-    const validationErrors = annotationService.validateInput(
+    const validationErrors = videoService.validateInput(
       { timestamp, label, note, type },
       videoDuration
     );

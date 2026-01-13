@@ -12,7 +12,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { ANNOTATION_TYPE_CONFIG } from '@/services/annotation-service';
+import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotationType } from '@/constants/types';
 
 interface AnnotationBadgeProps {
