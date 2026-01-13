@@ -22,7 +22,6 @@ import { ClubHeader } from '@/components/club/ClubHeader';
 import {
   getClubById,
   getClubFeed,
-  getClubMembershipForUser,
   getClubSessions,
   getClubSquads,
   getClubInvites,
@@ -761,14 +760,6 @@ const styles = StyleSheet.create({
   createPostContainer: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
-  },
-  createPostButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
   },
   actionButtonsRow: {
     flexDirection: 'row',
