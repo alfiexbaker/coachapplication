@@ -12,7 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 
-import { EarningsStatCard } from '@/components/earnings/stat-card';
+import { StatCard } from '@/components/primitives/stat-card';
 import { TransactionListItem } from '@/components/earnings/transaction-list-item';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -261,24 +261,36 @@ export default function EarningsScreen() {
         {/* Period Stats */}
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Period Stats</ThemedText>
         <View style={styles.statsRow}>
-          <EarningsStatCard
-            label="This Week"
-            value={formatCurrency(earnings?.thisWeek || 0).replace(/^[+-]/, '')}
-          />
-          <EarningsStatCard
-            label="This Month"
-            value={formatCurrency(earnings?.thisMonth || 0).replace(/^[+-]/, '')}
-          />
+          <View style={styles.statWrapper}>
+            <StatCard
+              label="This Week"
+              value={formatCurrency(earnings?.thisWeek || 0).replace(/^[+-]/, '')}
+              variant="compact"
+            />
+          </View>
+          <View style={styles.statWrapper}>
+            <StatCard
+              label="This Month"
+              value={formatCurrency(earnings?.thisMonth || 0).replace(/^[+-]/, '')}
+              variant="compact"
+            />
+          </View>
         </View>
         <View style={styles.statsRow}>
-          <EarningsStatCard
-            label="Last Month"
-            value={formatCurrency(earnings?.lastMonth || 0).replace(/^[+-]/, '')}
-          />
-          <EarningsStatCard
-            label="Avg Session"
-            value={formatCurrency(earnings?.averageSessionValue || 0).replace(/^[+-]/, '')}
-          />
+          <View style={styles.statWrapper}>
+            <StatCard
+              label="Last Month"
+              value={formatCurrency(earnings?.lastMonth || 0).replace(/^[+-]/, '')}
+              variant="compact"
+            />
+          </View>
+          <View style={styles.statWrapper}>
+            <StatCard
+              label="Avg Session"
+              value={formatCurrency(earnings?.averageSessionValue || 0).replace(/^[+-]/, '')}
+              variant="compact"
+            />
+          </View>
         </View>
 
         {/* Pending Withdrawals */}
@@ -650,6 +662,9 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.md,
+  },
+  statWrapper: {
+    flex: 1,
   },
   balanceCard: {
     padding: Spacing.lg,
