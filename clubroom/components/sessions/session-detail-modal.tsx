@@ -610,6 +610,26 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
             </Pressable>
           </View>
         )}
+
+        {/* Coach Footer Actions */}
+        {isMyOffering && registeredCount > 0 && (
+          <View style={[styles.footer, { borderTopColor: palette.border }]}>
+            <Pressable
+              onPress={() => {
+                onClose();
+                router.push(`/session/${offering.id}/complete`);
+              }}
+              style={[
+                styles.completeButton,
+                { backgroundColor: palette.success },
+              ]}>
+              <Ionicons name="checkmark-circle" size={22} color="#fff" />
+              <ThemedText style={styles.completeButtonText}>
+                Complete Session
+              </ThemedText>
+            </Pressable>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -889,5 +909,24 @@ const styles = StyleSheet.create({
   endSeriesText: {
     fontSize: scaleFont(15),
     fontWeight: '600',
+  },
+  completeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  completeButtonText: {
+    color: '#fff',
+    fontSize: scaleFont(18),
+    fontWeight: '700',
+    letterSpacing: -0.4,
   },
 });
