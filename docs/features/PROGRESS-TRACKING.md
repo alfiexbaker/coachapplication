@@ -28,6 +28,82 @@ The progress tracking system allows:
 
 ---
 
+## Bilateral Data Flow
+
+### Coach → Parent/Athlete Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     COACH ACTIONS                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   CREATES/UPDATES:                │   CONTROLS VISIBILITY:      │
+│   ──────────────────              │   ────────────────────      │
+│   • Skill ratings (1-10)          │   • coach_only: Only coach  │
+│   • Session feedback              │   • parent: Coach + parent  │
+│   • Goals for athletes            │   • athlete: All can view   │
+│   • Private coach notes           │                             │
+│                                   │                             │
+│   DATA FLOWS TO:                  │                             │
+│   ──────────────                  │                             │
+│   → progress-service.ts           │                             │
+│   → addSessionFeedback()          │                             │
+│   → updateSkillLevel()            │                             │
+│   → createGoal()                  │                             │
+│                                   │                             │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  VISIBILITY FILTER                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   getFeedbackForAthlete(athleteId, viewerRole, limit)           │
+│                                                                 │
+│   viewerRole: 'coach'  → All feedback, including privateNotes   │
+│   viewerRole: 'parent' → visibility !== 'coach_only', no notes  │
+│   viewerRole: 'athlete'→ visibility === 'athlete' only          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  PARENT/ATHLETE VIEWS                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   PARENT SEES:                    │   ATHLETE SEES:             │
+│   ────────────                    │   ─────────────             │
+│   • publicSummary                 │   • publicSummary           │
+│   • skillRatings                  │   • skillRatings            │
+│   • improvements                  │   • improvements            │
+│   • homework                      │   • homework                │
+│   • Goals for their child         │   • Own goals               │
+│   ✗ privateNotes (filtered out)   │   ✗ privateNotes            │
+│                                   │                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Visibility Controls in SessionFeedback
+
+```typescript
+interface SessionFeedback {
+  // Coach-visible fields
+  privateNotes?: string;           // NEVER sent to parent/athlete
+
+  // Parent/Athlete-visible fields
+  publicSummary: string;           // Always visible
+  skillsWorkedOn: string[];
+  skillRatings: Array<{ skill: string; rating: number }>;
+  improvements: string;
+  homework: string;
+
+  // Visibility control
+  visibility: 'coach_only' | 'parent' | 'athlete';
+}
+```
+
+---
+
 ## Screens & Routes
 
 ### Athlete Progress

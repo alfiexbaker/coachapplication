@@ -4,9 +4,33 @@
 
 ---
 
+## IMPORTANT: Implementation Status
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     ⚠️  PLANNED / FUTURE                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   These API contracts are SPECIFICATIONS for future backend     │
+│   implementation. They are NOT currently implemented.           │
+│                                                                 │
+│   Current State:                                                │
+│   • All data is stored locally via AsyncStorage                 │
+│   • Services use mock data for development                      │
+│   • No actual REST API endpoints exist                          │
+│   • No authentication server implemented                        │
+│                                                                 │
+│   This document serves as a DESIGN REFERENCE for when           │
+│   backend development begins.                                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Overview
 
-The Clubroom API is designed as a RESTful service with JSON payloads. During MVP, services use mock data via AsyncStorage, but all API contracts are defined for future backend implementation.
+The Clubroom API is designed as a RESTful service with JSON payloads. **Currently, all services use mock data via AsyncStorage.** These API contracts are defined for future backend implementation.
 
 ### Base URL
 

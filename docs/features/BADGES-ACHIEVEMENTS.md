@@ -39,6 +39,95 @@ The badge system enables coaches to recognize athlete achievements through:
 
 ---
 
+## Bilateral Data Flow
+
+### Coach → Parent/Athlete Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     COACH AWARDS BADGE                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   1. Select athlete                                             │
+│   2. Choose badge from catalog                                  │
+│   3. Select category/reason                                     │
+│   4. Add personal note                                          │
+│   5. Set visibility level                                       │
+│   6. Check/bypass cooldown if needed                            │
+│   7. Submit award                                               │
+│                                                                 │
+│   Creates: BadgeAward                                           │
+│   Service: badgeService.awardBadge()                            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  VISIBILITY DETERMINES FLOW                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   visibility: 'coach_only'                                      │
+│   ────────────────────────                                      │
+│   • Award stored                                                │
+│   • Only coach can view                                         │
+│   • NO notification                                             │
+│   • NO feed post                                                │
+│                                                                 │
+│   visibility: 'athlete'                                         │
+│   ─────────────────────                                         │
+│   • Award stored                                                │
+│   • Coach + Athlete can view                                    │
+│   • Optional feed post                                          │
+│   • NO parent notification                                      │
+│                                                                 │
+│   visibility: 'supporters'                                      │
+│   ────────────────────────                                      │
+│   • Award stored                                                │
+│   • All can view                                                │
+│   • Auto feed post                                              │
+│   • Parent notification (BADGE_AWARDED)                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  PARENT/ATHLETE RECEIVES                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   PARENT NOTIFICATION:                                          │
+│   ────────────────────                                          │
+│   "🏅 Tom earned Sharp Shooter Pro from Coach Marcus"           │
+│   [View Badge] [Share to profile]                               │
+│                                                                 │
+│   ATHLETE VIEW:                                                 │
+│   ─────────────                                                 │
+│   • Badge appears in collection                                 │
+│   • Points added to progression                                 │
+│   • Can share to social feed                                    │
+│                                                                 │
+│   PARENT VIEW:                                                  │
+│   ────────────                                                  │
+│   • Sees badge in child's collection                            │
+│   • Sees coach's note                                           │
+│   • Sees category and reason                                    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Notification Flow
+
+```
+notificationService.notifyParentBadgeAwarded({
+  parentId: 'parent_1',
+  childName: 'Tom',
+  badgeName: 'Sharp Shooter Pro',
+  coachName: 'Marcus Thompson',
+  badgeAwardId: 'award_123'
+})
+```
+
+---
+
 ## Badge Categories
 
 ### 6 Core Categories

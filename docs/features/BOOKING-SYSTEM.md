@@ -30,6 +30,94 @@ The booking system is the core revenue engine of Clubroom, handling:
 
 ---
 
+## Bilateral Data Flow
+
+### Parent → Coach Flow (Booking Request)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     PARENT INITIATES                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   1. Browse coaches                                             │
+│   2. Select session type                                        │
+│   3. Pick date/time                                             │
+│   4. Add objectives/notes                                       │
+│   5. Submit payment                                             │
+│                                                                 │
+│   Creates: Booking (status: PENDING)                            │
+│   Notifies: Coach (BOOKING_RECEIVED)                            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     COACH RESPONDS                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   CONFIRM:                        │   CANCEL:                   │
+│   ────────                        │   ───────                   │
+│   • Status → CONFIRMED            │   • Status → CANCELLED      │
+│   • Payment captured              │   • Refund processed        │
+│   • Parent notified               │   • Parent notified         │
+│   • Messaging unlocked            │                             │
+│                                   │                             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Coach → Parent Flow (Session Invite)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     COACH INITIATES                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   1. Create session invite                                      │
+│   2. Propose time slots                                         │
+│   3. Set price and details                                      │
+│   4. Select athletes                                            │
+│                                                                 │
+│   Creates: SessionInvite (status: PENDING)                      │
+│   Notifies: Parent (SESSION_INVITE)                             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     PARENT RESPONDS                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   ACCEPT:              │   DECLINE:         │   COUNTER:        │
+│   ───────              │   ────────         │   ────────        │
+│   • Select slot        │   • Add reason     │   • Propose times │
+│   • Process payment    │   • Status changes │   • Add note      │
+│   • Creates Booking    │                    │   • Coach reviews │
+│   • Coach notified     │   • Coach notified │   • Coach notified│
+│                        │                    │                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Post-Session Flow
+
+```
+                    SESSION COMPLETED
+                          │
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│  COACH ACTION   │ │  PARENT ACTION  │ │   BOTH SIDES    │
+├─────────────────┤ ├─────────────────┤ ├─────────────────┤
+│                 │ │                 │ │                 │
+│ • Add feedback  │ │ • Leave review  │ │ • View history  │
+│ • Update skills │ │ • Rate coach    │ │ • Messages      │
+│ • Award badge   │ │ • View progress │ │ • Rebook        │
+│ • Private notes │ │                 │ │                 │
+│                 │ │                 │ │                 │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+---
+
 ## Screens & Routes
 
 ### Booking Flow (Parent/Athlete)
