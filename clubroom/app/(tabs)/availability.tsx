@@ -262,11 +262,13 @@ export default function AvailabilityScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      {/* Header - OUTSIDE ScrollView for consistent positioning */}
+      <ScreenHeader
+        title="Availability"
+        subtitle="Set when athletes can book sessions with you"
+      />
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader
-          title="Availability"
-          subtitle="Set when athletes can book sessions with you"
-        />
 
         {/* Week Overview - Interactive Day Selector */}
         <SurfaceCard style={styles.weekCard}>

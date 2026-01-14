@@ -307,18 +307,18 @@ export default function ScheduleScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        {/* Header */}
-        <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
-          <ScreenHeader
-            title="Schedule"
-            subtitle="Your upcoming sessions"
-          />
-          <Clickable onPress={handleOpenSettings} style={[styles.settingsButton, { backgroundColor: palette.surface }]}>
-            <Ionicons name="settings-outline" size={22} color={palette.muted} />
-          </Clickable>
-        </Animated.View>
+      {/* Header - OUTSIDE ScrollView for consistent positioning */}
+      <View style={styles.headerRow}>
+        <ScreenHeader
+          title="Schedule"
+          subtitle="Your upcoming sessions"
+        />
+        <Clickable onPress={handleOpenSettings} style={[styles.settingsButton, { backgroundColor: palette.surface }]}>
+          <Ionicons name="settings-outline" size={22} color={palette.muted} />
+        </Clickable>
+      </View>
 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* TODAY Hero Card */}
         {todayData && (
           <Animated.View entering={FadeInDown.delay(100).springify()}>
@@ -611,10 +611,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingRight: Spacing.md,
   },
   settingsButton: {
     width: 44,
