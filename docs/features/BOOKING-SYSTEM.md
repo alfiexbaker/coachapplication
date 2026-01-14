@@ -1,105 +1,275 @@
-# Booking System - Complete Documentation
+# Booking System
+
+> Complete documentation for session booking, invites, group sessions, and payment flows.
+
+---
 
 ## Overview
 
-The booking system handles all session scheduling between coaches and users (athletes/parents). It includes individual sessions, group sessions, session invites, and all associated flows.
+The booking system is the core revenue engine of Clubroom, handling:
+- Individual session bookings (parent/athlete → coach)
+- Session invites (coach → parent/athlete)
+- Group sessions and clinics
+- Recurring bookings
+- Payment processing
+- Cancellation and refunds
 
 ---
 
-## 1. Screens & Navigation
+## Feature Summary
 
-### Parent/Athlete Booking Flow
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Booking Wizard | Complete | 5-step flow for booking a coach |
+| Session Invites | Complete | Coach-initiated session proposals |
+| Group Sessions | Complete | Multi-participant training sessions |
+| Recurring Bookings | Complete | Auto-generated weekly/monthly sessions |
+| Counter-Offers | Complete | Negotiate times and prices |
+| Cancellation | Complete | Cancel with refund calculation |
+| Payment | Mock Only | Payment form UI (no Stripe yet) |
 
-| Screen | Path | Purpose |
-|--------|------|---------|
-| Book Coach | `/book-coach` | Multi-step wizard (4 steps parent, 3 steps athlete) |
-| Confirm Booking | `/confirm-booking` | Payment and final confirmation |
-| Bookings List | `/(tabs)/bookings` | View all bookings |
-| Booking Detail | `/(tabs)/bookings/[id]` | Single booking details |
-| Cancel Booking | `/booking/[id]/cancel` | Cancellation flow |
+---
 
-### Coach Booking Flow
+## Screens & Routes
 
-| Screen | Path | Purpose |
-|--------|------|---------|
-| Session Invites | `/session-invites` | List sent/received invites |
-| Invite Detail | `/session-invites/[id]` | View/respond to invite |
+### Booking Flow (Parent/Athlete)
+
+| Screen | Route | Purpose |
+|--------|-------|---------|
+| Book Coach | `/book/[coachId]/_layout` | Booking wizard container |
+| Session Type | `/book/[coachId]/session-type` | Choose service type |
+| Schedule | `/book/[coachId]/schedule` | Pick date and time |
+| Details | `/book/[coachId]/details` | Location, participants, notes |
+| Review | `/book/[coachId]/review` | Confirm and pay |
+| Confirmation | `/book/[coachId]/confirmation` | Success screen |
+
+### Booking Management
+
+| Screen | Route | Purpose |
+|--------|-------|---------|
+| My Bookings | `/(tabs)/bookings/index` | List all bookings |
+| Booking Detail | `/(tabs)/bookings/[id]` | Single booking view |
+| Session Feedback | `/(tabs)/bookings/session-feedback` | Post-session rating |
+| Report Problem | `/(tabs)/bookings/report-problem` | Report issues |
+| Statistics | `/(tabs)/bookings/statistics` | Booking analytics |
+
+### Session Invites (Coach)
+
+| Screen | Route | Purpose |
+|--------|-------|---------|
+| Invite List | `/session-invites/index` | View sent/received invites |
+| Invite Detail | `/session-invites/[id]` | Single invite view |
 | Create Invite | `/session-invites/create` | Create new invite |
-| Group Sessions | `/group-sessions` | Browse group sessions |
-| Session Detail | `/group-sessions/[id]` | Group session info |
+| Group Invite | `/session-invites/group` | Group session invite |
+| Squad Invite | `/session-invites/squad` | Bulk squad invite |
+
+### Group Sessions
+
+| Screen | Route | Purpose |
+|--------|-------|---------|
+| Browse Groups | `/group-sessions/index` | Discover group sessions |
+| Session Detail | `/group-sessions/[id]` | View session info |
 | Session Roster | `/group-sessions/[id]/roster` | Participant list |
-
-### Session Notes
-
-| Screen | Path | Purpose |
-|--------|------|---------|
-| Session Notes | `/session-notes/[bookingId]` | Add post-session feedback |
-| Session Feedback | `/(tabs)/bookings/session-feedback` | Feedback form |
+| Create Session | `/group-sessions/create` | Create new group |
 
 ---
 
-## 2. Booking Wizard Steps
+## Booking Wizard
 
-### Step 0: Child Selection (Parent Only)
-- Grid of linked children
-- Multi-select for group sessions
-- Each child card shows: name, age, avatar
+### Step 0: Child Selection (Parents Only)
 
-### Step 1: Service Selection
-- **1-on-1 Training** - Personal coaching (60-90 min, £50-80)
-- **Small Group** - 2-4 athletes (90 min, £30-40 per person)
-- **Team Session** - Full team training (variable)
+For users with children, select which child(ren) to book for:
 
-### Step 2: Availability Picker
-- Calendar view showing available dates
-- Time slots generated from coach availability templates
-- Shows: date, start/end time, location
-- Filters out already-booked slots
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Who is this session for?                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    │
+│   │   [Avatar]  │    │   [Avatar]  │    │   [Avatar]  │    │
+│   │     Tom     │    │    Emma     │    │   + Add     │    │
+│   │   Age 15    │    │   Age 14    │    │   Child     │    │
+│   │    [ ✓ ]    │    │    [  ]     │    │             │    │
+│   └─────────────┘    └─────────────┘    └─────────────┘    │
+│                                                             │
+│                        [Continue]                           │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### Step 3: Objective Selection
-- Choose 1-3 focus areas:
-  - Dribbling
-  - Passing
-  - Defending
-  - Finishing
-  - Goalkeeping
-  - Conditioning
+### Step 1: Session Type Selection
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               Select Session Type                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   ┌───────────────────────────────────────────────────┐    │
+│   │  1-on-1 Training                        £50-80    │    │
+│   │  Personal coaching tailored to your goals         │    │
+│   │  Duration: 60-90 minutes                          │    │
+│   └───────────────────────────────────────────────────┘    │
+│                                                             │
+│   ┌───────────────────────────────────────────────────┐    │
+│   │  Small Group (2-4)                      £30-40/ea │    │
+│   │  Train with friends in a small group setting      │    │
+│   │  Duration: 90 minutes                             │    │
+│   └───────────────────────────────────────────────────┘    │
+│                                                             │
+│   ┌───────────────────────────────────────────────────┐    │
+│   │  Team Session                           Variable  │    │
+│   │  Full squad training session                      │    │
+│   │  Duration: Flexible                               │    │
+│   └───────────────────────────────────────────────────┘    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Step 2: Date & Time Selection
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│               Select Date & Time                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   ┌─────────────────────────────────────────────────┐      │
+│   │          January 2026                           │      │
+│   │  Mo  Tu  We  Th  Fr  Sa  Su                    │      │
+│   │  ..  ..  01  02  03  04  05                    │      │
+│   │  06  07  08  09  10  11  12                    │      │
+│   │  13 [14] 15  16  17  18  19  ← Selected        │      │
+│   │  20  21  22  23  24  25  26                    │      │
+│   └─────────────────────────────────────────────────┘      │
+│                                                             │
+│   Available Times for Tuesday, Jan 14:                      │
+│                                                             │
+│   ┌──────────┐  ┌──────────┐  ┌──────────┐                 │
+│   │ 3:00 PM  │  │ 4:15 PM  │  │ 5:30 PM  │                 │
+│   │ [Select] │  │ [Select] │  │ [Select] │                 │
+│   └──────────┘  └──────────┘  └──────────┘                 │
+│                                                             │
+│   📍 Hyde Park, London                                      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Step 3: Objectives Selection
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│           What do you want to focus on?                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   Select 1-3 focus areas:                                   │
+│                                                             │
+│   ┌────────────┐  ┌────────────┐  ┌────────────┐           │
+│   │ Dribbling  │  │  Passing   │  │ Defending  │           │
+│   │    [✓]     │  │    [ ]     │  │    [ ]     │           │
+│   └────────────┘  └────────────┘  └────────────┘           │
+│                                                             │
+│   ┌────────────┐  ┌────────────┐  ┌────────────┐           │
+│   │ Finishing  │  │Goalkeeping │  │Conditioning│           │
+│   │    [✓]     │  │    [ ]     │  │    [ ]     │           │
+│   └────────────┘  └────────────┘  └────────────┘           │
+│                                                             │
+│   Additional Notes:                                         │
+│   ┌─────────────────────────────────────────────────┐      │
+│   │ Working on weak foot...                         │      │
+│   └─────────────────────────────────────────────────┘      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Step 4: Review & Payment
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   Review Booking                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   Coach: Sarah Mitchell                                     │
+│   Session: 1-on-1 Training                                  │
+│   Date: Tuesday, January 14, 2026                           │
+│   Time: 3:00 PM - 4:00 PM                                   │
+│   Location: Hyde Park, London                               │
+│   Athlete: Tom Henderson                                    │
+│   Focus: Dribbling, Finishing                               │
+│                                                             │
+│   ─────────────────────────────────────────────────         │
+│                                                             │
+│   Session Fee                              £60.00           │
+│   Platform Fee                              £3.00           │
+│   ─────────────────────────────────────────────────         │
+│   Total                                    £63.00           │
+│                                                             │
+│   ┌─────────────────────────────────────────────────┐      │
+│   │  Card Number: [1234 5678 9012 3456]             │      │
+│   │  Expiry: [12/26]       CVV: [***]               │      │
+│   └─────────────────────────────────────────────────┘      │
+│                                                             │
+│   ⚠️ Demo mode - no payment will be processed               │
+│                                                             │
+│                   [Confirm & Pay £63]                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 3. Booking Data Model
+## Data Models
+
+### Booking
 
 ```typescript
 interface Booking {
-  id: string;                    // "booking-1736590800000"
-  coachId: string;               // Coach receiving booking
-  coachName: string;             // Denormalized for display
-  athleteId: string;             // Athlete being coached
-  athleteName: string;           // Denormalized
-  bookedById: string;            // Parent or athlete who booked
+  id: string;                      // "booking-1736590800000"
+
+  // Participants
+  coachId: string;                 // Coach receiving booking
+  coachName: string;               // Denormalized for display
+  athleteIds: string[];            // Athletes being coached (supports multiple)
+  athleteNames?: string[];         // Denormalized
+  bookedById: string;              // Who made the booking (parent or athlete)
+  bookedByName?: string;           // Denormalized
 
   // Schedule
-  scheduledAt: string;           // ISO datetime
-  duration: number;              // Minutes (60, 90, etc.)
-  location: string;              // "Hyde Park"
-  locationLabel: string;         // Human-readable
+  scheduledAt: string;             // ISO datetime
+  duration: number;                // Minutes (60, 90, 120)
+  location: string;                // Location name
+  locationLabel?: string;          // Human-readable address
+
+  // Session Details
+  service: string;                 // "1-on-1 Training"
+  serviceType?: string;            // "individual" | "group"
+  objectives?: string[];           // ["Dribbling", "Finishing"]
+  notes?: string;                  // Additional notes
+  price?: number;                  // Session price in pence/cents
 
   // Status
-  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  status: BookingStatus;
   cancellationReason?: string;
+  cancelledBy?: 'COACH' | 'PARENT' | 'ATHLETE';
+  cancelledAt?: string;
 
-  // Session details
-  service: string;               // "1-on-1 Training"
-  objectives?: string[];         // ["Dribbling", "Finishing"]
-  notes?: string;
-  price?: number;
-
-  // Group sessions
+  // Group Session Fields
   isGroupSession?: boolean;
   maxParticipants?: number;
   currentParticipants?: number;
   participants?: ParticipantInfo[];
+
+  // Linking
+  sessionInviteId?: string;        // If created from invite
+  recurringBookingId?: string;     // If part of series
+
+  // Timestamps
+  createdAt: string;
+  updatedAt?: string;
 }
+
+type BookingStatus =
+  | 'PENDING'      // Awaiting coach confirmation
+  | 'CONFIRMED'    // Coach confirmed, payment processed
+  | 'COMPLETED'    // Session finished
+  | 'CANCELLED';   // Cancelled by either party
 
 interface ParticipantInfo {
   id: string;
@@ -109,77 +279,13 @@ interface ParticipantInfo {
 }
 ```
 
----
-
-## 4. Status Transitions
-
-```
-┌─────────┐
-│ PENDING │──────────────────────────────────┐
-└────┬────┘                                  │
-     │ Coach confirms                        │ Cancel
-     ▼                                       ▼
-┌───────────┐                         ┌───────────┐
-│ CONFIRMED │────────────────────────►│ CANCELLED │
-└─────┬─────┘    Cancel               └───────────┘
-      │
-      │ Session time passes
-      ▼
-┌───────────┐
-│ COMPLETED │
-└───────────┘
-```
-
-### Status Details
-
-| Status | Trigger | Next States |
-|--------|---------|-------------|
-| PENDING | Booking created without immediate confirmation | CONFIRMED, CANCELLED |
-| CONFIRMED | Payment processed OR coach confirms | COMPLETED, CANCELLED |
-| COMPLETED | Session datetime has passed | (final) |
-| CANCELLED | User or coach cancels | (final) |
-
----
-
-## 5. Session Invites (Coach → Parent)
-
-### Invite Flow
-
-```
-1. COACH CREATES INVITE
-   ↓
-   - Selects athletes to invite
-   - Proposes 2-3 time slots
-   - Sets session type, focus, price
-   - Sets expiration (default 7 days)
-   ↓
-2. PARENT RECEIVES NOTIFICATION
-   ↓
-   - Sees invite in /session-invites
-   - Views invite details
-   ↓
-3. PARENT RESPONDS
-   ├── ACCEPT: Selects preferred slot → Status: ACCEPTED
-   ├── DECLINE: Rejects invite → Status: DECLINED
-   └── COUNTER: Proposes alternative times → Status: COUNTERED
-   ↓
-4. IF COUNTERED:
-   ↓
-   - Coach sees counter-proposal
-   - Coach accepts one of parent's times → Status: ACCEPTED
-   ↓
-5. POST-ACCEPTANCE
-   ↓
-   ⚠️ BUG: Booking should be created but isn't!
-   - Currently only updates invite status
-   - TODO: Call bookingService.createBooking()
-```
-
-### Invite Data Model
+### Session Invite
 
 ```typescript
 interface SessionInvite {
   id: string;
+
+  // Coach
   coachId: string;
   coachName: string;
   coachPhotoUrl?: string;
@@ -190,54 +296,53 @@ interface SessionInvite {
   athleteNames: string[];
   parentId: string;
   parentName: string;
+  parentEmail: string;
 
-  // Proposed times
+  // Proposed Times
   proposedSlots: TimeSlot[];
-  selectedSlot?: TimeSlot;        // Chosen slot after acceptance
+  selectedSlot?: TimeSlot;         // Chosen after acceptance
 
-  // Counter-proposal
+  // Counter-Proposal
   counterProposal?: TimeSlot[];
   counterNote?: string;
 
-  // Session details
+  // Session Details
   sessionType: string;
   focus: string;
+  duration: number;
   notes?: string;
   priceUsd?: number;
+  location: string;
 
   // Status
-  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'COUNTERED' | 'EXPIRED';
+  status: InviteStatus;
   expiresAt: string;
   respondedAt?: string;
 
-  // Linking (MISSING - critical bug)
-  bookingId?: string;            // Should link to created booking
+  // Linking
+  bookingId?: string;              // Created on acceptance
+
+  // Timestamps
+  createdAt: string;
 }
 
+type InviteStatus =
+  | 'PENDING'      // Awaiting response
+  | 'ACCEPTED'     // Parent accepted
+  | 'DECLINED'     // Parent declined
+  | 'COUNTERED'    // Parent proposed alternatives
+  | 'EXPIRED';     // Past expiration
+
 interface TimeSlot {
-  date: string;                  // "2026-01-15"
-  startTime: string;             // "16:00"
-  endTime: string;               // "17:00"
+  id: string;
+  date: string;                    // "2026-01-15"
+  startTime: string;               // "16:00"
+  endTime: string;                 // "17:00"
   location?: string;
 }
 ```
 
----
-
-## 6. Group Sessions
-
-### Session Types
-
-| Type | Description | Typical Size |
-|------|-------------|--------------|
-| CAMP | Multi-day intensive | 20-50 |
-| CLINIC | Focused skill workshop | 10-24 |
-| TEAM_TRAINING | Regular squad training | 16-22 |
-| OPEN_SESSION | Drop-in session | 10-30 |
-| TRIAL | Try-out session | 15-25 |
-| TRAINING | General training | 16-20 |
-
-### Group Session Data Model
+### Group Session
 
 ```typescript
 interface GroupSession {
@@ -256,10 +361,10 @@ interface GroupSession {
   schedule: GroupSessionSchedule[];
   isRecurring?: boolean;
   recurringPattern?: {
-    dayOfWeek: number;           // 0-6
+    dayOfWeek: number;             // 0-6 (Sun-Sat)
     startTime: string;
     endTime: string;
-    until: string;               // End date
+    until: string;
   };
 
   // Capacity
@@ -288,290 +393,402 @@ interface GroupSession {
   status: 'DRAFT' | 'PUBLISHED' | 'FULL' | 'COMPLETED' | 'CANCELLED';
 }
 
-interface GroupRegistration {
-  id: string;
-  sessionId: string;
-  athleteId: string;
-  athleteName: string;
-  parentId: string;
-  parentName: string;
-
-  status: 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' | 'ATTENDED' | 'NO_SHOW';
-  registeredAt: string;
-  paidAt?: string;
-  attendedDates: string[];       // For recurring sessions
-}
-```
-
-### Capacity & Waitlist Logic
-
-```
-PARENT REGISTERS CHILD
-        │
-        ▼
-┌───────────────────────────────┐
-│ currentParticipants < max?    │
-└───────────────┬───────────────┘
-                │
-        ┌───────┴───────┐
-        │ YES           │ NO
-        ▼               ▼
-   REGISTERED       WAITLISTED
-   (payment taken)  (no payment)
-        │
-        │ If registered person cancels
-        ▼
-   First WAITLISTED → REGISTERED
-   (auto-promote, take payment)
+type GroupSessionType =
+  | 'CAMP'           // Multi-day intensive
+  | 'CLINIC'         // Focused skill workshop
+  | 'TEAM_TRAINING'  // Regular squad training
+  | 'OPEN_SESSION'   // Drop-in session
+  | 'TRIAL'          // Try-out session
+  | 'TRAINING';      // General training
 ```
 
 ---
 
-## 7. Cancellation Flow
+## Status Transitions
 
-### Cancellation Screen (`/booking/[id]/cancel`)
+### Booking Status Flow
 
-**Reason Options:**
-1. Schedule conflict
-2. Weather
-3. Injury/Illness
-4. Found another coach
-5. Other
+```
+                              ┌─────────────────┐
+                              │    PENDING      │
+                              │  (Initial)      │
+                              └────────┬────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              │                        │                        │
+              ▼                        ▼                        ▼
+     ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+     │   CONFIRMED     │      │   CANCELLED     │      │   (Expired)     │
+     │ Coach approved  │      │ Either party    │      │ Auto-cancel     │
+     └────────┬────────┘      └─────────────────┘      └─────────────────┘
+              │
+              │ Session time passes
+              ▼
+     ┌─────────────────┐
+     │   COMPLETED     │
+     │   (Final)       │
+     └─────────────────┘
+```
 
-**Policy Display:**
-- Free cancellation: >24 hours before
-- 50% refund: 12-24 hours before
-- No refund: <12 hours before
+### Invite Status Flow
 
-### Cancellation Service
-
-```typescript
-async cancel(
-  bookingId: string,
-  reason: string,
-  cancelledBy: 'coach' | 'parent'
-): Promise<Booking> {
-  // 1. Find booking
-  // 2. Set status = 'CANCELLED'
-  // 3. Store cancellationReason
-  // 4. Notify other party
-  // 5. Return updated booking
-}
+```
+     ┌─────────────────┐
+     │    PENDING      │
+     │  (Created)      │
+     └────────┬────────┘
+              │
+   ┌──────────┼──────────┬──────────────┐
+   ▼          ▼          ▼              ▼
+┌──────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+│ACCEPT│  │ DECLINE  │  │ COUNTER  │  │ EXPIRED  │
+│ ED   │  │   ED     │  │   ED     │  │          │
+└──┬───┘  └──────────┘  └────┬─────┘  └──────────┘
+   │                         │
+   │                         │ Coach accepts counter
+   ▼                         ▼
+┌──────────────────────────────────┐
+│         Create Booking           │
+│  → bookingService.createBooking  │
+└──────────────────────────────────┘
 ```
 
 ---
 
-## 8. Availability System
+## Services
 
-### Availability Templates
+### booking-service.ts
+
+Core booking operations:
 
 ```typescript
-interface AvailabilityTemplate {
-  id: string;
-  coachId: string;
-  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;  // 0=Sun
-  startTime: string;                      // "16:00"
-  endTime: string;                        // "19:00"
-  isRecurring: boolean;
-  maxConcurrent: number;                  // Parallel bookings allowed
-  bufferMinutes: number;                  // Gap between sessions
-  location?: string;
+class BookingService {
+  // Draft Management
+  getDraft(): Promise<BookingDraft | null>
+  updateDraft(data: Partial<BookingDraft>): Promise<void>
+  clearDraft(): Promise<void>
+
+  // CRUD Operations
+  createBooking(params: CreateBookingParams): Promise<Booking>
+  getBooking(id: string): Promise<Booking | null>
+  listBookings(filters?: BookingFilters): Promise<Booking[]>
+  updateBooking(id: string, data: Partial<Booking>): Promise<Booking>
+
+  // Status Changes
+  confirmBooking(id: string): Promise<Booking>
+  cancelBooking(id: string, reason: string, by: string): Promise<Booking>
+  completeBooking(id: string): Promise<Booking>
+
+  // Queries
+  getUpcomingForAthlete(athleteId: string): Promise<Booking[]>
+  getUpcomingForCoach(coachId: string): Promise<Booking[]>
+  getPastBookings(userId: string): Promise<Booking[]>
 }
 ```
 
-### Slot Generation
+### session-invite-service.ts
 
-```
-Template: Monday 4-7pm, 60-min sessions, 15-min buffer
-                    │
-                    ▼
-Generated slots:
-├── 4:00pm - 5:00pm
-├── 5:15pm - 6:15pm
-└── 6:30pm - 7:30pm
-```
-
-### Override System
+Invite operations:
 
 ```typescript
-interface AvailabilityOverride {
-  id: string;
-  coachId: string;
-  date: string;                  // Specific date
-  isBlocked: boolean;            // Block entire day
-  reason?: string;               // "Doctor appointment"
-  customSlots?: TimeSlot[];      // Alternative times
+class SessionInviteService {
+  // Create
+  createInvite(params: CreateInviteParams): Promise<SessionInvite>
+  createBulkInvite(athleteIds: string[], session: SessionDetails): Promise<SessionInvite[]>
+
+  // Respond
+  acceptInvite(inviteId: string, selectedSlotId: string): Promise<{ invite: SessionInvite; booking: Booking }>
+  declineInvite(inviteId: string, reason?: string): Promise<SessionInvite>
+  counterInvite(inviteId: string, slots: TimeSlot[], note?: string): Promise<SessionInvite>
+
+  // Query
+  getSentInvites(coachId: string): Promise<SessionInvite[]>
+  getReceivedInvites(parentId: string): Promise<SessionInvite[]>
+  getPendingInvites(): Promise<SessionInvite[]>
 }
 ```
 
----
+### group-session-service.ts
 
-## 9. Payment (Mock Only)
-
-### Current Implementation
-
-```
-┌─────────────────────────────────────────┐
-│           PAYMENT FORM (MOCK)           │
-├─────────────────────────────────────────┤
-│                                         │
-│  Card Number: [1234 5678 9012 3456]     │
-│                                         │
-│  Expiry: [12/26]      CVV: [***]        │
-│                                         │
-│  ⚠️ This is a demo. No payment          │
-│     will actually be processed.         │
-│                                         │
-│  [    Confirm & Pay £50    ]            │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-### Validation Rules
-- Card: 16 digits exactly
-- Expiry: MM/YY format
-- CVV: 3 digits exactly
-
-### For Future Integration (Stripe)
+Group session operations:
 
 ```typescript
-// Replace mock with:
-const paymentIntent = await stripe.createPaymentIntent({
-  amount: price * 100,  // Pence
-  currency: 'gbp',
-  customer: parentStripeId
-});
+class GroupSessionService {
+  // CRUD
+  createSession(params: CreateGroupSessionParams): Promise<GroupSession>
+  getSession(id: string): Promise<GroupSession>
+  listSessions(filters?: SessionFilters): Promise<GroupSession[]>
+  updateSession(id: string, data: Partial<GroupSession>): Promise<GroupSession>
 
-const result = await stripe.confirmPayment({
-  clientSecret: paymentIntent.client_secret,
-  payment_method: { card: cardDetails }
-});
+  // Registration
+  registerAthlete(sessionId: string, athleteId: string, parentId: string): Promise<SessionRegistration>
+  cancelRegistration(sessionId: string, registrationId: string): Promise<void>
+  joinWaitlist(sessionId: string, athleteId: string): Promise<WaitlistEntry>
 
-if (result.paymentIntent.status === 'succeeded') {
-  await bookingService.createBooking({ ... });
+  // Capacity
+  getAvailableSpots(sessionId: string): Promise<number>
+  promoteFromWaitlist(sessionId: string): Promise<SessionRegistration | null>
+}
+```
+
+### recurring-booking-service.ts
+
+Recurring session operations:
+
+```typescript
+class RecurringBookingService {
+  // Create Series
+  createRecurringBooking(params: RecurringParams): Promise<RecurringBooking>
+
+  // Generate
+  generateUpcomingBookings(recurringId: string, count?: number): Promise<Booking[]>
+
+  // Manage
+  pauseRecurring(recurringId: string): Promise<void>
+  resumeRecurring(recurringId: string): Promise<void>
+  cancelRecurring(recurringId: string, cancelFuture: boolean): Promise<void>
+
+  // Query
+  getRecurringBookings(userId: string): Promise<RecurringBooking[]>
 }
 ```
 
 ---
 
-## 10. Notifications
+## Components
+
+### Booking Wizard Components
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `booking-wizard` | `/components/booking/booking-wizard.tsx` | Main wizard container |
+| `AthletePicker` | `/components/booking/AthletePicker.tsx` | Child selection grid |
+| `session-type-selector` | `/components/booking/session-type-selector.tsx` | Service type cards |
+| `calendar-picker` | `/components/booking/calendar-picker.tsx` | Date picker |
+| `time-slot-picker` | `/components/booking/time-slot-picker.tsx` | Available times |
+| `status-badge` | `/components/booking/status-badge.tsx` | Status indicator |
+
+### Booking Management Components
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `BookingsList` | `/components/bookings/BookingsList.tsx` | Booking list view |
+| `UnifiedBookingCard` | `/components/bookings/UnifiedBookingCard.tsx` | Booking card |
+| `child-selector` | `/components/bookings/child-selector.tsx` | Child picker for parents |
+| `CreateSessionForm` | `/components/bookings/CreateSessionForm.tsx` | New session form |
+| `QuickActions` | `/components/bookings/QuickActions.tsx` | Action buttons |
+
+---
+
+## API Contracts
+
+### Booking Endpoints
+
+```typescript
+// List bookings
+GET /bookings
+Query: { status?, startDate?, endDate?, limit?, offset? }
+Response: { bookings: Booking[], total: number, hasMore: boolean }
+
+// Get single booking
+GET /bookings/:bookingId
+Response: Booking
+
+// Create booking
+POST /bookings
+Body: CreateBookingParams
+Response: Booking
+
+// Update booking
+PUT /bookings/:bookingId
+Body: Partial<Booking>
+Response: Booking
+
+// Cancel booking
+POST /bookings/:bookingId/cancel
+Body: { reason?: string, cancelledBy: 'COACH' | 'PARENT' | 'ATHLETE' }
+Response: { booking: Booking, refund?: RefundInfo }
+
+// Complete booking
+POST /bookings/:bookingId/complete
+Body: { sessionNotes?: string, skillsWorkedOn?: string[] }
+Response: Booking
+```
+
+### Session Invite Endpoints
+
+```typescript
+// List invites
+GET /session-invites
+Query: { direction: 'sent' | 'received', status? }
+Response: SessionInvite[]
+
+// Create invite
+POST /session-invites
+Body: CreateInviteParams
+Response: SessionInvite
+
+// Accept invite
+POST /session-invites/:inviteId/accept
+Body: { selectedSlotId: string }
+Response: { invite: SessionInvite, booking: Booking }
+
+// Decline invite
+POST /session-invites/:inviteId/decline
+Body: { reason?: string }
+Response: SessionInvite
+
+// Counter invite
+POST /session-invites/:inviteId/counter
+Body: { proposedSlots: TimeSlot[], message?: string }
+Response: SessionInvite
+```
+
+---
+
+## Notifications
 
 ### Booking Notifications
 
-| Event | Recipient | Title | Body |
-|-------|-----------|-------|------|
-| New booking | Coach | "New Booking" | "📅 New booking from [Parent] for [Child] on [Date]" |
-| Booking confirmed | Parent | "Booking Confirmed" | "✅ Booking confirmed with Coach [Name]" |
-| Booking cancelled | Coach/Parent | "Booking Cancelled" | "❌ [Name] cancelled booking for [Date]" |
-| Session reminder | Both | "Session Reminder" | "⏰ Session in 1 hour" |
+| Event | Recipient | Title |
+|-------|-----------|-------|
+| Booking created | Coach | "New Booking" |
+| Booking confirmed | Parent | "Booking Confirmed" |
+| Booking cancelled | Both | "Booking Cancelled" |
+| Session reminder | Both | "Session in 1 hour" |
+| Session completed | Parent | "Session Complete" |
 
-### Session Invite Notifications
+### Invite Notifications
 
 | Event | Recipient | Title |
 |-------|-----------|-------|
-| Invite created | Parent | "New Session Invite" |
+| Invite sent | Parent | "New Session Invite" |
 | Invite accepted | Coach | "Invite Accepted!" |
 | Invite declined | Coach | "Invite Declined" |
-| Counter-proposal | Coach | "Counter Proposal Received" |
-| Counter accepted | Parent | "Counter Proposal Accepted!" |
+| Counter received | Coach | "Counter Proposal" |
+| Counter accepted | Parent | "Counter Accepted" |
 
 ---
 
-## 11. Critical Bugs
+## Payment Flow
 
-### BUG #1: Session Invites Don't Create Bookings
+### Current Implementation (Mock)
 
-**Location:** `session-invite-service.ts:408-409`
-
-**Current Code:**
 ```typescript
-if (input.response === 'ACCEPTED') {
-  notification.title = 'Invite Accepted!';
-  // TODO: Create actual booking
-  console.log('[SessionInviteService] Booking would be created...');
+// Mock payment validation
+const validatePayment = (card: CardDetails): boolean => {
+  return (
+    card.number.length === 16 &&
+    /^\d{2}\/\d{2}$/.test(card.expiry) &&
+    card.cvv.length === 3
+  );
+};
+
+// Payment processed → Booking created
+if (validatePayment(cardDetails)) {
+  await bookingService.createBooking(bookingDraft);
 }
 ```
 
-**Fix Required:**
-```typescript
-if (input.response === 'ACCEPTED') {
-  const booking = await bookingService.createBooking({
-    coachId: invite.coachId,
-    athleteId: invite.athleteIds[0],
-    bookedById: invite.parentId,
-    scheduledAt: `${invite.selectedSlot.date}T${invite.selectedSlot.startTime}`,
-    duration: calculateDuration(invite.selectedSlot),
-    status: 'CONFIRMED',
-    sessionInviteId: invite.id,
-    service: invite.sessionType,
-  });
+### Future Stripe Integration
 
-  invite.bookingId = booking.id;
+```typescript
+// Create payment intent
+const paymentIntent = await stripe.createPaymentIntent({
+  amount: price * 100,  // Pence
+  currency: 'gbp',
+  customer: parentStripeId,
+  metadata: { bookingId }
+});
+
+// Confirm payment
+const result = await stripe.confirmPayment({
+  clientSecret: paymentIntent.client_secret,
+  payment_method: { card: cardElement }
+});
+
+// On success → Create booking
+if (result.paymentIntent.status === 'succeeded') {
+  await bookingService.createBooking({ ...draft, paymentIntentId: result.paymentIntent.id });
 }
 ```
 
-### BUG #2: Missing Bidirectional Links
+---
 
-**Issue:** `SessionInvite` has no `bookingId`, `Booking` has no `sessionInviteId`
+## Cancellation Policy
 
-**Fix:** Add fields to both interfaces and populate on booking creation.
+### Default Tiers
+
+| Time Before Session | Refund |
+|---------------------|--------|
+| > 24 hours | 100% |
+| 12-24 hours | 50% |
+| < 12 hours | 0% |
+
+### Refund Calculation
+
+```typescript
+function calculateRefund(booking: Booking, policy: CancellationPolicy): RefundCalculation {
+  const hoursUntil = getHoursUntilSession(booking.scheduledAt);
+
+  for (const tier of policy.tiers) {
+    if (hoursUntil >= tier.hoursBeforeSession) {
+      return {
+        refundPercent: tier.refundPercent,
+        refundAmount: (booking.price * tier.refundPercent) / 100,
+        tier: tier.label
+      };
+    }
+  }
+
+  return { refundPercent: 0, refundAmount: 0, tier: 'No refund' };
+}
+```
 
 ---
 
-## 12. Implementation Status
+## Known Issues & TODOs
 
-### Fully Implemented
-- Multi-step booking wizard
-- Child selection for parents
-- Service type selection
-- Real-time availability checking
-- Objective selection
-- Mock payment form
-- Booking creation and storage
-- Booking detail view
-- Booking cancellation
-- Session invites (create, respond, counter)
-- Group sessions (browse, register, waitlist)
-- Availability templates and overrides
-- Notifications for all events
-- Session notes form
+### Critical Issues
 
-### Partially Implemented
-- Payment processing (mock only)
-- Cancellation policy enforcement (displays but doesn't calculate)
-- Rescheduling (button exists, shows "not available")
+1. **Session invites don't create bookings on acceptance**
+   - Location: `session-invite-service.ts:408`
+   - Fix: Call `bookingService.createBooking()` when accepted
 
-### Not Implemented
-- Real payment integration (Stripe)
-- Refund processing
-- Discount codes
-- Package deals
-- Email confirmations
-- SMS alerts
-- Calendar sync (Google/iCal)
-- Booking analytics
-- Recurring individual bookings
+2. **Multiple booking creation paths**
+   - 6 different ways to create bookings
+   - Need consolidation to single entry point
+
+### Improvements Needed
+
+1. Add real payment integration (Stripe)
+2. Implement refund processing
+3. Add email confirmations
+4. Add SMS reminders
+5. Add calendar sync (Google/iCal)
+6. Add booking analytics
 
 ---
 
-## 13. Files Reference
+## Files Reference
 
-### Core Services
-- `/services/booking-service.ts` - Booking CRUD
-- `/services/session-invite-service.ts` - Invite flow
-- `/services/group-session-service.ts` - Group sessions
-- `/services/availability-service.ts` - Templates & slots
+### Services
+- `/services/booking-service.ts`
+- `/services/session-invite-service.ts`
+- `/services/group-session-service.ts`
+- `/services/recurring-booking-service.ts`
+- `/services/counter-offer-service.ts`
 
 ### Screens
-- `/app/book-coach.tsx` - Booking wizard
-- `/app/confirm-booking.tsx` - Payment & confirm
-- `/app/(tabs)/bookings.tsx` - Bookings list
-- `/app/session-invites/*.tsx` - Invite screens
-- `/app/group-sessions/*.tsx` - Group session screens
+- `/app/book/[coachId]/*.tsx` (5 files)
+- `/app/(tabs)/bookings/*.tsx` (6 files)
+- `/app/session-invites/*.tsx` (5 files)
+- `/app/group-sessions/*.tsx` (4 files)
+
+### Components
+- `/components/booking/*.tsx` (12 files)
+- `/components/bookings/*.tsx` (6 files)
 
 ### Types
-- `/constants/app-types.ts` - Booking, SessionInvite
-- `/constants/types.ts` - GroupSession, TimeSlot
-
-### Mock Data
-- `/constants/mock-data.ts` - MOCK_BOOKINGS, sessionInvites, groupSessions
+- `/constants/app-types.ts` - Booking types
+- `/constants/types.ts` - SessionInvite, GroupSession types
