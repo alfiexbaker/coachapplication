@@ -27,12 +27,16 @@ function InviteCard({
   mode,
   onPress,
   onQuickDecline,
+  onCancel,
+  onDismiss,
 }: {
   invite: SessionInvite;
   index: number;
   mode: ViewMode;
   onPress: () => void;
   onQuickDecline?: () => void;
+  onCancel?: () => void;
+  onDismiss?: () => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -204,6 +208,36 @@ function InviteCard({
             </Clickable>
           </View>
         )}
+
+        {/* Cancel button for coaches with pending invites */}
+        {mode === 'sent' && status === 'PENDING' && onCancel && (
+          <View style={styles.actionsRow}>
+            <Clickable
+              style={[styles.actionButton, styles.declineButton, { borderColor: palette.border }]}
+              onPress={onCancel}
+            >
+              <Ionicons name="close-circle-outline" size={16} color={palette.error} />
+              <ThemedText style={[styles.actionText, { color: palette.error }]}>
+                Cancel Invite
+              </ThemedText>
+            </Clickable>
+          </View>
+        )}
+
+        {/* Remove button for parents with non-pending invites */}
+        {mode === 'received' && status !== 'PENDING' && onDismiss && (
+          <View style={styles.actionsRow}>
+            <Clickable
+              style={[styles.actionButton, styles.declineButton, { borderColor: palette.border }]}
+              onPress={onDismiss}
+            >
+              <Ionicons name="trash-outline" size={16} color={palette.muted} />
+              <ThemedText style={[styles.actionText, { color: palette.muted }]}>
+                Remove
+              </ThemedText>
+            </Clickable>
+          </View>
+        )}
       </SurfaceCard>
     </Animated.View>
   );
@@ -270,6 +304,51 @@ export default function SessionInvitesScreen() {
               loadInvites();
             } catch (error) {
               Alert.alert('Error', 'Failed to decline invite. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCancelInvite = async (invite: SessionInvite) => {
+    Alert.alert(
+      'Cancel Invite',
+      `Are you sure you want to cancel this invite to ${invite.athleteNames.join(', ')}?`,
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Cancel Invite',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await sessionInviteService.cancelInvite(invite.id);
+              Alert.alert('Done', 'Invite cancelled.');
+              loadInvites();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel invite. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDismissInvite = async (invite: SessionInvite) => {
+    Alert.alert(
+      'Remove Invite',
+      'Remove this invite from your list?',
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await sessionInviteService.dismissInvite(invite.id);
+              loadInvites();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to remove invite. Please try again.');
             }
           },
         },
@@ -404,6 +483,8 @@ export default function SessionInvitesScreen() {
                   })
                 }
                 onQuickDecline={() => handleQuickDecline(invite)}
+                onCancel={() => handleCancelInvite(invite)}
+                onDismiss={() => handleDismissInvite(invite)}
               />
             ))}
           </View>

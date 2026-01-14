@@ -593,6 +593,27 @@ export const inviteService = {
     });
   },
 
+  /**
+   * Dismiss/remove an invite from parent's view (parent action)
+   * This doesn't delete the invite, just hides it from the parent's list
+   */
+  async dismissInvite(inviteId: string): Promise<void> {
+    if (USE_MOCK) {
+      invitesCache = await loadFromStorage();
+      const index = invitesCache.findIndex((inv) => inv.id === inviteId);
+      if (index !== -1) {
+        // Mark as dismissed by setting a flag
+        invitesCache[index].dismissed = true;
+        await saveToStorage(invitesCache);
+      }
+      return;
+    }
+
+    await fetch(`/api/session-invites/${inviteId}/dismiss`, {
+      method: 'POST',
+    });
+  },
+
   // ==========================================================================
   // QUERY METHODS - Individual Invites
   // ==========================================================================
@@ -612,11 +633,12 @@ export const inviteService = {
 
   /**
    * Get all invites for a parent (received invites)
+   * Filters out dismissed invites
    */
   async getParentInvites(parentId: string): Promise<SessionInvite[]> {
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
-      return invitesCache.filter((inv) => inv.parentId === parentId);
+      return invitesCache.filter((inv) => inv.parentId === parentId && !inv.dismissed);
     }
 
     const response = await fetch(`/api/session-invites?parentId=${parentId}`);
