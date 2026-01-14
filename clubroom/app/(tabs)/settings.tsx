@@ -307,6 +307,17 @@ export default function SettingsScreen() {
                 />
               </>
             )}
+            {currentUser?.role !== 'COACH' && (
+              <SettingRow
+                icon="person-add"
+                title="Add Child"
+                subtitle="Add a child profile with medical & special needs info"
+                onPress={() => {
+                  logger.press('AddChild');
+                  router.push('/(modal)/add-child');
+                }}
+              />
+            )}
           </SurfaceCard>
         </View>
 

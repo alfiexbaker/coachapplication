@@ -53,6 +53,14 @@ function RootNavigation() {
                 }}
               />
               <Stack.Screen
+                name="(modal)/add-child"
+                options={{
+                  presentation: 'modal',
+                  headerShown: false,
+                  animation: 'slide_from_bottom'
+                }}
+              />
+              <Stack.Screen
                 name="book-coach"
                 options={{
                   presentation: 'modal',

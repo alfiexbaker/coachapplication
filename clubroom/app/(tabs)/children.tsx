@@ -167,7 +167,16 @@ export default function ChildrenHubScreen() {
 
   return (
     <PageContainer
-      header={<ScreenHeader title="My Children" subtitle="Manage your family" />}
+      header={
+        <ScreenHeader
+          title="My Children"
+          subtitle="Manage your family"
+          action={{
+            icon: 'add',
+            onPress: () => router.push('/(modal)/add-child'),
+          }}
+        />
+      }
       gap={Spacing.md}
     >
       {/* Quick Stats Row */}
@@ -342,6 +351,8 @@ export default function ChildrenHubScreen() {
             icon="people-outline"
             title="No Children Added"
             message="Add children to your account to track their development and progress"
+            actionLabel="Add Child"
+            onPressAction={() => router.push('/(modal)/add-child')}
           />
         </Animated.View>
       )}
