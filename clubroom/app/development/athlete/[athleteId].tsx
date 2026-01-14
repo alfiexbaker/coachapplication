@@ -9,7 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { StatCard } from '@/components/primitives/stat-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
@@ -280,14 +280,14 @@ export default function AthleteDetailScreen() {
               <ThemedText style={styles.ctaText}>Log Session</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.awardBadgeButton, { borderColor: '#F59E0B', backgroundColor: '#F59E0B15' }]}
+              style={[styles.awardBadgeButton, { borderColor: palette.warning, backgroundColor: `${palette.warning}15` }]}
               onPress={() => {
                 logger.press('AwardBadgeFromProfile', { athleteId });
                 setShowBadgeModal(true);
               }}
             >
-              <Ionicons name="ribbon" size={14} color="#F59E0B" />
-              <ThemedText style={[styles.awardBadgeText, { color: '#F59E0B' }]}>Award Badge</ThemedText>
+              <Ionicons name="ribbon" size={14} color={palette.warning} />
+              <ThemedText style={[styles.awardBadgeText, { color: palette.warning }]}>Award Badge</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -318,145 +318,91 @@ export default function AthleteDetailScreen() {
         </View>
       </SurfaceCard>
 
-      {/* Special Needs & Coach Notes Card */}
-      {childProfile && childProfile.hasSpecialNeeds && (
-        <SurfaceCard style={styles.specialNeedsCard}>
-          <View style={styles.specialNeedsHeader}>
-            <View style={[styles.specialNeedsIcon, { backgroundColor: `${palette.warning}15` }]}>
-              <Ionicons name="alert-circle" size={20} color={palette.warning} />
-            </View>
-            <View style={styles.specialNeedsHeaderInfo}>
-              <ThemedText type="defaultSemiBold" style={styles.specialNeedsTitle}>
-                Special Needs & Accommodations
+      {/* Special Needs Summary Card - Always shows with count */}
+      <SurfaceCard
+        tactile
+        onPress={() => {
+          logger.press('SpecialNeedsCard', { athleteId });
+          router.push(`/development/athlete/${athleteId}/special-needs` as any);
+        }}
+        style={styles.specialNeedsCard}
+      >
+        <View style={styles.specialNeedsRow}>
+          <View style={[
+            styles.specialNeedsIcon,
+            {
+              backgroundColor: childProfile?.hasSpecialNeeds
+                ? `${palette.warning}15`
+                : `${palette.muted}10`
+            }
+          ]}>
+            <Ionicons
+              name="accessibility"
+              size={Components.icon.md}
+              color={childProfile?.hasSpecialNeeds ? palette.warning : palette.muted}
+            />
+          </View>
+          <View style={styles.specialNeedsInfo}>
+            <ThemedText type="defaultSemiBold" style={styles.specialNeedsTitle}>
+              Special Needs & Notes
+            </ThemedText>
+            <ThemedText style={[styles.specialNeedsSubtitle, { color: palette.muted }]}>
+              {childProfile?.hasSpecialNeeds
+                ? `${childProfile.disabilities.length} disabilities, ${childProfile.allergies.length} allergies`
+                : 'No accommodations documented'}
+            </ThemedText>
+          </View>
+          <View style={styles.specialNeedsCounters}>
+            <View style={[
+              styles.counterBadge,
+              {
+                backgroundColor: (childProfile?.disabilities.length ?? 0) > 0
+                  ? palette.warning
+                  : `${palette.muted}20`
+              }
+            ]}>
+              <ThemedText style={[
+                styles.counterText,
+                { color: (childProfile?.disabilities.length ?? 0) > 0 ? '#fff' : palette.muted }
+              ]}>
+                {childProfile?.disabilities.length ?? 0}
               </ThemedText>
-              <ThemedText style={[styles.specialNeedsSubtitle, { color: palette.muted }]}>
-                Important information for coaching
+            </View>
+            <View style={[
+              styles.counterBadge,
+              {
+                backgroundColor: (childProfile?.allergies.length ?? 0) > 0
+                  ? palette.error
+                  : `${palette.muted}20`
+              }
+            ]}>
+              <ThemedText style={[
+                styles.counterText,
+                { color: (childProfile?.allergies.length ?? 0) > 0 ? '#fff' : palette.muted }
+              ]}>
+                {childProfile?.allergies.length ?? 0}
               </ThemedText>
             </View>
           </View>
+          <Ionicons name="chevron-forward" size={Components.icon.md} color={palette.icon} />
+        </View>
 
-          {/* Disabilities */}
-          {childProfile.disabilities.length > 0 && (
-            <View style={styles.specialNeedsSection}>
-              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-                Disabilities
-              </ThemedText>
-              {childProfile.disabilities.map((disability) => (
-                <View key={disability.id} style={[styles.disabilityCard, { backgroundColor: `${palette.warning}08`, borderColor: `${palette.warning}20` }]}>
-                  <View style={styles.disabilityHeader}>
-                    <ThemedText type="defaultSemiBold" style={styles.disabilityType}>
-                      {disability.type}
-                    </ThemedText>
-                    {disability.diagnosisDate && (
-                      <ThemedText style={[styles.diagnosisDate, { color: palette.muted }]}>
-                        Since {disability.diagnosisDate.split('-')[0]}
-                      </ThemedText>
-                    )}
-                  </View>
-                  {disability.description && (
-                    <ThemedText style={[styles.disabilityDescription, { color: palette.muted }]}>
-                      {disability.description}
-                    </ThemedText>
-                  )}
-                  {disability.supportRequired && (
-                    <View style={styles.supportSection}>
-                      <Ionicons name="hand-left" size={12} color={palette.tint} />
-                      <ThemedText style={[styles.supportText, { color: palette.foreground }]}>
-                        {disability.supportRequired}
-                      </ThemedText>
-                    </View>
-                  )}
-                  {disability.communicationPreferences && disability.communicationPreferences.length > 0 && (
-                    <View style={styles.tagsRow}>
-                      <Ionicons name="chatbubble" size={12} color={palette.success} />
-                      {disability.communicationPreferences.map((pref, idx) => (
-                        <View key={idx} style={[styles.preferenceTag, { backgroundColor: `${palette.success}15` }]}>
-                          <ThemedText style={[styles.tagText, { color: palette.success }]}>{pref}</ThemedText>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                  {disability.triggers && disability.triggers.length > 0 && (
-                    <View style={styles.tagsRow}>
-                      <Ionicons name="warning" size={12} color={palette.error} />
-                      {disability.triggers.map((trigger, idx) => (
-                        <View key={idx} style={[styles.triggerTag, { backgroundColor: `${palette.error}15` }]}>
-                          <ThemedText style={[styles.tagText, { color: palette.error }]}>{trigger}</ThemedText>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                  {disability.calmingStrategies && disability.calmingStrategies.length > 0 && (
-                    <View style={styles.tagsRow}>
-                      <Ionicons name="happy" size={12} color={palette.tint} />
-                      {disability.calmingStrategies.map((strategy, idx) => (
-                        <View key={idx} style={[styles.calmingTag, { backgroundColor: `${palette.tint}15` }]}>
-                          <ThemedText style={[styles.tagText, { color: palette.tint }]}>{strategy}</ThemedText>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Communication Notes */}
-          {childProfile.communicationNotes && (
-            <View style={styles.specialNeedsSection}>
-              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-                Communication
-              </ThemedText>
-              <View style={[styles.noteCard, { backgroundColor: `${palette.success}08`, borderColor: `${palette.success}20` }]}>
-                <Ionicons name="chatbubbles" size={14} color={palette.success} style={styles.noteIcon} />
-                <ThemedText style={styles.noteText}>{childProfile.communicationNotes}</ThemedText>
+        {/* Quick preview of key info if has special needs */}
+        {childProfile?.hasSpecialNeeds && childProfile.disabilities.length > 0 && (
+          <View style={styles.quickPreview}>
+            {childProfile.disabilities.slice(0, 2).map((d) => (
+              <View key={d.id} style={[styles.previewTag, { backgroundColor: `${palette.warning}12` }]}>
+                <ThemedText style={[styles.previewTagText, { color: palette.warning }]}>{d.type}</ThemedText>
               </View>
-            </View>
-          )}
-
-          {/* Behavioral Notes */}
-          {childProfile.behavioralNotes && (
-            <View style={styles.specialNeedsSection}>
-              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-                Behavioral Notes
-              </ThemedText>
-              <View style={[styles.noteCard, { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20` }]}>
-                <Ionicons name="bulb" size={14} color={palette.tint} style={styles.noteIcon} />
-                <ThemedText style={styles.noteText}>{childProfile.behavioralNotes}</ThemedText>
+            ))}
+            {childProfile.allergies.slice(0, 2).map((a, i) => (
+              <View key={i} style={[styles.previewTag, { backgroundColor: `${palette.error}12` }]}>
+                <ThemedText style={[styles.previewTagText, { color: palette.error }]}>{a}</ThemedText>
               </View>
-            </View>
-          )}
-
-          {/* Allergies & Medical */}
-          {(childProfile.allergies.length > 0 || childProfile.medicalConditions.length > 0) && (
-            <View style={styles.specialNeedsSection}>
-              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
-                Medical Alerts
-              </ThemedText>
-              <View style={styles.medicalRow}>
-                {childProfile.allergies.length > 0 && (
-                  <View style={[styles.medicalCard, { backgroundColor: `${palette.error}08`, borderColor: `${palette.error}20` }]}>
-                    <View style={styles.medicalHeader}>
-                      <Ionicons name="warning" size={14} color={palette.error} />
-                      <ThemedText style={[styles.medicalLabel, { color: palette.error }]}>Allergies</ThemedText>
-                    </View>
-                    <ThemedText style={styles.medicalText}>{childProfile.allergies.join(', ')}</ThemedText>
-                  </View>
-                )}
-                {childProfile.medications.length > 0 && (
-                  <View style={[styles.medicalCard, { backgroundColor: `${palette.warning}08`, borderColor: `${palette.warning}20` }]}>
-                    <View style={styles.medicalHeader}>
-                      <Ionicons name="medkit" size={14} color={palette.warning} />
-                      <ThemedText style={[styles.medicalLabel, { color: palette.warning }]}>Medications</ThemedText>
-                    </View>
-                    <ThemedText style={styles.medicalText}>{childProfile.medications.join(', ')}</ThemedText>
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-        </SurfaceCard>
-      )}
+            ))}
+          </View>
+        )}
+      </SurfaceCard>
 
       {/* Badge Progression Summary */}
       {progressionSummary && (
@@ -685,9 +631,8 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '500',
-    letterSpacing: -0.3,
+    ...Typography.lg,
+    fontWeight: '600',
   },
 
   // Hero Card
@@ -698,30 +643,28 @@ const styles = StyleSheet.create({
   heroHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: Components.avatar.lg,
+    height: Components.avatar.lg,
+    borderRadius: Components.avatar.lg / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 24,
-    fontWeight: '500',
+    ...Typography.title,
   },
   heroInfo: {
     flex: 1,
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   athleteName: {
-    fontSize: 20,
+    ...Typography.xl,
     fontWeight: '600',
-    letterSpacing: -0.3,
   },
   sessionCountLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   badgesRow: {
     flexDirection: 'row',
@@ -738,35 +681,33 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   trendBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Components.pill.paddingVertical,
     borderRadius: Radii.sm,
   },
   levelBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Components.pill.paddingVertical,
     borderRadius: Radii.sm,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 0,
+    ...Typography.micro,
+    textTransform: 'none',
   },
   ctaButton: {
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Components.pill.paddingVertical,
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
     height: Components.buttonCompact.height,
     justifyContent: 'center',
   },
   ctaText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.small,
+    fontWeight: '600',
     color: '#fff',
-    letterSpacing: -0.1,
   },
   heroButtons: {
     flexDirection: 'row',
@@ -775,8 +716,8 @@ const styles = StyleSheet.create({
   awardBadgeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: Spacing.xs / 2,
+    gap: Spacing.xs,
+    paddingVertical: Components.pill.paddingVertical,
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
     height: Components.buttonCompact.height,
@@ -784,7 +725,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   awardBadgeText: {
-    fontSize: 12,
+    ...Typography.caption,
     fontWeight: '600',
   },
 
@@ -800,23 +741,21 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    height: 40,
+    height: Components.avatar.md,
     opacity: 0.5,
   },
 
   // Section header
   sectionHeader: {
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '500',
-    letterSpacing: -0.2,
+    ...Typography.lg,
+    fontWeight: '600',
   },
   sectionSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
 
   // Session list
@@ -832,7 +771,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs / 2,
+    marginBottom: Spacing.xs,
   },
   sessionActions: {
     flexDirection: 'row',
@@ -846,26 +785,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sessionDate: {
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: -0.1,
+    ...Typography.body,
+    fontWeight: '600',
   },
   needsNotesBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: Components.pill.paddingVertical,
+    borderRadius: Radii.sm,
   },
   needsNotesText: {
-    fontSize: 9,
-    fontWeight: '600',
+    ...Typography.micro,
     color: '#fff',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   awardRow: {
     flexDirection: 'row',
@@ -886,37 +821,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   rating: {
-    fontSize: 15,
-    fontWeight: '500',
+    ...Typography.body,
+    fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
   skillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   skillChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Components.pill.paddingVertical,
     borderRadius: Radii.sm,
   },
   skillText: {
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 0,
+    ...Typography.micro,
+    textTransform: 'none',
   },
   notesPreview: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   videoIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   videoText: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
+    fontWeight: '600',
   },
   chevron: {
     position: 'absolute',
@@ -935,46 +868,45 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   progressionBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0F172A12',
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Components.avatar.md / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   progressionInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.xs,
   },
   progressionLevel: {
-    fontSize: 15,
+    ...Typography.body,
+    fontWeight: '600',
   },
   progressionPoints: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   progressBarContainer: {
-    gap: 4,
+    gap: Spacing.xs,
   },
   progressBar: {
-    height: 6,
-    borderRadius: 3,
+    height: Spacing.xs,
+    borderRadius: Radii.sm,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.sm,
   },
   progressText: {
-    fontSize: 11,
+    ...Typography.micro,
+    textTransform: 'none',
     textAlign: 'right',
   },
   topCategoriesSection: {
-    gap: 6,
+    gap: Spacing.xs,
   },
   topCategoriesLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    ...Typography.micro,
   },
   topCategoriesRow: {
     flexDirection: 'row',
@@ -983,164 +915,87 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
   },
   categoryChipText: {
-    fontSize: 12,
+    ...Typography.caption,
     fontWeight: '600',
   },
   categoryCountBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    minWidth: Components.icon.md,
+    height: Components.icon.md,
+    borderRadius: Components.icon.md / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xs,
   },
   categoryCountText: {
-    fontSize: 10,
-    fontWeight: '700',
+    ...Typography.micro,
     color: '#fff',
   },
 
-  // Special Needs Card
+  // Special Needs Summary Card
   specialNeedsCard: {
-    padding: Spacing.md,
-    gap: Spacing.md,
+    padding: Spacing.sm,
+    gap: Spacing.sm,
   },
-  specialNeedsHeader: {
+  specialNeedsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
   specialNeedsIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Components.avatar.md / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  specialNeedsHeaderInfo: {
+  specialNeedsInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.xs,
   },
   specialNeedsTitle: {
-    fontSize: 15,
+    ...Typography.body,
+    fontWeight: '600',
   },
   specialNeedsSubtitle: {
-    fontSize: 12,
+    ...Typography.caption,
   },
-  specialNeedsSection: {
-    gap: Spacing.xs,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  disabilityCard: {
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
-    gap: Spacing.xs,
-  },
-  disabilityHeader: {
+  specialNeedsCounters: {
     flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  counterBadge: {
+    minWidth: Components.icon.lg,
+    height: Components.icon.lg,
+    borderRadius: Components.icon.lg / 2,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
   },
-  disabilityType: {
-    fontSize: 14,
+  counterText: {
+    ...Typography.caption,
+    fontWeight: '700',
   },
-  diagnosisDate: {
-    fontSize: 11,
-  },
-  disabilityDescription: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  supportSection: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.xs,
-    marginTop: Spacing.xs / 2,
-  },
-  supportText: {
-    fontSize: 13,
-    lineHeight: 18,
-    flex: 1,
-  },
-  tagsRow: {
+  quickPreview: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: Spacing.xs / 2,
-  },
-  preferenceTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.sm,
-  },
-  triggerTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.sm,
-  },
-  calmingTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.sm,
-  },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  noteCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
     gap: Spacing.xs,
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  noteIcon: {
-    marginTop: 2,
+  previewTag: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Components.pill.paddingVertical,
+    borderRadius: Radii.pill,
   },
-  noteText: {
-    fontSize: 13,
-    lineHeight: 19,
-    flex: 1,
-  },
-  medicalRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
-  medicalCard: {
-    flex: 1,
-    minWidth: 140,
-    padding: Spacing.sm,
-    borderRadius: Radii.card,
-    borderWidth: 1,
-    gap: 4,
-  },
-  medicalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  medicalLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  medicalText: {
-    fontSize: 13,
+  previewTagText: {
+    ...Typography.micro,
+    textTransform: 'none',
   },
 });
