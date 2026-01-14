@@ -94,6 +94,7 @@ export interface SquadInvitePreview {
   members: Array<{
     athleteId: string;
     athleteName: string;
+    athleteAge?: number;
     parentId: string;
     parentName: string;
   }>;
@@ -933,6 +934,7 @@ export const inviteService = {
       members: eligibleMembers.map((m) => ({
         athleteId: m.athleteId,
         athleteName: m.athleteName,
+        athleteAge: m.athleteAge,
         parentId: m.parentId,
         parentName: m.parentName,
       })),

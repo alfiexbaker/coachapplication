@@ -15,7 +15,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite-service';
-import { hasChildren } from '@/utils/user-helpers';
+import { hasChildren, isCoach } from '@/utils/user-helpers';
 import type { SessionInvite } from '@/constants/types';
 
 type ViewMode = 'sent' | 'received';
@@ -215,7 +215,9 @@ export default function SessionInvitesScreen() {
   const { currentUser } = useAuth();
 
   const [invites, setInvites] = useState<SessionInvite[]>([]);
-  const [mode, setMode] = useState<ViewMode>(currentUser?.role === 'COACH' ? 'sent' : 'received');
+  const userIsCoach = isCoach(currentUser);
+  const userHasChildren = hasChildren(currentUser);
+  const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
   const [filter, setFilter] = useState<FilterMode>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -279,8 +281,9 @@ export default function SessionInvitesScreen() {
     (i) => i.status === 'PENDING' && new Date(i.expiresAt) > new Date()
   ).length;
 
-  const isCoach = currentUser?.role === 'COACH';
-  const userHasChildren = hasChildren(currentUser);
+  // Show toggle for coaches who can also receive invites (if they have children)
+  const canViewReceived = userHasChildren;
+  const showModeToggle = userIsCoach && canViewReceived;
 
   // Apply filter
   const filteredInvites = invites.filter((invite) => {
@@ -304,7 +307,7 @@ export default function SessionInvitesScreen() {
             </View>
           )}
         </View>
-        {isCoach && (
+        {userIsCoach && (
           <Clickable
             onPress={() => router.push('/session-invites/create')}
             style={[styles.createButton, { backgroundColor: palette.tint }]}
@@ -314,8 +317,8 @@ export default function SessionInvitesScreen() {
         )}
       </View>
 
-      {/* View Toggle (for coaches who can see both) */}
-      {isCoach && (
+      {/* View Toggle - for coaches who also have children (can receive invites) */}
+      {showModeToggle && (
         <View style={styles.toggleRow}>
           <Chip
             label="Sent Invites"
@@ -330,8 +333,8 @@ export default function SessionInvitesScreen() {
         </View>
       )}
 
-      {/* Filter chips for parents */}
-      {(userHasChildren || mode === 'received') && invites.length > 0 && (
+      {/* Filter chips - show when viewing received invites or for users with children */}
+      {(mode === 'received' || (!userIsCoach && userHasChildren)) && invites.length > 0 && (
         <View style={styles.filterRow}>
           <Chip
             label="All"
