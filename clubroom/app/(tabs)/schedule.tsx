@@ -326,14 +326,14 @@ export default function ScheduleScreen() {
             <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }]}>
               <View style={styles.todayHeader}>
                 <View>
-                  <ThemedText style={styles.todayLabel}>TODAY</ThemedText>
-                  <ThemedText style={styles.todayDate}>
+                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayLabel}>TODAY</ThemedText>
+                  <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.todayDate}>
                     {todayData.dayName}, {todayData.date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
                   </ThemedText>
                 </View>
                 <View style={styles.todayStats}>
-                  <ThemedText style={styles.todayStatValue}>{todaySessions.length}</ThemedText>
-                  <ThemedText style={styles.todayStatLabel}>
+                  <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.todayStatValue}>{todaySessions.length}</ThemedText>
+                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayStatLabel}>
                     session{todaySessions.length !== 1 ? 's' : ''}
                   </ThemedText>
                 </View>
@@ -342,10 +342,10 @@ export default function ScheduleScreen() {
               {nextSession ? (
                 <View style={styles.nextSessionBanner}>
                   <View style={styles.nextSessionInfo}>
-                    <ThemedText style={styles.nextSessionTitle}>
+                    <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.nextSessionTitle}>
                       {nextSession.athleteName || nextSession.title}
                     </ThemedText>
-                    <ThemedText style={styles.nextSessionMeta}>
+                    <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.nextSessionMeta}>
                       {nextSession.time} · {nextSession.location || 'Location TBD'}
                     </ThemedText>
                   </View>
@@ -357,13 +357,13 @@ export default function ScheduleScreen() {
                 </View>
               ) : todaySessions.length === 0 ? (
                 <View style={styles.todayEmpty}>
-                  <ThemedText style={styles.todayEmptyText}>
+                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayEmptyText}>
                     No sessions today - enjoy your free time!
                   </ThemedText>
                 </View>
               ) : (
                 <View style={styles.todayEmpty}>
-                  <ThemedText style={styles.todayEmptyText}>
+                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayEmptyText}>
                     All done for today!
                   </ThemedText>
                 </View>
