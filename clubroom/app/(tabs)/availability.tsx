@@ -13,6 +13,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { Clickable } from '@/components/primitives/clickable';
 import { RecurringTemplateModal } from '@/components/coach/recurring-template-modal';
+import { BlockDateModal } from '@/components/coach/block-date-modal';
+import { SchedulingRulesModal } from '@/components/coach/scheduling-rules-modal';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate } from '@/constants/types';
 
@@ -61,6 +63,8 @@ export default function AvailabilityScreen() {
   const [preselectedDay, setPreselectedDay] = useState<number | undefined>();
   const [preselectedHour, setPreselectedHour] = useState<number | undefined>();
   const [showQuickSetup, setShowQuickSetup] = useState(false);
+  const [showBlockDateModal, setShowBlockDateModal] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   const coachId = currentUser?.id || 'coach_1';
 
@@ -220,6 +224,22 @@ export default function AvailabilityScreen() {
     setPreselectedHour(undefined);
     setShowTemplateModal(true);
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleBlockDates = async (dates: string[], reason: string) => {
+    try {
+      for (const date of dates) {
+        await availabilityService.saveOverride({
+          coachId,
+          date,
+          isBlocked: true,
+          reason,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to block dates:', error);
+      throw error;
+    }
   };
 
   const handleDeleteSlot = (template: AvailabilityTemplate) => {
@@ -489,56 +509,64 @@ export default function AvailabilityScreen() {
         {/* Quick Actions */}
         <View style={styles.section}>
           <SectionHeader title="Quick Actions" />
-          <View style={styles.quickActions}>
+          <View style={styles.quickActionsGrid}>
             <TouchableOpacity
-              style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              style={[styles.quickActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              onPress={() => handleAddSlot()}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.success}15` }]}>
+                <Ionicons name="add-circle-outline" size={22} color={palette.success} />
+              </View>
+              <ThemedText style={styles.quickActionTitle}>Add Availability</ThemedText>
+              <ThemedText style={[styles.quickActionDesc, { color: palette.muted }]}>
+                Set when you're available
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowBlockDateModal(true);
+              }}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.error}15` }]}>
+                <Ionicons name="calendar-outline" size={22} color={palette.error} />
+              </View>
+              <ThemedText style={styles.quickActionTitle}>Block Time Off</ThemedText>
+              <ThemedText style={[styles.quickActionDesc, { color: palette.muted }]}>
+                Holidays, sick days, etc
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowRulesModal(true);
+              }}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.warning}15` }]}>
+                <Ionicons name="settings-outline" size={22} color={palette.warning} />
+              </View>
+              <ThemedText style={styles.quickActionTitle}>Booking Rules</ThemedText>
+              <ThemedText style={[styles.quickActionDesc, { color: palette.muted }]}>
+                Notice, buffer, limits
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
               onPress={() => setShowQuickSetup(true)}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: `${palette.tint}15` }]}>
-                <Ionicons name="flash-outline" size={20} color={palette.tint} />
+                <Ionicons name="flash-outline" size={22} color={palette.tint} />
               </View>
-              <ThemedText style={styles.quickActionText}>Quick Setup</ThemedText>
+              <ThemedText style={styles.quickActionTitle}>Quick Setup</ThemedText>
+              <ThemedText style={[styles.quickActionDesc, { color: palette.muted }]}>
+                Preset schedules
+              </ThemedText>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
-              onPress={() => router.push('/availability/scheduling-rules' as any)}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.warning}15` }]}>
-                <Ionicons name="settings-outline" size={20} color={palette.warning} />
-              </View>
-              <ThemedText style={styles.quickActionText}>Rules</ThemedText>
-            </TouchableOpacity>
-
-            {templates.length > 0 && (
-              <TouchableOpacity
-                style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
-                onPress={() => {
-                  Alert.alert(
-                    'Clear All',
-                    'Remove all availability slots? Athletes won\'t be able to book.',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Clear',
-                        style: 'destructive',
-                        onPress: async () => {
-                          for (const template of templates) {
-                            await availabilityService.deleteTemplate(template.id);
-                          }
-                          await loadTemplates();
-                        },
-                      },
-                    ]
-                  );
-                }}
-              >
-                <View style={[styles.quickActionIcon, { backgroundColor: `${palette.error}15` }]}>
-                  <Ionicons name="trash-outline" size={20} color={palette.error} />
-                </View>
-                <ThemedText style={styles.quickActionText}>Clear All</ThemedText>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
       </ScrollView>
@@ -611,6 +639,20 @@ export default function AvailabilityScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Block Date Modal */}
+      <BlockDateModal
+        visible={showBlockDateModal}
+        onClose={() => setShowBlockDateModal(false)}
+        onBlock={handleBlockDates}
+      />
+
+      {/* Scheduling Rules Modal */}
+      <SchedulingRulesModal
+        visible={showRulesModal}
+        onClose={() => setShowRulesModal(false)}
+        coachId={coachId}
+      />
     </SafeAreaView>
   );
 }
@@ -857,13 +899,13 @@ const styles = StyleSheet.create({
   },
 
   // Quick Actions
-  quickActions: {
+  quickActionsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.sm,
   },
-  quickAction: {
-    flex: 1,
-    alignItems: 'center',
+  quickActionCard: {
+    width: '48%',
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
@@ -875,10 +917,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.xs,
   },
-  quickActionText: {
-    fontSize: 12,
+  quickActionTitle: {
+    fontSize: 14,
     fontWeight: '600',
+  },
+  quickActionDesc: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 
   // Modal
