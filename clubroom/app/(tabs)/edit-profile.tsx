@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { SocialLinksEditor } from '@/components/profile/social-links-editor';
 import { Colors, Radii, Spacing, Components } from '@/constants/theme';
@@ -216,15 +217,12 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
-        <Pressable onPress={() => router.back()}>
-          <Ionicons name="close" size={28} color={palette.foreground} />
-        </Pressable>
-        <ThemedText type="subtitle">Edit Profile</ThemedText>
-        <Pressable onPress={handleSave}>
-          <ThemedText style={[styles.saveButton, { color: palette.tint }]}>Save</ThemedText>
-        </Pressable>
-      </View>
+      <PageHeader
+        title="Edit Profile"
+        showBack
+        action="Save"
+        onActionPress={handleSave}
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -851,18 +849,6 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-  },
-  saveButton: {
-    fontWeight: '700',
-    fontSize: 16,
   },
   wrapper: {
     flex: 1,

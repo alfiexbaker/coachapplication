@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { PageHeader } from '@/components/primitives/page-header';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
@@ -167,7 +167,7 @@ export default function ChildrenHubScreen() {
 
   return (
     <PageContainer
-      header={<PageHeader title="Children" subtitle="Track your children's progress and goals" />}
+      header={<ScreenHeader title="My Children" subtitle="Manage your family" />}
       gap={Spacing.md}
     >
       {/* Quick Stats Row */}

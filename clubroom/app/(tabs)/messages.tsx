@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { chatThreads } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -200,12 +201,10 @@ export default function MessagesScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
-        <ThemedText type="title" style={styles.headerTitle}>Messages</ThemedText>
-        <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>
-          Your coaching conversations
-        </ThemedText>
-      </View>
+      <ScreenHeader
+        title="Messages"
+        subtitle="Your conversations"
+      />
       <View style={styles.searchRow}>
         <Ionicons name="search" size={18} color={palette.icon} />
         <TextInput
@@ -313,22 +312,6 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-  },
-  header: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -1,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,

@@ -12,6 +12,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { badgeService } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 import { useNotifications, NotificationFilter } from '@/hooks/use-notifications';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 
 const logger = createLogger('NotificationsScreen');
 
@@ -238,9 +239,12 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <ThemedText type="title">Notifications</ThemedText>
+      <ScreenHeader
+        title="Notifications"
+        subtitle="Stay updated"
+      />
+      <View style={styles.actionsBar}>
+        <View style={styles.badgeContainer}>
           {unreadCount > 0 && (
             <View style={[styles.badge, { backgroundColor: palette.tint }]}>
               <ThemedText style={styles.badgeText}>{unreadCount}</ThemedText>
@@ -275,16 +279,16 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    padding: Spacing.lg,
+  actionsBar: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerLeft: {
+  badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
   },
   headerActions: {
     flexDirection: 'row',

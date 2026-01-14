@@ -6,6 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
 import { SectionHeader } from '@/components/primitives/section-header';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
@@ -262,13 +263,10 @@ export default function AvailabilityScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>Availability</ThemedText>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Set when athletes can book sessions with you
-          </ThemedText>
-        </View>
+        <ScreenHeader
+          title="Availability"
+          subtitle="Set when athletes can book sessions with you"
+        />
 
         {/* Week Overview - Interactive Day Selector */}
         <SurfaceCard style={styles.weekCard}>
@@ -666,18 +664,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing['2xl'],
     gap: Spacing.lg,
-  },
-  header: {
-    gap: Spacing.xs,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
   },
   section: {
     gap: Spacing.sm,

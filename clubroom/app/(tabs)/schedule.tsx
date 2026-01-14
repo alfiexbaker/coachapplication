@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -309,12 +310,10 @@ export default function ScheduleScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* Header */}
         <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
-          <View>
-            <ThemedText type="title" style={styles.title}>Schedule</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              {weekSummary.totalSessions} sessions this week
-            </ThemedText>
-          </View>
+          <ScreenHeader
+            title="Schedule"
+            subtitle="Your upcoming sessions"
+          />
           <Clickable onPress={handleOpenSettings} style={[styles.settingsButton, { backgroundColor: palette.surface }]}>
             <Ionicons name="settings-outline" size={22} color={palette.muted} />
           </Clickable>
@@ -616,15 +615,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 15,
-    marginTop: 2,
   },
   settingsButton: {
     width: 44,

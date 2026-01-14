@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { PageHeader } from '@/components/primitives/page-header';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -126,9 +126,9 @@ export default function UserBadgesScreen() {
   return (
     <PageContainer
       header={
-        <PageHeader
+        <ScreenHeader
           title="Badges"
-          subtitle="Track your progress and achievements"
+          subtitle="Achievements and rewards"
         />
       }
       gap={Spacing.md}

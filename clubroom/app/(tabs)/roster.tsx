@@ -6,7 +6,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { PageHeader } from '@/components/primitives/page-header';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { Clickable } from '@/components/primitives/clickable';
@@ -401,10 +401,10 @@ export default function RosterScreen() {
   return (
     <PageContainer
       header={
-        <PageHeader
-          title="My Athletes"
-          subtitle={`${stats.active} active athletes`}
-          rightAction={
+        <ScreenHeader
+          title="Roster"
+          subtitle="Your athletes"
+          rightElement={
             <View style={styles.headerActions}>
               <Clickable onPress={toggleSelectionMode} hitSlop={8}>
                 <Ionicons
