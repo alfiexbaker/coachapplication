@@ -555,6 +555,24 @@ export const childService = {
   },
 
   /**
+   * Find a child by name (for coach athlete lookup)
+   * This allows coaches to see special needs info for athletes
+   */
+  async getChildByName(firstName: string, lastName: string): Promise<ChildProfile | null> {
+    if (USE_MOCK) {
+      childrenCache = await loadFromStorage();
+      return childrenCache.find(
+        c => c.firstName.toLowerCase() === firstName.toLowerCase() &&
+             c.lastName.toLowerCase() === lastName.toLowerCase()
+      ) || null;
+    }
+
+    const response = await fetch(`/api/children/by-name?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`);
+    if (!response.ok) return null;
+    return response.json();
+  },
+
+  /**
    * Get summary of a child for coach display
    */
   getCoachSummary(child: ChildProfile): {

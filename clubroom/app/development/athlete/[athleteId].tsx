@@ -18,6 +18,7 @@ import type { Session, BadgeAward, BadgeCategory } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 import { ProgressionLevel, CategoryInfo, TierNames } from '@/constants/progression';
+import { childService, type ChildProfile } from '@/services/child-service';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -31,6 +32,7 @@ export default function AthleteDetailScreen() {
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [progressionSummary, setProgressionSummary] = useState<{
     totalPoints: number;
     currentLevel: ProgressionLevel;
@@ -96,6 +98,28 @@ export default function AthleteDetailScreen() {
       setProgressionSummary(progression);
     });
   }, [athleteId]);
+
+  // Load child profile for special needs info (by athlete name)
+  useEffect(() => {
+    if (!athlete) return;
+
+    const loadChildProfile = async () => {
+      try {
+        const nameParts = athlete.name.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ');
+        const profile = await childService.getChildByName(firstName, lastName);
+        if (profile) {
+          setChildProfile(profile);
+          logger.debug('Child profile loaded', { athleteId, childId: profile.id, hasSpecialNeeds: profile.hasSpecialNeeds });
+        }
+      } catch (error) {
+        logger.error('Failed to load child profile', error);
+      }
+    };
+
+    loadChildProfile();
+  }, [athlete]);
 
   if (!athlete || !currentUser) {
     return null;
@@ -293,6 +317,146 @@ export default function AthleteDetailScreen() {
           />
         </View>
       </SurfaceCard>
+
+      {/* Special Needs & Coach Notes Card */}
+      {childProfile && childProfile.hasSpecialNeeds && (
+        <SurfaceCard style={styles.specialNeedsCard}>
+          <View style={styles.specialNeedsHeader}>
+            <View style={[styles.specialNeedsIcon, { backgroundColor: `${palette.warning}15` }]}>
+              <Ionicons name="alert-circle" size={20} color={palette.warning} />
+            </View>
+            <View style={styles.specialNeedsHeaderInfo}>
+              <ThemedText type="defaultSemiBold" style={styles.specialNeedsTitle}>
+                Special Needs & Accommodations
+              </ThemedText>
+              <ThemedText style={[styles.specialNeedsSubtitle, { color: palette.muted }]}>
+                Important information for coaching
+              </ThemedText>
+            </View>
+          </View>
+
+          {/* Disabilities */}
+          {childProfile.disabilities.length > 0 && (
+            <View style={styles.specialNeedsSection}>
+              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+                Disabilities
+              </ThemedText>
+              {childProfile.disabilities.map((disability) => (
+                <View key={disability.id} style={[styles.disabilityCard, { backgroundColor: `${palette.warning}08`, borderColor: `${palette.warning}20` }]}>
+                  <View style={styles.disabilityHeader}>
+                    <ThemedText type="defaultSemiBold" style={styles.disabilityType}>
+                      {disability.type}
+                    </ThemedText>
+                    {disability.diagnosisDate && (
+                      <ThemedText style={[styles.diagnosisDate, { color: palette.muted }]}>
+                        Since {disability.diagnosisDate.split('-')[0]}
+                      </ThemedText>
+                    )}
+                  </View>
+                  {disability.description && (
+                    <ThemedText style={[styles.disabilityDescription, { color: palette.muted }]}>
+                      {disability.description}
+                    </ThemedText>
+                  )}
+                  {disability.supportRequired && (
+                    <View style={styles.supportSection}>
+                      <Ionicons name="hand-left" size={12} color={palette.tint} />
+                      <ThemedText style={[styles.supportText, { color: palette.foreground }]}>
+                        {disability.supportRequired}
+                      </ThemedText>
+                    </View>
+                  )}
+                  {disability.communicationPreferences && disability.communicationPreferences.length > 0 && (
+                    <View style={styles.tagsRow}>
+                      <Ionicons name="chatbubble" size={12} color={palette.success} />
+                      {disability.communicationPreferences.map((pref, idx) => (
+                        <View key={idx} style={[styles.preferenceTag, { backgroundColor: `${palette.success}15` }]}>
+                          <ThemedText style={[styles.tagText, { color: palette.success }]}>{pref}</ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  {disability.triggers && disability.triggers.length > 0 && (
+                    <View style={styles.tagsRow}>
+                      <Ionicons name="warning" size={12} color={palette.error} />
+                      {disability.triggers.map((trigger, idx) => (
+                        <View key={idx} style={[styles.triggerTag, { backgroundColor: `${palette.error}15` }]}>
+                          <ThemedText style={[styles.tagText, { color: palette.error }]}>{trigger}</ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  {disability.calmingStrategies && disability.calmingStrategies.length > 0 && (
+                    <View style={styles.tagsRow}>
+                      <Ionicons name="happy" size={12} color={palette.tint} />
+                      {disability.calmingStrategies.map((strategy, idx) => (
+                        <View key={idx} style={[styles.calmingTag, { backgroundColor: `${palette.tint}15` }]}>
+                          <ThemedText style={[styles.tagText, { color: palette.tint }]}>{strategy}</ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Communication Notes */}
+          {childProfile.communicationNotes && (
+            <View style={styles.specialNeedsSection}>
+              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+                Communication
+              </ThemedText>
+              <View style={[styles.noteCard, { backgroundColor: `${palette.success}08`, borderColor: `${palette.success}20` }]}>
+                <Ionicons name="chatbubbles" size={14} color={palette.success} style={styles.noteIcon} />
+                <ThemedText style={styles.noteText}>{childProfile.communicationNotes}</ThemedText>
+              </View>
+            </View>
+          )}
+
+          {/* Behavioral Notes */}
+          {childProfile.behavioralNotes && (
+            <View style={styles.specialNeedsSection}>
+              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+                Behavioral Notes
+              </ThemedText>
+              <View style={[styles.noteCard, { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20` }]}>
+                <Ionicons name="bulb" size={14} color={palette.tint} style={styles.noteIcon} />
+                <ThemedText style={styles.noteText}>{childProfile.behavioralNotes}</ThemedText>
+              </View>
+            </View>
+          )}
+
+          {/* Allergies & Medical */}
+          {(childProfile.allergies.length > 0 || childProfile.medicalConditions.length > 0) && (
+            <View style={styles.specialNeedsSection}>
+              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+                Medical Alerts
+              </ThemedText>
+              <View style={styles.medicalRow}>
+                {childProfile.allergies.length > 0 && (
+                  <View style={[styles.medicalCard, { backgroundColor: `${palette.error}08`, borderColor: `${palette.error}20` }]}>
+                    <View style={styles.medicalHeader}>
+                      <Ionicons name="warning" size={14} color={palette.error} />
+                      <ThemedText style={[styles.medicalLabel, { color: palette.error }]}>Allergies</ThemedText>
+                    </View>
+                    <ThemedText style={styles.medicalText}>{childProfile.allergies.join(', ')}</ThemedText>
+                  </View>
+                )}
+                {childProfile.medications.length > 0 && (
+                  <View style={[styles.medicalCard, { backgroundColor: `${palette.warning}08`, borderColor: `${palette.warning}20` }]}>
+                    <View style={styles.medicalHeader}>
+                      <Ionicons name="medkit" size={14} color={palette.warning} />
+                      <ThemedText style={[styles.medicalLabel, { color: palette.warning }]}>Medications</ThemedText>
+                    </View>
+                    <ThemedText style={styles.medicalText}>{childProfile.medications.join(', ')}</ThemedText>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+        </SurfaceCard>
+      )}
 
       {/* Badge Progression Summary */}
       {progressionSummary && (
@@ -840,5 +1004,143 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#fff',
+  },
+
+  // Special Needs Card
+  specialNeedsCard: {
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  specialNeedsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  specialNeedsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  specialNeedsHeaderInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  specialNeedsTitle: {
+    fontSize: 15,
+  },
+  specialNeedsSubtitle: {
+    fontSize: 12,
+  },
+  specialNeedsSection: {
+    gap: Spacing.xs,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  disabilityCard: {
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    gap: Spacing.xs,
+  },
+  disabilityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  disabilityType: {
+    fontSize: 14,
+  },
+  diagnosisDate: {
+    fontSize: 11,
+  },
+  disabilityDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  supportSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs / 2,
+  },
+  supportText: {
+    fontSize: 13,
+    lineHeight: 18,
+    flex: 1,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.xs / 2,
+  },
+  preferenceTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
+  },
+  triggerTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
+  },
+  calmingTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.sm,
+  },
+  tagText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  noteCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    gap: Spacing.xs,
+  },
+  noteIcon: {
+    marginTop: 2,
+  },
+  noteText: {
+    fontSize: 13,
+    lineHeight: 19,
+    flex: 1,
+  },
+  medicalRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    flexWrap: 'wrap',
+  },
+  medicalCard: {
+    flex: 1,
+    minWidth: 140,
+    padding: Spacing.sm,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    gap: 4,
+  },
+  medicalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  medicalLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  medicalText: {
+    fontSize: 13,
   },
 });
