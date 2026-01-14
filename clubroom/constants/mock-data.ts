@@ -2266,6 +2266,16 @@ export const clubMemberships: ClubMembership[] = [
     inviteCode: 'LIONS-PARENT',
     squadIds: ['squad_juniors'],
   },
+  // Athlete membership at Lions FC
+  {
+    clubId: 'club_lions',
+    userId: 'user1',
+    role: 'MEMBER',
+    status: 'active',
+    joinSource: 'invite',
+    inviteCode: 'LIONS-ATHLETE',
+    squadIds: ['squad_u15'],
+  },
   // Eagles memberships
   {
     clubId: 'club_eagles',

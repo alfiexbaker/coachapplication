@@ -14,3 +14,4 @@ export { Clickable, type ClickableProps } from './clickable';
 export { StatCard, type StatCardProps } from './stat-card';
 export { PageHeader, type PageHeaderProps } from './page-header';
 export { SectionHeader, type SectionHeaderProps } from './section-header';
+export { ScreenHeader, type ScreenHeaderProps, SCREEN_TYPOGRAPHY } from './screen-header';

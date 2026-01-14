@@ -538,6 +538,39 @@ class BadgeService {
         };
         return mockStreaks[athleteId] ?? 1;
     }
+    /**
+     * Get streak info for display on home screen
+     */
+    async getStreakInfo(athleteId) {
+        const currentStreak = await this.getWeeklyStreak(athleteId);
+        // Find next milestone
+        const milestones = [2, 4, 8, 12];
+        const nextMilestone = milestones.find((m) => m > currentStreak) ?? milestones[milestones.length - 1];
+        const daysToNextMilestone = Math.max(0, nextMilestone - currentStreak);
+        // Generate motivational label
+        let streakLabel = '';
+        if (currentStreak >= 12) {
+            streakLabel = 'Champion streak!';
+        }
+        else if (currentStreak >= 8) {
+            streakLabel = 'Amazing commitment!';
+        }
+        else if (currentStreak >= 4) {
+            streakLabel = 'Great momentum!';
+        }
+        else if (currentStreak >= 2) {
+            streakLabel = 'Keep it going!';
+        }
+        else {
+            streakLabel = 'Start your streak!';
+        }
+        return {
+            currentStreak,
+            nextMilestone,
+            daysToNextMilestone,
+            streakLabel,
+        };
+    }
 }
 // Session milestone badge definitions
 const SESSION_MILESTONE_BADGES = [

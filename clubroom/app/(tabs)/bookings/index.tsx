@@ -15,7 +15,7 @@ import {
 } from '@/constants/mock-data';
 import { BookingSummary, SessionOffering } from '@/constants/types';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
-import { sessionInviteService } from '@/services/session-invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite-service';
 import { createLogger } from '@/utils/logger';
 import { hasChildren } from '@/utils/user-helpers';
 
@@ -178,8 +178,8 @@ export default function BookingsScreen() {
   };
 
   const handleCreateSessionPress = () => {
-    logger.press('CreateSessionButton', { route: '/session/create' });
-    router.push('/session/create');
+    logger.press('CreateSessionButton', { route: '/sessions/create' });
+    router.push('/sessions/create');
   };
 
   const handleFindCoachPress = () => {

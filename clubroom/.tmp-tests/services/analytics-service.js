@@ -17,12 +17,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.coachAnalyticsService = exports.analyticsService = void 0;
 const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
+const booking_types_1 = require("@/constants/booking-types");
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('AnalyticsService');
 const ANALYTICS_STORAGE_KEY = 'athlete_analytics';
 const GOALS_STORAGE_KEY = 'athlete_goals';
 const COACH_ANALYTICS_STORAGE_KEY = 'coach_analytics';
 const USE_MOCK = true;
 // Helper constants
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PLATFORM_FEE_PERCENT = 10;
 // Mock analytics data
 const MOCK_ANALYTICS = [
@@ -182,7 +184,7 @@ async function loadAnalytics() {
             return JSON.parse(stored);
     }
     catch (error) {
-        console.error('[AnalyticsService] Failed to load analytics:', error);
+        logger.error('Failed to load analytics', error);
     }
     return [...MOCK_ANALYTICS];
 }
@@ -193,7 +195,7 @@ async function loadGoals() {
             return JSON.parse(stored);
     }
     catch (error) {
-        console.error('[AnalyticsService] Failed to load goals:', error);
+        logger.error('Failed to load goals', error);
     }
     return [...MOCK_GOALS];
 }
@@ -202,7 +204,7 @@ async function saveGoals(goals) {
         await async_storage_1.default.setItem(GOALS_STORAGE_KEY, JSON.stringify(goals));
     }
     catch (error) {
-        console.error('[AnalyticsService] Failed to save goals:', error);
+        logger.error('Failed to save goals', error);
     }
 }
 exports.analyticsService = {
@@ -612,7 +614,7 @@ function generateMockPeakHours() {
             const maxSessions = 5;
             peakHours.push({
                 dayOfWeek: day,
-                dayName: DAY_NAMES[day],
+                dayName: booking_types_1.DAY_NAMES[day],
                 hour,
                 sessionCount,
                 intensity: sessionCount / maxSessions,
@@ -822,7 +824,7 @@ async function loadCoachAnalytics() {
             return JSON.parse(stored);
     }
     catch (error) {
-        console.error('[AnalyticsService] Failed to load coach analytics:', error);
+        logger.error('Failed to load coach analytics', error);
     }
     return { ...MOCK_COACH_ANALYTICS };
 }
@@ -831,7 +833,7 @@ async function saveCoachAnalytics(analytics) {
         await async_storage_1.default.setItem(COACH_ANALYTICS_STORAGE_KEY, JSON.stringify(analytics));
     }
     catch (error) {
-        console.error('[AnalyticsService] Failed to save coach analytics:', error);
+        logger.error('Failed to save coach analytics', error);
     }
 }
 /**

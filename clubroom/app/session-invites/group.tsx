@@ -12,7 +12,7 @@ import { InviteAthleteModal, type Athlete, type Squad } from '@/components/coach
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { sessionInviteService } from '@/services/session-invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite-service';
 import { rosterService } from '@/services/roster-service';
 import type { TimeSlot, RosterEntry } from '@/constants/types';
 

@@ -359,22 +359,6 @@ export function UserHomeScreen() {
           </View>
         )}
 
-        {/* View Progress CTA */}
-        <SurfaceCard
-          style={[styles.progressCTA, { backgroundColor: `${palette.success}08`, borderColor: `${palette.success}25` }]}
-          onPress={() => router.push('/development/my-progress')}
-        >
-          <View style={[styles.progressCTAIcon, { backgroundColor: `${palette.success}15` }]}>
-            <Ionicons name="analytics" size={24} color={palette.success} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText type="defaultSemiBold">View My Progress</ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-              Track your skills, goals, and achievements
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={palette.success} />
-        </SurfaceCard>
       </ScrollView>
     </SafeAreaView>
   );
@@ -640,21 +624,5 @@ const styles = StyleSheet.create({
   clubBadgeText: {
     fontSize: 16,
     fontWeight: '700',
-  },
-  // Progress CTA
-  progressCTA: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.md,
-    borderWidth: 1,
-    marginTop: Spacing.sm,
-  },
-  progressCTAIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

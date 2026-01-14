@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import {
-  SessionNoteFields,
-  SessionNoteRecord,
-  getSessionNote,
-  saveSessionNote,
-} from '@/services/session-notes-service';
+import { progressService } from '@/services/progress-service';
+import type { SessionNoteFields, SessionNoteRecord } from '@/services/progress-service';
 import { createLogger } from '@/utils/logger';
 
 interface UseSessionNoteResult {
@@ -33,7 +29,7 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
     setError(null);
 
     try {
-      const record = await getSessionNote(bookingId);
+      const record = await progressService.getSessionNote(bookingId);
       setNote(record);
       logger.debug('Session note loaded', { bookingId, hasNote: Boolean(record) });
     } catch (err) {
@@ -56,7 +52,7 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
 
       try {
         logger.info('Saving session note', { bookingId, focusCount: fields.focus?.length ?? 0 });
-        const record = await saveSessionNote(bookingId, fields);
+        const record = await progressService.saveSessionNote(bookingId, fields);
         setNote(record);
         logger.success('Session note saved', { bookingId, updatedAt: record.updatedAt });
         return record;
@@ -85,7 +81,7 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
       setError(null);
       logger.debug('Loading session note on mount', { bookingId });
       try {
-        const record = await getSessionNote(bookingId);
+        const record = await progressService.getSessionNote(bookingId);
         if (active) setNote(record);
       } catch (err) {
         logger.error('Failed to load session note', err);

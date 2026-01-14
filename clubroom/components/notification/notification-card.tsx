@@ -34,11 +34,13 @@ export function NotificationCard({
   item,
   onPress,
   onShare,
+  onAddToFeed,
   showTypeIndicator = true,
 }: {
   item: ExtendedNotificationItem;
   onPress?: () => void;
   onShare?: () => void;
+  onAddToFeed?: () => void;
   showTypeIndicator?: boolean;
 }) {
   const scheme = useColorScheme() ?? 'light';
@@ -115,20 +117,30 @@ export function NotificationCard({
             </View>
           ) : null}
 
-          {/* Action button for badge sharing */}
-          {item.actionLabel && item.type === 'badge' && !item.handled ? (
-            <Clickable
-              onPress={() => {
-                onShare?.();
-              }}
-            >
-              <View style={[styles.actionChip, { borderColor: palette.tint }]}>
-                <Ionicons name="share-outline" size={14} color={palette.tint} />
-                <ThemedText style={[styles.actionText, { color: palette.tint }]}>
-                  {item.actionLabel}
-                </ThemedText>
-              </View>
-            </Clickable>
+          {/* Action buttons for badge */}
+          {item.type === 'badge' && !item.handled ? (
+            <View style={styles.actionRow}>
+              {onAddToFeed && (
+                <Clickable onPress={onAddToFeed}>
+                  <View style={[styles.actionChip, { backgroundColor: palette.tint, borderColor: palette.tint }]}>
+                    <Ionicons name="add-circle-outline" size={14} color="#fff" />
+                    <ThemedText style={[styles.actionText, { color: '#fff' }]}>
+                      Add to Feed
+                    </ThemedText>
+                  </View>
+                </Clickable>
+              )}
+              {onShare && (
+                <Clickable onPress={onShare}>
+                  <View style={[styles.actionChip, { borderColor: palette.border }]}>
+                    <Ionicons name="eye-outline" size={14} color={palette.text} />
+                    <ThemedText style={[styles.actionText, { color: palette.text }]}>
+                      View
+                    </ThemedText>
+                  </View>
+                </Clickable>
+              )}
+            </View>
           ) : null}
 
           {/* Time label */}
@@ -204,6 +216,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 4,
   },
+  actionRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
   actionChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -212,8 +229,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    alignSelf: 'flex-start',
-    marginTop: Spacing.xs,
   },
   actionText: {
     fontSize: 12,

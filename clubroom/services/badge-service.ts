@@ -259,6 +259,41 @@ class BadgeService {
   }
 
   /**
+   * Post a badge award to the user's club feeds
+   * Called when user taps "Add to Feed" from notification
+   */
+  async postBadgeToFeed(awardId: string): Promise<void> {
+    const stored = await this.getStoredAwards();
+    const merged = this.mergeAwards(stored);
+    const award = merged.find((a) => a.id === awardId);
+
+    if (!award) {
+      this.logger.warn('badge_not_found_for_feed_post', { awardId });
+      return;
+    }
+
+    // If already posted, skip
+    if (award.feedPostId) {
+      this.logger.debug('badge_already_posted_to_feed', { awardId });
+      return;
+    }
+
+    // Post to all clubs the athlete is in
+    await this.createAchievementPosts(award);
+
+    // Mark as shared/posted
+    const updatedAward = { ...award, shared: true, addedToFeedAt: new Date().toISOString() };
+    const nextStored = [updatedAward, ...stored.filter((a) => a.id !== awardId)];
+    await storageService.setItem(STORAGE_KEY, nextStored);
+
+    this.logger.info('badge_posted_to_feed_by_user', {
+      awardId,
+      athleteId: award.athleteId,
+      badgeLabel: award.badgeLabel,
+    });
+  }
+
+  /**
    * Mark a badge as seen by parent
    */
   async markSeenByParent(awardId: string): Promise<BadgeAward | undefined> {

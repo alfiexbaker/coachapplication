@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { PageHeader } from '@/components/primitives/page-header';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
@@ -533,9 +533,9 @@ export default function FeedScreen() {
   return (
     <PageContainer
       header={
-        <PageHeader
+        <ScreenHeader
           title="Feed"
-          subtitle={clubs.length > 0 ? `${clubs.length} club${clubs.length > 1 ? 's' : ''}` : 'Your club updates'}
+          subtitle="Latest updates"
         />
       }
       gap={0}

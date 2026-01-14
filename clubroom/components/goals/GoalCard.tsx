@@ -16,7 +16,7 @@ import { MilestoneList } from './MilestoneList';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import type { Goal } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { goalService } from '@/services/goal-service';
+import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
 interface GoalCardProps {
@@ -49,9 +49,9 @@ export function GoalCard({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const { label: statusLabel, color: statusColor } = goalService.getStatusInfo(goal.status);
-  const { color: categoryColor } = goalService.getCategoryInfo(goal.category);
-  const isOverdue = goalService.isOverdue(goal);
+  const { label: statusLabel, color: statusColor } = progressService.getStatusInfo(goal.status);
+  const { color: categoryColor } = progressService.getCategoryInfo(goal.category);
+  const isOverdue = progressService.isOverdue(goal);
   const completedMilestones = goal.milestones.filter((m) => m.isCompleted).length;
 
   if (variant === 'compact') {
@@ -81,7 +81,7 @@ export function GoalCard({
                     { color: isOverdue ? palette.error : palette.muted },
                   ]}
                 >
-                  {goalService.formatTargetDate(goal.targetDate)}
+                  {progressService.formatTargetDate(goal.targetDate)}
                 </ThemedText>
               </View>
             )}

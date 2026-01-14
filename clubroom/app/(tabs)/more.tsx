@@ -3,10 +3,10 @@ import { CoachAnalyticsScreen } from '@/components/coach/analytics-screen';
 import { UserFindCoachScreen } from '@/components/user/find-coach-screen';
 import { ParentDevelopmentScreen } from '@/components/parent/development-screen';
 import { View, StyleSheet } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 
 export default function MoreScreen() {
   const { currentUser } = useAuth();
@@ -27,10 +27,10 @@ export default function MoreScreen() {
     default:
       return (
         <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-          <View style={styles.content}>
-            <ThemedText type="title">More</ThemedText>
-            <ThemedText style={{ color: palette.muted }}>Additional features</ThemedText>
-          </View>
+          <ScreenHeader
+            title="More"
+            subtitle="Settings and options"
+          />
         </SafeAreaView>
       );
   }
@@ -39,12 +39,5 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-    padding: 20,
   },
 });

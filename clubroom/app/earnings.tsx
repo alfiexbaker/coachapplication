@@ -15,6 +15,7 @@ import { useFocusEffect } from 'expo-router';
 import { StatCard } from '@/components/primitives/stat-card';
 import { TransactionListItem } from '@/components/earnings/transaction-list-item';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Radii, Spacing } from '@/constants/theme';
@@ -199,13 +200,10 @@ export default function EarningsScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText type="title" style={styles.title}>Earnings</ThemedText>
-          <ThemedText style={{ color: palette.muted }}>
-            Track your income and manage withdrawals
-          </ThemedText>
-        </View>
+        <ScreenHeader
+          title="Earnings"
+          subtitle="Track your income"
+        />
 
         {/* Balance Card */}
         <SurfaceCard style={styles.balanceCard}>
@@ -646,15 +644,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     paddingBottom: Spacing['2xl'],
-  },
-  header: {
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
   },
   sectionTitle: {
     marginTop: Spacing.sm,

@@ -7,7 +7,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { RatingStars } from '@/components/review/rating-stars';
-import { SessionNoteFields } from '@/services/session-notes-service';
+import { SessionNoteFields } from '@/services/progress-service';
 
 const FOCUS_OPTIONS = ['Passing', 'Shooting', 'Dribbling', 'Defending', 'Conditioning'];
 const ATTENDANCE = ['Present', 'Late', 'No-show'];

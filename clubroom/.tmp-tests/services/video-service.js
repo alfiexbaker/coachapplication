@@ -2,8 +2,15 @@
 /**
  * Video Service
  *
- * Handles session video upload, storage, and playback.
- * Enables coaches to share training footage with parents/athletes.
+ * Handles session video upload, storage, playback, and annotations.
+ * Enables coaches to share training footage with parents/athletes and add
+ * timestamped annotations for feedback.
+ *
+ * Features:
+ * - Video upload, storage, and playback management
+ * - Video annotation CRUD operations
+ * - Annotation filtering, search, and export
+ * - Video sharing and visibility controls
  *
  * API Integration Notes:
  * - POST /api/videos/upload-url - Get signed upload URL (S3/GCS)
@@ -11,16 +18,51 @@
  * - GET /api/videos?coachId=X - Coach's videos
  * - GET /api/videos?athleteId=X - Videos featuring athlete
  * - POST /api/videos/:id/annotations - Add annotation
+ * - PATCH /api/videos/:id/annotations/:annotationId - Update annotation
+ * - DELETE /api/videos/:id/annotations/:annotationId - Delete annotation
+ * - GET /api/videos/:id/annotations/export - Export annotations
  * - PATCH /api/videos/:id/share - Update sharing
  */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.videoService = void 0;
+exports.videoService = exports.ANNOTATION_TYPE_CONFIG = void 0;
 const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('VideoService');
 const STORAGE_KEY = 'session_videos';
+const ANNOTATIONS_STORAGE_KEY = 'video_annotations';
 const USE_MOCK = true;
+/**
+ * Annotation type configuration with colors and labels
+ */
+exports.ANNOTATION_TYPE_CONFIG = {
+    HIGHLIGHT: {
+        label: 'Highlight',
+        color: '#4CAF50',
+        icon: 'star',
+        description: 'Mark excellent technique or achievements',
+    },
+    IMPROVEMENT: {
+        label: 'Improvement',
+        color: '#FF9800',
+        icon: 'trending-up',
+        description: 'Note areas that need work',
+    },
+    TECHNIQUE: {
+        label: 'Technique',
+        color: '#2196F3',
+        icon: 'football',
+        description: 'Technical instruction or analysis',
+    },
+    GENERAL: {
+        label: 'General',
+        color: '#9E9E9E',
+        icon: 'chatbubble',
+        description: 'General comments or observations',
+    },
+};
 // Mock videos for development
 const MOCK_VIDEOS = [
     {
@@ -102,7 +144,7 @@ async function loadFromStorage() {
             return JSON.parse(stored);
     }
     catch (error) {
-        console.error('[VideoService] Failed to load from storage:', error);
+        logger.error('Failed to load from storage', error);
     }
     return [...MOCK_VIDEOS];
 }
@@ -111,7 +153,7 @@ async function saveToStorage(videos) {
         await async_storage_1.default.setItem(STORAGE_KEY, JSON.stringify(videos));
     }
     catch (error) {
-        console.error('[VideoService] Failed to save to storage:', error);
+        logger.error('Failed to save to storage', error);
     }
 }
 exports.videoService = {
@@ -354,6 +396,318 @@ exports.videoService = {
             annotationCount: videos.reduce((sum, v) => sum + v.annotations.length, 0),
         };
     },
+    // ==================== ANNOTATION METHODS ====================
+    /**
+     * Get an annotated video with all its annotations
+     */
+    async getAnnotatedVideo(videoId) {
+        const video = await this.getVideo(videoId);
+        if (!video)
+            return null;
+        return {
+            id: video.id,
+            sessionId: video.sessionId,
+            videoUrl: video.videoUrl,
+            thumbnailUrl: video.thumbnailUrl,
+            duration: video.duration,
+            title: video.title,
+            description: video.description,
+            coachId: video.coachId,
+            coachName: video.coachName,
+            athleteIds: video.athleteIds,
+            athleteNames: video.athleteNames,
+            annotations: video.annotations.sort((a, b) => a.timestamp - b.timestamp),
+            createdAt: video.createdAt,
+            visibility: video.visibility,
+            sharedWith: video.sharedWith,
+            viewCount: video.viewCount,
+            tags: video.tags,
+        };
+    },
+    /**
+     * Get all annotations for a video
+     */
+    async getVideoAnnotations(videoId) {
+        const video = await this.getVideo(videoId);
+        if (!video)
+            return [];
+        return video.annotations.sort((a, b) => a.timestamp - b.timestamp);
+    },
+    /**
+     * Add a new annotation to a video (enhanced version with creator info)
+     */
+    async createAnnotation(videoId, input, createdBy, createdByName) {
+        const annotation = await this.addAnnotation(videoId, input.timestamp, input.label, input.type, input.note);
+        // Enhance with creator info if provided
+        if (createdBy || createdByName) {
+            return {
+                ...annotation,
+                createdBy,
+                createdByName,
+                createdAt: new Date().toISOString(),
+            };
+        }
+        return annotation;
+    },
+    /**
+     * Update an existing annotation
+     */
+    async updateAnnotation(videoId, annotationId, updates) {
+        const video = await this.getVideo(videoId);
+        if (!video)
+            return null;
+        const annotationIndex = video.annotations.findIndex((a) => a.id === annotationId);
+        if (annotationIndex === -1)
+            return null;
+        const existingAnnotation = video.annotations[annotationIndex];
+        const updatedAnnotation = {
+            ...existingAnnotation,
+            label: updates.label ?? existingAnnotation.label,
+            note: updates.note ?? existingAnnotation.note,
+            type: updates.type ?? existingAnnotation.type,
+            updatedAt: new Date().toISOString(),
+        };
+        // In mock mode, we need to remove and re-add to update
+        if (USE_MOCK) {
+            await this.removeAnnotation(videoId, annotationId);
+            await this.addAnnotation(videoId, updatedAnnotation.timestamp, updatedAnnotation.label, updatedAnnotation.type, updatedAnnotation.note);
+            // Return the updated annotation with the original ID
+            return updatedAnnotation;
+        }
+        const response = await fetch(`/api/videos/${videoId}/annotations/${annotationId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+        });
+        if (!response.ok)
+            return null;
+        return response.json();
+    },
+    /**
+     * Delete an annotation from a video
+     */
+    async deleteAnnotation(videoId, annotationId) {
+        try {
+            await this.removeAnnotation(videoId, annotationId);
+            return true;
+        }
+        catch {
+            return false;
+        }
+    },
+    /**
+     * Export annotations for sharing/download
+     */
+    async exportAnnotations(videoId) {
+        const video = await this.getVideo(videoId);
+        if (!video)
+            return null;
+        const formatTimestamp = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        };
+        const getTypeLabel = (type) => {
+            return exports.ANNOTATION_TYPE_CONFIG[type]?.label ?? type;
+        };
+        return {
+            videoTitle: video.title,
+            videoDuration: video.duration,
+            coachName: video.coachName,
+            athleteNames: video.athleteNames,
+            exportedAt: new Date().toISOString(),
+            annotations: video.annotations
+                .sort((a, b) => a.timestamp - b.timestamp)
+                .map((ann) => ({
+                timestamp: ann.timestamp,
+                timestampFormatted: formatTimestamp(ann.timestamp),
+                label: ann.label,
+                note: ann.note,
+                type: ann.type,
+                typeLabel: getTypeLabel(ann.type),
+            })),
+        };
+    },
+    /**
+     * Get annotations grouped by type
+     */
+    async getAnnotationsByType(videoId) {
+        const annotations = await this.getVideoAnnotations(videoId);
+        const grouped = {
+            HIGHLIGHT: [],
+            IMPROVEMENT: [],
+            TECHNIQUE: [],
+            GENERAL: [],
+        };
+        for (const annotation of annotations) {
+            grouped[annotation.type].push(annotation);
+        }
+        return grouped;
+    },
+    /**
+     * Get annotation statistics for a video
+     */
+    async getAnnotationStats(videoId) {
+        const video = await this.getVideo(videoId);
+        if (!video) {
+            return {
+                total: 0,
+                byType: { HIGHLIGHT: 0, IMPROVEMENT: 0, TECHNIQUE: 0, GENERAL: 0 },
+                averagePerMinute: 0,
+            };
+        }
+        const byType = {
+            HIGHLIGHT: 0,
+            IMPROVEMENT: 0,
+            TECHNIQUE: 0,
+            GENERAL: 0,
+        };
+        for (const ann of video.annotations) {
+            byType[ann.type]++;
+        }
+        const durationMinutes = video.duration / 60;
+        const averagePerMinute = durationMinutes > 0
+            ? video.annotations.length / durationMinutes
+            : 0;
+        return {
+            total: video.annotations.length,
+            byType,
+            averagePerMinute: Math.round(averagePerMinute * 10) / 10,
+        };
+    },
+    /**
+     * Find annotations near a specific timestamp
+     */
+    async findAnnotationsNearTimestamp(videoId, timestamp, thresholdSeconds = 5) {
+        const annotations = await this.getVideoAnnotations(videoId);
+        return annotations.filter((ann) => Math.abs(ann.timestamp - timestamp) <= thresholdSeconds);
+    },
+    /**
+     * Get the next annotation after a given timestamp
+     */
+    async getNextAnnotation(videoId, currentTimestamp) {
+        const annotations = await this.getVideoAnnotations(videoId);
+        for (const ann of annotations) {
+            if (ann.timestamp > currentTimestamp) {
+                return ann;
+            }
+        }
+        return null;
+    },
+    /**
+     * Get the previous annotation before a given timestamp
+     */
+    async getPreviousAnnotation(videoId, currentTimestamp) {
+        const annotations = await this.getVideoAnnotations(videoId);
+        let previous = null;
+        for (const ann of annotations) {
+            if (ann.timestamp >= currentTimestamp)
+                break;
+            previous = ann;
+        }
+        return previous;
+    },
+    /**
+     * Bulk add annotations (useful for importing)
+     */
+    async bulkAddAnnotations(videoId, inputs, createdBy, createdByName) {
+        const results = [];
+        for (const input of inputs) {
+            const annotation = await this.createAnnotation(videoId, input, createdBy, createdByName);
+            results.push(annotation);
+        }
+        return results;
+    },
+    /**
+     * Clear all annotations from a video
+     */
+    async clearAnnotations(videoId) {
+        const video = await this.getVideo(videoId);
+        if (!video)
+            return false;
+        for (const annotation of video.annotations) {
+            await this.removeAnnotation(videoId, annotation.id);
+        }
+        return true;
+    },
+    /**
+     * Format timestamp for display
+     */
+    formatTimestamp(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    },
+    /**
+     * Parse timestamp from string format (e.g., "1:30")
+     */
+    parseTimestamp(timestampStr) {
+        const parts = timestampStr.split(':');
+        if (parts.length !== 2)
+            return 0;
+        const mins = parseInt(parts[0], 10) || 0;
+        const secs = parseInt(parts[1], 10) || 0;
+        return mins * 60 + secs;
+    },
+    /**
+     * Get annotation type info
+     */
+    getTypeInfo(type) {
+        return exports.ANNOTATION_TYPE_CONFIG[type];
+    },
+    /**
+     * Get all annotation types
+     */
+    getAllTypes() {
+        return ['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL'];
+    },
+    /**
+     * Validate annotation input
+     */
+    validateInput(input, videoDuration) {
+        const errors = [];
+        if (!input.label || input.label.trim().length === 0) {
+            errors.push('Label is required');
+        }
+        if (input.label && input.label.length > 100) {
+            errors.push('Label must be 100 characters or less');
+        }
+        if (input.note && input.note.length > 500) {
+            errors.push('Note must be 500 characters or less');
+        }
+        if (input.timestamp < 0) {
+            errors.push('Timestamp cannot be negative');
+        }
+        if (input.timestamp > videoDuration) {
+            errors.push('Timestamp cannot exceed video duration');
+        }
+        if (!this.getAllTypes().includes(input.type)) {
+            errors.push('Invalid annotation type');
+        }
+        return errors;
+    },
+    /**
+     * Generate shareable text summary of annotations
+     */
+    async generateTextSummary(videoId) {
+        const exportData = await this.exportAnnotations(videoId);
+        if (!exportData)
+            return '';
+        let summary = `Video: ${exportData.videoTitle}\n`;
+        summary += `Coach: ${exportData.coachName}\n`;
+        summary += `Athletes: ${exportData.athleteNames.join(', ')}\n`;
+        summary += `Duration: ${this.formatTimestamp(exportData.videoDuration)}\n\n`;
+        summary += `--- Annotations ---\n\n`;
+        for (const ann of exportData.annotations) {
+            summary += `[${ann.timestampFormatted}] ${ann.typeLabel}: ${ann.label}\n`;
+            if (ann.note) {
+                summary += `   ${ann.note}\n`;
+            }
+            summary += '\n';
+        }
+        return summary;
+    },
+    // ==================== UTILITY METHODS ====================
     /**
      * Format duration for display
      */

@@ -16,13 +16,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { SocialLinksEditor } from '@/components/profile/social-links-editor';
 import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { FOOTBALL_OBJECTIVES } from '@/constants/booking-types';
-import { coachProfiles } from '@/constants/mock-data';
+import { coachProfiles, mockUserProfile } from '@/constants/mock-data';
 import { CoachExperience, CoachLanguage, FootballObjective, SocialLinks } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { isCoach } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('EditProfile');
@@ -55,24 +57,36 @@ export default function EditProfileScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  // For demo, use first coach - in production, fetch by currentUser.id
-  const coach = coachProfiles[0];
+  // Detect user role - for demo, using mockUserProfile to determine role
+  // In production, this would come from authentication context
+  const currentUser = mockUserProfile.role === 'Coach' ? { ...mockUserProfile, type: 'COACH' as const } : mockUserProfile;
+  const userIsCoach = isCoach(currentUser);
 
-  const [fullName, setFullName] = useState(coach.fullName);
-  const [bio, setBio] = useState(coach.bio || '');
-  const [email, setEmail] = useState(coach.email || '');
-  const [phone, setPhone] = useState(coach.phone || '');
-  const [website, setWebsite] = useState(coach.website || '');
-  const [priceMin, setPriceMin] = useState(coach.priceRange.minUsd.toString());
-  const [priceMax, setPriceMax] = useState(coach.priceRange.maxUsd.toString());
-  const [selectedFocuses, setSelectedFocuses] = useState<FootballObjective[]>(coach.footballFocuses);
-  const [experiences, setExperiences] = useState<CoachExperience[]>(coach.experiences || []);
+  // Get initial data based on role
+  const coach = userIsCoach ? coachProfiles[0] : null;
+  const user = !userIsCoach ? mockUserProfile : null;
+
+  // Common fields for all users
+  const [fullName, setFullName] = useState(userIsCoach ? coach!.fullName : user!.fullName);
+  const [bio, setBio] = useState(userIsCoach ? (coach!.bio || '') : (user!.bio || ''));
+  const [email, setEmail] = useState(userIsCoach ? (coach!.email || '') : user!.email);
+  const [phone, setPhone] = useState(userIsCoach ? (coach!.phone || '') : (user!.phone || ''));
+
+  // Parent-specific fields
+  const [children, setChildren] = useState(user?.children || []);
+
+  // Coach-specific fields
+  const [website, setWebsite] = useState(coach?.website || '');
+  const [priceMin, setPriceMin] = useState(coach?.priceRange.minUsd.toString() || '50');
+  const [priceMax, setPriceMax] = useState(coach?.priceRange.maxUsd.toString() || '80');
+  const [selectedFocuses, setSelectedFocuses] = useState<FootballObjective[]>(coach?.footballFocuses || []);
+  const [experiences, setExperiences] = useState<CoachExperience[]>(coach?.experiences || []);
   const [experienceDraft, setExperienceDraft] = useState<CoachExperience>(createBlankExperience());
   const [isExperienceModalVisible, setExperienceModalVisible] = useState(false);
-  const [languages, setLanguages] = useState<CoachLanguage[]>(coach.languages || []);
+  const [languages, setLanguages] = useState<CoachLanguage[]>(coach?.languages || []);
   const [languageDraft, setLanguageDraft] = useState<CoachLanguage>(createBlankLanguage());
   const [isLanguageModalVisible, setLanguageModalVisible] = useState(false);
-  const [socialLinks, setSocialLinks] = useState<SocialLinks>(coach.socialLinks || {});
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(coach?.socialLinks || {});
 
   const toggleFocus = (focus: FootballObjective) => {
     if (selectedFocuses.includes(focus)) {
@@ -132,29 +146,60 @@ export default function EditProfileScreen() {
     setLanguages((prev) => prev.filter((lang) => lang.id !== id));
   };
 
-  const handleSave = () => {
-    const payload = {
-      ...coach,
-      fullName,
-      bio,
-      email,
-      phone,
-      website,
-      priceRange: {
-        ...coach.priceRange,
-        minUsd: Number(priceMin),
-        maxUsd: Number(priceMax),
-      },
-      footballFocuses: selectedFocuses,
-      experiences,
-      languages,
-      socialLinks,
-    };
+  const addChild = () => {
+    const newChild = { name: '', age: 0 };
+    setChildren([...children, newChild]);
+  };
 
-    logger.info('Profile payload ready for API sync', payload);
-    Alert.alert('Success', 'Profile updated successfully', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+  const updateChild = (index: number, field: 'name' | 'age', value: string | number) => {
+    const updated = [...children];
+    updated[index] = { ...updated[index], [field]: value };
+    setChildren(updated);
+  };
+
+  const removeChild = (index: number) => {
+    setChildren(children.filter((_, i) => i !== index));
+  };
+
+  const handleSave = () => {
+    if (userIsCoach) {
+      const payload = {
+        ...coach!,
+        fullName,
+        bio,
+        email,
+        phone,
+        website,
+        priceRange: {
+          ...coach!.priceRange,
+          minUsd: Number(priceMin),
+          maxUsd: Number(priceMax),
+        },
+        footballFocuses: selectedFocuses,
+        experiences,
+        languages,
+        socialLinks,
+      };
+
+      logger.info('Coach profile payload ready for API sync', payload);
+      Alert.alert('Success', 'Profile updated successfully', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } else {
+      const payload = {
+        ...user!,
+        fullName,
+        bio,
+        email,
+        phone,
+        children,
+      };
+
+      logger.info('User profile payload ready for API sync', payload);
+      Alert.alert('Success', 'Profile updated successfully', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    }
   };
 
   const pickImage = (type: 'profile' | 'cover') => {
@@ -172,43 +217,50 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
-        <Pressable onPress={() => router.back()}>
-          <Ionicons name="close" size={28} color={palette.foreground} />
-        </Pressable>
-        <ThemedText type="subtitle">Edit Profile</ThemedText>
-        <Pressable onPress={handleSave}>
-          <ThemedText style={[styles.saveButton, { color: palette.tint }]}>Save</ThemedText>
-        </Pressable>
-      </View>
+      <PageHeader
+        title="Edit Profile"
+        showBack
+        action="Save"
+        onActionPress={handleSave}
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.wrapper}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Cover Photo */}
-          <SurfaceCard style={styles.section}>
-            <ThemedText type="subtitle">Cover Photo</ThemedText>
-            <Pressable onPress={() => pickImage('cover')} style={styles.coverPhotoContainer}>
-              {coach.coverPhotoUrl ? (
-                <Image source={{ uri: coach.coverPhotoUrl }} style={styles.coverPhoto} />
-              ) : (
-                <View style={[styles.coverPhoto, { backgroundColor: palette.border }]} />
-              )}
-              <View style={[styles.photoOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                <Ionicons name="camera" size={32} color="#FFFFFF" />
-                <ThemedText style={styles.overlayText} lightColor="#FFFFFF">
-                  Change Cover
-                </ThemedText>
-              </View>
-            </Pressable>
-          </SurfaceCard>
+          {/* Cover Photo - Coach only */}
+          {userIsCoach && (
+            <SurfaceCard style={styles.section}>
+              <ThemedText type="subtitle">Cover Photo</ThemedText>
+              <Pressable onPress={() => pickImage('cover')} style={styles.coverPhotoContainer}>
+                {coach!.coverPhotoUrl ? (
+                  <Image source={{ uri: coach!.coverPhotoUrl }} style={styles.coverPhoto} />
+                ) : (
+                  <View style={[styles.coverPhoto, { backgroundColor: palette.border }]} />
+                )}
+                <View style={[styles.photoOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                  <Ionicons name="camera" size={32} color="#FFFFFF" />
+                  <ThemedText style={styles.overlayText} lightColor="#FFFFFF">
+                    Change Cover
+                  </ThemedText>
+                </View>
+              </Pressable>
+            </SurfaceCard>
+          )}
 
           {/* Profile Photo */}
           <SurfaceCard style={styles.section}>
             <ThemedText type="subtitle">Profile Photo</ThemedText>
             <Pressable onPress={() => pickImage('profile')} style={styles.avatarContainer}>
-              <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} />
+              {userIsCoach ? (
+                <Image source={{ uri: coach!.profilePhotoUrl }} style={styles.avatar} />
+              ) : user!.profilePhotoUrl ? (
+                <Image source={{ uri: user!.profilePhotoUrl }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: palette.border }]}>
+                  <Ionicons name="person" size={48} color={palette.muted} />
+                </View>
+              )}
               <View style={[styles.avatarOverlay, { backgroundColor: palette.tint }]}>
                 <Ionicons name="camera" size={20} color="#FFFFFF" />
               </View>
@@ -226,7 +278,7 @@ export default function EditProfileScreen() {
                 onChangeText={setFullName}
                 placeholder="Your full name"
                 placeholderTextColor={palette.muted}
-                style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
+                style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
               />
             </View>
 
@@ -235,7 +287,7 @@ export default function EditProfileScreen() {
               <TextInput
                 value={bio}
                 onChangeText={setBio}
-                placeholder="Tell parents about your coaching philosophy..."
+                placeholder={userIsCoach ? "Tell parents about your coaching philosophy..." : "A bit about yourself..."}
                 placeholderTextColor={palette.muted}
                 multiline
                 numberOfLines={4}
@@ -243,10 +295,10 @@ export default function EditProfileScreen() {
                 style={[
                   styles.input,
                   styles.textArea,
-                  { borderColor: palette.border, backgroundColor: palette.card },
+                  { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground },
                 ]}
               />
-              <ThemedText style={styles.helper}>{bio.length} / 500 characters</ThemedText>
+              {userIsCoach && <ThemedText style={styles.helper}>{bio.length} / 500 characters</ThemedText>}
             </View>
           </SurfaceCard>
 
@@ -261,9 +313,9 @@ export default function EditProfileScreen() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                placeholder="coach@email.com"
+                placeholder={userIsCoach ? "coach@email.com" : "your@email.com"}
                 placeholderTextColor={palette.muted}
-                style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
+                style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
               />
             </View>
 
@@ -275,281 +327,335 @@ export default function EditProfileScreen() {
                 keyboardType="phone-pad"
                 placeholder="+1 (555) 123-4567"
                 placeholderTextColor={palette.muted}
-                style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
+                style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
               />
             </View>
 
-            <View style={styles.fieldGroup}>
-              <ThemedText style={styles.label}>Website</ThemedText>
-              <TextInput
-                value={website}
-                onChangeText={setWebsite}
-                keyboardType="url"
-                autoCapitalize="none"
-                placeholder="https://yourwebsite.com"
-                placeholderTextColor={palette.muted}
-                style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
-              />
-            </View>
-          </SurfaceCard>
-
-          {/* Pricing */}
-          <SurfaceCard style={styles.section}>
-            <ThemedText type="subtitle">Session Pricing</ThemedText>
-
-            <View style={styles.priceRow}>
-              <View style={[styles.fieldGroup, styles.priceField]}>
-                <ThemedText style={styles.label}>Min Price (USD)</ThemedText>
+            {userIsCoach && (
+              <View style={styles.fieldGroup}>
+                <ThemedText style={styles.label}>Website</ThemedText>
                 <TextInput
-                  value={priceMin}
-                  onChangeText={setPriceMin}
-                  keyboardType="number-pad"
-                  placeholder="90"
+                  value={website}
+                  onChangeText={setWebsite}
+                  keyboardType="url"
+                  autoCapitalize="none"
+                  placeholder="https://yourwebsite.com"
                   placeholderTextColor={palette.muted}
-                  style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
+                  style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
                 />
               </View>
-
-              <View style={[styles.fieldGroup, styles.priceField]}>
-                <ThemedText style={styles.label}>Max Price (USD)</ThemedText>
-                <TextInput
-                  value={priceMax}
-                  onChangeText={setPriceMax}
-                  keyboardType="number-pad"
-                  placeholder="140"
-                  placeholderTextColor={palette.muted}
-                  style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
-                />
-              </View>
-            </View>
-          </SurfaceCard>
-
-          {/* Coaching Specialties */}
-          <SurfaceCard style={styles.section}>
-            <ThemedText type="subtitle">Coaching Specialties</ThemedText>
-            <ThemedText style={styles.subtitle}>Select the areas you specialize in</ThemedText>
-
-            <View style={styles.focusGrid}>
-              {FOOTBALL_OBJECTIVES.map((focus) => {
-                const isSelected = selectedFocuses.includes(focus);
-                return (
-                  <Pressable
-                    key={focus}
-                    onPress={() => toggleFocus(focus)}
-                    style={[
-                      styles.focusChip,
-                      {
-                        backgroundColor: isSelected ? palette.tint : palette.card,
-                        borderColor: isSelected ? palette.tint : palette.border,
-                      },
-                    ]}>
-                    <ThemedText
-                      style={styles.focusText}
-                      lightColor={isSelected ? '#FFFFFF' : undefined}
-                      darkColor={isSelected ? '#000000' : undefined}>
-                      {focus}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </SurfaceCard>
-
-          {/* Experience Section */}
-          <SurfaceCard style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="subtitle">Experience</ThemedText>
-              <Pressable onPress={() => openExperienceModal()} style={styles.inlineAction}>
-                <Ionicons name="add-circle" size={22} color={palette.tint} />
-                <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>Add</ThemedText>
-              </Pressable>
-            </View>
-            <ThemedText style={styles.subtitle}>
-              Curate the highlights parents see first: current teams, academies, and playing history.
-            </ThemedText>
-
-            {experiences.length > 0 ? (
-              <View style={styles.timeline}>
-                {experiences.map((exp) => {
-                  const start = exp.startDate
-                    ? new Date(exp.startDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-                    : 'Start date';
-                  const end = exp.current
-                    ? 'Present'
-                    : exp.endDate
-                      ? new Date(exp.endDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-                      : 'End date';
-
-                  return (
-                    <View key={exp.id} style={[styles.experienceCard, { borderColor: palette.border }]}>
-                      <View style={styles.experienceHeader}>
-                        <View
-                          style={[
-                            styles.experiencePill,
-                            {
-                              backgroundColor: exp.current ? `${palette.success}15` : `${palette.tint}15`,
-                            },
-                          ]}>
-                          <Ionicons
-                            name={exp.current ? 'radio-button-on' : 'briefcase'}
-                            size={14}
-                            color={exp.current ? palette.success : palette.tint}
-                          />
-                          <ThemedText
-                            style={styles.experiencePillText}
-                            lightColor={exp.current ? palette.success : palette.tint}
-                            darkColor={exp.current ? palette.success : palette.tint}>
-                            {exp.current ? 'Current' : 'Past'}
-                          </ThemedText>
-                        </View>
-
-                        <View style={styles.experienceActions}>
-                          <Pressable
-                            onPress={() => openExperienceModal(exp)}
-                            style={[styles.iconButton, { borderColor: palette.border }]}>
-                            <Ionicons name="pencil" size={16} color={palette.muted} />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => removeExperience(exp.id)}
-                            style={[styles.iconButton, { borderColor: palette.border }]}>
-                            <Ionicons name="trash" size={16} color={palette.warning} />
-                          </Pressable>
-                        </View>
-                      </View>
-
-                      <View style={styles.experienceBody}>
-                        <ThemedText type="subtitle">{exp.title}</ThemedText>
-                        <ThemedText style={styles.experienceOrg}>{exp.organization}</ThemedText>
-                        <ThemedText style={styles.experienceDate}>
-                          {start} — {end}
-                        </ThemedText>
-                        {exp.description && (
-                          <ThemedText style={styles.experienceDescription}>{exp.description}</ThemedText>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <SurfaceCard style={[styles.emptyCard, { borderColor: palette.border }]}>
-                <Ionicons name="sparkles" size={20} color={palette.muted} />
-                <ThemedText style={styles.emptyText}>
-                  Add academy roles, coaching gigs, or your playing career. Parents love to see the timeline.
-                </ThemedText>
-              </SurfaceCard>
             )}
           </SurfaceCard>
 
-          {/* Languages Section */}
-          <SurfaceCard style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="subtitle">Languages</ThemedText>
-              <Pressable onPress={() => openLanguageModal()} style={styles.inlineAction}>
-                <Ionicons name="add-circle" size={22} color={palette.tint} />
-                <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>Add</ThemedText>
-              </Pressable>
-            </View>
+          {/* Children - Parent only */}
+          {!userIsCoach && (
+            <SurfaceCard style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle">Children</ThemedText>
+                <Pressable onPress={addChild} style={styles.inlineAction}>
+                  <Ionicons name="add-circle" size={22} color={palette.tint} />
+                  <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>Add</ThemedText>
+                </Pressable>
+              </View>
 
-            <ThemedText style={styles.subtitle}>
-              Set expectations for onboarding calls and session briefings with your language strengths.
-            </ThemedText>
-
-            {languages.length > 0 ? (
-              <View style={styles.languageList}>
-                {languages.map((lang) => (
-                  <View
-                    key={lang.id}
-                    style={[styles.languageRow, { borderColor: palette.border, backgroundColor: palette.card }]}>
-                    <View style={[styles.languageDot, { backgroundColor: palette.tint }]} />
-                    <View style={styles.languageCopy}>
-                      <ThemedText style={styles.languageName}>{lang.name}</ThemedText>
-                      <ThemedText style={styles.languageProficiency}>{lang.proficiency}</ThemedText>
-                    </View>
-
-                    <View style={styles.languageActions}>
-                      <Pressable
-                        onPress={() => openLanguageModal(lang)}
-                        style={[styles.iconButton, { borderColor: palette.border }]}>
-                        <Ionicons name="pencil" size={16} color={palette.muted} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => removeLanguage(lang.id)}
-                        style={[styles.iconButton, { borderColor: palette.border }]}>
-                        <Ionicons name="close" size={16} color={palette.warning} />
-                      </Pressable>
-                    </View>
+              {children.map((child, index) => (
+                <View key={index} style={[styles.childRow, { borderColor: palette.border }]}>
+                  <View style={styles.childFields}>
+                    <TextInput
+                      value={child.name}
+                      onChangeText={(text) => updateChild(index, 'name', text)}
+                      placeholder="Name"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, styles.childNameInput, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                    />
+                    <TextInput
+                      value={child.age.toString()}
+                      onChangeText={(text) => updateChild(index, 'age', parseInt(text) || 0)}
+                      placeholder="Age"
+                      keyboardType="number-pad"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, styles.childAgeInput, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                    />
                   </View>
-                ))}
-              </View>
-            ) : (
-              <SurfaceCard style={[styles.emptyCard, { borderColor: palette.border }]}>
-                <Ionicons name="chatbubbles-outline" size={20} color={palette.muted} />
-                <ThemedText style={styles.emptyText}>
-                  Add the languages you coach in so parents feel confident you can welcome their family.
-                </ThemedText>
-              </SurfaceCard>
-            )}
+                  <Pressable onPress={() => removeChild(index)}>
+                    <Ionicons name="trash-outline" size={24} color={palette.destructive} />
+                  </Pressable>
+                </View>
+              ))}
+            </SurfaceCard>
+          )}
 
-            <View style={[styles.quickAddRow, { borderColor: palette.border }]}>
-              <ThemedText style={styles.helper}>Quick add</ThemedText>
-              <View style={styles.quickAddChips}>
-                {languageOptions.map((option) => {
-                  const isAdded = languages.some(
-                    (lang) => lang.name.toLowerCase() === option.toLowerCase(),
-                  );
+          {/* Pricing - Coach only */}
+          {userIsCoach && (
+            <SurfaceCard style={styles.section}>
+              <ThemedText type="subtitle">Session Pricing</ThemedText>
+
+              <View style={styles.priceRow}>
+                <View style={[styles.fieldGroup, styles.priceField]}>
+                  <ThemedText style={styles.label}>Min Price (USD)</ThemedText>
+                  <TextInput
+                    value={priceMin}
+                    onChangeText={setPriceMin}
+                    keyboardType="number-pad"
+                    placeholder="90"
+                    placeholderTextColor={palette.muted}
+                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                  />
+                </View>
+
+                <View style={[styles.fieldGroup, styles.priceField]}>
+                  <ThemedText style={styles.label}>Max Price (USD)</ThemedText>
+                  <TextInput
+                    value={priceMax}
+                    onChangeText={setPriceMax}
+                    keyboardType="number-pad"
+                    placeholder="140"
+                    placeholderTextColor={palette.muted}
+                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                  />
+                </View>
+              </View>
+            </SurfaceCard>
+          )}
+
+          {/* Coaching Specialties - Coach only */}
+          {userIsCoach && (
+            <SurfaceCard style={styles.section}>
+              <ThemedText type="subtitle">Coaching Specialties</ThemedText>
+              <ThemedText style={styles.subtitle}>Select the areas you specialize in</ThemedText>
+
+              <View style={styles.focusGrid}>
+                {FOOTBALL_OBJECTIVES.map((focus) => {
+                  const isSelected = selectedFocuses.includes(focus);
                   return (
                     <Pressable
-                      key={option}
-                      disabled={isAdded}
-                      onPress={() =>
-                        setLanguages((prev) => [
-                          ...prev,
-                          { id: `lang-${Date.now()}`, name: option, proficiency: 'Fluent' },
-                        ])
-                      }
+                      key={focus}
+                      onPress={() => toggleFocus(focus)}
                       style={[
                         styles.focusChip,
                         {
-                          opacity: isAdded ? 0.35 : 1,
-                          borderColor: isAdded ? palette.border : palette.tint,
-                          backgroundColor: isAdded ? palette.card : `${palette.tint}15`,
+                          backgroundColor: isSelected ? palette.tint : palette.card,
+                          borderColor: isSelected ? palette.tint : palette.border,
                         },
                       ]}>
                       <ThemedText
                         style={styles.focusText}
-                        lightColor={isAdded ? undefined : palette.tint}
-                        darkColor={isAdded ? undefined : palette.tint}>
-                        {option}
+                        lightColor={isSelected ? '#FFFFFF' : undefined}
+                        darkColor={isSelected ? '#000000' : undefined}>
+                        {focus}
                       </ThemedText>
                     </Pressable>
                   );
                 })}
               </View>
-            </View>
-          </SurfaceCard>
+            </SurfaceCard>
+          )}
 
-          {/* Social Media Links Section */}
-          <SurfaceCard style={styles.section}>
-            <SocialLinksEditor
-              socialLinks={socialLinks}
-              onChange={setSocialLinks}
-            />
-          </SurfaceCard>
+          {/* Experience Section - Coach only */}
+          {userIsCoach && (
+            <SurfaceCard style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle">Experience</ThemedText>
+                <Pressable onPress={() => openExperienceModal()} style={styles.inlineAction}>
+                  <Ionicons name="add-circle" size={22} color={palette.tint} />
+                  <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>Add</ThemedText>
+                </Pressable>
+              </View>
+              <ThemedText style={styles.subtitle}>
+                Curate the highlights parents see first: current teams, academies, and playing history.
+              </ThemedText>
 
-          {/* Certifications Section */}
-          <SurfaceCard style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <ThemedText type="subtitle">Certifications</ThemedText>
-              <Pressable onPress={() => Alert.alert('Coming Soon', 'Certification management will be available in a future update.')}>
-                <Ionicons name="add-circle" size={24} color={palette.tint} />
-              </Pressable>
-            </View>
-            <ThemedText style={styles.comingSoon}>Add your coaching licenses and certifications</ThemedText>
-          </SurfaceCard>
-          </ScrollView>
-        </KeyboardAvoidingView>
+              {experiences.length > 0 ? (
+                <View style={styles.timeline}>
+                  {experiences.map((exp) => {
+                    const start = exp.startDate
+                      ? new Date(exp.startDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+                      : 'Start date';
+                    const end = exp.current
+                      ? 'Present'
+                      : exp.endDate
+                        ? new Date(exp.endDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+                        : 'End date';
 
+                    return (
+                      <View key={exp.id} style={[styles.experienceCard, { borderColor: palette.border }]}>
+                        <View style={styles.experienceHeader}>
+                          <View
+                            style={[
+                              styles.experiencePill,
+                              {
+                                backgroundColor: exp.current ? `${palette.success}15` : `${palette.tint}15`,
+                              },
+                            ]}>
+                            <Ionicons
+                              name={exp.current ? 'radio-button-on' : 'briefcase'}
+                              size={14}
+                              color={exp.current ? palette.success : palette.tint}
+                            />
+                            <ThemedText
+                              style={styles.experiencePillText}
+                              lightColor={exp.current ? palette.success : palette.tint}
+                              darkColor={exp.current ? palette.success : palette.tint}>
+                              {exp.current ? 'Current' : 'Past'}
+                            </ThemedText>
+                          </View>
+
+                          <View style={styles.experienceActions}>
+                            <Pressable
+                              onPress={() => openExperienceModal(exp)}
+                              style={[styles.iconButton, { borderColor: palette.border }]}>
+                              <Ionicons name="pencil" size={16} color={palette.muted} />
+                            </Pressable>
+                            <Pressable
+                              onPress={() => removeExperience(exp.id)}
+                              style={[styles.iconButton, { borderColor: palette.border }]}>
+                              <Ionicons name="trash" size={16} color={palette.warning} />
+                            </Pressable>
+                          </View>
+                        </View>
+
+                        <View style={styles.experienceBody}>
+                          <ThemedText type="subtitle">{exp.title}</ThemedText>
+                          <ThemedText style={styles.experienceOrg}>{exp.organization}</ThemedText>
+                          <ThemedText style={styles.experienceDate}>
+                            {start} — {end}
+                          </ThemedText>
+                          {exp.description && (
+                            <ThemedText style={styles.experienceDescription}>{exp.description}</ThemedText>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <SurfaceCard style={[styles.emptyCard, { borderColor: palette.border }]}>
+                  <Ionicons name="sparkles" size={20} color={palette.muted} />
+                  <ThemedText style={styles.emptyText}>
+                    Add academy roles, coaching gigs, or your playing career. Parents love to see the timeline.
+                  </ThemedText>
+                </SurfaceCard>
+              )}
+            </SurfaceCard>
+          )}
+
+          {/* Languages Section - Coach only */}
+          {userIsCoach && (
+            <SurfaceCard style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle">Languages</ThemedText>
+                <Pressable onPress={() => openLanguageModal()} style={styles.inlineAction}>
+                  <Ionicons name="add-circle" size={22} color={palette.tint} />
+                  <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>Add</ThemedText>
+                </Pressable>
+              </View>
+
+              <ThemedText style={styles.subtitle}>
+                Set expectations for onboarding calls and session briefings with your language strengths.
+              </ThemedText>
+
+              {languages.length > 0 ? (
+                <View style={styles.languageList}>
+                  {languages.map((lang) => (
+                    <View
+                      key={lang.id}
+                      style={[styles.languageRow, { borderColor: palette.border, backgroundColor: palette.card }]}>
+                      <View style={[styles.languageDot, { backgroundColor: palette.tint }]} />
+                      <View style={styles.languageCopy}>
+                        <ThemedText style={styles.languageName}>{lang.name}</ThemedText>
+                        <ThemedText style={styles.languageProficiency}>{lang.proficiency}</ThemedText>
+                      </View>
+
+                      <View style={styles.languageActions}>
+                        <Pressable
+                          onPress={() => openLanguageModal(lang)}
+                          style={[styles.iconButton, { borderColor: palette.border }]}>
+                          <Ionicons name="pencil" size={16} color={palette.muted} />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => removeLanguage(lang.id)}
+                          style={[styles.iconButton, { borderColor: palette.border }]}>
+                          <Ionicons name="close" size={16} color={palette.warning} />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <SurfaceCard style={[styles.emptyCard, { borderColor: palette.border }]}>
+                  <Ionicons name="chatbubbles-outline" size={20} color={palette.muted} />
+                  <ThemedText style={styles.emptyText}>
+                    Add the languages you coach in so parents feel confident you can welcome their family.
+                  </ThemedText>
+                </SurfaceCard>
+              )}
+
+              <View style={[styles.quickAddRow, { borderColor: palette.border }]}>
+                <ThemedText style={styles.helper}>Quick add</ThemedText>
+                <View style={styles.quickAddChips}>
+                  {languageOptions.map((option) => {
+                    const isAdded = languages.some(
+                      (lang) => lang.name.toLowerCase() === option.toLowerCase(),
+                    );
+                    return (
+                      <Pressable
+                        key={option}
+                        disabled={isAdded}
+                        onPress={() =>
+                          setLanguages((prev) => [
+                            ...prev,
+                            { id: `lang-${Date.now()}`, name: option, proficiency: 'Fluent' },
+                          ])
+                        }
+                        style={[
+                          styles.focusChip,
+                          {
+                            opacity: isAdded ? 0.35 : 1,
+                            borderColor: isAdded ? palette.border : palette.tint,
+                            backgroundColor: isAdded ? palette.card : `${palette.tint}15`,
+                          },
+                        ]}>
+                        <ThemedText
+                          style={styles.focusText}
+                          lightColor={isAdded ? undefined : palette.tint}
+                          darkColor={isAdded ? undefined : palette.tint}>
+                          {option}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            </SurfaceCard>
+          )}
+
+          {/* Social Media Links Section - Coach only */}
+          {userIsCoach && (
+            <SurfaceCard style={styles.section}>
+              <SocialLinksEditor
+                socialLinks={socialLinks}
+                onChange={setSocialLinks}
+              />
+            </SurfaceCard>
+          )}
+
+          {/* Certifications Section - Coach only */}
+          {userIsCoach && (
+            <SurfaceCard style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle">Certifications</ThemedText>
+                <Pressable onPress={() => Alert.alert('Coming Soon', 'Certification management will be available in a future update.')}>
+                  <Ionicons name="add-circle" size={24} color={palette.tint} />
+                </Pressable>
+              </View>
+              <ThemedText style={styles.comingSoon}>Add your coaching licenses and certifications</ThemedText>
+            </SurfaceCard>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Experience Modal - Coach only */}
+      {userIsCoach && (
         <Modal
           visible={isExperienceModalVisible}
           transparent
@@ -572,7 +678,7 @@ export default function EditProfileScreen() {
                     onChangeText={(text) => setExperienceDraft({ ...experienceDraft, title: text })}
                     placeholder="Head Coach, Goalkeeping Coach, Academy Player..."
                     placeholderTextColor={palette.muted}
-                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
+                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
                   />
                 </View>
 
@@ -583,7 +689,7 @@ export default function EditProfileScreen() {
                     onChangeText={(text) => setExperienceDraft({ ...experienceDraft, organization: text })}
                     placeholder="Club or academy name"
                     placeholderTextColor={palette.muted}
-                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
+                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
                   />
                 </View>
 
@@ -595,7 +701,7 @@ export default function EditProfileScreen() {
                       onChangeText={(text) => setExperienceDraft({ ...experienceDraft, startDate: text })}
                       placeholder="YYYY-MM-DD"
                       placeholderTextColor={palette.muted}
-                      style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
+                      style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
                     />
                   </View>
 
@@ -630,6 +736,7 @@ export default function EditProfileScreen() {
                         {
                           borderColor: palette.border,
                           backgroundColor: experienceDraft.current ? palette.border : palette.card,
+                          color: palette.foreground,
                         },
                       ]}
                     />
@@ -649,7 +756,7 @@ export default function EditProfileScreen() {
                     style={[
                       styles.input,
                       styles.textArea,
-                      { borderColor: palette.border, backgroundColor: palette.card },
+                      { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground },
                     ]}
                   />
                 </View>
@@ -665,7 +772,10 @@ export default function EditProfileScreen() {
             </SurfaceCard>
           </View>
         </Modal>
+      )}
 
+      {/* Language Modal - Coach only */}
+      {userIsCoach && (
         <Modal
           visible={isLanguageModalVisible}
           transparent
@@ -688,7 +798,7 @@ export default function EditProfileScreen() {
                     onChangeText={(text) => setLanguageDraft({ ...languageDraft, name: text })}
                     placeholder="e.g., English"
                     placeholderTextColor={palette.muted}
-                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
+                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
                   />
                 </View>
 
@@ -731,26 +841,14 @@ export default function EditProfileScreen() {
             </SurfaceCard>
           </View>
         </Modal>
-
-      </SafeAreaView>
-    );
-  }
+      )}
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-  },
-  saveButton: {
-    fontWeight: '700',
-    fontSize: 16,
   },
   wrapper: {
     flex: 1,
@@ -797,6 +895,8 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarOverlay: {
     position: 'absolute',
@@ -830,6 +930,24 @@ const styles = StyleSheet.create({
   helper: {
     fontSize: 12,
     opacity: 0.6,
+  },
+  childRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+  },
+  childFields: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  childNameInput: {
+    flex: 2,
+  },
+  childAgeInput: {
+    flex: 1,
   },
   priceRow: {
     flexDirection: 'row',

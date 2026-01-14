@@ -19,6 +19,7 @@ import {
   FamilyCalendarEvent,
   FamilyDateRange,
 } from '@/services/family-service';
+import { eventService } from '@/services/event-service';
 
 /**
  * Family Calendar Screen - Shows all children's sessions in one calendar view
@@ -48,13 +49,39 @@ export default function FamilyCalendarScreen() {
     if (!currentUser?.id) return;
 
     try {
-      const [membersData, eventsData] = await Promise.all([
+      const [membersData, bookingsData, clubEventsData] = await Promise.all([
         familyService.getFamilyMembers(currentUser.id),
         familyService.getFamilyCalendar(currentUser.id, dateRange),
+        eventService.getEventsForCalendar(
+          currentUser.id,
+          dateRange.startDate,
+          dateRange.endDate
+        ),
       ]);
 
+      // Convert club events to calendar format and combine with bookings
+      const clubEventsAsCalendar: FamilyCalendarEvent[] = clubEventsData.map((event) => ({
+        id: event.id,
+        title: event.title,
+        start: `${event.date}T${event.startTime}`,
+        end: `${event.date}T${event.endTime}`,
+        status: 'CONFIRMED' as const,
+        childId: '', // Club events don't belong to a specific child
+        childName: 'Club Event',
+        coachId: '',
+        coachName: event.location,
+        location: event.location,
+        price: 0,
+        type: 'EVENT' as const,
+        eventType: event.eventType,
+      }));
+
       setMembers(membersData);
-      setEvents(eventsData);
+      // Combine bookings and club events, sort by date
+      const allEvents = [...bookingsData, ...clubEventsAsCalendar].sort(
+        (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+      );
+      setEvents(allEvents);
     } catch (error) {
       console.error('Failed to load calendar data:', error);
     } finally {
@@ -73,10 +100,18 @@ export default function FamilyCalendarScreen() {
   };
 
   const handleEventPress = (event: FamilyCalendarEvent) => {
-    router.push({
-      pathname: '/booking/[id]',
-      params: { id: event.id },
-    });
+    // Check if it's a club event or a booking
+    if ((event as any).type === 'EVENT') {
+      router.push({
+        pathname: '/events/[id]',
+        params: { id: event.id },
+      });
+    } else {
+      router.push({
+        pathname: '/(tabs)/bookings/[id]',
+        params: { id: event.id },
+      });
+    }
   };
 
   const handleChildFilterChange = (childId: string | null) => {

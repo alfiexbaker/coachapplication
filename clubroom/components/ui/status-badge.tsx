@@ -19,7 +19,7 @@ export function StatusBadge({ status }: { status: BookingStatus }) {
   }[status];
 
   return (
-    <View style={[styles.badge, { backgroundColor: tone.bg, borderColor: tone.color }]}> 
+    <View style={[styles.badge, { backgroundColor: tone.bg, borderColor: tone.color }]}>
       <ThemedText style={[styles.label, { color: tone.color }]}>{status}</ThemedText>
     </View>
   );
@@ -39,4 +39,3 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
 });
-

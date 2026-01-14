@@ -19,7 +19,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import type { Goal, CreateGoalInput, UpdateGoalInput, GoalCreator } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { goalService } from '@/services/goal-service';
+import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 import { hasChildren } from '@/utils/user-helpers';
 
@@ -45,7 +45,7 @@ export default function CreateGoalScreen() {
     const loadGoal = async () => {
       if (editId) {
         try {
-          const data = await goalService.getGoalById(editId);
+          const data = await progressService.getGoalById(editId);
           setGoal(data);
         } catch (error) {
           console.error('Failed to load goal:', error);
@@ -75,7 +75,7 @@ export default function CreateGoalScreen() {
       try {
         if (isEditing && editId) {
           // Update existing goal
-          const updatedGoal = await goalService.updateGoal(editId, data as UpdateGoalInput);
+          const updatedGoal = await progressService.updateGoal(editId, data as UpdateGoalInput);
           if (updatedGoal) {
             void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             router.back();
@@ -85,7 +85,7 @@ export default function CreateGoalScreen() {
         } else {
           // Create new goal
           const createData = data as CreateGoalInput;
-          const newGoal = await goalService.createGoal(
+          const newGoal = await progressService.createGoal(
             userId,
             createData,
             getCreatorType(),

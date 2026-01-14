@@ -12,6 +12,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { badgeService } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 import { useNotifications, NotificationFilter } from '@/hooks/use-notifications';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 
 const logger = createLogger('NotificationsScreen');
 
@@ -102,17 +103,33 @@ export function NotificationsPanel({
   }, [refreshToken, refresh]);
 
   const handleShare = async (item: ExtendedNotificationItem) => {
-    logger.info('badge_shared_event', {
+    logger.info('badge_view_event', {
       notificationId: item.id,
       badgeTitle: item.badgeTitle,
       athleteName: item.athleteName,
     });
 
+    // Navigate to badge detail if we have an award ID
     if (item.badgeAwardId) {
-      await badgeService.markShared(item.badgeAwardId);
+      // For now just mark as read - could navigate to badge detail screen
+      await markAsRead(item.id);
+    }
+  };
+
+  const handleAddToFeed = async (item: ExtendedNotificationItem) => {
+    logger.info('badge_add_to_feed', {
+      notificationId: item.id,
+      badgeTitle: item.badgeTitle,
+      athleteName: item.athleteName,
+      badgeAwardId: item.badgeAwardId,
+    });
+
+    if (item.badgeAwardId) {
+      // Post badge to social feed
+      await badgeService.postBadgeToFeed(item.badgeAwardId);
+      await notificationService.markHandled(item.id);
     }
 
-    await notificationService.markHandled(item.id);
     refresh();
   };
 
@@ -142,6 +159,7 @@ export function NotificationsPanel({
               item={item}
               onPress={() => handleNotificationPress(item.id)}
               onShare={item.type === 'badge' ? () => handleShare(item) : undefined}
+              onAddToFeed={item.type === 'badge' && !item.handled ? () => handleAddToFeed(item) : undefined}
               showTypeIndicator={false}
             />
           ))
@@ -208,6 +226,7 @@ export function NotificationsPanel({
                 item={item}
                 onPress={() => handleNotificationPress(item.id)}
                 onShare={item.type === 'badge' ? () => handleShare(item) : undefined}
+                onAddToFeed={item.type === 'badge' && !item.handled ? () => handleAddToFeed(item) : undefined}
               />
             ))}
           </>
@@ -238,9 +257,12 @@ export default function NotificationsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <ThemedText type="title">Notifications</ThemedText>
+      <ScreenHeader
+        title="Notifications"
+        subtitle="Stay updated"
+      />
+      <View style={styles.actionsBar}>
+        <View style={styles.badgeContainer}>
           {unreadCount > 0 && (
             <View style={[styles.badge, { backgroundColor: palette.tint }]}>
               <ThemedText style={styles.badgeText}>{unreadCount}</ThemedText>
@@ -275,16 +297,16 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    padding: Spacing.lg,
+  actionsBar: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerLeft: {
+  badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
   },
   headerActions: {
     flexDirection: 'row',

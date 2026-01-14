@@ -44,11 +44,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
-const annotation_service_1 = require("../../services/annotation-service");
+const video_service_1 = require("../../services/video-service");
 (0, node_test_1.describe)('Annotation Service', () => {
     (0, node_test_1.describe)('getAnnotatedVideo', () => {
         (0, node_test_1.default)('should return annotated video with sorted annotations', async () => {
-            const video = await annotation_service_1.annotationService.getAnnotatedVideo('vid_1');
+            const video = await video_service_1.videoService.getAnnotatedVideo('vid_1');
             node_assert_1.default.ok(video);
             node_assert_1.default.strictEqual(video.id, 'vid_1');
             node_assert_1.default.ok(Array.isArray(video.annotations));
@@ -58,13 +58,13 @@ const annotation_service_1 = require("../../services/annotation-service");
             }
         });
         (0, node_test_1.default)('should return null for non-existent video', async () => {
-            const video = await annotation_service_1.annotationService.getAnnotatedVideo('non_existent');
+            const video = await video_service_1.videoService.getAnnotatedVideo('non_existent');
             node_assert_1.default.strictEqual(video, null);
         });
     });
     (0, node_test_1.describe)('getVideoAnnotations', () => {
         (0, node_test_1.default)('should return sorted annotations for a video', async () => {
-            const annotations = await annotation_service_1.annotationService.getVideoAnnotations('vid_1');
+            const annotations = await video_service_1.videoService.getVideoAnnotations('vid_1');
             node_assert_1.default.ok(Array.isArray(annotations));
             node_assert_1.default.ok(annotations.length > 0);
             // Check sorting
@@ -73,12 +73,12 @@ const annotation_service_1 = require("../../services/annotation-service");
             }
         });
         (0, node_test_1.default)('should return empty array for video with no annotations', async () => {
-            const annotations = await annotation_service_1.annotationService.getVideoAnnotations('vid_3');
+            const annotations = await video_service_1.videoService.getVideoAnnotations('vid_3');
             node_assert_1.default.ok(Array.isArray(annotations));
             // vid_3 has no annotations in mock data
         });
         (0, node_test_1.default)('should return empty array for non-existent video', async () => {
-            const annotations = await annotation_service_1.annotationService.getVideoAnnotations('non_existent');
+            const annotations = await video_service_1.videoService.getVideoAnnotations('non_existent');
             node_assert_1.default.deepStrictEqual(annotations, []);
         });
     });
@@ -90,7 +90,7 @@ const annotation_service_1 = require("../../services/annotation-service");
                 note: 'This is a test note',
                 type: 'HIGHLIGHT',
             };
-            const annotation = await annotation_service_1.annotationService.addAnnotation('vid_1', input);
+            const annotation = await video_service_1.videoService.addAnnotation('vid_1', input);
             node_assert_1.default.ok(annotation);
             node_assert_1.default.ok(annotation.id);
             node_assert_1.default.strictEqual(annotation.timestamp, 60);
@@ -104,7 +104,7 @@ const annotation_service_1 = require("../../services/annotation-service");
                 label: 'Coach Note',
                 type: 'TECHNIQUE',
             };
-            const annotation = await annotation_service_1.annotationService.addAnnotation('vid_1', input, 'coach_1', 'Coach Smith');
+            const annotation = await video_service_1.videoService.addAnnotation('vid_1', input, 'coach_1', 'Coach Smith');
             node_assert_1.default.ok(annotation);
             node_assert_1.default.strictEqual(annotation.createdBy, 'coach_1');
             node_assert_1.default.strictEqual(annotation.createdByName, 'Coach Smith');
@@ -118,15 +118,15 @@ const annotation_service_1 = require("../../services/annotation-service");
                 label: 'To Be Deleted',
                 type: 'GENERAL',
             };
-            const annotation = await annotation_service_1.annotationService.addAnnotation('vid_1', input);
+            const annotation = await video_service_1.videoService.addAnnotation('vid_1', input);
             // Then delete it
-            const result = await annotation_service_1.annotationService.deleteAnnotation('vid_1', annotation.id);
+            const result = await video_service_1.videoService.deleteAnnotation('vid_1', annotation.id);
             node_assert_1.default.strictEqual(result, true);
         });
     });
     (0, node_test_1.describe)('exportAnnotations', () => {
         (0, node_test_1.default)('should export annotations with formatted data', async () => {
-            const exportData = await annotation_service_1.annotationService.exportAnnotations('vid_1');
+            const exportData = await video_service_1.videoService.exportAnnotations('vid_1');
             node_assert_1.default.ok(exportData);
             node_assert_1.default.ok(exportData.videoTitle);
             node_assert_1.default.ok(exportData.coachName);
@@ -145,13 +145,13 @@ const annotation_service_1 = require("../../services/annotation-service");
             }
         });
         (0, node_test_1.default)('should return null for non-existent video', async () => {
-            const exportData = await annotation_service_1.annotationService.exportAnnotations('non_existent');
+            const exportData = await video_service_1.videoService.exportAnnotations('non_existent');
             node_assert_1.default.strictEqual(exportData, null);
         });
     });
     (0, node_test_1.describe)('getAnnotationsByType', () => {
         (0, node_test_1.default)('should group annotations by type', async () => {
-            const grouped = await annotation_service_1.annotationService.getAnnotationsByType('vid_1');
+            const grouped = await video_service_1.videoService.getAnnotationsByType('vid_1');
             node_assert_1.default.ok(grouped.HIGHLIGHT !== undefined);
             node_assert_1.default.ok(grouped.IMPROVEMENT !== undefined);
             node_assert_1.default.ok(grouped.TECHNIQUE !== undefined);
@@ -167,7 +167,7 @@ const annotation_service_1 = require("../../services/annotation-service");
     });
     (0, node_test_1.describe)('getAnnotationStats', () => {
         (0, node_test_1.default)('should return annotation statistics', async () => {
-            const stats = await annotation_service_1.annotationService.getAnnotationStats('vid_1');
+            const stats = await video_service_1.videoService.getAnnotationStats('vid_1');
             node_assert_1.default.ok(typeof stats.total === 'number');
             node_assert_1.default.ok(stats.byType);
             node_assert_1.default.ok(typeof stats.byType.HIGHLIGHT === 'number');
@@ -177,7 +177,7 @@ const annotation_service_1 = require("../../services/annotation-service");
             node_assert_1.default.ok(typeof stats.averagePerMinute === 'number');
         });
         (0, node_test_1.default)('should return zero stats for non-existent video', async () => {
-            const stats = await annotation_service_1.annotationService.getAnnotationStats('non_existent');
+            const stats = await video_service_1.videoService.getAnnotationStats('non_existent');
             node_assert_1.default.strictEqual(stats.total, 0);
             node_assert_1.default.strictEqual(stats.byType.HIGHLIGHT, 0);
             node_assert_1.default.strictEqual(stats.averagePerMinute, 0);
@@ -185,81 +185,81 @@ const annotation_service_1 = require("../../services/annotation-service");
     });
     (0, node_test_1.describe)('findAnnotationsNearTimestamp', () => {
         (0, node_test_1.default)('should find annotations near a timestamp', async () => {
-            const annotations = await annotation_service_1.annotationService.getVideoAnnotations('vid_1');
+            const annotations = await video_service_1.videoService.getVideoAnnotations('vid_1');
             if (annotations.length === 0)
                 return;
             const firstAnnotation = annotations[0];
-            const nearby = await annotation_service_1.annotationService.findAnnotationsNearTimestamp('vid_1', firstAnnotation.timestamp + 2, 5);
+            const nearby = await video_service_1.videoService.findAnnotationsNearTimestamp('vid_1', firstAnnotation.timestamp + 2, 5);
             node_assert_1.default.ok(nearby.length > 0);
             node_assert_1.default.ok(nearby.some((a) => a.id === firstAnnotation.id));
         });
         (0, node_test_1.default)('should return empty array if no nearby annotations', async () => {
-            const nearby = await annotation_service_1.annotationService.findAnnotationsNearTimestamp('vid_1', 99999, 2);
+            const nearby = await video_service_1.videoService.findAnnotationsNearTimestamp('vid_1', 99999, 2);
             node_assert_1.default.deepStrictEqual(nearby, []);
         });
     });
     (0, node_test_1.describe)('getNextAnnotation', () => {
         (0, node_test_1.default)('should return next annotation after timestamp', async () => {
-            const annotations = await annotation_service_1.annotationService.getVideoAnnotations('vid_1');
+            const annotations = await video_service_1.videoService.getVideoAnnotations('vid_1');
             if (annotations.length < 2)
                 return;
-            const next = await annotation_service_1.annotationService.getNextAnnotation('vid_1', annotations[0].timestamp);
+            const next = await video_service_1.videoService.getNextAnnotation('vid_1', annotations[0].timestamp);
             node_assert_1.default.ok(next);
             node_assert_1.default.ok(next.timestamp > annotations[0].timestamp);
         });
         (0, node_test_1.default)('should return null if no next annotation', async () => {
-            const next = await annotation_service_1.annotationService.getNextAnnotation('vid_1', 99999);
+            const next = await video_service_1.videoService.getNextAnnotation('vid_1', 99999);
             node_assert_1.default.strictEqual(next, null);
         });
     });
     (0, node_test_1.describe)('getPreviousAnnotation', () => {
         (0, node_test_1.default)('should return previous annotation before timestamp', async () => {
-            const annotations = await annotation_service_1.annotationService.getVideoAnnotations('vid_1');
+            const annotations = await video_service_1.videoService.getVideoAnnotations('vid_1');
             if (annotations.length < 2)
                 return;
-            const prev = await annotation_service_1.annotationService.getPreviousAnnotation('vid_1', annotations[annotations.length - 1].timestamp);
+            const prev = await video_service_1.videoService.getPreviousAnnotation('vid_1', annotations[annotations.length - 1].timestamp);
             node_assert_1.default.ok(prev);
             node_assert_1.default.ok(prev.timestamp < annotations[annotations.length - 1].timestamp);
         });
         (0, node_test_1.default)('should return null if no previous annotation', async () => {
-            const prev = await annotation_service_1.annotationService.getPreviousAnnotation('vid_1', 0);
+            const prev = await video_service_1.videoService.getPreviousAnnotation('vid_1', 0);
             node_assert_1.default.strictEqual(prev, null);
         });
     });
     (0, node_test_1.describe)('Helper Functions', () => {
         (0, node_test_1.describe)('formatTimestamp', () => {
             (0, node_test_1.default)('should format seconds to MM:SS', () => {
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.formatTimestamp(0), '0:00');
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.formatTimestamp(30), '0:30');
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.formatTimestamp(60), '1:00');
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.formatTimestamp(90), '1:30');
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.formatTimestamp(125), '2:05');
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.formatTimestamp(600), '10:00');
+                node_assert_1.default.strictEqual(video_service_1.videoService.formatTimestamp(0), '0:00');
+                node_assert_1.default.strictEqual(video_service_1.videoService.formatTimestamp(30), '0:30');
+                node_assert_1.default.strictEqual(video_service_1.videoService.formatTimestamp(60), '1:00');
+                node_assert_1.default.strictEqual(video_service_1.videoService.formatTimestamp(90), '1:30');
+                node_assert_1.default.strictEqual(video_service_1.videoService.formatTimestamp(125), '2:05');
+                node_assert_1.default.strictEqual(video_service_1.videoService.formatTimestamp(600), '10:00');
             });
             (0, node_test_1.default)('should handle fractional seconds', () => {
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.formatTimestamp(30.5), '0:30');
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.formatTimestamp(65.9), '1:05');
+                node_assert_1.default.strictEqual(video_service_1.videoService.formatTimestamp(30.5), '0:30');
+                node_assert_1.default.strictEqual(video_service_1.videoService.formatTimestamp(65.9), '1:05');
             });
         });
         (0, node_test_1.describe)('parseTimestamp', () => {
             (0, node_test_1.default)('should parse MM:SS to seconds', () => {
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.parseTimestamp('0:00'), 0);
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.parseTimestamp('0:30'), 30);
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.parseTimestamp('1:00'), 60);
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.parseTimestamp('1:30'), 90);
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.parseTimestamp('10:00'), 600);
+                node_assert_1.default.strictEqual(video_service_1.videoService.parseTimestamp('0:00'), 0);
+                node_assert_1.default.strictEqual(video_service_1.videoService.parseTimestamp('0:30'), 30);
+                node_assert_1.default.strictEqual(video_service_1.videoService.parseTimestamp('1:00'), 60);
+                node_assert_1.default.strictEqual(video_service_1.videoService.parseTimestamp('1:30'), 90);
+                node_assert_1.default.strictEqual(video_service_1.videoService.parseTimestamp('10:00'), 600);
             });
             (0, node_test_1.default)('should return 0 for invalid format', () => {
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.parseTimestamp('invalid'), 0);
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.parseTimestamp(''), 0);
-                node_assert_1.default.strictEqual(annotation_service_1.annotationService.parseTimestamp('1'), 0);
+                node_assert_1.default.strictEqual(video_service_1.videoService.parseTimestamp('invalid'), 0);
+                node_assert_1.default.strictEqual(video_service_1.videoService.parseTimestamp(''), 0);
+                node_assert_1.default.strictEqual(video_service_1.videoService.parseTimestamp('1'), 0);
             });
         });
         (0, node_test_1.describe)('getTypeInfo', () => {
             (0, node_test_1.default)('should return type configuration', () => {
                 const types = ['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL'];
                 for (const type of types) {
-                    const info = annotation_service_1.annotationService.getTypeInfo(type);
+                    const info = video_service_1.videoService.getTypeInfo(type);
                     node_assert_1.default.ok(info.label);
                     node_assert_1.default.ok(info.color);
                     node_assert_1.default.ok(info.icon);
@@ -270,7 +270,7 @@ const annotation_service_1 = require("../../services/annotation-service");
         });
         (0, node_test_1.describe)('getAllTypes', () => {
             (0, node_test_1.default)('should return all annotation types', () => {
-                const types = annotation_service_1.annotationService.getAllTypes();
+                const types = video_service_1.videoService.getAllTypes();
                 node_assert_1.default.ok(Array.isArray(types));
                 node_assert_1.default.strictEqual(types.length, 4);
                 node_assert_1.default.ok(types.includes('HIGHLIGHT'));
@@ -282,7 +282,7 @@ const annotation_service_1 = require("../../services/annotation-service");
         (0, node_test_1.describe)('validateInput', () => {
             const videoDuration = 180;
             (0, node_test_1.default)('should pass for valid input', () => {
-                const errors = annotation_service_1.annotationService.validateInput({
+                const errors = video_service_1.videoService.validateInput({
                     timestamp: 60,
                     label: 'Valid label',
                     type: 'HIGHLIGHT',
@@ -290,7 +290,7 @@ const annotation_service_1 = require("../../services/annotation-service");
                 node_assert_1.default.deepStrictEqual(errors, []);
             });
             (0, node_test_1.default)('should fail for empty label', () => {
-                const errors = annotation_service_1.annotationService.validateInput({
+                const errors = video_service_1.videoService.validateInput({
                     timestamp: 60,
                     label: '',
                     type: 'HIGHLIGHT',
@@ -298,7 +298,7 @@ const annotation_service_1 = require("../../services/annotation-service");
                 node_assert_1.default.ok(errors.some((e) => e.includes('Label')));
             });
             (0, node_test_1.default)('should fail for label too long', () => {
-                const errors = annotation_service_1.annotationService.validateInput({
+                const errors = video_service_1.videoService.validateInput({
                     timestamp: 60,
                     label: 'A'.repeat(101),
                     type: 'HIGHLIGHT',
@@ -306,7 +306,7 @@ const annotation_service_1 = require("../../services/annotation-service");
                 node_assert_1.default.ok(errors.some((e) => e.includes('100')));
             });
             (0, node_test_1.default)('should fail for note too long', () => {
-                const errors = annotation_service_1.annotationService.validateInput({
+                const errors = video_service_1.videoService.validateInput({
                     timestamp: 60,
                     label: 'Valid',
                     note: 'A'.repeat(501),
@@ -315,7 +315,7 @@ const annotation_service_1 = require("../../services/annotation-service");
                 node_assert_1.default.ok(errors.some((e) => e.includes('500')));
             });
             (0, node_test_1.default)('should fail for negative timestamp', () => {
-                const errors = annotation_service_1.annotationService.validateInput({
+                const errors = video_service_1.videoService.validateInput({
                     timestamp: -10,
                     label: 'Valid',
                     type: 'HIGHLIGHT',
@@ -323,7 +323,7 @@ const annotation_service_1 = require("../../services/annotation-service");
                 node_assert_1.default.ok(errors.some((e) => e.includes('negative')));
             });
             (0, node_test_1.default)('should fail for timestamp exceeding duration', () => {
-                const errors = annotation_service_1.annotationService.validateInput({
+                const errors = video_service_1.videoService.validateInput({
                     timestamp: 200,
                     label: 'Valid',
                     type: 'HIGHLIGHT',
@@ -334,7 +334,7 @@ const annotation_service_1 = require("../../services/annotation-service");
     });
     (0, node_test_1.describe)('generateTextSummary', () => {
         (0, node_test_1.default)('should generate readable text summary', async () => {
-            const summary = await annotation_service_1.annotationService.generateTextSummary('vid_1');
+            const summary = await video_service_1.videoService.generateTextSummary('vid_1');
             node_assert_1.default.ok(typeof summary === 'string');
             node_assert_1.default.ok(summary.includes('Video:'));
             node_assert_1.default.ok(summary.includes('Coach:'));
@@ -342,7 +342,7 @@ const annotation_service_1 = require("../../services/annotation-service");
             node_assert_1.default.ok(summary.includes('Annotations'));
         });
         (0, node_test_1.default)('should return empty string for non-existent video', async () => {
-            const summary = await annotation_service_1.annotationService.generateTextSummary('non_existent');
+            const summary = await video_service_1.videoService.generateTextSummary('non_existent');
             node_assert_1.default.strictEqual(summary, '');
         });
     });
@@ -351,7 +351,7 @@ const annotation_service_1 = require("../../services/annotation-service");
     (0, node_test_1.default)('should have configuration for all types', () => {
         const types = ['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL'];
         for (const type of types) {
-            const config = annotation_service_1.ANNOTATION_TYPE_CONFIG[type];
+            const config = video_service_1.ANNOTATION_TYPE_CONFIG[type];
             node_assert_1.default.ok(config, `Config should exist for ${type}`);
             node_assert_1.default.ok(config.label, `${type} should have label`);
             node_assert_1.default.ok(config.color, `${type} should have color`);
@@ -363,22 +363,22 @@ const annotation_service_1 = require("../../services/annotation-service");
         const hexRegex = /^#[0-9A-Fa-f]{6}$/;
         const types = ['HIGHLIGHT', 'IMPROVEMENT', 'TECHNIQUE', 'GENERAL'];
         for (const type of types) {
-            const config = annotation_service_1.ANNOTATION_TYPE_CONFIG[type];
+            const config = video_service_1.ANNOTATION_TYPE_CONFIG[type];
             node_assert_1.default.ok(hexRegex.test(config.color), `${type} color should be valid hex: ${config.color}`);
         }
     });
     (0, node_test_1.default)('HIGHLIGHT should be green', () => {
-        const config = annotation_service_1.ANNOTATION_TYPE_CONFIG.HIGHLIGHT;
+        const config = video_service_1.ANNOTATION_TYPE_CONFIG.HIGHLIGHT;
         node_assert_1.default.strictEqual(config.label, 'Highlight');
         node_assert_1.default.ok(config.color.toLowerCase().includes('4caf50'));
     });
     (0, node_test_1.default)('IMPROVEMENT should be orange', () => {
-        const config = annotation_service_1.ANNOTATION_TYPE_CONFIG.IMPROVEMENT;
+        const config = video_service_1.ANNOTATION_TYPE_CONFIG.IMPROVEMENT;
         node_assert_1.default.strictEqual(config.label, 'Improvement');
         node_assert_1.default.ok(config.color.toLowerCase().includes('ff9800'));
     });
     (0, node_test_1.default)('TECHNIQUE should be blue', () => {
-        const config = annotation_service_1.ANNOTATION_TYPE_CONFIG.TECHNIQUE;
+        const config = video_service_1.ANNOTATION_TYPE_CONFIG.TECHNIQUE;
         node_assert_1.default.strictEqual(config.label, 'Technique');
         node_assert_1.default.ok(config.color.toLowerCase().includes('2196f3'));
     });

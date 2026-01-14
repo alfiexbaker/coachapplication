@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.storageService = void 0;
 const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('StorageService');
 /**
  * Lightweight storage helper that hides AsyncStorage errors and keeps
  * a tiny in-memory cache for mock/preview sessions.
@@ -20,7 +22,7 @@ class StorageService {
             await async_storage_1.default.setItem(key, serialized);
         }
         catch (err) {
-            console.warn('[storage] falling back to memory', err);
+            logger.warn('Falling back to memory storage', { key, error: err });
         }
     }
     async getItem(key, fallback) {
@@ -30,7 +32,7 @@ class StorageService {
                 return JSON.parse(value);
         }
         catch (err) {
-            console.warn('[storage] read failed, using memory', err);
+            logger.warn('Read failed, using memory fallback', { key, error: err });
         }
         if (this.memory[key]) {
             return JSON.parse(this.memory[key]);
@@ -43,7 +45,7 @@ class StorageService {
             await async_storage_1.default.removeItem(key);
         }
         catch (err) {
-            console.warn('[storage] remove failed, ignoring', err);
+            logger.warn('Remove failed, ignoring', { key, error: err });
         }
     }
 }

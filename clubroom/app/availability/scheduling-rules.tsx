@@ -437,22 +437,23 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Spacing.lg,
-    paddingBottom: 100,
-    gap: Spacing.md,
+    paddingBottom: 120,
+    gap: Spacing.lg,
   },
   section: {
     padding: Spacing.lg,
+    borderRadius: Radii.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.md,
     marginBottom: Spacing.lg,
   },
   sectionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -470,25 +471,30 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   optionCard: {
-    width: '48%',
-    padding: Spacing.md,
+    width: '31%',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
     borderRadius: Radii.md,
     position: 'relative',
+    alignItems: 'center',
   },
   optionLabel: {
-    fontSize: 15,
-    marginBottom: 2,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   optionDesc: {
-    fontSize: 12,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 2,
   },
   checkCircle: {
     position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -519,6 +525,7 @@ const styles = StyleSheet.create({
   },
   toggleSection: {
     padding: Spacing.lg,
+    borderRadius: Radii.lg,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -532,9 +539,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   toggleIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.md,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -543,6 +550,7 @@ const styles = StyleSheet.create({
   },
   toggleSubtext: {
     fontSize: 13,
+    marginTop: 2,
   },
   toggleNote: {
     fontSize: 12,
@@ -551,10 +559,11 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    marginTop: Spacing.md,
+    marginVertical: Spacing.md,
   },
   summaryCard: {
     padding: Spacing.lg,
+    borderRadius: Radii.lg,
   },
   summaryList: {
     gap: Spacing.sm,
@@ -574,7 +583,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.xl + 8,
     borderTopWidth: 1,
   },
   saveButton: {
@@ -582,7 +591,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.md,
+    paddingVertical: 14,
     borderRadius: Radii.lg,
   },
   saveButtonText: {

@@ -10,7 +10,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
 import { useSessionNote } from '@/hooks/use-session-note';
-import { SessionNoteFields } from '@/services/session-notes-service';
+import { SessionNoteFields } from '@/services/progress-service';
 
 export default function SessionNotesScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();

@@ -8,10 +8,11 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { PaymentModal } from '@/components/payment/payment-modal';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { sessionInviteService } from '@/services/session-invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite-service';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 
 export default function SessionInviteDetailScreen() {
@@ -24,6 +25,9 @@ export default function SessionInviteDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
+
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Counter-propose state
   const [showCounterPropose, setShowCounterPropose] = useState(false);
@@ -60,6 +64,20 @@ export default function SessionInviteDetailScreen() {
       Alert.alert('Select a time', 'Please select one of the proposed time slots');
       return;
     }
+
+    // If there's a price, show payment modal first
+    if (invite.priceUsd && invite.priceUsd > 0) {
+      setShowPaymentModal(true);
+      return;
+    }
+
+    // No price - accept directly
+    await confirmAcceptance();
+  };
+
+  const confirmAcceptance = async () => {
+    if (!invite || selectedSlot === null) return;
+
     setResponding(true);
     try {
       await sessionInviteService.respondToInvite({
@@ -67,6 +85,7 @@ export default function SessionInviteDetailScreen() {
         response: 'ACCEPTED',
         selectedSlot: invite.proposedSlots[selectedSlot],
       });
+      setShowPaymentModal(false);
       Alert.alert('Accepted!', 'The session has been confirmed.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -673,6 +692,15 @@ export default function SessionInviteDetailScreen() {
           </Clickable>
         </View>
       )}
+
+      {/* Payment Modal */}
+      <PaymentModal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onPaymentComplete={confirmAcceptance}
+        invite={invite}
+        selectedSlot={selectedSlot !== null ? invite.proposedSlots[selectedSlot] : null}
+      />
     </SafeAreaView>
   );
 }

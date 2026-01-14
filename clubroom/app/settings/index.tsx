@@ -65,8 +65,8 @@ export default function SettingsHubScreen() {
         <SurfaceCard
           style={styles.profileCard}
           onPress={() => {
-            logger.press('ProfileCard', { targetRoute: '/(tabs)/edit-user-profile' });
-            router.push('/(tabs)/edit-user-profile');
+            logger.press('ProfileCard', { targetRoute: '/(tabs)/edit-profile' });
+            router.push('/(tabs)/edit-profile');
           }}
         >
           <View style={styles.profileHeader}>

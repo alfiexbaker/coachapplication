@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { PageHeader } from '@/components/primitives/page-header';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
@@ -257,15 +257,17 @@ export default function ClubHubScreen() {
   return (
     <PageContainer
       header={
-        <PageHeader
-          title="Club"
-          subtitle={club?.name || 'Your club community'}
-          action={canCreatePosts ? 'New Post' : undefined}
-          actionIcon="add"
-          onActionPress={canCreatePosts ? () => router.push({
-            pathname: '/(modal)/create-club-post',
-            params: { clubId: membership!.clubId }
-          }) : undefined}
+        <ScreenHeader
+          title="Club Hub"
+          subtitle="Your clubs and communities"
+          action={canCreatePosts ? {
+            icon: 'add',
+            label: 'New Post',
+            onPress: () => router.push({
+              pathname: '/(modal)/create-club-post',
+              params: { clubId: membership!.clubId }
+            })
+          } : undefined}
         />
       }
       gap={0}

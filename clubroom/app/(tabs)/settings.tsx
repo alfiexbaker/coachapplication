@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -159,27 +160,10 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <ThemedText type="title" style={styles.title}>
-              Settings
-            </ThemedText>
-            <Clickable
-              onPress={() => {
-                logger.press('SettingsHub', { targetRoute: '/settings' });
-                router.push('/settings');
-              }}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.settingsButton,
-                { backgroundColor: pressed ? `${palette.accent}20` : `${palette.accent}10` },
-              ]}
-            >
-              <Ionicons name="settings-outline" size={22} color={palette.accent} />
-            </Clickable>
-          </View>
-          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>Collated controls, profile, and alerts</ThemedText>
-        </View>
+        <ScreenHeader
+          title="Profile"
+          subtitle="Your account"
+        />
 
         <SurfaceCard style={styles.profileCard}>
           <View style={styles.profileHeader}>
@@ -224,8 +208,8 @@ export default function SettingsScreen() {
                 },
               ]}
               onPress={() => {
-                logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-user-profile' });
-                router.push('/(tabs)/edit-user-profile');
+                logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-profile' });
+                router.push('/(tabs)/edit-profile');
               }}
             >
               <Ionicons name="create-outline" size={20} color="#FFFFFF" />
@@ -296,7 +280,7 @@ export default function SettingsScreen() {
               subtitle="Update your personal information"
               onPress={() => {
                 logger.press('EditProfile');
-                router.push('/(tabs)/edit-user-profile');
+                router.push('/(tabs)/edit-profile');
               }}
             />
             {currentUser?.role === 'COACH' && (
@@ -507,30 +491,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing['3xl'],
     gap: Spacing.lg,
-  },
-  header: {
-    gap: Spacing.xs,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
   },
   profileCard: {
     gap: Spacing.md,

@@ -28,7 +28,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import type { Goal, GoalStatus, GoalCategory } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { goalService } from '@/services/goal-service';
+import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
 type TabFilter = 'active' | 'completed' | 'all';
@@ -54,7 +54,7 @@ export default function GoalsDashboardScreen() {
   // Load goals
   const loadGoals = useCallback(async () => {
     try {
-      const userGoals = await goalService.getUserGoals(userId);
+      const userGoals = await progressService.getUserGoals(userId);
       setGoals(userGoals);
     } catch (error) {
       console.error('Failed to load goals:', error);
@@ -220,7 +220,7 @@ export default function GoalsDashboardScreen() {
             <View style={styles.categoryChips}>
               {(['SPEED', 'TECHNIQUE', 'FITNESS', 'TACTICAL', 'MENTAL', 'OTHER'] as GoalCategory[]).map(
                 (cat) => {
-                  const { color, icon, label } = goalService.getCategoryInfo(cat);
+                  const { color, icon, label } = progressService.getCategoryInfo(cat);
                   const isSelected = categoryFilter === cat;
 
                   return (

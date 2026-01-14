@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { BookingWizardHeader, SummaryRow } from '@/components/booking/booking-wizard';
+import { BookingWizardHeader, SummaryRow } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';

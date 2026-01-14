@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { PageHeader } from '@/components/primitives/page-header';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
@@ -207,7 +207,7 @@ export default function WalletScreen() {
 
   if (loading) {
     return (
-      <PageContainer header={<PageHeader title="Wallet" subtitle="Manage your balance" />}>
+      <PageContainer header={<ScreenHeader title="Wallet" subtitle="Manage your earnings" />}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={palette.tint} />
           <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
@@ -220,7 +220,7 @@ export default function WalletScreen() {
 
   return (
     <PageContainer
-      header={<PageHeader title="Wallet" subtitle="Manage your balance" />}
+      header={<ScreenHeader title="Wallet" subtitle="Manage your earnings" />}
       gap={Spacing.md}
       scrollable={false}
     >

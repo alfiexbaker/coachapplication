@@ -33,7 +33,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { saveSessionNote } from '@/services/session-notes-service';
+import { progressService } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import type { SessionOffering, SessionRegistration, BadgeDefinition } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -155,7 +155,7 @@ export default function SessionCompleteScreen() {
       const presentCount = Object.values(attendance).filter(a => a.status === 'present').length;
       const absentCount = Object.values(attendance).filter(a => a.status === 'absent').length;
 
-      await saveSessionNote(session.id, {
+      await progressService.saveSessionNote(session.id, {
         summary: sessionSummary,
         focus: skillsFocused,
         improvements: '',

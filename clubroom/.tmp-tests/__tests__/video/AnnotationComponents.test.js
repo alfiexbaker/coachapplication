@@ -44,7 +44,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
-const annotation_service_1 = require("../../services/annotation-service");
+const video_service_1 = require("../../services/video-service");
 /**
  * Helper function to create a mock annotation for testing
  */
@@ -91,19 +91,19 @@ function createMockAnnotation(overrides = {}) {
     });
     (0, node_test_1.describe)('Type Color Mapping', () => {
         (0, node_test_1.default)('should have correct color for HIGHLIGHT', () => {
-            const config = annotation_service_1.ANNOTATION_TYPE_CONFIG.HIGHLIGHT;
+            const config = video_service_1.ANNOTATION_TYPE_CONFIG.HIGHLIGHT;
             node_assert_1.default.strictEqual(config.color, '#4CAF50');
         });
         (0, node_test_1.default)('should have correct color for IMPROVEMENT', () => {
-            const config = annotation_service_1.ANNOTATION_TYPE_CONFIG.IMPROVEMENT;
+            const config = video_service_1.ANNOTATION_TYPE_CONFIG.IMPROVEMENT;
             node_assert_1.default.strictEqual(config.color, '#FF9800');
         });
         (0, node_test_1.default)('should have correct color for TECHNIQUE', () => {
-            const config = annotation_service_1.ANNOTATION_TYPE_CONFIG.TECHNIQUE;
+            const config = video_service_1.ANNOTATION_TYPE_CONFIG.TECHNIQUE;
             node_assert_1.default.strictEqual(config.color, '#2196F3');
         });
         (0, node_test_1.default)('should have correct color for GENERAL', () => {
-            const config = annotation_service_1.ANNOTATION_TYPE_CONFIG.GENERAL;
+            const config = video_service_1.ANNOTATION_TYPE_CONFIG.GENERAL;
             node_assert_1.default.strictEqual(config.color, '#9E9E9E');
         });
     });
@@ -223,26 +223,26 @@ function createMockAnnotation(overrides = {}) {
 (0, node_test_1.describe)('AnnotationForm Component Logic', () => {
     (0, node_test_1.describe)('Input Validation', () => {
         (0, node_test_1.default)('should validate required label', () => {
-            const errors = annotation_service_1.annotationService.validateInput({ timestamp: 30, label: '', type: 'HIGHLIGHT' }, 180);
+            const errors = video_service_1.videoService.validateInput({ timestamp: 30, label: '', type: 'HIGHLIGHT' }, 180);
             node_assert_1.default.ok(errors.length > 0);
             node_assert_1.default.ok(errors.some((e) => e.toLowerCase().includes('label')));
         });
         (0, node_test_1.default)('should validate label length', () => {
-            const errors = annotation_service_1.annotationService.validateInput({ timestamp: 30, label: 'A'.repeat(101), type: 'HIGHLIGHT' }, 180);
+            const errors = video_service_1.videoService.validateInput({ timestamp: 30, label: 'A'.repeat(101), type: 'HIGHLIGHT' }, 180);
             node_assert_1.default.ok(errors.some((e) => e.includes('100')));
         });
         (0, node_test_1.default)('should validate note length', () => {
-            const errors = annotation_service_1.annotationService.validateInput({ timestamp: 30, label: 'Valid', note: 'A'.repeat(501), type: 'HIGHLIGHT' }, 180);
+            const errors = video_service_1.videoService.validateInput({ timestamp: 30, label: 'Valid', note: 'A'.repeat(501), type: 'HIGHLIGHT' }, 180);
             node_assert_1.default.ok(errors.some((e) => e.includes('500')));
         });
         (0, node_test_1.default)('should validate timestamp range', () => {
-            const errorsNegative = annotation_service_1.annotationService.validateInput({ timestamp: -10, label: 'Valid', type: 'HIGHLIGHT' }, 180);
+            const errorsNegative = video_service_1.videoService.validateInput({ timestamp: -10, label: 'Valid', type: 'HIGHLIGHT' }, 180);
             node_assert_1.default.ok(errorsNegative.some((e) => e.toLowerCase().includes('negative')));
-            const errorsExceeds = annotation_service_1.annotationService.validateInput({ timestamp: 200, label: 'Valid', type: 'HIGHLIGHT' }, 180);
+            const errorsExceeds = video_service_1.videoService.validateInput({ timestamp: 200, label: 'Valid', type: 'HIGHLIGHT' }, 180);
             node_assert_1.default.ok(errorsExceeds.some((e) => e.toLowerCase().includes('duration')));
         });
         (0, node_test_1.default)('should pass valid input', () => {
-            const errors = annotation_service_1.annotationService.validateInput({ timestamp: 60, label: 'Valid label', note: 'Valid note', type: 'TECHNIQUE' }, 180);
+            const errors = video_service_1.videoService.validateInput({ timestamp: 60, label: 'Valid label', note: 'Valid note', type: 'TECHNIQUE' }, 180);
             node_assert_1.default.strictEqual(errors.length, 0);
         });
     });
@@ -272,7 +272,7 @@ function createMockAnnotation(overrides = {}) {
     });
     (0, node_test_1.describe)('Type Selection', () => {
         (0, node_test_1.default)('should have all annotation types available', () => {
-            const types = annotation_service_1.annotationService.getAllTypes();
+            const types = video_service_1.videoService.getAllTypes();
             node_assert_1.default.ok(types.includes('HIGHLIGHT'));
             node_assert_1.default.ok(types.includes('IMPROVEMENT'));
             node_assert_1.default.ok(types.includes('TECHNIQUE'));
@@ -338,7 +338,7 @@ function createMockAnnotation(overrides = {}) {
     (0, node_test_1.describe)('Variant Styles', () => {
         (0, node_test_1.default)('filled variant should use type color as background', () => {
             const type = 'HIGHLIGHT';
-            const config = annotation_service_1.ANNOTATION_TYPE_CONFIG[type];
+            const config = video_service_1.ANNOTATION_TYPE_CONFIG[type];
             const variantStyles = {
                 filled: {
                     backgroundColor: config.color,
@@ -357,7 +357,7 @@ function createMockAnnotation(overrides = {}) {
         });
         (0, node_test_1.default)('outlined variant should have transparent background', () => {
             const type = 'TECHNIQUE';
-            const config = annotation_service_1.ANNOTATION_TYPE_CONFIG[type];
+            const config = video_service_1.ANNOTATION_TYPE_CONFIG[type];
             const variantStyles = {
                 outlined: {
                     backgroundColor: 'transparent',

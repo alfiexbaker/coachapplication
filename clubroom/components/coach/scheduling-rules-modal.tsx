@@ -1,0 +1,507 @@
+import { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, Modal, ScrollView, Switch, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Spacing, Radii } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import type { CoachSchedulingRules } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('SchedulingRulesModal');
+
+// Compact options for modal layout
+const NOTICE_OPTIONS = [
+  { value: 0, label: 'None', short: true },
+  { value: 2, label: '2h', short: true },
+  { value: 6, label: '6h', short: true },
+  { value: 24, label: '24h', short: true },
+  { value: 48, label: '48h', short: true },
+  { value: 72, label: '3d', short: true },
+];
+
+const BUFFER_OPTIONS = [
+  { value: 0, label: 'None', short: true },
+  { value: 10, label: '10m', short: true },
+  { value: 15, label: '15m', short: true },
+  { value: 30, label: '30m', short: true },
+  { value: 45, label: '45m', short: true },
+  { value: 60, label: '1h', short: true },
+];
+
+const BOOKING_WINDOW_OPTIONS = [
+  { value: 7, label: '1 week' },
+  { value: 14, label: '2 weeks' },
+  { value: 30, label: '1 month' },
+  { value: 60, label: '2 months' },
+  { value: 90, label: '3 months' },
+];
+
+const RESCHEDULE_OPTIONS = [
+  { value: 2, label: '2h before' },
+  { value: 6, label: '6h before' },
+  { value: 24, label: '24h before' },
+  { value: 48, label: '48h before' },
+];
+
+interface OptionChipProps {
+  label: string;
+  isSelected: boolean;
+  onPress: () => void;
+  compact?: boolean;
+}
+
+function OptionChip({ label, isSelected, onPress, compact }: OptionChipProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  return (
+    <Clickable
+      onPress={() => {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      style={[
+        compact ? styles.compactChip : styles.optionChip,
+        {
+          backgroundColor: isSelected ? palette.tint : palette.surface,
+          borderColor: isSelected ? palette.tint : palette.border,
+        },
+      ]}
+    >
+      <ThemedText
+        style={[
+          styles.chipText,
+          { color: isSelected ? '#fff' : palette.text, fontSize: compact ? 13 : 14 },
+        ]}
+      >
+        {label}
+      </ThemedText>
+    </Clickable>
+  );
+}
+
+interface SchedulingRulesModalProps {
+  visible: boolean;
+  onClose: () => void;
+  coachId: string;
+  onSaved?: () => void;
+}
+
+export function SchedulingRulesModal({
+  visible,
+  onClose,
+  coachId,
+  onSaved,
+}: SchedulingRulesModalProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Form state
+  const [minimumAdvanceHours, setMinimumAdvanceHours] = useState(24);
+  const [maxAdvanceDays, setMaxAdvanceDays] = useState(30);
+  const [bufferMinutes, setBufferMinutes] = useState(15);
+  const [allowSameDayBookings, setAllowSameDayBookings] = useState(true);
+  const [allowRescheduling, setAllowRescheduling] = useState(true);
+  const [rescheduleDeadlineHours, setRescheduleDeadlineHours] = useState(24);
+
+  const loadRules = useCallback(async () => {
+    if (!visible) return;
+    setLoading(true);
+    try {
+      const data = await schedulingRulesService.getCoachRules(coachId);
+      if (data) {
+        setMinimumAdvanceHours(data.minimumAdvanceBookingHours);
+        setMaxAdvanceDays(data.maxAdvanceBookingDays);
+        setBufferMinutes(data.bufferMinutesDefault);
+        setAllowSameDayBookings(data.allowSameDayBookings);
+        setAllowRescheduling(data.allowRescheduling);
+        setRescheduleDeadlineHours(data.rescheduleDeadlineHours);
+      }
+    } catch (error) {
+      logger.error('Failed to load scheduling rules', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [coachId, visible]);
+
+  useEffect(() => {
+    if (visible) {
+      loadRules();
+    }
+  }, [visible, loadRules]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await schedulingRulesService.updateCoachRules(coachId, {
+        minimumAdvanceBookingHours: minimumAdvanceHours,
+        maxAdvanceBookingDays: maxAdvanceDays,
+        bufferMinutesDefault: bufferMinutes,
+        maxConcurrentDefault: 1,
+        allowSameDayBookings,
+        allowRescheduling,
+        rescheduleDeadlineHours,
+      });
+
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onSaved?.();
+      onClose();
+    } catch (error) {
+      logger.error('Failed to save scheduling rules', error);
+      Alert.alert('Error', 'Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[styles.container, { backgroundColor: palette.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: palette.border }]}>
+          <Clickable onPress={onClose} disabled={saving}>
+            <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
+          </Clickable>
+          <ThemedText type="subtitle">Scheduling Rules</ThemedText>
+          <Clickable onPress={handleSave} disabled={saving || loading}>
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+              {saving ? 'Saving...' : 'Save'}
+            </ThemedText>
+          </Clickable>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Quick Summary */}
+          <View style={[styles.summaryBanner, { backgroundColor: `${palette.tint}08` }]}>
+            <Ionicons name="information-circle" size={20} color={palette.tint} />
+            <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
+              These rules control how athletes can book sessions with you
+            </ThemedText>
+          </View>
+
+          {/* Minimum Notice */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIcon, { backgroundColor: `${palette.warning}15` }]}>
+                <Ionicons name="time-outline" size={18} color={palette.warning} />
+              </View>
+              <View style={styles.sectionTitleWrap}>
+                <ThemedText type="defaultSemiBold">Minimum Notice</ThemedText>
+                <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                  Required time before session
+                </ThemedText>
+              </View>
+            </View>
+            <View style={styles.chipRow}>
+              {NOTICE_OPTIONS.map((opt) => (
+                <OptionChip
+                  key={opt.value}
+                  label={opt.label}
+                  isSelected={minimumAdvanceHours === opt.value}
+                  onPress={() => setMinimumAdvanceHours(opt.value)}
+                  compact
+                />
+              ))}
+            </View>
+          </View>
+
+          {/* Buffer Time */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <Ionicons name="pause-outline" size={18} color={palette.tint} />
+              </View>
+              <View style={styles.sectionTitleWrap}>
+                <ThemedText type="defaultSemiBold">Buffer Between Sessions</ThemedText>
+                <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                  Break time between bookings
+                </ThemedText>
+              </View>
+            </View>
+            <View style={styles.chipRow}>
+              {BUFFER_OPTIONS.map((opt) => (
+                <OptionChip
+                  key={opt.value}
+                  label={opt.label}
+                  isSelected={bufferMinutes === opt.value}
+                  onPress={() => setBufferMinutes(opt.value)}
+                  compact
+                />
+              ))}
+            </View>
+          </View>
+
+          {/* Booking Window */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIcon, { backgroundColor: `${palette.success}15` }]}>
+                <Ionicons name="calendar-outline" size={18} color={palette.success} />
+              </View>
+              <View style={styles.sectionTitleWrap}>
+                <ThemedText type="defaultSemiBold">Booking Window</ThemedText>
+                <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                  How far ahead can they book?
+                </ThemedText>
+              </View>
+            </View>
+            <View style={styles.chipRow}>
+              {BOOKING_WINDOW_OPTIONS.map((opt) => (
+                <OptionChip
+                  key={opt.value}
+                  label={opt.label}
+                  isSelected={maxAdvanceDays === opt.value}
+                  onPress={() => setMaxAdvanceDays(opt.value)}
+                />
+              ))}
+            </View>
+          </View>
+
+          {/* Toggles */}
+          <SurfaceCard style={styles.toggleCard}>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleInfo}>
+                <View style={[styles.toggleIcon, { backgroundColor: `${palette.success}15` }]}>
+                  <Ionicons name="today-outline" size={16} color={palette.success} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>Same-Day Bookings</ThemedText>
+                  <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
+                    Allow booking for today
+                  </ThemedText>
+                </View>
+              </View>
+              <Switch
+                value={allowSameDayBookings}
+                onValueChange={(value) => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setAllowSameDayBookings(value);
+                }}
+                trackColor={{ false: palette.border, true: palette.success }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            <View style={[styles.toggleDivider, { backgroundColor: palette.border }]} />
+
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleInfo}>
+                <View style={[styles.toggleIcon, { backgroundColor: `${palette.tint}15` }]}>
+                  <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>Allow Rescheduling</ThemedText>
+                  <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
+                    Let athletes change booking time
+                  </ThemedText>
+                </View>
+              </View>
+              <Switch
+                value={allowRescheduling}
+                onValueChange={(value) => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setAllowRescheduling(value);
+                }}
+                trackColor={{ false: palette.border, true: palette.tint }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            {allowRescheduling && (
+              <>
+                <View style={[styles.toggleDivider, { backgroundColor: palette.border }]} />
+                <View style={styles.rescheduleSection}>
+                  <ThemedText style={[styles.rescheduleLabel, { color: palette.muted }]}>
+                    Reschedule deadline:
+                  </ThemedText>
+                  <View style={styles.rescheduleChips}>
+                    {RESCHEDULE_OPTIONS.map((opt) => (
+                      <OptionChip
+                        key={opt.value}
+                        label={opt.label}
+                        isSelected={rescheduleDeadlineHours === opt.value}
+                        onPress={() => setRescheduleDeadlineHours(opt.value)}
+                        compact
+                      />
+                    ))}
+                  </View>
+                </View>
+              </>
+            )}
+          </SurfaceCard>
+
+          {/* Current Settings Summary */}
+          <SurfaceCard style={[styles.currentSettings, { backgroundColor: `${palette.success}08` }]}>
+            <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>
+              Current Settings
+            </ThemedText>
+            <View style={styles.settingsList}>
+              <View style={styles.settingItem}>
+                <Ionicons name="checkmark-circle" size={14} color={palette.success} />
+                <ThemedText style={styles.settingText}>
+                  {minimumAdvanceHours === 0 ? 'No minimum notice' : `${minimumAdvanceHours}h minimum notice`}
+                </ThemedText>
+              </View>
+              <View style={styles.settingItem}>
+                <Ionicons name="checkmark-circle" size={14} color={palette.success} />
+                <ThemedText style={styles.settingText}>
+                  {bufferMinutes === 0 ? 'No buffer' : `${bufferMinutes}m buffer between sessions`}
+                </ThemedText>
+              </View>
+              <View style={styles.settingItem}>
+                <Ionicons name="checkmark-circle" size={14} color={palette.success} />
+                <ThemedText style={styles.settingText}>
+                  Book up to {maxAdvanceDays} days ahead
+                </ThemedText>
+              </View>
+              <View style={styles.settingItem}>
+                <Ionicons
+                  name={allowSameDayBookings ? 'checkmark-circle' : 'close-circle'}
+                  size={14}
+                  color={allowSameDayBookings ? palette.success : palette.muted}
+                />
+                <ThemedText style={styles.settingText}>
+                  Same-day {allowSameDayBookings ? 'allowed' : 'not allowed'}
+                </ThemedText>
+              </View>
+            </View>
+          </SurfaceCard>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  content: {
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+  },
+  summaryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  summaryText: {
+    flex: 1,
+    fontSize: 13,
+  },
+  section: {
+    gap: Spacing.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  sectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitleWrap: {
+    flex: 1,
+  },
+  sectionHint: {
+    fontSize: 12,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  compactChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  optionChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+  },
+  chipText: {
+    fontWeight: '600',
+  },
+  toggleCard: {
+    padding: Spacing.md,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  toggleIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleHint: {
+    fontSize: 11,
+  },
+  toggleDivider: {
+    height: 1,
+    marginVertical: Spacing.md,
+  },
+  rescheduleSection: {
+    gap: Spacing.sm,
+  },
+  rescheduleLabel: {
+    fontSize: 12,
+  },
+  rescheduleChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  currentSettings: {
+    padding: Spacing.md,
+  },
+  settingsList: {
+    gap: Spacing.xs,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  settingText: {
+    fontSize: 13,
+  },
+});

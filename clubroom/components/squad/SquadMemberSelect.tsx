@@ -24,9 +24,9 @@ import type { SquadMember } from '@/constants/types';
 
 const logger = createLogger('SquadMemberSelect');
 import {
-  squadBulkInviteService,
+  inviteService as squadBulkInviteService,
   type SquadMemberWithSelection,
-} from '@/services/squad-bulk-invite-service';
+} from '@/services/invite-service';
 
 interface SquadMemberSelectProps {
   squadId: string;

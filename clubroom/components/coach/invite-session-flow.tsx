@@ -130,7 +130,7 @@ export function InviteSessionFlow({
       // Navigate to create session flow with preselected athletes
       onClose();
       router.push({
-        pathname: '/session/create',
+        pathname: '/sessions/create',
         params: {
           athleteIds: selected.map((a) => a.id).join(','),
           athleteNames: selected.map((a) => a.name).join(','),

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, ScrollView, StyleSheet, View, Alert, Pressable } from 'react-native';
+import { Image, ScrollView, StyleSheet, View, Alert, Pressable, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,9 +9,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SessionNotesView } from '@/components/session/session-notes-view';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import { useSessionNote } from '@/hooks/use-session-note';
 import { upcomingBookings } from '@/constants/mock-data';
 import { BookingSummary } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -28,6 +32,13 @@ export default function SessionDetailScreen() {
   const [loading, setLoading] = useState(true);
 
   const isCoach = currentUser?.role === 'COACH';
+
+  const {
+    note: sessionNote,
+    loading: sessionNoteLoading,
+    error: sessionNoteError,
+    refresh: refreshSessionNote,
+  } = useSessionNote(id);
 
   // Load booking from both mock data and AsyncStorage
   useEffect(() => {
@@ -95,10 +106,14 @@ export default function SessionDetailScreen() {
 
   if (!booking) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={styles.errorState}>
-          <ThemedText>Booking not found</ThemedText>
-        </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <EmptyState
+          icon="warning"
+          title="Booking not found"
+          message="Double-check the link or pick a booking from the list."
+          actionLabel="Back to bookings"
+          onPressAction={() => router.back()}
+        />
       </SafeAreaView>
     );
   }
@@ -171,11 +186,11 @@ export default function SessionDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Session Type Header */}
         <ThemedView style={styles.headerSection}>
-          <ThemedText type="title">{booking.service}</ThemedText>
-          <View style={[styles.statusBadge, { backgroundColor: palette.tint + '20' }]}>
-            <ThemedText style={[styles.statusText, { color: palette.tint }]}>
-              {booking.status}
-            </ThemedText>
+          <View style={styles.headerRow}>
+            <View style={{ flex: 1 }}>
+              <ThemedText type="title">{booking.service}</ThemedText>
+            </View>
+            <StatusBadge status={booking.status as any} />
           </View>
         </ThemedView>
 
@@ -207,11 +222,38 @@ export default function SessionDetailScreen() {
                 {booking.locationLabel}
               </ThemedText>
             </View>
+            <Clickable
+              style={[styles.actionIconButton, { backgroundColor: palette.tint + '10' }]}
+              onPress={() => {
+                const location = encodeURIComponent(booking.locationLabel);
+                const url = `https://maps.google.com/?q=${location}`;
+                Linking.openURL(url).catch(() => {
+                  Alert.alert('Error', 'Could not open maps application.');
+                });
+              }}
+            >
+              <Ionicons name="navigate" size={20} color={palette.tint} />
+            </Clickable>
           </View>
           {/* Mini Map Placeholder */}
           <View style={[styles.mapPreview, { backgroundColor: palette.border }]}>
             <Ionicons name="map" size={32} color={palette.muted} />
             <ThemedText style={styles.mapText}>Map preview</ThemedText>
+          </View>
+        </SurfaceCard>
+
+        {/* Payment Card */}
+        <SurfaceCard style={styles.card}>
+          <View style={styles.iconRow}>
+            <View style={[styles.iconCircle, { backgroundColor: palette.tint + '20' }]}>
+              <Ionicons name="card" size={24} color={palette.tint} />
+            </View>
+            <View style={styles.cardContent}>
+              <ThemedText style={styles.cardTitle}>Payment</ThemedText>
+              <ThemedText type="subtitle" style={styles.cardValue}>
+                £65 (mock)
+              </ThemedText>
+            </View>
           </View>
         </SurfaceCard>
 
@@ -329,12 +371,88 @@ export default function SessionDetailScreen() {
           </SurfaceCard>
         )}
 
-        {/* Session Notes */}
+        {/* Session Notes & Development */}
         <SurfaceCard style={styles.card}>
-          <ThemedText style={styles.cardTitle}>Session Focus</ThemedText>
-          <ThemedText style={styles.notesText}>
-            This session will focus on improving your ball control and dribbling technique. We'll work on close control drills and 1v1 situations.
-          </ThemedText>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold">Session notes & development</ThemedText>
+            <Clickable style={styles.linkPill} onPress={() => router.push(`/session-notes/${id}`)}>
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                {sessionNote ? 'View & edit' : 'Add notes'}
+              </ThemedText>
+            </Clickable>
+          </View>
+
+          {sessionNoteLoading && !sessionNote ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator color={palette.tint} />
+              <ThemedText style={{ color: palette.muted }}>Loading coach notes…</ThemedText>
+            </View>
+          ) : null}
+
+          {sessionNoteError ? (
+            <Clickable onPress={refreshSessionNote} style={styles.errorPill}>
+              <Ionicons name="refresh" size={16} color={palette.error} />
+              <ThemedText style={{ color: palette.error, fontWeight: '700' }}>Retry loading notes</ThemedText>
+            </Clickable>
+          ) : null}
+
+          {sessionNote ? (
+            <View style={{ gap: Spacing.sm }}>
+              <SessionNotesView {...sessionNote} />
+            </View>
+          ) : !sessionNoteLoading ? (
+            <View style={{ gap: Spacing.xs }}>
+              <ThemedText style={{ color: palette.muted }}>
+                Capture what was covered, effort and homework so parents can track the session.
+              </ThemedText>
+              <Clickable
+                onPress={() => router.push(`/session-notes/${id}`)}
+                style={[styles.ctaButton, { backgroundColor: `${palette.tint}12` }]}
+              >
+                <Ionicons name="create" size={16} color={palette.tint} />
+                <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Add coach notes</ThemedText>
+              </Clickable>
+            </View>
+          ) : null}
+        </SurfaceCard>
+
+        {/* Follow-up Actions */}
+        <SurfaceCard style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="defaultSemiBold">Follow-ups parents will see</ThemedText>
+            <Clickable style={styles.linkPill} onPress={refreshSessionNote}>
+              <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
+                {sessionNoteLoading ? 'Refreshing…' : 'Sync now'}
+              </ThemedText>
+            </Clickable>
+          </View>
+          <View style={{ gap: Spacing.sm }}>
+            {[
+              {
+                label: 'Share homework reminder',
+                completed: Boolean(sessionNote?.homework),
+              },
+              {
+                label: 'Confirm attendance',
+                completed: Boolean(sessionNote?.attendance),
+              },
+              {
+                label: 'Log effort & focus',
+                completed: Boolean(sessionNote?.effort && sessionNote?.focus?.length),
+              },
+            ].map((action) => (
+              <View key={action.label} style={styles.metaItem}>
+                <Ionicons
+                  name={action.completed ? 'checkmark-circle' : 'radio-button-off'}
+                  size={18}
+                  color={action.completed ? palette.tint : palette.icon}
+                />
+                <ThemedText style={{ color: action.completed ? palette.tint : palette.muted }}>
+                  {action.label}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
         </SurfaceCard>
 
         {/* Action Buttons */}
@@ -470,17 +588,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
   },
   card: {
     padding: Spacing.lg,
@@ -661,5 +772,55 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  actionIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  linkPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    backgroundColor: '#f1f5f9',
+  },
+  errorPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    backgroundColor: `${Colors.light.error}10`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  ctaButton: {
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.button,
+    borderWidth: 1,
+    borderColor: `${Colors.light.border}40`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    alignSelf: 'flex-start',
   },
 });

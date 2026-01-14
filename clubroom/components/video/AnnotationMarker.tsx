@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { ANNOTATION_TYPE_CONFIG } from '@/services/annotation-service';
+import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);

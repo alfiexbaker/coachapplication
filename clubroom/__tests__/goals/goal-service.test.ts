@@ -8,7 +8,7 @@
 import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
-import { goalService } from '../../services/goal-service';
+import { progressService as goalService } from '../../services/progress-service';
 import type { Goal, GoalCategory, GoalStatus, CreateGoalInput } from '../../constants/types';
 
 // Reset to mock data before each test

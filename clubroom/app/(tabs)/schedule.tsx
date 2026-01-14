@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -306,34 +307,32 @@ export default function ScheduleScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        {/* Header */}
-        <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
-          <View>
-            <ThemedText type="title" style={styles.title}>Schedule</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              {weekSummary.totalSessions} sessions this week
-            </ThemedText>
-          </View>
-          <Clickable onPress={handleOpenSettings} style={[styles.settingsButton, { backgroundColor: palette.surface }]}>
-            <Ionicons name="settings-outline" size={22} color={palette.muted} />
-          </Clickable>
-        </Animated.View>
+      {/* Header - OUTSIDE ScrollView for consistent positioning */}
+      <View style={styles.headerRow}>
+        <ScreenHeader
+          title="Schedule"
+          subtitle="Your upcoming sessions"
+        />
+        <Clickable onPress={handleOpenSettings} style={[styles.settingsButton, { backgroundColor: palette.surface }]}>
+          <Ionicons name="settings-outline" size={22} color={palette.muted} />
+        </Clickable>
+      </View>
 
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {/* TODAY Hero Card */}
         {todayData && (
           <Animated.View entering={FadeInDown.delay(100).springify()}>
-            <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.tint }]}>
+            <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }]}>
               <View style={styles.todayHeader}>
                 <View>
-                  <ThemedText style={styles.todayLabel}>TODAY</ThemedText>
-                  <ThemedText style={styles.todayDate}>
+                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayLabel}>TODAY</ThemedText>
+                  <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.todayDate}>
                     {todayData.dayName}, {todayData.date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
                   </ThemedText>
                 </View>
                 <View style={styles.todayStats}>
-                  <ThemedText style={styles.todayStatValue}>{todaySessions.length}</ThemedText>
-                  <ThemedText style={styles.todayStatLabel}>
+                  <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.todayStatValue}>{todaySessions.length}</ThemedText>
+                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayStatLabel}>
                     session{todaySessions.length !== 1 ? 's' : ''}
                   </ThemedText>
                 </View>
@@ -342,10 +341,10 @@ export default function ScheduleScreen() {
               {nextSession ? (
                 <View style={styles.nextSessionBanner}>
                   <View style={styles.nextSessionInfo}>
-                    <ThemedText style={styles.nextSessionTitle}>
+                    <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.nextSessionTitle}>
                       {nextSession.athleteName || nextSession.title}
                     </ThemedText>
-                    <ThemedText style={styles.nextSessionMeta}>
+                    <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.nextSessionMeta}>
                       {nextSession.time} · {nextSession.location || 'Location TBD'}
                     </ThemedText>
                   </View>
@@ -357,13 +356,13 @@ export default function ScheduleScreen() {
                 </View>
               ) : todaySessions.length === 0 ? (
                 <View style={styles.todayEmpty}>
-                  <ThemedText style={styles.todayEmptyText}>
+                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayEmptyText}>
                     No sessions today - enjoy your free time!
                   </ThemedText>
                 </View>
               ) : (
                 <View style={styles.todayEmpty}>
-                  <ThemedText style={styles.todayEmptyText}>
+                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayEmptyText}>
                     All done for today!
                   </ThemedText>
                 </View>
@@ -612,19 +611,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 15,
-    marginTop: 2,
+    alignItems: 'center',
+    paddingRight: Spacing.md,
   },
   settingsButton: {
     width: 44,
@@ -646,13 +637,13 @@ const styles = StyleSheet.create({
   todayLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.7)',
+    color: '#6B7280',
     letterSpacing: 1,
   },
   todayDate: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F172A',
     marginTop: 2,
   },
   todayStats: {
@@ -661,16 +652,16 @@ const styles = StyleSheet.create({
   todayStatValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: '#0F172A',
   },
   todayStatLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
+    color: '#6B7280',
   },
   nextSessionBanner: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#F3F4F6',
     borderRadius: Radii.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -681,17 +672,17 @@ const styles = StyleSheet.create({
   nextSessionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#0F172A',
   },
   nextSessionMeta: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
+    color: '#6B7280',
     marginTop: 2,
   },
   nextSessionCountdown: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#0F172A',
     borderRadius: Radii.md,
   },
   countdownText: {
@@ -703,10 +694,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.2)',
+    borderTopColor: '#E5E7EB',
   },
   todayEmptyText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#6B7280',
     fontSize: 14,
   },
   // Week Strip

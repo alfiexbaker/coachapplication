@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -328,19 +329,16 @@ export default function AthletesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: palette.border }]}>
-        <ThemedText type="title" style={styles.title}>
-          Athletes
-        </ThemedText>
-        <Clickable
-          style={[styles.inviteButton, { backgroundColor: palette.tint }]}
-          onPress={() => router.push('/session-invites/create')}
-        >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
-          <ThemedText style={styles.inviteButtonText}>Invite</ThemedText>
-        </Clickable>
-      </View>
+      <ScreenHeader
+        title="Athletes"
+        subtitle="Manage your roster"
+        action={{
+          icon: 'add',
+          label: 'Invite',
+          onPress: () => router.push('/session-invites/create'),
+        }}
+        bordered
+      />
 
       <FlatList
         data={sortedAthletes}
@@ -361,31 +359,6 @@ export default function AthletesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  inviteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-  },
-  inviteButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
   },
   headerContent: {
     paddingHorizontal: Spacing.lg,
