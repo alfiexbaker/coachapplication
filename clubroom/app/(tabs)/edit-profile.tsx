@@ -22,7 +22,7 @@ import { SocialLinksEditor } from '@/components/profile/social-links-editor';
 import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { FOOTBALL_OBJECTIVES } from '@/constants/booking-types';
 import { coachProfiles, mockUserProfile } from '@/constants/mock-data';
-import { CoachExperience, CoachLanguage, FootballObjective, SocialLinks } from '@/constants/types';
+import { CoachCertification, CoachExperience, CoachLanguage, FootballObjective, SocialLinks } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { isCoach } from '@/utils/user-helpers';
 import { createLogger } from '@/utils/logger';
@@ -51,6 +51,15 @@ const createBlankLanguage = (): CoachLanguage => ({
   id: `lang-${Date.now()}`,
   name: '',
   proficiency: 'Conversational',
+});
+
+const createBlankCertification = (): CoachCertification => ({
+  id: `cert-${Date.now()}`,
+  name: '',
+  issuer: '',
+  issueDate: '',
+  expiryDate: '',
+  credentialUrl: '',
 });
 
 export default function EditProfileScreen() {
@@ -86,6 +95,9 @@ export default function EditProfileScreen() {
   const [languages, setLanguages] = useState<CoachLanguage[]>(coach?.languages || []);
   const [languageDraft, setLanguageDraft] = useState<CoachLanguage>(createBlankLanguage());
   const [isLanguageModalVisible, setLanguageModalVisible] = useState(false);
+  const [certifications, setCertifications] = useState<CoachCertification[]>(coach?.certifications || []);
+  const [certificationDraft, setCertificationDraft] = useState<CoachCertification>(createBlankCertification());
+  const [isCertificationModalVisible, setCertificationModalVisible] = useState(false);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>(coach?.socialLinks || {});
 
   const toggleFocus = (focus: FootballObjective) => {
@@ -146,6 +158,31 @@ export default function EditProfileScreen() {
     setLanguages((prev) => prev.filter((lang) => lang.id !== id));
   };
 
+  const openCertificationModal = (certification?: CoachCertification) => {
+    setCertificationDraft(certification ? { ...certification } : createBlankCertification());
+    setCertificationModalVisible(true);
+  };
+
+  const saveCertification = () => {
+    if (!certificationDraft.name || !certificationDraft.issuer || !certificationDraft.issueDate) {
+      Alert.alert('Missing Information', 'Please add a certification name, issuer, and issue date.');
+      return;
+    }
+
+    setCertifications((prev) => {
+      const exists = prev.some((cert) => cert.id === certificationDraft.id);
+      if (exists) {
+        return prev.map((cert) => (cert.id === certificationDraft.id ? certificationDraft : cert));
+      }
+      return [certificationDraft, ...prev];
+    });
+    setCertificationModalVisible(false);
+  };
+
+  const removeCertification = (id: string) => {
+    setCertifications((prev) => prev.filter((cert) => cert.id !== id));
+  };
+
   const addChild = () => {
     const newChild = { name: '', age: 0 };
     setChildren([...children, newChild]);
@@ -178,6 +215,7 @@ export default function EditProfileScreen() {
         footballFocuses: selectedFocuses,
         experiences,
         languages,
+        certifications,
         socialLinks,
       };
 
@@ -644,11 +682,90 @@ export default function EditProfileScreen() {
             <SurfaceCard style={styles.section}>
               <View style={styles.sectionHeader}>
                 <ThemedText type="subtitle">Certifications</ThemedText>
-                <Pressable onPress={() => Alert.alert('Coming Soon', 'Certification management will be available in a future update.')}>
-                  <Ionicons name="add-circle" size={24} color={palette.tint} />
+                <Pressable onPress={() => openCertificationModal()} style={styles.inlineAction}>
+                  <Ionicons name="add-circle" size={22} color={palette.tint} />
+                  <ThemedText style={[styles.inlineActionText, { color: palette.tint }]}>Add</ThemedText>
                 </Pressable>
               </View>
-              <ThemedText style={styles.comingSoon}>Add your coaching licenses and certifications</ThemedText>
+              <ThemedText style={styles.subtitle}>
+                Show parents your coaching licenses, FA badges, and professional qualifications.
+              </ThemedText>
+
+              {certifications.length > 0 ? (
+                <View style={styles.certificationList}>
+                  {certifications.map((cert) => {
+                    const issueDate = cert.issueDate
+                      ? new Date(cert.issueDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+                      : '';
+                    const expiryDate = cert.expiryDate
+                      ? new Date(cert.expiryDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+                      : null;
+                    const isExpired = cert.expiryDate && new Date(cert.expiryDate) < new Date();
+
+                    return (
+                      <View key={cert.id} style={[styles.certificationCard, { borderColor: palette.border }]}>
+                        <View style={styles.certificationHeader}>
+                          <View
+                            style={[
+                              styles.certificationPill,
+                              {
+                                backgroundColor: isExpired ? `${palette.warning}15` : `${palette.success}15`,
+                              },
+                            ]}>
+                            <Ionicons
+                              name={isExpired ? 'alert-circle' : 'ribbon'}
+                              size={14}
+                              color={isExpired ? palette.warning : palette.success}
+                            />
+                            <ThemedText
+                              style={styles.certificationPillText}
+                              lightColor={isExpired ? palette.warning : palette.success}
+                              darkColor={isExpired ? palette.warning : palette.success}>
+                              {isExpired ? 'Expired' : 'Valid'}
+                            </ThemedText>
+                          </View>
+
+                          <View style={styles.certificationActions}>
+                            <Pressable
+                              onPress={() => openCertificationModal(cert)}
+                              style={[styles.iconButton, { borderColor: palette.border }]}>
+                              <Ionicons name="pencil" size={16} color={palette.muted} />
+                            </Pressable>
+                            <Pressable
+                              onPress={() => removeCertification(cert.id)}
+                              style={[styles.iconButton, { borderColor: palette.border }]}>
+                              <Ionicons name="trash" size={16} color={palette.warning} />
+                            </Pressable>
+                          </View>
+                        </View>
+
+                        <View style={styles.certificationBody}>
+                          <ThemedText type="subtitle">{cert.name}</ThemedText>
+                          <ThemedText style={styles.certificationIssuer}>{cert.issuer}</ThemedText>
+                          <ThemedText style={styles.certificationDate}>
+                            Issued: {issueDate}{expiryDate ? ` • Expires: ${expiryDate}` : ''}
+                          </ThemedText>
+                          {cert.credentialUrl && (
+                            <View style={styles.certificationLinkRow}>
+                              <Ionicons name="link" size={12} color={palette.tint} />
+                              <ThemedText style={[styles.certificationLink, { color: palette.tint }]} numberOfLines={1}>
+                                {cert.credentialUrl}
+                              </ThemedText>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <SurfaceCard style={[styles.emptyCard, { borderColor: palette.border }]}>
+                  <Ionicons name="ribbon-outline" size={20} color={palette.muted} />
+                  <ThemedText style={styles.emptyText}>
+                    Add your FA badges, UEFA licenses, or other coaching qualifications to build trust with parents.
+                  </ThemedText>
+                </SurfaceCard>
+              )}
             </SurfaceCard>
           )}
         </ScrollView>
@@ -838,6 +955,98 @@ export default function EditProfileScreen() {
                   </ThemedText>
                 </Pressable>
               </View>
+            </SurfaceCard>
+          </View>
+        </Modal>
+      )}
+
+      {/* Certification Modal - Coach only */}
+      {userIsCoach && (
+        <Modal
+          visible={isCertificationModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setCertificationModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <SurfaceCard style={[styles.modalCard, { backgroundColor: palette.background }]}>
+              <View style={styles.modalHeader}>
+                <ThemedText type="subtitle">Certification</ThemedText>
+                <Pressable onPress={() => setCertificationModalVisible(false)}>
+                  <Ionicons name="close" size={22} color={palette.foreground} />
+                </Pressable>
+              </View>
+
+              <ScrollView contentContainerStyle={styles.modalContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.fieldGroup}>
+                  <ThemedText style={styles.label}>Certification Name</ThemedText>
+                  <TextInput
+                    value={certificationDraft.name}
+                    onChangeText={(text) => setCertificationDraft({ ...certificationDraft, name: text })}
+                    placeholder="e.g., UEFA B License, FA Level 2..."
+                    placeholderTextColor={palette.muted}
+                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <ThemedText style={styles.label}>Issuing Organisation</ThemedText>
+                  <TextInput
+                    value={certificationDraft.issuer}
+                    onChangeText={(text) => setCertificationDraft({ ...certificationDraft, issuer: text })}
+                    placeholder="e.g., UEFA, The FA, US Soccer..."
+                    placeholderTextColor={palette.muted}
+                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                  />
+                </View>
+
+                <View style={styles.inlineFields}>
+                  <View style={[styles.fieldGroup, styles.inlineField]}>
+                    <ThemedText style={styles.label}>Issue Date</ThemedText>
+                    <TextInput
+                      value={certificationDraft.issueDate}
+                      onChangeText={(text) => setCertificationDraft({ ...certificationDraft, issueDate: text })}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                    />
+                  </View>
+
+                  <View style={[styles.fieldGroup, styles.inlineField]}>
+                    <ThemedText style={styles.label}>Expiry Date (optional)</ThemedText>
+                    <TextInput
+                      value={certificationDraft.expiryDate || ''}
+                      onChangeText={(text) => setCertificationDraft({ ...certificationDraft, expiryDate: text })}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={palette.muted}
+                      style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <ThemedText style={styles.label}>Credential URL (optional)</ThemedText>
+                  <TextInput
+                    value={certificationDraft.credentialUrl || ''}
+                    onChangeText={(text) => setCertificationDraft({ ...certificationDraft, credentialUrl: text })}
+                    placeholder="https://credentials.fa.com/..."
+                    keyboardType="url"
+                    autoCapitalize="none"
+                    placeholderTextColor={palette.muted}
+                    style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card, color: palette.foreground }]}
+                  />
+                  <ThemedText style={styles.helper}>
+                    Link to your digital badge or certificate verification page
+                  </ThemedText>
+                </View>
+
+                <Pressable
+                  onPress={saveCertification}
+                  style={[styles.primaryButton, { backgroundColor: palette.tint }]}>
+                  <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
+                    Save certification
+                  </ThemedText>
+                </Pressable>
+              </ScrollView>
             </SurfaceCard>
           </View>
         </Modal>
@@ -1129,5 +1338,56 @@ const styles = StyleSheet.create({
   comingSoon: {
     opacity: 0.5,
     fontStyle: 'italic',
+  },
+  certificationList: {
+    gap: Spacing.sm,
+  },
+  certificationCard: {
+    borderWidth: 1,
+    borderRadius: Radii.lg,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  certificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  certificationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+  },
+  certificationPillText: {
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  certificationActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  certificationBody: {
+    gap: 4,
+  },
+  certificationIssuer: {
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  certificationDate: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  certificationLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: 4,
+  },
+  certificationLink: {
+    fontSize: 12,
+    flex: 1,
   },
 });
