@@ -15,9 +15,10 @@ import { ParentProgressSummary } from '@/components/progress';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { getChildrenForParent, getSessionsForAthlete, formatDate } from '@/constants/mock-data';
+import { getSessionsForAthlete, formatDate } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
 import { progressService, AthleteProgress } from '@/services/progress-service';
+import { childService, type ChildProfile } from '@/services/child-service';
 import type { User, BadgeAward } from '@/constants/types';
 
 type HubSection = {
@@ -43,7 +44,7 @@ export default function ChildrenHubScreen() {
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
 
-  const [children, setChildren] = useState<User[]>([]);
+  const [children, setChildren] = useState<ChildProfile[]>([]);
   const [childStats, setChildStats] = useState<Record<string, ChildStats>>({});
   const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +53,7 @@ export default function ChildrenHubScreen() {
     if (!currentUser?.id) return;
     setLoading(true);
 
-    const childrenData = getChildrenForParent(currentUser.id);
+    const childrenData = await childService.getChildren(currentUser.id);
     setChildren(childrenData);
 
     // Load stats for each child
@@ -255,91 +256,119 @@ export default function ChildrenHubScreen() {
       {children.length > 0 ? (
         <View style={styles.childrenContainer}>
           <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
-            Select Child
+            My Children
           </ThemedText>
           <View style={styles.childrenGrid}>
             {children.map((child, index) => {
               const stats = childStats[child.id] || { sessions: 0, badges: 0, avgRating: 0, unseenBadges: 0 };
+              const fullName = `${child.firstName} ${child.lastName}`;
+              const age = child.dateOfBirth ? childService.getAge(child.dateOfBirth) : null;
               return (
                 <Animated.View
                   key={child.id}
                   entering={FadeInDown.delay(100 + index * 50).springify()}
                 >
-                  <Clickable
-                    onPress={() => router.push({
-                      pathname: '/development/child-progress/[childId]',
-                      params: { childId: child.id },
-                    })}
-                  >
-                    <SurfaceCard style={styles.childCard}>
-                      <View style={styles.childHeader}>
-                        <View style={[styles.childAvatar, { backgroundColor: `${palette.tint}10` }]}>
-                          <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                            {getInitials(child.name || child.username)}
+                  <SurfaceCard style={styles.childCard}>
+                    <View style={styles.childHeader}>
+                      <View style={[styles.childAvatar, { backgroundColor: `${palette.tint}10` }]}>
+                        <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
+                          {getInitials(fullName)}
+                        </ThemedText>
+                        {child.hasSpecialNeeds && (
+                          <View style={[styles.specialNeedsBadge, { backgroundColor: palette.warning }]}>
+                            <Ionicons name="heart" size={10} color="#fff" />
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.childInfo}>
+                        <View style={styles.childNameRow}>
+                          <ThemedText type="defaultSemiBold" style={styles.childName}>
+                            {child.nickname || child.firstName}
                           </ThemedText>
-                          {stats.unseenBadges > 0 && (
-                            <View style={styles.unseenBadgeIndicator}>
-                              <ThemedText style={styles.unseenBadgeCount}>
-                                {stats.unseenBadges > 9 ? '9+' : stats.unseenBadges}
-                              </ThemedText>
-                            </View>
+                          {age !== null && (
+                            <ThemedText style={[styles.agePill, { color: palette.muted }]}>
+                              {age} yrs
+                            </ThemedText>
                           )}
                         </View>
-                        <View style={styles.childInfo}>
-                          <View style={styles.childNameRow}>
-                            <ThemedText type="defaultSemiBold" style={styles.childName}>
-                              {child.name || child.username}
-                            </ThemedText>
-                            {stats.unseenBadges > 0 && (
-                              <View style={[styles.newPill, { backgroundColor: '#F59E0B' }]}>
-                                <ThemedText style={styles.newPillText}>
-                                  {stats.unseenBadges} new
-                                </ThemedText>
-                              </View>
-                            )}
-                          </View>
-                          <ThemedText style={[styles.childMeta, { color: palette.muted }]}>
-                            {stats.sessions} sessions
-                          </ThemedText>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+                        <ThemedText style={[styles.childMeta, { color: palette.muted }]}>
+                          {fullName}
+                        </ThemedText>
                       </View>
+                      <Clickable
+                        onPress={() => router.push({
+                          pathname: '/development/child-progress/[childId]',
+                          params: { childId: child.id },
+                        })}
+                      >
+                        <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+                      </Clickable>
+                    </View>
 
-                      <View style={[styles.childStats, { borderTopColor: palette.border }]}>
-                        <View style={styles.childStat}>
-                          <Ionicons name="calendar" size={14} color={palette.tint} />
-                          <ThemedText style={[styles.childStatText, { color: palette.muted }]}>
-                            {stats.sessions} sessions
-                          </ThemedText>
-                        </View>
-                        <Clickable
-                          onPress={() => router.push({
-                            pathname: '/children/badges/[childId]',
-                            params: { childId: child.id },
-                          })}
-                        >
-                          <View style={[
-                            styles.childStat,
-                            stats.unseenBadges > 0 && styles.childStatHighlight,
-                            stats.unseenBadges > 0 && { backgroundColor: '#F59E0B15' },
-                          ]}>
-                            <Ionicons name="ribbon" size={14} color="#F59E0B" />
-                            <ThemedText style={[styles.childStatText, { color: stats.unseenBadges > 0 ? '#F59E0B' : palette.muted }]}>
-                              {stats.badges} badges
+                    {/* Special Needs & Notes Summary */}
+                    {(child.hasSpecialNeeds || child.allergies.length > 0 || child.communicationNotes) && (
+                      <View style={[styles.notesSection, { borderTopColor: palette.border }]}>
+                        {child.hasSpecialNeeds && child.disabilities.length > 0 && (
+                          <View style={[styles.noteRow, { backgroundColor: `${palette.warning}10` }]}>
+                            <Ionicons name="alert-circle" size={14} color={palette.warning} />
+                            <ThemedText style={styles.noteText} numberOfLines={1}>
+                              {child.disabilities.map(d => d.type).join(', ')}
                             </ThemedText>
                           </View>
-                        </Clickable>
-                        {stats.avgRating > 0 && (
-                          <View style={styles.childStat}>
-                            <Ionicons name="star" size={14} color="#F59E0B" />
-                            <ThemedText style={[styles.childStatText, { color: palette.muted }]}>
-                              {stats.avgRating.toFixed(1)} avg
+                        )}
+                        {child.allergies.length > 0 && (
+                          <View style={[styles.noteRow, { backgroundColor: `${palette.error}10` }]}>
+                            <Ionicons name="medical" size={14} color={palette.error} />
+                            <ThemedText style={styles.noteText} numberOfLines={1}>
+                              Allergies: {child.allergies.join(', ')}
+                            </ThemedText>
+                          </View>
+                        )}
+                        {child.communicationNotes && (
+                          <View style={[styles.noteRow, { backgroundColor: `${palette.tint}10` }]}>
+                            <Ionicons name="chatbubble" size={14} color={palette.tint} />
+                            <ThemedText style={styles.noteText} numberOfLines={2}>
+                              {child.communicationNotes}
                             </ThemedText>
                           </View>
                         )}
                       </View>
-                    </SurfaceCard>
-                  </Clickable>
+                    )}
+
+                    <View style={[styles.childStats, { borderTopColor: palette.border }]}>
+                      <View style={styles.childStat}>
+                        <Ionicons name="calendar" size={14} color={palette.tint} />
+                        <ThemedText style={[styles.childStatText, { color: palette.muted }]}>
+                          {stats.sessions} sessions
+                        </ThemedText>
+                      </View>
+                      <Clickable
+                        onPress={() => router.push({
+                          pathname: '/children/badges/[childId]',
+                          params: { childId: child.id },
+                        })}
+                      >
+                        <View style={[
+                          styles.childStat,
+                          stats.unseenBadges > 0 && styles.childStatHighlight,
+                          stats.unseenBadges > 0 && { backgroundColor: '#F59E0B15' },
+                        ]}>
+                          <Ionicons name="ribbon" size={14} color="#F59E0B" />
+                          <ThemedText style={[styles.childStatText, { color: stats.unseenBadges > 0 ? '#F59E0B' : palette.muted }]}>
+                            {stats.badges} badges
+                          </ThemedText>
+                        </View>
+                      </Clickable>
+                      {stats.avgRating > 0 && (
+                        <View style={styles.childStat}>
+                          <Ionicons name="star" size={14} color="#F59E0B" />
+                          <ThemedText style={[styles.childStatText, { color: palette.muted }]}>
+                            {stats.avgRating.toFixed(1)} avg
+                          </ThemedText>
+                        </View>
+                      )}
+                    </View>
+                  </SurfaceCard>
                 </Animated.View>
               );
             })}
@@ -714,5 +743,37 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
+  },
+  // Special needs & notes
+  specialNeedsBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  agePill: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  notesSection: {
+    gap: Spacing.xs,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+  },
+  noteRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    padding: Spacing.xs,
+    borderRadius: Radii.sm,
+  },
+  noteText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });
