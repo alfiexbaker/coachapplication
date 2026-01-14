@@ -172,8 +172,8 @@ export default function AddChildScreen() {
   const validateStep = (): boolean => {
     switch (currentStep) {
       case 'basic':
-        if (!firstName.trim() || !lastName.trim() || !dateOfBirth || !gender || !relationship) {
-          Alert.alert('Required Fields', 'Please fill in all required fields');
+        if (!firstName.trim() || !lastName.trim() || !gender || !relationship) {
+          Alert.alert('Required Fields', 'Please fill in name, gender, and relationship');
           return false;
         }
         return true;
@@ -223,7 +223,7 @@ export default function AddChildScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         nickname: nickname.trim() || undefined,
-        dateOfBirth: dateOfBirth!.toISOString().split('T')[0],
+        dateOfBirth: dateOfBirth ? dateOfBirth.toISOString().split('T')[0] : undefined,
         gender: gender!,
         relationship: relationship!,
         photoUrl: photoUri || undefined,
@@ -315,7 +315,7 @@ export default function AddChildScreen() {
 
       {/* Date of Birth */}
       <View style={styles.field}>
-        <ThemedText style={styles.label}>Date of Birth *</ThemedText>
+        <ThemedText style={styles.label}>Date of Birth (optional)</ThemedText>
         <Clickable
           onPress={() => setShowDatePicker(true)}
           style={[styles.input, styles.dateInput, { borderColor: palette.border }]}

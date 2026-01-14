@@ -52,7 +52,7 @@ export interface ChildProfile {
   firstName: string;
   lastName: string;
   nickname?: string;
-  dateOfBirth: string; // ISO date
+  dateOfBirth?: string; // ISO date (optional)
   gender: Gender;
   relationship: Relationship;
 
@@ -95,7 +95,7 @@ export interface CreateChildInput {
   firstName: string;
   lastName: string;
   nickname?: string;
-  dateOfBirth: string;
+  dateOfBirth?: string;
   gender: Gender;
   relationship: Relationship;
   photoUrl?: string;
@@ -288,7 +288,8 @@ function generateId(): string {
   return `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-function calculateAge(dateOfBirth: string): number {
+function calculateAge(dateOfBirth?: string): number | null {
+  if (!dateOfBirth) return null;
   const today = new Date();
   const birthDate = new Date(dateOfBirth);
   let age = today.getFullYear() - birthDate.getFullYear();
@@ -489,7 +490,7 @@ export const childService = {
   /**
    * Get child age from date of birth
    */
-  getAge(dateOfBirth: string): number {
+  getAge(dateOfBirth?: string): number | null {
     return calculateAge(dateOfBirth);
   },
 
@@ -506,7 +507,7 @@ export const childService = {
    */
   getCoachSummary(child: ChildProfile): {
     name: string;
-    age: number;
+    age: number | null;
     hasSpecialNeeds: boolean;
     quickNotes: string[];
     allergies: string[];
