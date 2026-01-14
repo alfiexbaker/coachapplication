@@ -7,23 +7,13 @@ import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
- * GLOBAL TYPOGRAPHY STANDARDS
+ * GLOBAL TYPOGRAPHY STANDARDS - KEEP IT SIMPLE
  *
- * Screen Headers (Tab Screens):
- * - Title: 28px, weight 700, letterSpacing -0.5
- * - Subtitle: 15px, weight 400, color muted
- *
- * Page Headers (Interior Pages):
+ * ALL PAGE/SCREEN HEADERS:
  * - Title: 22px, weight 600, letterSpacing -0.3
- * - Subtitle: 13px, weight 400, color muted
+ * - Subtitle: 12px, weight 400, color muted
  *
- * Section Headers:
- * - Title: 18px, weight 600, letterSpacing -0.2
- * - Subtitle: 13px, weight 400, color muted
- *
- * Card Headers:
- * - Title: 16px, weight 600
- * - Subtitle: 13px, weight 400, color muted
+ * Same everywhere. No exceptions. Simple.
  */
 
 export interface ScreenHeaderProps {
@@ -108,99 +98,64 @@ export function ScreenHeader({
   );
 }
 
-// STANDARDIZED STYLES - DO NOT OVERRIDE IN INDIVIDUAL SCREENS
+// STANDARDIZED STYLES - SAME AS PageHeader
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
   },
   content: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
   textContainer: {
     flex: 1,
     gap: Spacing.xs / 2,
   },
-  // GLOBAL STANDARD: Screen title = 28px, weight 700
+  // GLOBAL: Title = 22px, weight 600 (same everywhere)
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    lineHeight: 34,
+    fontSize: 22,
+    fontWeight: '600',
+    letterSpacing: -0.3,
   },
-  // GLOBAL STANDARD: Screen subtitle = 15px, weight 400
+  // GLOBAL: Subtitle = 12px, weight 400
   subtitle: {
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '400',
-    lineHeight: 22,
+    lineHeight: 18,
   },
   rightContainer: {
-    marginLeft: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 12,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   actionLabel: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
 });
 
-// Export typography constants for consistency across the app
+// SIMPLE TYPOGRAPHY - Same everywhere
 export const SCREEN_TYPOGRAPHY = {
-  // Tab screen headers (Schedule, Athletes, Messages, etc.)
-  screenTitle: {
-    fontSize: 28,
-    fontWeight: '700' as const,
-    letterSpacing: -0.5,
-    lineHeight: 34,
-  },
-  screenSubtitle: {
-    fontSize: 15,
-    fontWeight: '400' as const,
-    lineHeight: 22,
-  },
-  // Interior page headers (detail views, settings, etc.)
-  pageTitle: {
+  // ALL headers use this - no exceptions
+  title: {
     fontSize: 22,
     fontWeight: '600' as const,
     letterSpacing: -0.3,
-    lineHeight: 28,
   },
-  pageSubtitle: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    lineHeight: 18,
-  },
-  // Section headers within pages
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600' as const,
-    letterSpacing: -0.2,
-    lineHeight: 24,
-  },
-  sectionSubtitle: {
-    fontSize: 13,
-    fontWeight: '400' as const,
-    lineHeight: 18,
-  },
-  // Card headers
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600' as const,
-    lineHeight: 22,
-  },
-  cardSubtitle: {
-    fontSize: 13,
+  subtitle: {
+    fontSize: 12,
     fontWeight: '400' as const,
     lineHeight: 18,
   },
