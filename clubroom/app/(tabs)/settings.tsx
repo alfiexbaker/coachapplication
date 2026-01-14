@@ -21,6 +21,7 @@ const logger = createLogger('SettingsScreen');
 
 const NAV_LINKS: Record<string, { title: string; subtitle?: string; icon: string; route: string }[]> = {
   COACH: [
+    { title: 'My Athletes', subtitle: 'Roster, progress & special needs', icon: 'people', route: '/(tabs)/athletes' },
     { title: 'Calendar & Availability', subtitle: 'Manage slots and bookings', icon: 'calendar-outline', route: '/(tabs)/bookings' },
     { title: 'Scheduling Rules', subtitle: 'Booking notice & cancellation policy', icon: 'time-outline', route: '/availability/scheduling-rules' },
     { title: 'Coach Profile', subtitle: 'Services, rates, identity', icon: 'person-circle-outline', route: '/(tabs)/coach-profile' },
@@ -34,7 +35,8 @@ const NAV_LINKS: Record<string, { title: string; subtitle?: string; icon: string
     { title: 'Badges & Achievements', subtitle: 'All badges and progress tracking', icon: 'ribbon-outline', route: '/badges' },
   ],
   PARENT: [
-    { title: 'Kids & Bookings', subtitle: 'See all children', icon: 'people-outline', route: '/(tabs)/bookings' },
+    { title: 'My Children', subtitle: 'Profiles, progress & special needs', icon: 'people', route: '/(tabs)/children' },
+    { title: 'Bookings', subtitle: 'Upcoming & past sessions', icon: 'calendar-outline', route: '/(tabs)/bookings' },
     { title: 'Family Sharing', subtitle: 'Invite co-parents and guardians', icon: 'people-circle-outline', route: '/family/sharing' },
     { title: 'Messages', subtitle: 'Coaches and updates', icon: 'chatbubbles-outline', route: '/(tabs)/messages' },
     { title: 'Discover Coaches', subtitle: 'Find local sessions', icon: 'search-outline', route: '/(tabs)/more' },
@@ -226,10 +228,10 @@ export default function SettingsScreen() {
                     backgroundColor: pressed ? `${palette.tint}10` : palette.surface,
                   },
                 ]}
-                onPress={() => router.push('/(tabs)/coach-profile')}
+                onPress={() => router.push('/(tabs)/athletes')}
               >
-                <Ionicons name="person-circle-outline" size={20} color={palette.tint} />
-                <ThemedText style={[styles.editButtonLabel, { color: palette.tint }]}>Coach profile</ThemedText>
+                <Ionicons name="people" size={20} color={palette.tint} />
+                <ThemedText style={[styles.editButtonLabel, { color: palette.tint }]}>My Athletes</ThemedText>
               </Clickable>
             )}
           </View>
