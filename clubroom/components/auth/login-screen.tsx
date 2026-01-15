@@ -8,13 +8,17 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
+import OnboardingScreen from './onboarding-screen';
+
+type ScreenMode = 'login' | 'signup' | 'coach-signup';
 
 export default function LoginScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -23,7 +27,7 @@ export default function LoginScreen() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showSignup, setShowSignup] = useState(false);
+  const [screenMode, setScreenMode] = useState<ScreenMode>('login');
 
   const handleSubmit = () => {
     if (!username || !password) {
@@ -36,18 +40,34 @@ export default function LoginScreen() {
   const handleSignupComplete = (data: CoachSignupData) => {
     const success = registerCoach(data);
     if (success) {
-      setShowSignup(false);
+      setScreenMode('login');
     }
+  };
+
+  const handleOnboardingComplete = () => {
+    // For now, just go back to login
+    // In production, this would auto-login the new user
+    setScreenMode('login');
   };
 
   const disabled = !username || !password;
 
-  // Show signup screen if requested
-  if (showSignup) {
+  // Show onboarding screen for new signups
+  if (screenMode === 'signup') {
+    return (
+      <OnboardingScreen
+        onComplete={handleOnboardingComplete}
+        onBackToLogin={() => setScreenMode('login')}
+      />
+    );
+  }
+
+  // Show legacy coach signup screen
+  if (screenMode === 'coach-signup') {
     return (
       <CoachSignupScreen
         onSignupComplete={handleSignupComplete}
-        onBackToLogin={() => setShowSignup(false)}
+        onBackToLogin={() => setScreenMode('login')}
       />
     );
   }
@@ -121,17 +141,32 @@ export default function LoginScreen() {
           </Pressable>
         </SurfaceCard>
 
+        {/* Create Account Card */}
+        <Pressable
+          style={[styles.signupCard, { backgroundColor: palette.tint }]}
+          onPress={() => setScreenMode('signup')}>
+          <View style={styles.signupCardContent}>
+            <Ionicons name="person-add" size={24} color="#fff" />
+            <View style={styles.signupCardText}>
+              <ThemedText style={styles.signupTitle}>New to Clubroom?</ThemedText>
+              <ThemedText style={styles.signupSubtitle}>Create your free account</ThemedText>
+            </View>
+          </View>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
+        </Pressable>
+
+        {/* Legacy Coach Signup (with invite code) */}
         <Pressable
           style={[styles.coachSignupCard, { backgroundColor: palette.card }]}
-          onPress={() => setShowSignup(true)}>
+          onPress={() => setScreenMode('coach-signup')}>
           <ThemedText type="subtitle" style={styles.coachSignupTitle}>
-            Are you a coach?
+            Have an invite code?
           </ThemedText>
           <ThemedText style={styles.coachSignupText}>
-            Join your school with an invite code
+            Join your school or academy
           </ThemedText>
           <ThemedText style={[styles.coachSignupCTA, { color: palette.tint }]}>
-            Create Coach Account →
+            Use Invite Code →
           </ThemedText>
         </Pressable>
 
@@ -202,6 +237,30 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     fontWeight: '600',
+  },
+  signupCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    borderRadius: Radii.lg,
+  },
+  signupCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  signupCardText: {
+    gap: 2,
+  },
+  signupTitle: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  signupSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
   },
   coachSignupCard: {
     padding: Spacing.lg,
