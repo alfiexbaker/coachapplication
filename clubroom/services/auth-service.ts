@@ -123,11 +123,9 @@ export interface OnboardingData {
   position?: string;
   sport?: string;
   goals?: string[];
+  hasChildren?: boolean; // Athletes can also be parents
 
-  // Step 4b: Parent details
-  addChildNow?: boolean;
-
-  // Step 4c: Coach details
+  // Step 4b: Coach details
   isOrganization?: boolean;
   organizationName?: string;
   yearsExperience?: number;

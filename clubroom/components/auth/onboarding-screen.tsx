@@ -42,7 +42,6 @@ type OnboardingStep =
   | 'basic-info'
   | 'location'
   | 'athlete-details'
-  | 'parent-details'
   | 'coach-details'
   | 'complete';
 
@@ -66,12 +65,6 @@ const ACCOUNT_TYPES: Array<{
     title: 'I\'m an Athlete',
     description: 'Book sessions, track progress, earn badges',
     icon: 'fitness',
-  },
-  {
-    type: 'PARENT',
-    title: 'I\'m a Parent',
-    description: 'Manage kids, book sessions, view progress',
-    icon: 'people',
   },
   {
     type: 'COACH',
@@ -135,6 +128,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
   const [position, setPosition] = useState('');
   const [sport, setSport] = useState('');
   const [goals, setGoals] = useState<string[]>([]);
+  const [hasChildren, setHasChildren] = useState(false);
 
   // Coach specific
   const [isOrganization, setIsOrganization] = useState(false);
@@ -174,11 +168,9 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
         return 'location';
       case 'location':
         if (accountType === 'ATHLETE') return 'athlete-details';
-        if (accountType === 'PARENT') return 'parent-details';
         if (accountType === 'COACH') return 'coach-details';
         return 'complete';
       case 'athlete-details':
-      case 'parent-details':
       case 'coach-details':
         return 'complete';
       default:
@@ -193,7 +185,6 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
       case 'location':
         return 'basic-info';
       case 'athlete-details':
-      case 'parent-details':
       case 'coach-details':
         return 'location';
       default:
@@ -204,7 +195,6 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
   const getStepNumber = (): number => {
     const steps: OnboardingStep[] = ['account-type', 'basic-info', 'location'];
     if (accountType === 'ATHLETE') steps.push('athlete-details');
-    if (accountType === 'PARENT') steps.push('parent-details');
     if (accountType === 'COACH') steps.push('coach-details');
     steps.push('complete');
     return steps.indexOf(step) + 1;
@@ -285,10 +275,6 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
         }
         return true;
 
-      case 'parent-details':
-        // All optional for parents
-        return true;
-
       case 'coach-details':
         if (isOrganization && !organizationName.trim()) {
           setError('Organization name is required');
@@ -321,6 +307,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
         position: position || undefined,
         sport: sport || undefined,
         goals: goals.length > 0 ? goals : undefined,
+        hasChildren: accountType === 'ATHLETE' ? hasChildren : undefined,
         isOrganization,
         organizationName: organizationName || undefined,
         yearsExperience: yearsExperience ? parseInt(yearsExperience) : undefined,
@@ -634,41 +621,36 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
         />
       </View>
-    </View>
-  );
 
-  const renderParentDetailsStep = () => (
-    <View style={styles.stepContent}>
-      <ThemedText type="title" style={styles.stepTitle}>
-        Almost there!
-      </ThemedText>
-      <ThemedText style={[styles.stepSubtitle, { color: palette.muted }]}>
-        You can add your children after signup from the settings.
-      </ThemedText>
-
-      <SurfaceCard style={styles.infoCard}>
-        <View style={[styles.infoIcon, { backgroundColor: `${palette.tint}15` }]}>
-          <Ionicons name="people" size={Components.icon.lg} color={palette.tint} />
-        </View>
-        <View style={styles.infoContent}>
-          <ThemedText type="defaultSemiBold">Add Children Later</ThemedText>
-          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            After signup, go to Settings → Add Child to create profiles with medical and special needs info.
-          </ThemedText>
-        </View>
-      </SurfaceCard>
-
-      <SurfaceCard style={styles.infoCard}>
-        <View style={[styles.infoIcon, { backgroundColor: `${palette.success}15` }]}>
-          <Ionicons name="shield-checkmark" size={Components.icon.lg} color={palette.success} />
-        </View>
-        <View style={styles.infoContent}>
-          <ThemedText type="defaultSemiBold">Safe & Secure</ThemedText>
-          <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-            All children's data is encrypted and only shared with coaches you book with.
-          </ThemedText>
-        </View>
-      </SurfaceCard>
+      {/* Children toggle */}
+      <View style={styles.fieldGroup}>
+        <Pressable
+          onPress={() => setHasChildren(!hasChildren)}
+          style={[
+            styles.toggleCard,
+            {
+              backgroundColor: hasChildren ? `${palette.tint}10` : palette.card,
+              borderColor: hasChildren ? palette.tint : palette.border,
+            },
+          ]}
+        >
+          <View style={styles.toggleContent}>
+            <ThemedText type="defaultSemiBold">I have children who train</ThemedText>
+            <ThemedText style={[styles.toggleDesc, { color: palette.muted }]}>
+              You can add child profiles after signup
+            </ThemedText>
+          </View>
+          <View style={[
+            styles.toggleSwitch,
+            { backgroundColor: hasChildren ? palette.tint : palette.border }
+          ]}>
+            <Animated.View style={[
+              styles.toggleKnob,
+              { transform: [{ translateX: hasChildren ? 20 : 0 }] }
+            ]} />
+          </View>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -815,8 +797,6 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
         return renderLocationStep();
       case 'athlete-details':
         return renderAthleteDetailsStep();
-      case 'parent-details':
-        return renderParentDetailsStep();
       case 'coach-details':
         return renderCoachDetailsStep();
       case 'complete':

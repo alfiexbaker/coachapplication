@@ -23,6 +23,7 @@ type DemoUser = Omit<User, 'role'> & {
   type?: SimplifiedUserType;
   // For USER type - optional children (for booking on behalf of kids)
   children?: ChildReference[];
+  hasChildren?: boolean;
   // For USER type - athlete properties
   skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE';
   position?: string;
@@ -345,12 +346,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Athlete fields
       skillLevel: data.skillLevel,
       position: data.position,
+      hasChildren: data.hasChildren,
       // Coach fields
       isOrganization: data.isOrganization,
       organizationName: data.organizationName,
       isLive: data.accountType === 'COACH' ? false : undefined,
-      // Parent fields - empty children array initially
-      children: data.accountType === 'PARENT' ? [] : undefined,
+      // Children array if hasChildren flag is set
+      children: data.hasChildren ? [] : undefined,
     };
 
     logger.success('User registered via onboarding', {
