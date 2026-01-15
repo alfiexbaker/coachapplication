@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View, ActivityIndicator, TextInput, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -23,6 +23,10 @@ export default function ReviewScreen() {
 
   const [coach, setCoach] = useState<Coach | null>(null);
   const [loading, setLoading] = useState(true);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoError, setPromoError] = useState<string | null>(null);
 
   // Load coach data to get actual rates
   useEffect(() => {
@@ -65,7 +69,36 @@ export default function ReviewScreen() {
 
   const sessionPrice = getSessionPrice();
   const platformFee = Math.round(sessionPrice * PLATFORM_FEE_PERCENT * 100) / 100;
-  const total = sessionPrice + platformFee;
+  const subtotal = sessionPrice + platformFee;
+  const total = Math.max(0, subtotal - promoDiscount);
+
+  // Handle promo code application
+  const handleApplyPromo = () => {
+    setPromoError(null);
+    const code = promoCode.trim().toUpperCase();
+
+    // Demo promo codes
+    const promoCodes: Record<string, number> = {
+      'FIRST10': 0.10,      // 10% off
+      'WELCOME20': 0.20,    // 20% off
+      'VIP50': 0.50,        // 50% off
+    };
+
+    if (promoCodes[code]) {
+      const discount = Math.round(subtotal * promoCodes[code] * 100) / 100;
+      setPromoDiscount(discount);
+      setPromoApplied(true);
+    } else {
+      setPromoError('Invalid promo code');
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setPromoCode('');
+    setPromoApplied(false);
+    setPromoDiscount(0);
+    setPromoError(null);
+  };
 
   if (loading) {
     return (
@@ -107,9 +140,59 @@ export default function ReviewScreen() {
           </Clickable>
         </View>
 
+        {/* Promo Code Section */}
+        <View style={[styles.card, { borderColor: palette.border }]}>
+          <ThemedText type="defaultSemiBold">Promo code</ThemedText>
+          {promoApplied ? (
+            <View style={styles.promoApplied}>
+              <View style={[styles.promoTag, { backgroundColor: `${palette.success}15` }]}>
+                <Ionicons name="checkmark-circle" size={16} color={palette.success} />
+                <ThemedText style={[styles.promoTagText, { color: palette.success }]}>
+                  {promoCode.toUpperCase()} applied
+                </ThemedText>
+              </View>
+              <Pressable onPress={handleRemovePromo}>
+                <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Remove</ThemedText>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <View style={styles.promoInputRow}>
+                <TextInput
+                  value={promoCode}
+                  onChangeText={setPromoCode}
+                  placeholder="Enter code"
+                  placeholderTextColor={palette.muted}
+                  autoCapitalize="characters"
+                  style={[styles.promoInput, { borderColor: palette.border, backgroundColor: palette.card }]}
+                />
+                <Pressable
+                  onPress={handleApplyPromo}
+                  disabled={!promoCode.trim()}
+                  style={[
+                    styles.promoApplyButton,
+                    { backgroundColor: promoCode.trim() ? palette.tint : palette.border }
+                  ]}
+                >
+                  <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Apply</ThemedText>
+                </Pressable>
+              </View>
+              {promoError && (
+                <ThemedText style={{ color: palette.error, fontSize: 13 }}>{promoError}</ThemedText>
+              )}
+              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                Try: FIRST10, WELCOME20, VIP50
+              </ThemedText>
+            </>
+          )}
+        </View>
+
         <View style={[styles.card, { borderColor: palette.border }]}>
           <SummaryRow label="Session" value={`£${sessionPrice.toFixed(2)}`} />
           <SummaryRow label="Platform fee (15%)" value={`£${platformFee.toFixed(2)}`} />
+          {promoDiscount > 0 && (
+            <SummaryRow label="Promo discount" value={`-£${promoDiscount.toFixed(2)}`} />
+          )}
           <View style={[styles.divider, { backgroundColor: palette.border }]} />
           <SummaryRow label="Total" value={`£${total.toFixed(2)}`} bold />
         </View>
@@ -146,4 +229,11 @@ const styles = StyleSheet.create({
   rateNote: { fontSize: 12, textAlign: 'center' },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   cta: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.button },
+  // Promo code styles
+  promoInputRow: { flexDirection: 'row', gap: Spacing.sm },
+  promoInput: { flex: 1, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: 14 },
+  promoApplyButton: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, justifyContent: 'center' },
+  promoApplied: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  promoTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radii.pill },
+  promoTagText: { fontWeight: '600', fontSize: 13 },
 });

@@ -34,6 +34,25 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('Onboarding');
 
 // ============================================================================
+// HELPERS
+// ============================================================================
+
+const getPasswordStrength = (password: string): { level: number; label: string; color: string } => {
+  let score = 0;
+
+  if (password.length >= 6) score++;
+  if (password.length >= 10) score++;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { level: 1, label: 'Weak', color: '#EF4444' };
+  if (score === 2) return { level: 2, label: 'Fair', color: '#F59E0B' };
+  if (score === 3) return { level: 3, label: 'Good', color: '#10B981' };
+  return { level: 4, label: 'Strong', color: '#059669' };
+};
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -479,6 +498,33 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           secureTextEntry
           style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
         />
+        {/* Password Strength Meter */}
+        {password.length > 0 && (
+          <View style={styles.strengthContainer}>
+            <View style={styles.strengthBars}>
+              {[1, 2, 3, 4].map((level) => {
+                const strength = getPasswordStrength(password);
+                const isActive = level <= strength.level;
+                return (
+                  <View
+                    key={level}
+                    style={[
+                      styles.strengthBar,
+                      {
+                        backgroundColor: isActive
+                          ? strength.color
+                          : palette.border,
+                      },
+                    ]}
+                  />
+                );
+              })}
+            </View>
+            <ThemedText style={[styles.strengthLabel, { color: getPasswordStrength(password).color }]}>
+              {getPasswordStrength(password).label}
+            </ThemedText>
+          </View>
+        )}
       </View>
 
       <View style={styles.fieldGroup}>
@@ -979,6 +1025,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     ...Typography.body,
+  },
+  strengthContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  strengthBars: {
+    flexDirection: 'row',
+    gap: 4,
+    flex: 1,
+  },
+  strengthBar: {
+    height: 4,
+    flex: 1,
+    borderRadius: 2,
+  },
+  strengthLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   textArea: {
     borderWidth: 1,

@@ -27,6 +27,7 @@ export default function LoginScreen() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
 
   const handleSubmit = () => {
@@ -103,17 +104,37 @@ export default function LoginScreen() {
             />
           </View>
           <View style={styles.fieldGroup}>
-            <ThemedText style={styles.label}>Password</ThemedText>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholder="••••••••"
-              placeholderTextColor={palette.muted}
-              style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-            />
+            <View style={styles.labelRow}>
+              <ThemedText style={styles.label}>Password</ThemedText>
+              <Pressable onPress={() => setScreenMode('login')}>
+                <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
+                  Forgot password?
+                </ThemedText>
+              </Pressable>
+            </View>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                placeholder="••••••••"
+                placeholderTextColor={palette.muted}
+                style={[styles.passwordInput, { borderColor: palette.border, backgroundColor: palette.card }]}
+                returnKeyType="go"
+                onSubmitEditing={handleSubmit}
+              />
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color={palette.muted}
+                />
+              </Pressable>
+            </View>
           </View>
           {error ? (
             <ThemedText style={[styles.helper, { color: Colors[scheme].error }]}>{error}</ThemedText>
@@ -218,12 +239,39 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
   },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  forgotLink: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     fontSize: 16,
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingRight: 48,
+    fontSize: 16,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: Spacing.md,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   helper: {
     fontSize: 14,
