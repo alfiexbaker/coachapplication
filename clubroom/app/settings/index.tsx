@@ -70,8 +70,8 @@ export default function SettingsHubScreen() {
           }}
         >
           <View style={styles.profileHeader}>
-            {mockUserProfile.profilePhotoUrl ? (
-              <Image source={{ uri: mockUserProfile.profilePhotoUrl }} style={styles.profilePhoto} />
+            {currentUser?.profilePhotoUrl || mockUserProfile.profilePhotoUrl ? (
+              <Image source={{ uri: currentUser?.profilePhotoUrl || mockUserProfile.profilePhotoUrl }} style={styles.profilePhoto} />
             ) : (
               <View style={[styles.profilePhoto, { backgroundColor: palette.border }]}>
                 <Ionicons name="person" size={32} color={palette.muted} />
@@ -79,10 +79,10 @@ export default function SettingsHubScreen() {
             )}
             <View style={styles.profileInfo}>
               <ThemedText type="subtitle" style={styles.profileName}>
-                {mockUserProfile.fullName}
+                {currentUser?.fullName || currentUser?.name || mockUserProfile.fullName}
               </ThemedText>
               <ThemedText style={[styles.profileEmail, { color: palette.muted }]}>
-                {mockUserProfile.email}
+                {currentUser?.email || mockUserProfile.email}
               </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={20} color={palette.muted} />
@@ -122,14 +122,14 @@ export default function SettingsHubScreen() {
               }}
             />
           )}
-          {userHasChildren && (
+          {(userHasChildren || currentUser?.hasChildren) && (
             <SettingsRow
               icon="people"
               title="Children"
               subtitle="Manage your children's profiles"
               onPress={() => {
                 logger.press('ChildrenManagement');
-                Alert.alert('Coming Soon', 'Children management coming soon');
+                router.push('/(tabs)/children');
               }}
             />
           )}

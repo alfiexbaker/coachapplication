@@ -9,7 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { StatCard } from '@/components/primitives/stat-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
@@ -18,6 +18,7 @@ import type { Session, BadgeAward, BadgeCategory } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 import { ProgressionLevel, CategoryInfo, TierNames } from '@/constants/progression';
+import { childService, type ChildProfile } from '@/services/child-service';
 
 const logger = createLogger('AthleteDetailScreen');
 
@@ -31,6 +32,7 @@ export default function AthleteDetailScreen() {
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [progressionSummary, setProgressionSummary] = useState<{
     totalPoints: number;
     currentLevel: ProgressionLevel;
@@ -96,6 +98,28 @@ export default function AthleteDetailScreen() {
       setProgressionSummary(progression);
     });
   }, [athleteId]);
+
+  // Load child profile for special needs info (by athlete name)
+  useEffect(() => {
+    if (!athlete) return;
+
+    const loadChildProfile = async () => {
+      try {
+        const nameParts = athlete.name.split(' ');
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ');
+        const profile = await childService.getChildByName(firstName, lastName);
+        if (profile) {
+          setChildProfile(profile);
+          logger.debug('Child profile loaded', { athleteId, childId: profile.id, hasSpecialNeeds: profile.hasSpecialNeeds });
+        }
+      } catch (error) {
+        logger.error('Failed to load child profile', error);
+      }
+    };
+
+    loadChildProfile();
+  }, [athlete]);
 
   if (!athlete || !currentUser) {
     return null;
@@ -256,14 +280,14 @@ export default function AthleteDetailScreen() {
               <ThemedText style={styles.ctaText}>Log Session</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.awardBadgeButton, { borderColor: '#F59E0B', backgroundColor: '#F59E0B15' }]}
+              style={[styles.awardBadgeButton, { borderColor: palette.warning, backgroundColor: `${palette.warning}15` }]}
               onPress={() => {
                 logger.press('AwardBadgeFromProfile', { athleteId });
                 setShowBadgeModal(true);
               }}
             >
-              <Ionicons name="ribbon" size={14} color="#F59E0B" />
-              <ThemedText style={[styles.awardBadgeText, { color: '#F59E0B' }]}>Award Badge</ThemedText>
+              <Ionicons name="ribbon" size={14} color={palette.warning} />
+              <ThemedText style={[styles.awardBadgeText, { color: palette.warning }]}>Award Badge</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -292,6 +316,92 @@ export default function AthleteDetailScreen() {
             variant="compact"
           />
         </View>
+      </SurfaceCard>
+
+      {/* Special Needs Summary Card - Always shows with count */}
+      <SurfaceCard
+        tactile
+        onPress={() => {
+          logger.press('SpecialNeedsCard', { athleteId });
+          router.push(`/development/athlete/${athleteId}/special-needs` as any);
+        }}
+        style={styles.specialNeedsCard}
+      >
+        <View style={styles.specialNeedsRow}>
+          <View style={[
+            styles.specialNeedsIcon,
+            {
+              backgroundColor: childProfile?.hasSpecialNeeds
+                ? `${palette.warning}15`
+                : `${palette.muted}10`
+            }
+          ]}>
+            <Ionicons
+              name="accessibility"
+              size={Components.icon.md}
+              color={childProfile?.hasSpecialNeeds ? palette.warning : palette.muted}
+            />
+          </View>
+          <View style={styles.specialNeedsInfo}>
+            <ThemedText type="defaultSemiBold" style={styles.specialNeedsTitle}>
+              Special Needs & Notes
+            </ThemedText>
+            <ThemedText style={[styles.specialNeedsSubtitle, { color: palette.muted }]}>
+              {childProfile?.hasSpecialNeeds
+                ? `${childProfile.disabilities.length} disabilities, ${childProfile.allergies.length} allergies`
+                : 'No accommodations documented'}
+            </ThemedText>
+          </View>
+          <View style={styles.specialNeedsCounters}>
+            <View style={[
+              styles.counterBadge,
+              {
+                backgroundColor: (childProfile?.disabilities.length ?? 0) > 0
+                  ? palette.warning
+                  : `${palette.muted}20`
+              }
+            ]}>
+              <ThemedText style={[
+                styles.counterText,
+                { color: (childProfile?.disabilities.length ?? 0) > 0 ? '#fff' : palette.muted }
+              ]}>
+                {childProfile?.disabilities.length ?? 0}
+              </ThemedText>
+            </View>
+            <View style={[
+              styles.counterBadge,
+              {
+                backgroundColor: (childProfile?.allergies.length ?? 0) > 0
+                  ? palette.error
+                  : `${palette.muted}20`
+              }
+            ]}>
+              <ThemedText style={[
+                styles.counterText,
+                { color: (childProfile?.allergies.length ?? 0) > 0 ? '#fff' : palette.muted }
+              ]}>
+                {childProfile?.allergies.length ?? 0}
+              </ThemedText>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={Components.icon.md} color={palette.icon} />
+        </View>
+
+        {/* Quick preview of key info if has special needs */}
+        {childProfile?.hasSpecialNeeds && childProfile.disabilities.length > 0 && (
+          <View style={styles.quickPreview}>
+            {childProfile.disabilities.slice(0, 2).map((d) => (
+              <View key={d.id} style={[styles.previewTag, { backgroundColor: `${palette.warning}12` }]}>
+                <ThemedText style={[styles.previewTagText, { color: palette.warning }]}>{d.type}</ThemedText>
+              </View>
+            ))}
+            {childProfile.allergies.slice(0, 2).map((a, i) => (
+              <View key={i} style={[styles.previewTag, { backgroundColor: `${palette.error}12` }]}>
+                <ThemedText style={[styles.previewTagText, { color: palette.error }]}>{a}</ThemedText>
+              </View>
+            ))}
+          </View>
+        )}
       </SurfaceCard>
 
       {/* Badge Progression Summary */}
@@ -521,9 +631,8 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '500',
-    letterSpacing: -0.3,
+    ...Typography.lg,
+    fontWeight: '600',
   },
 
   // Hero Card
@@ -534,30 +643,28 @@ const styles = StyleSheet.create({
   heroHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: Components.avatar.lg,
+    height: Components.avatar.lg,
+    borderRadius: Components.avatar.lg / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 24,
-    fontWeight: '500',
+    ...Typography.title,
   },
   heroInfo: {
     flex: 1,
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   athleteName: {
-    fontSize: 20,
+    ...Typography.xl,
     fontWeight: '600',
-    letterSpacing: -0.3,
   },
   sessionCountLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   badgesRow: {
     flexDirection: 'row',
@@ -574,35 +681,33 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   trendBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Components.pill.paddingVertical,
     borderRadius: Radii.sm,
   },
   levelBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Components.pill.paddingVertical,
     borderRadius: Radii.sm,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 0,
+    ...Typography.micro,
+    textTransform: 'none',
   },
   ctaButton: {
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Components.pill.paddingVertical,
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
     height: Components.buttonCompact.height,
     justifyContent: 'center',
   },
   ctaText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.small,
+    fontWeight: '600',
     color: '#fff',
-    letterSpacing: -0.1,
   },
   heroButtons: {
     flexDirection: 'row',
@@ -611,8 +716,8 @@ const styles = StyleSheet.create({
   awardBadgeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: Spacing.xs / 2,
+    gap: Spacing.xs,
+    paddingVertical: Components.pill.paddingVertical,
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
     height: Components.buttonCompact.height,
@@ -620,7 +725,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   awardBadgeText: {
-    fontSize: 12,
+    ...Typography.caption,
     fontWeight: '600',
   },
 
@@ -636,23 +741,21 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    height: 40,
+    height: Components.avatar.md,
     opacity: 0.5,
   },
 
   // Section header
   sectionHeader: {
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: '500',
-    letterSpacing: -0.2,
+    ...Typography.lg,
+    fontWeight: '600',
   },
   sectionSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
 
   // Session list
@@ -668,7 +771,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs / 2,
+    marginBottom: Spacing.xs,
   },
   sessionActions: {
     flexDirection: 'row',
@@ -682,26 +785,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sessionDate: {
-    fontSize: 14,
-    fontWeight: '500',
-    letterSpacing: -0.1,
+    ...Typography.body,
+    fontWeight: '600',
   },
   needsNotesBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: Components.pill.paddingVertical,
+    borderRadius: Radii.sm,
   },
   needsNotesText: {
-    fontSize: 9,
-    fontWeight: '600',
+    ...Typography.micro,
     color: '#fff',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   awardRow: {
     flexDirection: 'row',
@@ -722,37 +821,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   rating: {
-    fontSize: 15,
-    fontWeight: '500',
+    ...Typography.body,
+    fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
   skillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   skillChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Components.pill.paddingVertical,
     borderRadius: Radii.sm,
   },
   skillText: {
-    fontSize: 11,
-    fontWeight: '500',
-    letterSpacing: 0,
+    ...Typography.micro,
+    textTransform: 'none',
   },
   notesPreview: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   videoIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xs,
   },
   videoText: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
+    fontWeight: '600',
   },
   chevron: {
     position: 'absolute',
@@ -771,46 +868,45 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   progressionBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0F172A12',
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Components.avatar.md / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   progressionInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.xs,
   },
   progressionLevel: {
-    fontSize: 15,
+    ...Typography.body,
+    fontWeight: '600',
   },
   progressionPoints: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   progressBarContainer: {
-    gap: 4,
+    gap: Spacing.xs,
   },
   progressBar: {
-    height: 6,
-    borderRadius: 3,
+    height: Spacing.xs,
+    borderRadius: Radii.sm,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.sm,
   },
   progressText: {
-    fontSize: 11,
+    ...Typography.micro,
+    textTransform: 'none',
     textAlign: 'right',
   },
   topCategoriesSection: {
-    gap: 6,
+    gap: Spacing.xs,
   },
   topCategoriesLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    ...Typography.micro,
   },
   topCategoriesRow: {
     flexDirection: 'row',
@@ -819,26 +915,87 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
   },
   categoryChipText: {
-    fontSize: 12,
+    ...Typography.caption,
     fontWeight: '600',
   },
   categoryCountBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    minWidth: Components.icon.md,
+    height: Components.icon.md,
+    borderRadius: Components.icon.md / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xs,
   },
   categoryCountText: {
-    fontSize: 10,
-    fontWeight: '700',
+    ...Typography.micro,
     color: '#fff',
+  },
+
+  // Special Needs Summary Card
+  specialNeedsCard: {
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  specialNeedsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  specialNeedsIcon: {
+    width: Components.avatar.md,
+    height: Components.avatar.md,
+    borderRadius: Components.avatar.md / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  specialNeedsInfo: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  specialNeedsTitle: {
+    ...Typography.body,
+    fontWeight: '600',
+  },
+  specialNeedsSubtitle: {
+    ...Typography.caption,
+  },
+  specialNeedsCounters: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  counterBadge: {
+    minWidth: Components.icon.lg,
+    height: Components.icon.lg,
+    borderRadius: Components.icon.lg / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
+  counterText: {
+    ...Typography.caption,
+    fontWeight: '700',
+  },
+  quickPreview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  previewTag: {
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Components.pill.paddingVertical,
+    borderRadius: Radii.pill,
+  },
+  previewTagText: {
+    ...Typography.micro,
+    textTransform: 'none',
   },
 });

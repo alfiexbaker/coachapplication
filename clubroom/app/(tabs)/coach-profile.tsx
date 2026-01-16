@@ -8,6 +8,8 @@ import {
   StyleSheet,
   View,
   ActivityIndicator,
+  Alert,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -52,6 +54,10 @@ export default function CoachProfileScreen() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followLoading, setFollowLoading] = useState(false);
+
+  // Go-Live state
+  const [isLive, setIsLive] = useState(currentUser?.isLive ?? false);
+  const [liveLoading, setLiveLoading] = useState(false);
 
   // Check if current user is viewing their own profile
   const isOwnProfile = currentUser?.role === 'COACH' && currentUser?.id === coach?.id;
@@ -105,6 +111,54 @@ export default function CoachProfileScreen() {
       setFollowLoading(false);
     }
   }, [currentUser, coach, isFollowing, followLoading]);
+
+  // Profile completion check for go-live
+  const getProfileCompletion = () => {
+    const checks = [
+      { label: 'Profile photo', done: !!coach?.profilePhotoUrl, icon: 'camera' as const },
+      { label: 'Bio written', done: !!(coach?.bio || coach?.shortBio), icon: 'document-text' as const },
+      { label: 'Hourly rate set', done: !!(coach?.sessionRate && coach.sessionRate > 0), icon: 'cash' as const },
+      { label: 'At least 1 certification', done: !!(coach?.certifications && coach.certifications.length > 0), icon: 'ribbon' as const },
+      { label: 'Availability set', done: true, icon: 'calendar' as const }, // Assume set for demo
+    ];
+    const completed = checks.filter(c => c.done).length;
+    return { checks, completed, total: checks.length, percentage: Math.round((completed / checks.length) * 100) };
+  };
+
+  const profileCompletion = getProfileCompletion();
+  const canGoLive = profileCompletion.percentage >= 80;
+
+  // Handle go-live toggle
+  const handleGoLiveToggle = async (value: boolean) => {
+    if (!canGoLive && value) {
+      Alert.alert(
+        'Complete Your Profile',
+        'You need to complete at least 80% of your profile before going live. Complete the missing items to start receiving bookings.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setLiveLoading(true);
+    try {
+      // In production, this would call an API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsLive(value);
+
+      if (value) {
+        Alert.alert(
+          'You\'re Live! 🎉',
+          'Athletes can now discover and book sessions with you.',
+          [{ text: 'Great!' }]
+        );
+      }
+    } catch (error) {
+      console.error('Failed to update live status:', error);
+      Alert.alert('Error', 'Failed to update your status. Please try again.');
+    } finally {
+      setLiveLoading(false);
+    }
+  };
 
   // Load coach's session offerings
   useEffect(() => {
@@ -262,6 +316,85 @@ export default function CoachProfileScreen() {
         subtitle="Your coaching identity"
       />
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Go-Live Card - Only for coaches viewing their own profile */}
+        {currentUser?.role === 'COACH' && (
+          <View style={styles.goLiveSection}>
+            <SurfaceCard style={styles.goLiveCard}>
+              <View style={styles.goLiveHeader}>
+                <View style={styles.goLiveInfo}>
+                  <View style={styles.goLiveTitleRow}>
+                    <View style={[
+                      styles.statusDot,
+                      { backgroundColor: isLive ? palette.success : palette.muted }
+                    ]} />
+                    <ThemedText type="subtitle">
+                      {isLive ? 'You\'re Live' : 'Profile Offline'}
+                    </ThemedText>
+                  </View>
+                  <ThemedText style={[styles.goLiveSubtitle, { color: palette.muted }]}>
+                    {isLive
+                      ? 'Athletes can find and book you'
+                      : 'Go live to start receiving bookings'}
+                  </ThemedText>
+                </View>
+                <Switch
+                  value={isLive}
+                  onValueChange={handleGoLiveToggle}
+                  trackColor={{ false: palette.border, true: palette.success }}
+                  thumbColor="#fff"
+                  disabled={liveLoading}
+                />
+              </View>
+
+              {/* Progress bar */}
+              <View style={styles.progressSection}>
+                <View style={styles.progressHeader}>
+                  <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>
+                    Profile completion
+                  </ThemedText>
+                  <ThemedText style={[styles.progressPercent, { color: canGoLive ? palette.success : palette.warning }]}>
+                    {profileCompletion.percentage}%
+                  </ThemedText>
+                </View>
+                <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        backgroundColor: canGoLive ? palette.success : palette.warning,
+                        width: `${profileCompletion.percentage}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              {/* Checklist */}
+              {!canGoLive && (
+                <View style={styles.checklistSection}>
+                  {profileCompletion.checks.map((check, index) => (
+                    <View key={index} style={styles.checklistItem}>
+                      <Ionicons
+                        name={check.done ? 'checkmark-circle' : 'ellipse-outline'}
+                        size={18}
+                        color={check.done ? palette.success : palette.muted}
+                      />
+                      <ThemedText
+                        style={[
+                          styles.checklistLabel,
+                          { color: check.done ? palette.foreground : palette.muted },
+                        ]}
+                      >
+                        {check.label}
+                      </ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </SurfaceCard>
+          </View>
+        )}
+
         {/* Cover Photo */}
         <View style={styles.coverContainer}>
           {coach.coverPhotoUrl ? (
@@ -712,6 +845,71 @@ export default function CoachProfileScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  // Go-Live Card Styles
+  goLiveSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+  },
+  goLiveCard: {
+    gap: Spacing.md,
+  },
+  goLiveHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  goLiveInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  goLiveTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  goLiveSubtitle: {
+    fontSize: 13,
+  },
+  progressSection: {
+    gap: Spacing.xs,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressLabel: {
+    fontSize: 12,
+  },
+  progressPercent: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  checklistSection: {
+    gap: Spacing.xs,
+    paddingTop: Spacing.xs,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  checklistLabel: {
+    fontSize: 13,
   },
   coverContainer: {
     position: 'relative',

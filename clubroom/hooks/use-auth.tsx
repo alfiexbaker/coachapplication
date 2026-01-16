@@ -4,6 +4,7 @@ import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import { MOCK_USERS, getUserById } from '@/constants/mock-data';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
+import type { OnboardingData, AccountType } from '@/services/auth-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAuth');
@@ -22,6 +23,7 @@ type DemoUser = Omit<User, 'role'> & {
   type?: SimplifiedUserType;
   // For USER type - optional children (for booking on behalf of kids)
   children?: ChildReference[];
+  hasChildren?: boolean;
   // For USER type - athlete properties
   skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE';
   position?: string;
@@ -233,6 +235,7 @@ type AuthContextValue = {
   login: (username: string, password: string) => boolean;
   logout: () => Promise<void>;
   registerCoach: (data: CoachSignupData) => boolean;
+  registerFromOnboarding: (data: OnboardingData) => boolean;
   error: string | null;
   availableUsers: DemoUser[];
 };
@@ -307,6 +310,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const registerFromOnboarding = (data: OnboardingData) => {
+    // Generate username from email
+    const username = data.email.split('@')[0].toLowerCase();
+    logger.info('Onboarding registration attempt', { username, email: data.email, accountType: data.accountType });
+
+    // Check if email already exists
+    if (registeredUsers.find((user) => user.email?.toLowerCase() === data.email.toLowerCase())) {
+      logger.warn('Registration failed: Account already exists', { email: data.email });
+      setError('An account with this email already exists.');
+      return false;
+    }
+
+    // Map AccountType to UserRole
+    const roleMap: Record<AccountType, UserRole> = {
+      'COACH': 'COACH',
+      'PARENT': 'USER',
+      'ATHLETE': 'USER',
+    };
+
+    const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const fullName = `${data.firstName} ${data.lastName}`;
+
+    const newUser: DemoUser = {
+      id: userId,
+      username,
+      password: data.password,
+      role: roleMap[data.accountType],
+      type: data.accountType === 'COACH' ? 'COACH' : 'USER',
+      fullName,
+      name: fullName,
+      email: data.email,
+      postcode: data.postcode || 'SW1A 1AA',
+      dateOfBirth: data.dateOfBirth || '1990-01-01',
+      // Athlete fields
+      skillLevel: data.skillLevel,
+      position: data.position,
+      hasChildren: data.hasChildren,
+      // Coach fields
+      isOrganization: data.isOrganization,
+      organizationName: data.organizationName,
+      isLive: data.accountType === 'COACH' ? false : undefined,
+      // Children array if hasChildren flag is set
+      children: data.hasChildren ? [] : undefined,
+    };
+
+    logger.success('User registered via onboarding', {
+      userId,
+      username,
+      accountType: data.accountType,
+      role: newUser.role
+    });
+
+    setRegisteredUsers([...registeredUsers, newUser]);
+    setCurrentUser(newUser);
+    setError(null);
+    return true;
+  };
+
   const logout = async () => {
     if (currentUser) {
       logger.info('User logged out', {
@@ -343,6 +404,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       registerCoach,
+      registerFromOnboarding,
       error,
       availableUsers: registeredUsers,
     }),

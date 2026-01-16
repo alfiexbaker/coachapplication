@@ -15,7 +15,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite-service';
-import { hasChildren } from '@/utils/user-helpers';
+import { hasChildren, isCoach } from '@/utils/user-helpers';
 import type { SessionInvite } from '@/constants/types';
 
 type ViewMode = 'sent' | 'received';
@@ -27,12 +27,16 @@ function InviteCard({
   mode,
   onPress,
   onQuickDecline,
+  onCancel,
+  onDismiss,
 }: {
   invite: SessionInvite;
   index: number;
   mode: ViewMode;
   onPress: () => void;
   onQuickDecline?: () => void;
+  onCancel?: () => void;
+  onDismiss?: () => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -204,6 +208,36 @@ function InviteCard({
             </Clickable>
           </View>
         )}
+
+        {/* Cancel button for coaches with pending invites */}
+        {mode === 'sent' && status === 'PENDING' && onCancel && (
+          <View style={styles.actionsRow}>
+            <Clickable
+              style={[styles.actionButton, styles.declineButton, { borderColor: palette.border }]}
+              onPress={onCancel}
+            >
+              <Ionicons name="close-circle-outline" size={16} color={palette.error} />
+              <ThemedText style={[styles.actionText, { color: palette.error }]}>
+                Cancel Invite
+              </ThemedText>
+            </Clickable>
+          </View>
+        )}
+
+        {/* Remove button for parents with non-pending invites */}
+        {mode === 'received' && status !== 'PENDING' && onDismiss && (
+          <View style={styles.actionsRow}>
+            <Clickable
+              style={[styles.actionButton, styles.declineButton, { borderColor: palette.border }]}
+              onPress={onDismiss}
+            >
+              <Ionicons name="trash-outline" size={16} color={palette.muted} />
+              <ThemedText style={[styles.actionText, { color: palette.muted }]}>
+                Remove
+              </ThemedText>
+            </Clickable>
+          </View>
+        )}
       </SurfaceCard>
     </Animated.View>
   );
@@ -215,7 +249,9 @@ export default function SessionInvitesScreen() {
   const { currentUser } = useAuth();
 
   const [invites, setInvites] = useState<SessionInvite[]>([]);
-  const [mode, setMode] = useState<ViewMode>(currentUser?.role === 'COACH' ? 'sent' : 'received');
+  const userIsCoach = isCoach(currentUser);
+  const userHasChildren = hasChildren(currentUser);
+  const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
   const [filter, setFilter] = useState<FilterMode>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -275,12 +311,58 @@ export default function SessionInvitesScreen() {
     );
   };
 
+  const handleCancelInvite = async (invite: SessionInvite) => {
+    Alert.alert(
+      'Cancel Invite',
+      `Are you sure you want to cancel this invite to ${invite.athleteNames.join(', ')}?`,
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Cancel Invite',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await sessionInviteService.cancelInvite(invite.id);
+              Alert.alert('Done', 'Invite cancelled.');
+              loadInvites();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to cancel invite. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDismissInvite = async (invite: SessionInvite) => {
+    Alert.alert(
+      'Remove Invite',
+      'Remove this invite from your list?',
+      [
+        { text: 'Keep', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await sessionInviteService.dismissInvite(invite.id);
+              loadInvites();
+            } catch (error) {
+              Alert.alert('Error', 'Failed to remove invite. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const pendingCount = invites.filter(
     (i) => i.status === 'PENDING' && new Date(i.expiresAt) > new Date()
   ).length;
 
-  const isCoach = currentUser?.role === 'COACH';
-  const userHasChildren = hasChildren(currentUser);
+  // Show toggle for coaches who can also receive invites (if they have children)
+  const canViewReceived = userHasChildren;
+  const showModeToggle = userIsCoach && canViewReceived;
 
   // Apply filter
   const filteredInvites = invites.filter((invite) => {
@@ -304,7 +386,7 @@ export default function SessionInvitesScreen() {
             </View>
           )}
         </View>
-        {isCoach && (
+        {userIsCoach && (
           <Clickable
             onPress={() => router.push('/session-invites/create')}
             style={[styles.createButton, { backgroundColor: palette.tint }]}
@@ -314,8 +396,8 @@ export default function SessionInvitesScreen() {
         )}
       </View>
 
-      {/* View Toggle (for coaches who can see both) */}
-      {isCoach && (
+      {/* View Toggle - for coaches who also have children (can receive invites) */}
+      {showModeToggle && (
         <View style={styles.toggleRow}>
           <Chip
             label="Sent Invites"
@@ -330,8 +412,8 @@ export default function SessionInvitesScreen() {
         </View>
       )}
 
-      {/* Filter chips for parents */}
-      {(userHasChildren || mode === 'received') && invites.length > 0 && (
+      {/* Filter chips - show when viewing received invites or for users with children */}
+      {(mode === 'received' || (!userIsCoach && userHasChildren)) && invites.length > 0 && (
         <View style={styles.filterRow}>
           <Chip
             label="All"
@@ -401,6 +483,8 @@ export default function SessionInvitesScreen() {
                   })
                 }
                 onQuickDecline={() => handleQuickDecline(invite)}
+                onCancel={() => handleCancelInvite(invite)}
+                onDismiss={() => handleDismissInvite(invite)}
               />
             ))}
           </View>

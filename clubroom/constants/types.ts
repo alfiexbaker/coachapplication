@@ -968,6 +968,7 @@ export interface SessionInvite {
   counterNote?: string;
   groupId?: string; // Links invites that were sent as part of a group/bulk send
   bookingId?: string; // Link to created booking (bidirectional)
+  dismissed?: boolean; // When parent removes/hides the invite from their view
 }
 
 // ============================================================================

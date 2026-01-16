@@ -18,6 +18,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService } from '@/services/roster-service';
 import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-service';
+import { childService, type ChildProfile } from '@/services/child-service';
 import type { RosterEntry, FootballObjective } from '@/constants/types';
 
 const FOCUS_OPTIONS: FootballObjective[] = [
@@ -37,6 +38,7 @@ export default function AthleteDetailScreen() {
 
   const [entry, setEntry] = useState<RosterEntry | null>(null);
   const [emergencyData, setEmergencyData] = useState<AthleteEmergencyQuickView | null>(null);
+  const [childData, setChildData] = useState<ChildProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -61,6 +63,11 @@ export default function AthleteDetailScreen() {
       // Load emergency data for quick access
       const emergency = await safetyService.getAthleteEmergency(athleteId, data?.athleteName);
       setEmergencyData(emergency);
+
+      // Load child profile data (disabilities, special needs, etc.)
+      // Note: In production, athleteId would link to a child profile
+      const child = await childService.getChild(athleteId);
+      setChildData(child);
     } catch (error) {
       console.error('Failed to load athlete:', error);
     } finally {
@@ -405,6 +412,121 @@ export default function AthleteDetailScreen() {
             )}
           </SurfaceCard>
         </Animated.View>
+
+        {/* Special Needs & Important Info (from child profile) */}
+        {childData?.hasSpecialNeeds && (
+          <Animated.View entering={FadeInDown.delay(135).springify()}>
+            <SurfaceCard style={[styles.card, styles.specialNeedsCard]}>
+              <View style={styles.cardHeader}>
+                <View style={styles.specialNeedsHeader}>
+                  <Ionicons name="heart" size={18} color={palette.tint} />
+                  <ThemedText type="defaultSemiBold">Special Needs & Support</ThemedText>
+                </View>
+              </View>
+
+              {/* Disabilities */}
+              {childData.disabilities.length > 0 && (
+                <View style={styles.specialNeedsSection}>
+                  <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+                    Disabilities
+                  </ThemedText>
+                  {childData.disabilities.map((disability) => (
+                    <View
+                      key={disability.id}
+                      style={[styles.disabilityItem, { backgroundColor: `${palette.warning}10` }]}
+                    >
+                      <View style={styles.disabilityHeader}>
+                        <Ionicons name="information-circle" size={16} color={palette.warning} />
+                        <ThemedText type="defaultSemiBold">{disability.type}</ThemedText>
+                      </View>
+                      {disability.description && (
+                        <ThemedText style={[styles.disabilityDesc, { color: palette.muted }]}>
+                          {disability.description}
+                        </ThemedText>
+                      )}
+                      {disability.supportRequired && (
+                        <ThemedText style={styles.supportText}>
+                          <ThemedText style={{ fontWeight: '600' }}>Support: </ThemedText>
+                          {disability.supportRequired}
+                        </ThemedText>
+                      )}
+                      {disability.triggers && disability.triggers.length > 0 && (
+                        <View style={styles.triggersRow}>
+                          <ThemedText style={[styles.triggerLabel, { color: palette.error }]}>
+                            Avoid:
+                          </ThemedText>
+                          <ThemedText style={{ fontSize: 13 }}>
+                            {disability.triggers.join(', ')}
+                          </ThemedText>
+                        </View>
+                      )}
+                      {disability.calmingStrategies && disability.calmingStrategies.length > 0 && (
+                        <View style={styles.triggersRow}>
+                          <ThemedText style={[styles.triggerLabel, { color: palette.success }]}>
+                            Helps:
+                          </ThemedText>
+                          <ThemedText style={{ fontSize: 13 }}>
+                            {disability.calmingStrategies.join(', ')}
+                          </ThemedText>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Special Needs */}
+              {childData.specialNeeds.length > 0 && (
+                <View style={styles.specialNeedsSection}>
+                  <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+                    Accommodations Needed
+                  </ThemedText>
+                  {childData.specialNeeds.map((need) => (
+                    <View
+                      key={need.id}
+                      style={[styles.needItem, { borderLeftColor: palette.tint }]}
+                    >
+                      <ThemedText type="defaultSemiBold">{need.name}</ThemedText>
+                      {need.description && (
+                        <ThemedText style={[styles.needDesc, { color: palette.muted }]}>
+                          {need.description}
+                        </ThemedText>
+                      )}
+                      {need.coachNotes && (
+                        <View style={[styles.coachNote, { backgroundColor: `${palette.tint}10` }]}>
+                          <Ionicons name="bulb-outline" size={14} color={palette.tint} />
+                          <ThemedText style={{ fontSize: 13, flex: 1 }}>
+                            {need.coachNotes}
+                          </ThemedText>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Communication Notes */}
+              {childData.communicationNotes && (
+                <View style={styles.specialNeedsSection}>
+                  <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+                    Communication
+                  </ThemedText>
+                  <ThemedText style={styles.notesText}>{childData.communicationNotes}</ThemedText>
+                </View>
+              )}
+
+              {/* Behavioral Notes */}
+              {childData.behavioralNotes && (
+                <View style={styles.specialNeedsSection}>
+                  <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
+                    Behavioral Considerations
+                  </ThemedText>
+                  <ThemedText style={styles.notesText}>{childData.behavioralNotes}</ThemedText>
+                </View>
+              )}
+            </SurfaceCard>
+          </Animated.View>
+        )}
 
         {/* Primary Focus */}
         <Animated.View entering={FadeInDown.delay(150).springify()}>
@@ -846,5 +968,74 @@ const styles = StyleSheet.create({
   emergencyContactText: {
     fontSize: 12,
     flex: 1,
+  },
+  // Special Needs Section styles
+  specialNeedsCard: {
+    gap: Spacing.md,
+  },
+  specialNeedsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  specialNeedsSection: {
+    gap: Spacing.sm,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  disabilityItem: {
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    gap: Spacing.xs,
+  },
+  disabilityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  disabilityDesc: {
+    fontSize: 13,
+    marginLeft: 20,
+  },
+  supportText: {
+    fontSize: 13,
+    marginLeft: 20,
+    lineHeight: 18,
+  },
+  triggersRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    marginLeft: 20,
+    marginTop: 4,
+  },
+  triggerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  needItem: {
+    paddingLeft: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderLeftWidth: 3,
+    gap: 4,
+  },
+  needDesc: {
+    fontSize: 13,
+  },
+  coachNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+    marginTop: 4,
+  },
+  notesText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

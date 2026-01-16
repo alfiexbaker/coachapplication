@@ -430,14 +430,21 @@ export function SquadInviteModal({
                   ]}
                 >
                   <View style={styles.memberInfo}>
-                    <ThemedText
-                      style={[
-                        { fontSize: 14 },
-                        isExcluded && { textDecorationLine: 'line-through' },
-                      ]}
-                    >
-                      {member.athleteName}
-                    </ThemedText>
+                    <View style={styles.memberNameRow}>
+                      <ThemedText
+                        style={[
+                          { fontSize: 14 },
+                          isExcluded && { textDecorationLine: 'line-through' },
+                        ]}
+                      >
+                        {member.athleteName}
+                      </ThemedText>
+                      {member.athleteAge && (
+                        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                          Age {member.athleteAge}
+                        </ThemedText>
+                      )}
+                    </View>
                     <ThemedText style={{ color: palette.muted, fontSize: 11 }}>
                       {member.parentName}
                     </ThemedText>
@@ -747,6 +754,11 @@ const styles = StyleSheet.create({
   memberInfo: {
     flex: 1,
     gap: 1,
+  },
+  memberNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   excludedNote: {
     flexDirection: 'row',
