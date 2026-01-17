@@ -278,7 +278,7 @@ function ClubHubCard({ clubs }: { clubs: Club[] }) {
   return null;
 }
 
-function JoinClubCard() {
+function JoinClubCard({ isCoach }: { isCoach: boolean }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [inviteCode, setInviteCode] = useState('');
@@ -294,6 +294,10 @@ function JoinClubCard() {
     }
   };
 
+  const handleCreate = () => {
+    router.push('/club/create');
+  };
+
   return (
     <SurfaceCard style={styles.joinClubCard}>
       <View style={styles.joinClubHeader}>
@@ -302,10 +306,10 @@ function JoinClubCard() {
         </View>
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>
-            Join a Club
+            {isCoach ? 'Join or Create a Club' : 'Join a Club'}
           </ThemedText>
           <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-            Get access to exclusive content
+            {isCoach ? 'Connect with your coaching team' : 'Get access to exclusive content'}
           </ThemedText>
         </View>
       </View>
@@ -328,6 +332,15 @@ function JoinClubCard() {
           <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Join</ThemedText>
         </TouchableOpacity>
       </View>
+      {isCoach && (
+        <TouchableOpacity
+          style={[styles.createClubButton, { backgroundColor: `${palette.tint}10`, borderColor: palette.tint }]}
+          onPress={handleCreate}
+        >
+          <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
+          <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Create New Club</ThemedText>
+        </TouchableOpacity>
+      )}
     </SurfaceCard>
   );
 }
@@ -371,16 +384,26 @@ function OnboardingTipsCard() {
   );
 }
 
-function QuickActionsCard() {
+function QuickActionsCard({ isCoach }: { isCoach: boolean }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const actions = [
+  // Different actions for coaches vs users
+  const coachActions = [
+    { icon: 'add-circle', label: 'Create Club', route: '/club/create', color: palette.tint },
+    { icon: 'people', label: 'Athletes', route: '/(tabs)/athletes', color: palette.success },
+    { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', color: palette.accent },
+    { icon: 'calendar', label: 'Schedule', route: '/(tabs)/schedule', color: '#F59E0B' },
+  ];
+
+  const userActions = [
     { icon: 'search', label: 'Find Coach', route: '/(tabs)/more', color: palette.tint },
     { icon: 'analytics', label: 'My Progress', route: '/(tabs)/bookings/statistics', color: palette.success },
     { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', color: palette.accent },
     { icon: 'ribbon', label: 'Badges', route: '/(tabs)/badges', color: '#F59E0B' },
   ];
+
+  const actions = isCoach ? coachActions : userActions;
 
   return (
     <View style={styles.quickActionsGrid}>
@@ -401,9 +424,11 @@ function QuickActionsCard() {
 function EmptyFeedState({
   hasClubs,
   filter,
+  isCoach,
 }: {
   hasClubs: boolean;
   filter: FeedFilter;
+  isCoach: boolean;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -418,7 +443,9 @@ function EmptyFeedState({
           Your feed is empty
         </ThemedText>
         <ThemedText style={{ color: palette.muted, textAlign: 'center', lineHeight: 20 }}>
-          Join a club or follow coaches to see updates here
+          {isCoach
+            ? 'Join a club or create your own to share updates'
+            : 'Join a club or follow coaches to see updates here'}
         </ThemedText>
         <View style={styles.emptyStateActions}>
           <TouchableOpacity
@@ -426,14 +453,18 @@ function EmptyFeedState({
             onPress={() => router.push('/(tabs)/club-hub')}
           >
             <Ionicons name="shield-outline" size={18} color="#fff" />
-            <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Join Club</ThemedText>
+            <ThemedText style={{ color: '#fff', fontWeight: '600' }}>
+              {isCoach ? 'Join Club' : 'Join Club'}
+            </ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.emptyStateButtonOutline, { borderColor: palette.border }]}
-            onPress={() => router.push('/(tabs)/more')}
+            onPress={() => router.push(isCoach ? '/club/create' : '/(tabs)/more')}
           >
-            <Ionicons name="search-outline" size={18} color={palette.text} />
-            <ThemedText style={{ fontWeight: '600' }}>Find Coach</ThemedText>
+            <Ionicons name={isCoach ? 'add-circle-outline' : 'search-outline'} size={18} color={palette.text} />
+            <ThemedText style={{ fontWeight: '600' }}>
+              {isCoach ? 'Create Club' : 'Find Coach'}
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -495,6 +526,9 @@ export default function FeedScreen() {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Check if current user is a coach
+  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   const loadFeed = useCallback(() => {
     if (currentUser?.id) {
@@ -600,7 +634,7 @@ export default function FeedScreen() {
           {feed.length > 0 ? (
             feed.map((post) => <FeedPost key={post.id} post={post} />)
           ) : (
-            <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} />
+            <EmptyFeedState hasClubs={clubs.length > 0} filter={feedFilter} isCoach={isCoach} />
           )}
         </View>
       </ScrollView>
@@ -892,6 +926,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
+  },
+  createClubButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
   },
   tipsCard: {
     gap: Spacing.md,
