@@ -212,6 +212,23 @@ export default function ClubHubScreen() {
       Alert.alert('Code not found', 'Check the code or request a new one from the club admin.');
       return;
     }
+
+    // For coaches, redirect to invite acceptance screen for confirmation
+    const userIsCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+    if (userIsCoach) {
+      router.push({
+        pathname: '/coach-invites',
+        params: {
+          code: invite.code,
+          clubId: invite.clubId,
+          clubName: invite.clubName,
+          role: invite.role,
+        },
+      });
+      return;
+    }
+
+    // For regular users, join directly
     const newMembership: ClubMembership = {
       clubId: invite.clubId,
       userId: currentUser?.id || 'guest',
