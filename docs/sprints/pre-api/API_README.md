@@ -1471,7 +1471,161 @@ CREATE INDEX idx_templates_age ON session_plan_templates(age_group);
 | Academy | 1 | `academy_staff_permissions` (extends clubs) |
 | Coach Business | 2 | `trial_offerings`, `trial_usages` (+ ALTER on users) |
 | Challenges & Plans | 3 | `video_challenges`, `challenge_submissions`, `session_plan_templates` |
-| **TOTAL** | **~54 tables** | |
+| Safety & Reports | 1 | `reports` |
+| Favourites | 1 | `favourites` |
+| RSVP | 1 | `session_rsvps` |
+| Group Messaging | 2 | `group_conversations`, `group_messages` |
+| Coach Scheduling | 1 | `blocked_dates` |
+| **TOTAL** | **~62 tables** | |
+
+---
+
+## Domain 18: SAFETY & REPORTING
+
+### What it does
+Users can report coaches, messages, or reviews. Admin reviews reports.
+
+### DB Schema
+```sql
+CREATE TABLE reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID NOT NULL REFERENCES users(id),
+  reported_user_id UUID REFERENCES users(id),
+  reported_content_id UUID,
+  reported_content_type VARCHAR(20), -- 'message', 'review', 'profile'
+  reason VARCHAR(50) NOT NULL, -- 'inappropriate', 'safety_concern', 'spam', 'fake_profile'
+  description TEXT,
+  status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'reviewed', 'resolved', 'dismissed'
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Endpoints
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/reports` | Any user | Submit a report |
+| GET | `/api/reports` | Admin | List all reports (paginated, filterable by status) |
+| PATCH | `/api/reports/:id` | Admin | Update report status + notes |
+
+---
+
+## Domain 19: FAVOURITES
+
+### What it does
+Parents save coaches they like. Shown on map with heart icon, listed in "My Saved Coaches".
+
+### DB Schema
+```sql
+CREATE TABLE favourites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  coach_id UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, coach_id)
+);
+```
+
+### Endpoints
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/favourites` | User | Save a coach |
+| DELETE | `/api/favourites/:coachId` | User | Remove saved coach |
+| GET | `/api/favourites` | User | List all saved coaches |
+
+---
+
+## Domain 20: RSVP
+
+### What it does
+Group session and match attendance tracking. Coach creates session → squad members get RSVP request → respond Going/Not Going/Maybe.
+
+### DB Schema
+```sql
+CREATE TABLE session_rsvps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES sessions(id),
+  user_id UUID NOT NULL REFERENCES users(id),
+  child_id UUID REFERENCES children(id),
+  status VARCHAR(10) NOT NULL DEFAULT 'pending', -- 'going', 'not_going', 'maybe', 'pending'
+  responded_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(session_id, user_id, child_id)
+);
+```
+
+### Endpoints
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/sessions/:id/rsvp` | User | Submit RSVP (going/not_going/maybe) |
+| GET | `/api/sessions/:id/rsvps` | Coach/Admin | Get all RSVPs for a session |
+| GET | `/api/sessions/:id/rsvp/mine` | User | Get my RSVP for a session |
+
+---
+
+## Domain 21: GROUP MESSAGING
+
+### What it does
+Squad-level group chat. Coaches can post announcements (pinned). Parents discuss. Separate from 1-to-1 coaching conversations.
+
+### DB Schema
+```sql
+CREATE TABLE group_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  squad_id UUID NOT NULL REFERENCES squads(id),
+  name VARCHAR(100),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE group_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id UUID NOT NULL REFERENCES group_conversations(id),
+  sender_id UUID NOT NULL REFERENCES users(id),
+  content TEXT NOT NULL,
+  media_url TEXT,
+  pinned BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Endpoints
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/squads/:id/chat` | Squad member | Get group conversation |
+| GET | `/api/group-conversations/:id/messages` | Squad member | Get messages (paginated) |
+| POST | `/api/group-conversations/:id/messages` | Squad member | Send message |
+| PATCH | `/api/group-messages/:id/pin` | Coach | Pin/unpin message |
+
+### Real-time (Socket.io)
+- `group:message` — new message in group
+- `group:typing` — member is typing
+
+---
+
+## Domain 22: COACH SCHEDULING (extended)
+
+### What it does
+Coaches can block specific dates (holidays). Extends existing availability system.
+
+### DB Schema
+```sql
+CREATE TABLE blocked_dates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID NOT NULL REFERENCES users(id),
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  reason VARCHAR(200),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Endpoints
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/coaches/:id/blocked-dates` | Coach (own) | List blocked dates |
+| POST | `/api/coaches/:id/blocked-dates` | Coach (own) | Block date range |
+| DELETE | `/api/blocked-dates/:id` | Coach (own) | Unblock dates |
 
 ---
 

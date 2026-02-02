@@ -64,16 +64,34 @@ Sprints 1-3 are sequential (each depends on the previous).
 Sprints 4-6 can partially overlap.
 Sprints 7-10 build the competitive advantage and should be done before going live.
 
+## Post-Audit Additions (GAPS_AUDIT.md)
+
+After a full interaction-by-interaction walkthrough of every user journey, 14 gap categories were identified. Key additions to existing sprints:
+
+| Sprint | Critical Additions |
+|--------|-------------------|
+| **1** | Offline queueing in api-client, connection status detection |
+| **2** | RSVP for group sessions (Spond-beater), calendar integration, decline invite with reason |
+| **3** | Full cancellation flow (not just policy), no-show handling, blocked dates |
+| **4** | Group messaging for squads, club announcements, bulk parent messaging |
+| **5** | Safety & reporting system, accessibility audit, settings completeness |
+| **6** | Push notification infrastructure, deep linking, notification preferences |
+| **7** | Profile share button, similar coaches section |
+| **8** | Favourites/saved coaches (map + list), Airbnb-quality map (see MAP_EXPERIENCE.md) |
+| **9** | Athlete session journal, goal setting |
+| **10** | Pre-session reminders with directions, "I'm on my way" coach status |
+
+New DB tables: `reports`, `favourites`, `notifications`, `notification_preferences`, `session_rsvps`, `group_conversations`, `group_messages`, `blocked_dates` — bringing total to **~62 tables**.
+
 ## What's Out of Scope (for now)
 
 - Stripe / wallet / invoices / packages (cash-only MVP)
 - Live streaming / wearable integration
 - AI-powered recommendations (basic scoring is fine)
 - Multi-sport (football only)
-- Push notification infrastructure (design for it, implement later)
-- Offline mode (future sprint)
 - Dark mode (future sprint)
 - Accounting integration (Xero — future)
+- Car pooling (Spond has it, we don't need it yet)
 
 ## Payment Model for MVP
 
@@ -99,16 +117,20 @@ Trial sessions show a reduced price — still paid in cash.
 ## Reading Order
 
 1. This README
-2. `COMPETITIVE_ANALYSIS.md` — know the enemy
-3. Sprints 1-6 — foundation
-4. Sprints 7-10 — competitive advantage
-5. `API_README.md` — the master API contract
+2. `GAPS_AUDIT.md` — every interaction audited, every gap found
+3. `MAP_EXPERIENCE.md` — the Airbnb-quality map specification
+4. `COMPETITIVE_ANALYSIS.md` — know the enemy
+5. Sprints 1-6 — foundation
+6. Sprints 7-10 — competitive advantage
+7. `API_README.md` — the master API contract (~62 tables)
 
 ## File Index
 
 ```
 docs/sprints/pre-api/
 ├── README.md                            ← You are here
+├── GAPS_AUDIT.md                        ← Every interaction audited, 14 gap categories
+├── MAP_EXPERIENCE.md                    ← Airbnb-quality map spec (pins, sheets, gestures)
 ├── COMPETITIVE_ANALYSIS.md              ← Spond/Heja/TeamSnap/ClassForKids breakdown
 ├── sprint-1-service-layer.md            ← Fix broken flows, standardise services
 ├── sprint-2-session-lifecycle.md        ← Attendance, completion, review prompt
@@ -120,5 +142,5 @@ docs/sprints/pre-api/
 ├── sprint-8-discovery-revamp.md         ← Filters, map, featured, recommendations
 ├── sprint-9-player-development.md       ← Radar charts, session plans, drills, challenges
 ├── sprint-10-magic-layer.md             ← Onboarding, celebrations, micro-interactions
-└── API_README.md                        ← All 15+ domains, endpoints, ~50 DB tables
+└── API_README.md                        ← All 17 domains, endpoints, ~62 DB tables
 ```
