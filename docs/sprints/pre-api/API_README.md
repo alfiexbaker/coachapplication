@@ -1324,4 +1324,155 @@ CREATE TABLE academy_staff_permissions (
 
 ---
 
+## Domain 16: COACH BUSINESS (Trials, Public Profile, Projections)
+
+### What it does
+Public coach profiles that parents can Google. Trial/taster sessions to convert new families. Earnings projections and business analytics.
+
+### How it's controlled
+- Coach controls public profile visibility and slug URL
+- Trial offerings limited to 1 per family (tracked by parent ID)
+- Projections calculated server-side from confirmed + pending bookings + historical averages
+- Public profiles accessible without authentication (read-only)
+
+### Endpoints
+
+| Method | Path | Auth | Body | Response |
+|--------|------|------|------|----------|
+| GET | `/api/coaches/:slug/public` | None | None | `{publicProfile}` |
+| PUT | `/api/coaches/:id/trial-offering` | Coach | `{enabled, trialPriceGbp, duration, limitPerFamily, description}` | `{offering}` |
+| GET | `/api/coaches/:id/analytics/trials` | Coach | None | `{totalOffered, totalConverted, conversionRate, revenueFromConverts}` |
+| GET | `/api/coaches/:id/analytics/projection` | Coach | None | `{confirmed, pending, projected, trend}` |
+
+### DB Tables
+
+```sql
+ALTER TABLE users ADD COLUMN slug VARCHAR(100) UNIQUE;
+ALTER TABLE users ADD COLUMN is_public_profile BOOLEAN DEFAULT TRUE;
+ALTER TABLE users ADD COLUMN cover_photo_url TEXT;
+
+CREATE TABLE trial_offerings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  enabled BOOLEAN DEFAULT FALSE,
+  trial_price_gbp DECIMAL(10,2) NOT NULL,
+  normal_price_gbp DECIMAL(10,2) NOT NULL,
+  duration INTEGER DEFAULT 30,
+  limit_per_family INTEGER DEFAULT 1,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE trial_usages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  trial_offering_id UUID REFERENCES trial_offerings(id),
+  parent_id UUID REFERENCES users(id),
+  booking_id UUID REFERENCES bookings(id),
+  converted BOOLEAN DEFAULT FALSE,
+  converted_booking_id UUID REFERENCES bookings(id),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_trial_usages_parent ON trial_usages(trial_offering_id, parent_id);
+```
+
+---
+
+## Domain 17: VIDEO CHALLENGES & SESSION PLAN TEMPLATES
+
+### What it does
+Coaches create skill challenges for players to attempt at home. Pre-built session plan templates by age group and focus area. Drill library with categorised, searchable drills.
+
+### How it's controlled
+- System templates available to all coaches (platform-provided)
+- Coach-created templates private to that coach
+- Challenges scoped to squad or individual athletes
+- Submissions include video upload to S3
+
+### Endpoints
+
+| Method | Path | Auth | Body | Response |
+|--------|------|------|------|----------|
+| POST | `/api/challenges` | Coach | `{title, description, demoVideoUrl?, deadline, squadId?}` | `{challenge}` |
+| GET | `/api/challenges` | Coach/Athlete | `?coachId=&squadId=&status=` | `{challenges[]}` |
+| POST | `/api/challenges/:id/submit` | Athlete/Parent | `{videoUrl}` | `{submission}` |
+| POST | `/api/challenges/:id/submissions/:subId/feedback` | Coach | `{feedback, badgeAwardId?}` | `{submission}` |
+| GET | `/api/session-plan-templates` | Coach | `?ageGroup=&focus=&difficulty=` | `{templates[]}` |
+| POST | `/api/session-plan-templates` | Coach | `{title, ageGroup, focus, duration, plan}` | `{template}` |
+| GET | `/api/athletes/:id/progress-report` | Coach/Parent | `?period=` | `{report}` |
+
+### DB Tables
+
+```sql
+CREATE TABLE video_challenges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID REFERENCES users(id),
+  club_id UUID REFERENCES clubs(id),
+  squad_id UUID REFERENCES squads(id),
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  demo_video_url TEXT,
+  deadline DATE,
+  status VARCHAR(20) DEFAULT 'ACTIVE',
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE challenge_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  challenge_id UUID REFERENCES video_challenges(id) ON DELETE CASCADE,
+  athlete_id UUID NOT NULL,
+  athlete_name VARCHAR(255),
+  video_url TEXT NOT NULL,
+  coach_feedback TEXT,
+  badge_award_id UUID REFERENCES badge_awards(id),
+  submitted_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE session_plan_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID REFERENCES users(id), -- NULL for system templates
+  title VARCHAR(255) NOT NULL,
+  age_group VARCHAR(20),
+  focus VARCHAR(50),
+  duration INTEGER,
+  difficulty VARCHAR(20),
+  plan JSONB NOT NULL, -- { warmup, mainActivities, cooldown, equipment, coachingPoints }
+  is_system BOOLEAN DEFAULT FALSE,
+  use_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_challenges_coach ON video_challenges(coach_id);
+CREATE INDEX idx_submissions_challenge ON challenge_submissions(challenge_id);
+CREATE INDEX idx_templates_age ON session_plan_templates(age_group);
+```
+
+---
+
+## Updated Table Count Summary
+
+| Domain | Tables | Key Table |
+|--------|--------|-----------|
+| Auth & Users | 2 | `users`, `refresh_tokens` |
+| Children & Family | 5 | `children`, `emergency_contacts`, `medical_info`, `consents`, `family_guardians` |
+| Coach Profiles | 3 | `coach_certifications`, `coach_experiences`, `coach_languages` |
+| Availability | 5 | `availability_templates`, `availability_overrides`, `scheduling_rules`, `cancellation_policies`, `cancellation_tiers` |
+| Bookings | 5 | `bookings`, `booking_athletes`, `session_attendance`, `session_invites`, `counter_offers` |
+| Development | 7 | `session_notes`, `badge_definitions`, `badge_awards`, `drills`, `drill_assignments`, `goals`, `goal_milestones` |
+| Clubs & Squads | 5 | `clubs`, `club_memberships`, `squads`, `squad_members`, `club_feed_posts` |
+| Matches & Events | 4 | `matches`, `match_players`, `club_events`, `event_rsvps` |
+| Messaging | 3 | `threads`, `thread_participants`, `messages` |
+| Notifications | 2 | `notifications`, `notification_preferences` |
+| Reviews | 1 | `reviews` |
+| Roster & Follow | 3 | `roster_entries`, `roster_notes`, `follows` |
+| Videos | 1 | `session_videos` |
+| Health | 2 | `injuries`, `recovery_notes` |
+| Academy | 1 | `academy_staff_permissions` (extends clubs) |
+| Coach Business | 2 | `trial_offerings`, `trial_usages` (+ ALTER on users) |
+| Challenges & Plans | 3 | `video_challenges`, `challenge_submissions`, `session_plan_templates` |
+| **TOTAL** | **~54 tables** | |
+
+---
+
 *This is the single API contract document. Backend team builds to this spec. Frontend swaps mock services to call these endpoints. One Postgres database, one Redis instance, one S3 bucket.*
