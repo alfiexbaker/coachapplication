@@ -265,6 +265,50 @@ Trial Sessions
 └── Avg 3.2 sessions per convert
 ```
 
+## Task 7: Share Coach Profile Button
+
+**File**: Add to `app/coach/[coachId]/index.tsx`
+
+Share button visible on coach profile (for parents sharing with friends):
+
+```
+┌─────────────────────────────────────┐
+│ [← Back]  Coach Marcus     [♡] [↗] │
+│                                     │
+│ (↗ = share button)                 │
+└─────────────────────────────────────┘
+```
+
+- Native share sheet with coach's public profile link
+- Custom share message: "Check out Coach Marcus on Clubroom — great football coach in Hackney!"
+- Open Graph meta ensures preview card on WhatsApp/iMessage/etc.
+- Also accessible from three-dot menu on coach card in search results
+
+## Task 8: Similar Coaches Section
+
+**File**: `components/coach/similar-coaches.tsx`
+
+At bottom of coach profile, show related coaches:
+
+```
+┌─────────────────────────────────────┐
+│ Similar Coaches                     │
+│                                     │
+│ ┌──────┐ ┌──────┐ ┌──────┐       │
+│ │[foto]│ │[foto]│ │[foto]│       │
+│ │Sarah │ │James │ │Emma  │       │
+│ │⭐4.9 │ │⭐4.7 │ │⭐4.8 │       │
+│ │£35/hr│ │£45/hr│ │£38/hr│       │
+│ └──────┘ └──────┘ └──────┘       │
+└─────────────────────────────────────┘
+```
+
+- Matching criteria: same area + similar specialties + similar price range
+- Horizontal scroll
+- Max 6 coaches
+- Helps parents who don't find the right fit keep browsing
+- Helps coaches by keeping users in the ecosystem
+
 ## Acceptance Criteria
 
 - [ ] Public coach profile page accessible without login
@@ -277,6 +321,9 @@ Trial Sessions
 - [ ] Earnings projection shows confirmed + projected for current month
 - [ ] Trial conversion rate tracked in analytics
 - [ ] "Book Now" on public profile goes to booking flow (requires login)
+- [ ] Share button on coach profile (parent-facing) opens native share sheet
+- [ ] Similar coaches section at bottom of coach profile (horizontal scroll, max 6)
+- [ ] Similar coaches matched by area + specialties + price range
 
 ## Files Changed
 

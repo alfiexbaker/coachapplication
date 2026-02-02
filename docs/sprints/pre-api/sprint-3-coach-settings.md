@@ -135,6 +135,77 @@ When showing available slots:
 - If `allowSameDayBookings` is off, hide today's slots
 - Show buffer time as unavailable between existing bookings
 
+## Task 7: Full Cancellation Flow (End-to-End)
+
+**File**: `app/booking/[id]/cancel.tsx` + `components/booking/cancel-flow.tsx`
+
+The policy editor (Task 3) creates the rules. This task implements the actual cancellation interaction.
+
+**Parent cancels a session**:
+```
+┌─────────────────────────────────────┐
+│ Cancel this session?                │
+│                                     │
+│ 1:1 with Coach Marcus               │
+│ Tue 4 Feb · 4:00pm                 │
+│                                     │
+│ ⚠️ Cancellation Policy              │
+│ You're cancelling less than 24h     │
+│ before. Coach's policy:             │
+│ "Less than 24h: Full fee may apply  │
+│  (£40 cash)"                        │
+│                                     │
+│ Reason (optional):                  │
+│ ○ Child is ill                      │
+│ ○ Schedule change                   │
+│ ○ Other: [________]                 │
+│                                     │
+│ [Confirm Cancel]  [Keep Session]    │
+└─────────────────────────────────────┘
+```
+
+- Policy tier shown based on time-to-session
+- Coach notified immediately
+- Slot freed in availability
+- Booking → `CANCELLED` with `cancelledBy`, `cancelReason`, `cancelledAt`
+- "Would you like to reschedule?" CTA
+
+**Coach cancels a session**:
+- Parent notified with "Book another time?" CTA
+- "Suggest alternative" links to counter-offer flow
+- Reason required (unable to attend / weather / venue / emergency / other)
+
+## Task 8: No-Show Handling
+
+Added to session completion flow (Sprint 2). When coach marks NO_SHOW:
+- Categorise: no-show / late cancel / excused
+- Show policy reminder to coach
+- Option to send automated message to parent about policy
+- Track no-show count per family (3+ triggers warning for coach)
+
+## Task 9: Blocked Dates (Coach Holidays)
+
+**File**: `components/coach/blocked-dates-editor.tsx`
+
+Add to coaching settings hub:
+- Date range picker (from / to)
+- Optional reason ("Half-term holiday")
+- Blocked dates remove coach from availability AND discovery
+- Existing bookings in blocked range: warn coach with cancel/keep options
+- Upcoming blocked dates shown on coach dashboard
+- "Block this week" quick action
+
+## Task 10: Smart Slot Suggestions
+
+**File**: `components/coach/smart-slots.tsx`
+
+Shown on availability editor:
+- Which slots are consistently booked (heatmap)
+- "Saturdays 10am: 90% booked → consider adding more"
+- "Wednesday eves: 0 bookings → remove or promote"
+- "Copy last week's schedule" quick action
+- Demand data from search patterns in coach's area
+
 ## Acceptance Criteria
 
 - [ ] Coach can set all 7 scheduling rules via clean UI controls
@@ -144,16 +215,51 @@ When showing available slots:
 - [ ] Available slots respect scheduling rules (min notice, max advance, same-day, buffer)
 - [ ] Settings auto-save with feedback toast
 - [ ] All settings persist via `api-client.ts`
+- [ ] Parent can cancel with reason, sees policy tier, coach notified
+- [ ] Coach can cancel with reason, parent notified with rebooking CTA
+- [ ] Cancelled slot freed in availability
+- [ ] No-show categorisation (no-show / late cancel / excused)
+- [ ] No-show tracking per family (3+ warning)
+- [ ] Coach can block date ranges with reason
+- [ ] Blocked dates remove from availability + discovery
+- [ ] Smart slot suggestions based on booking patterns
+- [ ] "Copy last week's schedule" quick action
 
 ## Files Changed
 
 | File | Action |
 |------|--------|
 | `app/settings/coaching.tsx` | CREATE — coach settings hub |
+| `app/booking/[id]/cancel.tsx` | CREATE — cancellation flow |
 | `components/coach/scheduling-rules-editor.tsx` | CREATE |
 | `components/coach/cancellation-policy-editor.tsx` | CREATE |
 | `components/coach/travel-radius-picker.tsx` | CREATE |
+| `components/coach/blocked-dates-editor.tsx` | CREATE |
+| `components/coach/smart-slots.tsx` | CREATE |
+| `components/booking/cancel-flow.tsx` | CREATE — shared cancel UI |
 | `app/book-coach.tsx` | MODIFY — show policy, enforce rules |
 | `app/confirm-booking.tsx` | MODIFY — show policy |
 | `services/scheduling-rules-service.ts` | MODIFY — migrate to api-client |
-| `services/availability-service.ts` | MODIFY — enforce rules when generating slots |
+| `services/availability-service.ts` | MODIFY — enforce rules, respect blocked dates |
+| `services/cancellation-service.ts` | CREATE — cancel + notify logic |
+
+## New Types
+
+```typescript
+interface BlockedDateRange {
+  id: string;
+  coachId: string;
+  startDate: string; // ISO date
+  endDate: string;
+  reason?: string;
+}
+
+interface CancellationRecord {
+  bookingId: string;
+  cancelledBy: string; // userId
+  cancelledAt: string;
+  reason?: 'child_ill' | 'schedule_change' | 'weather' | 'venue' | 'emergency' | 'other';
+  note?: string;
+  policyTierApplied?: string; // which policy tier was in effect
+}
+```

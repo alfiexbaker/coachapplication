@@ -143,6 +143,138 @@ Effort: ⭐⭐⭐⭐ (4/5)
 Skills worked: Passing, First Touch
 ```
 
+## Task 6: RSVP for Group Sessions (Spond-Beater)
+
+**File**: `components/session/rsvp-flow.tsx` + `app/session/[id]/rsvp.tsx`
+
+This is Spond's killer feature — we MUST have it. When a coach creates a group session or match for a squad, all members get an RSVP request.
+
+**Coach creates group session → RSVP sent to squad**:
+```
+┌─────────────────────────────────────┐
+│ U12 Training — Tuesday 6pm         │
+│ Hackney Downs Park                  │
+│                                     │
+│ Is [Jake] coming?                   │
+│                                     │
+│ [✅ Going]  [❌ Can't]  [❓ Maybe] │
+│                                     │
+│ Responses close: Mon 6pm            │
+└─────────────────────────────────────┘
+```
+
+**Coach sees RSVP summary**:
+```
+┌─────────────────────────────────────┐
+│ U12 Training — Tue 6pm             │
+│                                     │
+│ ✅ 8 Going  ❌ 2 Can't  ❓ 1 Maybe│
+│                                     │
+│ Going:                              │
+│   Jake B. · Emma R. · Tom S. ...   │
+│ Can't make it:                      │
+│   Oliver P. (away) · Lily W.       │
+│ Maybe:                              │
+│   Sam K.                            │
+│ No response (3):                    │
+│   [Send Reminder]                   │
+└─────────────────────────────────────┘
+```
+
+- RSVP per child (parent responds for their child)
+- Coach can send reminder to non-responders (one tap)
+- RSVP deadline configurable by coach
+- Auto-populate attendance list from RSVPs on session day
+- RSVP changes allowed until deadline
+- Count shown on session card: "8/12 confirmed"
+
+**Data flow**:
+```
+Coach creates group session for squad
+  → system creates session_rsvp row per squad member (status: 'pending')
+  → notification sent to each parent
+  → parent responds (going/not_going/maybe)
+  → coach sees real-time count
+  → on session day, attendance pre-filled from RSVPs
+```
+
+## Task 7: Calendar Integration
+
+**File**: `services/calendar-service.ts` + `components/booking/add-to-calendar.tsx`
+
+After booking is confirmed, offer native calendar integration:
+
+```
+┌─────────────────────────────────────┐
+│ ✅ Booking Confirmed!               │
+│                                     │
+│ Jake's session with Coach Marcus    │
+│ Tue 4 Feb · 4:00pm                 │
+│ Hackney Downs Park                  │
+│                                     │
+│ [📅 Add to Calendar]               │
+│ [📍 Get Directions]                │
+│ [Done]                              │
+└─────────────────────────────────────┘
+```
+
+- Uses `expo-calendar` to create native calendar events
+- Includes: title, time, location, coach name, notes
+- Adds 1h reminder in calendar event
+- Works for iOS Calendar + Google Calendar
+- Coach can also sync all their sessions to phone calendar (bulk export)
+
+```typescript
+import * as Calendar from 'expo-calendar';
+
+async function addBookingToCalendar(booking: Booking): Promise<string> {
+  const { status } = await Calendar.requestCalendarPermissionsAsync();
+  if (status !== 'granted') return;
+
+  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+  const defaultCalendar = calendars.find(c => c.isPrimary) || calendars[0];
+
+  return Calendar.createEventAsync(defaultCalendar.id, {
+    title: `Football: ${booking.coachName}`,
+    startDate: new Date(booking.scheduledAt),
+    endDate: addMinutes(new Date(booking.scheduledAt), booking.duration),
+    location: booking.location?.address,
+    notes: `Session with Coach ${booking.coachName}\nFocus: ${booking.sessionType}\nPay: £${booking.price} cash`,
+    alarms: [{ relativeOffset: -60 }], // 1h before
+  });
+}
+```
+
+## Task 8: Decline Invite with Reason
+
+**File**: `components/booking/decline-invite.tsx`
+
+When parent declines a session invite, offer optional reason:
+
+```
+┌─────────────────────────────────────┐
+│ Decline this invite?                │
+│                                     │
+│ Coach Marcus invited Jake to a      │
+│ 1:1 session — Tue 4 Feb 4pm        │
+│                                     │
+│ Reason (optional):                  │
+│ ○ Schedule conflict                 │
+│ ○ Too far away                      │
+│ ○ Price too high                    │
+│ ○ Child not available               │
+│ ○ Other                             │
+│ [Add a note...]                     │
+│                                     │
+│ [Decline]  [Cancel]                 │
+└─────────────────────────────────────┘
+```
+
+- Reason sent to coach (helps them adjust)
+- Decline reason stored in invite record
+- Coach sees decline reason in invite management
+- "Suggest another time" option links to counter-offer flow
+
 ## Acceptance Criteria
 
 - [ ] Coach can tap "Complete Session" on any past-due booking
@@ -154,15 +286,30 @@ Skills worked: Passing, First Touch
 - [ ] Parent sees attendance + notes on booking detail
 - [ ] Coach home shows "sessions to complete" card
 - [ ] Flow is fast — coach can complete a 1:1 session in under 30 seconds
+- [ ] RSVP: squad members get RSVP request for group sessions
+- [ ] RSVP: parent can respond Going/Can't/Maybe per child
+- [ ] RSVP: coach sees real-time count + can remind non-responders
+- [ ] RSVP: attendance pre-populated from RSVPs on session day
+- [ ] Calendar: "Add to Calendar" creates native event with location + reminder
+- [ ] Calendar: coach can bulk-sync sessions to phone calendar
+- [ ] Decline: parent can decline invite with optional reason
+- [ ] Decline: coach sees decline reason in invite management
 
 ## Files Changed
 
 | File | Action |
 |------|--------|
 | `app/session/[id]/complete.tsx` | CREATE — session completion flow |
+| `app/session/[id]/rsvp.tsx` | CREATE — RSVP detail + coach summary |
 | `app/(tabs)/index.tsx` | MODIFY — add "sessions to complete" card (coach) + review prompt (parent) |
 | `app/booking/[id].tsx` | MODIFY — show attendance + notes post-completion |
 | `services/booking-service.ts` | MODIFY — add status transitions + AWAITING_COMPLETION |
+| `services/rsvp-service.ts` | CREATE — RSVP CRUD, reminder sending, attendance pre-fill |
+| `services/calendar-service.ts` | CREATE — native calendar integration |
+| `components/session/rsvp-flow.tsx` | CREATE — parent RSVP UI |
+| `components/session/rsvp-summary.tsx` | CREATE — coach RSVP dashboard |
+| `components/booking/add-to-calendar.tsx` | CREATE — calendar add button |
+| `components/booking/decline-invite.tsx` | CREATE — decline with reason modal |
 | `constants/app-types.ts` | MODIFY — add AWAITING_COMPLETION to BookingStatus |
 | `constants/booking-types.ts` | MODIFY — same |
 
@@ -190,4 +337,40 @@ interface AttendanceRecord {
   improvement?: string;
   drillAssigned?: string; // drillId
 }
+
+// RSVP
+interface SessionRsvp {
+  id: string;
+  sessionId: string;
+  userId: string;
+  childId?: string;
+  status: 'going' | 'not_going' | 'maybe' | 'pending';
+  respondedAt?: string;
+}
+
+// Decline reason
+interface InviteDeclineReason {
+  category: 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+  note?: string;
+}
+```
+
+## DB Tables (add to API_README)
+
+```sql
+CREATE TABLE session_rsvps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES sessions(id),
+  user_id UUID NOT NULL REFERENCES users(id),
+  child_id UUID REFERENCES children(id),
+  status VARCHAR(10) NOT NULL DEFAULT 'pending',
+  responded_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(session_id, user_id, child_id)
+);
+
+CREATE INDEX idx_rsvps_session ON session_rsvps(session_id);
+
+ALTER TABLE session_invites ADD COLUMN decline_reason VARCHAR(30);
+ALTER TABLE session_invites ADD COLUMN decline_note TEXT;
 ```

@@ -319,6 +319,83 @@ Generates a shareable image/PDF summarising a child's progress:
 - Exportable as image or PDF
 - Parents share with family — this is organic marketing
 
+## Task 8: Athlete Session Journal
+
+**File**: `app/athlete/journal.tsx` + `components/development/session-journal.tsx`
+
+Athletes (teens/adults booking for themselves) get a personal journal:
+
+```
+┌─────────────────────────────────────┐
+│ My Session Journal                  │
+│                                     │
+│ Tue 4 Feb — Coach Marcus            │
+│ Focus: Passing & Movement           │
+│                                     │
+│ Coach's notes:                      │
+│ "Great improvement on passing       │
+│  weight. Work on first touch..."    │
+│                                     │
+│ My notes:                           │
+│ ┌──────────────────────────────┐   │
+│ │ Felt much more confident on  │   │
+│ │ my left foot today. Need to  │   │
+│ │ practice the 1-2 drill at    │   │
+│ │ home. Coach said my passing  │   │
+│ │ is much better.              │   │
+│ └──────────────────────────────┘   │
+│                                     │
+│ How I felt: 😊 Great               │
+│ Energy level: ⭐⭐⭐⭐ (4/5)       │
+│                                     │
+│ [Save Entry]                        │
+└─────────────────────────────────────┘
+```
+
+- Post-session prompt for athletes (similar to parent review prompt)
+- Personal notes field (private — only athlete sees)
+- Mood/feeling selector (emoji: great/good/ok/tired/frustrated)
+- Energy level rating
+- Viewable alongside coach's notes for the session
+- Timeline view showing all journal entries
+
+## Task 9: Goal Setting
+
+**File**: `app/athlete/goals.tsx` + `components/development/goal-editor.tsx`
+
+Athletes and parents (for children) can set training goals:
+
+```
+┌─────────────────────────────────────┐
+│ Jake's Goals                        │
+│                                     │
+│ ┌─ Active Goals ──────────────────┐│
+│ │ 🎯 Master 10 consecutive        ││
+│ │    keepy-ups                     ││
+│ │    Progress: ██████░░ 60%       ││
+│ │    Coach says: "Getting close!" ││
+│ │                                  ││
+│ │ 🎯 Improve weak foot passing    ││
+│ │    Progress: ████░░░░ 40%       ││
+│ │    Set by: Coach Marcus          ││
+│ └──────────────────────────────────┘│
+│                                     │
+│ ┌─ Completed ────────────────────┐ │
+│ │ ✅ Score from outside the box  │ │
+│ │    Completed 15 Jan 2026       │ │
+│ └────────────────────────────────┘ │
+│                                     │
+│ [+ Set New Goal]                    │
+└─────────────────────────────────────┘
+```
+
+- Goals can be set by: athlete, parent, or coach
+- Progress tracking: manual % update or milestone-based
+- Coach can update goal progress during session completion
+- Completed goals trigger celebration (Sprint 10)
+- Goals shown on progress report
+- Suggested goals: "Common goals for age 10: keepy-ups, weak foot, positional play"
+
 ## Acceptance Criteria
 
 - [ ] Skill radar chart shows 6-axis spider chart with current vs previous overlay
@@ -331,6 +408,13 @@ Generates a shareable image/PDF summarising a child's progress:
 - [ ] Monthly progress report auto-generated, shareable as image/PDF
 - [ ] Radar chart animates on load
 - [ ] All sharable content includes Clubroom branding (organic marketing)
+- [ ] Athletes can write personal session journal entries (notes, mood, energy)
+- [ ] Journal viewable alongside coach's notes
+- [ ] Goals can be set by athlete, parent, or coach
+- [ ] Goal progress trackable (manual % or milestones)
+- [ ] Coach can update goal progress during session completion
+- [ ] Completed goals trigger celebration
+- [ ] Suggested goals based on age group
 
 ## Files Changed
 

@@ -234,6 +234,57 @@ Step 5: [Done — Go to Club Home]
 
 Quick 5-step carousel. Can be skipped.
 
+## Task 7: Squad Group Chat
+
+**File**: `app/club/[clubId]/squad/[squadId]/chat.tsx` + `components/club/group-chat.tsx`
+
+Every squad gets a group chat — Spond's bread and butter. Parents coordinate here.
+
+```
+┌─────────────────────────────────────┐
+│ U12 Lions Chat · 14 members        │
+│                                     │
+│ ┌─ 📌 Pinned ────────────────────┐ │
+│ │ Coach Marcus: "Training        │ │
+│ │ CANCELLED this Sat due to      │ │
+│ │ pitch flooding. Back next week"│ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│ Sarah M.: "Can someone give Jake   │
+│ a lift Tuesday? Stuck at work"     │
+│                                     │
+│ Tom R.: "Yeah no problem 👍"       │
+│                                     │
+│ [📷] Type a message...    [Send]   │
+└─────────────────────────────────────┘
+```
+
+- One group chat per squad (auto-created)
+- Coach can pin messages (announcements)
+- Photo/image sharing
+- Unread badge count on club tab
+- Paginated message loading (scroll up)
+
+## Task 8: Club Announcements
+
+**File**: `components/club/feed-cards/announcement-card.tsx`
+
+Club-wide announcements pinned to top of feed:
+- Admin-only creation
+- RSVP integration (reuses Sprint 2 RSVP)
+- Push notification to all club members
+- Pin/unpin by admin
+
+## Task 9: Bulk Parent Messaging
+
+**File**: `components/club/bulk-message.tsx`
+
+Coach/admin sends to all parents in a squad or whole club:
+- Select squad or entire club, or custom pick individuals
+- Creates individual message threads (not group — privacy)
+- Preview before send
+- Delivery confirmation
+
 ## Acceptance Criteria
 
 - [ ] Club admins can set logo, cover photo, tagline, 2 brand colours
@@ -245,6 +296,11 @@ Quick 5-step carousel. Can be skipped.
 - [ ] Academy pages have distinct visual treatment (banner, staff, programmes)
 - [ ] New member welcome flow triggers on first visit
 - [ ] All club-related data uses `api-client.ts` from Sprint 1
+- [ ] Every squad has a group chat with pinned messages
+- [ ] Photo sharing in group chat
+- [ ] Club announcements pinned to feed with RSVP
+- [ ] Bulk messaging to squad or all club parents
+- [ ] Unread badge count on club tab
 
 ## Files Changed
 
@@ -253,13 +309,18 @@ Quick 5-step carousel. Can be skipped.
 | `app/club/[clubId]/branding.tsx` | CREATE |
 | `app/club/[clubId]/dashboard.tsx` | CREATE (or heavy MODIFY of existing) |
 | `app/club/[clubId]/calendar.tsx` | CREATE |
+| `app/club/[clubId]/squad/[squadId]/chat.tsx` | CREATE — squad group chat |
 | `app/academy/[id]/home.tsx` | MODIFY — distinct academy layout |
 | `components/club/feed-cards/match-result-card.tsx` | CREATE |
 | `components/club/feed-cards/badge-award-card.tsx` | CREATE |
 | `components/club/feed-cards/session-recap-card.tsx` | CREATE |
 | `components/club/feed-cards/event-reminder-card.tsx` | CREATE |
+| `components/club/feed-cards/announcement-card.tsx` | CREATE |
 | `components/club/welcome-flow.tsx` | CREATE |
 | `components/club/branding-editor.tsx` | CREATE |
 | `components/club/club-calendar.tsx` | CREATE |
+| `components/club/group-chat.tsx` | CREATE — reusable group chat UI |
+| `components/club/bulk-message.tsx` | CREATE — bulk parent messaging |
 | `services/club-service.ts` | MODIFY — add branding + auto-post methods |
+| `services/group-messaging-service.ts` | CREATE — group chat CRUD |
 | `services/match-service.ts` | MODIFY — trigger feed post on result entry |

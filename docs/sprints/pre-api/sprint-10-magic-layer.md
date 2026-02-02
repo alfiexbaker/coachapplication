@@ -336,6 +336,58 @@ Every empty state should tell the user what to do next:
 
 Use simple, football-themed illustrations. Not generic stock art.
 
+## Task 8: Pre-Session Reminders with Directions
+
+**File**: extend `services/reminder-service.ts`
+
+Full pre-session communication (uses Sprint 6 notification infra):
+
+**24h before** — local push:
+- "Tomorrow: Jake's session with Coach Marcus"
+- Time + location + focus area
+- [Get Directions] → opens native Maps with venue coordinates
+- Scheduled via `expo-notifications` when booking confirmed
+
+**1h before** — local push:
+- "In 1 hour: session at Hackney Downs Park"
+- Equipment reminder from session plan (if set)
+- [Get Directions] CTA
+
+```typescript
+// Schedule when booking confirmed, cancel if booking cancelled
+async function scheduleSessionReminders(booking: Booking) {
+  const sessionDate = new Date(booking.scheduledAt);
+  const id24h = await scheduleLocalNotification({
+    title: `Tomorrow: ${booking.athleteName}'s session`,
+    body: `${formatTime(sessionDate)} · ${booking.location?.name}`,
+    data: { deepLink: `clubroom://booking/${booking.id}` },
+    trigger: { date: subHours(sessionDate, 24) },
+  });
+  const id1h = await scheduleLocalNotification({
+    title: `In 1 hour: ${booking.athleteName}'s session`,
+    body: `${booking.location?.name}`,
+    data: { deepLink: `clubroom://booking/${booking.id}`, showDirections: true },
+    trigger: { date: subHours(sessionDate, 1) },
+  });
+  await storeReminderIds(booking.id, [id24h, id1h]);
+}
+```
+
+## Task 9: Coach "I'm On My Way" Status
+
+**File**: `components/session/coach-status.tsx`
+
+On coach dashboard, day-of sessions show one-tap status toggle:
+```
+│ 🟢 4:00pm  Jake B.                │
+│    Hackney Downs Park               │
+│    [I'm On My Way →]                │
+```
+
+Tap → parent gets notification: "Coach Marcus is on the way! Session at 4:00pm at Hackney Downs Park"
+- Green "Coach is on the way" badge on booking detail for parent
+- Auto-resets after session time
+
 ## Acceptance Criteria
 
 - [ ] Coach first-time flow: 5 screens, gets profile live in <2 minutes
@@ -345,7 +397,11 @@ Use simple, football-themed illustrations. Not generic stock art.
 - [ ] Coach milestones celebrated (10, 25, 50, 100 sessions + first review + etc.)
 - [ ] Match invite: one-tap "Available/Unavailable" from notification
 - [ ] Session invite: one-tap "Accept" from notification
-- [ ] 24h and 1h session reminders with location + directions link
+- [ ] 24h session reminder with location + directions link
+- [ ] 1h session reminder with equipment + directions
+- [ ] "Get Directions" opens native Maps app
+- [ ] Reminders cancelled if booking cancelled
+- [ ] Coach "I'm On My Way" toggle → parent notified + green badge
 - [ ] All micro-interactions implemented (press states, transitions, haptics)
 - [ ] All empty states have contextual message + CTA
 - [ ] Celebrations are shareable as images (organic marketing)
@@ -361,7 +417,8 @@ Use simple, football-themed illustrations. Not generic stock art.
 | `components/celebrations/coach-milestone.tsx` | CREATE |
 | `components/celebrations/review-celebration.tsx` | CREATE |
 | `components/celebrations/confetti.tsx` | CREATE — reusable confetti |
-| `services/reminder-service.ts` | CREATE — auto session reminders |
+| `components/session/coach-status.tsx` | CREATE — "on my way" toggle |
+| `services/reminder-service.ts` | CREATE — schedule + cancel reminders |
 | `services/milestone-service.ts` | CREATE — track coach milestones |
 | All screen files | MODIFY — add micro-interactions |
 | All list screens | MODIFY — add contextual empty states |

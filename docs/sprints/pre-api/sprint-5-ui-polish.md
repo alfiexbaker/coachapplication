@@ -197,6 +197,37 @@ Audit and fix:
 - Consistent shadow (cards only, subtle)
 - Colour palette applied consistently (no random hex values)
 
+## Task 7: Safety & Reporting System
+
+**File**: `components/safety/report-flow.tsx` + `app/report.tsx`
+
+Report from: coach profile, message thread, review. Types: inappropriate, safety_concern, fake_profile, spam, other. Confidential — reported user NOT notified. Admin review queue. Block user option after reporting.
+
+**Block User**: prevents messaging, invites, discovery visibility. Reversible from settings.
+
+## Task 8: Accessibility Audit
+
+All components — add:
+- `accessibilityLabel` on all touchables
+- `accessibilityRole` on buttons, links, images, headers
+- Minimum touch targets: 44x44pt
+- Colour contrast: WCAG AA (4.5:1 text, 3:1 large)
+- Dynamic text size (`allowFontScaling`)
+- `reduceMotion` check — disable animations when system setting on
+- Screen reader navigation order
+
+## Task 9: Settings Completeness
+
+**File**: `app/settings/index.tsx` — EXPAND
+
+Add missing settings:
+- **Notification Preferences**: per-type toggles (bookings, invites, reminders, reviews, messages, badges, milestones)
+- **Privacy**: profile visibility (public/registered-only), search visibility toggle
+- **Data & Privacy**: download my data (JSON/ZIP), delete account (30-day grace → hard delete). GDPR requirement.
+- **Preferences**: distance unit (miles/km), language
+- **About**: terms of service, privacy policy, help, app version
+- **Delete Account**: confirmation → soft-delete → 30-day grace → permanent. Required for app store compliance.
+
 ## Acceptance Criteria
 
 - [ ] Every screen has loading skeleton, error with retry, and empty with CTA
@@ -207,6 +238,12 @@ Audit and fix:
 - [ ] Pull-to-refresh on all list/feed screens
 - [ ] Typography, spacing, and colours are consistent across all screens
 - [ ] No blank screens or silent failures anywhere in the app
+- [ ] Report button accessible on coach profiles, messages, reviews
+- [ ] Block user prevents messaging, invites, discovery
+- [ ] All touchables have accessibility labels, 44x44pt min targets
+- [ ] Dynamic text size and reduce motion supported
+- [ ] Settings: notification prefs, privacy, delete account, data export
+- [ ] Terms of service and privacy policy screens exist
 
 ## Files Changed
 
@@ -216,11 +253,21 @@ Audit and fix:
 | `components/ui/skeleton.tsx` | CREATE — skeleton shimmer primitives |
 | `components/coach/onboarding-checklist.tsx` | CREATE |
 | `components/parent/onboarding-checklist.tsx` | CREATE |
+| `components/safety/report-flow.tsx` | CREATE |
+| `components/safety/block-user.tsx` | CREATE |
+| `app/report.tsx` | CREATE |
+| `app/settings/index.tsx` | EXPAND — full settings |
+| `app/settings/notifications.tsx` | CREATE — per-type toggles |
+| `app/settings/privacy.tsx` | CREATE — visibility + data controls |
+| `app/settings/terms.tsx` | CREATE |
+| `app/settings/privacy-policy.tsx` | CREATE |
 | `app/(tabs)/index.tsx` | MODIFY — add checklists + state handling |
 | `app/(tabs)/bookings.tsx` | MODIFY — add state handling |
 | `app/(tabs)/schedule.tsx` | MODIFY — add state handling |
 | `app/(tabs)/messages.tsx` | MODIFY — add state handling |
 | `app/(tabs)/feed.tsx` | MODIFY — add state handling |
 | `app/(tabs)/athletes.tsx` | MODIFY — add state handling |
-| All list/detail screens | MODIFY — wrap in loading/error/empty |
+| All list/detail screens | MODIFY — wrap in loading/error/empty + accessibility |
 | `constants/theme.ts` | CREATE or MODIFY — single source for colors, spacing, typography |
+| `services/report-service.ts` | CREATE |
+| `services/block-service.ts` | CREATE |

@@ -232,29 +232,101 @@ When parent taps search bar, show:
 └─────────────────────────────────────┘
 ```
 
+## Task 7: Favourites / Saved Coaches
+
+**File**: `components/discover/favourite-button.tsx` + `services/favourite-service.ts`
+
+Heart icon on coach cards and profile:
+
+```
+┌──────────────────────────────────┐
+│ [Avatar]  Coach Marcus     [♡]  │  ← empty heart
+│           ⭐ 4.8 (23)           │
+│           ...                    │
+└──────────────────────────────────┘
+```
+
+Tap heart → fills red with scale pop animation → coach saved.
+
+**My Saved Coaches** section on parent home (above Featured):
+```
+┌─────────────────────────────────────┐
+│ Saved Coaches (3)                   │
+│ ┌──────┐ ┌──────┐ ┌──────┐       │
+│ │Marcus│ │Sarah │ │James │       │
+│ │♥     │ │♥     │ │♥     │       │
+│ └──────┘ └──────┘ └──────┘       │
+└─────────────────────────────────────┘
+```
+
+- Heart button on: coach cards (list), coach profile page, map bottom sheet card
+- Saved coaches show different pin on map (heart icon — see MAP_EXPERIENCE.md)
+- Saved coach list accessible from parent home
+- Toggle: tap again to unsave with confirm
+
+## Task 8: Airbnb-Quality Map (see MAP_EXPERIENCE.md)
+
+**The full map specification is in `MAP_EXPERIENCE.md`.** This task implements that spec.
+
+Key implementation summary:
+- **react-native-maps** replacing the current grid-based MapView
+- **Price-pill pins** (not dots) — `£40/hr` on white pill, selected goes dark
+- **@gorhom/bottom-sheet** with 3 snap points: collapsed, card carousel, full list
+- **Bidirectional linking**: tap pin → card scrolls, swipe card → map pans
+- **"Search this area"** button after 600ms of no movement
+- **GPS first**, postcode fallback, pulsing blue dot
+- **Clustering** with supercluster, tap to zoom
+- **Progressive loading**: skeleton pins → real pins with staggered fade
+- **Filter ↔ map sync**: pins fade in/out in real-time when filters change
+
+See `MAP_EXPERIENCE.md` for the full spec including all components, files, gestures, performance targets, and acceptance criteria.
+
 ## Acceptance Criteria
 
-- [ ] Parent home shows upcoming sessions, invites, featured coaches, personalised recommendations
+- [ ] Parent home shows upcoming sessions, invites, saved coaches, featured coaches, personalised recommendations
 - [ ] Discovery has working filters (distance, price, age, specialty, rating, availability, trial, verified)
-- [ ] Map view shows coach pins with bottom-sheet preview
-- [ ] Map uses device GPS for initial location
+- [ ] Map renders with react-native-maps (real tiles, real zoom, real pan)
+- [ ] Coach pins show price per hour (price-pill pins)
+- [ ] Pin selection highlights pin + shows card in bottom sheet
+- [ ] Swiping card carousel moves map to corresponding coach
+- [ ] "Search this area" appears after pan
+- [ ] Map uses device GPS for initial location, postcode fallback
 - [ ] Coach cards show verification, distance, rating, next available slot, trial badge
+- [ ] Clustering at 3+ coaches within 500m
 - [ ] "Featured Near You" shows verified, high-rated, active coaches
 - [ ] "Recommended for [Child]" personalised by age/skill level
 - [ ] Search suggestions with recent searches and popular terms
 - [ ] Filters persist across map/list toggle
 - [ ] Sort by: nearest, highest rated, lowest price, most reviewed
+- [ ] Favourite button on coach cards + profile, heart fills with animation
+- [ ] Saved coaches section on parent home
+- [ ] Saved coaches show distinct pin on map
+- [ ] 60fps with 50 pins on screen
 
 ## Files Changed
 
 | File | Action |
 |------|--------|
 | `app/(tabs)/index.tsx` | REWRITE (parent view) — discovery home |
-| `app/discover/map.tsx` | REBUILD — working map with pins |
+| `app/discover/map.tsx` | REWRITE — Airbnb-quality map (see MAP_EXPERIENCE.md) |
+| `components/discover/MapView.tsx` | REWRITE — react-native-maps |
+| `components/discover/CoachMarker.tsx` | REWRITE — price-pill pins |
+| `components/discover/ClusterMarker.tsx` | CREATE — cluster circles |
+| `components/discover/MapBottomSheet.tsx` | CREATE — 3-snap-point sheet |
+| `components/discover/CoachCardCarousel.tsx` | CREATE — horizontal swipe |
+| `components/discover/SearchThisArea.tsx` | CREATE — floating button |
+| `components/discover/MapSearchHeader.tsx` | CREATE — search + toggle |
+| `components/discover/UserLocationMarker.tsx` | CREATE — pulsing blue dot |
+| `components/discover/SkeletonPins.tsx` | CREATE — loading pins |
+| `components/discover/favourite-button.tsx` | CREATE — heart toggle |
 | `components/discover/coach-card.tsx` | REDESIGN |
-| `components/discover/filter-bar.tsx` | REBUILD — real filters |
-| `components/discover/filter-modal.tsx` | REBUILD — full filter options |
+| `components/discover/filter-bar.tsx` | REBUILD |
+| `components/discover/filter-modal.tsx` | REBUILD |
 | `components/discover/search-suggestions.tsx` | CREATE |
-| `components/discover/featured-coaches.tsx` | CREATE — horizontal scroll |
-| `components/discover/recommended-coaches.tsx` | CREATE — personalised |
-| `services/discover-service.ts` | REWRITE — filtering, scoring, search |
+| `components/discover/featured-coaches.tsx` | CREATE |
+| `components/discover/recommended-coaches.tsx` | CREATE |
+| `services/discover-service.ts` | REWRITE — filtering, scoring, bounds search |
+| `services/favourite-service.ts` | CREATE — save/unsave coach |
+| `services/geocoding-service.ts` | CREATE — postcode ↔ coordinates |
+| `hooks/useMapCoaches.ts` | CREATE — fetch + filter + cluster |
+| `hooks/useUserLocation.ts` | CREATE — GPS permission + position |

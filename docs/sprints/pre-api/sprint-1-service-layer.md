@@ -131,6 +131,85 @@ export const exampleService = {
 
 No class instances. No `new Service()`. Just plain objects with async methods.
 
+## Task 6: Connection Status Detection
+
+**File**: `hooks/useConnectionStatus.ts`
+
+Detect when the user goes offline and show a banner:
+
+```typescript
+import NetInfo from '@react-native-community/netinfo';
+
+export function useConnectionStatus() {
+  const [isConnected, setIsConnected] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected ?? true);
+    });
+    return unsubscribe;
+  }, []);
+
+  return { isConnected };
+}
+```
+
+**UI**: Persistent top banner when offline:
+```
+┌─────────────────────────────────────┐
+│ ⚠️ You're offline. Changes will    │
+│ sync when you reconnect.            │
+└─────────────────────────────────────┘
+```
+- Animated slide-down/slide-up
+- Shows on every screen (add to root layout)
+- Automatically hides when connection restored with "Back online ✓" flash
+
+## Task 7: Offline Action Queue
+
+**File**: `services/api-client.ts` (extend)
+
+When offline, queue write operations for later:
+
+```typescript
+interface QueuedAction {
+  id: string;
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  path: string;
+  body: any;
+  timestamp: number;
+}
+
+// In api-client.ts
+async function queuedWrite<T>(method: string, path: string, body: any): Promise<T> {
+  if (!isConnected) {
+    await addToQueue({ id: generateId(), method, path, body, timestamp: Date.now() });
+    // Return optimistic response from local cache
+    return optimisticResponse(method, path, body);
+  }
+  return apiFetch(method, path, body);
+}
+
+// On reconnect: flush queue in order
+async function flushQueue(): Promise<void> {
+  const queue = await getQueue();
+  for (const action of queue) {
+    try {
+      await apiFetch(action.method, action.path, action.body);
+      await removeFromQueue(action.id);
+    } catch (err) {
+      // Stop flushing on failure — will retry next reconnect
+      break;
+    }
+  }
+}
+```
+
+- Queue stored in AsyncStorage (persists across app restart)
+- Flush on reconnect (NetInfo listener)
+- Optimistic responses return immediately so UI feels instant
+- Conflict resolution: server wins on conflict (last-write-wins for MVP)
+
 ## Acceptance Criteria
 
 - [ ] `api-client.ts` exists and handles all storage operations
@@ -139,13 +218,19 @@ No class instances. No `new Service()`. Just plain objects with async methods.
 - [ ] All 46 services use `api-client.ts` (no direct AsyncStorage calls)
 - [ ] Payment-related services marked as deferred with `// MVP: Cash only — defer to post-API phase`
 - [ ] No regressions — existing screens still load their data
+- [ ] Offline banner shown when connection lost, auto-hides on reconnect
+- [ ] Write actions queued when offline and flushed on reconnect
+- [ ] Optimistic UI — user sees immediate feedback even when offline
 
 ## Files Changed
 
 | File | Action |
 |------|--------|
-| `services/api-client.ts` | CREATE |
+| `services/api-client.ts` | CREATE — includes offline queue + flush logic |
 | `services/invite-service.ts` | FIX — booking creation on accept |
 | `services/counter-offer-service.ts` | FIX — booking creation on accept |
 | `services/booking-service.ts` | MIGRATE to api-client |
 | `services/*.ts` (all 46) | MIGRATE to api-client |
+| `hooks/useConnectionStatus.ts` | CREATE — NetInfo listener |
+| `components/ui/offline-banner.tsx` | CREATE — persistent top banner |
+| `app/_layout.tsx` | MODIFY — add offline banner to root layout |
