@@ -420,13 +420,23 @@ Athletes and parents (for children) can set training goals:
 
 | File | Action |
 |------|--------|
-| `components/development/skill-radar.tsx` | CREATE |
+| `components/development/skill-radar.tsx` | CREATE (NOTE: `components/analytics/skill-radar.tsx` exists — may reuse/replace) |
 | `components/development/progress-timeline.tsx` | CREATE |
 | `components/development/session-recap-card.tsx` | CREATE |
 | `components/development/progress-report.tsx` | CREATE |
 | `app/sessions/plan-templates.tsx` | CREATE |
-| `app/drills/library.tsx` | REBUILD — searchable library |
+| `app/drills/library.tsx` | ENHANCE (440 lines exist) — add search, 30+ templates |
+| `app/drills/index.tsx` | ENHANCE (422 lines exist) — integrate challenge submissions |
+| `app/drills/[id].tsx` | ENHANCE (650 lines exist) — add challenge leaderboard |
+| `app/drills/assign.tsx` | ENHANCE (736 lines exist) — integrate with session plans |
 | `app/drills/challenges.tsx` | CREATE — video challenges |
+| `app/goals/index.tsx` | ENHANCE (434 lines exist) — add suggested goals |
+| `app/goals/[id].tsx` | ENHANCE (672 lines exist) — add coach progress updates |
+| `app/goals/create.tsx` | ENHANCE (189 lines exist) — add age-based suggestions |
+| `app/development/athlete/[athleteId].tsx` | ENHANCE (1001 lines exist) — add radar + timeline |
+| `app/development/child-progress/[childId].tsx` | ENHANCE (468 lines exist) — add progress report |
+| `app/development/my-progress.tsx` | ENHANCE (731 lines exist) — add athlete journal |
+| `app/athlete/journal.tsx` | CREATE — personal session journal |
 | `components/drills/challenge-card.tsx` | CREATE |
 | `components/coach/session-plan-picker.tsx` | CREATE |
 | `constants/session-plan-templates.ts` | CREATE — 30+ football plans |

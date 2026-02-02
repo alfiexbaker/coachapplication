@@ -326,7 +326,8 @@ See `MAP_EXPERIENCE.md` for the full spec including all components, files, gestu
 | `components/discover/featured-coaches.tsx` | CREATE |
 | `components/discover/recommended-coaches.tsx` | CREATE |
 | `services/discover-service.ts` | REWRITE — filtering, scoring, bounds search |
-| `services/favourite-service.ts` | CREATE — save/unsave coach |
+| `services/favourite-service.ts` | ENHANCE (296 lines exist) — add map pin integration |
+| `app/favourites/index.tsx` | ENHANCE (269 lines exist) — integrate with parent home |
 | `services/geocoding-service.ts` | CREATE — postcode ↔ coordinates |
 | `hooks/useMapCoaches.ts` | CREATE — fetch + filter + cluster |
 | `hooks/useUserLocation.ts` | CREATE — GPS permission + position |

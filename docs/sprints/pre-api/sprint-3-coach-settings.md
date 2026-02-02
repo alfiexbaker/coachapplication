@@ -229,12 +229,12 @@ Shown on availability editor:
 
 | File | Action |
 |------|--------|
-| `app/settings/coaching.tsx` | CREATE — coach settings hub |
-| `app/booking/[id]/cancel.tsx` | CREATE — cancellation flow |
-| `components/coach/scheduling-rules-editor.tsx` | CREATE |
+| `app/settings/coaching.tsx` | CREATE — coach settings hub (NOTE: `app/availability/scheduling-rules.tsx` (602 lines) and `app/availability/block-date.tsx` (285 lines) already exist — integrate, don't duplicate) |
+| `app/booking/[id]/cancel.tsx` | ENHANCE (544 lines exist) — add policy tier display, reason picker, coach cancel variant |
+| `components/coach/scheduling-rules-editor.tsx` | ENHANCE existing `app/availability/scheduling-rules.tsx` — extract reusable component |
 | `components/coach/cancellation-policy-editor.tsx` | CREATE |
 | `components/coach/travel-radius-picker.tsx` | CREATE |
-| `components/coach/blocked-dates-editor.tsx` | CREATE |
+| `components/coach/blocked-dates-editor.tsx` | ENHANCE existing `app/availability/block-date.tsx` — extract reusable component |
 | `components/coach/smart-slots.tsx` | CREATE |
 | `components/booking/cancel-flow.tsx` | CREATE — shared cancel UI |
 | `app/book-coach.tsx` | MODIFY — show policy, enforce rules |

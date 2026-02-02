@@ -299,13 +299,13 @@ When parent declines a session invite, offer optional reason:
 
 | File | Action |
 |------|--------|
-| `app/session/[id]/complete.tsx` | CREATE — session completion flow |
-| `app/session/[id]/rsvp.tsx` | CREATE — RSVP detail + coach summary |
+| `app/session/[id]/complete.tsx` | ENHANCE (669 lines exist) — add RSVP pre-fill, attendance categories, badge award step |
+| `app/session/[id]/rsvp.tsx` | CREATE — RSVP detail + coach summary (NOTE: `app/events/[id]/rsvp.tsx` (588 lines) exists for events — reuse RSVP patterns) |
 | `app/(tabs)/index.tsx` | MODIFY — add "sessions to complete" card (coach) + review prompt (parent) |
 | `app/booking/[id].tsx` | MODIFY — show attendance + notes post-completion |
 | `services/booking-service.ts` | MODIFY — add status transitions + AWAITING_COMPLETION |
 | `services/rsvp-service.ts` | CREATE — RSVP CRUD, reminder sending, attendance pre-fill |
-| `services/calendar-service.ts` | CREATE — native calendar integration |
+| `services/calendar-service.ts` | ENHANCE (437 lines exist) — add booking-to-calendar, coach bulk sync |
 | `components/session/rsvp-flow.tsx` | CREATE — parent RSVP UI |
 | `components/session/rsvp-summary.tsx` | CREATE — coach RSVP dashboard |
 | `components/booking/add-to-calendar.tsx` | CREATE — calendar add button |

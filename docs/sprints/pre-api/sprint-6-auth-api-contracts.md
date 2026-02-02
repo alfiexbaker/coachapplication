@@ -359,7 +359,7 @@ Notifications.addNotificationResponseReceivedListener(response => {
 | `services/api-contracts.ts` | MODIFY — full endpoint documentation |
 | `services/push-notification-service.ts` | CREATE — register, schedule, handle |
 | `hooks/usePushNotifications.ts` | CREATE — permission + listener setup |
-| `app/notifications.tsx` | CREATE — notification centre screen |
+| `app/(tabs)/notifications.tsx` | ENHANCE (378 lines exist) — add deep link tap, grouped by day, mark all read |
 | `components/ui/notification-bell.tsx` | CREATE — bell icon + badge |
 | `constants/error-types.ts` | CREATE |
 | `constants/notification-types.ts` | CREATE — all notification type definitions |

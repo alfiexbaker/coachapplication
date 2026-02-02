@@ -250,17 +250,19 @@ Add missing settings:
 | File | Action |
 |------|--------|
 | `components/ui/screen-states.tsx` | CREATE — LoadingState, ErrorState, EmptyState |
-| `components/ui/skeleton.tsx` | CREATE — skeleton shimmer primitives |
+| `components/ui/skeleton.tsx` | ENHANCE (59 lines exist) — add list/card/detail/calendar variants |
 | `components/coach/onboarding-checklist.tsx` | CREATE |
 | `components/parent/onboarding-checklist.tsx` | CREATE |
 | `components/safety/report-flow.tsx` | CREATE |
 | `components/safety/block-user.tsx` | CREATE |
 | `app/report.tsx` | CREATE |
-| `app/settings/index.tsx` | EXPAND — full settings |
-| `app/settings/notifications.tsx` | CREATE — per-type toggles |
-| `app/settings/privacy.tsx` | CREATE — visibility + data controls |
+| `app/settings/index.tsx` | ENHANCE (331 lines exist) — expand with all sections |
+| `app/settings/notifications/preferences.tsx` | ENHANCE (334 lines exist) — add per-type toggles |
+| `app/settings/privacy.tsx` | ENHANCE (242 lines exist) — add visibility, data export, delete account |
 | `app/settings/terms.tsx` | CREATE |
 | `app/settings/privacy-policy.tsx` | CREATE |
+| `app/family/sharing.tsx` | VERIFY (726 lines exist!) — family account sharing may already work |
+| `app/(tabs)/edit-profile.tsx` | AUDIT (1393 lines) — accessibility pass needed |
 | `app/(tabs)/index.tsx` | MODIFY — add checklists + state handling |
 | `app/(tabs)/bookings.tsx` | MODIFY — add state handling |
 | `app/(tabs)/schedule.tsx` | MODIFY — add state handling |

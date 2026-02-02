@@ -330,10 +330,15 @@ At bottom of coach profile, show related coaches:
 | File | Action |
 |------|--------|
 | `app/coach/[coachId]/public.tsx` | CREATE — public profile page |
+| `app/coach/[id].tsx` | ENHANCE (849 lines exist) — add share button, similar coaches section |
 | `components/coach/share-profile.tsx` | CREATE — share link + QR |
+| `components/coach/similar-coaches.tsx` | CREATE — horizontal scroll recommendations |
 | `components/coach/trial-session-editor.tsx` | CREATE — trial offering |
 | `components/coach/earnings-projection.tsx` | CREATE — earnings forecast |
 | `app/(tabs)/index.tsx` | REWRITE (coach view) — inspiring dashboard |
+| `app/earnings.tsx` | ENHANCE (903 lines exist) — add projections, trial conversion (NOTE: `(tabs)/earnings.tsx` is 1-line stub — consolidate) |
+| `app/analytics/dashboard.tsx` | ENHANCE (501 lines exist) — integrate earnings projections |
+| `app/analytics/revenue.tsx` | ENHANCE (542 lines exist) — add trial tracking |
 | `services/analytics-service.ts` | MODIFY — trial conversion tracking |
 | `constants/types.ts` | ADD — TrialSession, CoachSlug types |
 
