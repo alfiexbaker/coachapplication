@@ -1,0 +1,155 @@
+# 1A: API Client + Service Pattern
+
+**Phase**: 1 — Foundation
+**Origin**: Sprint 1, Tasks 1, 4, 5
+**Estimated scope**: 3 tasks, ~46 service files touched
+
+## Goal
+
+Create a single shared API client that every service uses. Migrate all 46 services from direct AsyncStorage calls to the shared client. Standardise every service export shape.
+
+## Why First
+
+Every other micro-sprint depends on services working consistently. This is the plumbing — get it right once, never think about it again.
+
+## Tasks
+
+### Task 1: Create `api-client.ts`
+
+**File**: `services/api-client.ts`
+
+A single shared module that every service imports. For now it wraps AsyncStorage. Later it wraps `fetch`.
+
+```typescript
+// services/api-client.ts
+//
+// Every service calls these instead of touching AsyncStorage directly.
+// When backend exists, swap the implementation — services don't change.
+
+interface ApiResponse<T> {
+  data: T;
+  error?: string;
+}
+
+const apiClient = {
+  async get<T>(key: string, fallback: T): Promise<T> { ... },
+  async set<T>(key: string, data: T): Promise<void> { ... },
+  async update<T>(key: string, updater: (current: T) => T, fallback: T): Promise<T> { ... },
+  async remove(key: string): Promise<void> { ... },
+  generateId(prefix?: string): string { ... },
+}
+```
+
+**Why**: 46 services each do their own `AsyncStorage.getItem` / `JSON.parse` / `JSON.stringify`. Bugs hide in that repetition. One client, one place.
+
+### Task 2: Migrate services to use `api-client.ts`
+
+Migrate all 46 services to use the shared client. Priority order:
+
+**Critical path (do first)**:
+1. `booking-service.ts`
+2. `invite-service.ts`
+3. `counter-offer-service.ts`
+4. `availability-service.ts`
+5. `coach-service.ts`
+6. `roster-service.ts`
+
+**Important (do second)**:
+7. `messaging-service.ts`
+8. `notification-service.ts`
+9. `badge-service.ts`
+10. `club-service.ts`
+11. `squad-service.ts`
+12. `match-service.ts`
+13. `event-service.ts`
+14. `review-service.ts`
+
+**Supporting (do third)**:
+15-46: Everything else — `drill-service`, `goal/progress-service`, `video-service`, `family-service`, `injury-service`, `skill-tree-service`, `follow-service`, `social-feed-service`, `community-service`, etc.
+
+**Deferred (cash-only MVP — mark as mock-only)**:
+- `wallet-service.ts` — keep but mark as not-for-MVP
+- `earnings-service.ts` — display only, no real transactions
+- `invoice-service.ts` — defer
+- `package-service.ts` — defer
+- `promo-service.ts` — defer
+- `referral-service.ts` — defer (keep code, just not in critical path)
+
+### Task 3: Consistent service exports
+
+Every service should export the same shape:
+
+```typescript
+export const exampleService = {
+  // Read
+  async list(filters?): Promise<T[]>,
+  async getById(id: string): Promise<T | null>,
+
+  // Write
+  async create(input: CreateInput): Promise<T>,
+  async update(id: string, patch: Partial<T>): Promise<T>,
+  async remove(id: string): Promise<void>,
+};
+```
+
+No class instances. No `new Service()`. Just plain objects with async methods.
+
+## Notification Trigger Pattern
+
+When migrating services to `api-client.ts`, every write action that affects ANOTHER user must trigger a local notification event. Add a simple event bus:
+
+```typescript
+// services/notification-trigger.ts
+type NotifiableAction = {
+  type: string;       // e.g. 'drill_assigned', 'event_cancelled'
+  recipientRole: 'coach' | 'parent' | 'athlete';
+  title: string;
+  body: string;
+  deepLink?: string;
+};
+
+function triggerNotification(action: NotifiableAction) {
+  // For MVP: write to local notifications store
+  // For API: this becomes a server-side push trigger
+  notificationService.create(action);
+}
+```
+
+Services that MUST call `triggerNotification` after write:
+
+| Service | Action | Notify Who | Message |
+|---------|--------|-----------|---------|
+| `drill-service` | assignDrill | Parent/athlete | "Coach assigned a new drill: [name]" |
+| `drill-service` | completeDrill | Coach | "[Athlete] completed [drill] ✓" |
+| `event-service` | createEvent | Club members | "New event: [name] on [date]" |
+| `event-service` | cancelEvent | RSVPed users | "[Event] has been cancelled" |
+| `event-service` | rsvp | Event organiser | "[Name] is going / can't make it" |
+| `group-session-service` | createSession | Squad parents | "New group session: [date/time]" |
+| `group-session-service` | cancelSession | Registered parents | "[Session] cancelled by coach" |
+| `group-session-service` | register | Coach | "[Athlete] registered for [session]" |
+| `group-session-service` | cancelRegistration | Coach | "[Athlete] dropped out of [session]" |
+| `family-service` | removeGuardian | Removed guardian | "You've been removed from [family]" |
+| `family-service` | updatePermissions | Affected guardian | "Your permissions were updated" |
+| `favourite-service` | addFavourite | (aggregate only) | Coach sees count in analytics, not individual names |
+
+## Acceptance Criteria
+
+- [ ] `api-client.ts` exists and handles all storage operations
+- [ ] All 46 services use `api-client.ts` (no direct AsyncStorage calls)
+- [ ] Payment-related services marked as deferred with `// MVP: Cash only — defer to post-API phase`
+- [ ] Every service exports consistent shape (list, getById, create, update, remove)
+- [ ] No regressions — existing screens still load their data
+- [ ] `notification-trigger.ts` created with all 12 service hooks wired
+
+## Files Changed
+
+| File | Action |
+|------|--------|
+| `services/api-client.ts` | CREATE |
+| `services/notification-trigger.ts` | CREATE |
+| `services/*.ts` (all 46) | MIGRATE to api-client |
+
+## Dependencies
+
+- **Blocks**: Everything. All other micro-sprints assume services use api-client.
+- **Blocked by**: Nothing — this is sprint zero.
