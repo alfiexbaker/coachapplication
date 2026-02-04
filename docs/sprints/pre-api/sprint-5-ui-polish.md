@@ -228,6 +228,28 @@ Add missing settings:
 - **About**: terms of service, privacy policy, help, app version
 - **Delete Account**: confirmation → soft-delete → 30-day grace → permanent. Required for app store compliance.
 
+## Task 10: "Seen" Indicators (Action→Reaction)
+
+Parents never know if the coach actually read their message, saw their RSVP, or reviewed their booking request. Add subtle "seen" indicators:
+
+- **Messages**: ✓ sent, ✓✓ delivered, blue ✓✓ read (WhatsApp pattern)
+- **Session invites**: After parent responds, show "Coach viewed your response" timestamp
+- **RSVP**: After parent RSVPs, show "Coach has seen your response" or "3 parents responded" count
+- **Booking requests** (manual confirm): Show "Coach will review" → "Coach viewed" → "Confirmed/Declined"
+- **Goals**: After coach sets a goal, parent sees "New goal from Coach Marcus" → tapping marks as acknowledged
+
+These are SMALL UI additions but they make the parent feel heard. Nobody likes shouting into a void.
+
+```typescript
+// Simple seen tracking — works locally, server-synced later
+interface SeenStatus {
+  entityType: 'message' | 'invite_response' | 'rsvp' | 'booking_request' | 'goal';
+  entityId: string;
+  seenBy: string;  // userId
+  seenAt: string;
+}
+```
+
 ## Acceptance Criteria
 
 - [ ] Every screen has loading skeleton, error with retry, and empty with CTA
@@ -244,6 +266,20 @@ Add missing settings:
 - [ ] Dynamic text size and reduce motion supported
 - [ ] Settings: notification prefs, privacy, delete account, data export
 - [ ] Terms of service and privacy policy screens exist
+- [ ] Messages show sent/delivered/read indicators
+- [ ] Invite responses show "Coach viewed" status
+- [ ] RSVP shows "Coach has seen" after response
+- [ ] Booking requests show review status progression
+- [ ] Goals show parent acknowledged status
+
+### Action→Reaction: Family Service Gaps (from code audit)
+
+| Service Function | Actor | Notify Who | Message |
+|-----------------|-------|-----------|---------|
+| `family-service.inviteGuardian` | Primary parent | Invited guardian | "You've been invited to join [name]'s family account" |
+| `family-service.acceptInvite` | Guardian | Primary parent | "[Guardian] accepted your family invite" |
+| `family-service.removeGuardian` | Primary parent | Removed guardian | "You've been removed from [name]'s family account" |
+| `family-service.updatePermissions` | Primary parent | Guardian | "Your family permissions were updated" |
 
 ## Files Changed
 

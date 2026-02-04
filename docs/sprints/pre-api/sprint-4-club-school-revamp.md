@@ -327,6 +327,20 @@ After sending, coach sees delivery report:
 - [ ] Bulk messaging to squad or all club parents
 - [ ] Unread badge count on club tab
 
+### Action→Reaction: Club/Academy/Community Service Gaps (from code audit)
+
+| Service Function | Actor | Notify Who | Message |
+|-----------------|-------|-----------|---------|
+| `club-service.removeMember` | Admin | Removed member | "You've been removed from [club name]" |
+| `club-service.undoRemoval` | Admin | Restored member | "You've been re-added to [club name]" |
+| `academy-service.removeMember` | Owner | Removed coach | "You've been removed from [academy]" |
+| `community-service.inviteToGroup` | Admin | Invited parent | "You've been invited to join [group]" |
+| `community-service.promoteMember` | Admin | Promoted member | "You're now an admin of [group]" |
+| `community-service.acceptCarpoolRequest` | Driver | Passenger | "Your ride request was accepted!" |
+| `community-service.declineCarpoolRequest` | Driver | Passenger | "Ride request declined" |
+| `community-service.cancelCarpoolOffer` | Driver | All passengers | "Ride to [event] has been cancelled" |
+| `community-service.cancelCarpoolRequest` | Passenger | Driver | "[Name] cancelled their ride request" |
+
 ## Files Changed
 
 | File | Action |

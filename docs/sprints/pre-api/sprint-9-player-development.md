@@ -432,6 +432,22 @@ Athletes and parents (for children) can set training goals:
 - [ ] Completed goals trigger celebration
 - [ ] Suggested goals based on age group
 
+### Action→Reaction: progress-service Notifications (21 gaps found in code audit)
+
+Every goal/milestone action must notify the other side:
+
+| Service Function | Actor | Notify Who | Message |
+|-----------------|-------|-----------|---------|
+| `createGoal` | Coach | Athlete + parent | "Coach Marcus set a new goal: [name]" |
+| `updateGoal` | Coach | Athlete + parent | "Your goal [name] was updated" |
+| `updateGoalProgress` | Coach | Athlete + parent | "Goal progress updated: [name] now at [x]%" |
+| `addMilestone` | Coach | Athlete + parent | "New milestone added to [goal]: [milestone name]" |
+| `completeMilestone` | Coach/athlete | Other side | "Milestone completed: [name] ✓" |
+| `uncompleteMilestone` | Coach | Athlete | "Milestone [name] was marked incomplete" |
+| `deleteMilestone` | Coach | Athlete | "Milestone removed from [goal]" |
+
+Parent must also be able to **acknowledge** new goals (tap to mark as seen). Coach sees: "Parent viewed goal" or "Not yet seen."
+
 ## Files Changed
 
 | File | Action |

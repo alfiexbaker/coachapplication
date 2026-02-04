@@ -222,6 +222,44 @@ async function flushQueue(): Promise<void> {
 - [ ] Write actions queued when offline and flushed on reconnect
 - [ ] Optimistic UI — user sees immediate feedback even when offline
 
+## Action→Reaction: Notification Pattern for All Services
+
+When migrating services to `api-client.ts`, every write action that affects ANOTHER user must trigger a local notification event. Add a simple event bus:
+
+```typescript
+// services/notification-trigger.ts
+type NotifiableAction = {
+  type: string;       // e.g. 'drill_assigned', 'event_cancelled'
+  recipientRole: 'coach' | 'parent' | 'athlete';
+  title: string;
+  body: string;
+  deepLink?: string;
+};
+
+function triggerNotification(action: NotifiableAction) {
+  // For MVP: write to local notifications store
+  // For API: this becomes a server-side push trigger
+  notificationService.create(action);
+}
+```
+
+Services that MUST call `triggerNotification` after write:
+
+| Service | Action | Notify Who | Message |
+|---------|--------|-----------|---------|
+| `drill-service` | assignDrill | Parent/athlete | "Coach assigned a new drill: [name]" |
+| `drill-service` | completeDrill | Coach | "[Athlete] completed [drill] ✓" |
+| `event-service` | createEvent | Club members | "New event: [name] on [date]" |
+| `event-service` | cancelEvent | RSVPed users | "[Event] has been cancelled" |
+| `event-service` | rsvp | Event organiser | "[Name] is going / can't make it" |
+| `group-session-service` | createSession | Squad parents | "New group session: [date/time]" |
+| `group-session-service` | cancelSession | Registered parents | "[Session] cancelled by coach" |
+| `group-session-service` | register | Coach | "[Athlete] registered for [session]" |
+| `group-session-service` | cancelRegistration | Coach | "[Athlete] dropped out of [session]" |
+| `family-service` | removeGuardian | Removed guardian | "You've been removed from [family]" |
+| `family-service` | updatePermissions | Affected guardian | "Your permissions were updated" |
+| `favourite-service` | addFavourite | (aggregate only) | Coach sees count in analytics, not individual names |
+
 ## Files Changed
 
 | File | Action |

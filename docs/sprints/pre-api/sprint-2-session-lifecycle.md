@@ -313,6 +313,21 @@ When parent declines a session invite, offer optional reason:
 - [ ] Calendar: coach can bulk-sync sessions to phone calendar
 - [ ] Decline: parent can decline invite with optional reason
 - [ ] Decline: coach sees decline reason in invite management
+- [ ] Coach sees invite acceptance rate: "8 sent · 5 accepted · 2 declined · 1 pending"
+- [ ] Athlete journal prompt shown after session completion (separate from parent review)
+
+### Action→Reaction: Group Session Service Gaps (from code audit)
+
+| Service Function | Actor | Notify Who | Message |
+|-----------------|-------|-----------|---------|
+| `group-session-service.register` | Parent | Coach | "[Athlete] registered for [session]" |
+| `group-session-service.cancelRegistration` | Parent | Coach | "[Athlete] dropped out of [session]" |
+| `group-session-service.createSession` | Coach | Squad parents | "New group session: [date] at [location]" |
+| `group-session-service.cancelSession` | Coach | All registered parents | "[Session] has been cancelled" |
+| `event-service.createEvent` | Coach | Club members | "New event: [name] on [date]" |
+| `event-service.cancelEvent` | Coach | All RSVPed users | "[Event] has been cancelled" |
+| `event-service.rsvp` | Parent | Event organiser (coach) | "[Name] is going / can't make it" |
+| `event-service.checkIn` | Coach | Parent | "Jake has been checked in to [event]" |
 
 ## Files Changed
 

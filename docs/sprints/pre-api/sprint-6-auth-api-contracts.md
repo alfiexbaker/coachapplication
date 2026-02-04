@@ -249,6 +249,23 @@ async function scheduleLocalNotification(params: {
 | `coach_on_way` | Coach taps "I'm on my way" | "Coach Marcus is on the way!" (→ parent) |
 | `goal_completed` | Goal marked complete | "Jake completed: Master keepy-ups!" (→ parent + athlete) |
 | `announcement_critical` | Admin posts critical announcement | "Training CANCELLED this Saturday" (→ all members) |
+| `group_session_created` | Coach creates group session | "New: U12 Training Tue 6pm" (→ squad parents) |
+| `group_session_cancelled` | Coach cancels group session | "U12 Training cancelled" (→ registered parents) |
+| `registration_received` | Parent registers for group session | "[Athlete] registered" (→ coach) |
+| `registration_cancelled` | Parent drops out of session | "[Athlete] dropped out" (→ coach) |
+| `event_created` | Coach creates club event | "New event: [name]" (→ club members) |
+| `event_cancelled` | Coach cancels event | "[Event] cancelled" (→ RSVPed members) |
+| `event_rsvp` | Parent RSVPs to event | "[Name] is going" (→ organiser) |
+| `event_checkin` | Coach checks in athlete | "Jake checked in" (→ parent) |
+| `member_removed` | Admin removes member | "You've been removed from [club]" (→ member) |
+| `member_promoted` | Admin promotes member | "You're now admin of [group]" (→ member) |
+| `carpool_accepted` | Driver accepts request | "Ride confirmed!" (→ passenger) |
+| `carpool_cancelled` | Driver cancels offer | "Ride cancelled" (→ all passengers) |
+| `guardian_invited` | Parent invites guardian | "Family invite from [name]" (→ guardian) |
+| `guardian_removed` | Parent removes guardian | "Removed from family" (→ guardian) |
+| `goal_created` | Coach creates goal | "New goal: [name]" (→ athlete + parent) |
+| `goal_progress` | Coach updates progress | "Goal [name] now at [x]%" (→ athlete + parent) |
+| `milestone_completed` | Coach/athlete completes | "Milestone done: [name]" (→ other side) |
 
 **Permission flow**:
 ```
@@ -343,6 +360,61 @@ Notifications.addNotificationResponseReceivedListener(response => {
 });
 ```
 
+## Task 10: Type Fixes for Two-Sided Interactions
+
+**File**: `constants/app-types.ts` + `constants/types.ts`
+
+These types are missing fields needed for proper Action→Reaction:
+
+```typescript
+// BookingStatus — add manual confirmation state
+type BookingStatus = 'PENDING' | 'AWAITING_CONFIRMATION' | 'CONFIRMED' | 'AWAITING_COMPLETION' | 'COMPLETED' | 'CANCELLED';
+
+// Booking — add confirmation tracking
+interface Booking {
+  // ... existing fields ...
+  confirmationMode: 'auto' | 'manual';  // NEW — coach preference
+  confirmedAt?: string;                   // NEW — when coach confirmed (manual mode)
+  declinedReason?: string;                // NEW — if coach declines booking request
+}
+
+// SessionInvite — add decline reason
+interface SessionInvite {
+  // ... existing fields ...
+  declineReason?: 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+  declineNote?: string;
+}
+
+// Goal — add verification from both sides
+interface Goal {
+  // ... existing fields ...
+  coachVerified?: boolean;       // NEW — coach confirms progress
+  coachVerifiedAt?: string;
+  parentAcknowledged?: boolean;  // NEW — parent saw the goal
+  parentAcknowledgedAt?: string;
+}
+
+// WaitlistEntry — add user response when notified
+interface WaitlistEntry {
+  // ... existing fields ...
+  notifiedAt?: string;
+  userResponse?: 'accepted' | 'declined' | 'expired';
+  userRespondedAt?: string;
+  expiresAt?: string;  // 24h to respond before spot goes to next person
+}
+
+// ChatMessage — per-recipient read tracking
+interface MessageReadReceipt {
+  recipientId: string;
+  readAt: string;
+}
+
+interface ChatMessage {
+  // ... existing fields ...
+  readReceipts?: MessageReadReceipt[];  // NEW — replaces simple 'read' boolean
+}
+```
+
 ## Acceptance Criteria
 
 - [ ] Auth service supports login, register, logout, forgot password, token refresh
@@ -354,12 +426,17 @@ Notifications.addNotificationResponseReceivedListener(response => {
 - [ ] Typed error classes used across all services
 - [ ] Login state persists across app restarts
 - [ ] Push notification permission request flow
-- [ ] Local notifications work for all types (reminders, bookings, badges)
+- [ ] Local notifications work for all 26 notification types
 - [ ] In-app notification centre with bell icon + badge count
 - [ ] Tap notification → navigate to relevant screen
 - [ ] Notification preferences saved (per-type toggles from Sprint 5)
 - [ ] Deep links work for all shareable/notifiable content
 - [ ] Notification tap opens correct screen via deep link
+- [ ] BookingStatus includes AWAITING_CONFIRMATION for manual confirm
+- [ ] SessionInvite has declineReason + declineNote fields
+- [ ] Goal has coachVerified + parentAcknowledged fields
+- [ ] WaitlistEntry has user response tracking with 24h expiry
+- [ ] ChatMessage uses per-recipient read receipts
 
 ## Files Changed
 
