@@ -130,6 +130,25 @@ When a session is marked COMPLETED, show a card on the parent home:
 Tapping "Rate Now" opens the existing `rate-coach.tsx` flow.
 Tapping "Later" dismisses for 24 hours, then re-prompts once.
 
+**→ ATHLETE REACTION (Action→Reaction — for teens/adults booking for themselves):**
+When session is completed, athlete sees DIFFERENT prompt than parent:
+```
+┌─────────────────────────────────────┐
+│ How was your session?               │
+│ with Coach Marcus — Today 4pm       │
+│                                     │
+│ How do you feel?                    │
+│ 😊 Great  🙂 Good  😐 OK          │
+│ 😴 Tired  😤 Frustrated            │
+│                                     │
+│ Energy level: ⭐⭐⭐⭐☆             │
+│                                     │
+│ [Write Journal Entry]  [Rate Coach] │
+│ [Later]                             │
+└─────────────────────────────────────┘
+```
+Links to Sprint 9 athlete journal. Dual prompt: journal (personal) + coach review (public).
+
 ## Task 5: Attendance Display for Parents
 
 **File**: `app/booking/[id].tsx`

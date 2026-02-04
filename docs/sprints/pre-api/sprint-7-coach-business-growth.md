@@ -245,7 +245,38 @@ On the earnings/analytics screen, show forward-looking projections:
 
 Based on confirmed + pending bookings + historical weekly average.
 
-## Task 6: Trial Conversion Tracking
+## Task 6: Booking Confirmation Option (Action→Reaction)
+
+**File**: Add to `services/booking-service.ts` + `components/coach/booking-request.tsx`
+
+Coach can choose auto-confirm OR manual confirm for new bookings:
+
+**Auto-confirm (default)**: Parent books → booking confirmed instantly → coach sees it in schedule.
+
+**Manual confirm**: Parent books → booking goes to PENDING → coach gets notification:
+```
+┌─────────────────────────────────────┐
+│ New booking request                 │
+│                                     │
+│ Sarah M. wants to book Jake for     │
+│ 1:1 Training — Tue 4 Feb 4pm      │
+│ Hackney Downs Park · £40           │
+│                                     │
+│ [✅ Confirm]  [Suggest Alternative] │
+│ [Decline]                           │
+└─────────────────────────────────────┘
+```
+
+**→ PARENT REACTION:**
+- If manual confirm: Parent sees "Booking requested — waiting for coach to confirm"
+- When coach confirms: "Booking confirmed! Tue 4pm with Coach Marcus" + [Add to Calendar]
+- When coach suggests alternative: opens counter-offer flow
+- When coach declines: "Coach Marcus can't do this time. [See Other Coaches] [Try Another Time]"
+- If no response in 24h: auto-remind coach, parent sees "Still waiting for confirmation"
+
+Setting lives in coach profile settings (Sprint 3 settings hub).
+
+## Task 6b: Trial Conversion Tracking
 
 **File**: Add to `services/analytics-service.ts`
 
@@ -284,7 +315,59 @@ Share button visible on coach profile (for parents sharing with friends):
 - Open Graph meta ensures preview card on WhatsApp/iMessage/etc.
 - Also accessible from three-dot menu on coach card in search results
 
-## Task 8: Similar Coaches Section
+## Task 8: Review Response System (Action→Reaction)
+
+**File**: `components/coach/review-response.tsx`
+
+Coach can respond to any review publicly:
+```
+┌─────────────────────────────────────┐
+│ ⭐⭐⭐⭐⭐ "Brilliant coach"       │
+│ Sarah M. · 2 weeks ago              │
+│ "My son's confidence has improved..." │
+│                                      │
+│ Your reply:                          │
+│ "Thanks Sarah! Jake worked really   │
+│  hard — looking forward to Tuesday" │
+│                                      │
+│ [Post Reply]                         │
+└─────────────────────────────────────┘
+```
+
+- One reply per review (no back-and-forth)
+- Reply visible on public profile
+- For 1-2 star reviews: coach gets private prompt "We noticed a low review. Is there anything you'd like us to know?" (support channel, not visible to parent)
+- **→ PARENT REACTION:** Parent gets notification "Coach Marcus replied to your review" → deep link to review
+
+## Task 8b: Favourite Analytics for Coaches
+
+**File**: Add to `components/coach/earnings-projection.tsx`
+
+Coach sees anonymous favourite data in analytics:
+```
+┌─────────────────────────────────────┐
+│ Profile Performance                 │
+│                                     │
+│ 👁️ 47 profile views this month     │
+│ ❤️ 12 parents saved your profile   │
+│ 📞 8 enquiries (messages)          │
+│ 📅 5 bookings from discovery       │
+│                                     │
+│ Conversion: 10.6% view → booking   │
+└─────────────────────────────────────┘
+```
+
+Anonymous counts only (no names). Helps coaches understand their visibility.
+
+## Task 8c: Price Change Notification (Action→Reaction)
+
+When coach updates their hourly rate:
+- Parents with FUTURE bookings at old rate: notification "Coach Marcus has updated their rate to £50/hr. Your existing bookings remain at £40."
+- Existing confirmed bookings are NOT repriced (honour the original rate)
+- New bookings use new rate
+- Coach warned before saving: "You have 3 upcoming bookings at £40/hr. These won't change. New bookings will be £50/hr."
+
+## Task 9: Similar Coaches Section
 
 **File**: `components/coach/similar-coaches.tsx`
 

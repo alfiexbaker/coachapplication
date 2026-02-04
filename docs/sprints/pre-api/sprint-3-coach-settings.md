@@ -170,10 +170,40 @@ The policy editor (Task 3) creates the rules. This task implements the actual ca
 - Booking → `CANCELLED` with `cancelledBy`, `cancelReason`, `cancelledAt`
 - "Would you like to reschedule?" CTA
 
+**→ COACH REACTION when parent cancels (Action→Reaction):**
+- Coach gets notification: "Sarah M. cancelled Jake's session (Tue 4pm). Reason: child is ill."
+- Coach schedule shows freed slot highlighted: "Slot opened up — Tue 4:00pm"
+- If waitlist has entries: "1 person on waitlist for this slot. [Offer to Waitlist]"
+- One-tap offer sends notification to waitlisted parent: "A spot opened up for Tue 4pm with Coach Marcus. [Book Now]"
+
 **Coach cancels a session**:
 - Parent notified with "Book another time?" CTA
 - "Suggest alternative" links to counter-offer flow
 - Reason required (unable to attend / weather / venue / emergency / other)
+
+**Coach reschedules a session** (Action→Reaction):
+- Coach proposes new date/time from booking detail
+- Parent receives notification: "Coach Marcus wants to move Jake's session from Tue 4pm to Wed 5pm"
+- Parent sees reschedule request screen:
+```
+┌─────────────────────────────────────┐
+│ Reschedule Request                  │
+│                                     │
+│ Coach Marcus wants to move:         │
+│ Original: Tue 4 Feb · 4:00pm      │
+│ Proposed: Wed 5 Feb · 5:00pm      │
+│ Same location: Hackney Downs       │
+│                                     │
+│ Reason: "Venue double-booked"      │
+│                                     │
+│ [Accept New Time]                   │
+│ [Suggest Different Time]            │
+│ [Cancel Booking]                    │
+└─────────────────────────────────────┘
+```
+- NOT auto-accepted — parent must confirm
+- "Suggest Different Time" opens counter-offer flow
+- Coach notified of parent's response
 
 ## Task 8: No-Show Handling
 
@@ -182,6 +212,13 @@ Added to session completion flow (Sprint 2). When coach marks NO_SHOW:
 - Show policy reminder to coach
 - Option to send automated message to parent about policy
 - Track no-show count per family (3+ triggers warning for coach)
+
+**→ PARENT REACTION (Action→Reaction):**
+- Parent receives notification: "Jake was marked as no-show for today's session with Coach Marcus."
+- If policy applies: "Coach Marcus's cancellation policy: full session fee (£40 cash) may still apply."
+- Parent can dispute: "This isn't right" → opens message thread with coach
+- In booking detail, no-show status visible with reason
+- If 3+ no-shows: parent sees "You have 3 missed sessions. Coaches may decline future bookings."
 
 ## Task 9: Blocked Dates (Coach Holidays)
 
@@ -194,6 +231,15 @@ Add to coaching settings hub:
 - Existing bookings in blocked range: warn coach with cancel/keep options
 - Upcoming blocked dates shown on coach dashboard
 - "Block this week" quick action
+
+**→ PARENT REACTION (Action→Reaction):**
+
+When coach blocks dates that overlap existing bookings:
+- **Individual bookings**: Parent notified "Coach Marcus is unavailable on [date]. Your session needs to be rescheduled." + auto-suggest 3 alternative slots from coach's next available
+- **Recurring squad sessions**: ALL squad parents notified "U12 Training cancelled for [date range] — Coach is away. Training resumes [next date]."
+- Notification includes: [Reschedule] [Cancel Booking] CTAs
+- Parent booking screen shows: "⚠️ Coach unavailable — tap to reschedule"
+- Coach MUST acknowledge affected bookings before block is saved (can't silently nuke bookings)
 
 ## Task 10: Smart Slot Suggestions
 

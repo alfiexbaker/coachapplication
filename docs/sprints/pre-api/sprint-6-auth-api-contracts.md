@@ -237,6 +237,18 @@ async function scheduleLocalNotification(params: {
 | `new_message` | Message received | "Sarah M.: Can we reschedule?" |
 | `badge_earned` | Badge awarded | "Jake earned First Touch Master!" |
 | `milestone` | Milestone reached | "You've completed 50 sessions!" |
+| `video_shared` | Coach shares video/annotation | "Coach Marcus shared a video from Jake's session" |
+| `drill_completed` | Athlete completes drill | "Jake completed Cone Weave Dribbling ✓" (→ coach) |
+| `roster_added` | Coach adds athlete to roster | "Jake has been added to Coach Marcus's roster" |
+| `no_show_marked` | Coach marks no-show | "Jake was marked as no-show" (→ parent) |
+| `booking_request` | Parent books (manual confirm mode) | "New booking request from Sarah M." (→ coach) |
+| `reschedule_request` | Coach proposes reschedule | "Coach Marcus wants to move your session" (→ parent) |
+| `price_change` | Coach updates rate | "Rate updated. Your existing bookings unaffected." (→ parent) |
+| `slot_freed` | Booking cancelled, waitlist exists | "A spot opened up for Tue 4pm" (→ waitlisted parent) |
+| `review_reply` | Coach replies to review | "Coach Marcus replied to your review" (→ parent) |
+| `coach_on_way` | Coach taps "I'm on my way" | "Coach Marcus is on the way!" (→ parent) |
+| `goal_completed` | Goal marked complete | "Jake completed: Master keepy-ups!" (→ parent + athlete) |
+| `announcement_critical` | Admin posts critical announcement | "Training CANCELLED this Saturday" (→ all members) |
 
 **Permission flow**:
 ```

@@ -319,6 +319,21 @@ Generates a shareable image/PDF summarising a child's progress:
 - Exportable as image or PDF
 - Parents share with family — this is organic marketing
 
+**→ SHARED REPORT REACTION (Action→Reaction):**
+- When parent shares progress report, the generated image includes:
+  - All the progress data (radar, badges, goals)
+  - Clubroom branding footer: "Track your child's football with Clubroom"
+  - App store link / QR code
+  - This is FREE organic marketing — grandparents, aunties, other parents all see it
+- Coach also gets notification: "Sarah M. shared Jake's progress report" (positive signal)
+
+**→ DRILL COMPLETION (Action→Reaction):**
+When athlete/child marks a drill as complete:
+- Coach gets notification: "Jake completed Cone Weave Dribbling ✓"
+- Coach can respond with one-tap encouragement: [👏 Great work!] [💪 Keep going!] [⭐ Brilliant!]
+- Encouragement shows as notification to athlete/parent
+- Coach drill dashboard shows completion rates: "12/18 completed Triangle Passing this week"
+
 ## Task 8: Athlete Session Journal
 
 **File**: `app/athlete/journal.tsx` + `components/development/session-journal.tsx`
@@ -401,6 +416,7 @@ Athletes and parents (for children) can set training goals:
 - [ ] Skill radar chart shows 6-axis spider chart with current vs previous overlay
 - [ ] Progress timeline shows chronological journey (sessions, badges, goals, skill changes)
 - [ ] Post-session recap generates beautiful shareable card
+- [ ] Drill completion → coach notified: "Jake completed [drill]" with option to send encouragement
 - [ ] 30+ session plan templates categorised by age group and focus
 - [ ] Drill library with 30+ drills, filterable by category/difficulty/equipment
 - [ ] Coaches can assign drills to players from library

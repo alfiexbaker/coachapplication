@@ -186,6 +186,16 @@ The card that represents a coach in search results:
 - Trial badge if available
 - Specialties as tags
 
+## Task 4b: Next Available Slot — Always Fresh (Action→Reaction)
+
+Coach cards show "Next: Tue 4 Feb 4pm" — this MUST stay current:
+- When coach changes availability → discovery service recalculates next available for that coach
+- When a slot gets booked → next available moves to the next open slot
+- When a booking is cancelled → freed slot may become the new "next available"
+- Stale data ruins trust — if parent sees "Next: Today 4pm" and it's already booked, that's a broken promise
+- Implementation: `discover-service.ts` subscribes to availability/booking change events and updates cached "next available" per coach
+- Fallback: "Available this week" if exact slot can't be computed
+
 ## Task 5: "Featured" and "Recommended" Logic
 
 **File**: `services/discover-service.ts`

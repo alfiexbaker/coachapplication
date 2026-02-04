@@ -285,6 +285,31 @@ Coach/admin sends to all parents in a squad or whole club:
 - Preview before send
 - Delivery confirmation
 
+**→ DELIVERY STATUS (Action→Reaction):**
+After sending, coach sees delivery report:
+```
+┌─────────────────────────────────────┐
+│ Message sent to 14 parents          │
+│                                     │
+│ ✓✓ Read: 12                        │
+│ ✓  Delivered: 2 (not yet opened)   │
+│                                     │
+│ Sarah M.     ✓✓ Read 2m ago       │
+│ Tom R.       ✓✓ Read 5m ago       │
+│ Lisa K.      ✓  Delivered          │
+│ ...                                 │
+└─────────────────────────────────────┘
+```
+- ✓ = delivered to device, ✓✓ = message opened
+- Coach can resend to undelivered after 24h
+
+## Task 10: Critical Announcement Fallback
+
+**→ PARENT REACTION for announcements when push is OFF (Action→Reaction):**
+- Critical announcements (cancellations, venue changes, safety) show as **persistent banner** on club screen even if push notifications are disabled
+- Banner dismissible only after reading full announcement
+- "Training CANCELLED this Saturday" can't be missed — it's the first thing you see
+
 ## Acceptance Criteria
 
 - [ ] Club admins can set logo, cover photo, tagline, 2 brand colours
