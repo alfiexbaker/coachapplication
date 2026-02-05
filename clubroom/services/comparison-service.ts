@@ -17,8 +17,7 @@ import type {
 } from '@/constants/types';
 import { storageService } from './storage-service';
 import { discoverService } from './discover-service';
-
-const STORAGE_KEY = 'clubroom.comparison.selectedCoaches';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 const MAX_COACHES = 3;
 
 /**
@@ -77,7 +76,7 @@ class ComparisonService {
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
-    this.selectedCoachIds = await storageService.getItem<string[]>(STORAGE_KEY, []);
+    this.selectedCoachIds = await storageService.getItem<string[]>(STORAGE_KEYS.COMPARISON_SELECTED_COACHES, []);
     this.initialized = true;
   }
 
@@ -272,7 +271,7 @@ class ComparisonService {
    * Persist current state to storage
    */
   private async persistState(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY, this.selectedCoachIds);
+    await storageService.setItem(STORAGE_KEYS.COMPARISON_SELECTED_COACHES, this.selectedCoachIds);
   }
 
   /**
@@ -281,7 +280,7 @@ class ComparisonService {
   async reset(): Promise<void> {
     this.selectedCoachIds = [];
     this.initialized = false;
-    await storageService.removeItem(STORAGE_KEY);
+    await storageService.removeItem(STORAGE_KEYS.COMPARISON_SELECTED_COACHES);
   }
 }
 

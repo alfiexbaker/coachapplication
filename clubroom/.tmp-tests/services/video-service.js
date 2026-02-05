@@ -23,16 +23,14 @@
  * - GET /api/videos/:id/annotations/export - Export annotations
  * - PATCH /api/videos/:id/share - Update sharing
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.videoService = exports.ANNOTATION_TYPE_CONFIG = void 0;
-const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
+const api_client_1 = require("./api-client");
 const config_1 = require("@/constants/config");
+const result_1 = require("@/types/result");
 const logger_1 = require("@/utils/logger");
+const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('VideoService');
-const STORAGE_KEY = 'session_videos';
 const USE_MOCK = config_1.api.useMock;
 /**
  * Annotation type configuration with colors and labels
@@ -139,9 +137,9 @@ const MOCK_VIDEOS = [
 let videosCache = [...MOCK_VIDEOS];
 async function loadFromStorage() {
     try {
-        const stored = await async_storage_1.default.getItem(STORAGE_KEY);
+        const stored = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SESSION_VIDEOS, null);
         if (stored)
-            return JSON.parse(stored);
+            return stored;
     }
     catch (error) {
         logger.error('Failed to load from storage', error);
@@ -150,7 +148,7 @@ async function loadFromStorage() {
 }
 async function saveToStorage(videos) {
     try {
-        await async_storage_1.default.setItem(STORAGE_KEY, JSON.stringify(videos));
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SESSION_VIDEOS, videos);
     }
     catch (error) {
         logger.error('Failed to save to storage', error);
@@ -317,16 +315,16 @@ exports.videoService = {
                 video.visibility = 'SHARED';
                 video.sharedWith = [...new Set([...video.sharedWith, ...parentIds])];
                 await saveToStorage(videosCache);
-                return video;
+                return (0, result_1.ok)(video);
             }
-            throw new Error('Video not found');
+            return (0, result_1.err)((0, result_1.notFound)('Video', videoId));
         }
         const response = await fetch(`/api/videos/${videoId}/share`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ parentIds }),
         });
-        return response.json();
+        return (0, result_1.ok)(await response.json());
     },
     /**
      * Unshare video (make private)
@@ -339,16 +337,16 @@ exports.videoService = {
                 video.visibility = 'PRIVATE';
                 video.sharedWith = [];
                 await saveToStorage(videosCache);
-                return video;
+                return (0, result_1.ok)(video);
             }
-            throw new Error('Video not found');
+            return (0, result_1.err)((0, result_1.notFound)('Video', videoId));
         }
         const response = await fetch(`/api/videos/${videoId}/share`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ visibility: 'PRIVATE' }),
         });
-        return response.json();
+        return (0, result_1.ok)(await response.json());
     },
     /**
      * Delete video
@@ -372,16 +370,16 @@ exports.videoService = {
             if (video) {
                 Object.assign(video, updates);
                 await saveToStorage(videosCache);
-                return video;
+                return (0, result_1.ok)(video);
             }
-            throw new Error('Video not found');
+            return (0, result_1.err)((0, result_1.notFound)('Video', videoId));
         }
         const response = await fetch(`/api/videos/${videoId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
         });
-        return response.json();
+        return (0, result_1.ok)(await response.json());
     },
     /**
      * Get video statistics for a coach

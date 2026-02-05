@@ -54,13 +54,7 @@ export type UpsertTrialInput = Pick<
   'enabled' | 'trialPrice' | 'normalPrice' | 'durationMinutes' | 'limitPerFamily' | 'description'
 >;
 
-// ============================================================================
-// Storage Keys
-// ============================================================================
-
-const TRIAL_OFFERINGS_KEY = 'clubroom.trial_offerings';
-const TRIAL_USAGES_KEY = 'clubroom.trial_usages';
-const TRIAL_CONVERSIONS_KEY = 'clubroom.trial_conversions';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 // ============================================================================
 // Service
@@ -76,7 +70,7 @@ class TrialService {
    */
   async getTrialOffering(coachId: string): Promise<TrialOffering | null> {
     logger.info('Getting trial offering', { coachId });
-    const offerings = await apiClient.get<TrialOffering[]>(TRIAL_OFFERINGS_KEY, []);
+    const offerings = await apiClient.get<TrialOffering[]>(STORAGE_KEYS.TRIAL_OFFERINGS, []);
     return offerings.find((o) => o.coachId === coachId) ?? null;
   }
 
@@ -86,7 +80,7 @@ class TrialService {
   async upsertTrialOffering(coachId: string, input: UpsertTrialInput): Promise<TrialOffering> {
     logger.info('Upserting trial offering', { coachId, enabled: input.enabled });
 
-    const offerings = await apiClient.get<TrialOffering[]>(TRIAL_OFFERINGS_KEY, []);
+    const offerings = await apiClient.get<TrialOffering[]>(STORAGE_KEYS.TRIAL_OFFERINGS, []);
     const existingIndex = offerings.findIndex((o) => o.coachId === coachId);
     const now = new Date().toISOString();
 
@@ -112,7 +106,7 @@ class TrialService {
       offerings.push(offering);
     }
 
-    await apiClient.set(TRIAL_OFFERINGS_KEY, offerings);
+    await apiClient.set(STORAGE_KEYS.TRIAL_OFFERINGS, offerings);
     logger.success('Trial offering saved', { id: offering.id });
     return offering;
   }
@@ -122,9 +116,9 @@ class TrialService {
    */
   async deleteTrialOffering(coachId: string): Promise<void> {
     logger.info('Deleting trial offering', { coachId });
-    const offerings = await apiClient.get<TrialOffering[]>(TRIAL_OFFERINGS_KEY, []);
+    const offerings = await apiClient.get<TrialOffering[]>(STORAGE_KEYS.TRIAL_OFFERINGS, []);
     const filtered = offerings.filter((o) => o.coachId !== coachId);
-    await apiClient.set(TRIAL_OFFERINGS_KEY, filtered);
+    await apiClient.set(STORAGE_KEYS.TRIAL_OFFERINGS, filtered);
     logger.success('Trial offering deleted', { coachId });
   }
 
@@ -133,7 +127,7 @@ class TrialService {
    */
   async getActiveTrialOfferings(): Promise<TrialOffering[]> {
     logger.info('Getting active trial offerings');
-    const offerings = await apiClient.get<TrialOffering[]>(TRIAL_OFFERINGS_KEY, []);
+    const offerings = await apiClient.get<TrialOffering[]>(STORAGE_KEYS.TRIAL_OFFERINGS, []);
     return offerings.filter((o) => o.enabled);
   }
 
@@ -161,9 +155,9 @@ class TrialService {
       usedAt: new Date().toISOString(),
     };
 
-    const usages = await apiClient.get<TrialUsage[]>(TRIAL_USAGES_KEY, []);
+    const usages = await apiClient.get<TrialUsage[]>(STORAGE_KEYS.TRIAL_USAGES, []);
     usages.push(usage);
-    await apiClient.set(TRIAL_USAGES_KEY, usages);
+    await apiClient.set(STORAGE_KEYS.TRIAL_USAGES, usages);
 
     logger.success('Trial usage recorded', { id: usage.id });
     return usage;
@@ -175,7 +169,7 @@ class TrialService {
    */
   async getTrialUsageCount(coachId: string, parentId: string): Promise<number> {
     logger.info('Checking trial usage', { coachId, parentId });
-    const usages = await apiClient.get<TrialUsage[]>(TRIAL_USAGES_KEY, []);
+    const usages = await apiClient.get<TrialUsage[]>(STORAGE_KEYS.TRIAL_USAGES, []);
     return usages.filter(
       (u) => u.coachId === coachId && u.parentId === parentId,
     ).length;
@@ -199,7 +193,7 @@ class TrialService {
    * Get all trial usages for a coach (for analytics).
    */
   async getCoachTrialUsages(coachId: string): Promise<TrialUsage[]> {
-    const usages = await apiClient.get<TrialUsage[]>(TRIAL_USAGES_KEY, []);
+    const usages = await apiClient.get<TrialUsage[]>(STORAGE_KEYS.TRIAL_USAGES, []);
     return usages.filter((u) => u.coachId === coachId);
   }
 
@@ -227,9 +221,9 @@ class TrialService {
       convertedAt: new Date().toISOString(),
     };
 
-    const conversions = await apiClient.get<TrialConversion[]>(TRIAL_CONVERSIONS_KEY, []);
+    const conversions = await apiClient.get<TrialConversion[]>(STORAGE_KEYS.TRIAL_CONVERSIONS, []);
     conversions.push(conversion);
-    await apiClient.set(TRIAL_CONVERSIONS_KEY, conversions);
+    await apiClient.set(STORAGE_KEYS.TRIAL_CONVERSIONS, conversions);
 
     logger.success('Trial conversion recorded', { id: conversion.id });
     return conversion;
@@ -239,7 +233,7 @@ class TrialService {
    * Get conversion data for a coach.
    */
   async getCoachConversions(coachId: string): Promise<TrialConversion[]> {
-    const conversions = await apiClient.get<TrialConversion[]>(TRIAL_CONVERSIONS_KEY, []);
+    const conversions = await apiClient.get<TrialConversion[]>(STORAGE_KEYS.TRIAL_CONVERSIONS, []);
     return conversions.filter((c) => c.coachId === coachId);
   }
 
@@ -261,7 +255,7 @@ class TrialService {
    * Check if a specific trial booking has been converted to a regular booking.
    */
   async isTrialConverted(trialBookingId: string): Promise<boolean> {
-    const conversions = await apiClient.get<TrialConversion[]>(TRIAL_CONVERSIONS_KEY, []);
+    const conversions = await apiClient.get<TrialConversion[]>(STORAGE_KEYS.TRIAL_CONVERSIONS, []);
     return conversions.some((c) => c.trialBookingId === trialBookingId);
   }
 }

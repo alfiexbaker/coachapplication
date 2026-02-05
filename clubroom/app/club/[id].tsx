@@ -390,7 +390,7 @@ export default function ClubDetailScreen() {
 
     setIsRemovingMember(true);
     try {
-      const removalRecord = await clubService.removeMember(
+      const result = await clubService.removeMember(
         id,
         selectedMemberForRemoval.userId,
         reason,
@@ -398,13 +398,26 @@ export default function ClubDetailScreen() {
         { customReason }
       );
 
+      if (!result.success) {
+        logger.error('Failed to remove member', result.error);
+        showToast('Failed to remove member', 'error');
+        return;
+      }
+
+      const removalRecord = result.data;
+
       setShowMemberRemovalModal(false);
       setSelectedMemberForRemoval(null);
       await loadMembers();
 
       showUndoToast(`${removalRecord.userName} removed from club`, async () => {
         try {
-          await clubService.undoRemoval(id, removalRecord.id);
+          const undoResult = await clubService.undoRemoval(id, removalRecord.id);
+          if (!undoResult.success) {
+            logger.error('Failed to undo removal', undoResult.error);
+            showToast('Failed to restore member', 'error');
+            return;
+          }
           await loadMembers();
           showToast('Member restored', 'success');
         } catch (error) {

@@ -2,10 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.safetyService = void 0;
 const storage_service_1 = require("./storage-service");
-// Cache for offline access - stores most recently accessed emergency info
-const CACHE_KEY = 'clubroom.emergency_cache';
+const storage_keys_1 = require("@/constants/storage-keys");
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-const STORAGE_KEY = 'clubroom.emergency_info';
 // Default empty medical info
 const createDefaultMedicalInfo = () => ({
     conditions: [],
@@ -111,14 +109,14 @@ class SafetyService {
      * Get emergency info for an athlete
      */
     async getEmergencyInfo(athleteId) {
-        const allInfo = await storage_service_1.storageService.getItem(STORAGE_KEY, MOCK_EMERGENCY_INFO);
+        const allInfo = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO);
         return allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
     }
     /**
      * Update emergency info for an athlete
      */
     async updateEmergencyInfo(athleteId, update) {
-        const allInfo = await storage_service_1.storageService.getItem(STORAGE_KEY, MOCK_EMERGENCY_INFO);
+        const allInfo = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO);
         const currentInfo = allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
         const updatedInfo = {
             ...currentInfo,
@@ -127,7 +125,7 @@ class SafetyService {
             updatedAt: new Date().toISOString(),
         };
         allInfo[athleteId] = updatedInfo;
-        await storage_service_1.storageService.setItem(STORAGE_KEY, allInfo);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.EMERGENCY_INFO, allInfo);
         return updatedInfo;
     }
     /**
@@ -452,19 +450,19 @@ class SafetyService {
      * Cache emergency info for offline access
      */
     async cacheEmergencyInfo(athleteId, info, athleteName) {
-        const cache = await storage_service_1.storageService.getItem(CACHE_KEY, {});
+        const cache = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.EMERGENCY_CACHE, {});
         cache[athleteId] = {
             data: info,
             cachedAt: Date.now(),
             athleteName,
         };
-        await storage_service_1.storageService.setItem(CACHE_KEY, cache);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.EMERGENCY_CACHE, cache);
     }
     /**
      * Get cached emergency info
      */
     async getCachedEmergencyInfo(athleteId) {
-        const cache = await storage_service_1.storageService.getItem(CACHE_KEY, {});
+        const cache = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.EMERGENCY_CACHE, {});
         const cached = cache[athleteId];
         if (!cached) {
             return null;
@@ -495,13 +493,13 @@ class SafetyService {
      * Clear cached emergency info
      */
     async clearCache() {
-        await storage_service_1.storageService.removeItem(CACHE_KEY);
+        await storage_service_1.storageService.removeItem(storage_keys_1.STORAGE_KEYS.EMERGENCY_CACHE);
     }
     /**
      * Reset to mock data (for testing)
      */
     async resetToMockData() {
-        await storage_service_1.storageService.setItem(STORAGE_KEY, MOCK_EMERGENCY_INFO);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO);
         await this.clearCache();
     }
 }

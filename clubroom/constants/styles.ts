@@ -378,7 +378,7 @@ export const InputStyles = StyleSheet.create({
 
   // Multiline input
   multiline: {
-    height: 'auto' as any,
+    height: 'auto' as const,
     minHeight: 100,
     paddingVertical: Spacing.sm,
     textAlignVertical: 'top',

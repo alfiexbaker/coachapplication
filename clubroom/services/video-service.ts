@@ -23,14 +23,16 @@
  * - PATCH /api/videos/:id/share - Update sharing
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType, AnnotatedVideo, AnnotationExport } from '@/constants/types';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('VideoService');
 
-const STORAGE_KEY = 'session_videos';
 const USE_MOCK = api.useMock;
 
 /**
@@ -144,8 +146,8 @@ let videosCache: SessionVideo[] = [...MOCK_VIDEOS];
 
 async function loadFromStorage(): Promise<SessionVideo[]> {
   try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<SessionVideo[] | null>(STORAGE_KEYS.SESSION_VIDEOS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load from storage', error);
   }
@@ -154,7 +156,7 @@ async function loadFromStorage(): Promise<SessionVideo[]> {
 
 async function saveToStorage(videos: SessionVideo[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(videos));
+    await apiClient.set(STORAGE_KEYS.SESSION_VIDEOS, videos);
   } catch (error) {
     logger.error('Failed to save to storage', error);
   }
@@ -368,7 +370,7 @@ export const videoService = {
   /**
    * Share video with parents
    */
-  async shareVideo(videoId: string, parentIds: string[]): Promise<SessionVideo> {
+  async shareVideo(videoId: string, parentIds: string[]): Promise<Result<SessionVideo, ServiceError>> {
     if (USE_MOCK) {
       videosCache = await loadFromStorage();
       const video = videosCache.find((v) => v.id === videoId);
@@ -376,9 +378,9 @@ export const videoService = {
         video.visibility = 'SHARED';
         video.sharedWith = [...new Set([...video.sharedWith, ...parentIds])];
         await saveToStorage(videosCache);
-        return video;
+        return ok(video);
       }
-      throw new Error('Video not found');
+      return err(notFound('Video', videoId));
     }
 
     const response = await fetch(`/api/videos/${videoId}/share`, {
@@ -386,13 +388,13 @@ export const videoService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ parentIds }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Unshare video (make private)
    */
-  async makePrivate(videoId: string): Promise<SessionVideo> {
+  async makePrivate(videoId: string): Promise<Result<SessionVideo, ServiceError>> {
     if (USE_MOCK) {
       videosCache = await loadFromStorage();
       const video = videosCache.find((v) => v.id === videoId);
@@ -400,9 +402,9 @@ export const videoService = {
         video.visibility = 'PRIVATE';
         video.sharedWith = [];
         await saveToStorage(videosCache);
-        return video;
+        return ok(video);
       }
-      throw new Error('Video not found');
+      return err(notFound('Video', videoId));
     }
 
     const response = await fetch(`/api/videos/${videoId}/share`, {
@@ -410,7 +412,7 @@ export const videoService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ visibility: 'PRIVATE' }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -430,16 +432,16 @@ export const videoService = {
   /**
    * Update video metadata
    */
-  async updateVideo(videoId: string, updates: Partial<Pick<SessionVideo, 'title' | 'description' | 'tags'>>): Promise<SessionVideo> {
+  async updateVideo(videoId: string, updates: Partial<Pick<SessionVideo, 'title' | 'description' | 'tags'>>): Promise<Result<SessionVideo, ServiceError>> {
     if (USE_MOCK) {
       videosCache = await loadFromStorage();
       const video = videosCache.find((v) => v.id === videoId);
       if (video) {
         Object.assign(video, updates);
         await saveToStorage(videosCache);
-        return video;
+        return ok(video);
       }
-      throw new Error('Video not found');
+      return err(notFound('Video', videoId));
     }
 
     const response = await fetch(`/api/videos/${videoId}`, {
@@ -447,7 +449,7 @@ export const videoService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**

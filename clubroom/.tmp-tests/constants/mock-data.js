@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activeObjectives = exports.bookings = exports.inviteCodes = exports.schools = exports.athleteSkillLevels = exports.sessionHistory = exports.upcomingBookings = exports.coachProfiles = exports.mockUserProfile = exports.chatMessages = exports.chatThreads = exports.clubSessions = exports.clubFeedPosts = exports.clubInvites = exports.clubSquads = exports.clubMemberships = exports.clubs = exports.MOCK_INVITE_CODES = exports.MOCK_PAYMENTS = exports.MOCK_NOTIFICATIONS = exports.MOCK_SESSION_RECAPS = exports.MOCK_SESSION_PLANS = exports.MOCK_ATHLETE_DIRECTORY = exports.MOCK_SESSION_REQUESTS = exports.MOCK_GUEST_ATHLETES = exports.MOCK_COACH_SESSIONS = exports.UK_VENUES = exports.MOCK_SESSION_TEMPLATES = exports.MOCK_REVIEWS = exports.MOCK_COMMENTS = exports.MOCK_POSTS = exports.MOCK_MESSAGES = exports.MOCK_CONVERSATIONS = exports.MOCK_SESSIONS = exports.badgeAwards = exports.badgeCatalog = exports.MOCK_BOOKINGS = exports.MOCK_RELATIONSHIPS = exports.MOCK_USER_PROFILES = exports.MOCK_COACH_PROFILES = exports.MOCK_USERS = void 0;
+exports.MOCK_DISCOVERY_COACHES = exports.activeObjectives = exports.bookings = exports.inviteCodes = exports.schools = exports.athleteSkillLevels = exports.sessionHistory = exports.upcomingBookings = exports.coachProfiles = exports.mockUserProfile = exports.chatMessages = exports.chatThreads = exports.clubSessions = exports.clubFeedPosts = exports.clubInvites = exports.clubSquads = exports.clubMemberships = exports.clubs = exports.MOCK_INVITE_CODES = exports.MOCK_PAYMENTS = exports.MOCK_NOTIFICATIONS = exports.MOCK_SESSION_RECAPS = exports.MOCK_SESSION_PLANS = exports.MOCK_ATHLETE_DIRECTORY = exports.MOCK_SESSION_REQUESTS = exports.MOCK_GUEST_ATHLETES = exports.MOCK_COACH_SESSIONS = exports.UK_VENUES = exports.MOCK_SESSION_TEMPLATES = exports.MOCK_REVIEWS = exports.MOCK_COMMENTS = exports.MOCK_POSTS = exports.MOCK_MESSAGES = exports.MOCK_CONVERSATIONS = exports.MOCK_SESSIONS = exports.badgeAwards = exports.badgeCatalog = exports.MOCK_BOOKINGS = exports.MOCK_RELATIONSHIPS = exports.MOCK_USER_PROFILES = exports.MOCK_COACH_PROFILES = exports.MOCK_USERS = void 0;
 exports.getUserById = getUserById;
 exports.getCoachProfile = getCoachProfile;
 exports.getUserProfile = getUserProfile;
@@ -3383,3 +3383,78 @@ const MOCK_ATHLETE_OBJECTIVES = [
     },
 ];
 exports.activeObjectives = MOCK_ATHLETE_OBJECTIVES.filter(obj => obj.status === 'active');
+exports.MOCK_DISCOVERY_COACHES = [
+    {
+        id: '1',
+        fullName: 'James Whitfield',
+        profilePhotoUrl: 'https://i.pravatar.cc/150?u=coach1',
+        verified: true,
+        rating: 4.9,
+        reviewCount: 127,
+        distanceMiles: 1.2,
+        pricePerHour: 35,
+        specialties: ['Dribbling', 'Passing', 'Tactical'],
+        reviewQuote: 'Transformed my son\'s confidence on the ball in just 4 sessions.',
+        reviewAuthor: 'Sarah M.',
+        nextAvailable: 'Tomorrow, 4:00 PM',
+        trialAvailable: true,
+    },
+    {
+        id: '2',
+        fullName: 'Priya Sharma',
+        profilePhotoUrl: 'https://i.pravatar.cc/150?u=coach2',
+        verified: true,
+        rating: 4.8,
+        reviewCount: 93,
+        distanceMiles: 2.4,
+        pricePerHour: 40,
+        specialties: ['Goalkeeping', 'Fitness'],
+        reviewQuote: 'Best goalkeeper coach in the area. Highly professional.',
+        reviewAuthor: 'Mark T.',
+        nextAvailable: 'Sat, 10:00 AM',
+        trialAvailable: false,
+    },
+    {
+        id: '3',
+        fullName: 'Daniel Okafor',
+        profilePhotoUrl: 'https://i.pravatar.cc/150?u=coach3',
+        verified: false,
+        rating: 4.7,
+        reviewCount: 54,
+        distanceMiles: 3.1,
+        pricePerHour: 30,
+        specialties: ['Shooting', 'Defending'],
+        reviewQuote: 'Great with kids. Very patient and encouraging.',
+        reviewAuthor: 'Lisa W.',
+        nextAvailable: 'Mon, 5:30 PM',
+        trialAvailable: true,
+    },
+    {
+        id: '4',
+        fullName: 'Emily Chen',
+        profilePhotoUrl: 'https://i.pravatar.cc/150?u=coach4',
+        verified: true,
+        rating: 5.0,
+        reviewCount: 41,
+        distanceMiles: 0.8,
+        pricePerHour: 45,
+        specialties: ['Passing', 'Tactical', 'Fitness'],
+        reviewQuote: 'Incredibly structured sessions. My daughter loves training days now.',
+        reviewAuthor: 'James K.',
+        nextAvailable: 'Today, 6:00 PM',
+        trialAvailable: true,
+    },
+    {
+        id: '5',
+        fullName: 'Marcus Rivera',
+        profilePhotoUrl: 'https://i.pravatar.cc/150?u=coach5',
+        verified: true,
+        rating: 4.6,
+        reviewCount: 78,
+        distanceMiles: 4.5,
+        pricePerHour: 25,
+        specialties: ['Dribbling', 'Shooting'],
+        nextAvailable: 'Wed, 3:00 PM',
+        trialAvailable: false,
+    },
+];

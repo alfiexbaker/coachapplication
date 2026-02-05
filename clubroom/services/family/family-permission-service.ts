@@ -2,45 +2,75 @@
  * Family Permission Service
  *
  * Handles permission checks and updates for family guardians.
- * Single responsibility: authorization logic.
+ * Single responsibility: authorization logic and access control.
  */
 
 import { apiClient } from '../api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { notificationTriggers } from '../notification-trigger';
+import {
+  type Result,
+  type ServiceError,
+  ok,
+  err,
+  notFound,
+  storageError,
+  unauthorized,
+} from '@/types/result';
 import {
   type FamilyAccount,
   type FamilyGuardian,
   type GuardianPermission,
   type FamilyMember,
-  DEFAULT_ROLE_PERMISSIONS,
-} from './types';
+} from '@/constants/types';
 
 const logger = createLogger('FamilyPermissionService');
+const USE_MOCK = api.useMock;
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/**
+ * Default permissions for each guardian role.
+ */
+export const DEFAULT_ROLE_PERMISSIONS: Record<
+  'PRIMARY' | 'GUARDIAN' | 'VIEWER',
+  GuardianPermission[]
+> = {
+  PRIMARY: ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS', 'MANAGE_PAYMENTS', 'MANAGE_PROFILE', 'ADMIN'],
+  GUARDIAN: ['VIEW_SCHEDULE', 'VIEW_PROGRESS', 'BOOK_SESSIONS'],
+  VIEWER: ['VIEW_SCHEDULE', 'VIEW_PROGRESS'],
+};
+
+// ============================================================================
+// SERVICE CLASS
+// ============================================================================
 
 class FamilyPermissionService {
-  private useMock = true;
+  // ==========================================================================
+  // STORAGE HELPERS
+  // ==========================================================================
 
-  /**
-   * Load family accounts from storage.
-   */
   private async loadAccounts(): Promise<FamilyAccount[]> {
-    if (this.useMock) {
+    if (USE_MOCK) {
       return [];
     }
     return apiClient.get<FamilyAccount[]>(STORAGE_KEYS.FAMILY_ACCOUNTS, []);
   }
 
-  /**
-   * Save accounts to storage.
-   */
   private async saveAccounts(accounts: FamilyAccount[]): Promise<void> {
-    if (this.useMock) {
+    if (USE_MOCK) {
       return;
     }
     await apiClient.set(STORAGE_KEYS.FAMILY_ACCOUNTS, accounts);
   }
+
+  // ==========================================================================
+  // PERMISSION QUERIES
+  // ==========================================================================
 
   /**
    * Get guardian's permissions for a specific family.
@@ -50,6 +80,22 @@ class FamilyPermissionService {
     const account = accounts.find((a) => a.id === familyId);
     const guardian = account?.guardians.find((g) => g.userId === userId);
     return guardian?.permissions || [];
+  }
+
+  /**
+   * Get guardian's permissions with Result type.
+   */
+  async getGuardianPermissions(
+    userId: string,
+    familyId: string
+  ): Promise<Result<GuardianPermission[], ServiceError>> {
+    try {
+      const permissions = await this.getPermissions(userId, familyId);
+      return ok(permissions);
+    } catch (error) {
+      logger.error('get_guardian_permissions_failed', { userId, familyId, error });
+      return err(storageError('Failed to retrieve permissions'));
+    }
   }
 
   /**
@@ -100,6 +146,10 @@ class FamilyPermissionService {
     return this.hasPermission(userId, familyId, 'ADMIN');
   }
 
+  // ==========================================================================
+  // PERMISSION UPDATES
+  // ==========================================================================
+
   /**
    * Update guardian permissions.
    */
@@ -108,27 +158,27 @@ class FamilyPermissionService {
     requesterId: string,
     guardianId: string,
     newPermissions: GuardianPermission[]
-  ): Promise<FamilyGuardian> {
+  ): Promise<Result<FamilyGuardian, ServiceError>> {
     // Check if requester has admin permission
     const hasAdmin = await this.isAdmin(requesterId, familyId);
     if (!hasAdmin) {
-      throw new Error('You do not have permission to modify guardians');
+      return err(unauthorized('You do not have permission to modify guardians'));
     }
 
     const accounts = await this.loadAccounts();
     const account = accounts.find((a) => a.id === familyId);
 
     if (!account) {
-      throw new Error('Family account not found');
+      return err(notFound('Family account', familyId));
     }
 
     const guardian = account.guardians.find((g) => g.id === guardianId);
     if (!guardian) {
-      throw new Error('Guardian not found');
+      return err(notFound('Guardian', guardianId));
     }
 
     if (guardian.isPrimary) {
-      throw new Error('Cannot modify primary guardian permissions');
+      return err(unauthorized('Cannot modify primary guardian permissions'));
     }
 
     guardian.permissions = newPermissions;
@@ -139,10 +189,26 @@ class FamilyPermissionService {
     // Notify the guardian
     await notificationTriggers.guardianPermissionsUpdated(guardian.userId);
 
-    logger.info('Permissions updated', { familyId, guardianId, newPermissions });
+    logger.debug('PermissionsUpdated', { familyId, guardianId, newPermissions });
 
-    return guardian;
+    return ok(guardian);
   }
+
+  /**
+   * Update guardian permissions with Result type.
+   */
+  async updateGuardianPermissions(
+    familyId: string,
+    requesterId: string,
+    guardianId: string,
+    newPermissions: GuardianPermission[]
+  ): Promise<Result<FamilyGuardian, ServiceError>> {
+    return this.updatePermissions(familyId, requesterId, guardianId, newPermissions);
+  }
+
+  // ==========================================================================
+  // CHILD ACCESS
+  // ==========================================================================
 
   /**
    * Update guardian's child access list.
@@ -152,31 +218,43 @@ class FamilyPermissionService {
     requesterId: string,
     guardianId: string,
     childIds: string[]
-  ): Promise<FamilyGuardian> {
+  ): Promise<Result<FamilyGuardian, ServiceError>> {
     const hasAdmin = await this.isAdmin(requesterId, familyId);
     if (!hasAdmin) {
-      throw new Error('You do not have permission to modify guardians');
+      return err(unauthorized('You do not have permission to modify guardians'));
     }
 
     const accounts = await this.loadAccounts();
     const account = accounts.find((a) => a.id === familyId);
 
     if (!account) {
-      throw new Error('Family account not found');
+      return err(notFound('Family account', familyId));
     }
 
     const guardian = account.guardians.find((g) => g.id === guardianId);
     if (!guardian) {
-      throw new Error('Guardian not found');
+      return err(notFound('Guardian', guardianId));
     }
 
     guardian.childAccess = childIds;
     account.updatedAt = new Date().toISOString();
 
     await this.saveAccounts(accounts);
-    logger.info('Child access updated', { familyId, guardianId, childIds });
+    logger.debug('ChildAccessUpdated', { familyId, guardianId, childIds });
 
-    return guardian;
+    return ok(guardian);
+  }
+
+  /**
+   * Update guardian child access with Result type.
+   */
+  async updateGuardianChildAccess(
+    familyId: string,
+    requesterId: string,
+    guardianId: string,
+    childIds: string[]
+  ): Promise<Result<FamilyGuardian, ServiceError>> {
+    return this.updateChildAccess(familyId, requesterId, guardianId, childIds);
   }
 
   /**
@@ -206,6 +284,10 @@ class FamilyPermissionService {
 
     return account.children.filter((c) => guardian.childAccess.includes(c.id));
   }
+
+  // ==========================================================================
+  // UTILITY METHODS
+  // ==========================================================================
 
   /**
    * Get default permissions for a role.

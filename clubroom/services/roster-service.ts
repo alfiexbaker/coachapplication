@@ -17,6 +17,7 @@ import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { RosterNote, FootballObjective, RosterEntry } from '@/constants/types';
+import { type Result, type ServiceError, ok, err, notFound, validationError } from '@/types/result';
 const USE_MOCK = api.useMock;
 
 export type RemovalReason = 'GRADUATED' | 'MOVED' | 'INACTIVE' | 'OTHER';
@@ -348,7 +349,7 @@ export const rosterService = {
   /**
    * Update note
    */
-  async updateNote(coachId: string, athleteId: string, noteId: string, content: string): Promise<RosterNote> {
+  async updateNote(coachId: string, athleteId: string, noteId: string, content: string): Promise<Result<RosterNote, ServiceError>> {
     if (USE_MOCK) {
       rosterCache = await loadFromStorage();
       const entry = rosterCache.find(
@@ -360,10 +361,10 @@ export const rosterService = {
           note.content = content;
           note.updatedAt = new Date().toISOString();
           await saveToStorage(rosterCache);
-          return note;
+          return ok(note);
         }
       }
-      throw new Error('Note not found');
+      return err(notFound('Note', noteId));
     }
 
     const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}/notes/${noteId}`, {
@@ -371,7 +372,7 @@ export const rosterService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -402,17 +403,17 @@ export const rosterService = {
     coachId: string,
     athleteId: string,
     status: RosterEntry['status']
-  ): Promise<RosterEntry> {
+  ): Promise<Result<RosterEntry, ServiceError>> {
     if (USE_MOCK) {
       rosterCache = await loadFromStorage();
       const entry = rosterCache.find(
         (r) => r.coachId === coachId && r.athleteId === athleteId
       );
-      if (!entry) throw new Error('Roster entry not found');
+      if (!entry) return err(notFound('Roster entry', athleteId));
 
       entry.status = status;
       await saveToStorage(rosterCache);
-      return entry;
+      return ok(entry);
     }
 
     const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
@@ -420,23 +421,23 @@ export const rosterService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Update tags
    */
-  async updateTags(coachId: string, athleteId: string, tags: string[]): Promise<RosterEntry> {
+  async updateTags(coachId: string, athleteId: string, tags: string[]): Promise<Result<RosterEntry, ServiceError>> {
     if (USE_MOCK) {
       rosterCache = await loadFromStorage();
       const entry = rosterCache.find(
         (r) => r.coachId === coachId && r.athleteId === athleteId
       );
-      if (!entry) throw new Error('Roster entry not found');
+      if (!entry) return err(notFound('Roster entry', athleteId));
 
       entry.tags = tags;
       await saveToStorage(rosterCache);
-      return entry;
+      return ok(entry);
     }
 
     const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
@@ -444,7 +445,7 @@ export const rosterService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tags }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -454,17 +455,17 @@ export const rosterService = {
     coachId: string,
     athleteId: string,
     focus: FootballObjective
-  ): Promise<RosterEntry> {
+  ): Promise<Result<RosterEntry, ServiceError>> {
     if (USE_MOCK) {
       rosterCache = await loadFromStorage();
       const entry = rosterCache.find(
         (r) => r.coachId === coachId && r.athleteId === athleteId
       );
-      if (!entry) throw new Error('Roster entry not found');
+      if (!entry) return err(notFound('Roster entry', athleteId));
 
       entry.primaryFocus = focus;
       await saveToStorage(rosterCache);
-      return entry;
+      return ok(entry);
     }
 
     const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
@@ -472,7 +473,7 @@ export const rosterService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ primaryFocus: focus }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -565,7 +566,7 @@ export const rosterService = {
       customReason?: string;
       archive?: boolean; // If true, keep history; if false, permanently delete
     }
-  ): Promise<AthleteRemovalRecord> {
+  ): Promise<Result<AthleteRemovalRecord, ServiceError>> {
     const archive = options?.archive ?? true; // Default to archiving
 
     if (USE_MOCK) {
@@ -575,7 +576,7 @@ export const rosterService = {
       );
 
       if (entryIndex === -1) {
-        throw new Error('Athlete not found in roster');
+        return err(notFound('Athlete', athleteId));
       }
 
       const entry = rosterCache[entryIndex];
@@ -605,7 +606,7 @@ export const rosterService = {
       removalHistoryCache.unshift(removalRecord);
       await saveRemovalHistory(removalHistoryCache);
 
-      return removalRecord;
+      return ok(removalRecord);
     }
 
     const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
@@ -613,13 +614,13 @@ export const rosterService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason, customReason: options?.customReason, archive }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Undo athlete removal (restore from archive)
    */
-  async undoRemoval(coachId: string, removalId: string): Promise<RosterEntry | null> {
+  async undoRemoval(coachId: string, removalId: string): Promise<Result<RosterEntry, ServiceError>> {
     if (USE_MOCK) {
       removalHistoryCache = await loadRemovalHistory();
       const recordIndex = removalHistoryCache.findIndex(
@@ -627,13 +628,13 @@ export const rosterService = {
       );
 
       if (recordIndex === -1) {
-        throw new Error('Removal record not found');
+        return err(notFound('Removal record', removalId));
       }
 
       const record = removalHistoryCache[recordIndex];
 
       if (!record.originalEntry) {
-        throw new Error('Cannot restore - athlete was permanently deleted');
+        return err(validationError('Cannot restore - athlete was permanently deleted'));
       }
 
       // Restore to roster
@@ -645,14 +646,14 @@ export const rosterService = {
       removalHistoryCache.splice(recordIndex, 1);
       await saveRemovalHistory(removalHistoryCache);
 
-      return record.originalEntry;
+      return ok(record.originalEntry);
     }
 
     const response = await fetch(`/api/coaches/${coachId}/roster/removed/${removalId}/undo`, {
       method: 'POST',
     });
-    if (!response.ok) return null;
-    return response.json();
+    if (!response.ok) return err(notFound('Removal record', removalId));
+    return ok(await response.json());
   },
 
   /**

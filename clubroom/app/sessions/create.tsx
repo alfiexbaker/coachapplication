@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -66,8 +66,7 @@ const FOCUS_AREAS: FootballObjective[] = [
   'Conditioning',
 ];
 
-// Saved locations storage key
-const SAVED_LOCATIONS_KEY = 'coach_saved_locations';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 type WizardStep = 'details' | 'schedule' | 'review' | 'invite';
 
@@ -126,9 +125,9 @@ export default function CreateSessionScreen() {
 
   const loadSavedLocations = async () => {
     try {
-      const stored = await AsyncStorage.getItem(SAVED_LOCATIONS_KEY);
-      if (stored) {
-        setSavedLocations(JSON.parse(stored));
+      const locations = await apiClient.get<string[] | null>(STORAGE_KEYS.SAVED_LOCATIONS, null);
+      if (locations) {
+        setSavedLocations(locations);
       }
     } catch (error) {
       logger.error('Failed to load saved locations', error);
@@ -140,7 +139,7 @@ export default function CreateSessionScreen() {
     const updated = [loc, ...savedLocations.slice(0, 4)];
     setSavedLocations(updated);
     try {
-      await AsyncStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
+      await apiClient.set(STORAGE_KEYS.SAVED_LOCATIONS, updated);
     } catch (error) {
       logger.error('Failed to save location', error);
     }
@@ -235,11 +234,10 @@ export default function CreateSessionScreen() {
         footballSkill: focusAreas[0] || undefined,
       };
 
-      // Save to AsyncStorage
-      const existingData = await AsyncStorage.getItem('session_offerings');
-      const offerings: SessionOffering[] = existingData ? JSON.parse(existingData) : [];
+      // Save to storage
+      const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
       offerings.push(newOffering);
-      await AsyncStorage.setItem('session_offerings', JSON.stringify(offerings));
+      await apiClient.set('session_offerings', offerings);
 
       // If invite mode, send invites to selected athletes
       if (inviteMode === 'invite' && selectedAthletes.length > 0) {

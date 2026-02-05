@@ -10,6 +10,9 @@ import { BrandingEditor } from '@/components/club/branding-editor';
 import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { clubService, type ClubBranding } from '@/services/club-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('BrandingScreen');
 
 export default function BrandingScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
@@ -47,9 +50,13 @@ export default function BrandingScreen() {
     if (!clubId || !draft) return;
     setSaving(true);
     try {
-      const saved = await clubService.updateBranding(clubId, draft);
-      setBranding(saved);
-      setDraft(saved);
+      const result = await clubService.updateBranding(clubId, draft);
+      if (!result.success) {
+        logger.error('Failed to save branding', result.error);
+        return;
+      }
+      setBranding(result.data);
+      setDraft(result.data);
       router.back();
     } catch {
       // Error handled by service logger

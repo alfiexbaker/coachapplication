@@ -1,7 +1,6 @@
 import { VerificationItem, VerificationStatus } from '@/constants/types';
 import { storageService } from './storage-service';
-
-const STORAGE_KEY = 'clubroom.verification';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 // Default verification status for a new coach
 const createDefaultVerificationStatus = (coachId: string): VerificationStatus => ({
@@ -115,7 +114,7 @@ class VerificationService {
    */
   async getStatus(coachId: string): Promise<VerificationStatus> {
     const allStatuses = await storageService.getItem<Record<string, VerificationStatus>>(
-      STORAGE_KEY,
+      STORAGE_KEYS.VERIFICATION,
       MOCK_VERIFICATION_STATUSES
     );
     return allStatuses[coachId] ?? createDefaultVerificationStatus(coachId);
@@ -130,7 +129,7 @@ class VerificationService {
     update: Partial<VerificationItem>
   ): Promise<VerificationStatus> {
     const allStatuses = await storageService.getItem<Record<string, VerificationStatus>>(
-      STORAGE_KEY,
+      STORAGE_KEYS.VERIFICATION,
       MOCK_VERIFICATION_STATUSES
     );
 
@@ -148,7 +147,7 @@ class VerificationService {
     updatedStatus.overallLevel = this.calculateOverallLevel(updatedStatus);
 
     allStatuses[coachId] = updatedStatus;
-    await storageService.setItem(STORAGE_KEY, allStatuses);
+    await storageService.setItem(STORAGE_KEYS.VERIFICATION, allStatuses);
 
     return updatedStatus;
   }
@@ -161,7 +160,7 @@ class VerificationService {
     credential: VerificationItem
   ): Promise<VerificationStatus> {
     const allStatuses = await storageService.getItem<Record<string, VerificationStatus>>(
-      STORAGE_KEY,
+      STORAGE_KEYS.VERIFICATION,
       MOCK_VERIFICATION_STATUSES
     );
 
@@ -175,7 +174,7 @@ class VerificationService {
     updatedStatus.overallLevel = this.calculateOverallLevel(updatedStatus);
 
     allStatuses[coachId] = updatedStatus;
-    await storageService.setItem(STORAGE_KEY, allStatuses);
+    await storageService.setItem(STORAGE_KEYS.VERIFICATION, allStatuses);
 
     return updatedStatus;
   }

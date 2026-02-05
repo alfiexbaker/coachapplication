@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -62,9 +62,8 @@ export default function DiscoverSessionsScreen() {
   const loadOfferings = useCallback(async () => {
     setLoading(true);
     try {
-      const stored = await AsyncStorage.getItem('session_offerings');
-      if (stored) {
-        const allOfferings: SessionOffering[] = JSON.parse(stored);
+      const allOfferings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+      if (allOfferings.length > 0) {
         // Filter to show only active sessions not owned by current user
         const available = allOfferings.filter(o =>
           o.status === 'active' &&

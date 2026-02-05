@@ -17,7 +17,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Radii, Spacing, Typography, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { DiscoveryCoach } from './coach-discovery-card';
+import type { CoachCardData } from '@/components/coach';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,7 +25,7 @@ import type { DiscoveryCoach } from './coach-discovery-card';
 
 interface FeaturedCoachesProps {
   /** All available coaches — will be filtered to verified + 4.5+ */
-  coaches?: DiscoveryCoach[];
+  coaches?: CoachCardData[];
   /** Callback when a coach card is pressed */
   onCoachPress?: (coachId: string) => void;
   /** Callback for "Book Now" on a card */
@@ -44,7 +44,7 @@ interface FeaturedCoachesProps {
 // Mock data
 // ---------------------------------------------------------------------------
 
-const MOCK_FEATURED_COACHES: DiscoveryCoach[] = [
+const MOCK_FEATURED_COACHES: CoachCardData[] = [
   {
     id: 'f1',
     fullName: 'Emma Richardson',
@@ -118,7 +118,7 @@ function FeaturedCard({
   onBookNow,
   onToggleFavourite,
 }: {
-  coach: DiscoveryCoach;
+  coach: CoachCardData;
   index: number;
   palette: (typeof Colors)['light'];
   isFavourited: boolean;
@@ -178,14 +178,14 @@ function FeaturedCard({
           <View style={cardStyles.ratingRow}>
             <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
             <ThemedText style={[cardStyles.ratingText, { color: palette.text }]}>
-              {coach.rating.toFixed(1)}
+              {coach.rating?.toFixed(1)}
             </ThemedText>
             <ThemedText style={[cardStyles.reviewCount, { color: palette.muted }]}>
               ({coach.reviewCount})
             </ThemedText>
             <View style={[cardStyles.dot, { backgroundColor: palette.border }]} />
             <ThemedText style={[cardStyles.distance, { color: palette.muted }]}>
-              {coach.distanceMiles.toFixed(1)} mi
+              {coach.distanceMiles?.toFixed(1)} mi
             </ThemedText>
           </View>
 
@@ -336,7 +336,7 @@ export function FeaturedCoaches({
 
   // Filter to verified + high-rated coaches
   const filteredCoaches = (coaches ?? MOCK_FEATURED_COACHES).filter(
-    (c) => c.verified && c.rating >= MIN_FEATURED_RATING,
+    (c) => c.verified && (c.rating ?? 0) >= MIN_FEATURED_RATING,
   );
 
   // Auto-rotation

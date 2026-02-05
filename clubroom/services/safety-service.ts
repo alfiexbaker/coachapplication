@@ -6,9 +6,7 @@ import {
   ConsentType,
 } from '@/constants/types';
 import { storageService } from './storage-service';
-
-// Cache for offline access - stores most recently accessed emergency info
-const CACHE_KEY = 'clubroom.emergency_cache';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 interface CachedEmergencyInfo {
@@ -57,7 +55,6 @@ export interface SessionSafetyInfo {
   missingEmergencyInfo: string[];
 }
 
-const STORAGE_KEY = 'clubroom.emergency_info';
 
 // Default empty medical info
 const createDefaultMedicalInfo = (): MedicalInfo => ({
@@ -168,7 +165,7 @@ class SafetyService {
    */
   async getEmergencyInfo(athleteId: string): Promise<EmergencyInfo> {
     const allInfo = await storageService.getItem<Record<string, EmergencyInfo>>(
-      STORAGE_KEY,
+      STORAGE_KEYS.EMERGENCY_INFO,
       MOCK_EMERGENCY_INFO
     );
     return allInfo[athleteId] ?? createDefaultEmergencyInfo(athleteId);
@@ -182,7 +179,7 @@ class SafetyService {
     update: Partial<Omit<EmergencyInfo, 'athleteId' | 'updatedAt'>>
   ): Promise<EmergencyInfo> {
     const allInfo = await storageService.getItem<Record<string, EmergencyInfo>>(
-      STORAGE_KEY,
+      STORAGE_KEYS.EMERGENCY_INFO,
       MOCK_EMERGENCY_INFO
     );
 
@@ -195,7 +192,7 @@ class SafetyService {
     };
 
     allInfo[athleteId] = updatedInfo;
-    await storageService.setItem(STORAGE_KEY, allInfo);
+    await storageService.setItem(STORAGE_KEYS.EMERGENCY_INFO, allInfo);
 
     return updatedInfo;
   }
@@ -602,13 +599,13 @@ class SafetyService {
     info: EmergencyInfo,
     athleteName?: string
   ): Promise<void> {
-    const cache = await storageService.getItem<EmergencyCache>(CACHE_KEY, {});
+    const cache = await storageService.getItem<EmergencyCache>(STORAGE_KEYS.EMERGENCY_CACHE, {});
     cache[athleteId] = {
       data: info,
       cachedAt: Date.now(),
       athleteName,
     };
-    await storageService.setItem(CACHE_KEY, cache);
+    await storageService.setItem(STORAGE_KEYS.EMERGENCY_CACHE, cache);
   }
 
   /**
@@ -617,7 +614,7 @@ class SafetyService {
   private async getCachedEmergencyInfo(
     athleteId: string
   ): Promise<CachedEmergencyInfo | null> {
-    const cache = await storageService.getItem<EmergencyCache>(CACHE_KEY, {});
+    const cache = await storageService.getItem<EmergencyCache>(STORAGE_KEYS.EMERGENCY_CACHE, {});
     const cached = cache[athleteId];
 
     if (!cached) {
@@ -654,14 +651,14 @@ class SafetyService {
    * Clear cached emergency info
    */
   async clearCache(): Promise<void> {
-    await storageService.removeItem(CACHE_KEY);
+    await storageService.removeItem(STORAGE_KEYS.EMERGENCY_CACHE);
   }
 
   /**
    * Reset to mock data (for testing)
    */
   async resetToMockData(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY, MOCK_EMERGENCY_INFO);
+    await storageService.setItem(STORAGE_KEYS.EMERGENCY_INFO, MOCK_EMERGENCY_INFO);
     await this.clearCache();
   }
 }

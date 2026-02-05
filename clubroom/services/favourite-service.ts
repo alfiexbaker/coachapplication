@@ -18,12 +18,13 @@
  * - GET /api/favourites/check?userId=X&coachId=Y - Check if favourited
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import type { FavouriteCoach, SportCategory } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+
 const logger = createLogger('FavouriteService');
-const STORAGE_KEY = 'favourites';
 
 // Mock data for development - some pre-existing favourites
 const MOCK_FAVOURITES: FavouriteCoach[] = [
@@ -75,9 +76,9 @@ let favouritesCache: FavouriteCoach[] = [...MOCK_FAVOURITES];
 
 async function loadFavourites(): Promise<FavouriteCoach[]> {
   try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    const stored = await apiClient.get<FavouriteCoach[] | null>(STORAGE_KEYS.FAVOURITES, null);
     if (stored) {
-      return JSON.parse(stored);
+      return stored;
     }
   } catch (error) {
     logger.error('Failed to load favourites', error);
@@ -87,7 +88,7 @@ async function loadFavourites(): Promise<FavouriteCoach[]> {
 
 async function saveFavourites(favourites: FavouriteCoach[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(favourites));
+    await apiClient.set(STORAGE_KEYS.FAVOURITES, favourites);
   } catch (error) {
     logger.error('Failed to save favourites', error);
   }

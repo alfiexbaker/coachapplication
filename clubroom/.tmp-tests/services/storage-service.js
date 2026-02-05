@@ -1,14 +1,11 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.storageService = void 0;
-const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
+const api_client_1 = require("./api-client");
 const logger_1 = require("@/utils/logger");
 const logger = (0, logger_1.createLogger)('StorageService');
 /**
- * Lightweight storage helper that hides AsyncStorage errors and keeps
+ * Lightweight storage helper that delegates to apiClient and keeps
  * a tiny in-memory cache for mock/preview sessions.
  */
 class StorageService {
@@ -19,7 +16,7 @@ class StorageService {
         const serialized = JSON.stringify(value);
         this.memory[key] = serialized;
         try {
-            await async_storage_1.default.setItem(key, serialized);
+            await api_client_1.apiClient.set(key, value);
         }
         catch (err) {
             logger.warn('Falling back to memory storage', { key, error: err });
@@ -27,9 +24,9 @@ class StorageService {
     }
     async getItem(key, fallback) {
         try {
-            const value = await async_storage_1.default.getItem(key);
-            if (value)
-                return JSON.parse(value);
+            const value = await api_client_1.apiClient.get(key, null);
+            if (value !== null)
+                return value;
         }
         catch (err) {
             logger.warn('Read failed, using memory fallback', { key, error: err });
@@ -42,7 +39,7 @@ class StorageService {
     async removeItem(key) {
         delete this.memory[key];
         try {
-            await async_storage_1.default.removeItem(key);
+            await api_client_1.apiClient.remove(key);
         }
         catch (err) {
             logger.warn('Remove failed, ignoring', { key, error: err });

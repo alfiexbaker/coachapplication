@@ -34,7 +34,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { inviteService as sessionInviteService } from '@/services/invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 

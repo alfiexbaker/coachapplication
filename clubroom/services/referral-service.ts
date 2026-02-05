@@ -16,6 +16,7 @@
 import { storageService } from './storage-service';
 import { walletService } from './wallet-service';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
 import type { ReferralCode, Referral, ReferralStats, ReferralStatus } from '@/constants/types';
 
 const logger = createLogger('ReferralService');
@@ -207,14 +208,14 @@ async function generateCode(
   userId: string,
   userName: string = 'USER',
   creditAmount: number = DEFAULT_CREDIT_AMOUNT
-): Promise<ReferralCode> {
+): Promise<Result<ReferralCode, ServiceError>> {
   const codes = await getAllCodes();
 
   // Check if user already has an active code
   const existingCode = codes.find((c) => c.userId === userId && c.isActive);
   if (existingCode) {
     logger.info('existing_code_found', { userId, code: existingCode.code });
-    return existingCode;
+    return ok(existingCode);
   }
 
   // Generate unique code
@@ -229,7 +230,7 @@ async function generateCode(
   }
 
   if (attempts >= maxAttempts) {
-    throw new Error('Failed to generate unique referral code');
+    return err(validationError('Failed to generate unique referral code'));
   }
 
   const now = new Date().toISOString();
@@ -248,7 +249,7 @@ async function generateCode(
   await saveCodes(codes);
 
   logger.info('code_generated', { userId, code: newCode.code, creditAmount });
-  return newCode;
+  return ok(newCode);
 }
 
 /**
@@ -257,12 +258,12 @@ async function generateCode(
  * @param userName - The user's display name (used if creating new code)
  * @returns The user's referral code
  */
-async function getUserCode(userId: string, userName: string = 'USER'): Promise<ReferralCode> {
+async function getUserCode(userId: string, userName: string = 'USER'): Promise<Result<ReferralCode, ServiceError>> {
   const codes = await getAllCodes();
   const existingCode = codes.find((c) => c.userId === userId && c.isActive);
 
   if (existingCode) {
-    return existingCode;
+    return ok(existingCode);
   }
 
   // Create a new code for the user
@@ -497,11 +498,14 @@ async function completeReferralByReferee(
  * @param userId - The user ID
  * @returns Referral statistics
  */
-async function getReferralStats(userId: string): Promise<ReferralStats> {
-  const [referrals, code] = await Promise.all([
+async function getReferralStats(userId: string): Promise<Result<ReferralStats, ServiceError>> {
+  const [referrals, codeResult] = await Promise.all([
     getAllReferrals(),
     getUserCode(userId),
   ]);
+
+  if (!codeResult.success) return codeResult;
+  const code = codeResult.data;
 
   const userReferrals = referrals.filter((r) => r.referrerId === userId);
   const completedReferrals = userReferrals.filter((r) => r.status === 'COMPLETED');
@@ -509,14 +513,14 @@ async function getReferralStats(userId: string): Promise<ReferralStats> {
 
   const totalEarned = completedReferrals.reduce((sum, r) => sum + r.creditAwarded, 0);
 
-  return {
+  return ok({
     userId,
     totalEarned,
     referredCount: completedReferrals.length,
     pendingCount: pendingReferrals.length,
     currentCode: code.code,
     creditPerReferral: code.creditAmount,
-  };
+  });
 }
 
 /**

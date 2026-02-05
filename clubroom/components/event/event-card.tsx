@@ -82,7 +82,7 @@ export function EventCard({ event, onPress, compact = false }: EventCardProps) {
         {/* Type badge */}
         <View style={styles.header}>
           <View style={[styles.typeBadge, { backgroundColor: `${typeColor}20` }]}>
-            <Ionicons name={typeIcon as any} size={14} color={typeColor} />
+            <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={14} color={typeColor} />
             <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
               {eventService.formatEventType(event.eventType)}
             </ThemedText>
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: Colors.light.border,
   },
   attendanceInfo: {
     flexDirection: 'row',

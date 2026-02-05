@@ -9,8 +9,7 @@
  */
 
 import { apiClient } from './api-client';
-
-const SEEN_KEY = 'clubroom.seen_statuses';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 interface SeenEntry {
   entityType: string;
@@ -28,7 +27,7 @@ export const seenService = {
     entityId: string,
     userId: string
   ): Promise<void> {
-    const entries = await apiClient.get<SeenEntry[]>(SEEN_KEY, []);
+    const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
 
     // Check if already marked as seen
     const existing = entries.find(
@@ -45,7 +44,7 @@ export const seenService = {
         seenBy: userId,
         seenAt: new Date().toISOString(),
       });
-      await apiClient.set(SEEN_KEY, entries);
+      await apiClient.set(STORAGE_KEYS.SEEN_STATUSES, entries);
     }
   },
 
@@ -57,7 +56,7 @@ export const seenService = {
     entityType: string,
     entityId: string
   ): Promise<{ seenBy: string; seenAt: string } | null> {
-    const entries = await apiClient.get<SeenEntry[]>(SEEN_KEY, []);
+    const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
     const match = entries.find(
       (e) => e.entityType === entityType && e.entityId === entityId
     );
@@ -74,7 +73,7 @@ export const seenService = {
     entityType: string,
     entityIds: string[]
   ): Promise<{ entityId: string; seenBy: string; seenAt: string }[]> {
-    const entries = await apiClient.get<SeenEntry[]>(SEEN_KEY, []);
+    const entries = await apiClient.get<SeenEntry[]>(STORAGE_KEYS.SEEN_STATUSES, []);
     const idSet = new Set(entityIds);
 
     return entries

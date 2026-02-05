@@ -12,7 +12,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.discoverService = void 0;
 const storage_service_1 = require("./storage-service");
-const STORAGE_KEY = 'clubroom.discover.recentSearches';
+const storage_keys_1 = require("@/constants/storage-keys");
 const MAX_RECENT_SEARCHES = 10;
 // Try to import coach profiles from mock data, fall back to empty array
 let importedCoachProfiles = [];
@@ -567,19 +567,19 @@ class DiscoverService {
     async saveRecentSearch(query) {
         const recent = await this.getRecentSearches();
         const updated = [query, ...recent.filter((q) => q !== query)].slice(0, MAX_RECENT_SEARCHES);
-        await storage_service_1.storageService.setItem(STORAGE_KEY, updated);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, updated);
     }
     /**
      * Get recent search queries
      */
     async getRecentSearches() {
-        return storage_service_1.storageService.getItem(STORAGE_KEY, []);
+        return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []);
     }
     /**
      * Clear recent searches
      */
     async clearRecentSearches() {
-        await storage_service_1.storageService.setItem(STORAGE_KEY, []);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []);
     }
     /**
      * Get a specific coach by ID

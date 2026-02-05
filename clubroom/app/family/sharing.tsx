@@ -36,7 +36,7 @@ import { useAuth } from '@/hooks/use-auth';
 import {
   familyService,
   RELATIONSHIP_OPTIONS,
-} from '@/services/family-service';
+} from '@/services/family';
 import type {
   FamilyAccount,
   FamilyGuardian,

@@ -15,6 +15,7 @@ import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot, SessionOffering } from '@/constants/types';
+import type { Booking } from '@/constants/app-types';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { createLogger } from '@/utils/logger';
 
@@ -22,9 +23,9 @@ const logger = createLogger('AvailabilityService');
 const USE_MOCK = api.useMock;
 
 // Helper to load existing bookings from storage
-async function loadBookings(): Promise<any[]> {
+async function loadBookings(): Promise<Booking[]> {
   try {
-    return await apiClient.get<any[]>(STORAGE_KEYS.BOOKINGS, []);
+    return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
   } catch (error) {
     logger.error('Failed to load bookings', error);
   }
@@ -390,7 +391,7 @@ export const availabilityService = {
     const sessionOfferings = await loadSessionOfferings();
 
     // Filter bookings for this coach in the date range
-    const coachBookings = existingBookings.filter((booking: any) => {
+    const coachBookings = existingBookings.filter((booking) => {
       if (booking.coachId !== coachId) return false;
       if (booking.status === 'CANCELLED') return false;
       const bookingDate = booking.scheduledAt?.split('T')[0];
@@ -501,7 +502,7 @@ export const availabilityService = {
    * Count bookings for a specific slot
    */
   countBookingsForSlot(
-    bookings: any[],
+    bookings: Booking[],
     offerings: SessionOffering[],
     date: string,
     startTime: string
@@ -537,12 +538,12 @@ export const availabilityService = {
     coachId: string,
     startDate: string,
     endDate: string
-  ): Promise<any[]> {
+  ) {
     const bookings = await loadBookings();
     const offerings = await loadSessionOfferings();
 
     // Filter bookings for this coach
-    const coachBookings = bookings.filter((booking: any) => {
+    const coachBookings = bookings.filter((booking) => {
       if (booking.coachId !== coachId) return false;
       const bookingDate = booking.scheduledAt?.split('T')[0];
       return bookingDate >= startDate && bookingDate <= endDate;

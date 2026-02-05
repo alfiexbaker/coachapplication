@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -57,8 +57,7 @@ export default function AthleteDetailScreen() {
         );
 
         // Get AsyncStorage sessions
-        const storedSessions = await AsyncStorage.getItem('coach_sessions');
-        const asyncSessions = storedSessions ? JSON.parse(storedSessions) : [];
+        const asyncSessions = await apiClient.get<any[]>('coach_sessions', []);
         const athleteAsyncSessions = asyncSessions.filter(
           (s: any) => s.athleteId === athleteId && s.coachId === currentUser.id
         );
@@ -263,10 +262,9 @@ export default function AthleteDetailScreen() {
                   };
 
                   // Save to AsyncStorage
-                  const existingSessions = await AsyncStorage.getItem('coach_sessions');
-                  const sessions = existingSessions ? JSON.parse(existingSessions) : [];
+                  const sessions = await apiClient.get<any[]>('coach_sessions', []);
                   sessions.push(sessionRecord);
-                  await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
+                  await apiClient.set('coach_sessions', sessions);
 
                   logger.info('Session created', { sessionId, athleteId });
 

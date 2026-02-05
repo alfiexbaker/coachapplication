@@ -9,8 +9,8 @@ import { storageService } from '../storage-service';
 import { createLogger } from '@/utils/logger';
 import { eventBus, ServiceEvents } from '../event-bus';
 import type { NotificationItem } from '@/constants/types';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
-const STORAGE_KEY = 'clubroom.notifications';
 const logger = createLogger('NotificationStore');
 
 /**
@@ -38,7 +38,7 @@ class NotificationStore {
    * Get all notifications.
    */
   async list(): Promise<ExtendedNotificationItem[]> {
-    return storageService.getItem<ExtendedNotificationItem[]>(STORAGE_KEY, []);
+    return storageService.getItem<ExtendedNotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, []);
   }
 
   /**
@@ -53,7 +53,7 @@ class NotificationStore {
 
     const current = await this.list();
     const updated = [fullNotification, ...current];
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
 
     // Notify in-app listeners for toasts
     this.notifyListeners(fullNotification);
@@ -80,7 +80,7 @@ class NotificationStore {
   async markAsRead(id: string): Promise<ExtendedNotificationItem[]> {
     const current = await this.list();
     const updated = current.map((n) => (n.id === id ? { ...n, read: true } : n));
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
 
     eventBus.emit(ServiceEvents.NOTIFICATION_READ, { notificationId: id });
 
@@ -93,7 +93,7 @@ class NotificationStore {
   async markAllAsRead(): Promise<ExtendedNotificationItem[]> {
     const current = await this.list();
     const updated = current.map((n) => ({ ...n, read: true }));
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
     return updated;
   }
 
@@ -105,7 +105,7 @@ class NotificationStore {
     const updated = current.map((n) =>
       n.id === id ? { ...n, read: true, handled: true } : n
     );
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
     return updated.find((n) => n.id === id);
   }
 
@@ -115,7 +115,7 @@ class NotificationStore {
   async dismiss(id: string): Promise<ExtendedNotificationItem[]> {
     const current = await this.list();
     const updated = current.filter((n) => n.id !== id);
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
 
     eventBus.emit(ServiceEvents.NOTIFICATION_DISMISSED, { notificationId: id });
 
@@ -126,7 +126,7 @@ class NotificationStore {
    * Clear all notifications.
    */
   async clearAll(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY, []);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, []);
   }
 
   /**

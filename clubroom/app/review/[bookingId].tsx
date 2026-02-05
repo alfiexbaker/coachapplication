@@ -1,7 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, Alert } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ReviewForm } from '@/components/review/review-form';
@@ -37,9 +37,8 @@ export default function ReviewScreen() {
   // Load booking info
   const loadBooking = useCallback(async () => {
     try {
-      const stored = await AsyncStorage.getItem('session_bookings');
-      if (stored) {
-        const bookings = JSON.parse(stored);
+      const bookings = await apiClient.get<any[]>('session_bookings', []);
+      if (bookings.length > 0) {
         const found = bookings.find((b: any) => b.id === bookingId);
         if (found) {
           setBooking({
@@ -67,8 +66,7 @@ export default function ReviewScreen() {
   }) => {
     try {
       // Save review to storage
-      const reviewsStored = await AsyncStorage.getItem('coach_reviews');
-      const reviews = reviewsStored ? JSON.parse(reviewsStored) : [];
+      const reviews = await apiClient.get<any[]>('coach_reviews', []);
 
       const newReview = {
         id: `review_${Date.now()}`,
@@ -82,7 +80,7 @@ export default function ReviewScreen() {
       };
 
       reviews.push(newReview);
-      await AsyncStorage.setItem('coach_reviews', JSON.stringify(reviews));
+      await apiClient.set('coach_reviews', reviews);
 
       logger.info('Review submitted', { bookingId, rating: payload.rating });
 

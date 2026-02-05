@@ -70,11 +70,16 @@ export default function MatchDetailScreen() {
     setIsSubmitting(true);
 
     try {
-      const updated = await matchService.setLineup({
+      const result = await matchService.setLineup({
         matchId: match.id,
         lineup,
       });
-      setMatch(updated);
+      if (!result.success) {
+        logger.error('Failed to set lineup:', result.error);
+        Alert.alert('Error', 'Failed to set lineup. Please try again.');
+        return;
+      }
+      setMatch(result.data);
       setShowLineupSelector(false);
       Alert.alert('Lineup Set', 'The lineup has been confirmed and players notified.');
     } catch (error) {
@@ -90,14 +95,18 @@ export default function MatchDetailScreen() {
     setIsSubmitting(true);
 
     try {
-      const updated = await matchService.respondToMatch({
+      const result = await matchService.respondToMatch({
         matchId: match.id,
         athleteId: currentPlayerInfo.athleteId,
         parentId: currentPlayerInfo.parentId,
         status,
         note,
       });
-      setMatch(updated);
+      if (!result.success) {
+        logger.error('Failed to respond:', result.error);
+        throw new Error(result.error.message);
+      }
+      setMatch(result.data);
     } catch (error) {
       logger.error('Failed to respond:', error);
       throw error;
@@ -122,8 +131,12 @@ export default function MatchDetailScreen() {
               return;
             }
             try {
-              const updated = await matchService.recordResult(match.id, { home, away });
-              setMatch(updated);
+              const result = await matchService.recordResult(match.id, { home, away });
+              if (!result.success) {
+                Alert.alert('Error', 'Failed to record result.');
+                return;
+              }
+              setMatch(result.data);
               Alert.alert('Result Recorded', 'The match result has been saved.');
             } catch {
               Alert.alert('Error', 'Failed to record result.');
@@ -147,8 +160,12 @@ export default function MatchDetailScreen() {
           onPress: async () => {
             if (!match) return;
             try {
-              const updated = await matchService.cancelMatch(match.id);
-              setMatch(updated);
+              const result = await matchService.cancelMatch(match.id);
+              if (!result.success) {
+                Alert.alert('Error', 'Failed to cancel match.');
+                return;
+              }
+              setMatch(result.data);
             } catch {
               Alert.alert('Error', 'Failed to cancel match.');
             }

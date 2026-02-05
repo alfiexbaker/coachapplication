@@ -2,15 +2,14 @@ import { Review } from '@/constants/types';
 import { MOCK_REVIEWS } from '@/constants/mock-data';
 import { storageService } from './storage-service';
 import { notificationService } from './notification-service';
-
-const STORAGE_KEY = 'clubroom.reviews';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 // Extended review that works with both types
 type ExtendedReview = Review & { comment?: string };
 
 class ReviewService {
   async list(): Promise<ExtendedReview[]> {
-    return storageService.getItem<ExtendedReview[]>(STORAGE_KEY, MOCK_REVIEWS as unknown as ExtendedReview[]);
+    return storageService.getItem<ExtendedReview[]>(STORAGE_KEYS.REVIEWS, MOCK_REVIEWS as unknown as ExtendedReview[]);
   }
 
   async getByCoachId(coachId: string): Promise<ExtendedReview[]> {
@@ -21,7 +20,7 @@ class ReviewService {
   async create(review: ExtendedReview) {
     const current = await this.list();
     const updated = [review, ...current];
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.REVIEWS, updated);
 
     // Notify coach of new review
     await notificationService.notifyCoachNewReview({

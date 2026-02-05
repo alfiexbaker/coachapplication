@@ -12,11 +12,8 @@ import { Colors, Spacing, Typography, Components } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import {
-  CoachDiscoveryCard,
-  MOCK_DISCOVERY_COACHES,
-  type DiscoveryCoach,
-} from './coach-discovery-card';
+import { CoachCard, type CoachCardData } from '@/components/coach';
+import { MOCK_DISCOVERY_COACHES } from '@/constants/mock-data';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,7 +24,7 @@ type SectionVariant = 'featured' | 'recommended';
 interface FeaturedSectionProps {
   variant?: SectionVariant;
   childName?: string;
-  coaches?: DiscoveryCoach[];
+  coaches?: CoachCardData[];
   onCoachPress?: (id: string) => void;
   onBookNow?: (id: string) => void;
   onToggleFavourite?: (id: string) => void;
@@ -70,7 +67,7 @@ export function FeaturedSection({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const data = coaches ?? MOCK_DISCOVERY_COACHES;
+  const data: CoachCardData[] = coaches ?? MOCK_DISCOVERY_COACHES;
 
   return (
     <View style={styles.container}>
@@ -110,8 +107,9 @@ export function FeaturedSection({
       >
         {data.map((coach, index) => (
           <View key={coach.id} style={styles.cardWrapper}>
-            <CoachDiscoveryCard
+            <CoachCard
               coach={coach}
+              variant="discovery"
               index={index}
               onPress={() => onCoachPress?.(coach.id)}
               onBookNow={() => onBookNow?.(coach.id)}

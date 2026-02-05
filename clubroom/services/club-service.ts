@@ -15,16 +15,16 @@
  * - GET /api/clubs/:id/calendar - Get calendar events
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import type { ClubRole, ClubMembership } from '@/constants/types';
+import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 import { api } from '@/constants/config';
 
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+
 const logger = createLogger('ClubService');
 
-const CLUB_MEMBERS_KEY = 'club_members';
-const MEMBER_REMOVAL_KEY = 'club_member_removals';
-const CLUB_BRANDING_KEY = 'club_branding';
 const USE_MOCK = api.useMock;
 
 // ============================================================================
@@ -203,8 +203,8 @@ let removalHistoryCache: ClubMemberRemovalRecord[] = [];
 
 async function loadMembers(clubId: string): Promise<ClubMember[]> {
   try {
-    const stored = await AsyncStorage.getItem(`${CLUB_MEMBERS_KEY}_${clubId}`);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<ClubMember[] | null>(`${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load members', error);
   }
@@ -213,7 +213,7 @@ async function loadMembers(clubId: string): Promise<ClubMember[]> {
 
 async function saveMembers(clubId: string, members: ClubMember[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(`${CLUB_MEMBERS_KEY}_${clubId}`, JSON.stringify(members));
+    await apiClient.set(`${STORAGE_KEYS.CLUB_MEMBERS}_${clubId}`, members);
     membersCache.set(clubId, members);
   } catch (error) {
     logger.error('Failed to save members', error);
@@ -222,8 +222,8 @@ async function saveMembers(clubId: string, members: ClubMember[]): Promise<void>
 
 async function loadRemovalHistory(): Promise<ClubMemberRemovalRecord[]> {
   try {
-    const stored = await AsyncStorage.getItem(MEMBER_REMOVAL_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<ClubMemberRemovalRecord[] | null>(STORAGE_KEYS.CLUB_MEMBER_REMOVALS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load removal history', error);
   }
@@ -232,7 +232,7 @@ async function loadRemovalHistory(): Promise<ClubMemberRemovalRecord[]> {
 
 async function saveRemovalHistory(history: ClubMemberRemovalRecord[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(MEMBER_REMOVAL_KEY, JSON.stringify(history));
+    await apiClient.set(STORAGE_KEYS.CLUB_MEMBER_REMOVALS, history);
   } catch (error) {
     logger.error('Failed to save removal history', error);
   }
@@ -266,13 +266,13 @@ export const clubService = {
     options?: {
       customReason?: string;
     }
-  ): Promise<ClubMemberRemovalRecord> {
+  ): Promise<Result<ClubMemberRemovalRecord, ServiceError>> {
     if (USE_MOCK) {
       const members = await loadMembers(clubId);
       const memberIndex = members.findIndex((m) => m.userId === userId);
 
       if (memberIndex === -1) {
-        throw new Error('Member not found in club');
+        return err(notFound('Member', userId));
       }
 
       const member = members[memberIndex];
@@ -308,7 +308,7 @@ export const clubService = {
       removalHistoryCache.unshift(removalRecord);
       await saveRemovalHistory(removalHistoryCache);
 
-      return removalRecord;
+      return ok(removalRecord);
     }
 
     const response = await fetch(`/api/clubs/${clubId}/members/${userId}`, {
@@ -320,13 +320,13 @@ export const clubService = {
         removedBy: removedBy.id,
       }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Undo member removal (restore membership)
    */
-  async undoRemoval(clubId: string, removalId: string): Promise<ClubMember | null> {
+  async undoRemoval(clubId: string, removalId: string): Promise<Result<ClubMember, ServiceError>> {
     if (USE_MOCK) {
       removalHistoryCache = await loadRemovalHistory();
       const recordIndex = removalHistoryCache.findIndex(
@@ -334,13 +334,13 @@ export const clubService = {
       );
 
       if (recordIndex === -1) {
-        throw new Error('Removal record not found');
+        return err(notFound('Removal record', removalId));
       }
 
       const record = removalHistoryCache[recordIndex];
 
       if (!record.originalMembership) {
-        throw new Error('Cannot restore - membership data not available');
+        return err(validationError('Cannot restore - membership data not available'));
       }
 
       // Restore member
@@ -360,14 +360,14 @@ export const clubService = {
       removalHistoryCache.splice(recordIndex, 1);
       await saveRemovalHistory(removalHistoryCache);
 
-      return restoredMember;
+      return ok(restoredMember);
     }
 
     const response = await fetch(`/api/clubs/${clubId}/members/removed/${removalId}/undo`, {
       method: 'POST',
     });
-    if (!response.ok) return null;
-    return response.json();
+    if (!response.ok) return err(notFound('Removal record', removalId));
+    return ok(await response.json());
   },
 
   /**
@@ -449,8 +449,8 @@ export const clubService = {
   async getBranding(clubId: string): Promise<ClubBranding> {
     if (USE_MOCK) {
       try {
-        const stored = await AsyncStorage.getItem(`${CLUB_BRANDING_KEY}_${clubId}`);
-        if (stored) return JSON.parse(stored);
+        const stored = await apiClient.get<ClubBranding | null>(`${STORAGE_KEYS.CLUB_BRANDING}_${clubId}`, null);
+        if (stored) return stored;
       } catch (error) {
         logger.error('Failed to load branding', error);
       }
@@ -463,7 +463,7 @@ export const clubService = {
   /**
    * Update club branding
    */
-  async updateBranding(clubId: string, branding: Partial<ClubBranding>): Promise<ClubBranding> {
+  async updateBranding(clubId: string, branding: Partial<ClubBranding>): Promise<Result<ClubBranding, ServiceError>> {
     const current = await this.getBranding(clubId);
     const updated: ClubBranding = {
       ...current,
@@ -474,13 +474,13 @@ export const clubService = {
 
     if (USE_MOCK) {
       try {
-        await AsyncStorage.setItem(`${CLUB_BRANDING_KEY}_${clubId}`, JSON.stringify(updated));
+        await apiClient.set(`${STORAGE_KEYS.CLUB_BRANDING}_${clubId}`, updated);
         logger.info('Branding updated', { clubId });
       } catch (error) {
         logger.error('Failed to save branding', error);
-        throw error;
+        return err(storageError('Failed to save branding'));
       }
-      return updated;
+      return ok(updated);
     }
 
     const response = await fetch(`/api/clubs/${clubId}/branding`, {
@@ -488,7 +488,7 @@ export const clubService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   // ============================================================================

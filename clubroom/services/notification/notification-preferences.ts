@@ -14,8 +14,8 @@ import type {
   QuietHours,
   NotificationType,
 } from '@/constants/types';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
-const PREFERENCES_STORAGE_KEY = 'clubroom.notification_preferences';
 const logger = createLogger('NotificationPreferences');
 
 class NotificationPreferencesService {
@@ -47,7 +47,7 @@ class NotificationPreferencesService {
    */
   private async loadAllPreferences(): Promise<EnhancedNotificationPreferences[]> {
     return storageService.getItem<EnhancedNotificationPreferences[]>(
-      PREFERENCES_STORAGE_KEY,
+      STORAGE_KEYS.NOTIFICATION_PREFERENCES,
       []
     );
   }
@@ -68,7 +68,7 @@ class NotificationPreferencesService {
       all.push(prefs);
     }
 
-    await storageService.setItem(PREFERENCES_STORAGE_KEY, all);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATION_PREFERENCES, all);
   }
 
   /**

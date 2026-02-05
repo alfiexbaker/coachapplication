@@ -3,7 +3,7 @@ import { Image, ScrollView, StyleSheet, View, Alert, Pressable, ActivityIndicato
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -51,9 +51,8 @@ export default function SessionDetailScreen() {
       // If not found, check session bookings
       if (!foundBooking) {
         try {
-          const stored = await AsyncStorage.getItem('session_bookings');
-          if (stored) {
-            const sessionBookings = JSON.parse(stored);
+          const sessionBookings = await apiClient.get<any[]>('session_bookings', []);
+          if (sessionBookings.length > 0) {
             const sessionBooking = sessionBookings.find((b: any) => b.id === id);
 
             if (sessionBooking) {

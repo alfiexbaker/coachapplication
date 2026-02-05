@@ -5,6 +5,8 @@ import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
 import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
+import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
 import {
   ProgressionLevel,
   getProgressToNextLevel,
@@ -12,8 +14,7 @@ import {
   CategoryInfo,
   TierNames,
 } from '@/constants/progression';
-
-const STORAGE_KEY = 'clubroom.badge_awards';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 type AwardBadgeInput = {
   badgeId: string;
@@ -36,7 +37,7 @@ class BadgeService {
   private logger = createLogger('BadgeService');
 
   private async getStoredAwards(): Promise<BadgeAward[]> {
-    return storageService.getItem<BadgeAward[]>(STORAGE_KEY, []);
+    return storageService.getItem<BadgeAward[]>(STORAGE_KEYS.BADGE_AWARDS, []);
   }
 
   private mergeAwards(stored: BadgeAward[]): BadgeAward[] {
@@ -72,7 +73,7 @@ class BadgeService {
     return awards.filter((award) => award.sessionId === sessionId);
   }
 
-  async awardBadge(input: AwardBadgeInput): Promise<BadgeAward> {
+  async awardBadge(input: AwardBadgeInput): Promise<Result<BadgeAward, ServiceError>> {
     const stored = await this.getStoredAwards();
     const definition = badgeCatalog.find((badge) => badge.id === input.badgeId);
     const allAwards = this.mergeAwards(stored);
@@ -85,13 +86,13 @@ class BadgeService {
       const diffDays = (now - lastAwardDate) / (1000 * 60 * 60 * 24);
 
       if (diffDays < cooldownWindowDays && !input.overrideCooldown) {
-        throw new Error(
+        return err(validationError(
           `Cooldown in effect. Last badge was ${Math.ceil(diffDays)} day(s) ago. Toggle exception with a note to proceed.`,
-        );
+        ));
       }
 
       if (diffDays < cooldownWindowDays && input.overrideCooldown && !input.overrideNote?.trim()) {
-        throw new Error('Exception note is required to bypass the cooldown.');
+        return err(validationError('Exception note is required to bypass the cooldown.'));
       }
     }
 
@@ -124,7 +125,7 @@ class BadgeService {
     };
 
     const updated = [award, ...stored];
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, updated);
     this.logger.info('badge_awarded', {
       badgeId: input.badgeId,
       athleteId: input.athleteId,
@@ -146,7 +147,16 @@ class BadgeService {
       await this.createAchievementPosts(award);
     }
 
-    return award;
+    // Emit typed event for cross-service reactions
+    emitTyped(ServiceEvents.BADGE_EARNED, {
+      userId: input.athleteId,
+      badgeId: input.badgeId,
+      badgeLabel: award.badgeLabel,
+      coachId: input.coachId,
+      sessionId: input.sessionId,
+    });
+
+    return ok(award);
   }
 
   /**
@@ -251,7 +261,7 @@ class BadgeService {
 
     const updatedAward = { ...target, shared: true, feedPostId: feedPost?.id ?? target.feedPostId };
     const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
-    await storageService.setItem(STORAGE_KEY, nextStored);
+    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, nextStored);
     this.logger.info('badge_shared', {
       badgeId: target.badgeId,
       athleteId: target.athleteId,
@@ -286,7 +296,7 @@ class BadgeService {
     // Mark as shared/posted
     const updatedAward = { ...award, shared: true, addedToFeedAt: new Date().toISOString() };
     const nextStored = [updatedAward, ...stored.filter((a) => a.id !== awardId)];
-    await storageService.setItem(STORAGE_KEY, nextStored);
+    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, nextStored);
 
     this.logger.info('badge_posted_to_feed_by_user', {
       awardId,
@@ -310,7 +320,7 @@ class BadgeService {
       seenAt: new Date().toISOString(),
     };
     const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
-    await storageService.setItem(STORAGE_KEY, nextStored);
+    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, nextStored);
     this.logger.info('badge_seen_by_parent', { awardId });
     return updatedAward;
   }
@@ -329,7 +339,7 @@ class BadgeService {
         : award
     );
 
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.BADGE_AWARDS, updated);
     this.logger.info('all_badges_seen_by_parent', { athleteId });
   }
 

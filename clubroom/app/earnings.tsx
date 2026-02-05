@@ -21,7 +21,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { earningsService, type TransactionFilter } from '@/services/earnings-service';
+import { earningsService, type TransactionFilter } from '@/services/earnings';
 import type {
   CoachEarnings,
   EarningTransaction,
@@ -61,8 +61,6 @@ export default function EarningsScreen() {
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   const coachId = currentUser?.id || 'coach1';
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _coachName = currentUser?.name || currentUser?.fullName || 'Coach';
 
   const loadData = useCallback(async () => {
     setLoading(true);

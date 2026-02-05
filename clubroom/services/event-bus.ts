@@ -162,15 +162,191 @@ export type ServiceEventType = (typeof ServiceEvents)[keyof typeof ServiceEvents
 
 /**
  * Event payload types for type-safe event handling.
+ * Every ServiceEvent has a corresponding typed payload.
  */
 export interface EventPayloads {
-  [ServiceEvents.BOOKING_CREATED]: { bookingId: string; userId: string; coachId: string };
-  [ServiceEvents.BOOKING_CANCELLED]: { bookingId: string; reason?: string };
-  [ServiceEvents.SESSION_COMPLETED]: { sessionId: string; athleteIds: string[] };
-  [ServiceEvents.FAMILY_MEMBER_ADDED]: { familyId: string; memberId: string };
-  [ServiceEvents.NOTIFICATION_CREATED]: { notificationId: string; userId: string; type: string };
-  [ServiceEvents.BADGE_EARNED]: { userId: string; badgeId: string };
-  // Add more as needed
+  // Booking events
+  [ServiceEvents.BOOKING_CREATED]: {
+    bookingId: string;
+    userId: string;
+    coachId: string;
+    coachName?: string;
+    athleteIds?: string[];
+    athleteName?: string;
+    scheduledAt?: string;
+    service?: string;
+    price?: number;
+  };
+  [ServiceEvents.BOOKING_UPDATED]: {
+    bookingId: string;
+    userId: string;
+    changes: Record<string, unknown>;
+  };
+  [ServiceEvents.BOOKING_CANCELLED]: {
+    bookingId: string;
+    userId: string;
+    coachId: string;
+    reason?: string;
+    cancelledBy?: 'coach' | 'parent';
+  };
+  [ServiceEvents.BOOKING_CONFIRMED]: {
+    bookingId: string;
+    userId: string;
+    coachId: string;
+    coachName?: string;
+    athleteName?: string;
+    scheduledAt?: string;
+  };
+
+  // Session events
+  [ServiceEvents.SESSION_CREATED]: {
+    sessionId: string;
+    bookingId: string;
+    coachId: string;
+    athleteIds: string[];
+  };
+  [ServiceEvents.SESSION_UPDATED]: {
+    sessionId: string;
+    changes: Record<string, unknown>;
+  };
+  [ServiceEvents.SESSION_STARTED]: {
+    sessionId: string;
+    coachId: string;
+    athleteIds: string[];
+  };
+  [ServiceEvents.SESSION_COMPLETED]: {
+    sessionId: string;
+    bookingId?: string;
+    coachId: string;
+    athleteIds: string[];
+    price?: number;
+    athleteName?: string;
+  };
+  [ServiceEvents.SESSION_CANCELLED]: {
+    sessionId: string;
+    coachId: string;
+    reason?: string;
+  };
+
+  // User events
+  [ServiceEvents.USER_CREATED]: {
+    userId: string;
+    role: 'coach' | 'parent' | 'athlete';
+    name?: string;
+  };
+  [ServiceEvents.USER_UPDATED]: {
+    userId: string;
+    changes: Record<string, unknown>;
+  };
+  [ServiceEvents.USER_DELETED]: {
+    userId: string;
+  };
+  [ServiceEvents.USER_LOGGED_IN]: {
+    userId: string;
+    role: 'coach' | 'parent' | 'athlete';
+  };
+  [ServiceEvents.USER_LOGGED_OUT]: {
+    userId: string;
+  };
+
+  // Family events
+  [ServiceEvents.FAMILY_MEMBER_ADDED]: {
+    familyId: string;
+    memberId: string;
+    memberName?: string;
+    addedBy?: string;
+  };
+  [ServiceEvents.FAMILY_MEMBER_REMOVED]: {
+    familyId: string;
+    memberId: string;
+  };
+  [ServiceEvents.FAMILY_LINK_CREATED]: {
+    familyId: string;
+    guardianId: string;
+    guardianName?: string;
+    role?: string;
+  };
+
+  // Payment events
+  [ServiceEvents.PAYMENT_SUCCEEDED]: {
+    transactionId: string;
+    userId: string;
+    bookingId: string;
+    amount: number;
+    currency?: string;
+  };
+  [ServiceEvents.PAYMENT_FAILED]: {
+    userId: string;
+    bookingId: string;
+    amount: number;
+    error: string;
+  };
+  [ServiceEvents.REFUND_ISSUED]: {
+    transactionId: string;
+    userId: string;
+    bookingId: string;
+    amount: number;
+    reason?: string;
+  };
+
+  // Notification events
+  [ServiceEvents.NOTIFICATION_CREATED]: {
+    notificationId: string;
+    userId: string;
+    type: string;
+  };
+  [ServiceEvents.NOTIFICATION_READ]: {
+    notificationId: string;
+  };
+  [ServiceEvents.NOTIFICATION_DISMISSED]: {
+    notificationId: string;
+  };
+
+  // Club events
+  [ServiceEvents.CLUB_MEMBER_JOINED]: {
+    clubId: string;
+    userId: string;
+    userName?: string;
+  };
+  [ServiceEvents.CLUB_MEMBER_LEFT]: {
+    clubId: string;
+    userId: string;
+  };
+  [ServiceEvents.CLUB_POST_CREATED]: {
+    clubId: string;
+    postId: string;
+    authorId: string;
+  };
+
+  // Achievement events
+  [ServiceEvents.BADGE_EARNED]: {
+    userId: string;
+    badgeId: string;
+    badgeLabel?: string;
+    coachId?: string;
+    sessionId?: string;
+  };
+  [ServiceEvents.STREAK_MILESTONE]: {
+    userId: string;
+    streakWeeks: number;
+    milestoneLabel?: string;
+  };
+
+  // Sync events
+  [ServiceEvents.SYNC_STARTED]: {
+    scope: string;
+    userId?: string;
+  };
+  [ServiceEvents.SYNC_COMPLETED]: {
+    scope: string;
+    userId?: string;
+    itemCount?: number;
+  };
+  [ServiceEvents.SYNC_FAILED]: {
+    scope: string;
+    userId?: string;
+    error: string;
+  };
 }
 
 /**

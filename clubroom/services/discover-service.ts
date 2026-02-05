@@ -21,8 +21,7 @@ import type {
   TrainingFormat,
 } from '@/constants/types';
 import { storageService } from './storage-service';
-
-const STORAGE_KEY = 'clubroom.discover.recentSearches';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 const MAX_RECENT_SEARCHES = 10;
 
 // Try to import coach profiles from mock data, fall back to empty array
@@ -665,21 +664,21 @@ class DiscoverService {
   private async saveRecentSearch(query: string): Promise<void> {
     const recent = await this.getRecentSearches();
     const updated = [query, ...recent.filter((q) => q !== query)].slice(0, MAX_RECENT_SEARCHES);
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, updated);
   }
 
   /**
    * Get recent search queries
    */
   async getRecentSearches(): Promise<string[]> {
-    return storageService.getItem<string[]>(STORAGE_KEY, []);
+    return storageService.getItem<string[]>(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []);
   }
 
   /**
    * Clear recent searches
    */
   async clearRecentSearches(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY, []);
+    await storageService.setItem(STORAGE_KEYS.DISCOVER_RECENT_SEARCHES, []);
   }
 
   /**

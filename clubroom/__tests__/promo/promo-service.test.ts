@@ -26,7 +26,11 @@ describe('Promo Service', () => {
         createdBy: 'admin_test',
       };
 
-      const promoCode = await promoService.createPromoCode(params);
+      const result = await promoService.createPromoCode(params);
+
+      assert.strictEqual(result.success, true);
+      if (!result.success) return;
+      const promoCode = result.data;
 
       assert.ok(promoCode.id.startsWith('promo_'));
       assert.strictEqual(promoCode.code, 'TESTCODE');
@@ -52,7 +56,11 @@ describe('Promo Service', () => {
         createdByName: 'Test Admin',
       };
 
-      const promoCode = await promoService.createPromoCode(params);
+      const result = await promoService.createPromoCode(params);
+
+      assert.strictEqual(result.success, true);
+      if (!result.success) return;
+      const promoCode = result.data;
 
       assert.strictEqual(promoCode.code, 'FULLTEST'); // Normalized to uppercase
       assert.strictEqual(promoCode.creditAmount, 25);
@@ -71,12 +79,14 @@ describe('Promo Service', () => {
         createdBy: 'admin_test',
       };
 
-      const promoCode = await promoService.createPromoCode(params);
+      const result = await promoService.createPromoCode(params);
 
-      assert.strictEqual(promoCode.code, 'LOWERCASE');
+      assert.strictEqual(result.success, true);
+      if (!result.success) return;
+      assert.strictEqual(result.data.code, 'LOWERCASE');
     });
 
-    test('should throw error for duplicate code', async () => {
+    test('should return error for duplicate code', async () => {
       const params: CreatePromoCodeParams = {
         code: 'WELCOME25', // Existing mock code
         creditAmount: 10,
@@ -84,12 +94,14 @@ describe('Promo Service', () => {
         createdBy: 'admin_test',
       };
 
-      await assert.rejects(async () => {
-        await promoService.createPromoCode(params);
-      }, /already exists/);
+      const result = await promoService.createPromoCode(params);
+
+      assert.strictEqual(result.success, false);
+      if (result.success) return;
+      assert.ok(result.error.message.includes('already exists'));
     });
 
-    test('should throw error for invalid credit amount', async () => {
+    test('should return error for invalid credit amount', async () => {
       const params: CreatePromoCodeParams = {
         code: 'INVALID',
         creditAmount: 0,
@@ -97,12 +109,14 @@ describe('Promo Service', () => {
         createdBy: 'admin_test',
       };
 
-      await assert.rejects(async () => {
-        await promoService.createPromoCode(params);
-      }, /greater than zero/);
+      const result = await promoService.createPromoCode(params);
+
+      assert.strictEqual(result.success, false);
+      if (result.success) return;
+      assert.ok(result.error.message.includes('greater than zero'));
     });
 
-    test('should throw error for invalid max uses', async () => {
+    test('should return error for invalid max uses', async () => {
       const params: CreatePromoCodeParams = {
         code: 'INVALID2',
         creditAmount: 10,
@@ -110,9 +124,11 @@ describe('Promo Service', () => {
         createdBy: 'admin_test',
       };
 
-      await assert.rejects(async () => {
-        await promoService.createPromoCode(params);
-      }, /greater than zero/);
+      const result = await promoService.createPromoCode(params);
+
+      assert.strictEqual(result.success, false);
+      if (result.success) return;
+      assert.ok(result.error.message.includes('greater than zero'));
     });
   });
 
@@ -281,12 +297,16 @@ describe('Promo Service', () => {
 
     test('should return empty array for code with no usage', async () => {
       // Create a new code with no usage
-      const newCode = await promoService.createPromoCode({
+      const createResult = await promoService.createPromoCode({
         code: 'NOUSAGE',
         creditAmount: 5,
         maxUses: 10,
         createdBy: 'admin',
       });
+
+      assert.strictEqual(createResult.success, true);
+      if (!createResult.success) return;
+      const newCode = createResult.data;
 
       const usage = await promoService.getCodeUsage(newCode.id);
 
@@ -384,12 +404,16 @@ describe('Promo Service', () => {
   describe('deletePromoCode', () => {
     test('should delete a promo code', async () => {
       // Create a code to delete
-      const code = await promoService.createPromoCode({
+      const createResult = await promoService.createPromoCode({
         code: 'TODELETE',
         creditAmount: 5,
         maxUses: 10,
         createdBy: 'admin',
       });
+
+      assert.strictEqual(createResult.success, true);
+      if (!createResult.success) return;
+      const code = createResult.data;
 
       const deleted = await promoService.deletePromoCode(code.id);
       assert.strictEqual(deleted, true);

@@ -468,7 +468,7 @@ class PackageService {
           description: `Package: ${pkg.name}`,
           packageId,
           coachId: pkg.coachId,
-          coachName: pkg.coachName,
+          ...(pkg.coachName != null && { coachName: pkg.coachName }),
           sessionCount: pkg.sessionCount,
         }
       );

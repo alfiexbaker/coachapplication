@@ -1,0 +1,452 @@
+/**
+ * Wallet Transaction Service
+ *
+ * Handles transaction CRUD operations: create, read, update, delete, filter.
+ * Manages transaction storage and retrieval.
+ *
+ * API Integration Notes:
+ * - Transactions are persisted via storageService (AsyncStorage in dev, API in prod)
+ */
+
+import { api } from '@/constants/config';
+import {
+  WalletTransaction,
+  TransactionType,
+  TransactionStatus,
+} from '@/constants/types';
+import { storageService } from '../storage-service';
+import { createLogger } from '@/utils/logger';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+
+const logger = createLogger('WalletTransactionService');
+const USE_MOCK = api.useMock;
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface TransactionFilter {
+  type?: TransactionType | TransactionType[];
+  status?: TransactionStatus | TransactionStatus[];
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+// ============================================================================
+// MOCK DATA
+// ============================================================================
+
+const MOCK_TRANSACTIONS: WalletTransaction[] = [
+  // Parent 1 transactions
+  {
+    id: 'txn_p1_1',
+    walletId: 'wallet_parent1',
+    userId: 'parent1',
+    type: 'TOP_UP',
+    amount: 100.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Wallet top-up via card ending 4242',
+    balanceAfter: 100.0,
+    createdAt: '2024-06-15T10:05:00.000Z',
+    completedAt: '2024-06-15T10:05:02.000Z',
+    metadata: { paymentMethod: 'card', last4: '4242' },
+  },
+  {
+    id: 'txn_p1_2',
+    walletId: 'wallet_parent1',
+    userId: 'parent1',
+    type: 'BOOKING_PAYMENT',
+    amount: -50.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: '1-on-1 session with Coach Sarah Mitchell',
+    reference: 'booking_001',
+    balanceAfter: 50.0,
+    createdAt: '2024-07-10T15:30:00.000Z',
+    completedAt: '2024-07-10T15:30:01.000Z',
+    metadata: { coachId: 'coach1', coachName: 'Sarah Mitchell', sessionType: '1-on-1' },
+  },
+  {
+    id: 'txn_p1_3',
+    walletId: 'wallet_parent1',
+    userId: 'parent1',
+    type: 'TOP_UP',
+    amount: 150.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Wallet top-up via Apple Pay',
+    balanceAfter: 200.0,
+    createdAt: '2024-09-01T09:00:00.000Z',
+    completedAt: '2024-09-01T09:00:03.000Z',
+    metadata: { paymentMethod: 'apple_pay' },
+  },
+  {
+    id: 'txn_p1_4',
+    walletId: 'wallet_parent1',
+    userId: 'parent1',
+    type: 'BOOKING_PAYMENT',
+    amount: -75.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Group session - Striker Development Camp',
+    reference: 'booking_002',
+    balanceAfter: 125.0,
+    createdAt: '2024-10-15T11:00:00.000Z',
+    completedAt: '2024-10-15T11:00:01.000Z',
+    metadata: { coachId: 'coach2', coachName: 'Mike Thompson', sessionType: 'group' },
+  },
+  {
+    id: 'txn_p1_5',
+    walletId: 'wallet_parent1',
+    userId: 'parent1',
+    type: 'BOOKING_REFUND',
+    amount: 75.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Refund - Coach cancelled session',
+    reference: 'booking_002',
+    balanceAfter: 200.0,
+    createdAt: '2024-10-14T16:00:00.000Z',
+    completedAt: '2024-10-14T16:00:05.000Z',
+    metadata: { reason: 'Coach unavailable', originalPaymentId: 'txn_p1_4' },
+  },
+  {
+    id: 'txn_p1_6',
+    walletId: 'wallet_parent1',
+    userId: 'parent1',
+    type: 'BOOKING_PAYMENT',
+    amount: -50.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: '1-on-1 session with Coach Sarah Mitchell',
+    reference: 'booking_003',
+    balanceAfter: 150.0,
+    createdAt: '2025-01-05T14:00:00.000Z',
+    completedAt: '2025-01-05T14:00:01.000Z',
+    metadata: { coachId: 'coach1', coachName: 'Sarah Mitchell', sessionType: '1-on-1' },
+  },
+  {
+    id: 'txn_p1_7',
+    walletId: 'wallet_parent1',
+    userId: 'parent1',
+    type: 'TOP_UP',
+    amount: 100.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Wallet top-up via card ending 4242',
+    balanceAfter: 250.0,
+    createdAt: '2024-12-20T10:00:00.000Z',
+    completedAt: '2024-12-20T10:00:02.000Z',
+    metadata: { paymentMethod: 'card', last4: '4242' },
+  },
+  {
+    id: 'txn_p1_8',
+    walletId: 'wallet_parent1',
+    userId: 'parent1',
+    type: 'PROMO_CREDIT',
+    amount: 25.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Welcome bonus credit',
+    balanceAfter: 125.0,
+    createdAt: '2024-06-15T10:10:00.000Z',
+    completedAt: '2024-06-15T10:10:00.000Z',
+    metadata: { promoCode: 'WELCOME25' },
+  },
+  // Parent 2 transactions
+  {
+    id: 'txn_p2_1',
+    walletId: 'wallet_parent2',
+    userId: 'parent2',
+    type: 'TOP_UP',
+    amount: 100.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Wallet top-up via Google Pay',
+    balanceAfter: 100.0,
+    createdAt: '2024-08-20T09:05:00.000Z',
+    completedAt: '2024-08-20T09:05:03.000Z',
+    metadata: { paymentMethod: 'google_pay' },
+  },
+  {
+    id: 'txn_p2_2',
+    walletId: 'wallet_parent2',
+    userId: 'parent2',
+    type: 'BOOKING_PAYMENT',
+    amount: -45.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: '1-on-1 session with Coach David Roberts',
+    reference: 'booking_010',
+    balanceAfter: 55.0,
+    createdAt: '2024-09-15T13:00:00.000Z',
+    completedAt: '2024-09-15T13:00:01.000Z',
+    metadata: { coachId: 'coach3', coachName: 'David Roberts', sessionType: '1-on-1' },
+  },
+  {
+    id: 'txn_p2_3',
+    walletId: 'wallet_parent2',
+    userId: 'parent2',
+    type: 'TOP_UP',
+    amount: 100.0,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Wallet top-up via card ending 1234',
+    balanceAfter: 155.0,
+    createdAt: '2024-11-01T08:00:00.000Z',
+    completedAt: '2024-11-01T08:00:02.000Z',
+    metadata: { paymentMethod: 'card', last4: '1234' },
+  },
+  {
+    id: 'txn_p2_4',
+    walletId: 'wallet_parent2',
+    userId: 'parent2',
+    type: 'BOOKING_PAYMENT',
+    amount: -54.5,
+    currency: 'GBP',
+    status: 'COMPLETED',
+    description: 'Group session - Goalkeeper Training',
+    reference: 'booking_011',
+    balanceAfter: 100.5,
+    createdAt: '2024-12-10T10:30:00.000Z',
+    completedAt: '2024-12-10T10:30:01.000Z',
+    metadata: { coachId: 'coach1', coachName: 'Sarah Mitchell', sessionType: 'group' },
+  },
+  {
+    id: 'txn_p2_5',
+    walletId: 'wallet_parent2',
+    userId: 'parent2',
+    type: 'BOOKING_PAYMENT',
+    amount: -25.0,
+    currency: 'GBP',
+    status: 'PENDING',
+    description: 'Upcoming session with Coach Amy Taylor',
+    reference: 'booking_012',
+    balanceAfter: 75.5,
+    createdAt: '2025-01-08T11:15:00.000Z',
+    metadata: { coachId: 'coach4', coachName: 'Amy Taylor', sessionType: '1-on-1' },
+  },
+];
+
+// ============================================================================
+// WALLET TRANSACTION SERVICE
+// ============================================================================
+
+class WalletTransactionService {
+  /**
+   * Get transactions for a user with optional limit
+   */
+  async getTransactions(userId: string, limit?: number): Promise<WalletTransaction[]> {
+    const allTransactions = await this.getAllTransactions();
+    let userTransactions = allTransactions
+      .filter((t) => t.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    if (limit && limit > 0) {
+      userTransactions = userTransactions.slice(0, limit);
+    }
+
+    logger.info('transactions_retrieved', { userId, count: userTransactions.length });
+    return userTransactions;
+  }
+
+  /**
+   * Get transactions with filters
+   */
+  async getTransactionsFiltered(
+    userId: string,
+    filter: TransactionFilter,
+    limit?: number
+  ): Promise<WalletTransaction[]> {
+    let transactions = await this.getTransactions(userId);
+
+    // Filter by type
+    if (filter.type) {
+      const types = Array.isArray(filter.type) ? filter.type : [filter.type];
+      transactions = transactions.filter((t) => types.includes(t.type));
+    }
+
+    // Filter by status
+    if (filter.status) {
+      const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+      transactions = transactions.filter((t) => statuses.includes(t.status));
+    }
+
+    // Filter by date range
+    if (filter.dateFrom) {
+      const fromDate = new Date(filter.dateFrom).getTime();
+      transactions = transactions.filter(
+        (t) => new Date(t.createdAt).getTime() >= fromDate
+      );
+    }
+
+    if (filter.dateTo) {
+      const toDate = new Date(filter.dateTo).getTime();
+      transactions = transactions.filter(
+        (t) => new Date(t.createdAt).getTime() <= toDate
+      );
+    }
+
+    if (limit && limit > 0) {
+      transactions = transactions.slice(0, limit);
+    }
+
+    return transactions;
+  }
+
+  /**
+   * Get a single transaction by ID
+   */
+  async getTransactionById(transactionId: string): Promise<WalletTransaction | null> {
+    const allTransactions = await this.getAllTransactions();
+    return allTransactions.find((t) => t.id === transactionId) || null;
+  }
+
+  /**
+   * Get all transactions (internal use)
+   */
+  async getAllTransactions(): Promise<WalletTransaction[]> {
+    if (USE_MOCK) {
+      return storageService.getItem<WalletTransaction[]>(
+        STORAGE_KEYS.WALLET_TRANSACTIONS,
+        MOCK_TRANSACTIONS
+      );
+    }
+    // TODO: API call when ready
+    return storageService.getItem<WalletTransaction[]>(STORAGE_KEYS.WALLET_TRANSACTIONS, []);
+  }
+
+  /**
+   * Save transactions to storage
+   */
+  async saveTransactions(transactions: WalletTransaction[]): Promise<void> {
+    await storageService.setItem(STORAGE_KEYS.WALLET_TRANSACTIONS, transactions);
+  }
+
+  /**
+   * Create a new transaction record
+   */
+  async createTransaction(
+    params: Omit<WalletTransaction, 'id' | 'createdAt'>
+  ): Promise<WalletTransaction> {
+    const transactions = await this.getAllTransactions();
+
+    const newTransaction: WalletTransaction = {
+      ...params,
+      id: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    transactions.unshift(newTransaction);
+    await this.saveTransactions(transactions);
+
+    logger.info('transaction_created', {
+      id: newTransaction.id,
+      type: newTransaction.type,
+      amount: newTransaction.amount,
+      userId: newTransaction.userId,
+    });
+
+    return newTransaction;
+  }
+
+  /**
+   * Update a transaction (e.g., mark as completed)
+   */
+  async updateTransaction(
+    transactionId: string,
+    updates: Partial<WalletTransaction>
+  ): Promise<WalletTransaction | null> {
+    const transactions = await this.getAllTransactions();
+    const index = transactions.findIndex((t) => t.id === transactionId);
+
+    if (index === -1) {
+      return null;
+    }
+
+    transactions[index] = {
+      ...transactions[index],
+      ...updates,
+    };
+
+    await this.saveTransactions(transactions);
+    return transactions[index];
+  }
+
+  /**
+   * Create a custom transaction (for admin/special cases)
+   */
+  async createCustomTransaction(
+    params: Omit<WalletTransaction, 'id' | 'createdAt' | 'walletId'> & { userId: string },
+    walletId: string,
+  ): Promise<WalletTransaction> {
+    const transaction = await this.createTransaction({
+      ...params,
+      walletId,
+    });
+
+    return transaction;
+  }
+
+  /**
+   * Cancel a pending transaction
+   */
+  async cancelTransaction(transactionId: string): Promise<WalletTransaction | null> {
+    const transaction = await this.getTransactionById(transactionId);
+
+    if (!transaction) {
+      logger.warn('cancel_transaction_not_found', { transactionId });
+      return null;
+    }
+
+    if (transaction.status !== 'PENDING') {
+      logger.warn('cancel_transaction_not_pending', {
+        transactionId,
+        status: transaction.status,
+      });
+      return null;
+    }
+
+    const updatedTransaction = await this.updateTransaction(transactionId, {
+      status: 'CANCELLED',
+    });
+
+    logger.info('transaction_cancelled', { transactionId });
+    return updatedTransaction;
+  }
+
+  /**
+   * Delete a transaction (admin only, use with caution)
+   */
+  async deleteTransaction(transactionId: string): Promise<boolean> {
+    const transactions = await this.getAllTransactions();
+    const index = transactions.findIndex((t) => t.id === transactionId);
+
+    if (index === -1) {
+      return false;
+    }
+
+    transactions.splice(index, 1);
+    await this.saveTransactions(transactions);
+
+    logger.info('transaction_deleted', { transactionId });
+    return true;
+  }
+
+  /**
+   * Get pending transactions for a user
+   */
+  async getPendingTransactions(userId: string): Promise<WalletTransaction[]> {
+    return this.getTransactionsFiltered(userId, { status: 'PENDING' });
+  }
+
+  /**
+   * Get mock transactions for seeding
+   */
+  getMockTransactions(): WalletTransaction[] {
+    return MOCK_TRANSACTIONS;
+  }
+}
+
+export const walletTransactionService = new WalletTransactionService();

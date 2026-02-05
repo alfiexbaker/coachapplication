@@ -3,7 +3,7 @@
  * All services should extend this to eliminate ~700 lines of duplicated code.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 import { eventBus } from './event-bus';
 import {
@@ -42,10 +42,42 @@ export abstract class BaseService<T extends BaseEntity> {
   protected mockData: T[] = [];
 
   /**
+   * In-memory cache indexed by entity ID for O(1) lookups.
+   * Lazily populated on first read access.
+   */
+  private _cache: Map<string, T> | null = null;
+  private _cacheTimestamp = 0;
+
+  /** Maximum age (ms) before cache is considered stale. Subclasses can override. */
+  protected cacheMaxAge = 30_000;
+
+  /**
+   * Returns the ID-indexed cache, lazily loading from storage on first access
+   * or when the cache has exceeded its TTL.
+   */
+  private async getCache(): Promise<Map<string, T>> {
+    const now = Date.now();
+    if (this._cache === null || now - this._cacheTimestamp > this.cacheMaxAge) {
+      const data = await this.loadFromStorage();
+      this._cache = new Map(data.map((item) => [item.id, item]));
+      this._cacheTimestamp = now;
+    }
+    return this._cache;
+  }
+
+  /**
+   * Invalidate the in-memory cache. Called after every write operation.
+   */
+  private invalidateCache(): void {
+    this._cache = null;
+    this._cacheTimestamp = 0;
+  }
+
+  /**
    * Generate a unique ID for new entities.
    */
   protected generateId(): string {
-    return `${this.entityName.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    return apiClient.generateId(this.entityName.toLowerCase());
   }
 
   /**
@@ -64,8 +96,7 @@ export abstract class BaseService<T extends BaseEntity> {
     }
 
     try {
-      const json = await AsyncStorage.getItem(this.storageKey);
-      return json ? JSON.parse(json) : [];
+      return await apiClient.get<T[]>(this.storageKey, []);
     } catch (error) {
       logger.error(`Failed to load ${this.entityName}`, error);
       return [];
@@ -82,7 +113,7 @@ export abstract class BaseService<T extends BaseEntity> {
     }
 
     try {
-      await AsyncStorage.setItem(this.storageKey, JSON.stringify(data));
+      await apiClient.set(this.storageKey, data);
       return ok(undefined);
     } catch (error) {
       logger.error(`Failed to save ${this.entityName}`, error);
@@ -95,7 +126,8 @@ export abstract class BaseService<T extends BaseEntity> {
    */
   async getAll(options?: QueryOptions<T>): Promise<Result<T[], ServiceError>> {
     try {
-      let data = await this.loadFromStorage();
+      const cache = await this.getCache();
+      let data = Array.from(cache.values());
 
       // Apply filter
       if (options?.filter) {
@@ -138,8 +170,8 @@ export abstract class BaseService<T extends BaseEntity> {
    */
   async getById(id: string): Promise<Result<T, ServiceError>> {
     try {
-      const data = await this.loadFromStorage();
-      const item = data.find((entity) => entity.id === id);
+      const cache = await this.getCache();
+      const item = cache.get(id);
 
       if (!item) {
         return err(notFound(this.entityName, id));
@@ -179,6 +211,8 @@ export abstract class BaseService<T extends BaseEntity> {
       if (!saveResult.success) {
         return saveResult;
       }
+
+      this.invalidateCache();
 
       // Emit create event
       this.emit(`${this.entityName.toLowerCase()}:created`, newEntity);
@@ -222,6 +256,8 @@ export abstract class BaseService<T extends BaseEntity> {
         return saveResult;
       }
 
+      this.invalidateCache();
+
       // Emit update event
       this.emit(`${this.entityName.toLowerCase()}:updated`, updatedEntity);
 
@@ -251,6 +287,8 @@ export abstract class BaseService<T extends BaseEntity> {
       if (!saveResult.success) {
         return saveResult;
       }
+
+      this.invalidateCache();
 
       // Emit delete event
       this.emit(`${this.entityName.toLowerCase()}:deleted`, { id, entity: deletedEntity });
@@ -328,6 +366,8 @@ export abstract class BaseService<T extends BaseEntity> {
         return err(saveResult.error);
       }
 
+      this.invalidateCache();
+
       return ok(newEntities);
     } catch (error) {
       logger.error(`Failed to create multiple ${this.entityName}`, error);
@@ -350,6 +390,8 @@ export abstract class BaseService<T extends BaseEntity> {
         if (!saveResult.success) {
           return saveResult as Result<number, ServiceError>;
         }
+
+        this.invalidateCache();
       }
 
       return ok(deletedCount);
@@ -363,6 +405,8 @@ export abstract class BaseService<T extends BaseEntity> {
    * Clear all entities (useful for testing).
    */
   async clear(): Promise<Result<void, ServiceError>> {
-    return this.saveToStorage([]);
+    const result = await this.saveToStorage([]);
+    this.invalidateCache();
+    return result;
   }
 }

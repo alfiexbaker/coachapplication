@@ -1,0 +1,858 @@
+/**
+ * Session Types
+ *
+ * Session management, session invites, counter-offers, availability,
+ * group sessions, recurring bookings, waitlist, booking summaries,
+ * and bilateral interaction types.
+ */
+
+import type { FootballObjective } from './user-types';
+
+// ============================================================================
+// SESSION MANAGEMENT TYPES
+// ============================================================================
+
+// Session Types and Templates
+export type SessionType = '1-to-1' | 'small-group' | 'clinic' | 'assessment';
+
+export interface SessionTemplate {
+  id: string;
+  coachId: string;
+  name: string;
+  type: SessionType;
+  duration: number; // minutes
+  capacity: number; // max participants
+  defaultPrice: number; // GBP
+  description?: string;
+  defaultLocation?: string;
+  skillsFocus: string[];
+  createdAt: string;
+}
+
+// Session Lifecycle States
+export type SessionState = 'DRAFT' | 'OPEN' | 'REQUESTED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+
+export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';
+
+export interface CoachSession {
+  id: string;
+  coachId: string;
+  templateId?: string; // If created from template
+  type: SessionType;
+  state: SessionState;
+  title: string;
+  description?: string;
+
+  // Scheduling
+  scheduledAt: string; // ISO date string
+  duration: number; // minutes
+  location: string;
+
+  // Capacity & Roster
+  capacity: number; // max participants
+  roster: SessionParticipant[];
+
+  // Access Control
+  isPrivate: boolean; // If true, only invited athletes can see/request
+  isOpenToRequests: boolean; // If false, coach must directly invite
+
+  // Pricing
+  price: number; // GBP
+
+  // Plan & Recap
+  planId?: string; // Reference to SessionPlan
+  recapId?: string; // Reference to SessionRecap
+
+  // Metadata
+  createdAt: string;
+  updatedAt: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+}
+
+// Participant in a session
+export type ParticipantType = 'athlete' | 'guest' | 'request';
+
+export interface SessionParticipant {
+  id: string;
+  sessionId: string;
+  participantType: ParticipantType;
+  athleteId?: string; // If registered athlete
+  guestId?: string; // If guest athlete
+  requestId?: string; // If pending request
+  confirmedAt?: string;
+  attendanceStatus?: AttendanceStatus;
+}
+
+// Guest Athletes (Exterior Individuals)
+export interface GuestAthlete {
+  id: string;
+  coachId: string; // Coach who added them
+  name: string;
+  ageBand?: string; // e.g., 'Under 12', '13-15', '16-18', 'Adult'
+  guardianName?: string;
+  guardianContact?: string;
+  notes?: string;
+  isVerified: boolean; // Whether guardian has accepted invite
+  createdAt: string;
+}
+
+// Session Requests (from parents/users)
+export type RequestStatus = 'PENDING' | 'APPROVED' | 'DECLINED';
+
+export interface SessionRequest {
+  id: string;
+  sessionId: string;
+  athleteId: string;
+  requestedById: string; // Parent or athlete
+  status: RequestStatus;
+  message?: string; // Optional message from requester
+  createdAt: string;
+  respondedAt?: string;
+  responseMessage?: string;
+}
+
+// Athlete Directory (Coach's saved athletes)
+export interface AthleteDirectoryEntry {
+  id: string;
+  coachId: string;
+  athleteId: string;
+  tags?: string[]; // e.g., ['Team A', 'U15', 'Striker']
+  notes?: string;
+  firstSessionDate?: string;
+  lastSessionDate?: string;
+  totalSessions: number;
+  addedAt: string;
+}
+
+// Session Plan (before session)
+export interface SessionPlan {
+  id: string;
+  sessionId: string;
+  coachId: string;
+
+  // Content
+  objectives: string[];
+  warmUp?: string;
+  mainActivities: SessionActivity[];
+  coolDown?: string;
+  equipment: string[];
+  notes?: string;
+
+  // Sharing
+  sharedWithAthletes: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SessionActivity {
+  id: string;
+  name: string;
+  duration: number; // minutes
+  description?: string;
+  focusAreas: string[];
+}
+
+// Session Recap (after session)
+export interface SessionRecap {
+  id: string;
+  sessionId: string;
+  coachId: string;
+
+  // Content
+  summary: string;
+  highlightsPerAthlete: AthleteHighlight[];
+  skillsWorked: string[];
+  overallPerformance: number; // 1-5 rating
+  nextSteps?: string;
+
+  // Media
+  photoUrls?: string[];
+  videoUrls?: string[];
+
+  // Sharing
+  sharedWithAthletes: boolean;
+  createdAt: string;
+}
+
+export interface AthleteHighlight {
+  athleteId?: string;
+  guestId?: string;
+  athleteName: string;
+  strengths: string[];
+  areasToImprove: string[];
+  performanceRating: number; // 1-5
+  notes?: string;
+}
+
+// Invite Codes for Teams/Rosters
+export interface TeamInviteCode {
+  id: string;
+  coachId: string;
+  code: string;
+  teamName?: string;
+  description?: string;
+  maxUses?: number;
+  currentUses: number;
+  expiresAt?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// ============================================================================
+// BOOKING SUMMARY
+// ============================================================================
+
+export interface BookingSummary {
+  id: string;
+  coachName: string;
+  childName: string;
+  service: string;
+  start: string;
+  status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
+  locationLabel: string;
+  coach?: {
+    name: string;
+    photoUrl: string;
+  };
+  client?: {
+    name: string;
+    photoUrl: string;
+  };
+  coachId?: string;
+  clientId?: string;
+  // Group booking fields
+  isGroupSession?: boolean;
+  maxParticipants?: number;
+  currentParticipants?: number;
+  participants?: {
+    id: string;
+    name: string;
+    avatar: string;
+    status: 'confirmed' | 'pending' | 'cancelled';
+  }[];
+}
+
+// Session Offering System
+export interface SessionRegistration {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhotoUrl?: string;
+  bookedAt: string;
+  status: 'confirmed' | 'cancelled' | 'completed';
+}
+
+export interface SessionOffering {
+  id: string;
+  coachId: string;
+  coachName: string;
+  coachPhotoUrl?: string;
+  clubId?: string;
+  clubScope?: 'club' | 'squad' | 'public';
+  squadId?: string;
+  title: string; // Session name/title
+  description?: string;
+  sessionType: '1on1' | 'group';
+  maxParticipants: number;
+  location: string;
+  scheduledAt: string; // ISO date string
+  isRecurring: boolean;
+  recurrenceType: 'none' | 'weekly' | 'biweekly';
+  dayOfWeek?: number; // 0-6 (Sunday-Saturday) for recurring sessions
+  timeOfDay?: string; // "18:00" format for recurring sessions
+  endDate?: string; // ISO date string - when recurring series ends
+  cancelledInstances?: string[]; // ISO date strings of cancelled individual instances
+  status: 'active' | 'cancelled' | 'completed' | 'full';
+  visibility?: 'club' | 'public';
+  registrations: SessionRegistration[];
+  createdAt: string;
+  duration?: number; // Duration in minutes (default 60)
+  priceUsd?: number;
+  ageMin?: number; // Minimum age (e.g., 10 for U12)
+  ageMax?: number; // Maximum age (e.g., 12 for U12)
+  footballSkill?: FootballObjective; // Primary skill focus
+}
+
+export interface AthleteObjective {
+  id: string;
+  athleteId?: string; // Optional: links objective to specific athlete (for parents with multiple children)
+  label: FootballObjective | 'Custom';
+  status: 'active' | 'upcoming' | 'completed';
+  updatedAt: string;
+  note?: string;
+  coachName: string;
+  progress: number; // 0-100
+  sessionsCompleted: number;
+  startDate: string;
+  targetSessions?: number;
+}
+
+export interface SessionHistoryEntry {
+  id: string;
+  date: string;
+  coachName: string;
+  focus: FootballObjective;
+  location: string;
+  highlight: string;
+  resultBadge?: string;
+  clipLabel?: string;
+  durationMinutes: number;
+  sessionType: string;
+  dateCompleted: string;
+  rating?: number; // 1-5
+  coachFeedback?: string;
+}
+
+// ============================================================================
+// SESSION NOTES (Enhanced)
+// ============================================================================
+
+export interface SessionNote {
+  id: string;
+  bookingId: string;
+  coachId: string;
+  athleteId: string;
+  effortRating: number;
+  focusAreas: FootballObjective[];
+  improvements: string[];
+  homework: string[];
+  privateNotes?: string;
+  parentVisibleNotes?: string;
+  videoUrls: string[];
+  skillUpdates: {
+    skill: FootballObjective;
+    previousLevel: number;
+    newLevel: number;
+  }[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// ============================================================================
+// SESSION INVITES (Coach -> Parent)
+// ============================================================================
+
+export interface TimeSlot {
+  id?: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+}
+
+export interface SessionInvite {
+  id: string;
+  coachId: string;
+  coachName: string;
+  coachPhotoUrl?: string;
+  clubName?: string; // Club or Academy name (e.g., "Bradwell Boys")
+  athleteIds: string[];
+  athleteNames: string[];
+  parentId: string;
+  parentName: string;
+  proposedSlots: TimeSlot[];
+  sessionType: string;
+  focus: string;
+  notes?: string;
+  priceUsd?: number;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED';
+  expiresAt: string;
+  createdAt: string;
+  respondedAt?: string;
+  selectedSlot?: TimeSlot; // The slot chosen when accepting
+  counterProposal?: TimeSlot[];
+  counterNote?: string;
+  groupId?: string; // Links invites that were sent as part of a group/bulk send
+  bookingId?: string; // Link to created booking (bidirectional)
+  dismissed?: boolean; // When parent removes/hides the invite from their view
+  declineReason?: 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+  declineNote?: string;
+}
+
+// ============================================================================
+// COUNTER-OFFER NEGOTIATION SYSTEM
+// ============================================================================
+
+export type CounterOfferStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+
+export type CounterOfferProposerRole = 'PARENT' | 'COACH';
+
+export interface CounterOffer {
+  id: string;
+  bookingId: string;
+  proposedBy: CounterOfferProposerRole;
+  proposerId: string;
+  proposerName: string;
+  originalTime: TimeSlot;
+  proposedTime: TimeSlot;
+  status: CounterOfferStatus;
+  message?: string;
+  rejectionReason?: string;
+  createdAt: string;
+  respondedAt?: string;
+  expiresAt: string;
+}
+
+export interface NegotiationHistory {
+  id: string;
+  bookingId: string;
+  coachId: string;
+  coachName: string;
+  parentId: string;
+  parentName: string;
+  athleteId: string;
+  athleteName: string;
+  offers: CounterOffer[];
+  originalTime: TimeSlot;
+  finalTime?: TimeSlot;
+  status: 'IN_PROGRESS' | 'RESOLVED' | 'CANCELLED';
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+export interface CounterOfferNotification {
+  type: 'COUNTER_OFFER_RECEIVED' | 'COUNTER_OFFER_ACCEPTED' | 'COUNTER_OFFER_REJECTED' | 'COUNTER_OFFER_EXPIRED';
+  counterOfferId: string;
+  bookingId: string;
+  proposerName: string;
+  proposedTime: TimeSlot;
+}
+
+// ============================================================================
+// AVAILABILITY MANAGEMENT
+// ============================================================================
+
+export interface AvailabilityTemplate {
+  id: string;
+  coachId: string;
+  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  startTime: string;
+  endTime: string;
+  isRecurring: boolean;
+  maxConcurrent: number;
+  bufferMinutes: number;
+  location?: string;
+}
+
+export interface AvailabilityOverride {
+  id: string;
+  coachId: string;
+  date: string;
+  isBlocked: boolean;
+  reason?: string;
+  customSlots?: TimeSlot[];
+}
+
+export interface AvailabilitySlot {
+  date: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+  bookedCount: number;
+  maxBookings: number;
+  location?: string;
+}
+
+/**
+ * Coach scheduling rules - configurable booking constraints
+ */
+export interface CoachSchedulingRules {
+  id: string;
+  coachId: string;
+  /** Minimum hours before a session that bookings can be made */
+  minimumAdvanceBookingHours: number;
+  /** Maximum days in advance that bookings can be made */
+  maxAdvanceBookingDays: number;
+  /** Default buffer minutes between sessions */
+  bufferMinutesDefault: number;
+  /** Default max concurrent sessions */
+  maxConcurrentDefault: number;
+  /** Whether to allow same-day bookings */
+  allowSameDayBookings: boolean;
+  /** Cancellation policy ID for this coach */
+  cancellationPolicyId?: string;
+  /** Whether clients can reschedule bookings */
+  allowRescheduling: boolean;
+  /** Maximum hours before session that rescheduling is allowed */
+  rescheduleDeadlineHours: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================================================
+// GROUP SESSIONS
+// ============================================================================
+
+export interface GroupSessionSchedule {
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface RecurringPattern {
+  dayOfWeek: number; // 0-6 (Sunday-Saturday)
+  startTime: string; // HH:mm format
+  endTime: string;   // HH:mm format
+  until?: string;    // ISO date string - when the recurring pattern ends
+}
+
+export interface GroupSession {
+  id: string;
+  coachId: string;
+  coachName: string;
+  coachPhotoUrl?: string;
+  clubId?: string;
+  clubName?: string;
+  title: string;
+  description: string;
+  sessionType: 'CAMP' | 'CLINIC' | 'TEAM_TRAINING' | 'OPEN_SESSION' | 'TRIAL' | 'TRAINING';
+  schedule: GroupSessionSchedule[];
+  maxParticipants: number;
+  currentParticipants: number;
+  waitlistEnabled: boolean;
+  waitlistCount: number;
+  pricePerParticipant: number;
+  currency: string;
+  ageMin?: number;
+  ageMax?: number;
+  skillLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ALL';
+  location: string;
+  isVirtual: boolean;
+  status: 'DRAFT' | 'PUBLISHED' | 'FULL' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  focus?: FootballObjective[];
+  equipment?: string[];
+  imageUrl?: string;
+  // Training/Recurring session fields
+  isRecurring?: boolean;
+  recurringPattern?: RecurringPattern;
+  squadId?: string;      // Link to specific squad
+  squadName?: string;
+  parentSessionId?: string; // For recurring instances, links to the template
+  isFree?: boolean;         // Quick flag for free sessions
+}
+
+export interface GroupRegistration {
+  id: string;
+  sessionId: string;
+  athleteId: string;
+  athleteName: string;
+  parentId: string;
+  parentName: string;
+  status: 'REGISTERED' | 'WAITLISTED' | 'CANCELLED' | 'ATTENDED' | 'NO_SHOW';
+  registeredAt: string;
+  paidAt?: string;
+  attendedDates: string[];
+  notes?: string;
+}
+
+// ============================================================================
+// RECURRING BOOKINGS
+// ============================================================================
+
+/**
+ * Frequency options for recurring bookings
+ */
+export type RecurrenceFrequency = 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY';
+
+/**
+ * Status of a recurring booking subscription
+ */
+export type RecurringBookingStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'EXPIRED';
+
+/**
+ * Represents a recurring booking subscription
+ */
+export interface RecurringBooking {
+  /** Unique identifier for the recurring booking */
+  id: string;
+  /** ID of the user who created the subscription */
+  userId: string;
+  /** Name of the user for display purposes */
+  userName: string;
+  /** ID of the coach being booked */
+  coachId: string;
+  /** Name of the coach for display purposes */
+  coachName: string;
+  /** Avatar URL of the coach */
+  coachPhotoUrl?: string;
+  /** Athlete ID if booking for a child/athlete */
+  athleteId?: string;
+  /** Athlete name for display purposes */
+  athleteName?: string;
+  /** Day of the week (0-6, Sunday-Saturday) */
+  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  /** Time of the session in HH:mm format */
+  time: string;
+  /** Duration of each session in minutes */
+  duration: number;
+  /** Location for the sessions */
+  location: string;
+  /** Type of session (e.g., '1-on-1', 'Group Training') */
+  sessionType: string;
+  /** How often the booking recurs */
+  frequency: RecurrenceFrequency;
+  /** When the recurring booking starts (ISO date string) */
+  startDate: string;
+  /** When the recurring booking ends (ISO date string, optional for indefinite) */
+  endDate?: string;
+  /** Current status of the subscription */
+  status: RecurringBookingStatus;
+  /** Price per session in USD */
+  pricePerSession?: number;
+  /** Additional notes for the booking */
+  notes?: string;
+  /** When the subscription was created */
+  createdAt: string;
+  /** When the subscription was last updated */
+  updatedAt: string;
+  /** When the subscription was paused (if applicable) */
+  pausedAt?: string;
+  /** Reason for pausing the subscription */
+  pauseReason?: string;
+  /** When the subscription was cancelled (if applicable) */
+  cancelledAt?: string;
+  /** Reason for cancellation */
+  cancellationReason?: string;
+  /** IDs of bookings generated from this recurring subscription */
+  generatedBookingIds: string[];
+  /** Number of sessions completed */
+  sessionsCompleted: number;
+  /** Number of sessions remaining (if endDate is set) */
+  sessionsRemaining?: number;
+}
+
+/**
+ * Parameters for creating a new recurring booking
+ */
+export interface CreateRecurringBookingParams {
+  userId: string;
+  userName: string;
+  coachId: string;
+  coachName: string;
+  coachPhotoUrl?: string;
+  athleteId?: string;
+  athleteName?: string;
+  dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  time: string;
+  duration: number;
+  location: string;
+  sessionType: string;
+  frequency: RecurrenceFrequency;
+  startDate: string;
+  endDate?: string;
+  pricePerSession?: number;
+  notes?: string;
+}
+
+/**
+ * Summary of a generated booking from a recurring subscription
+ */
+export interface GeneratedBookingSummary {
+  bookingId: string;
+  recurringBookingId: string;
+  scheduledAt: string;
+  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+}
+
+// ============================================================================
+// WAITLIST SYSTEM
+// ============================================================================
+
+/**
+ * Status of a waitlist entry
+ */
+export type WaitlistStatus = 'WAITING' | 'NOTIFIED' | 'BOOKED' | 'EXPIRED' | 'REMOVED';
+
+/**
+ * Represents a user's position in a session waitlist
+ */
+export interface WaitlistEntry {
+  /** Unique identifier for the waitlist entry */
+  id: string;
+  /** ID of the user on the waitlist */
+  userId: string;
+  /** Display name of the user */
+  userName: string;
+  /** Optional user avatar URL */
+  userPhotoUrl?: string;
+  /** ID of the session they're waiting for */
+  sessionId: string;
+  /** Title of the session for display purposes */
+  sessionTitle?: string;
+  /** Scheduled date/time of the session */
+  sessionScheduledAt?: string;
+  /** Coach ID for the session */
+  coachId?: string;
+  /** Coach name for display purposes */
+  coachName?: string;
+  /** Position in the waitlist (1 = first in line) */
+  position: number;
+  /** When the user joined the waitlist */
+  joinedAt: string;
+  /** When the user was last notified of availability */
+  notifiedAt?: string;
+  /** Whether to automatically book when a spot opens */
+  autoBook: boolean;
+  /** Current status of the waitlist entry */
+  status: WaitlistStatus;
+  /** When the notification expires (user must respond by this time) */
+  expiresAt?: string;
+  /** ID of the booking if auto-booked or manually booked */
+  bookingId?: string;
+  /** Additional notes from the user */
+  notes?: string;
+  /** User's response when notified of availability */
+  userResponse?: 'accepted' | 'declined' | 'expired';
+  /** When the user responded to the notification */
+  userRespondedAt?: string;
+}
+
+/**
+ * Parameters for joining a waitlist
+ */
+export interface JoinWaitlistParams {
+  userId: string;
+  userName: string;
+  userPhotoUrl?: string;
+  sessionId: string;
+  sessionTitle?: string;
+  sessionScheduledAt?: string;
+  coachId?: string;
+  coachName?: string;
+  autoBook?: boolean;
+  notes?: string;
+}
+
+/**
+ * Summary of a session's waitlist for display
+ */
+export interface WaitlistSummary {
+  sessionId: string;
+  sessionTitle: string;
+  totalWaiting: number;
+  autoBookCount: number;
+  nextInLine?: {
+    userId: string;
+    userName: string;
+    position: number;
+    autoBook: boolean;
+  };
+}
+
+// ============================================================================
+// BILATERAL INTERACTION TYPES
+// ============================================================================
+
+/** Session attendance tracking by coach */
+export interface SessionAttendance {
+  bookingId: string;
+  records: AttendanceRecord[];
+  completedAt: string;
+  completedBy: string;
+}
+
+/** Individual athlete attendance record */
+export interface AttendanceRecord {
+  athleteId: string;
+  athleteName: string;
+  status: 'ATTENDED' | 'NO_SHOW' | 'LATE';
+  notes?: string;
+  effortRating?: number;
+  focusAreas?: string[];
+  improvement?: string;
+  drillAssigned?: string;
+}
+
+/** Record of a booking cancellation */
+export interface CancellationRecord {
+  bookingId: string;
+  cancelledBy: string;
+  cancelledAt: string;
+  reason?: 'child_ill' | 'schedule_change' | 'weather' | 'venue' | 'emergency' | 'other';
+  note?: string;
+  policyTierApplied?: string;
+}
+
+/** Structured reason for declining an invite */
+export interface InviteDeclineReason {
+  category: 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+  note?: string;
+}
+
+/** RSVP for a session */
+export interface SessionRsvp {
+  id: string;
+  sessionId: string;
+  userId: string;
+  childId?: string;
+  childName?: string;
+  status: 'going' | 'not_going' | 'maybe' | 'pending';
+  respondedAt?: string;
+  createdAt: string;
+}
+
+/** Blocked date range for coach availability */
+export interface BlockedDateRange {
+  id: string;
+  coachId: string;
+  startDate: string;
+  endDate: string;
+  reason?: string;
+  createdAt: string;
+}
+
+/** Tracks when entities are seen by users */
+export interface SeenStatus {
+  entityType: 'message' | 'invite_response' | 'rsvp' | 'booking_request' | 'goal';
+  entityId: string;
+  seenBy: string;
+  seenAt: string;
+}
+
+// ============================================================================
+// CALENDAR SYNC SYSTEM
+// ============================================================================
+
+export type CalendarProvider = 'GOOGLE' | 'APPLE' | 'OUTLOOK';
+
+export interface CalendarEvent {
+  /** Unique identifier for the event */
+  id: string;
+  /** Event title/name */
+  title: string;
+  /** Start time as ISO date string */
+  startTime: string;
+  /** End time as ISO date string */
+  endTime: string;
+  /** Location of the event */
+  location: string;
+  /** Description/notes for the event */
+  description: string;
+  /** Optional booking ID if linked to a booking */
+  bookingId?: string;
+  /** Optional coach name */
+  coachName?: string;
+  /** Optional athlete name */
+  athleteName?: string;
+}
+
+export interface CalendarSyncSettings {
+  /** Whether calendar sync is enabled */
+  enabled: boolean;
+  /** Selected calendar provider */
+  provider: CalendarProvider;
+  /** Whether to automatically sync new bookings */
+  autoSync: boolean;
+  /** Minutes before event to send reminder (0 = no reminder) */
+  reminderMinutes: number;
+  /** Include location in calendar events */
+  includeLocation: boolean;
+  /** Include coach/athlete notes in event description */
+  includeNotes: boolean;
+  /** Last sync timestamp */
+  lastSyncAt?: string;
+  /** User ID this setting belongs to */
+  userId: string;
+}

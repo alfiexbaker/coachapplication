@@ -7,14 +7,16 @@ const social_feed_service_1 = require("./social-feed-service");
 const notification_service_1 = require("./notification-service");
 const booking_service_1 = require("./booking-service");
 const logger_1 = require("@/utils/logger");
+const event_bus_1 = require("@/services/event-bus");
+const result_1 = require("@/types/result");
 const progression_1 = require("@/constants/progression");
-const STORAGE_KEY = 'clubroom.badge_awards';
+const storage_keys_1 = require("@/constants/storage-keys");
 class BadgeService {
     constructor() {
         this.logger = (0, logger_1.createLogger)('BadgeService');
     }
     async getStoredAwards() {
-        return storage_service_1.storageService.getItem(STORAGE_KEY, []);
+        return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, []);
     }
     mergeAwards(stored) {
         const merged = new Map();
@@ -52,10 +54,10 @@ class BadgeService {
             const now = Date.now();
             const diffDays = (now - lastAwardDate) / (1000 * 60 * 60 * 24);
             if (diffDays < cooldownWindowDays && !input.overrideCooldown) {
-                throw new Error(`Cooldown in effect. Last badge was ${Math.ceil(diffDays)} day(s) ago. Toggle exception with a note to proceed.`);
+                return (0, result_1.err)((0, result_1.validationError)(`Cooldown in effect. Last badge was ${Math.ceil(diffDays)} day(s) ago. Toggle exception with a note to proceed.`));
             }
             if (diffDays < cooldownWindowDays && input.overrideCooldown && !input.overrideNote?.trim()) {
-                throw new Error('Exception note is required to bypass the cooldown.');
+                return (0, result_1.err)((0, result_1.validationError)('Exception note is required to bypass the cooldown.'));
             }
         }
         const award = {
@@ -86,7 +88,7 @@ class BadgeService {
             badgePointValue: definition?.pointValue,
         };
         const updated = [award, ...stored];
-        await storage_service_1.storageService.setItem(STORAGE_KEY, updated);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, updated);
         this.logger.info('badge_awarded', {
             badgeId: input.badgeId,
             athleteId: input.athleteId,
@@ -105,7 +107,15 @@ class BadgeService {
         if (award.visibility !== 'coach_only') {
             await this.createAchievementPosts(award);
         }
-        return award;
+        // Emit typed event for cross-service reactions
+        (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.BADGE_EARNED, {
+            userId: input.athleteId,
+            badgeId: input.badgeId,
+            badgeLabel: award.badgeLabel,
+            coachId: input.coachId,
+            sessionId: input.sessionId,
+        });
+        return (0, result_1.ok)(award);
     }
     /**
      * Create achievement posts in social feed for all clubs the athlete is in
@@ -202,7 +212,7 @@ class BadgeService {
             });
         const updatedAward = { ...target, shared: true, feedPostId: feedPost?.id ?? target.feedPostId };
         const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
-        await storage_service_1.storageService.setItem(STORAGE_KEY, nextStored);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
         this.logger.info('badge_shared', {
             badgeId: target.badgeId,
             athleteId: target.athleteId,
@@ -232,7 +242,7 @@ class BadgeService {
         // Mark as shared/posted
         const updatedAward = { ...award, shared: true, addedToFeedAt: new Date().toISOString() };
         const nextStored = [updatedAward, ...stored.filter((a) => a.id !== awardId)];
-        await storage_service_1.storageService.setItem(STORAGE_KEY, nextStored);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
         this.logger.info('badge_posted_to_feed_by_user', {
             awardId,
             athleteId: award.athleteId,
@@ -254,7 +264,7 @@ class BadgeService {
             seenAt: new Date().toISOString(),
         };
         const nextStored = [updatedAward, ...stored.filter((award) => award.id !== awardId)];
-        await storage_service_1.storageService.setItem(STORAGE_KEY, nextStored);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, nextStored);
         this.logger.info('badge_seen_by_parent', { awardId });
         return updatedAward;
     }
@@ -268,7 +278,7 @@ class BadgeService {
         const updated = merged.map((award) => award.athleteId === athleteId && !award.seenByParent
             ? { ...award, seenByParent: true, seenAt: now }
             : award);
-        await storage_service_1.storageService.setItem(STORAGE_KEY, updated);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.BADGE_AWARDS, updated);
         this.logger.info('all_badges_seen_by_parent', { athleteId });
     }
     /**

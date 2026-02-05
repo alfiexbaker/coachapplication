@@ -151,7 +151,7 @@ export default function ClubHubScreen() {
 
     setIsRemovingMember(true);
     try {
-      const removalRecord = await clubService.removeMember(
+      const result = await clubService.removeMember(
         membership.clubId,
         selectedMemberForRemoval.userId,
         reason,
@@ -159,6 +159,12 @@ export default function ClubHubScreen() {
         { customReason }
       );
 
+      if (!result.success) {
+        showToast(result.error.message, 'error');
+        return;
+      }
+
+      const removalRecord = result.data;
       lastMemberRemovalRef.current = removalRecord;
       setShowMemberRemovalModal(false);
       setSelectedMemberForRemoval(null);

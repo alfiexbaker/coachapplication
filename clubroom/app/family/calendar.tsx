@@ -16,10 +16,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   familyService,
-  FamilyMember,
-  FamilyCalendarEvent,
-  FamilyDateRange,
-} from '@/services/family-service';
+  type FamilyMember,
+  type FamilyCalendarEvent,
+  type FamilyDateRange,
+} from '@/services/family';
 import { eventService } from '@/services/event-service';
 
 const logger = createLogger('FamilyCalendarScreen');

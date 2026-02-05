@@ -3,7 +3,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -52,8 +52,7 @@ export default function ReportProblemScreen() {
     setSubmitting(true);
     try {
       // Save report to storage
-      const reportsStored = await AsyncStorage.getItem('problem_reports');
-      const reports = reportsStored ? JSON.parse(reportsStored) : [];
+      const reports = await apiClient.get<any[]>('problem_reports', []);
 
       const newReport = {
         id: `report_${Date.now()}`,
@@ -65,7 +64,7 @@ export default function ReportProblemScreen() {
       };
 
       reports.push(newReport);
-      await AsyncStorage.setItem('problem_reports', JSON.stringify(reports));
+      await apiClient.set('problem_reports', reports);
 
       logger.info('Report submitted', { category: selectedCategory, bookingId });
 

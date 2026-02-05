@@ -25,7 +25,7 @@ import { InviteResultCard } from '@/components/squad/InviteResultCard';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { inviteService as squadBulkInviteService } from '@/services/invite-service';
+import { inviteService as squadBulkInviteService } from '@/services/invite';
 import { squadService } from '@/services/squad-service';
 import type {
   ClubSquad,
@@ -173,7 +173,14 @@ export default function SquadInviteScreen() {
         expiresInDays: 7,
       });
 
-      setInviteResult(result);
+      if (!result.success) {
+        logger.error('Failed to send bulk invites:', result.error);
+        Alert.alert('Error', result.error.message || 'Failed to send invites. Please try again.');
+        setViewMode('form');
+        return;
+      }
+
+      setInviteResult(result.data);
       setViewMode('result');
     } catch (error) {
       logger.error('Failed to send bulk invites:', error);

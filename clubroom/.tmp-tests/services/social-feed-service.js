@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.socialFeedService = exports.clubFeedService = void 0;
+const result_1 = require("@/types/result");
 const mock_data_1 = require("@/constants/mock-data");
 const logger_1 = require("@/utils/logger");
 const notification_service_1 = require("./notification-service");
@@ -19,7 +20,7 @@ class ClubFeedService {
     createPost(input) {
         const body = input.body.trim();
         if (!body && !input.imageUrl) {
-            throw new Error('Post must have content or an image');
+            return (0, result_1.err)((0, result_1.validationError)('Post must have content or an image'));
         }
         const post = (0, mock_data_1.addClubFeedPost)({
             clubId: input.clubId,
@@ -48,7 +49,7 @@ class ClubFeedService {
         if (shouldNotify) {
             this.notifyClubMembers(input.clubId, input.clubName || 'your club', post.id, input.authorId);
         }
-        return post;
+        return (0, result_1.ok)(post);
     }
     /**
      * Notify club members of a new post

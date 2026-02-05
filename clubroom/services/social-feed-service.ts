@@ -1,4 +1,5 @@
 import type { ClubFeedPost, ClubPostType } from '@/constants/types';
+import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
 import {
   addClubFeedPost,
   togglePinPost,
@@ -48,10 +49,10 @@ class ClubFeedService {
   /**
    * Create a new post in the club feed
    */
-  createPost(input: CreateClubPostInput): ClubFeedPost {
+  createPost(input: CreateClubPostInput): Result<ClubFeedPost, ServiceError> {
     const body = input.body.trim();
     if (!body && !input.imageUrl) {
-      throw new Error('Post must have content or an image');
+      return err(validationError('Post must have content or an image'));
     }
 
     const post = addClubFeedPost({
@@ -84,7 +85,7 @@ class ClubFeedService {
       this.notifyClubMembers(input.clubId, input.clubName || 'your club', post.id, input.authorId);
     }
 
-    return post;
+    return ok(post);
   }
 
   /**

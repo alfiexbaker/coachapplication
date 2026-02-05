@@ -10,8 +10,7 @@
  */
 
 import { apiClient } from './api-client';
-
-const REPORTS_KEY = 'clubroom.reports';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 export interface Report {
   id: string;
@@ -38,9 +37,9 @@ export const reportService = {
       status: 'pending',
     };
 
-    const existing = await apiClient.get<Report[]>(REPORTS_KEY, []);
+    const existing = await apiClient.get<Report[]>(STORAGE_KEYS.REPORTS, []);
     existing.push(newReport);
-    await apiClient.set(REPORTS_KEY, existing);
+    await apiClient.set(STORAGE_KEYS.REPORTS, existing);
 
     return newReport;
   },
@@ -49,6 +48,6 @@ export const reportService = {
    * Get all reports submitted by the current user or against a user.
    */
   async getReports(): Promise<Report[]> {
-    return apiClient.get<Report[]>(REPORTS_KEY, []);
+    return apiClient.get<Report[]>(STORAGE_KEYS.REPORTS, []);
   },
 };

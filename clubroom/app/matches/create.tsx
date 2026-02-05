@@ -24,7 +24,7 @@ import { useAuth } from '@/hooks/use-auth';
 import type { MatchType, ClubSquad } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
-import { inviteService as bulkInviteService } from '@/services/invite-service';
+import { inviteService as bulkInviteService } from '@/services/invite';
 
 const logger = createLogger('CreateMatchScreen');
 

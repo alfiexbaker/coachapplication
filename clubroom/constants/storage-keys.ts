@@ -44,6 +44,15 @@ export const STORAGE_KEYS = {
   /** Cancellation policies for coaches */
   CANCELLATION_POLICIES: 'cancellation_policies',
 
+  /** Cancellation records for tracking cancelled bookings */
+  CANCELLATION_RECORDS: 'clubroom.cancellation_records',
+
+  /** No-show counts per family */
+  NO_SHOW_COUNTS: 'clubroom.no_show_counts',
+
+  /** Blocked date ranges for coaches */
+  BLOCKED_DATES: 'clubroom.blocked_dates',
+
   /** Waitlist entries for fully booked sessions */
   WAITLIST: 'clubroom.waitlist',
 
@@ -181,6 +190,9 @@ export const STORAGE_KEYS = {
   /** Carpool coordination offers */
   CARPOOL_OFFERS: 'clubroom.carpool_offers',
 
+  /** Group invites for parent community groups */
+  GROUP_INVITES: 'clubroom.group_invites',
+
   // ============================================================================
   // SOCIAL DOMAIN
   // ============================================================================
@@ -220,6 +232,12 @@ export const STORAGE_KEYS = {
   /** Club member removal records */
   CLUB_MEMBER_REMOVALS: 'club_member_removals',
 
+  /** Club branding data */
+  CLUB_BRANDING: 'club_branding',
+
+  /** Club squads */
+  CLUB_SQUADS: 'club_squads',
+
   /** Squad membership data */
   SQUAD_MEMBERS: 'squad_members',
 
@@ -238,6 +256,9 @@ export const STORAGE_KEYS = {
 
   /** Club events (tournaments, socials, meetings) */
   CLUB_EVENTS: 'club_events',
+
+  /** Session RSVP data */
+  SESSION_RSVPS: 'clubroom.session_rsvps',
 
   /** RSVP data for events */
   EVENT_RSVPS: 'event_rsvps',
@@ -266,6 +287,9 @@ export const STORAGE_KEYS = {
 
   /** History of squad invites */
   SQUAD_INVITE_HISTORY: 'squad_invite_history',
+
+  /** Pending club invites for coaches */
+  PENDING_CLUB_INVITES: 'pending_club_invites',
 
   // ============================================================================
   // TRAINING & CONTENT DOMAIN
@@ -323,6 +347,41 @@ export const STORAGE_KEYS = {
 
   /** Calendar sync settings (per user, key is suffixed with _userId) */
   CALENDAR_SYNC_SETTINGS: 'calendar_sync_settings',
+
+  /** Offline queue for write operations */
+  OFFLINE_QUEUE: 'clubroom.offline_queue',
+
+  /** Seen/read status tracking for messages and entities */
+  SEEN_STATUSES: 'clubroom.seen_statuses',
+
+  /** Blocked users list */
+  BLOCKED_USERS: 'clubroom.blocked_users',
+
+  /** User reports (for inappropriate content, safety concerns, etc.) */
+  REPORTS: 'clubroom.reports',
+
+  /** Coach saved locations */
+  SAVED_LOCATIONS: 'coach_saved_locations',
+
+  // ============================================================================
+  // FAMILY - CHILDREN DOMAIN
+  // ============================================================================
+
+  /** Children profiles managed by parents */
+  CHILDREN_PROFILES: 'children_profiles',
+
+  // ============================================================================
+  // TRIAL SESSIONS DOMAIN
+  // ============================================================================
+
+  /** Trial session offerings for coaches */
+  TRIAL_OFFERINGS: 'clubroom.trial_offerings',
+
+  /** Trial usage records (per family) */
+  TRIAL_USAGES: 'clubroom.trial_usages',
+
+  /** Trial-to-regular booking conversions */
+  TRIAL_CONVERSIONS: 'clubroom.trial_conversions',
 } as const;
 
 /**

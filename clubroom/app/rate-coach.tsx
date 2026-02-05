@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -41,16 +41,13 @@ export default function RateCoachScreen() {
   const loadCoaches = useCallback(async () => {
     try {
       // Load session bookings to find coaches
-      const stored = await AsyncStorage.getItem('session_bookings');
-      const bookings = stored ? JSON.parse(stored) : [];
+      const bookings = await apiClient.get<any[]>('session_bookings', []);
 
       // Also check session offerings for registrations
-      const offeringsStored = await AsyncStorage.getItem('session_offerings');
-      const offerings = offeringsStored ? JSON.parse(offeringsStored) : [];
+      const offerings = await apiClient.get<any[]>('session_offerings', []);
 
       // Load existing reviews
-      const reviewsStored = await AsyncStorage.getItem('coach_reviews');
-      const reviews = reviewsStored ? JSON.parse(reviewsStored) : [];
+      const reviews = await apiClient.get<any[]>('coach_reviews', []);
       const reviewedCoachIds = new Set(reviews.map((r: any) => r.coachId));
 
       // Collect unique coaches
@@ -142,8 +139,7 @@ export default function RateCoachScreen() {
 
     setSubmitting(true);
     try {
-      const reviewsStored = await AsyncStorage.getItem('coach_reviews');
-      const reviews = reviewsStored ? JSON.parse(reviewsStored) : [];
+      const reviews = await apiClient.get<any[]>('coach_reviews', []);
 
       const newReview = {
         id: `review_${Date.now()}`,
@@ -157,7 +153,7 @@ export default function RateCoachScreen() {
       };
 
       reviews.push(newReview);
-      await AsyncStorage.setItem('coach_reviews', JSON.stringify(reviews));
+      await apiClient.set('coach_reviews', reviews);
 
       logger.info('Review submitted', { coachId: selectedCoach.id, rating });
 

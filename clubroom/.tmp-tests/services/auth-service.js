@@ -83,8 +83,9 @@ exports.authService = {
             return { success: true, user: result.user, tokens: result.tokens, token: result.tokens.accessToken };
         }
         catch (error) {
-            logger.warn('Login failed', { email, error: error.message });
-            return { success: false, error: error.message || 'Invalid email or password' };
+            const message = error instanceof Error ? error.message : 'Invalid email or password';
+            logger.warn('Login failed', { email, error: message });
+            return { success: false, error: message };
         }
     },
     async register(input) {
@@ -104,8 +105,9 @@ exports.authService = {
             return { success: true, user: result.user, tokens: result.tokens, token: result.tokens.accessToken };
         }
         catch (error) {
-            logger.warn('Registration failed', { email: input.email, error: error.message });
-            return { success: false, error: error.message || 'Registration failed' };
+            const message = error instanceof Error ? error.message : 'Registration failed';
+            logger.warn('Registration failed', { email: input.email, error: message });
+            return { success: false, error: message };
         }
     },
     async storeTokens(tokens) {
@@ -278,7 +280,7 @@ exports.authService = {
             return { success: true, user: result.user };
         }
         catch (error) {
-            return { success: false, error: error.message };
+            return { success: false, error: error instanceof Error ? error.message : 'Profile update failed' };
         }
     },
     async completeOnboarding(data) {
@@ -350,7 +352,7 @@ exports.authService = {
             return this.updateProfile({ isVerified: true });
         }
         catch (error) {
-            return { success: false, error: error.message };
+            return { success: false, error: error instanceof Error ? error.message : 'Email verification failed' };
         }
     },
     async checkEmailAvailable(email) {

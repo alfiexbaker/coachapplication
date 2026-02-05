@@ -1,5 +1,5 @@
 import { chatThreads, chatMessages } from '@/constants/mock-data';
-import { ChatMessage, ChatThreadSummary } from '@/constants/types';
+import { ChatAttachment, ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationService } from './notification-service';
@@ -35,7 +35,7 @@ export class MessagingService {
     body: string,
     sender: 'parent' | 'coach',
     senderName?: string,
-    attachments: any[] = [],
+    attachments: ChatAttachment[] = [],
   ) {
     const timestamp = new Date().toISOString();
     const newMessage: ChatMessage = {

@@ -1194,7 +1194,7 @@ export interface WebSocketEvents {
   'notification:new': { notification: Notification };
 
   // Chat/messaging events
-  'message:received': { conversationId: string; message: any };
+  'message:received': { conversationId: string; message: { id: string; body: string; senderId: string; sentAt: string; readAt?: string } };
 
   // Family events
   'guardian:invited': { invite: GuardianInvite };
@@ -1412,7 +1412,7 @@ export interface ClubAPI {
       name: string;
       description: string;
       members: { id: string; name: string; role: string }[];
-      settings: Record<string, any>;
+      settings: Record<string, unknown>;
     };
   };
 
@@ -1524,7 +1524,7 @@ export interface AnalyticsAPI {
     path: '/analytics/events';
     body: {
       event: string;
-      properties?: Record<string, any>;
+      properties?: Record<string, string | number | boolean>;
       timestamp?: string;
     };
     response: { success: boolean };

@@ -19,7 +19,7 @@ import { ProgressBadge } from '@/components/skills/ProgressBadge';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { skillTreeService } from '@/services/skill-tree-service';
+import { skillTreeService } from '@/services/skills';
 import { createLogger } from '@/utils/logger';
 import type { SkillTreeCategory } from '@/constants/types';
 

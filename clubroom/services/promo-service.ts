@@ -19,6 +19,7 @@
 import { storageService } from './storage-service';
 import { walletService } from './wallet-service';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, validationError, conflictError } from '@/types/result';
 import type {
   PromoCode,
   PromoCodeUsage,
@@ -235,24 +236,24 @@ async function saveUsage(usage: PromoCodeUsage[]): Promise<void> {
  * @param params - Parameters for the new code
  * @returns The created promo code
  */
-async function createPromoCode(params: CreatePromoCodeParams): Promise<PromoCode> {
+async function createPromoCode(params: CreatePromoCodeParams): Promise<Result<PromoCode, ServiceError>> {
   const codes = await getAllCodes();
   const normalizedCode = normalizeCode(params.code);
 
   // Check if code already exists
   const existingCode = codes.find((c) => c.code === normalizedCode);
   if (existingCode) {
-    throw new Error(`Promo code "${normalizedCode}" already exists`);
+    return err(conflictError(`Promo code "${normalizedCode}" already exists`));
   }
 
   // Validate credit amount
   if (params.creditAmount <= 0) {
-    throw new Error('Credit amount must be greater than zero');
+    return err(validationError('Credit amount must be greater than zero'));
   }
 
   // Validate max uses
   if (params.maxUses <= 0) {
-    throw new Error('Max uses must be greater than zero');
+    return err(validationError('Max uses must be greater than zero'));
   }
 
   const now = new Date().toISOString();
@@ -282,7 +283,7 @@ async function createPromoCode(params: CreatePromoCodeParams): Promise<PromoCode
     maxUses: newCode.maxUses,
   });
 
-  return newCode;
+  return ok(newCode);
 }
 
 /**

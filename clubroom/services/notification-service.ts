@@ -8,9 +8,8 @@ import {
 } from '@/constants/types';
 import { storageService } from './storage-service';
 import { createLogger } from '@/utils/logger';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
-const STORAGE_KEY = 'clubroom.notifications';
-const PREFERENCES_STORAGE_KEY = 'clubroom.notification_preferences';
 const logger = createLogger('NotificationService');
 
 // Extended notification item with deep link support
@@ -34,7 +33,7 @@ export class NotificationService {
   // ============================================================================
 
   async list(): Promise<ExtendedNotificationItem[]> {
-    return storageService.getItem<ExtendedNotificationItem[]>(STORAGE_KEY, []);
+    return storageService.getItem<ExtendedNotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, []);
   }
 
   async create(notification: ExtendedNotificationItem): Promise<ExtendedNotificationItem[]> {
@@ -46,7 +45,7 @@ export class NotificationService {
 
     const current = await this.list();
     const updated = [fullNotification, ...current];
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
 
     // Notify listeners for in-app toasts
     listeners.forEach((listener) => {
@@ -69,26 +68,26 @@ export class NotificationService {
   async markAsRead(id: string): Promise<ExtendedNotificationItem[]> {
     const current = await this.list();
     const updated = current.map((n) => (n.id === id ? { ...n, read: true } : n));
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
     return updated;
   }
 
   async markAllAsRead(): Promise<ExtendedNotificationItem[]> {
     const current = await this.list();
     const updated = current.map((n) => ({ ...n, read: true }));
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
     return updated;
   }
 
   async markHandled(id: string): Promise<ExtendedNotificationItem | undefined> {
     const current = await this.list();
     const updated = current.map((n) => (n.id === id ? { ...n, read: true, handled: true } : n));
-    await storageService.setItem(STORAGE_KEY, updated);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, updated);
     return updated.find((n) => n.id === id);
   }
 
   async clearAll(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY, []);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, []);
   }
 
   async getUnreadCount(recipientId?: string): Promise<number> {
@@ -537,7 +536,7 @@ export class NotificationService {
    */
   async getPreferences(userId: string): Promise<EnhancedNotificationPreferences> {
     const allPrefs = await storageService.getItem<Record<string, EnhancedNotificationPreferences>>(
-      PREFERENCES_STORAGE_KEY,
+      STORAGE_KEYS.NOTIFICATION_PREFERENCES,
       {}
     );
 
@@ -559,7 +558,7 @@ export class NotificationService {
     preferences: EnhancedNotificationPreferences
   ): Promise<void> {
     const allPrefs = await storageService.getItem<Record<string, EnhancedNotificationPreferences>>(
-      PREFERENCES_STORAGE_KEY,
+      STORAGE_KEYS.NOTIFICATION_PREFERENCES,
       {}
     );
 
@@ -568,7 +567,7 @@ export class NotificationService {
       updatedAt: new Date().toISOString(),
     };
 
-    await storageService.setItem(PREFERENCES_STORAGE_KEY, allPrefs);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATION_PREFERENCES, allPrefs);
     logger.info('preferences_saved', { userId });
   }
 
@@ -996,7 +995,7 @@ export class NotificationService {
       },
     ];
 
-    await storageService.setItem(STORAGE_KEY, demoNotifications);
+    await storageService.setItem(STORAGE_KEYS.NOTIFICATIONS, demoNotifications);
     logger.info('demo_notifications_seeded', { count: demoNotifications.length });
   }
 }

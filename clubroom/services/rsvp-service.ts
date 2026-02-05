@@ -23,21 +23,22 @@ import { apiClient } from './api-client';
 import type { SessionRsvp } from '@/constants/types';
 import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('RsvpService');
-
-const RSVP_KEY = 'clubroom.session_rsvps';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 async function loadRsvps(): Promise<SessionRsvp[]> {
-  return apiClient.get<SessionRsvp[]>(RSVP_KEY, []);
+  return apiClient.get<SessionRsvp[]>(STORAGE_KEYS.SESSION_RSVPS, []);
 }
 
 async function saveRsvps(rsvps: SessionRsvp[]): Promise<void> {
-  await apiClient.set(RSVP_KEY, rsvps);
+  await apiClient.set(STORAGE_KEYS.SESSION_RSVPS, rsvps);
 }
 
 // ---------------------------------------------------------------------------
@@ -96,12 +97,12 @@ export const rsvpService = {
   async respond(
     rsvpId: string,
     status: 'going' | 'not_going' | 'maybe',
-  ): Promise<SessionRsvp> {
+  ): Promise<Result<SessionRsvp, ServiceError>> {
     const rsvps = await loadRsvps();
     const index = rsvps.findIndex((r) => r.id === rsvpId);
 
     if (index === -1) {
-      throw new Error('RSVP not found');
+      return err(notFound('RSVP', rsvpId));
     }
 
     const previousStatus = rsvps[index].status;
@@ -131,7 +132,7 @@ export const rsvpService = {
       newStatus: status,
     });
 
-    return rsvps[index];
+    return ok(rsvps[index]);
   },
 
   /**

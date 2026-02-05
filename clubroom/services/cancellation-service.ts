@@ -12,15 +12,15 @@
  * my refund amount before I confirm."
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, RefundCalculation, RefundTier } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
+
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('CancellationService');
-
-const CANCELLATION_RECORDS_KEY = 'clubroom.cancellation_records';
-const NO_SHOW_COUNTS_KEY = 'clubroom.no_show_counts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -56,8 +56,7 @@ export { CancellationPolicy };
 
 async function loadRecords(): Promise<CancellationRecord[]> {
   try {
-    const raw = await AsyncStorage.getItem(CANCELLATION_RECORDS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return await apiClient.get<CancellationRecord[]>(STORAGE_KEYS.CANCELLATION_RECORDS, []);
   } catch (error) {
     logger.error('Failed to load cancellation records', error);
     return [];
@@ -65,13 +64,12 @@ async function loadRecords(): Promise<CancellationRecord[]> {
 }
 
 async function saveRecords(records: CancellationRecord[]): Promise<void> {
-  await AsyncStorage.setItem(CANCELLATION_RECORDS_KEY, JSON.stringify(records));
+  await apiClient.set(STORAGE_KEYS.CANCELLATION_RECORDS, records);
 }
 
 async function loadNoShowCounts(): Promise<Record<string, number>> {
   try {
-    const raw = await AsyncStorage.getItem(NO_SHOW_COUNTS_KEY);
-    return raw ? JSON.parse(raw) : {};
+    return await apiClient.get<Record<string, number>>(STORAGE_KEYS.NO_SHOW_COUNTS, {});
   } catch (error) {
     logger.error('Failed to load no-show counts', error);
     return {};
@@ -79,7 +77,7 @@ async function loadNoShowCounts(): Promise<Record<string, number>> {
 }
 
 async function saveNoShowCounts(counts: Record<string, number>): Promise<void> {
-  await AsyncStorage.setItem(NO_SHOW_COUNTS_KEY, JSON.stringify(counts));
+  await apiClient.set(STORAGE_KEYS.NO_SHOW_COUNTS, counts);
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +108,7 @@ export const cancellationService = {
       preset: 'flexible' | 'standard' | 'strict' | 'custom';
       customTiers?: RefundTier[];
     },
-  ): Promise<void> {
+  ): Promise<Result<void, ServiceError>> {
     try {
       await schedulingRulesService.setCancellationPolicy(
         coachId,
@@ -118,9 +116,10 @@ export const cancellationService = {
         policy.customTiers,
       );
       logger.debug('Cancellation policy saved', { coachId, preset: policy.preset });
+      return ok(undefined);
     } catch (error) {
       logger.error('Failed to save cancellation policy', error);
-      throw error;
+      return err(storageError('Failed to save cancellation policy'));
     }
   },
 

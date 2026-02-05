@@ -10,7 +10,7 @@
  * - POST /api/bookings/:id/calendar-export - Generate calendar event from booking
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -22,9 +22,9 @@ import type {
 } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
-const logger = createLogger('CalendarService');
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
-const SETTINGS_STORAGE_KEY = 'calendar_sync_settings';
+const logger = createLogger('CalendarService');
 const USE_MOCK = api.useMock;
 
 // Default settings for new users
@@ -327,11 +327,8 @@ export const calendarService = {
   async getSyncSettings(userId: string): Promise<CalendarSyncSettings | null> {
     if (USE_MOCK) {
       try {
-        const stored = await AsyncStorage.getItem(`${SETTINGS_STORAGE_KEY}_${userId}`);
-        if (stored) {
-          return JSON.parse(stored);
-        }
-        return null;
+        const stored = await apiClient.get<CalendarSyncSettings | null>(`${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_${userId}`, null);
+        return stored;
       } catch (error) {
         logger.error('Failed to get sync settings', error);
         return null;
@@ -365,10 +362,7 @@ export const calendarService = {
           userId,
         };
 
-        await AsyncStorage.setItem(
-          `${SETTINGS_STORAGE_KEY}_${userId}`,
-          JSON.stringify(updated)
-        );
+        await apiClient.set(`${STORAGE_KEYS.CALENDAR_SYNC_SETTINGS}_${userId}`, updated);
 
         return { success: true, settings: updated };
       } catch (error) {

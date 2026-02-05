@@ -163,8 +163,13 @@ export function CreateCodeForm({
         createdByName: adminUserName,
       };
 
-      const newCode = await promoService.createPromoCode(params);
-      onSuccess(newCode);
+      const result = await promoService.createPromoCode(params);
+      if (!result.success) {
+        setError(result.error.message);
+        onError?.(result.error.message);
+        return;
+      }
+      onSuccess(result.data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create promo code';
       setError(errorMessage);

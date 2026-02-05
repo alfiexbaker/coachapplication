@@ -60,10 +60,7 @@ class RateLimiter {
     }
 }
 const rateLimiter = new RateLimiter(config_1.rateLimits.apiRequestsPerMinute);
-// ============================================================================
-// OFFLINE QUEUE
-// ============================================================================
-const OFFLINE_QUEUE_KEY = 'clubroom.offline_queue';
+const storage_keys_1 = require("@/constants/storage-keys");
 let _isConnected = true;
 function setConnectionStatus(connected) {
     _isConnected = connected;
@@ -73,10 +70,10 @@ function setConnectionStatus(connected) {
 }
 async function addToQueue(action) {
     try {
-        const raw = await async_storage_1.default.getItem(OFFLINE_QUEUE_KEY);
+        const raw = await async_storage_1.default.getItem(storage_keys_1.STORAGE_KEYS.OFFLINE_QUEUE);
         const queue = raw ? JSON.parse(raw) : [];
         queue.push(action);
-        await async_storage_1.default.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+        await async_storage_1.default.setItem(storage_keys_1.STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
         logger.info('Queued offline action', { method: action.method, path: action.path });
     }
     catch (error) {
@@ -85,7 +82,7 @@ async function addToQueue(action) {
 }
 async function getQueue() {
     try {
-        const raw = await async_storage_1.default.getItem(OFFLINE_QUEUE_KEY);
+        const raw = await async_storage_1.default.getItem(storage_keys_1.STORAGE_KEYS.OFFLINE_QUEUE);
         return raw ? JSON.parse(raw) : [];
     }
     catch {
@@ -95,7 +92,7 @@ async function getQueue() {
 async function removeFromQueue(actionId) {
     const queue = await getQueue();
     const filtered = queue.filter(a => a.id !== actionId);
-    await async_storage_1.default.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(filtered));
+    await async_storage_1.default.setItem(storage_keys_1.STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(filtered));
 }
 async function flushQueue() {
     const queue = await getQueue();

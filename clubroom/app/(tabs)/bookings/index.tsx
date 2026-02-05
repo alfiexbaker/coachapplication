@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { StyleSheet, ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -15,7 +15,7 @@ import {
 } from '@/constants/mock-data';
 import { BookingSummary, SessionOffering } from '@/constants/types';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
-import { inviteService as sessionInviteService } from '@/services/invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite';
 import { createLogger } from '@/utils/logger';
 import { hasChildren } from '@/utils/user-helpers';
 
@@ -44,10 +44,9 @@ export default function BookingsScreen() {
   const loadData = useCallback(async () => {
     setError(null);
     try {
-      // Load session bookings from AsyncStorage
-      const storedBookings = await AsyncStorage.getItem('session_bookings');
-      if (storedBookings) {
-        const bookings = JSON.parse(storedBookings);
+      // Load session bookings from storage
+      const bookings = await apiClient.get<any[]>('session_bookings', []);
+      if (bookings.length > 0) {
         // Convert to BookingSummary format
         const summaries: BookingSummary[] = bookings.map((booking: any) => ({
           id: booking.id,
@@ -72,10 +71,9 @@ export default function BookingsScreen() {
         logger.debug('Loaded session bookings', { count: summaries.length });
       }
 
-      // Load session offerings from AsyncStorage
-      const storedOfferings = await AsyncStorage.getItem('session_offerings');
-      if (storedOfferings) {
-        const offerings = JSON.parse(storedOfferings);
+      // Load session offerings from storage
+      const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+      if (offerings.length > 0) {
         setSessionOfferings(offerings);
         logger.debug('Loaded session offerings', { count: offerings.length });
       }

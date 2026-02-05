@@ -4,7 +4,6 @@
  * Exports all components related to coach discovery and filtering.
  */
 
-export { CoachCard } from './coach-card';
 export { CoachMarker, ClusterMarker } from './CoachMarker';
 export { FilterBar } from './FilterBar';
 export { FilterModal } from './FilterModal';

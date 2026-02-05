@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -64,13 +64,13 @@ export function CoachOnboardingChecklist({
   const dismissKey = `${DISMISS_KEY_PREFIX}${coachId}`;
 
   useEffect(() => {
-    AsyncStorage.getItem(dismissKey).then((value) => {
+    apiClient.get<string | null>(dismissKey, null).then((value) => {
       setIsDismissed(value === 'true');
     });
   }, [dismissKey]);
 
   const handleDismiss = useCallback(async () => {
-    await AsyncStorage.setItem(dismissKey, 'true');
+    await apiClient.set(dismissKey, 'true');
     setIsDismissed(true);
   }, [dismissKey]);
 

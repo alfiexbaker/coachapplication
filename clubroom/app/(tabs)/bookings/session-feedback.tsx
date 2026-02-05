@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing } from '@/constants/theme';
@@ -59,11 +59,10 @@ export default function SessionFeedbackScreen() {
           attendance: 'ATTENDED',
         };
 
-        // Save to AsyncStorage
-        const existingSessions = await AsyncStorage.getItem('coach_sessions');
-        const sessions = existingSessions ? JSON.parse(existingSessions) : [];
+        // Save to storage
+        const sessions = await apiClient.get<any[]>('coach_sessions', []);
         sessions.push(sessionRecord);
-        await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
+        await apiClient.set('coach_sessions', sessions);
 
         logger.success('Session created', {
           sessionId,
@@ -72,15 +71,14 @@ export default function SessionFeedbackScreen() {
         });
 
         // Update booking status
-        const existingBookings = await AsyncStorage.getItem('session_bookings');
-        if (existingBookings) {
-          const bookings = JSON.parse(existingBookings);
+        const bookings = await apiClient.get<any[]>('session_bookings', []);
+        if (bookings.length > 0) {
           const updatedBookings = bookings.map((booking: any) =>
             booking.id === bookingId
               ? { ...booking, status: 'COMPLETED', sessionId }
               : booking
           );
-          await AsyncStorage.setItem('session_bookings', JSON.stringify(updatedBookings));
+          await apiClient.set('session_bookings', updatedBookings);
         }
 
         // Navigate to session detail screen to add notes/media

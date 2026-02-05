@@ -7,8 +7,7 @@ import type {
 import { storageService } from './storage-service';
 import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
-
-const STORAGE_KEY = 'clubroom.waitlist';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 const NOTIFICATION_EXPIRY_HOURS = 24; // Hours before notification expires
 
 const logger = createLogger('WaitlistService');
@@ -26,14 +25,14 @@ class WaitlistService {
    * Get all waitlist entries from storage
    */
   async getAllEntries(): Promise<WaitlistEntry[]> {
-    return storageService.getItem<WaitlistEntry[]>(STORAGE_KEY, []);
+    return storageService.getItem<WaitlistEntry[]>(STORAGE_KEYS.WAITLIST, []);
   }
 
   /**
    * Save all waitlist entries to storage
    */
   private async saveEntries(entries: WaitlistEntry[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEY, entries);
+    await storageService.setItem(STORAGE_KEYS.WAITLIST, entries);
   }
 
   /**

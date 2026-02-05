@@ -54,14 +54,24 @@ export default function ReferralsDashboardScreen() {
   // Load data
   const loadData = useCallback(async () => {
     try {
-      const [code, userStats, history] = await Promise.all([
+      const [codeResult, statsResult, history] = await Promise.all([
         referralService.getUserCode(userId, userName),
         referralService.getReferralStats(userId),
         referralService.getReferralHistory(userId),
       ]);
 
-      setReferralCode(code);
-      setStats(userStats);
+      if (codeResult.success) {
+        setReferralCode(codeResult.data);
+      } else {
+        logger.error('Failed to load referral code:', codeResult.error);
+      }
+
+      if (statsResult.success) {
+        setStats(statsResult.data);
+      } else {
+        logger.error('Failed to load referral stats:', statsResult.error);
+      }
+
       setReferrals(history);
     } catch (error) {
       logger.error('Failed to load referral data:', error);

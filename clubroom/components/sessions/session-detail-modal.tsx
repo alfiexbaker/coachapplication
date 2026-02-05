@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -114,8 +114,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
           style: 'destructive',
           onPress: async () => {
             try {
-              const stored = await AsyncStorage.getItem('session_offerings');
-              const offerings: SessionOffering[] = stored ? JSON.parse(stored) : [];
+              const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
               const updatedOfferings = offerings.map(o => {
                 if (o.id === offering.id) {
                   const cancelledInstances = [...(o.cancelledInstances || []), dateStr];
@@ -123,7 +122,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                 }
                 return o;
               });
-              await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
+              await apiClient.set('session_offerings', updatedOfferings);
               Alert.alert('Cancelled', `Session on ${formattedDate} has been cancelled.`);
               onUpdate?.();
             } catch {
@@ -155,8 +154,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
           style: 'destructive',
           onPress: async () => {
             try {
-              const stored = await AsyncStorage.getItem('session_offerings');
-              const offerings: SessionOffering[] = stored ? JSON.parse(stored) : [];
+              const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
               const updatedOfferings = offerings.map(o => {
                 if (o.id === offering.id) {
                   const updatedRegistrations = o.registrations.map(reg =>
@@ -172,7 +170,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                 }
                 return o;
               });
-              await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
+              await apiClient.set('session_offerings', updatedOfferings);
               Alert.alert('Booking Cancelled', 'Your booking has been cancelled. The coach has been notified.');
               onUpdate?.();
               onClose();
@@ -199,8 +197,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
           style: 'destructive',
           onPress: async () => {
             try {
-              const stored = await AsyncStorage.getItem('session_offerings');
-              const offerings: SessionOffering[] = stored ? JSON.parse(stored) : [];
+              const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
               const updatedOfferings = offerings.map(o => {
                 if (o.id === offering.id) {
                   // Set end date to today to stop future occurrences
@@ -212,7 +209,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                 }
                 return o;
               });
-              await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
+              await apiClient.set('session_offerings', updatedOfferings);
               Alert.alert('Series Ended', 'All future sessions have been cancelled.');
               onUpdate?.();
               onClose();
@@ -265,8 +262,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
       };
 
       // Update offering with new registration
-      const stored = await AsyncStorage.getItem('session_offerings');
-      const offerings: SessionOffering[] = stored ? JSON.parse(stored) : [];
+      const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
       const updatedOfferings = offerings.map(o => {
         if (o.id === offering.id) {
           const updatedRegistrations = [...o.registrations, newRegistration];
@@ -279,7 +275,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
         return o;
       });
 
-      await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
+      await apiClient.set('session_offerings', updatedOfferings);
 
       Alert.alert('Success', offering.isRecurring
         ? `Booked for the next ${weeksToBook} week${weeksToBook > 1 ? 's' : ''}`

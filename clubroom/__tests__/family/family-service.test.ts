@@ -8,7 +8,7 @@
 import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
-import { familyService } from '../../services/family-service';
+import { familyService } from '../../services/family';
 import type {
   FamilyDateRange,
 } from '../../constants/types';

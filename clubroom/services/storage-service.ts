@@ -1,20 +1,20 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('StorageService');
 
 /**
- * Lightweight storage helper that hides AsyncStorage errors and keeps
+ * Lightweight storage helper that delegates to apiClient and keeps
  * a tiny in-memory cache for mock/preview sessions.
  */
 class StorageService {
   private memory: Record<string, string> = {};
 
-  async setItem(key: string, value: any) {
+  async setItem<T>(key: string, value: T) {
     const serialized = JSON.stringify(value);
     this.memory[key] = serialized;
     try {
-      await AsyncStorage.setItem(key, serialized);
+      await apiClient.set(key, value);
     } catch (err) {
       logger.warn('Falling back to memory storage', { key, error: err });
     }
@@ -22,8 +22,8 @@ class StorageService {
 
   async getItem<T>(key: string, fallback: T): Promise<T> {
     try {
-      const value = await AsyncStorage.getItem(key);
-      if (value) return JSON.parse(value) as T;
+      const value = await apiClient.get<T | null>(key, null);
+      if (value !== null) return value;
     } catch (err) {
       logger.warn('Read failed, using memory fallback', { key, error: err });
     }
@@ -36,7 +36,7 @@ class StorageService {
   async removeItem(key: string) {
     delete this.memory[key];
     try {
-      await AsyncStorage.removeItem(key);
+      await apiClient.remove(key);
     } catch (err) {
       logger.warn('Remove failed, ignoring', { key, error: err });
     }

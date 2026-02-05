@@ -14,7 +14,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { familyService, FamilySpending, FamilyMember } from '@/services/family-service';
+import { familyService, type FamilySpending, type FamilyMember } from '@/services/family';
 
 const logger = createLogger('FamilySpendingScreen');
 

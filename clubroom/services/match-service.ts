@@ -22,7 +22,7 @@
  * - PATCH /api/matches/:id/result - Record result
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import type {
   Match,
@@ -35,10 +35,12 @@ import type {
 import { notificationService } from './notification-service';
 import { socialFeedService } from './social-feed-service';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('MatchService');
 
-const STORAGE_KEY = 'matches';
 const USE_MOCK = api.useMock;
 
 // Mock data for development
@@ -215,9 +217,9 @@ export interface SetLineupInput {
 
 async function loadFromStorage(): Promise<Match[]> {
   try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    const stored = await apiClient.get<Match[] | null>(STORAGE_KEYS.MATCHES, null);
     if (stored) {
-      return JSON.parse(stored);
+      return stored;
     }
   } catch (error) {
     logger.error('Failed to load from storage', error);
@@ -227,7 +229,7 @@ async function loadFromStorage(): Promise<Match[]> {
 
 async function saveToStorage(matches: Match[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(matches));
+    await apiClient.set(STORAGE_KEYS.MATCHES, matches);
   } catch (error) {
     logger.error('Failed to save to storage', error);
   }
@@ -369,7 +371,7 @@ export const matchService = {
       parentId: string;
       parentName?: string;
     }[]
-  ): Promise<Match> {
+  ): Promise<Result<Match, ServiceError>> {
     return this.invitePlayers({ matchId, players });
   },
 
@@ -377,13 +379,13 @@ export const matchService = {
    * Invite specific players to a match
    * Sends notification to each parent
    */
-  async invitePlayers(input: InvitePlayersInput): Promise<Match> {
+  async invitePlayers(input: InvitePlayersInput): Promise<Result<Match, ServiceError>> {
     if (USE_MOCK) {
       matchesCache = await loadFromStorage();
       const index = matchesCache.findIndex((m) => m.id === input.matchId);
 
       if (index === -1) {
-        throw new Error('Match not found');
+        return err(notFound('Match', input.matchId));
       }
 
       const match = matchesCache[index];
@@ -419,7 +421,7 @@ export const matchService = {
       match.updatedAt = new Date().toISOString();
       matchesCache[index] = match;
       await saveToStorage(matchesCache);
-      return match;
+      return ok(match);
     }
 
     const response = await fetch(`/api/matches/${input.matchId}/invite-players`, {
@@ -427,19 +429,19 @@ export const matchService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Parent responds to match invite (Available/Unavailable)
    */
-  async respondToMatch(input: RespondToMatchInput): Promise<Match> {
+  async respondToMatch(input: RespondToMatchInput): Promise<Result<Match, ServiceError>> {
     if (USE_MOCK) {
       matchesCache = await loadFromStorage();
       const index = matchesCache.findIndex((m) => m.id === input.matchId);
 
       if (index === -1) {
-        throw new Error('Match not found');
+        return err(notFound('Match', input.matchId));
       }
 
       const match = matchesCache[index];
@@ -448,7 +450,7 @@ export const matchService = {
       );
 
       if (playerIndex === -1) {
-        throw new Error('Player not found in match');
+        return err(notFound('Player', input.athleteId));
       }
 
       match.selectedPlayers[playerIndex] = {
@@ -474,7 +476,7 @@ export const matchService = {
       };
       await notificationService.create(notification);
 
-      return match;
+      return ok(match);
     }
 
     const response = await fetch(`/api/matches/${input.matchId}/respond`, {
@@ -482,20 +484,20 @@ export const matchService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Coach sets the lineup from available players
    * Sends "You're playing" notifications
    */
-  async setLineup(input: SetLineupInput): Promise<Match> {
+  async setLineup(input: SetLineupInput): Promise<Result<Match, ServiceError>> {
     if (USE_MOCK) {
       matchesCache = await loadFromStorage();
       const index = matchesCache.findIndex((m) => m.id === input.matchId);
 
       if (index === -1) {
-        throw new Error('Match not found');
+        return err(notFound('Match', input.matchId));
       }
 
       const match = matchesCache[index];
@@ -536,7 +538,7 @@ export const matchService = {
       match.updatedAt = new Date().toISOString();
       matchesCache[index] = match;
       await saveToStorage(matchesCache);
-      return match;
+      return ok(match);
     }
 
     const response = await fetch(`/api/matches/${input.matchId}/lineup`, {
@@ -544,19 +546,19 @@ export const matchService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Record match result (coach action after match)
    */
-  async recordResult(matchId: string, result: MatchResult): Promise<Match> {
+  async recordResult(matchId: string, result: MatchResult): Promise<Result<Match, ServiceError>> {
     if (USE_MOCK) {
       matchesCache = await loadFromStorage();
       const index = matchesCache.findIndex((m) => m.id === matchId);
 
       if (index === -1) {
-        throw new Error('Match not found');
+        return err(notFound('Match', matchId));
       }
 
       matchesCache[index] = {
@@ -567,7 +569,7 @@ export const matchService = {
       };
 
       await saveToStorage(matchesCache);
-      return matchesCache[index];
+      return ok(matchesCache[index]);
     }
 
     const response = await fetch(`/api/matches/${matchId}/result`, {
@@ -575,19 +577,19 @@ export const matchService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ result }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Update match status
    */
-  async updateStatus(matchId: string, status: MatchStatus): Promise<Match> {
+  async updateStatus(matchId: string, status: MatchStatus): Promise<Result<Match, ServiceError>> {
     if (USE_MOCK) {
       matchesCache = await loadFromStorage();
       const index = matchesCache.findIndex((m) => m.id === matchId);
 
       if (index === -1) {
-        throw new Error('Match not found');
+        return err(notFound('Match', matchId));
       }
 
       matchesCache[index] = {
@@ -597,7 +599,7 @@ export const matchService = {
       };
 
       await saveToStorage(matchesCache);
-      return matchesCache[index];
+      return ok(matchesCache[index]);
     }
 
     const response = await fetch(`/api/matches/${matchId}`, {
@@ -605,19 +607,19 @@ export const matchService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Cancel a match
    */
-  async cancelMatch(matchId: string): Promise<Match> {
+  async cancelMatch(matchId: string): Promise<Result<Match, ServiceError>> {
     if (USE_MOCK) {
       matchesCache = await loadFromStorage();
       const index = matchesCache.findIndex((m) => m.id === matchId);
 
       if (index === -1) {
-        throw new Error('Match not found');
+        return err(notFound('Match', matchId));
       }
 
       const match = matchesCache[index];
@@ -639,7 +641,7 @@ export const matchService = {
         await notificationService.create(notification);
       }
 
-      return match;
+      return ok(match);
     }
 
     return this.updateStatus(matchId, 'CANCELLED');

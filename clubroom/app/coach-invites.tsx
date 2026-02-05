@@ -23,7 +23,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -35,9 +35,9 @@ import { getClubById } from '@/constants/mock-data';
 import type { ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
-const logger = createLogger('CoachInvitesScreen');
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
-const PENDING_CLUB_INVITES_KEY = 'pending_club_invites';
+const logger = createLogger('CoachInvitesScreen');
 
 interface PendingClubInvite {
   id: string;
@@ -77,11 +77,10 @@ export default function CoachInvitesScreen() {
     if (!currentUser) return;
 
     try {
-      const stored = await AsyncStorage.getItem(`${PENDING_CLUB_INVITES_KEY}_${currentUser.id}`);
-      if (stored) {
-        const parsed: PendingClubInvite[] = JSON.parse(stored);
+      const stored = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
+      if (stored.length > 0) {
         // Filter to only pending invites that haven't expired
-        const validInvites = parsed.filter(
+        const validInvites = stored.filter(
           (inv) => inv.status === 'pending' && new Date(inv.expiresAt) > new Date()
         );
         setInvites(validInvites);
@@ -99,8 +98,7 @@ export default function CoachInvitesScreen() {
     const processIncomingInvite = async () => {
       if (params.code && params.clubId && params.clubName && currentUser) {
         // Check if this invite is already pending
-        const stored = await AsyncStorage.getItem(`${PENDING_CLUB_INVITES_KEY}_${currentUser.id}`);
-        const existing: PendingClubInvite[] = stored ? JSON.parse(stored) : [];
+        const existing = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
 
         if (!existing.find((inv) => inv.inviteCode === params.code)) {
           // Get club details for badge
@@ -120,10 +118,7 @@ export default function CoachInvitesScreen() {
           };
 
           existing.push(newInvite);
-          await AsyncStorage.setItem(
-            `${PENDING_CLUB_INVITES_KEY}_${currentUser.id}`,
-            JSON.stringify(existing)
-          );
+          await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, existing);
           setInvites(existing.filter((inv) => inv.status === 'pending'));
         }
       }
@@ -153,15 +148,11 @@ export default function CoachInvitesScreen() {
     setRespondingTo(invite.id);
     try {
       // Update invite status
-      const stored = await AsyncStorage.getItem(`${PENDING_CLUB_INVITES_KEY}_${currentUser.id}`);
-      const allInvites: PendingClubInvite[] = stored ? JSON.parse(stored) : [];
+      const allInvites = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, []);
       const updated = allInvites.map((inv) =>
         inv.id === invite.id ? { ...inv, status: 'accepted' as const } : inv
       );
-      await AsyncStorage.setItem(
-        `${PENDING_CLUB_INVITES_KEY}_${currentUser.id}`,
-        JSON.stringify(updated)
-      );
+      await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser.id}`, updated);
 
       // TODO: In real app, this would create the club membership via API
       logger.info('Accepted club invite', { clubId: invite.clubId, role: invite.role });
@@ -198,15 +189,11 @@ export default function CoachInvitesScreen() {
           onPress: async () => {
             setRespondingTo(invite.id);
             try {
-              const stored = await AsyncStorage.getItem(`${PENDING_CLUB_INVITES_KEY}_${currentUser?.id}`);
-              const allInvites: PendingClubInvite[] = stored ? JSON.parse(stored) : [];
+              const allInvites = await apiClient.get<PendingClubInvite[]>(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`, []);
               const updated = allInvites.map((inv) =>
                 inv.id === invite.id ? { ...inv, status: 'declined' as const } : inv
               );
-              await AsyncStorage.setItem(
-                `${PENDING_CLUB_INVITES_KEY}_${currentUser?.id}`,
-                JSON.stringify(updated)
-              );
+              await apiClient.set(`${STORAGE_KEYS.PENDING_CLUB_INVITES}_${currentUser?.id}`, updated);
               loadInvites();
             } catch (error) {
               logger.error('Failed to decline invite', error);

@@ -20,15 +20,15 @@
  * - GET /api/follows?followingId=X - Get followers list
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import type { Follow, FollowRequest, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { coachService } from './coach-service';
 import { createLogger } from '@/utils/logger';
 
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+
 const logger = createLogger('FollowService');
-const STORAGE_KEY = 'follows';
-const REQUESTS_KEY = 'follow_requests';
 
 // Mock data for development - some pre-existing follows
 const MOCK_FOLLOWS: Follow[] = [
@@ -75,9 +75,9 @@ let requestsCache: FollowRequest[] = [];
 
 async function loadFollows(): Promise<Follow[]> {
   try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    const stored = await apiClient.get<Follow[] | null>(STORAGE_KEYS.FOLLOWS, null);
     if (stored) {
-      return JSON.parse(stored);
+      return stored;
     }
   } catch (error) {
     logger.error('Failed to load follows', error);
@@ -87,7 +87,7 @@ async function loadFollows(): Promise<Follow[]> {
 
 async function saveFollows(follows: Follow[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(follows));
+    await apiClient.set(STORAGE_KEYS.FOLLOWS, follows);
   } catch (error) {
     logger.error('Failed to save follows', error);
   }
@@ -95,9 +95,9 @@ async function saveFollows(follows: Follow[]): Promise<void> {
 
 async function loadRequests(): Promise<FollowRequest[]> {
   try {
-    const stored = await AsyncStorage.getItem(REQUESTS_KEY);
+    const stored = await apiClient.get<FollowRequest[] | null>(STORAGE_KEYS.FOLLOW_REQUESTS, null);
     if (stored) {
-      return JSON.parse(stored);
+      return stored;
     }
   } catch (error) {
     logger.error('Failed to load requests', error);
@@ -107,7 +107,7 @@ async function loadRequests(): Promise<FollowRequest[]> {
 
 async function saveRequests(requests: FollowRequest[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(REQUESTS_KEY, JSON.stringify(requests));
+    await apiClient.set(STORAGE_KEYS.FOLLOW_REQUESTS, requests);
   } catch (error) {
     logger.error('Failed to save requests', error);
   }

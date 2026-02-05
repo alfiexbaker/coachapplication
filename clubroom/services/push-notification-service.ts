@@ -13,7 +13,7 @@ const logger = createLogger('PushNotificationService');
 
 // Lazy-load expo-notifications to avoid crash if not installed
 let Notifications: typeof import('expo-notifications') | null = null;
-let Device: any = null;
+let Device: { isDevice: boolean } | null = null;
 
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -114,7 +114,7 @@ export const pushNotificationService = {
   async scheduleLocalNotification(params: {
     title: string;
     body: string;
-    data?: Record<string, any>;
+    data?: Record<string, string>;
     triggerSeconds?: number;
   }): Promise<string> {
     if (!Notifications) {
@@ -123,8 +123,8 @@ export const pushNotificationService = {
     }
 
     try {
-      const trigger = params.triggerSeconds
-        ? { seconds: params.triggerSeconds, repeats: false }
+      const trigger: import('expo-notifications').NotificationTriggerInput = params.triggerSeconds
+        ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: params.triggerSeconds, repeats: false }
         : null;
 
       const id = await Notifications.scheduleNotificationAsync({
@@ -134,7 +134,7 @@ export const pushNotificationService = {
           data: params.data || {},
           sound: 'default',
         },
-        trigger: trigger as any,
+        trigger,
       });
 
       logger.info('Local notification scheduled', { id, title: params.title });

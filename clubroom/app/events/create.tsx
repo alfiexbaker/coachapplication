@@ -16,7 +16,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService, CreateEventInput } from '@/services/event-service';
 import { squadService } from '@/services/squad-service';
-import { inviteService as bulkInviteService } from '@/services/invite-service';
+import { inviteService as bulkInviteService } from '@/services/invite';
 import type { ClubEventType, EventTargetAudience, ClubSquad } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
 

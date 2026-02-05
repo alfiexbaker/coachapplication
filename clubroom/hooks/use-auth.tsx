@@ -4,14 +4,15 @@ import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import { getUserById } from '@/constants/mock-data';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
+import type { UserRole, SimplifiedUserType } from '@/constants/user-types';
 import type { OnboardingData, AccountType } from '@/services/auth-service';
 import { authService } from '@/services/auth-service';
+import { apiClient } from '@/services/api-client';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAuth');
 
-export type UserRole = 'USER' | 'COACH' | 'ADMIN' | 'PARENT' | 'Coach';
-export type SimplifiedUserType = 'USER' | 'COACH';
+export type { UserRole, SimplifiedUserType };
 
 type DemoUser = Omit<User, 'role'> & {
   role: UserRole;
@@ -434,9 +435,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem('session_bookings');
+      await apiClient.remove('session_bookings');
       logger.info('Session data cleared');
     } catch (error) {
       logger.error('Failed to clear session data', error);

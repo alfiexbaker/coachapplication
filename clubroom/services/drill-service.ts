@@ -21,6 +21,7 @@ import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '../utils/logger';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import type {
   Drill,
   DrillCategory,
@@ -404,14 +405,14 @@ async function assignDrill(
   assignedBy: string,
   assignedByName: string,
   params: AssignDrillInput
-): Promise<AssignedDrill> {
+): Promise<Result<AssignedDrill, ServiceError>> {
   const assignments = await getAllAssignments();
   const drills = await getAllDrills();
 
   // Get the drill details
   const drill = drills.find((d) => d.id === drillId);
   if (!drill) {
-    throw new Error(`Drill not found: ${drillId}`);
+    return err(notFound('Drill', drillId));
   }
 
   const newAssignment: AssignedDrill = {
@@ -450,7 +451,7 @@ async function assignDrill(
   // Notify parent that a drill has been assigned to their athlete
   await notificationTriggers.drillAssigned(assignedByName, drill.title, athleteName);
 
-  return newAssignment;
+  return ok(newAssignment);
 }
 
 /**

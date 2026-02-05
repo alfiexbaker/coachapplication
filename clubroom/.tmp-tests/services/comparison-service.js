@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.comparisonService = void 0;
 const storage_service_1 = require("./storage-service");
 const discover_service_1 = require("./discover-service");
-const STORAGE_KEY = 'clubroom.comparison.selectedCoaches';
+const storage_keys_1 = require("@/constants/storage-keys");
 const MAX_COACHES = 3;
 /**
  * Transform a CoachProfile to CoachComparison format
@@ -66,7 +66,7 @@ class ComparisonService {
     async initialize() {
         if (this.initialized)
             return;
-        this.selectedCoachIds = await storage_service_1.storageService.getItem(STORAGE_KEY, []);
+        this.selectedCoachIds = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.COMPARISON_SELECTED_COACHES, []);
         this.initialized = true;
     }
     /**
@@ -233,7 +233,7 @@ class ComparisonService {
      * Persist current state to storage
      */
     async persistState() {
-        await storage_service_1.storageService.setItem(STORAGE_KEY, this.selectedCoachIds);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.COMPARISON_SELECTED_COACHES, this.selectedCoachIds);
     }
     /**
      * Reset service state (for testing)
@@ -241,7 +241,7 @@ class ComparisonService {
     async reset() {
         this.selectedCoachIds = [];
         this.initialized = false;
-        await storage_service_1.storageService.removeItem(STORAGE_KEY);
+        await storage_service_1.storageService.removeItem(storage_keys_1.STORAGE_KEYS.COMPARISON_SELECTED_COACHES);
     }
 }
 exports.comparisonService = new ComparisonService();

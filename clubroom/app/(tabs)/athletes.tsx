@@ -22,6 +22,7 @@ import { rosterService } from '@/services/roster-service';
 import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
 import type { RosterEntry } from '@/constants/types';
+import type { Booking } from '@/constants/app-types';
 
 const logger = createLogger('AthletesScreen');
 
@@ -33,7 +34,7 @@ export default function AthletesScreen() {
   const { currentUser } = useAuth();
 
   const [roster, setRoster] = useState<RosterEntry[]>([]);
-  const [upcomingSessions, setUpcomingSessions] = useState<Record<string, any>>({});
+  const [upcomingSessions, setUpcomingSessions] = useState<Record<string, Booking>>({});
   const [, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,8 +50,8 @@ export default function AthletesScreen() {
       setRoster(rosterData);
 
       // Map upcoming sessions by athlete
-      const sessionsMap: Record<string, any> = {};
-      bookingsData.forEach((booking: any) => {
+      const sessionsMap: Record<string, Booking> = {};
+      bookingsData.forEach((booking: Booking) => {
         if (booking.athleteId && !sessionsMap[booking.athleteId]) {
           sessionsMap[booking.athleteId] = booking;
         }

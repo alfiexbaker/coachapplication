@@ -9,8 +9,7 @@
  */
 
 import { apiClient } from './api-client';
-
-const BLOCKED_USERS_KEY = 'clubroom.blocked_users';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 interface BlockedUsersMap {
   [userId: string]: string[];
@@ -22,13 +21,13 @@ export const blockService = {
    * or find the blocking user in search.
    */
   async blockUser(userId: string, blockedUserId: string): Promise<void> {
-    const allBlocked = await apiClient.get<BlockedUsersMap>(BLOCKED_USERS_KEY, {});
+    const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
     const userBlocked = allBlocked[userId] || [];
 
     if (!userBlocked.includes(blockedUserId)) {
       userBlocked.push(blockedUserId);
       allBlocked[userId] = userBlocked;
-      await apiClient.set(BLOCKED_USERS_KEY, allBlocked);
+      await apiClient.set(STORAGE_KEYS.BLOCKED_USERS, allBlocked);
     }
   },
 
@@ -36,18 +35,18 @@ export const blockService = {
    * Unblock a previously blocked user.
    */
   async unblockUser(userId: string, blockedUserId: string): Promise<void> {
-    const allBlocked = await apiClient.get<BlockedUsersMap>(BLOCKED_USERS_KEY, {});
+    const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
     const userBlocked = allBlocked[userId] || [];
 
     allBlocked[userId] = userBlocked.filter((id) => id !== blockedUserId);
-    await apiClient.set(BLOCKED_USERS_KEY, allBlocked);
+    await apiClient.set(STORAGE_KEYS.BLOCKED_USERS, allBlocked);
   },
 
   /**
    * Get the list of user IDs blocked by the given user.
    */
   async getBlockedUsers(userId: string): Promise<string[]> {
-    const allBlocked = await apiClient.get<BlockedUsersMap>(BLOCKED_USERS_KEY, {});
+    const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
     return allBlocked[userId] || [];
   },
 
@@ -55,7 +54,7 @@ export const blockService = {
    * Check whether userId has blocked targetId, or vice versa.
    */
   async isBlocked(userId: string, targetId: string): Promise<boolean> {
-    const allBlocked = await apiClient.get<BlockedUsersMap>(BLOCKED_USERS_KEY, {});
+    const allBlocked = await apiClient.get<BlockedUsersMap>(STORAGE_KEYS.BLOCKED_USERS, {});
     const blockedByUser = allBlocked[userId] || [];
     const blockedByTarget = allBlocked[targetId] || [];
 

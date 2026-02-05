@@ -12,7 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { inviteService as sessionInviteService } from '@/services/invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite';
 import { academyService } from '@/services/academy-service';
 import { rosterService } from '@/services/roster-service';
 import type { TimeSlot, Academy, SessionInvite, RosterEntry } from '@/constants/types';

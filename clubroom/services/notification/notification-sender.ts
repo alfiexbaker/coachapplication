@@ -20,7 +20,7 @@ class NotificationSenderService {
     if (notification.recipientId && notification.notificationType) {
       const shouldSend = await notificationPreferencesService.shouldSendNotification(
         notification.recipientId,
-        notification.notificationType as any,
+        notification.notificationType as import('@/constants/types').NotificationType,
         'PUSH'
       );
 

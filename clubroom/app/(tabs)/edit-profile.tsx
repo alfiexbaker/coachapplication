@@ -71,7 +71,7 @@ export default function EditProfileScreen() {
   // Fall back to mock data for development if not logged in
   const currentUser = authUser || mockUserProfile;
   // Check if user is a coach based on role/type property
-  const userIsCoach = currentUser?.role === 'COACH' || (currentUser as any)?.type === 'COACH';
+  const userIsCoach = currentUser?.role === 'COACH' || currentUser?.role === 'Coach';
 
   // Get initial data based on role
   const coach = userIsCoach ? coachProfiles[0] : null;

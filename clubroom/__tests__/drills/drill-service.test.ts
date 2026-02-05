@@ -181,7 +181,7 @@ describe('Drill Service', () => {
 
   describe('Assignment Operations', () => {
     test('should assign a drill to an athlete', async () => {
-      const assignment = await drillService.assignDrill(
+      const result = await drillService.assignDrill(
         'drill_1',
         'athlete_1',
         'Test Athlete',
@@ -194,6 +194,10 @@ describe('Drill Service', () => {
           priority: 1,
         }
       );
+
+      assert.strictEqual(result.success, true);
+      if (!result.success) return;
+      const assignment = result.data;
 
       assert.ok(assignment.id.startsWith('assign_'));
       assert.strictEqual(assignment.drillId, 'drill_1');
@@ -208,27 +212,26 @@ describe('Drill Service', () => {
       assert.ok(assignment.drill);
     });
 
-    test('should throw error when assigning non-existent drill', async () => {
-      await assert.rejects(
-        async () => {
-          await drillService.assignDrill(
-            'nonexistent',
-            'athlete_1',
-            'Test Athlete',
-            'coach1',
-            'Coach Mike',
-            { dueDate: '2026-02-01T23:59:59Z' }
-          );
-        },
-        { message: 'Drill not found: nonexistent' }
+    test('should return error when assigning non-existent drill', async () => {
+      const result = await drillService.assignDrill(
+        'nonexistent',
+        'athlete_1',
+        'Test Athlete',
+        'coach1',
+        'Coach Mike',
+        { dueDate: '2026-02-01T23:59:59Z' }
       );
+
+      assert.strictEqual(result.success, false);
+      if (result.success) return;
+      assert.ok(result.error.message.includes('nonexistent'));
     });
 
     test('should increment drill assignment count', async () => {
       const drillBefore = await drillService.getDrillById('drill_1');
       const countBefore = drillBefore?.assignmentCount ?? 0;
 
-      await drillService.assignDrill(
+      const result = await drillService.assignDrill(
         'drill_1',
         'new_athlete',
         'New Athlete',
@@ -236,6 +239,7 @@ describe('Drill Service', () => {
         'Coach Mike',
         { dueDate: '2026-02-01T23:59:59Z' }
       );
+      assert.strictEqual(result.success, true);
 
       const drillAfter = await drillService.getDrillById('drill_1');
       assert.strictEqual(drillAfter?.assignmentCount, countBefore + 1);
@@ -355,7 +359,7 @@ describe('Drill Service', () => {
 
   describe('deleteAssignment', () => {
     test('should delete an assignment', async () => {
-      const assignment = await drillService.assignDrill(
+      const assignResult = await drillService.assignDrill(
         'drill_1',
         'temp_athlete',
         'Temp Athlete',
@@ -363,6 +367,10 @@ describe('Drill Service', () => {
         'Coach Mike',
         { dueDate: '2026-02-01T23:59:59Z' }
       );
+
+      assert.strictEqual(assignResult.success, true);
+      if (!assignResult.success) return;
+      const assignment = assignResult.data;
 
       const deleted = await drillService.deleteAssignment(assignment.id);
       assert.strictEqual(deleted, true);

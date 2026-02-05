@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -72,15 +72,13 @@ export default function CreateClubScreen() {
       };
 
       // Store club and membership
-      const existingClubs = await AsyncStorage.getItem('user_clubs');
-      const clubs = existingClubs ? JSON.parse(existingClubs) : [];
+      const clubs = await apiClient.get<Club[]>('user_clubs', []);
       clubs.push(newClub);
-      await AsyncStorage.setItem('user_clubs', JSON.stringify(clubs));
+      await apiClient.set('user_clubs', clubs);
 
-      const existingMemberships = await AsyncStorage.getItem('club_memberships');
-      const memberships = existingMemberships ? JSON.parse(existingMemberships) : [];
+      const memberships = await apiClient.get<ClubMembership[]>('club_memberships', []);
       memberships.push(membership);
-      await AsyncStorage.setItem('club_memberships', JSON.stringify(memberships));
+      await apiClient.set('club_memberships', memberships);
 
       logger.success('ClubCreated', { clubId, inviteCode });
 

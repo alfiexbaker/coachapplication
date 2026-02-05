@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -75,10 +75,9 @@ export default function CreateSquadScreen() {
       };
 
       // Store squad
-      const existingSquads = await AsyncStorage.getItem('club_squads');
-      const squads = existingSquads ? JSON.parse(existingSquads) : [];
+      const squads = await apiClient.get<ClubSquad[]>('club_squads', []);
       squads.push(newSquad);
-      await AsyncStorage.setItem('club_squads', JSON.stringify(squads));
+      await apiClient.set('club_squads', squads);
 
       logger.success('SquadCreated', { squadId, name: newSquad.name });
       showToast('Squad created!', 'success');

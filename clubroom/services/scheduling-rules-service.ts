@@ -16,7 +16,7 @@
  * before cancelling so I can make an informed decision."
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import type {
   CoachSchedulingRules,
   CancellationPolicy,
@@ -24,10 +24,11 @@ import type {
   RefundTier,
 } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, validationError } from '@/types/result';
+
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('SchedulingRulesService');
-const STORAGE_KEY = 'coach_scheduling_rules';
-const CANCELLATION_STORAGE_KEY = 'cancellation_policies';
 const PLATFORM_FEE_PERCENT = 10; // 10% platform fee on refunds
 
 /**
@@ -211,8 +212,7 @@ class SchedulingRulesService {
    */
   private async loadAllRules(): Promise<CoachSchedulingRules[]> {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
+      return await apiClient.get<CoachSchedulingRules[]>(STORAGE_KEYS.SCHEDULING_RULES, []);
     } catch (error) {
       logger.error('Failed to load scheduling rules', error);
       return [];
@@ -223,7 +223,7 @@ class SchedulingRulesService {
    * Save all rules to storage
    */
   private async saveAllRules(rules: CoachSchedulingRules[]): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(rules));
+    await apiClient.set(STORAGE_KEYS.SCHEDULING_RULES, rules);
     // Update cache
     this.rulesCache.clear();
     rules.forEach(r => this.rulesCache.set(r.coachId, r));
@@ -302,13 +302,13 @@ class SchedulingRulesService {
   async applyPreset(
     coachId: string,
     presetKey: keyof typeof SCHEDULING_PRESETS
-  ): Promise<CoachSchedulingRules> {
+  ): Promise<Result<CoachSchedulingRules, ServiceError>> {
     const preset = SCHEDULING_PRESETS[presetKey];
     if (!preset) {
-      throw new Error(`Unknown preset: ${presetKey}`);
+      return err(validationError(`Unknown preset: ${presetKey}`));
     }
 
-    return this.updateCoachRules(coachId, preset.rules);
+    return ok(await this.updateCoachRules(coachId, preset.rules));
   }
 
   /**
@@ -454,8 +454,7 @@ class SchedulingRulesService {
     if (this.policiesCache) return this.policiesCache;
 
     try {
-      const stored = await AsyncStorage.getItem(CANCELLATION_STORAGE_KEY);
-      this.policiesCache = stored ? JSON.parse(stored) : [];
+      this.policiesCache = await apiClient.get<CancellationPolicy[]>(STORAGE_KEYS.CANCELLATION_POLICIES, []);
       return this.policiesCache || [];
     } catch (error) {
       logger.error('Failed to load cancellation policies', error);
@@ -468,7 +467,7 @@ class SchedulingRulesService {
    */
   private async savePolicies(policies: CancellationPolicy[]): Promise<void> {
     this.policiesCache = policies;
-    await AsyncStorage.setItem(CANCELLATION_STORAGE_KEY, JSON.stringify(policies));
+    await apiClient.set(STORAGE_KEYS.CANCELLATION_POLICIES, policies);
   }
 
   /**

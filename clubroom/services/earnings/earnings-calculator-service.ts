@@ -99,7 +99,7 @@ export const earningsCalculatorService = {
       if (USE_MOCK) {
         // Get all completed bookings for this coach
         const bookings = await bookingService.getBookingsForUser(coachId, 'coach');
-        const completedBookings = bookings.filter((b: any) => b.status === 'COMPLETED');
+        const completedBookings = bookings.filter((b) => b.status === 'COMPLETED');
 
         const now = new Date();
         const startOfWeek = new Date(now);

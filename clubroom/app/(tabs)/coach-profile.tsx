@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ScreenHeader } from '@/components/primitives/screen-header';
@@ -168,12 +168,9 @@ export default function CoachProfileScreen() {
   useEffect(() => {
     const loadSessionOfferings = async () => {
       try {
-        const stored = await AsyncStorage.getItem('session_offerings');
-        if (stored) {
-          const offerings: SessionOffering[] = JSON.parse(stored);
-          const coachOfferings = offerings.filter(o => o.coachId === coach.id && o.status === 'active');
-          setSessionOfferings(coachOfferings);
-        }
+        const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+        const coachOfferings = offerings.filter(o => o.coachId === coach.id && o.status === 'active');
+        setSessionOfferings(coachOfferings);
       } catch (error) {
         logger.error('Failed to load session offerings', error);
       }
@@ -753,12 +750,9 @@ export default function CoachProfileScreen() {
           }}
           onUpdate={async () => {
             // Reload offerings after booking
-            const stored = await AsyncStorage.getItem('session_offerings');
-            if (stored) {
-              const offerings: SessionOffering[] = JSON.parse(stored);
-              const coachOfferings = offerings.filter(o => o.coachId === coach.id && o.status === 'active');
-              setSessionOfferings(coachOfferings);
-            }
+            const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+            const coachOfferings = offerings.filter(o => o.coachId === coach.id && o.status === 'active');
+            setSessionOfferings(coachOfferings);
           }}
         />
 

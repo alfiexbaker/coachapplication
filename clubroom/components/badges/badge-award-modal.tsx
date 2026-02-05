@@ -111,7 +111,7 @@ export function BadgeAwardModal({
     setError(null);
 
     try {
-      const award = await badgeService.awardBadge({
+      const result = await badgeService.awardBadge({
         badgeId: selectedBadgeId,
         athleteId,
         athleteName: resolvedAthleteName,
@@ -124,6 +124,12 @@ export function BadgeAwardModal({
         context: sessionId ? 'session' : 'athlete_profile',
       });
 
+      if (!result.success) {
+        setError(result.error.message);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       celebrationRef.current?.celebrate({
@@ -134,7 +140,7 @@ export function BadgeAwardModal({
         duration: 2500,
       });
 
-      onAwarded?.(award);
+      onAwarded?.(result.data);
       logger.info('badge_award_submitted', {
         athleteId,
         sessionId,

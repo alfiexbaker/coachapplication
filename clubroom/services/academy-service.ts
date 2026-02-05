@@ -12,16 +12,16 @@
  * - GET /api/academies/:id/staff - List staff
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import type { Academy, AcademyMembership, AcademyInvite, AcademyPermission, SportCategory, FootballObjective } from '@/constants/types';
+import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('AcademyService');
 
-const ACADEMIES_STORAGE_KEY = 'academies';
-const MEMBERSHIPS_STORAGE_KEY = 'academy_memberships';
-const INVITES_STORAGE_KEY = 'academy_invites';
 const USE_MOCK = api.useMock;
 
 // Mock academies
@@ -143,8 +143,8 @@ let invitesCache: AcademyInvite[] = [...MOCK_INVITES];
 
 async function loadAcademies(): Promise<Academy[]> {
   try {
-    const stored = await AsyncStorage.getItem(ACADEMIES_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<Academy[] | null>(STORAGE_KEYS.ACADEMIES, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load academies', error);
   }
@@ -153,7 +153,7 @@ async function loadAcademies(): Promise<Academy[]> {
 
 async function saveAcademies(academies: Academy[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(ACADEMIES_STORAGE_KEY, JSON.stringify(academies));
+    await apiClient.set(STORAGE_KEYS.ACADEMIES, academies);
   } catch (error) {
     logger.error('Failed to save academies', error);
   }
@@ -161,8 +161,8 @@ async function saveAcademies(academies: Academy[]): Promise<void> {
 
 async function loadMemberships(): Promise<AcademyMembership[]> {
   try {
-    const stored = await AsyncStorage.getItem(MEMBERSHIPS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<AcademyMembership[] | null>(STORAGE_KEYS.ACADEMY_MEMBERSHIPS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load memberships', error);
   }
@@ -171,7 +171,7 @@ async function loadMemberships(): Promise<AcademyMembership[]> {
 
 async function saveMemberships(memberships: AcademyMembership[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(MEMBERSHIPS_STORAGE_KEY, JSON.stringify(memberships));
+    await apiClient.set(STORAGE_KEYS.ACADEMY_MEMBERSHIPS, memberships);
   } catch (error) {
     logger.error('Failed to save memberships', error);
   }
@@ -179,8 +179,8 @@ async function saveMemberships(memberships: AcademyMembership[]): Promise<void> 
 
 async function loadInvites(): Promise<AcademyInvite[]> {
   try {
-    const stored = await AsyncStorage.getItem(INVITES_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<AcademyInvite[] | null>(STORAGE_KEYS.ACADEMY_INVITES, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load invites', error);
   }
@@ -189,7 +189,7 @@ async function loadInvites(): Promise<AcademyInvite[]> {
 
 async function saveInvites(invites: AcademyInvite[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(INVITES_STORAGE_KEY, JSON.stringify(invites));
+    await apiClient.set(STORAGE_KEYS.ACADEMY_INVITES, invites);
   } catch (error) {
     logger.error('Failed to save invites', error);
   }
@@ -353,15 +353,15 @@ export const academyService = {
   /**
    * Update academy branding
    */
-  async updateBranding(academyId: string, branding: UpdateBrandingInput): Promise<Academy> {
+  async updateBranding(academyId: string, branding: UpdateBrandingInput): Promise<Result<Academy, ServiceError>> {
     if (USE_MOCK) {
       academiesCache = await loadAcademies();
       const academy = academiesCache.find((a) => a.id === academyId);
-      if (!academy) throw new Error('Academy not found');
+      if (!academy) return err(notFound('Academy', academyId));
 
       Object.assign(academy, branding);
       await saveAcademies(academiesCache);
-      return academy;
+      return ok(academy);
     }
 
     const response = await fetch(`/api/academies/${academyId}/branding`, {
@@ -369,7 +369,7 @@ export const academyService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(branding),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -378,15 +378,15 @@ export const academyService = {
   async updateSettings(
     academyId: string,
     settings: Partial<Pick<Academy, 'name' | 'description' | 'isPublic' | 'requiresApproval'>>
-  ): Promise<Academy> {
+  ): Promise<Result<Academy, ServiceError>> {
     if (USE_MOCK) {
       academiesCache = await loadAcademies();
       const academy = academiesCache.find((a) => a.id === academyId);
-      if (!academy) throw new Error('Academy not found');
+      if (!academy) return err(notFound('Academy', academyId));
 
       Object.assign(academy, settings);
       await saveAcademies(academiesCache);
-      return academy;
+      return ok(academy);
     }
 
     const response = await fetch(`/api/academies/${academyId}`, {
@@ -394,7 +394,7 @@ export const academyService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -470,7 +470,7 @@ export const academyService = {
     userId: string,
     userName: string,
     userPhotoUrl?: string
-  ): Promise<AcademyMembership> {
+  ): Promise<Result<AcademyMembership, ServiceError>> {
     if (USE_MOCK) {
       invitesCache = await loadInvites();
       membershipsCache = await loadMemberships();
@@ -479,13 +479,13 @@ export const academyService = {
       const invite = invitesCache.find(
         (i) => i.code === code && new Date(i.expiresAt) > new Date() && i.currentUses < i.maxUses
       );
-      if (!invite) throw new Error('Invalid or expired invite code');
+      if (!invite) return err(validationError('Invalid or expired invite code'));
 
       // Check if already a member
       const existingMembership = membershipsCache.find(
         (m) => m.academyId === invite.academyId && m.userId === userId
       );
-      if (existingMembership) throw new Error('Already a member of this academy');
+      if (existingMembership) return err(conflictError('Already a member of this academy'));
 
       const membership: AcademyMembership = {
         id: `mem_${Date.now()}`,
@@ -513,7 +513,7 @@ export const academyService = {
       await saveInvites(invitesCache);
       await saveAcademies(academiesCache);
 
-      return membership;
+      return ok(membership);
     }
 
     const response = await fetch('/api/academies/join', {
@@ -521,7 +521,7 @@ export const academyService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, userId, userName, userPhotoUrl }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -531,17 +531,17 @@ export const academyService = {
     membershipId: string,
     role: AcademyMembership['role'],
     permissions: AcademyPermission[]
-  ): Promise<AcademyMembership> {
+  ): Promise<Result<AcademyMembership, ServiceError>> {
     if (USE_MOCK) {
       membershipsCache = await loadMemberships();
       const membership = membershipsCache.find((m) => m.id === membershipId);
-      if (!membership) throw new Error('Membership not found');
+      if (!membership) return err(notFound('Membership', membershipId));
 
       membership.role = role;
       membership.permissions = permissions;
 
       await saveMemberships(membershipsCache);
-      return membership;
+      return ok(membership);
     }
 
     const response = await fetch(`/api/memberships/${membershipId}`, {
@@ -549,28 +549,29 @@ export const academyService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role, permissions }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Remove member from academy
    */
-  async removeMember(membershipId: string): Promise<void> {
+  async removeMember(membershipId: string): Promise<Result<void, ServiceError>> {
     if (USE_MOCK) {
       membershipsCache = await loadMemberships();
       const membership = membershipsCache.find((m) => m.id === membershipId);
-      if (!membership) throw new Error('Membership not found');
+      if (!membership) return err(notFound('Membership', membershipId));
 
       if (membership.role === 'OWNER') {
-        throw new Error('Cannot remove owner');
+        return err(validationError('Cannot remove owner'));
       }
 
       membership.status = 'SUSPENDED';
       await saveMemberships(membershipsCache);
-      return;
+      return ok(undefined);
     }
 
     await fetch(`/api/memberships/${membershipId}`, { method: 'DELETE' });
+    return ok(undefined);
   },
 
   /**

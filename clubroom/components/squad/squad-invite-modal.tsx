@@ -24,7 +24,7 @@ import { squadService } from '@/services/squad-service';
 import {
   inviteService as bulkInviteService,
   type SquadInvitePreview,
-} from '@/services/invite-service';
+} from '@/services/invite';
 
 const logger = createLogger('SquadInviteModal');
 

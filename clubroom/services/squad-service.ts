@@ -10,16 +10,16 @@
  * - GET /api/clubs/:clubId/squads - Get all squads for a club
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import type { ClubSquad, SquadMember } from '@/constants/types';
 import { clubSquads } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+
 const logger = createLogger('SquadService');
 
-const SQUAD_MEMBERS_KEY = 'squad_members';
-const SQUADS_KEY = 'club_squads';
 const USE_MOCK = api.useMock;
 
 // Cache for custom squads (created by users)
@@ -27,9 +27,9 @@ let customSquadsCache: ClubSquad[] = [];
 
 async function loadCustomSquads(): Promise<ClubSquad[]> {
   try {
-    const stored = await AsyncStorage.getItem(SQUADS_KEY);
+    const stored = await apiClient.get<ClubSquad[] | null>(STORAGE_KEYS.CLUB_SQUADS, null);
     if (stored) {
-      customSquadsCache = JSON.parse(stored);
+      customSquadsCache = stored;
       return customSquadsCache;
     }
   } catch (error) {
@@ -40,7 +40,7 @@ async function loadCustomSquads(): Promise<ClubSquad[]> {
 
 async function saveCustomSquads(squads: ClubSquad[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(SQUADS_KEY, JSON.stringify(squads));
+    await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, squads);
     customSquadsCache = squads;
   } catch (error) {
     logger.error('Failed to save custom squads', error);
@@ -211,8 +211,8 @@ let membersCache: SquadMember[] = [...MOCK_SQUAD_MEMBERS];
 
 async function loadMembers(): Promise<SquadMember[]> {
   try {
-    const stored = await AsyncStorage.getItem(SQUAD_MEMBERS_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<SquadMember[] | null>(STORAGE_KEYS.SQUAD_MEMBERS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load members', error);
   }

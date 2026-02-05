@@ -39,11 +39,17 @@ export default function JoinTeamScreen() {
 
     setLoading(true);
     try {
-      const membership = await academyService.joinWithCode(code, currentUser.id, currentUser.name, currentUser.avatar);
+      const result = await academyService.joinWithCode(code, currentUser.id, currentUser.name, currentUser.avatar);
+      if (!result.success) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        logger.error('team_join_failed', { error: result.error.message });
+        Alert.alert('Unable to Join', result.error.message);
+        return;
+      }
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      logger.info('team_joined', { teamId: membership.academyId });
+      logger.info('team_joined', { teamId: result.data.academyId });
       Alert.alert('Welcome!', 'You have successfully joined the team', [
-        { text: 'View Team', onPress: () => router.replace(`/academy/${membership.academyId}`) },
+        { text: 'View Team', onPress: () => router.replace(`/academy/${result.data.academyId}`) },
       ]);
     } catch (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

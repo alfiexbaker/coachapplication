@@ -6,19 +6,19 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { createLogger } from '@/utils/logger';
 
-const logger = createLogger('OfflineQueue');
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
-const QUEUE_KEY = 'clubroom.offline_queue';
+const logger = createLogger('OfflineQueue');
 
 export interface QueuedAction {
   id: string;
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
-  body: any;
+  body: unknown;
   timestamp: number;
 }
 
@@ -30,16 +30,14 @@ export async function addToQueue(action: Omit<QueuedAction, 'id' | 'timestamp'>)
     timestamp: Date.now(),
   };
   queue.push(newAction);
-  await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+  await apiClient.set(STORAGE_KEYS.OFFLINE_QUEUE, queue);
   logger.info('Action queued for offline sync', { id: newAction.id, path: action.path });
 }
 
 export async function getQueue(): Promise<QueuedAction[]> {
   try {
-    const stored = await AsyncStorage.getItem(QUEUE_KEY);
-    if (stored) {
-      return (JSON.parse(stored) as QueuedAction[]).sort((a, b) => a.timestamp - b.timestamp);
-    }
+    const stored = await apiClient.get<QueuedAction[]>(STORAGE_KEYS.OFFLINE_QUEUE, []);
+    return stored.sort((a, b) => a.timestamp - b.timestamp);
   } catch (error) {
     logger.error('Failed to load offline queue', error);
   }
@@ -49,7 +47,7 @@ export async function getQueue(): Promise<QueuedAction[]> {
 export async function removeFromQueue(actionId: string): Promise<void> {
   const queue = await getQueue();
   const filtered = queue.filter(a => a.id !== actionId);
-  await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(filtered));
+  await apiClient.set(STORAGE_KEYS.OFFLINE_QUEUE, filtered);
 }
 
 export async function flushQueue(): Promise<{ processed: number; failed: boolean; error?: string }> {

@@ -321,13 +321,19 @@ export default function RosterScreen() {
 
     setIsRemoving(true);
     try {
-      const removalRecord = await rosterService.removeAthlete(
+      const result = await rosterService.removeAthlete(
         coachId,
         selectedAthleteForRemoval.athleteId,
         reason,
         { customReason, archive }
       );
 
+      if (!result.success) {
+        showToast(result.error.message, 'error');
+        return;
+      }
+
+      const removalRecord = result.data;
       lastRemovalRef.current = removalRecord;
       setShowRemovalModal(false);
       setSelectedAthleteForRemoval(null);

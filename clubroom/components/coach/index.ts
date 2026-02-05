@@ -1,7 +1,13 @@
 export * from './analytics-screen';
 export * from './availability-grid';
 export * from './block-date-modal';
-export * from './CoachCard';
+// CoachCard - refactored into focused subcomponents
+export * from './coach-card';
+export * from './coach-card-header';
+export * from './coach-card-reviews';
+export * from './coach-card-availability';
+export * from './coach-card-services';
+export * from './coach-card-cta';
 export * from './development-screen';
 export * from './filter-panel';
 export * from './invite-athlete-modal';

@@ -33,6 +33,7 @@ import type {
 } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 
 const logger = createLogger('CounterOfferService');
 
@@ -241,13 +242,13 @@ export const counterOfferService = {
    * Accept a counter-offer
    * Updates booking time and notifies proposer
    */
-  async acceptCounterOffer(offerId: string): Promise<CounterOffer> {
+  async acceptCounterOffer(offerId: string): Promise<Result<CounterOffer, ServiceError>> {
     if (USE_MOCK) {
       counterOffersCache = await loadCounterOffersFromStorage();
       const index = counterOffersCache.findIndex((o) => o.id === offerId);
 
       if (index === -1) {
-        throw new Error('Counter-offer not found');
+        return err(notFound('Counter-offer', offerId));
       }
 
       const offer = counterOffersCache[index];
@@ -319,26 +320,26 @@ export const counterOfferService = {
         }
       }
 
-      return counterOffersCache[index];
+      return ok(counterOffersCache[index]);
     }
 
     const response = await fetch(`/api/counter-offers/${offerId}/accept`, {
       method: 'PATCH',
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
    * Reject a counter-offer with optional reason
    * Notifies proposer of rejection
    */
-  async rejectCounterOffer(input: RejectCounterOfferInput): Promise<CounterOffer> {
+  async rejectCounterOffer(input: RejectCounterOfferInput): Promise<Result<CounterOffer, ServiceError>> {
     if (USE_MOCK) {
       counterOffersCache = await loadCounterOffersFromStorage();
       const index = counterOffersCache.findIndex((o) => o.id === input.offerId);
 
       if (index === -1) {
-        throw new Error('Counter-offer not found');
+        return err(notFound('Counter-offer', input.offerId));
       }
 
       const offer = counterOffersCache[index];
@@ -378,7 +379,7 @@ export const counterOfferService = {
 
       await notificationService.create(notification);
 
-      return counterOffersCache[index];
+      return ok(counterOffersCache[index]);
     }
 
     const response = await fetch(`/api/counter-offers/${input.offerId}/reject`, {
@@ -386,7 +387,7 @@ export const counterOfferService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason: input.reason }),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -507,13 +508,13 @@ export const counterOfferService = {
   /**
    * Cancel a negotiation (both parties give up)
    */
-  async cancelNegotiation(bookingId: string): Promise<NegotiationHistory> {
+  async cancelNegotiation(bookingId: string): Promise<Result<NegotiationHistory, ServiceError>> {
     if (USE_MOCK) {
       negotiationsCache = await loadNegotiationsFromStorage();
       const index = negotiationsCache.findIndex((n) => n.bookingId === bookingId);
 
       if (index === -1) {
-        throw new Error('Negotiation not found');
+        return err(notFound('Negotiation', bookingId));
       }
 
       negotiationsCache[index] = {
@@ -523,13 +524,13 @@ export const counterOfferService = {
       };
 
       await saveNegotiationsToStorage(negotiationsCache);
-      return negotiationsCache[index];
+      return ok(negotiationsCache[index]);
     }
 
     const response = await fetch(`/api/negotiations/${bookingId}/cancel`, {
       method: 'PATCH',
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**

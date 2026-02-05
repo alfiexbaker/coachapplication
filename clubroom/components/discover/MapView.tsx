@@ -17,12 +17,28 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { CoachMarker, ClusterMarker } from './CoachMarker';
-import { CoachCard } from './coach-card';
+import { CoachCard, type CoachCardData } from '@/components/coach';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CoachProfile, CoachSearchResult } from '@/constants/types';
+
+/** Map a full CoachProfile to the minimal CoachCardData the unified card expects. */
+function toCoachCardData(coach: CoachProfile): CoachCardData {
+  return {
+    id: coach.id,
+    fullName: coach.fullName,
+    profilePhotoUrl: coach.profilePhotoUrl,
+    rating: coach.rating.average,
+    reviewCount: coach.rating.reviewCount,
+    distanceMiles: coach.distanceMiles,
+    priceMin: coach.priceRange.minUsd,
+    priceMax: coach.priceRange.maxUsd,
+    footballFocuses: coach.footballFocuses as string[],
+    city: coach.city,
+  };
+}
 
 interface MapViewProps {
   coaches: CoachSearchResult[];
@@ -307,7 +323,8 @@ export function MapView({
       {selectedCoach && (
         <View style={styles.selectedCardContainer}>
           <CoachCard
-            coach={selectedCoach}
+            coach={toCoachCardData(selectedCoach)}
+            variant="compact"
             active
             onPress={() => onCoachPress?.(selectedCoach)}
           />
@@ -337,7 +354,8 @@ export function MapView({
               {expandedCluster.coaches.map((coach) => (
                 <CoachCard
                   key={coach.id}
-                  coach={coach}
+                  coach={toCoachCardData(coach)}
+                  variant="compact"
                   onPress={() => {
                     setExpandedCluster(null);
                     onCoachPress?.(coach);

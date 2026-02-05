@@ -6,6 +6,7 @@ import {
   GeneratedBookingSummary,
 } from '@/constants/types';
 import { getDayName } from '@/constants/booking-types';
+import type { Booking } from '@/constants/app-types';
 import { storageService } from './storage-service';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
@@ -14,7 +15,8 @@ import { createLogger } from '@/utils/logger';
 // Re-export getDayName for consumers that imported it from here
 export { getDayName };
 
-const STORAGE_KEY = 'clubroom.recurring_bookings';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+
 const logger = createLogger('RecurringBookingService');
 
 /**
@@ -68,7 +70,7 @@ class RecurringBookingService {
    * Get all recurring bookings from storage
    */
   async list(): Promise<RecurringBooking[]> {
-    return storageService.getItem<RecurringBooking[]>(STORAGE_KEY, []);
+    return storageService.getItem<RecurringBooking[]>(STORAGE_KEYS.RECURRING_BOOKINGS, []);
   }
 
   /**
@@ -127,7 +129,7 @@ class RecurringBookingService {
 
       const bookings = await this.list();
       const updated = [...bookings, newRecurring];
-      await storageService.setItem(STORAGE_KEY, updated);
+      await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, updated);
 
       logger.info('recurring_booking_created', {
         id: newRecurring.id,
@@ -227,7 +229,7 @@ class RecurringBookingService {
       };
 
       bookings[index] = updated;
-      await storageService.setItem(STORAGE_KEY, bookings);
+      await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
 
       logger.info('recurring_booking_cancelled', {
         id: recurringId,
@@ -294,7 +296,7 @@ class RecurringBookingService {
       };
 
       bookings[index] = updated;
-      await storageService.setItem(STORAGE_KEY, bookings);
+      await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
 
       logger.info('recurring_booking_paused', {
         id: recurringId,
@@ -357,7 +359,7 @@ class RecurringBookingService {
       };
 
       bookings[index] = updated;
-      await storageService.setItem(STORAGE_KEY, bookings);
+      await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
 
       logger.info('recurring_booking_resumed', {
         id: recurringId,
@@ -454,7 +456,7 @@ class RecurringBookingService {
           location: recurring.location,
           service: recurring.sessionType,
           serviceType: recurring.sessionType,
-          status: 'CONFIRMED',
+          status: 'CONFIRMED' as const,
           notes: recurring.notes || '',
           price: recurring.pricePerSession,
           createdAt: new Date().toISOString(),
@@ -462,7 +464,7 @@ class RecurringBookingService {
         };
 
         // Store the generated booking through bookingService (centralized storage)
-        await bookingService.saveBookingDirect(booking);
+        await bookingService.saveBookingDirect(booking as Booking);
 
         generatedBookings.push({
           bookingId,
@@ -485,7 +487,7 @@ class RecurringBookingService {
             ...generatedBookings.map((g) => g.bookingId),
           ];
           bookings[index].updatedAt = new Date().toISOString();
-          await storageService.setItem(STORAGE_KEY, bookings);
+          await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
         }
       }
 
@@ -548,7 +550,7 @@ class RecurringBookingService {
       }
 
       bookings[index] = updated;
-      await storageService.setItem(STORAGE_KEY, bookings);
+      await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
 
       logger.info('recurring_booking_updated', {
         id: recurringId,
@@ -597,7 +599,7 @@ class RecurringBookingService {
       }
 
       bookings[index] = updated;
-      await storageService.setItem(STORAGE_KEY, bookings);
+      await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, bookings);
 
       logger.info('recurring_session_completed', {
         id: recurringId,
@@ -628,7 +630,7 @@ class RecurringBookingService {
         return { success: false, error: 'Recurring booking not found.' };
       }
 
-      await storageService.setItem(STORAGE_KEY, filtered);
+      await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, filtered);
 
       logger.info('recurring_booking_deleted', { id: recurringId });
 
@@ -717,7 +719,7 @@ class RecurringBookingService {
       });
 
       if (updated) {
-        await storageService.setItem(STORAGE_KEY, updatedBookings);
+        await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, updatedBookings);
         logger.info('expired_bookings_updated');
       }
     } catch (error) {
@@ -808,7 +810,7 @@ class RecurringBookingService {
       },
     ];
 
-    await storageService.setItem(STORAGE_KEY, demoBookings);
+    await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, demoBookings);
     logger.info('demo_recurring_bookings_seeded', { count: demoBookings.length });
   }
 
@@ -816,7 +818,7 @@ class RecurringBookingService {
    * Clear all recurring bookings (for testing)
    */
   async clearAll(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY, []);
+    await storageService.setItem(STORAGE_KEYS.RECURRING_BOOKINGS, []);
     logger.info('recurring_bookings_cleared');
   }
 }

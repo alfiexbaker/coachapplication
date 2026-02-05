@@ -180,12 +180,16 @@ const drill_service_1 = require("../../services/drill-service");
     });
     (0, node_test_1.describe)('Assignment Operations', () => {
         (0, node_test_1.default)('should assign a drill to an athlete', async () => {
-            const assignment = await drill_service_1.drillService.assignDrill('drill_1', 'athlete_1', 'Test Athlete', 'coach1', 'Coach Mike', {
+            const result = await drill_service_1.drillService.assignDrill('drill_1', 'athlete_1', 'Test Athlete', 'coach1', 'Coach Mike', {
                 dueDate: '2026-02-01T23:59:59Z',
                 notes: 'Practice daily',
                 repetitions: 3,
                 priority: 1,
             });
+            node_assert_1.default.strictEqual(result.success, true);
+            if (!result.success)
+                return;
+            const assignment = result.data;
             node_assert_1.default.ok(assignment.id.startsWith('assign_'));
             node_assert_1.default.strictEqual(assignment.drillId, 'drill_1');
             node_assert_1.default.strictEqual(assignment.athleteId, 'athlete_1');
@@ -198,15 +202,18 @@ const drill_service_1 = require("../../services/drill-service");
             node_assert_1.default.strictEqual(assignment.priority, 1);
             node_assert_1.default.ok(assignment.drill);
         });
-        (0, node_test_1.default)('should throw error when assigning non-existent drill', async () => {
-            await node_assert_1.default.rejects(async () => {
-                await drill_service_1.drillService.assignDrill('nonexistent', 'athlete_1', 'Test Athlete', 'coach1', 'Coach Mike', { dueDate: '2026-02-01T23:59:59Z' });
-            }, { message: 'Drill not found: nonexistent' });
+        (0, node_test_1.default)('should return error when assigning non-existent drill', async () => {
+            const result = await drill_service_1.drillService.assignDrill('nonexistent', 'athlete_1', 'Test Athlete', 'coach1', 'Coach Mike', { dueDate: '2026-02-01T23:59:59Z' });
+            node_assert_1.default.strictEqual(result.success, false);
+            if (result.success)
+                return;
+            node_assert_1.default.ok(result.error.message.includes('nonexistent'));
         });
         (0, node_test_1.default)('should increment drill assignment count', async () => {
             const drillBefore = await drill_service_1.drillService.getDrillById('drill_1');
             const countBefore = drillBefore?.assignmentCount ?? 0;
-            await drill_service_1.drillService.assignDrill('drill_1', 'new_athlete', 'New Athlete', 'coach1', 'Coach Mike', { dueDate: '2026-02-01T23:59:59Z' });
+            const result = await drill_service_1.drillService.assignDrill('drill_1', 'new_athlete', 'New Athlete', 'coach1', 'Coach Mike', { dueDate: '2026-02-01T23:59:59Z' });
+            node_assert_1.default.strictEqual(result.success, true);
             const drillAfter = await drill_service_1.drillService.getDrillById('drill_1');
             node_assert_1.default.strictEqual(drillAfter?.assignmentCount, countBefore + 1);
         });
@@ -298,7 +305,11 @@ const drill_service_1 = require("../../services/drill-service");
     });
     (0, node_test_1.describe)('deleteAssignment', () => {
         (0, node_test_1.default)('should delete an assignment', async () => {
-            const assignment = await drill_service_1.drillService.assignDrill('drill_1', 'temp_athlete', 'Temp Athlete', 'coach1', 'Coach Mike', { dueDate: '2026-02-01T23:59:59Z' });
+            const assignResult = await drill_service_1.drillService.assignDrill('drill_1', 'temp_athlete', 'Temp Athlete', 'coach1', 'Coach Mike', { dueDate: '2026-02-01T23:59:59Z' });
+            node_assert_1.default.strictEqual(assignResult.success, true);
+            if (!assignResult.success)
+                return;
+            const assignment = assignResult.data;
             const deleted = await drill_service_1.drillService.deleteAssignment(assignment.id);
             node_assert_1.default.strictEqual(deleted, true);
             const retrieved = await drill_service_1.drillService.getAssignmentById(assignment.id);

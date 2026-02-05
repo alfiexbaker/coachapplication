@@ -25,7 +25,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import Slider from '@react-native-community/slider';
 
 import { PageHeader } from '@/components/primitives/page-header';
@@ -90,9 +90,8 @@ export default function SessionCompleteScreen() {
 
     try {
       // First try session offerings
-      const stored = await AsyncStorage.getItem('session_offerings');
-      if (stored) {
-        const offerings: SessionOffering[] = JSON.parse(stored);
+      const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+      if (offerings.length > 0) {
         const found = offerings.find(o => o.id === id);
         if (found) {
           setSession(found);
@@ -248,10 +247,10 @@ export default function SessionCompleteScreen() {
       }
 
       // Save sharing preferences
-      await AsyncStorage.setItem(`session_sharing_${session.id}`, JSON.stringify({
+      await apiClient.set(`session_sharing_${session.id}`, {
         shareNotesWithParents,
         shareAttendance,
-      }));
+      });
 
       // Update session/booking status to completed
       if (sourceType === 'booking') {
@@ -261,16 +260,15 @@ export default function SessionCompleteScreen() {
           logger.error('Failed to update booking status', err);
         }
       } else {
-        const stored = await AsyncStorage.getItem('session_offerings');
-        if (stored) {
-          const offerings: SessionOffering[] = JSON.parse(stored);
+        const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+        if (offerings.length > 0) {
           const updated = offerings.map(o => {
             if (o.id === session.id && !o.isRecurring) {
               return { ...o, status: 'completed' as const };
             }
             return o;
           });
-          await AsyncStorage.setItem('session_offerings', JSON.stringify(updated));
+          await apiClient.set('session_offerings', updated);
         }
       }
 

@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -71,9 +71,8 @@ export function CoachDevelopmentScreen() {
         // Get mock data sessions
         const mockSessions = getSessionsForCoach(currentUser.id);
 
-        // Get AsyncStorage sessions (both from bookings and manual add)
-        const storedSessions = await AsyncStorage.getItem('coach_sessions');
-        const asyncSessions = storedSessions ? JSON.parse(storedSessions) : [];
+        // Get stored sessions (both from bookings and manual add)
+        const asyncSessions = await apiClient.get<any[]>('coach_sessions', []);
         const coachAsyncSessions = asyncSessions.filter(
           (s: any) => s.coachId === currentUser.id
         );

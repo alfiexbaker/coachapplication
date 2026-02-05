@@ -23,6 +23,7 @@ const api_client_1 = require("./api-client");
 const storage_keys_1 = require("@/constants/storage-keys");
 const notification_trigger_1 = require("./notification-trigger");
 const logger_1 = require("../utils/logger");
+const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('DrillService');
 // Using centralized storage keys
 // Mock data for demonstration
@@ -360,7 +361,7 @@ async function assignDrill(drillId, athleteId, athleteName, assignedBy, assigned
     // Get the drill details
     const drill = drills.find((d) => d.id === drillId);
     if (!drill) {
-        throw new Error(`Drill not found: ${drillId}`);
+        return (0, result_1.err)((0, result_1.notFound)('Drill', drillId));
     }
     const newAssignment = {
         id: `assign_${Date.now()}`,
@@ -393,7 +394,7 @@ async function assignDrill(drillId, athleteId, athleteName, assignedBy, assigned
     });
     // Notify parent that a drill has been assigned to their athlete
     await notification_trigger_1.notificationTriggers.drillAssigned(assignedByName, drill.title, athleteName);
-    return newAssignment;
+    return (0, result_1.ok)(newAssignment);
 }
 /**
  * Get all assignments for an athlete

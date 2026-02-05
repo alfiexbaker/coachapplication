@@ -158,11 +158,15 @@ describe('Community Service', () => {
 
         const createdGroup = await communityService.createGroup(createParams);
 
-        const updatedGroup = await communityService.joinGroup(
+        const result = await communityService.joinGroup(
           createdGroup.id,
           'new_parent',
           'New Parent'
         );
+
+        assert.strictEqual(result.success, true);
+        if (!result.success) return;
+        const updatedGroup = result.data;
 
         assert.strictEqual(updatedGroup.members.length, 2);
         const newMember = updatedGroup.members.find((m) => m.parentId === 'new_parent');
@@ -171,7 +175,7 @@ describe('Community Service', () => {
         assert.ok(newMember.joinedAt);
       });
 
-      test('should throw error when joining private group', async () => {
+      test('should return error when joining private group', async () => {
         // Create a private group
         const createParams: CreateGroupParams = {
           name: 'Private Group',
@@ -185,25 +189,23 @@ describe('Community Service', () => {
 
         const createdGroup = await communityService.createGroup(createParams);
 
-        await assert.rejects(
-          async () => {
-            await communityService.joinGroup(createdGroup.id, 'new_parent', 'New Parent');
-          },
-          { message: 'Cannot join private group without invitation' }
-        );
+        const result = await communityService.joinGroup(createdGroup.id, 'new_parent', 'New Parent');
+
+        assert.strictEqual(result.success, false);
+        if (result.success) return;
+        assert.strictEqual(result.error.message, 'Cannot join private group without invitation');
       });
 
-      test('should throw error when already a member', async () => {
+      test('should return error when already a member', async () => {
         const groups = await communityService.getParentGroups('parent1');
         const group = groups.find((g) => g.isPublic);
 
         if (group) {
-          await assert.rejects(
-            async () => {
-              await communityService.joinGroup(group.id, 'parent1', 'John Henderson');
-            },
-            { message: 'Already a member of this group' }
-          );
+          const result = await communityService.joinGroup(group.id, 'parent1', 'John Henderson');
+
+          assert.strictEqual(result.success, false);
+          if (result.success) return;
+          assert.strictEqual(result.error.message, 'Already a member of this group');
         }
       });
     });
@@ -224,7 +226,8 @@ describe('Community Service', () => {
         const createdGroup = await communityService.createGroup(createParams);
         assert.strictEqual(createdGroup.members.length, 2);
 
-        await communityService.leaveGroup(createdGroup.id, 'member_to_leave');
+        const leaveResult = await communityService.leaveGroup(createdGroup.id, 'member_to_leave');
+        assert.strictEqual(leaveResult.success, true);
 
         const updatedGroup = await communityService.getGroup(createdGroup.id);
         assert.ok(updatedGroup);
@@ -232,7 +235,7 @@ describe('Community Service', () => {
         assert.ok(!updatedGroup.members.find((m) => m.parentId === 'member_to_leave'));
       });
 
-      test('should throw error when only admin tries to leave with other members', async () => {
+      test('should return error when only admin tries to leave with other members', async () => {
         // Create a group where creator is only admin
         const createParams: CreateGroupParams = {
           name: 'Admin Leave Test',
@@ -246,24 +249,22 @@ describe('Community Service', () => {
 
         const createdGroup = await communityService.createGroup(createParams);
 
-        await assert.rejects(
-          async () => {
-            await communityService.leaveGroup(createdGroup.id, 'only_admin');
-          },
-          { message: 'Cannot leave group as the only admin. Promote another member first.' }
-        );
+        const result = await communityService.leaveGroup(createdGroup.id, 'only_admin');
+
+        assert.strictEqual(result.success, false);
+        if (result.success) return;
+        assert.strictEqual(result.error.message, 'Cannot leave group as the only admin. Promote another member first.');
       });
 
-      test('should throw error for non-member', async () => {
+      test('should return error for non-member', async () => {
         const groups = await communityService.getParentGroups('parent1');
         const group = groups[0];
 
-        await assert.rejects(
-          async () => {
-            await communityService.leaveGroup(group.id, 'non_member');
-          },
-          { message: 'Not a member of this group' }
-        );
+        const result = await communityService.leaveGroup(group.id, 'non_member');
+
+        assert.strictEqual(result.success, false);
+        if (result.success) return;
+        assert.ok(result.error.message);
       });
     });
   });
@@ -464,7 +465,11 @@ describe('Community Service', () => {
           message: 'Would like to join!',
         };
 
-        const request = await communityService.requestCarpoolSeat(requestParams);
+        const result = await communityService.requestCarpoolSeat(requestParams);
+
+        assert.strictEqual(result.success, true);
+        if (!result.success) return;
+        const request = result.data;
 
         assert.ok(request.id.startsWith('req_'));
         assert.strictEqual(request.offerId, offer.id);
@@ -476,7 +481,7 @@ describe('Community Service', () => {
         assert.ok(request.requestedAt);
       });
 
-      test('should throw error if not enough seats', async () => {
+      test('should return error if not enough seats', async () => {
         const offerParams: CreateCarpoolOfferParams = {
           parentId: 'limited_parent',
           parentName: 'Limited Parent',
@@ -499,12 +504,11 @@ describe('Community Service', () => {
           seatsRequested: 3,
         };
 
-        await assert.rejects(
-          async () => {
-            await communityService.requestCarpoolSeat(requestParams);
-          },
-          { message: 'Not enough seats available' }
-        );
+        const result = await communityService.requestCarpoolSeat(requestParams);
+
+        assert.strictEqual(result.success, false);
+        if (result.success) return;
+        assert.strictEqual(result.error.message, 'Not enough seats available');
       });
     });
 
@@ -534,10 +538,14 @@ describe('Community Service', () => {
           seatsRequested: 1,
         };
 
-        const request = await communityService.requestCarpoolSeat(requestParams);
+        const requestResult = await communityService.requestCarpoolSeat(requestParams);
+        assert.strictEqual(requestResult.success, true);
+        if (!requestResult.success) return;
+        const request = requestResult.data;
 
         // Accept request
-        await communityService.acceptCarpoolRequest(offer.id, request.id);
+        const acceptResult = await communityService.acceptCarpoolRequest(offer.id, request.id);
+        assert.strictEqual(acceptResult.success, true);
 
         const updatedOffer = await communityService.getCarpoolOffer(offer.id);
         assert.ok(updatedOffer);
@@ -574,8 +582,13 @@ describe('Community Service', () => {
           seatsRequested: 1,
         };
 
-        const request = await communityService.requestCarpoolSeat(requestParams);
-        await communityService.acceptCarpoolRequest(offer.id, request.id);
+        const requestResult = await communityService.requestCarpoolSeat(requestParams);
+        assert.strictEqual(requestResult.success, true);
+        if (!requestResult.success) return;
+        const request = requestResult.data;
+
+        const acceptResult = await communityService.acceptCarpoolRequest(offer.id, request.id);
+        assert.strictEqual(acceptResult.success, true);
 
         const updatedOffer = await communityService.getCarpoolOffer(offer.id);
         assert.ok(updatedOffer);
@@ -607,8 +620,13 @@ describe('Community Service', () => {
           seatsRequested: 1,
         };
 
-        const request = await communityService.requestCarpoolSeat(requestParams);
-        await communityService.declineCarpoolRequest(offer.id, request.id);
+        const requestResult = await communityService.requestCarpoolSeat(requestParams);
+        assert.strictEqual(requestResult.success, true);
+        if (!requestResult.success) return;
+        const request = requestResult.data;
+
+        const declineResult = await communityService.declineCarpoolRequest(offer.id, request.id);
+        assert.strictEqual(declineResult.success, true);
 
         const updatedOffer = await communityService.getCarpoolOffer(offer.id);
         assert.ok(updatedOffer);
@@ -639,14 +657,15 @@ describe('Community Service', () => {
 
         const offer = await communityService.createCarpoolOffer(offerParams);
 
-        await communityService.cancelCarpoolOffer(offer.id, 'cancel_test_parent');
+        const cancelResult = await communityService.cancelCarpoolOffer(offer.id, 'cancel_test_parent');
+        assert.strictEqual(cancelResult.success, true);
 
         const cancelledOffer = await communityService.getCarpoolOffer(offer.id);
         assert.ok(cancelledOffer);
         assert.strictEqual(cancelledOffer.status, 'CANCELLED');
       });
 
-      test('should throw error if not the creator', async () => {
+      test('should return error if not the creator', async () => {
         const offerParams: CreateCarpoolOfferParams = {
           parentId: 'owner_parent',
           parentName: 'Owner Parent',
@@ -661,12 +680,11 @@ describe('Community Service', () => {
 
         const offer = await communityService.createCarpoolOffer(offerParams);
 
-        await assert.rejects(
-          async () => {
-            await communityService.cancelCarpoolOffer(offer.id, 'not_owner');
-          },
-          { message: 'Only the offer creator can cancel it' }
-        );
+        const result = await communityService.cancelCarpoolOffer(offer.id, 'not_owner');
+
+        assert.strictEqual(result.success, false);
+        if (result.success) return;
+        assert.strictEqual(result.error.message, 'Only the offer creator can cancel it');
       });
     });
   });

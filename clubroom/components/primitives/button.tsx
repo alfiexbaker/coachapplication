@@ -11,6 +11,7 @@ export interface ButtonProps {
   style?: ViewStyle | ViewStyle[];
   variant?: 'primary' | 'secondary' | 'outline';
   size?: 'small' | 'medium' | 'large';
+  accessibilityLabel?: string;
 }
 
 export function Button({
@@ -19,6 +20,7 @@ export function Button({
   disabled = false,
   style,
   variant = 'primary',
+  accessibilityLabel,
 }: ButtonProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -62,6 +64,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       style={({ pressed }) => [
         styles.button,
         {

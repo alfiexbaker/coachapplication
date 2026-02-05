@@ -22,7 +22,7 @@ import { createLogger } from '@/utils/logger';
 import {
   inviteService as squadBulkInviteService,
   type SquadMemberWithSelection,
-} from '@/services/invite-service';
+} from '@/services/invite';
 
 const logger = createLogger('SquadMemberSelect');
 

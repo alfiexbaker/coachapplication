@@ -29,7 +29,6 @@ import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/const
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BlockedDatesEditor');
-const BLOCKED_DATES_KEY = 'clubroom.blocked_dates';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -118,7 +117,7 @@ async function getBookingsInRange(
 
 async function loadBlockedDates(coachId: string): Promise<BlockedDateRange[]> {
   try {
-    const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]>>(BLOCKED_DATES_KEY, {});
+    const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]>>(STORAGE_KEYS.BLOCKED_DATES, {});
     return allBlocked[coachId] || [];
   } catch {
     return [];
@@ -126,9 +125,9 @@ async function loadBlockedDates(coachId: string): Promise<BlockedDateRange[]> {
 }
 
 async function saveBlockedDates(coachId: string, dates: BlockedDateRange[]): Promise<void> {
-  const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]>>(BLOCKED_DATES_KEY, {});
+  const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]>>(STORAGE_KEYS.BLOCKED_DATES, {});
   allBlocked[coachId] = dates;
-  await apiClient.set(BLOCKED_DATES_KEY, allBlocked);
+  await apiClient.set(STORAGE_KEYS.BLOCKED_DATES, allBlocked);
 }
 
 // ---------------------------------------------------------------------------

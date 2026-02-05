@@ -50,8 +50,13 @@ export default function ReferralInviteScreen() {
   useEffect(() => {
     async function loadCode() {
       try {
-        const code = await referralService.getUserCode(userId, userName);
-        setReferralCode(code);
+        const result = await referralService.getUserCode(userId, userName);
+        if (!result.success) {
+          logger.error('Failed to load referral code:', result.error);
+          Alert.alert('Error', 'Failed to load your referral code');
+          return;
+        }
+        setReferralCode(result.data);
       } catch (error) {
         logger.error('Failed to load referral code:', error);
         Alert.alert('Error', 'Failed to load your referral code');

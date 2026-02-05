@@ -29,10 +29,9 @@ import type {
   UpdateInjuryInput,
 } from '@/constants/types';
 
-const logger = createLogger('InjuryService');
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
-// Storage key for injuries
-const INJURIES_STORAGE_KEY = 'injuries.all';
+const logger = createLogger('InjuryService');
 
 // Mock data for demonstration
 const MOCK_INJURIES: Injury[] = [
@@ -350,7 +349,7 @@ function getStatusInfo(status: InjuryStatus): { label: string; color: string; ic
  * Get all injuries from storage
  */
 async function getAllInjuries(): Promise<Injury[]> {
-  const injuries = await storageService.getItem<Injury[]>(INJURIES_STORAGE_KEY, []);
+  const injuries = await storageService.getItem<Injury[]>(STORAGE_KEYS.INJURIES, []);
   // Return mock data if no injuries stored
   if (injuries.length === 0) {
     return [...MOCK_INJURIES];
@@ -362,7 +361,7 @@ async function getAllInjuries(): Promise<Injury[]> {
  * Save all injuries to storage
  */
 async function saveInjuries(injuries: Injury[]): Promise<void> {
-  await storageService.setItem(INJURIES_STORAGE_KEY, injuries);
+  await storageService.setItem(STORAGE_KEYS.INJURIES, injuries);
 }
 
 // ============================================================================

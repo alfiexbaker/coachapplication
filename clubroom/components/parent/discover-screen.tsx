@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -28,7 +28,7 @@ import {
   clubMemberships,
 } from '@/constants/mock-data';
 import { availabilityService } from '@/services/availability-service';
-import { inviteService as sessionInviteService } from '@/services/invite-service';
+import { inviteService as sessionInviteService } from '@/services/invite';
 import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
 import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
@@ -90,8 +90,7 @@ export function ParentDiscoverScreen() {
     if (!currentUser?.id) return;
     try {
       const bookings = await bookingService.getBookingsForUser(currentUser.id, 'parent');
-      const dismissed = await AsyncStorage.getItem('dismissed_reviews');
-      const dismissedMap: Record<string, number> = dismissed ? JSON.parse(dismissed) : {};
+      const dismissedMap = await apiClient.get<Record<string, number>>('dismissed_reviews', {});
       const now = Date.now();
       const ONE_DAY = 24 * 60 * 60 * 1000;
 
@@ -114,15 +113,14 @@ export function ParentDiscoverScreen() {
 
   const dismissReview = async (bookingId: string) => {
     try {
-      const dismissed = await AsyncStorage.getItem('dismissed_reviews');
-      const dismissedMap: Record<string, number> = dismissed ? JSON.parse(dismissed) : {};
+      const dismissedMap = await apiClient.get<Record<string, number>>('dismissed_reviews', {});
       if (dismissedMap[bookingId]) {
         // Second dismiss
         dismissedMap[`${bookingId}_second`] = Date.now();
       } else {
         dismissedMap[bookingId] = Date.now();
       }
-      await AsyncStorage.setItem('dismissed_reviews', JSON.stringify(dismissedMap));
+      await apiClient.set('dismissed_reviews', dismissedMap);
       setCompletedSessions(prev => prev.filter(b => b.id !== bookingId));
     } catch (error) {
       logger.error('Failed to dismiss review', error);

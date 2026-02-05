@@ -13,7 +13,7 @@ import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
@@ -90,11 +90,8 @@ export default function ScheduleScreen() {
       setRules(rulesData);
 
       // Load offerings
-      const storedOfferings = await AsyncStorage.getItem('session_offerings');
-      if (storedOfferings) {
-        const all: SessionOffering[] = JSON.parse(storedOfferings);
-        setOfferings(all.filter(o => o.coachId === coachId));
-      }
+      const all = await apiClient.get<SessionOffering[]>('session_offerings', []);
+      setOfferings(all.filter(o => o.coachId === coachId));
 
       // Load bookings for this week
       const today = new Date();
@@ -113,9 +110,8 @@ export default function ScheduleScreen() {
       // Load blocked dates
       try {
         const blockedKey = 'clubroom.blocked_dates';
-        const allBlockedJson = await AsyncStorage.getItem(blockedKey);
-        if (allBlockedJson) {
-          const allBlocked = JSON.parse(allBlockedJson);
+        const allBlocked = await apiClient.get<Record<string, any[]> | null>(blockedKey, null);
+        if (allBlocked) {
           const coachBlocked = allBlocked[coachId] || [];
           const blockedSet = new Set<string>();
           for (const bd of coachBlocked) {

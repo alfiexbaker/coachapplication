@@ -8,13 +8,15 @@
  * - Emergency contacts
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 const logger = createLogger('ChildService');
 
-const STORAGE_KEY = 'children_profiles';
 const USE_MOCK = api.useMock;
 
 // ============================================================================
@@ -314,9 +316,9 @@ let childrenCache: ChildProfile[] = [
 
 async function loadFromStorage(): Promise<ChildProfile[]> {
   try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    const stored = await apiClient.get<ChildProfile[] | null>(STORAGE_KEYS.CHILDREN_PROFILES, null);
     if (stored) {
-      return JSON.parse(stored);
+      return stored;
     }
   } catch (error) {
     logger.error('Failed to load from storage', error);
@@ -326,7 +328,7 @@ async function loadFromStorage(): Promise<ChildProfile[]> {
 
 async function saveToStorage(data: ChildProfile[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    await apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, data);
     childrenCache = data;
   } catch (error) {
     logger.error('Failed to save to storage', error);
@@ -438,12 +440,12 @@ export const childService = {
   /**
    * Update a child profile
    */
-  async updateChild(childId: string, updates: Partial<CreateChildInput>): Promise<ChildProfile> {
+  async updateChild(childId: string, updates: Partial<CreateChildInput>): Promise<Result<ChildProfile, ServiceError>> {
     if (USE_MOCK) {
       childrenCache = await loadFromStorage();
       const index = childrenCache.findIndex(c => c.id === childId);
       if (index === -1) {
-        throw new Error('Child not found');
+        return err(notFound('Child', childId));
       }
 
       childrenCache[index] = {
@@ -455,7 +457,7 @@ export const childService = {
       };
 
       await saveToStorage(childrenCache);
-      return childrenCache[index];
+      return ok(childrenCache[index]);
     }
 
     const response = await fetch(`/api/children/${childId}`, {
@@ -463,7 +465,7 @@ export const childService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
-    return response.json();
+    return ok(await response.json());
   },
 
   /**
@@ -485,9 +487,9 @@ export const childService = {
   /**
    * Add a disability to a child
    */
-  async addDisability(childId: string, disability: Omit<Disability, 'id'>): Promise<ChildProfile> {
+  async addDisability(childId: string, disability: Omit<Disability, 'id'>): Promise<Result<ChildProfile, ServiceError>> {
     const child = await this.getChild(childId);
-    if (!child) throw new Error('Child not found');
+    if (!child) return err(notFound('Child', childId));
 
     const newDisability: Disability = {
       ...disability,
@@ -502,9 +504,9 @@ export const childService = {
   /**
    * Remove a disability from a child
    */
-  async removeDisability(childId: string, disabilityId: string): Promise<ChildProfile> {
+  async removeDisability(childId: string, disabilityId: string): Promise<Result<ChildProfile, ServiceError>> {
     const child = await this.getChild(childId);
-    if (!child) throw new Error('Child not found');
+    if (!child) return err(notFound('Child', childId));
 
     return this.updateChild(childId, {
       disabilities: child.disabilities.filter(d => d.id !== disabilityId),
@@ -514,9 +516,9 @@ export const childService = {
   /**
    * Add a special need to a child
    */
-  async addSpecialNeed(childId: string, specialNeed: Omit<SpecialNeed, 'id'>): Promise<ChildProfile> {
+  async addSpecialNeed(childId: string, specialNeed: Omit<SpecialNeed, 'id'>): Promise<Result<ChildProfile, ServiceError>> {
     const child = await this.getChild(childId);
-    if (!child) throw new Error('Child not found');
+    if (!child) return err(notFound('Child', childId));
 
     const newSpecialNeed: SpecialNeed = {
       ...specialNeed,
@@ -531,9 +533,9 @@ export const childService = {
   /**
    * Remove a special need from a child
    */
-  async removeSpecialNeed(childId: string, specialNeedId: string): Promise<ChildProfile> {
+  async removeSpecialNeed(childId: string, specialNeedId: string): Promise<Result<ChildProfile, ServiceError>> {
     const child = await this.getChild(childId);
-    if (!child) throw new Error('Child not found');
+    if (!child) return err(notFound('Child', childId));
 
     return this.updateChild(childId, {
       specialNeeds: child.specialNeeds.filter(sn => sn.id !== specialNeedId),

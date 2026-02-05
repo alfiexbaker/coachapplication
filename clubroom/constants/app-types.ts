@@ -1,4 +1,4 @@
-import type { Goal } from './types';
+import type { Goal } from './skill-types';
 
 // Core User Types - Only USER and COACH roles
 // Users with children access child management via hasChildren() check
@@ -86,6 +86,14 @@ export interface Booking {
   service?: string;
   locationLabel?: string;
   start?: string;
+  price?: number;
+  serviceType?: string;
+  objectives?: string[];
+  createdAt?: string;
+  cancellationReason?: string;
+  isRecurringGenerated?: boolean;
+  recurringBookingId?: string;
+  bookedByName?: string;
   // Session invite link (bidirectional)
   sessionInviteId?: string;
   // Bilateral confirmation fields

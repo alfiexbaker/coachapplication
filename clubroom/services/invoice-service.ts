@@ -10,6 +10,7 @@ import {
 } from '@/constants/types';
 import { storageService } from './storage-service';
 import { createLogger } from '@/utils/logger';
+import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 
 // ============================================================================
 // CONFIGURATION
@@ -379,20 +380,20 @@ class InvoiceService {
   /**
    * Generate a new invoice for a booking
    */
-  async generateInvoice(params: GenerateInvoiceParams): Promise<Invoice> {
+  async generateInvoice(params: GenerateInvoiceParams): Promise<Result<Invoice, ServiceError>> {
     const { bookingId, notes, dueDate, taxRate = DEFAULT_TAX_RATE } = params;
 
     // Check if invoice already exists for this booking
     const existingInvoice = await this.getInvoiceByBookingId(bookingId);
     if (existingInvoice) {
       logger.warn('invoice_already_exists', { bookingId, invoiceId: existingInvoice.id });
-      return existingInvoice;
+      return ok(existingInvoice);
     }
 
     // Get booking data (in real app, would fetch from booking service)
     const bookingData = MOCK_BOOKINGS[bookingId];
     if (!bookingData) {
-      throw new Error(`Booking not found: ${bookingId}`);
+      return err(notFound('Booking', bookingId));
     }
 
     // Calculate tax
@@ -440,7 +441,7 @@ class InvoiceService {
       total: newInvoice.total,
     });
 
-    return newInvoice;
+    return ok(newInvoice);
   }
 
   /**

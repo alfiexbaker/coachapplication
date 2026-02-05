@@ -1,43 +1,28 @@
 "use strict";
+/**
+ * Types Barrel File
+ *
+ * Re-exports all types from domain-specific files for backward compatibility.
+ * Every type that was previously importable from '@/constants/types' remains
+ * importable from here.
+ *
+ * Domain files:
+ * - user-types.ts: Core user, coach, athlete, discovery, comparison, auth types
+ * - financial-types.ts: Wallet, payment, invoice, promo, referral types
+ * - club-types.ts: Club, squad, academy, roster types
+ * - session-types.ts: Session management, invites, availability, booking types
+ * - social-types.ts: Follow, messaging, parent community types
+ * - event-types.ts: Club events, RSVP, attendance, match types
+ * - skill-types.ts: Skill trees, badges, goals, drills types
+ * - video-types.ts: Video management and annotation types
+ * - analytics-types.ts: Analytics dashboard, notification preference types
+ * - family-types.ts: Family dashboard, guardian, safety, injury types
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NOTIFICATION_CATEGORIES = exports.NOTIFICATION_TYPE_CATEGORIES = void 0;
-/**
- * Mapping of notification types to their categories
- */
-exports.NOTIFICATION_TYPE_CATEGORIES = {
-    BOOKING_RECEIVED: 'BOOKINGS',
-    BOOKING_CONFIRMED: 'BOOKINGS',
-    BOOKING_CANCELLED: 'BOOKINGS',
-    SESSION_REMINDER: 'REMINDERS',
-    MESSAGE_RECEIVED: 'MESSAGES',
-    SESSION_INVITE: 'BOOKINGS',
-    SESSION_INVITE_RESPONSE: 'BOOKINGS',
-    REVIEW_REQUEST: 'MESSAGES',
-    REVIEW_RECEIVED: 'MESSAGES',
-    BADGE_AWARDED: 'BADGES',
-    WAITLIST_AVAILABLE: 'BOOKINGS',
-    PAYMENT_RECEIVED: 'PAYMENTS',
-    PAYMENT_FAILED: 'PAYMENTS',
-    GOAL_COMPLETED: 'BADGES',
-    VIDEO_SHARED: 'MESSAGES',
-    MATCH_INVITE: 'MATCHES',
-    MATCH_RESPONSE: 'MATCHES',
-    MATCH_LINEUP: 'MATCHES',
-    MATCH_REMINDER: 'MATCHES',
-    MATCH_CANCELLED: 'MATCHES',
-    NEW_FOLLOWER: 'SOCIAL',
-    FOLLOW_REQUEST: 'SOCIAL',
-    FOLLOW_REQUEST_ACCEPTED: 'SOCIAL',
-};
-/**
- * All notification category configurations
- */
-exports.NOTIFICATION_CATEGORIES = [
-    { id: 'BOOKINGS', label: 'Bookings & Sessions', description: 'Session invites, confirmations, and changes', icon: 'calendar' },
-    { id: 'MESSAGES', label: 'Messages', description: 'Direct messages and reviews', icon: 'chatbubble' },
-    { id: 'BADGES', label: 'Achievements', description: 'Badges and goal completions', icon: 'trophy' },
-    { id: 'PAYMENTS', label: 'Payments', description: 'Payment confirmations and issues', icon: 'card' },
-    { id: 'REMINDERS', label: 'Reminders', description: 'Upcoming session reminders', icon: 'alarm' },
-    { id: 'SOCIAL', label: 'Social', description: 'Followers and connection requests', icon: 'people' },
-    { id: 'MATCHES', label: 'Matches', description: 'Match invites and updates', icon: 'football' },
-];
+// ============================================================================
+// ANALYTICS & NOTIFICATION TYPES
+// ============================================================================
+var analytics_types_1 = require("./analytics-types");
+Object.defineProperty(exports, "NOTIFICATION_TYPE_CATEGORIES", { enumerable: true, get: function () { return analytics_types_1.NOTIFICATION_TYPE_CATEGORIES; } });
+Object.defineProperty(exports, "NOTIFICATION_CATEGORIES", { enumerable: true, get: function () { return analytics_types_1.NOTIFICATION_CATEGORIES; } });

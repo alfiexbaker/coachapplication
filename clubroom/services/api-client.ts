@@ -67,17 +67,17 @@ const rateLimiter = new RateLimiter(rateLimits.apiRequestsPerMinute);
 // Re-export for backwards compatibility
 export { ApiError };
 
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+
 // ============================================================================
 // OFFLINE QUEUE
 // ============================================================================
-
-const OFFLINE_QUEUE_KEY = 'clubroom.offline_queue';
 
 interface QueuedAction {
   id: string;
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
-  body: any;
+  body: unknown;
   timestamp: number;
 }
 
@@ -92,10 +92,10 @@ export function setConnectionStatus(connected: boolean) {
 
 async function addToQueue(action: QueuedAction): Promise<void> {
   try {
-    const raw = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
     const queue: QueuedAction[] = raw ? JSON.parse(raw) : [];
     queue.push(action);
-    await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+    await AsyncStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
     logger.info('Queued offline action', { method: action.method, path: action.path });
   } catch (error) {
     logger.error('Failed to queue action', error);
@@ -104,7 +104,7 @@ async function addToQueue(action: QueuedAction): Promise<void> {
 
 async function getQueue(): Promise<QueuedAction[]> {
   try {
-    const raw = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -114,7 +114,7 @@ async function getQueue(): Promise<QueuedAction[]> {
 async function removeFromQueue(actionId: string): Promise<void> {
   const queue = await getQueue();
   const filtered = queue.filter(a => a.id !== actionId);
-  await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(filtered));
+  await AsyncStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(filtered));
 }
 
 async function flushQueue(): Promise<void> {
@@ -235,7 +235,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '');
-    let parsed: any = {};
+    let parsed: { code?: string; message?: string; details?: Record<string, string[]> } = {};
     try { parsed = JSON.parse(errorBody); } catch { /* raw text */ }
     throw new ApiError(
       response.status,

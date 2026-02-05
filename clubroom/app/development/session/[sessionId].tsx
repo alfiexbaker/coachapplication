@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import * as ImagePicker from 'expo-image-picker';
 
 import { ThemedText } from '@/components/themed-text';
@@ -75,11 +75,10 @@ export default function SessionDetailScreen() {
     const loadSession = async () => {
       try {
         // Try AsyncStorage first
-        const storedSessions = await AsyncStorage.getItem('coach_sessions');
+        const sessions = await apiClient.get<any[]>('coach_sessions', []);
         let foundSession: Session | undefined;
 
-        if (storedSessions) {
-          const sessions = JSON.parse(storedSessions);
+        if (sessions.length > 0) {
           foundSession = sessions.find((s: any) => s.id === sessionId);
         }
 
@@ -151,8 +150,7 @@ export default function SessionDetailScreen() {
     setSaving(true);
     try {
       // Load existing sessions
-      const storedSessions = await AsyncStorage.getItem('coach_sessions');
-      const sessions = storedSessions ? JSON.parse(storedSessions) : [];
+      const sessions = await apiClient.get<any[]>('coach_sessions', []);
 
       // Find and update the session
       const sessionIndex = sessions.findIndex((s: any) => s.id === sessionId);
@@ -167,8 +165,8 @@ export default function SessionDetailScreen() {
           updatedAt: new Date().toISOString(),
         };
 
-        // Save back to AsyncStorage
-        await AsyncStorage.setItem('coach_sessions', JSON.stringify(sessions));
+        // Save back to storage
+        await apiClient.set('coach_sessions', sessions);
       }
 
       // Save feedback to progress service

@@ -3,8 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notificationService = exports.NotificationService = void 0;
 const storage_service_1 = require("./storage-service");
 const logger_1 = require("@/utils/logger");
-const STORAGE_KEY = 'clubroom.notifications';
-const PREFERENCES_STORAGE_KEY = 'clubroom.notification_preferences';
+const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('NotificationService');
 const listeners = [];
 class NotificationService {
@@ -12,7 +11,7 @@ class NotificationService {
     // CORE NOTIFICATION OPERATIONS
     // ============================================================================
     async list() {
-        return storage_service_1.storageService.getItem(STORAGE_KEY, []);
+        return storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.NOTIFICATIONS, []);
     }
     async create(notification) {
         const fullNotification = {
@@ -22,7 +21,7 @@ class NotificationService {
         };
         const current = await this.list();
         const updated = [fullNotification, ...current];
-        await storage_service_1.storageService.setItem(STORAGE_KEY, updated);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.NOTIFICATIONS, updated);
         // Notify listeners for in-app toasts
         listeners.forEach((listener) => {
             try {
@@ -42,23 +41,23 @@ class NotificationService {
     async markAsRead(id) {
         const current = await this.list();
         const updated = current.map((n) => (n.id === id ? { ...n, read: true } : n));
-        await storage_service_1.storageService.setItem(STORAGE_KEY, updated);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.NOTIFICATIONS, updated);
         return updated;
     }
     async markAllAsRead() {
         const current = await this.list();
         const updated = current.map((n) => ({ ...n, read: true }));
-        await storage_service_1.storageService.setItem(STORAGE_KEY, updated);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.NOTIFICATIONS, updated);
         return updated;
     }
     async markHandled(id) {
         const current = await this.list();
         const updated = current.map((n) => (n.id === id ? { ...n, read: true, handled: true } : n));
-        await storage_service_1.storageService.setItem(STORAGE_KEY, updated);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.NOTIFICATIONS, updated);
         return updated.find((n) => n.id === id);
     }
     async clearAll() {
-        await storage_service_1.storageService.setItem(STORAGE_KEY, []);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.NOTIFICATIONS, []);
     }
     async getUnreadCount(recipientId) {
         const notifications = await this.list();
@@ -414,7 +413,7 @@ class NotificationService {
      * Get notification preferences for a user
      */
     async getPreferences(userId) {
-        const allPrefs = await storage_service_1.storageService.getItem(PREFERENCES_STORAGE_KEY, {});
+        const allPrefs = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.NOTIFICATION_PREFERENCES, {});
         if (allPrefs[userId]) {
             return allPrefs[userId];
         }
@@ -427,12 +426,12 @@ class NotificationService {
      * Save notification preferences for a user
      */
     async savePreferences(userId, preferences) {
-        const allPrefs = await storage_service_1.storageService.getItem(PREFERENCES_STORAGE_KEY, {});
+        const allPrefs = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.NOTIFICATION_PREFERENCES, {});
         allPrefs[userId] = {
             ...preferences,
             updatedAt: new Date().toISOString(),
         };
-        await storage_service_1.storageService.setItem(PREFERENCES_STORAGE_KEY, allPrefs);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.NOTIFICATION_PREFERENCES, allPrefs);
         logger.info('preferences_saved', { userId });
     }
     /**
@@ -790,7 +789,7 @@ class NotificationService {
                 read: true,
             },
         ];
-        await storage_service_1.storageService.setItem(STORAGE_KEY, demoNotifications);
+        await storage_service_1.storageService.setItem(storage_keys_1.STORAGE_KEYS.NOTIFICATIONS, demoNotifications);
         logger.info('demo_notifications_seeded', { count: demoNotifications.length });
     }
 }

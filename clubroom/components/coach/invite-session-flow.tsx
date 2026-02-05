@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Modal, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '@/services/api-client';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 
@@ -55,9 +55,8 @@ export function InviteSessionFlow({
   const loadUpcomingSessions = useCallback(async () => {
     setLoading(true);
     try {
-      // Load from AsyncStorage (bookings/sessions)
-      const storedBookings = await AsyncStorage.getItem('coach_bookings');
-      const bookings = storedBookings ? JSON.parse(storedBookings) : [];
+      // Load from storage (bookings/sessions)
+      const bookings = await apiClient.get<any[]>('coach_bookings', []);
 
       // Filter to upcoming sessions only
       const now = new Date();
@@ -154,8 +153,7 @@ export function InviteSessionFlow({
 
     try {
       // Update the session with new athletes
-      const storedBookings = await AsyncStorage.getItem('coach_bookings');
-      const bookings = storedBookings ? JSON.parse(storedBookings) : [];
+      const bookings = await apiClient.get<any[]>('coach_bookings', []);
 
       const updatedBookings = bookings.map((b: any) => {
         if (b.id === selectedSession.id) {
@@ -170,7 +168,7 @@ export function InviteSessionFlow({
         return b;
       });
 
-      await AsyncStorage.setItem('coach_bookings', JSON.stringify(updatedBookings));
+      await apiClient.set('coach_bookings', updatedBookings);
 
       // Callback
       onComplete?.({

@@ -68,7 +68,7 @@ export function CoachCardHeader({
         />
         {trialAvailable && (
           <View style={[styles.trialBadge, { backgroundColor: palette.success }]}>
-            <ThemedText style={styles.trialText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+            <ThemedText style={styles.trialText} lightColor={Colors.light.onSuccess} darkColor={Colors.dark.onSuccess}>
               TRIAL
             </ThemedText>
           </View>
@@ -134,7 +134,7 @@ export function CoachAvatar({
       />
       {trialAvailable && (
         <View style={[styles.trialBadge, { backgroundColor: palette.success }]}>
-          <ThemedText style={styles.trialText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+          <ThemedText style={styles.trialText} lightColor={Colors.light.onSuccess} darkColor={Colors.dark.onSuccess}>
             TRIAL
           </ThemedText>
         </View>

@@ -214,9 +214,10 @@ export const authService = {
       currentUser = result.user;
       logger.success('Login successful', { userId: result.user.id });
       return { success: true, user: result.user, tokens: result.tokens, token: result.tokens.accessToken };
-    } catch (error: any) {
-      logger.warn('Login failed', { email, error: error.message });
-      return { success: false, error: error.message || 'Invalid email or password' };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Invalid email or password';
+      logger.warn('Login failed', { email, error: message });
+      return { success: false, error: message };
     }
   },
 
@@ -237,9 +238,10 @@ export const authService = {
       currentUser = result.user;
       logger.success('Registration successful', { userId: result.user.id });
       return { success: true, user: result.user, tokens: result.tokens, token: result.tokens.accessToken };
-    } catch (error: any) {
-      logger.warn('Registration failed', { email: input.email, error: error.message });
-      return { success: false, error: error.message || 'Registration failed' };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      logger.warn('Registration failed', { email: input.email, error: message });
+      return { success: false, error: message };
     }
   },
 
@@ -436,8 +438,8 @@ export const authService = {
       await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(result.user));
       currentUser = result.user;
       return { success: true, user: result.user };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Profile update failed' };
     }
   },
 
@@ -516,8 +518,8 @@ export const authService = {
         body: JSON.stringify({ code }),
       });
       return this.updateProfile({ isVerified: true });
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      return { success: false, error: error instanceof Error ? error.message : 'Email verification failed' };
     }
   },
 

@@ -18,10 +18,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   familyService,
-  FamilyMember,
-  FamilyCalendarEvent,
-  FamilyOverview,
-} from '@/services/family-service';
+  type FamilyMember,
+  type FamilyCalendarEvent,
+  type FamilyOverview,
+} from '@/services/family';
 
 const logger = createLogger('FamilyDashboardScreen');
 
@@ -35,8 +35,6 @@ export default function FamilyDashboardScreen() {
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_refreshing, setRefreshing] = useState(false);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [upcomingSessions, setUpcomingSessions] = useState<FamilyCalendarEvent[]>([]);
   const [overview, setOverview] = useState<FamilyOverview | null>(null);
@@ -66,13 +64,6 @@ export default function FamilyDashboardScreen() {
       loadData();
     }, [loadData])
   );
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _handleRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
 
   const handleMemberPress = (member: FamilyMember) => {
     router.push({
