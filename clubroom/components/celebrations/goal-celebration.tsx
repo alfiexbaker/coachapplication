@@ -1,0 +1,218 @@
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, Modal, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { Clickable } from '@/components/primitives/clickable';
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Components, Radii, Spacing, Typography } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+
+import { Confetti } from './confetti';
+
+export interface GoalCelebrationProps {
+  visible: boolean;
+  goalTitle: string;
+  onShare?: () => void;
+  onSetNewGoal?: () => void;
+  onClose: () => void;
+}
+
+export function GoalCelebration({
+  visible,
+  goalTitle,
+  onShare,
+  onSetNewGoal,
+  onClose,
+}: GoalCelebrationProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      scaleAnim.setValue(0);
+      progressAnim.setValue(0);
+
+      Animated.sequence([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          damping: 12,
+          stiffness: 150,
+          useNativeDriver: false,
+        }),
+        Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ]).start();
+    }
+  }, [visible, scaleAnim, progressAnim]);
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
+      <View style={styles.overlay}>
+        <Confetti active={visible} />
+
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.surface,
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          {/* Target icon */}
+          <View style={[styles.iconCircle, { backgroundColor: `${palette.success}15` }]}>
+            <Ionicons name="flag" size={48} color={palette.success} />
+          </View>
+
+          <ThemedText style={[Typography.display, { color: palette.text, textAlign: 'center' }]}>
+            Goal Complete!
+          </ThemedText>
+
+          <ThemedText
+            style={[Typography.bodySemiBold, { color: palette.text, textAlign: 'center' }]}
+          >
+            {goalTitle}
+          </ThemedText>
+
+          {/* Progress bar at 100% */}
+          <View style={styles.progressContainer}>
+            <View
+              style={[styles.progressTrack, { backgroundColor: `${palette.success}20` }]}
+            >
+              <Animated.View
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: palette.success,
+                    width: progressWidth,
+                  },
+                ]}
+              />
+            </View>
+            <ThemedText style={[Typography.caption, { color: palette.success }]}>
+              100%
+            </ThemedText>
+          </View>
+
+          {/* Buttons */}
+          <View style={styles.buttonRow}>
+            {onShare && (
+              <Clickable
+                onPress={onShare}
+                style={[styles.primaryButton, { backgroundColor: palette.tint }]}
+              >
+                <Ionicons name="share-outline" size={Components.icon.md} color="#FFFFFF" />
+                <ThemedText style={[Typography.bodySemiBold, { color: '#FFFFFF' }]}>
+                  Share
+                </ThemedText>
+              </Clickable>
+            )}
+
+            {onSetNewGoal && (
+              <Clickable
+                onPress={onSetNewGoal}
+                style={[styles.outlineButton, { borderColor: palette.tint }]}
+              >
+                <Ionicons name="add-outline" size={Components.icon.md} color={palette.tint} />
+                <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
+                  Set New Goal
+                </ThemedText>
+              </Clickable>
+            )}
+
+            <Clickable
+              onPress={onClose}
+              style={[styles.secondaryButton, { borderColor: palette.border }]}
+            >
+              <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
+                Close
+              </ThemedText>
+            </Clickable>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  card: {
+    width: '100%',
+    maxWidth: Components.modal.maxWidth,
+    borderRadius: Radii.card,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
+  progressContainer: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  progressTrack: {
+    flex: 1,
+    height: Spacing.xs,
+    borderRadius: Radii.pill,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: Radii.pill,
+  },
+  buttonRow: {
+    width: '100%',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: Components.button.height,
+    borderRadius: Radii.button,
+    gap: Spacing.xs,
+  },
+  outlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: Components.button.height,
+    borderRadius: Radii.button,
+    borderWidth: 1,
+    gap: Spacing.xs,
+  },
+  secondaryButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: Components.button.height,
+    borderRadius: Radii.button,
+    borderWidth: 1,
+  },
+});

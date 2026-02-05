@@ -261,10 +261,10 @@ export function RescheduleRequest({
           style={[styles.actionButton, styles.acceptButton, { backgroundColor: palette.success }]}
         >
           {processing === 'accepted' ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={palette.surface} />
           ) : (
             <>
-              <Ionicons name="checkmark" size={18} color="#fff" />
+              <Ionicons name="checkmark" size={18} color={palette.surface} />
               <ThemedText style={styles.actionButtonText}>Accept</ThemedText>
             </>
           )}
@@ -300,18 +300,18 @@ export function RescheduleRequest({
           ]}
         >
           {processing === 'declined' ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={palette.surface} />
           ) : (
             <>
               <Ionicons
                 name="close"
                 size={18}
-                color={showDeclineReason ? '#fff' : palette.error}
+                color={showDeclineReason ? palette.surface : palette.error}
               />
               <ThemedText
                 style={[
                   showDeclineReason ? styles.actionButtonText : styles.actionButtonTextDark,
-                  { color: showDeclineReason ? '#fff' : palette.error },
+                  { color: showDeclineReason ? palette.surface : palette.error },
                 ]}
               >
                 {showDeclineReason ? 'Confirm Decline' : 'Decline'}
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   sessionInfo: {
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   sessionTitle: {
     fontSize: 15,
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   venueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   venueText: {
     fontSize: 13,
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   actionButtonText: {
-    color: '#fff',
+    color: Colors.light.surface,
     fontSize: 15,
     fontWeight: '700',
   },

@@ -12,7 +12,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
-  Text,
   Pressable,
   StyleSheet,
   ActivityIndicator,
@@ -21,6 +20,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Radii, Typography, Components, Shadows } from '@/constants/theme';
 import { CardStyles, LayoutStyles, ButtonStyles } from '@/constants/styles';
+import { ThemedText } from '@/components/themed-text';
 import { rsvpService } from '@/services/rsvp-service';
 import type { SessionRsvp } from '@/constants/types';
 
@@ -47,8 +47,8 @@ function CountBadge({ count, label, color, icon }: CountBadgeProps) {
   return (
     <View style={[styles.countBadge, { backgroundColor: `${color}12` }]}>
       <Ionicons name={icon} size={18} color={color} />
-      <Text style={[styles.countNumber, { color }]}>{count}</Text>
-      <Text style={[styles.countLabel, { color }]}>{label}</Text>
+      <ThemedText style={[styles.countNumber, { color }]}>{count}</ThemedText>
+      <ThemedText style={[styles.countLabel, { color }]}>{label}</ThemedText>
     </View>
   );
 }
@@ -73,9 +73,9 @@ function ExpandableList({ title, names, color, icon }: ExpandableListProps) {
       >
         <View style={styles.expandableLeft}>
           <Ionicons name={icon} size={18} color={color} />
-          <Text style={styles.expandableTitle}>
+          <ThemedText style={styles.expandableTitle}>
             {title} ({names.length})
-          </Text>
+          </ThemedText>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -89,7 +89,7 @@ function ExpandableList({ title, names, color, icon }: ExpandableListProps) {
           {names.map((name, index) => (
             <View key={index} style={styles.nameRow}>
               <View style={[styles.statusDot, { backgroundColor: color }]} />
-              <Text style={styles.nameText}>{name}</Text>
+              <ThemedText style={styles.nameText}>{name}</ThemedText>
             </View>
           ))}
         </View>
@@ -179,7 +179,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
     return (
       <View style={[CardStyles.base, styles.emptyContainer]}>
         <Ionicons name="people-outline" size={32} color={Colors.light.muted} />
-        <Text style={styles.emptyText}>No RSVPs yet</Text>
+        <ThemedText style={styles.emptyText}>No RSVPs yet</ThemedText>
       </View>
     );
   }
@@ -187,7 +187,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
   return (
     <View style={[CardStyles.base, styles.container]}>
       {/* Header */}
-      <Text style={styles.sectionTitle}>Attendance</Text>
+      <ThemedText style={styles.sectionTitle}>Attendance</ThemedText>
 
       {/* Progress indicator */}
       <View style={styles.progressContainer}>
@@ -199,9 +199,9 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
             ]}
           />
         </View>
-        <Text style={styles.progressText}>
+        <ThemedText style={styles.progressText}>
           {confirmed}/{total} confirmed
-        </Text>
+        </ThemedText>
       </View>
 
       {/* Count badges */}
@@ -269,9 +269,9 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
           ) : (
             <>
               <Ionicons name="notifications-outline" size={18} color={Colors.light.tint} />
-              <Text style={styles.reminderButtonText}>
+              <ThemedText style={styles.reminderButtonText}>
                 Send Reminder ({counts.pending} pending)
-              </Text>
+              </ThemedText>
             </>
           )}
         </Pressable>
@@ -310,18 +310,18 @@ const styles = StyleSheet.create({
 
   // Progress
   progressContainer: {
-    gap: 6,
+    gap: Spacing.xs,
   },
   progressBar: {
     height: 6,
     backgroundColor: Colors.light.border,
-    borderRadius: 3,
+    borderRadius: Radii.sm,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.light.success,
-    borderRadius: 3,
+    borderRadius: Radii.sm,
   },
   progressText: {
     ...Typography.caption,
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xs,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.xs,
     borderRadius: Radii.sm,
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
 
   // Expandable lists
   listsContainer: {
-    gap: 4,
+    gap: Spacing.xs,
   },
   expandableContainer: {
     borderRadius: Radii.sm,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   namesList: {
     paddingLeft: Spacing.lg,
     paddingBottom: Spacing.xs,
-    gap: 6,
+    gap: Spacing.xs,
   },
   nameRow: {
     flexDirection: 'row',

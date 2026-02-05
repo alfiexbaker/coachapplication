@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ChildSwitcher } from '@/components/ChildSwitcher';
 import { Colors, Spacing, Radii } from '@/constants/theme';
@@ -105,7 +106,7 @@ export function UserHomeScreen() {
     { icon: 'search', label: 'Find Coach', route: '/(tabs)/more', color: palette.tint },
     { icon: 'analytics', label: 'My Progress', route: '/development/my-progress', color: palette.success },
     { icon: 'chatbubbles', label: 'Messages', route: '/(tabs)/messages', color: palette.accent },
-    { icon: 'calendar', label: 'Bookings', route: '/(tabs)/bookings', color: '#8B5CF6' },
+    { icon: 'calendar', label: 'Bookings', route: '/(tabs)/bookings', color: palette.tint },
   ];
 
   return (
@@ -168,8 +169,8 @@ export function UserHomeScreen() {
           </View>
           <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
           <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: '#F59E0B15' }]}>
-              <Ionicons name="ribbon" size={18} color="#F59E0B" />
+            <View style={[styles.statIcon, { backgroundColor: `${palette.warning}15` }]}>
+              <Ionicons name="ribbon" size={18} color={palette.warning} />
             </View>
             <View>
               <ThemedText type="defaultSemiBold" style={styles.statValue}>{stats.badges}</ThemedText>
@@ -190,26 +191,25 @@ export function UserHomeScreen() {
 
         {/* Streak Card - WOW Factor */}
         {streakInfo && (
-          <TouchableOpacity
-            style={[styles.streakCard, { backgroundColor: '#FF6B3520', borderColor: '#FF6B3540' }]}
+          <Clickable
+            style={[styles.streakCard, { backgroundColor: `${palette.warning}20`, borderColor: `${palette.warning}40` }]}
             onPress={() => router.push('/badges')}
-            activeOpacity={0.7}
           >
             <View style={styles.streakContent}>
-              <View style={[styles.streakIconContainer, { backgroundColor: '#FF6B3530' }]}>
-                <Ionicons name="flame" size={28} color="#FF6B35" />
+              <View style={[styles.streakIconContainer, { backgroundColor: `${palette.warning}30` }]}>
+                <Ionicons name="flame" size={28} color={palette.warning} />
               </View>
               <View style={styles.streakInfo}>
                 <View style={styles.streakHeader}>
-                  <ThemedText style={styles.streakNumber}>{streakInfo.currentStreak}</ThemedText>
-                  <ThemedText style={[styles.streakWeeks, { color: '#FF6B35' }]}>week streak</ThemedText>
+                  <ThemedText style={[styles.streakNumber, { color: palette.warning }]}>{streakInfo.currentStreak}</ThemedText>
+                  <ThemedText style={[styles.streakWeeks, { color: palette.warning }]}>week streak</ThemedText>
                 </View>
                 <ThemedText style={[styles.streakLabel, { color: palette.text }]}>
                   {streakInfo.streakLabel}
                 </ThemedText>
               </View>
               <View style={styles.streakProgress}>
-                <ThemedText style={[styles.streakProgressText, { color: palette.muted }]}>
+                <ThemedText style={[styles.streakProgressText, { color: palette.muted }]} numberOfLines={1}>
                   {streakInfo.daysToNextMilestone > 0
                     ? `${streakInfo.daysToNextMilestone} to next badge`
                     : 'Max streak!'}
@@ -217,13 +217,13 @@ export function UserHomeScreen() {
                 <Ionicons name="chevron-forward" size={18} color={palette.muted} />
               </View>
             </View>
-          </TouchableOpacity>
+          </Clickable>
         )}
 
         {/* Quick Actions */}
         <View style={styles.quickActionsGrid}>
           {quickActions.map((action, index) => (
-            <TouchableOpacity
+            <Clickable
               key={index}
               style={[styles.quickAction, { backgroundColor: `${action.color}10`, borderColor: `${action.color}25` }]}
               onPress={() => router.push(action.route as any)}
@@ -231,8 +231,8 @@ export function UserHomeScreen() {
               <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}20` }]}>
                 <Ionicons name={action.icon as any} size={20} color={action.color} />
               </View>
-              <ThemedText style={[styles.quickActionLabel, { color: action.color }]}>{action.label}</ThemedText>
-            </TouchableOpacity>
+              <ThemedText style={[styles.quickActionLabel, { color: action.color }]} numberOfLines={1}>{action.label}</ThemedText>
+            </Clickable>
           ))}
         </View>
 
@@ -250,7 +250,7 @@ export function UserHomeScreen() {
                 <ThemedText type="defaultSemiBold" style={{ color: palette.tint, fontSize: 12, textTransform: 'uppercase' }}>
                   Next Session
                 </ThemedText>
-                <ThemedText type="subtitle" style={styles.coachName}>
+                <ThemedText type="subtitle" style={styles.coachName} numberOfLines={1}>
                   {nextSession.coachName}
                 </ThemedText>
               </View>
@@ -259,13 +259,13 @@ export function UserHomeScreen() {
             <View style={styles.sessionDetails}>
               <View style={styles.sessionDetail}>
                 <Ionicons name="calendar-outline" size={16} color={palette.muted} />
-                <ThemedText style={{ color: palette.muted }}>
+                <ThemedText style={{ color: palette.muted }} numberOfLines={1}>
                   {formatDate(nextSession.scheduledAt)}
                 </ThemedText>
               </View>
               <View style={styles.sessionDetail}>
                 <Ionicons name="location-outline" size={16} color={palette.muted} />
-                <ThemedText style={{ color: palette.muted }}>
+                <ThemedText style={{ color: palette.muted }} numberOfLines={1}>
                   {nextSession.location}
                 </ThemedText>
               </View>
@@ -282,12 +282,12 @@ export function UserHomeScreen() {
                 Book a session to start training
               </ThemedText>
             </View>
-            <TouchableOpacity
+            <Clickable
               style={[styles.bookButton, { backgroundColor: palette.tint }]}
               onPress={() => router.push('/(tabs)/more')}
             >
-              <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Find Coach</ThemedText>
-            </TouchableOpacity>
+              <ThemedText style={{ color: palette.surface, fontWeight: '600', fontSize: 13 }}>Find Coach</ThemedText>
+            </Clickable>
           </SurfaceCard>
         )}
 
@@ -296,9 +296,9 @@ export function UserHomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Badges</ThemedText>
-              <TouchableOpacity onPress={() => router.push('/badges')}>
+              <Clickable onPress={() => router.push('/badges')}>
                 <ThemedText style={{ color: palette.tint, fontSize: 13 }}>View All</ThemedText>
-              </TouchableOpacity>
+              </Clickable>
             </View>
             <ScrollView
               horizontal
@@ -308,7 +308,7 @@ export function UserHomeScreen() {
               {recentBadges.map((badge) => (
                 <View key={badge.id} style={[styles.badgeCard, { backgroundColor: `${palette.tint}10` }]}>
                   <View style={[styles.badgeIconCircle, { backgroundColor: palette.tint }]}>
-                    <Ionicons name="ribbon" size={18} color="#fff" />
+                    <Ionicons name="ribbon" size={18} color={palette.surface} />
                   </View>
                   <ThemedText style={styles.badgeLabel} numberOfLines={1}>{badge.badgeLabel}</ThemedText>
                   {badge.badgeCategory && (
@@ -316,13 +316,13 @@ export function UserHomeScreen() {
                   )}
                 </View>
               ))}
-              <TouchableOpacity
+              <Clickable
                 style={[styles.viewAllBadges, { borderColor: palette.border }]}
                 onPress={() => router.push('/badges')}
               >
                 <Ionicons name="arrow-forward" size={18} color={palette.tint} />
                 <ThemedText style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}>See All</ThemedText>
-              </TouchableOpacity>
+              </Clickable>
             </ScrollView>
           </View>
         )}
@@ -332,9 +332,9 @@ export function UserHomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>My Clubs</ThemedText>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/club-hub')}>
+              <Clickable onPress={() => router.push('/(tabs)/club-hub')}>
                 <ThemedText style={{ color: palette.tint, fontSize: 13 }}>View All</ThemedText>
-              </TouchableOpacity>
+              </Clickable>
             </View>
             {clubs.slice(0, 2).map((club) => (
               <SurfaceCard
@@ -467,7 +467,6 @@ const styles = StyleSheet.create({
   streakNumber: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#FF6B35',
   },
   streakWeeks: {
     fontSize: 14,
@@ -480,7 +479,7 @@ const styles = StyleSheet.create({
   streakProgress: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   streakProgressText: {
     fontSize: 11,
@@ -535,7 +534,7 @@ const styles = StyleSheet.create({
   },
   sessionDetails: {
     gap: Spacing.xs,
-    marginLeft: 56, // Align with content after icon
+    marginLeft: 44 + Spacing.sm, // Align with content after icon (avatar + gap)
   },
   sessionDetail: {
     flexDirection: 'row',

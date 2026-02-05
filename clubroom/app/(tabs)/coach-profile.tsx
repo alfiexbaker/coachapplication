@@ -3,7 +3,6 @@ import {
   FlatList,
   Image,
   Linking,
-  Pressable,
   ScrollView,
   StyleSheet,
   View,
@@ -18,8 +17,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ScreenHeader } from '@/components/primitives/screen-header';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components, Typography } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
 import {
   CoachPost,
@@ -178,17 +178,17 @@ export default function CoachProfileScreen() {
   }, [coach.id]);
 
   const renderTabButton = (tab: TabType, label: string) => (
-    <Pressable
+    <Clickable
       onPress={() => setActiveTab(tab)}
       style={[
         styles.tabButton,
         activeTab === tab && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
       ]}>
       <ThemedText
-        style={[styles.tabText, activeTab === tab && { fontWeight: '700', color: palette.tint }]}>
+        style={[styles.tabText, { color: palette.muted }, activeTab === tab && { fontWeight: '600', color: palette.tint }]}>
         {label}
       </ThemedText>
-    </Pressable>
+    </Clickable>
   );
 
   const renderPost = ({ item }: { item: CoachPost }) => (
@@ -219,17 +219,17 @@ export default function CoachProfileScreen() {
       )}
 
       <View style={styles.postActions}>
-        <Pressable style={styles.actionButton}>
+        <Clickable style={styles.actionButton}>
           <Ionicons name="heart-outline" size={20} color={palette.foreground} />
           <ThemedText style={styles.actionText}>{item.likes}</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionButton}>
+        </Clickable>
+        <Clickable style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={20} color={palette.foreground} />
           <ThemedText style={styles.actionText}>{item.comments}</ThemedText>
-        </Pressable>
-        <Pressable style={styles.actionButton}>
+        </Clickable>
+        <Clickable style={styles.actionButton}>
           <Ionicons name="share-outline" size={20} color={palette.foreground} />
-        </Pressable>
+        </Clickable>
       </View>
     </SurfaceCard>
   );
@@ -256,11 +256,11 @@ export default function CoachProfileScreen() {
           )}
         </View>
         {currentUser?.role === 'COACH' && (
-          <Pressable
+          <Clickable
             onPress={() => alert('Edit experience: ' + exp.title)}
             style={styles.editButton}>
             <Ionicons name="pencil" size={16} color={palette.muted} />
-          </Pressable>
+          </Clickable>
         )}
       </View>
     );
@@ -299,11 +299,11 @@ export default function CoachProfileScreen() {
           )}
         </View>
         {currentUser?.role === 'COACH' && (
-          <Pressable
+          <Clickable
             onPress={() => alert('Edit certification: ' + cert.name)}
             style={styles.editButton}>
             <Ionicons name="pencil" size={16} color={palette.muted} />
-          </Pressable>
+          </Clickable>
         )}
       </View>
     );
@@ -409,9 +409,9 @@ export default function CoachProfileScreen() {
           <View style={styles.avatarContainer}>
             <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} />
             {currentUser?.role === 'Coach' && (
-              <Pressable style={[styles.editAvatarButton, { backgroundColor: palette.tint }]}>
-                <Ionicons name="camera" size={16} color="#FFFFFF" />
-              </Pressable>
+              <Clickable style={[styles.editAvatarButton, { backgroundColor: palette.tint }]}>
+                <Ionicons name="camera" size={16} color={palette.surface} />
+              </Clickable>
             )}
           </View>
 
@@ -443,35 +443,34 @@ export default function CoachProfileScreen() {
 
             {/* Follow Button - shown when viewing another coach's profile */}
             {!isOwnProfile && currentUser && (
-              <Pressable
-                style={({ pressed }) => [
+              <Clickable
+                style={[
                   styles.followButton,
                   isFollowing
                     ? [styles.followingButton, { borderColor: palette.tint }]
                     : { backgroundColor: palette.tint },
-                  pressed && { opacity: 0.8 },
                 ]}
                 onPress={handleFollowToggle}
                 disabled={followLoading}>
                 {followLoading ? (
-                  <ActivityIndicator size="small" color={isFollowing ? palette.tint : '#FFFFFF'} />
+                  <ActivityIndicator size="small" color={isFollowing ? palette.tint : palette.surface} />
                 ) : (
                   <>
                     <Ionicons
                       name={isFollowing ? 'checkmark' : 'add'}
                       size={18}
-                      color={isFollowing ? palette.tint : '#FFFFFF'}
+                      color={isFollowing ? palette.tint : palette.surface}
                     />
                     <ThemedText
                       style={[
                         styles.followButtonText,
-                        { color: isFollowing ? palette.tint : '#FFFFFF' },
+                        { color: isFollowing ? palette.tint : palette.surface },
                       ]}>
                       {isFollowing ? 'Following' : 'Follow'}
                     </ThemedText>
                   </>
                 )}
-              </Pressable>
+              </Clickable>
             )}
 
             {coach.badges && coach.badges.length > 0 && (
@@ -510,13 +509,13 @@ export default function CoachProfileScreen() {
             )}
 
             {currentUser?.role === 'Coach' && (
-              <Pressable
+              <Clickable
                 style={[styles.editProfileButton, { backgroundColor: palette.tint }]}
                 onPress={() => router.push('/(tabs)/edit-profile')}>
-                <ThemedText style={styles.editProfileText} lightColor="#FFFFFF" darkColor="#000000">
+                <ThemedText style={[styles.editProfileText, { color: palette.surface }]}>
                   Edit Profile
                 </ThemedText>
-              </Pressable>
+              </Clickable>
             )}
           </View>
         </View>
@@ -535,12 +534,12 @@ export default function CoachProfileScreen() {
           {activeTab === 'posts' && (
             <>
               {currentUser?.role === 'Coach' && (
-                <Pressable
+                <Clickable
                   style={[styles.createPostButton, { backgroundColor: palette.card }]}
                   onPress={() => alert('Create post')}>
                   <Ionicons name="add-circle" size={24} color={palette.tint} />
-                  <ThemedText style={styles.createPostText}>Share an update...</ThemedText>
-                </Pressable>
+                  <ThemedText style={[styles.createPostText, { color: palette.muted }]}>Share an update...</ThemedText>
+                </Clickable>
               )}
 
               {coach.posts && coach.posts.length > 0 ? (
@@ -565,28 +564,28 @@ export default function CoachProfileScreen() {
               <SurfaceCard style={styles.section}>
                 <ThemedText type="subtitle">Contact Information</ThemedText>
                 {coach.email && (
-                  <Pressable
+                  <Clickable
                     style={styles.contactItem}
                     onPress={() => Linking.openURL(`mailto:${coach.email}`)}>
                     <Ionicons name="mail" size={20} color={palette.tint} />
-                    <ThemedText style={styles.contactText}>{coach.email}</ThemedText>
-                  </Pressable>
+                    <ThemedText style={styles.contactText} numberOfLines={1}>{coach.email}</ThemedText>
+                  </Clickable>
                 )}
                 {coach.phone && (
-                  <Pressable
+                  <Clickable
                     style={styles.contactItem}
                     onPress={() => Linking.openURL(`tel:${coach.phone}`)}>
                     <Ionicons name="call" size={20} color={palette.tint} />
-                    <ThemedText style={styles.contactText}>{coach.phone}</ThemedText>
-                  </Pressable>
+                    <ThemedText style={styles.contactText} numberOfLines={1}>{coach.phone}</ThemedText>
+                  </Clickable>
                 )}
                 {coach.website && (
-                  <Pressable
+                  <Clickable
                     style={styles.contactItem}
                     onPress={() => Linking.openURL(coach.website!)}>
                     <Ionicons name="globe" size={20} color={palette.tint} />
-                    <ThemedText style={styles.contactText}>{coach.website}</ThemedText>
-                  </Pressable>
+                    <ThemedText style={styles.contactText} numberOfLines={1}>{coach.website}</ThemedText>
+                  </Clickable>
                 )}
               </SurfaceCard>
 
@@ -603,14 +602,14 @@ export default function CoachProfileScreen() {
                 <View style={styles.sectionHeader}>
                   <ThemedText type="subtitle">Experience</ThemedText>
                   {currentUser?.role === 'COACH' && (
-                    <Pressable
+                    <Clickable
                       onPress={() => alert('Add new experience')}
                       style={styles.addButton}>
                       <Ionicons name="add-circle" size={20} color={palette.tint} />
                       <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
                         Add
                       </ThemedText>
-                    </Pressable>
+                    </Clickable>
                   )}
                 </View>
                 {coach.experiences && coach.experiences.length > 0 ? (
@@ -627,14 +626,14 @@ export default function CoachProfileScreen() {
                 <View style={styles.sectionHeader}>
                   <ThemedText type="subtitle">Certifications & Licences</ThemedText>
                   {currentUser?.role === 'COACH' && (
-                    <Pressable
+                    <Clickable
                       onPress={() => alert('Add new certification')}
                       style={styles.addButton}>
                       <Ionicons name="add-circle" size={20} color={palette.tint} />
                       <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
                         Add
                       </ThemedText>
-                    </Pressable>
+                    </Clickable>
                   )}
                 </View>
                 {coach.certifications && coach.certifications.length > 0 ? (
@@ -818,23 +817,20 @@ export default function CoachProfileScreen() {
             </SurfaceCard>
 
             {/* Sign Out Button */}
-            <Pressable
-              style={({ pressed }) => [
+            <Clickable
+              style={[
                 styles.signOutButton,
-                {
-                  borderColor: Colors.light.error,
-                  backgroundColor: pressed ? `${Colors.light.error}10` : 'transparent',
-                },
+                { borderColor: palette.error },
               ]}
               onPress={async () => {
                 await logout();
                 router.replace('/');
               }}>
-              <Ionicons name="log-out-outline" size={20} color={Colors.light.error} />
-              <ThemedText style={[styles.signOutText, { color: Colors.light.error }]}>
+              <Ionicons name="log-out-outline" size={20} color={palette.error} />
+              <ThemedText style={[styles.signOutText, { color: palette.error }]}>
                 Sign Out
               </ThemedText>
-            </Pressable>
+            </Clickable>
           </View>
         )}
       </ScrollView>
@@ -933,7 +929,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: Colors.light.surface,
   },
   editAvatarButton: {
     position: 'absolute',

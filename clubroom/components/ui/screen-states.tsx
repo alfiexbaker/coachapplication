@@ -3,7 +3,6 @@ import {
   Animated,
   StyleSheet,
   View,
-  Text,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +12,7 @@ import {
   ButtonStyles,
   EmptyStateStyles,
 } from '@/constants/styles';
+import { ThemedText } from '@/components/themed-text';
 
 // ============================================================================
 // TYPES
@@ -241,16 +241,16 @@ export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
         size={48}
         color={Colors.light.error}
       />
-      <Text style={errorStyles.title}>
+      <ThemedText style={errorStyles.title}>
         {title ?? 'Something went wrong'}
-      </Text>
-      <Text style={errorStyles.message}>{message}</Text>
+      </ThemedText>
+      <ThemedText style={errorStyles.message}>{message}</ThemedText>
       <TouchableOpacity
         style={errorStyles.retryButton}
         onPress={onRetry}
         activeOpacity={0.8}
       >
-        <Text style={errorStyles.retryButtonText}>Try again</Text>
+        <ThemedText style={errorStyles.retryButtonText}>Try again</ThemedText>
       </TouchableOpacity>
     </View>
   );
@@ -276,15 +276,15 @@ export function EmptyStateScreen({
           color={Colors.light.muted}
         />
       </View>
-      <Text style={EmptyStateStyles.title}>{title}</Text>
-      <Text style={EmptyStateStyles.message}>{message}</Text>
+      <ThemedText style={EmptyStateStyles.title}>{title}</ThemedText>
+      <ThemedText style={EmptyStateStyles.message}>{message}</ThemedText>
       {actionLabel && onAction ? (
         <TouchableOpacity
           style={emptyStyles.actionButton}
           onPress={onAction}
           activeOpacity={0.8}
         >
-          <Text style={emptyStyles.actionButtonText}>{actionLabel}</Text>
+          <ThemedText style={emptyStyles.actionButtonText}>{actionLabel}</ThemedText>
         </TouchableOpacity>
       ) : null}
     </View>

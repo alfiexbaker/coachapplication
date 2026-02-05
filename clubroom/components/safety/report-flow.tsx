@@ -250,7 +250,7 @@ export function ReportFlow({
                 disabled={!selectedType || submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <ActivityIndicator color={Colors.light.surface} size="small" />
                 ) : (
                   <ThemedText style={ButtonStyles.primaryText}>
                     Submit Report
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   descriptionSection: {
-    gap: 6,
+    gap: Spacing.xs,
     marginBottom: Spacing.md,
   },
   charCount: {

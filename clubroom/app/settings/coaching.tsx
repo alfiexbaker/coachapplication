@@ -12,7 +12,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   StyleSheet,
   Switch,
@@ -22,6 +21,7 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
@@ -49,8 +49,8 @@ function Stepper({ label, value, onValueChange, min, max, step, suffix, helperTe
   return (
     <View style={styles.rowContainer}>
       <View style={styles.rowLabelArea}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {helperText ? <Text style={styles.rowHelper}>{helperText}</Text> : null}
+        <ThemedText style={styles.rowLabel}>{label}</ThemedText>
+        {helperText ? <ThemedText style={styles.rowHelper}>{helperText}</ThemedText> : null}
       </View>
       <View style={styles.stepperControl}>
         <Pressable
@@ -60,9 +60,9 @@ function Stepper({ label, value, onValueChange, min, max, step, suffix, helperTe
         >
           <Ionicons name="remove" size={18} color={canDecrement ? Colors.light.text : Colors.light.border} />
         </Pressable>
-        <Text style={styles.stepperValue}>
+        <ThemedText style={styles.stepperValue}>
           {value}{suffix}
-        </Text>
+        </ThemedText>
         <Pressable
           onPress={() => canIncrement && onValueChange(value + step)}
           style={[styles.stepperButton, !canIncrement && styles.stepperButtonDisabled]}
@@ -86,8 +86,8 @@ function ToggleRow({ label, value, onValueChange, helperText }: ToggleRowProps) 
   return (
     <View style={styles.rowContainer}>
       <View style={styles.rowLabelArea}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {helperText ? <Text style={styles.rowHelper}>{helperText}</Text> : null}
+        <ThemedText style={styles.rowLabel}>{label}</ThemedText>
+        {helperText ? <ThemedText style={styles.rowHelper}>{helperText}</ThemedText> : null}
       </View>
       <Switch
         value={value}
@@ -119,11 +119,11 @@ function NavigationRow({ label, value, onPress, icon }: NavigationRowProps) {
             <Ionicons name={icon} size={18} color={Colors.light.muted} />
           </View>
         )}
-        <Text style={styles.rowLabel}>{label}</Text>
+        <ThemedText style={styles.rowLabel} numberOfLines={1}>{label}</ThemedText>
       </View>
       <View style={styles.navRight}>
-        {value ? <Text style={styles.navValue}>{value}</Text> : null}
-        <Ionicons name="chevron-forward" size={18} color={Colors.light.border} />
+        {value ? <ThemedText style={styles.navValue} numberOfLines={1}>{value}</ThemedText> : null}
+        <Ionicons name="chevron-forward" size={18} color={Colors.light.muted} />
       </View>
     </Pressable>
   );
@@ -132,7 +132,7 @@ function NavigationRow({ label, value, onPress, icon }: NavigationRowProps) {
 function SectionHeader({ title }: { title: string }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionHeaderText}>{title}</Text>
+      <ThemedText style={styles.sectionHeaderText}>{title}</ThemedText>
     </View>
   );
 }
@@ -347,7 +347,7 @@ export default function CoachingSettingsScreen() {
       {showSaved && (
         <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
           <Ionicons name="checkmark-circle" size={18} color={Colors.light.success} />
-          <Text style={styles.toastText}>Saved</Text>
+          <ThemedText style={styles.toastText}>Saved</ThemedText>
         </Animated.View>
       )}
     </View>
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 14,
+    paddingVertical: Spacing.sm,
     minHeight: 52,
   },
   rowPressed: {
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   navRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   navValue: {
     ...Typography.small,
@@ -470,11 +470,11 @@ const styles = StyleSheet.create({
   // Toast
   toast: {
     position: 'absolute',
-    bottom: 40,
+    bottom: Spacing.xl,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xs,
     backgroundColor: Colors.light.surface,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

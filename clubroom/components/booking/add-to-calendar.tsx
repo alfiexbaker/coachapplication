@@ -21,7 +21,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   Pressable,
   StyleSheet,
   Alert,
@@ -31,6 +30,7 @@ import {
 import * as Calendar from 'expo-calendar';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -194,9 +194,9 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
             size={20}
             color={added ? Colors.light.success : Colors.light.tint}
           />
-          <Text style={[styles.buttonText, added && styles.buttonTextAdded]}>
+          <ThemedText style={[styles.buttonText, added && styles.buttonTextAdded]}>
             {added ? 'Added to Calendar' : 'Add to Calendar'}
-          </Text>
+          </ThemedText>
         </>
       )}
     </Pressable>

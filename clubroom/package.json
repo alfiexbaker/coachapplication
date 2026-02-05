@@ -25,6 +25,8 @@
     "test:compare": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && node --test \".tmp-tests/__tests__/compare/*.js\"",
     "test:skills": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && node --test \".tmp-tests/__tests__/skills/*.js\"",
     "test:video": "rm -rf .tmp-tests && tsc -p tsconfig.test.json && node --test \".tmp-tests/__tests__/video/*.js\"",
+    "test:bookings": "rm -rf .tmp-tests && npx tsc --outDir .tmp-tests --target ES2020 --module commonjs --esModuleInterop --skipLibCheck --lib ES2020 --types node __tests__/bookings/booking-service.test.ts && node --test .tmp-tests/bookings/booking-service.test.js",
+    "test:messaging": "rm -rf .tmp-tests && npx tsc --outDir .tmp-tests --target ES2020 --module commonjs --esModuleInterop --skipLibCheck --lib ES2020 --types node __tests__/messaging/messaging-service.test.ts && node --test .tmp-tests/messaging/messaging-service.test.js",
     "test": "npm run test:snapshots"
   },
   "dependencies": {

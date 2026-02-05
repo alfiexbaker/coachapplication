@@ -21,65 +21,78 @@ See `COMPETITIVE_ANALYSIS.md` for the full breakdown of Spond, Heja, TeamSnap, C
 
 ---
 
+## Current Status (Auto-Updated 2026-02-05)
+
+| Phase | Completion | Key Gaps |
+|-------|------------|----------|
+| **Phase 1: Foundation** | 85% | Seen indicators, accessibility pass |
+| **Phase 2: Differentiation** | 75% | Map polish, club branding |
+| **Phase 3: Competitive Edge** | 55% | Challenges screen, journal, reminders |
+| **Overall** | **~72%** | Ready for API integration |
+
+See `STATUS.md` for line-by-line verification of each sprint.
+
+---
+
 ## Micro-Sprint Structure
 
 The 10 original sprints have been broken into **28 micro-sprints** across 3 phases. Each micro-sprint is 2-4 tasks — small enough to complete in a focused session, clear enough to hand to any developer.
 
-### Phase 1: Foundation (17 micro-sprints)
+### Phase 1: Foundation (17 micro-sprints) — 85% Complete
 
 Fix what's broken. Standardise services. Complete core flows. Polish the basics.
 
-| ID | Name | Tasks | Origin | Key Deliverable |
-|----|------|-------|--------|-----------------|
-| **1A** | API Client + Service Pattern | 3 | S1: T1,4,5 | Shared api-client, 46 services migrated, notification trigger pattern |
-| **1B** | Fix Broken Flows | 2 | S1: T2,3 | Invite→booking and counter-offer→booking actually work |
-| **1C** | Offline Support | 2 | S1: T6,7 | Offline banner, action queue, flush on reconnect |
-| **2A** | Session Lifecycle Core | 3 | S2: T1,2,3 | Session completion flow, auto-transition, "sessions to complete" card |
-| **2B** | Parent Reactions + Attendance | 3 | S2: T4,5,8 | Review prompt, attendance display, decline invite with reason |
-| **2C** | Group RSVP + Calendar | 2 | S2: T6,7 | Spond-beating RSVP, native calendar integration |
-| **3A** | Settings Hub + Scheduling | 3 | S3: T1,2,6 | Coach settings UI, scheduling rules, enforcement in booking |
-| **3B** | Cancellation + No-Show | 4 | S3: T3,4,7,8 | Full cancel flow, policy display, no-show tracking, reschedule |
-| **3C** | Travel + Blocked Dates | 3 | S3: T5,9,10 | Travel radius with map, blocked dates with parent notification, smart suggestions |
-| **5A** | Loading/Error/Empty States | 2 | S5: T1,2 | Every screen gets skeleton, error retry, empty CTA |
-| **5B** | Onboarding Checklists | 2 | S5: T3,4 | Coach 8-step checklist, parent 6-step checklist |
-| **5C** | Polish + Accessibility | 3 | S5: T5,6,8 | Smooth transitions, consistent typography, WCAG AA |
-| **5D** | Safety + Settings + Seen | 3 | S5: T7,9,10 | Report/block, settings completeness, "seen" indicators |
-| **6A** | Auth Service + Context | 3 | S6: T1,2,3 | JWT auth, token refresh, persist login, auth headers |
-| **6B** | API Contracts + Mock Toggle | 3 | S6: T4,5,6 | All endpoints documented, USE_MOCK toggle, typed errors |
-| **6C** | Notifications + Deep Linking | 3 | S6: T7,8,9 | 44 notification types, bell icon, deep links |
-| **6D** | Type Fixes (Bilateral) | 1 | S6: T10 | BookingStatus, SessionInvite, Goal, WaitlistEntry, ChatMessage fixes |
+| ID | Name | Status | Key Deliverable |
+|----|------|--------|-----------------|
+| **1A** | API Client + Service Pattern | ✅ DONE | api-client (306 lines), 59 services migrated, notification triggers |
+| **1B** | Fix Broken Flows | ✅ DONE | Invite→booking and counter-offer→booking work |
+| **1C** | Offline Support | ✅ DONE | Offline banner, action queue, flush on reconnect |
+| **2A** | Session Lifecycle Core | ✅ 90% | Completion flow works, badge integration needs polish |
+| **2B** | Parent Reactions + Attendance | 🟡 70% | Decline with reason done, review prompt needs wiring |
+| **2C** | Group RSVP + Calendar | ✅ 95% | RSVP flow (349 lines), calendar integration |
+| **3A** | Settings Hub + Scheduling | ✅ DONE | All 7 scheduling rules, auto-save |
+| **3B** | Cancellation + No-Show | ✅ 90% | Cancel flow (544 lines), policy display |
+| **3C** | Travel + Blocked Dates | 🟡 60% | Pickers exist, map preview missing |
+| **5A** | Loading/Error/Empty States | ✅ 85% | Components done, apply to all screens |
+| **5B** | Onboarding Checklists | ✅ DONE | Coach + parent checklists complete |
+| **5C** | Polish + Accessibility | 🟡 50% | Theme done, WCAG pass incomplete |
+| **5D** | Safety + Settings + Seen | 🟡 60% | Report/block done, seen indicators missing |
+| **6A** | Auth Service + Context | ✅ DONE | JWT + demo mode + refresh (610 lines) |
+| **6B** | API Contracts + Mock Toggle | ✅ DONE | Contracts (1,584 lines), error types |
+| **6C** | Notifications + Deep Linking | ✅ 95% | 44 types, bell icon, deep links |
+| **6D** | Type Fixes (Bilateral) | ✅ DONE | All bilateral fields added |
 
-### Phase 2: Differentiation (10 micro-sprints)
+### Phase 2: Differentiation (10 micro-sprints) — 75% Complete
 
 What Spond can't do. Clubs, business tools, discovery.
 
-| ID | Name | Tasks | Origin | Key Deliverable |
-|----|------|-------|--------|-----------------|
-| **4A** | Club Branding + Dashboard | 3 | S4: T1,2,3 | Club identity, stats dashboard, aggregated calendar |
-| **4B** | Feed + Academy + Welcome | 3 | S4: T4,5,6 | Auto-generated feed cards, academy distinction, welcome flow |
-| **4C** | Communication | 4 | S4: T7,8,9,10 | Squad group chat, announcements, bulk messaging, critical fallback |
-| **7A** | Public Profile + Sharing | 3 | S7: T1,2,7 | SEO-friendly public page, booking link, QR code, share button |
-| **7B** | Trials + Conversion | 2 | S7: T3,6b | Trial session offering, conversion tracking |
-| **7C** | Dashboard + Earnings + Reviews | 7 | S7: T4,5,6,8,8b,8c,9 | Coach dashboard, earnings, manual confirm, review replies, similar coaches |
-| **8A** | Home + Discovery Cards | 3 | S8: T1,4,4b | Parent home redesign, coach cards, fresh "next available" |
-| **8B** | Filters + Search | 2 | S8: T2,6 | 9 filter types, sort options, search suggestions |
-| **8C** | Map Experience | 1 | S8: T3,8 | Airbnb-quality map (price-pills, bottom sheet, clustering, GPS) |
-| **8D** | Featured + Favourites | 2 | S8: T5,7 | Featured/recommended logic, heart button, saved coaches |
+| ID | Name | Status | Key Deliverable |
+|----|------|--------|-----------------|
+| **4A** | Club Branding + Dashboard | 🟡 40% | Screens exist, colour picker/preview incomplete |
+| **4B** | Feed + Academy + Welcome | 🟡 60% | Recap card done, academy differentiation incomplete |
+| **4C** | Communication | 🟡 50% | Group chat done, pinning/photos missing |
+| **7A** | Public Profile + Sharing | ✅ 95% | Public page (950 lines), QR code, SEO meta |
+| **7B** | Trials + Conversion | ✅ DONE | Trial service, conversion tracking |
+| **7C** | Dashboard + Earnings + Reviews | ✅ 90% | Earnings (903 lines), review response, price notifications missing |
+| **8A** | Home + Discovery Cards | ✅ 95% | Parent/coach home redesigned, cards complete |
+| **8B** | Filters + Search | ✅ DONE | 9 filters, sort options, search suggestions |
+| **8C** | Map Experience | 🟡 40% | Basic map works, needs Airbnb-quality polish |
+| **8D** | Featured + Favourites | ✅ 95% | Featured logic, heart button, saved coaches |
 
-### Phase 3: Competitive Edge (8 micro-sprints)
+### Phase 3: Competitive Edge (8 micro-sprints) — 55% Complete
 
 The wow factor. What makes parents screenshot and share.
 
-| ID | Name | Tasks | Origin | Key Deliverable |
-|----|------|-------|--------|-----------------|
-| **9A** | Visual Progress | 3 | S9: T1,2,3 | Skill radar chart, progress timeline, session recap card |
-| **9B** | Session Plans + Drills | 2 | S9: T4,5 | 30+ session plans, 30+ drills with video, assign to players |
-| **9C** | Video Challenges | 1 | S9: T6 | Coach creates challenges, athletes submit video, leaderboard |
-| **9D** | Reports + Journal + Goals | 3 | S9: T7,8,9 | Monthly progress report, athlete journal, goal setting + notifications |
-| **10A** | Onboarding Flows | 2 | S10: T1,2 | Coach 5-screen setup (<2 min), parent 3-screen (<1 min) |
-| **10B** | Celebrations | 1 | S10: T3 | Confetti for badges, goals, milestones, reviews |
-| **10C** | Smart Notifications | 3 | S10: T4,5,8 | One-tap actions, 24h/1h reminders with directions |
-| **10D** | Polish + Empty States | 3 | S10: T6,7,9 | Micro-interactions, contextual empty states, coach "on my way" |
+| ID | Name | Status | Key Deliverable |
+|----|------|--------|-----------------|
+| **9A** | Visual Progress | 🟡 60% | Recap card done, radar chart needs animation |
+| **9B** | Session Plans + Drills | ✅ 90% | 30+ templates, drill library, video placeholders |
+| **9C** | Video Challenges | 🟡 40% | Service + card done, **screens missing** |
+| **9D** | Reports + Journal + Goals | 🟡 60% | Progress report done, **journal screen missing** |
+| **10A** | Onboarding Flows | ✅ DONE | Coach (581 lines) + parent flows complete |
+| **10B** | Celebrations | ✅ 95% | Confetti, badges, goals, milestones done |
+| **10C** | Smart Notifications | 🟡 40% | Infrastructure ready, **reminder-service missing** |
+| **10D** | Polish + Empty States | 🟡 50% | Foundation exists, **coach-status missing** |
 
 ---
 
@@ -130,18 +143,24 @@ Phase 3 — Competitive Edge
 10D (needs 5A, 6C)
 ```
 
-## Suggested Execution Order
+## Suggested Execution Order (Updated)
 
-For a demo/POC, prioritise this path:
+**Foundation is done.** Focus on remaining high-impact features:
 
-1. **1A** → **1B** (fix the foundation)
-2. **5A** (loading states make everything feel professional)
-3. **2A** → **2B** (session lifecycle — core value)
-4. **8A** → **8B** → **8C** (discovery + map — the wow factor)
-5. **10A** (onboarding — first impression)
-6. **7A** → **7B** (public profile — growth story)
-7. **9A** (radar chart — the screenshot feature)
-8. **10B** (celebrations — the delight factor)
+### High Impact (Do First)
+1. **8C** — Map polish (Airbnb-quality is the wow factor)
+2. **9C** — Video challenges screen (create `app/drills/challenges.tsx`)
+3. **9D** — Journal screen (create `app/athlete/journal.tsx`)
+
+### Medium Impact
+4. **4A** — Club branding (colour picker, live preview)
+5. **4C** — Squad chat (pinning, photo sharing)
+6. **10C** — Smart reminders (create `services/reminder-service.ts`)
+
+### Polish Pass
+7. **5C** — Accessibility audit (WCAG AA)
+8. **5D** — Seen indicators everywhere
+9. **10D** — Micro-interactions + coach status
 
 ---
 

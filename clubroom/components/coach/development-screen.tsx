@@ -271,7 +271,7 @@ export function CoachDevelopmentScreen() {
             })}
 
             <ThemedText style={[styles.completionHint, { color: palette.muted }]}>
-              Tap to mark attendance &amp; add notes
+              Tap to mark attendance & add notes
             </ThemedText>
           </SurfaceCard>
         )}
@@ -320,40 +320,37 @@ export function CoachDevelopmentScreen() {
                         )}
                       </View>
                       <View style={styles.rowContent}>
-                        <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+                        <ThemedText type="defaultSemiBold" style={styles.athleteName} numberOfLines={1}>
                           {entry.athlete.name}
                         </ThemedText>
                         <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>
-                          {entry.sessionCount} sessions total
+                          {entry.sessionCount} sessions · Last {formatDate(entry.lastSession)}
                         </ThemedText>
                       </View>
                     </View>
-  
-                    <View style={styles.actionRow}>
-                    {entry.needsNotes ? (
-                      <View style={[styles.pill, { backgroundColor: `${palette.error}12` }]}> 
-                        <Ionicons name="document-text" size={13} color={palette.error} />
+                    <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+                  </View>
+
+                  <View style={styles.actionRow}>
+                    {entry.needsNotes && (
+                      <View style={[styles.pill, { backgroundColor: `${palette.error}10` }]}>
+                        <Ionicons name="document-text" size={12} color={palette.error} />
                         <ThemedText style={[styles.pillLabel, { color: palette.error }]}>Add notes</ThemedText>
                       </View>
-                    ) : null}
-                    {entry.averageRating < 4 ? (
-                      <View style={[styles.pill, { backgroundColor: `${palette.tint}12` }]}> 
-                        <Ionicons name="trending-up" size={13} color={palette.tint} />
+                    )}
+                    {entry.averageRating < 4 && (
+                      <View style={[styles.pill, { backgroundColor: `${palette.tint}10` }]}>
+                        <Ionicons name="trending-up" size={12} color={palette.tint} />
                         <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Boost rating</ThemedText>
                       </View>
-                    ) : null}
-                    {entry.daysSinceLast >= 10 ? (
-                      <View style={[styles.pill, { backgroundColor: `${palette.icon}0f` }]}> 
-                        <Ionicons name="time" size={13} color={palette.icon} />
+                    )}
+                    {entry.daysSinceLast >= 10 && (
+                      <View style={[styles.pill, { backgroundColor: `${palette.icon}0f` }]}>
+                        <Ionicons name="time" size={12} color={palette.icon} />
                         <ThemedText style={[styles.pillLabel, { color: palette.icon }]}>Reach out</ThemedText>
                       </View>
-                    ) : null}
+                    )}
                   </View>
-                </View>
-  
-                  <ThemedText style={[styles.athleteMetadata, styles.subtleMeta, { color: palette.muted }]}>
-                    Last session {formatDate(entry.lastSession)}
-                  </ThemedText>
                 </Clickable>
               ))}
             </View>
@@ -482,14 +479,13 @@ const styles = StyleSheet.create({
   },
   rowTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.sm,
   },
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    gap: Spacing.xs,
+    gap: 6,
   },
   rowLeft: {
     flex: 1,

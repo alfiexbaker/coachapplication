@@ -18,3 +18,6 @@ export type { FeedPostProps } from './FeedPost';
 
 export { JoinClubCard } from './JoinClubCard';
 export type { JoinClubCardProps } from './JoinClubCard';
+
+export { BrandingEditor } from './branding-editor';
+export type { BrandingEditorProps } from './branding-editor';

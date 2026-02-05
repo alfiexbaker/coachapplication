@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
+import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
 import { CardStyles, ButtonStyles, LayoutStyles } from '@/constants/styles';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ============================================================================
 // TYPES
@@ -48,6 +51,8 @@ export function ParentOnboardingChecklist({
   hasFirstBooking,
 }: ParentOnboardingChecklistProps) {
   const router = useRouter();
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
   const [isDismissed, setIsDismissed] = useState<boolean>(true);
 
   const dismissKey = `${DISMISS_KEY_PREFIX}${parentId}`;
@@ -112,30 +117,28 @@ export function ParentOnboardingChecklist({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTextGroup}>
-          <Text style={styles.title}>Get started</Text>
-          <Text style={styles.subtitle}>
+          <ThemedText type="defaultSemiBold" style={[styles.title, { color: palette.text }]}>
+            Get started
+          </ThemedText>
+          <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
             {completedCount} of {totalCount} steps done
-          </Text>
+          </ThemedText>
         </View>
-        <TouchableOpacity
-          onPress={handleDismiss}
-          hitSlop={12}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="close" size={20} color={Colors.light.muted} />
-        </TouchableOpacity>
+        <Clickable onPress={handleDismiss} hitSlop={12}>
+          <Ionicons name="close" size={20} color={palette.muted} />
+        </Clickable>
       </View>
 
       {/* Progress bar */}
-      <View style={styles.progressTrack}>
+      <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
         <View
           style={[
             styles.progressFill,
-            { width: `${Math.round(progress * 100)}%` },
+            { width: `${Math.round(progress * 100)}%`, backgroundColor: palette.success },
           ]}
         />
       </View>
@@ -143,7 +146,7 @@ export function ParentOnboardingChecklist({
       {/* Checklist items */}
       <View style={styles.itemsList}>
         {items.map((item) => (
-          <TouchableOpacity
+          <Clickable
             key={item.id}
             style={styles.item}
             onPress={() => {
@@ -151,46 +154,46 @@ export function ParentOnboardingChecklist({
                 router.push(item.route as any);
               }
             }}
-            activeOpacity={item.isComplete ? 1 : 0.7}
             disabled={item.isComplete}
           >
             <View
               style={[
                 styles.checkCircle,
-                item.isComplete && styles.checkCircleComplete,
+                { borderColor: palette.border },
+                item.isComplete && { backgroundColor: palette.success, borderColor: palette.success },
               ]}
             >
               {item.isComplete && (
-                <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={14} color={palette.surface} />
               )}
             </View>
-            <Text
+            <ThemedText
               style={[
                 styles.itemLabel,
-                item.isComplete && styles.itemLabelComplete,
+                { color: palette.text },
+                item.isComplete && { color: palette.muted, textDecorationLine: 'line-through' },
               ]}
+              numberOfLines={1}
             >
               {item.label}
-            </Text>
+            </ThemedText>
             {!item.isComplete && (
               <Ionicons
                 name="chevron-forward"
                 size={16}
-                color={Colors.light.muted}
+                color={palette.muted}
               />
             )}
-          </TouchableOpacity>
+          </Clickable>
         ))}
       </View>
 
       {/* Dismiss button */}
-      <TouchableOpacity
-        style={styles.dismissButton}
-        onPress={handleDismiss}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.dismissButtonText}>Dismiss checklist</Text>
-      </TouchableOpacity>
+      <Clickable style={styles.dismissButton} onPress={handleDismiss}>
+        <ThemedText style={[styles.dismissButtonText, { color: palette.muted }]}>
+          Dismiss checklist
+        </ThemedText>
+      </Clickable>
     </View>
   );
 }
@@ -215,22 +218,18 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.heading,
-    color: Colors.light.text,
   },
   subtitle: {
     ...Typography.small,
-    color: Colors.light.muted,
   },
   progressTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.light.border,
     overflow: 'hidden',
   },
   progressFill: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.light.success,
   },
   itemsList: {
     gap: 0,
@@ -246,22 +245,12 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: Colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  checkCircleComplete: {
-    backgroundColor: Colors.light.success,
-    borderColor: Colors.light.success,
   },
   itemLabel: {
     ...Typography.body,
     flex: 1,
-    color: Colors.light.text,
-  },
-  itemLabelComplete: {
-    color: Colors.light.muted,
-    textDecorationLine: 'line-through',
   },
   dismissButton: {
     alignSelf: 'center',
@@ -270,7 +259,6 @@ const styles = StyleSheet.create({
   },
   dismissButtonText: {
     ...Typography.small,
-    color: Colors.light.muted,
     fontWeight: '500',
   },
 });

@@ -19,13 +19,13 @@
 import React, { useState, useMemo } from 'react';
 import {
   View,
-  Text,
   Pressable,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
 import { CardStyles, LayoutStyles, TextStyles } from '@/constants/styles';
+import { ThemedText } from '@/components/themed-text';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -117,37 +117,37 @@ export function RSVPFlow({
     <View style={styles.container}>
       {/* Session Info Card */}
       <View style={[CardStyles.base, styles.infoCard]}>
-        <Text style={styles.childLabel}>
+        <ThemedText style={styles.childLabel}>
           RSVP for {childName}
-        </Text>
-        <Text style={styles.sessionTitle}>{sessionTitle}</Text>
+        </ThemedText>
+        <ThemedText style={styles.sessionTitle}>{sessionTitle}</ThemedText>
 
         <View style={styles.detailRow}>
           <Ionicons name="calendar-outline" size={18} color={Colors.light.muted} />
-          <Text style={styles.detailText}>{formatSessionDate(sessionDate)}</Text>
+          <ThemedText style={styles.detailText}>{formatSessionDate(sessionDate)}</ThemedText>
         </View>
 
         <View style={styles.detailRow}>
           <Ionicons name="time-outline" size={18} color={Colors.light.muted} />
-          <Text style={styles.detailText}>{formatSessionTime(sessionDate)}</Text>
+          <ThemedText style={styles.detailText}>{formatSessionTime(sessionDate)}</ThemedText>
         </View>
 
         <View style={styles.detailRow}>
           <Ionicons name="location-outline" size={18} color={Colors.light.muted} />
-          <Text style={styles.detailText}>{location}</Text>
+          <ThemedText style={styles.detailText}>{location}</ThemedText>
         </View>
 
         {deadlineLabel && (
           <View style={styles.deadlineBanner}>
             <Ionicons name="hourglass-outline" size={14} color={Colors.light.warning} />
-            <Text style={styles.deadlineText}>{deadlineLabel}</Text>
+            <ThemedText style={styles.deadlineText}>{deadlineLabel}</ThemedText>
           </View>
         )}
       </View>
 
       {/* Response Buttons */}
       <View style={styles.responseSection}>
-        <Text style={styles.responseLabel}>Will {childName} attend?</Text>
+        <ThemedText style={styles.responseLabel}>Will {childName} attend?</ThemedText>
 
         <Pressable
           style={({ pressed }) => [
@@ -164,7 +164,7 @@ export function RSVPFlow({
             size={28}
             color={selectedStatus === 'going' ? Colors.light.surface : Colors.light.success}
           />
-          <Text
+          <ThemedText
             style={[
               styles.responseButtonText,
               styles.goingText,
@@ -172,7 +172,7 @@ export function RSVPFlow({
             ]}
           >
             Going
-          </Text>
+          </ThemedText>
         </Pressable>
 
         <Pressable
@@ -190,7 +190,7 @@ export function RSVPFlow({
             size={28}
             color={selectedStatus === 'not_going' ? Colors.light.surface : Colors.light.error}
           />
-          <Text
+          <ThemedText
             style={[
               styles.responseButtonText,
               styles.cantText,
@@ -198,7 +198,7 @@ export function RSVPFlow({
             ]}
           >
             Can't Make It
-          </Text>
+          </ThemedText>
         </Pressable>
 
         <Pressable
@@ -216,7 +216,7 @@ export function RSVPFlow({
             size={28}
             color={selectedStatus === 'maybe' ? Colors.light.surface : Colors.light.warning}
           />
-          <Text
+          <ThemedText
             style={[
               styles.responseButtonText,
               styles.maybeText,
@@ -224,7 +224,7 @@ export function RSVPFlow({
             ]}
           >
             Maybe
-          </Text>
+          </ThemedText>
         </Pressable>
       </View>
     </View>
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   deadlineBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xs,
     backgroundColor: `${Colors.light.warning}15`,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

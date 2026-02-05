@@ -16,7 +16,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   Pressable,
   TextInput,
   Modal,
@@ -32,6 +31,7 @@ import {
   ButtonStyles,
   InputStyles,
 } from '@/constants/styles';
+import { ThemedText } from '@/components/themed-text';
 import type { SessionInvite } from '@/constants/types';
 
 // ---------------------------------------------------------------------------
@@ -134,9 +134,9 @@ export function DeclineInvite({
 
           {/* Header */}
           <View style={ModalStyles.header}>
-            <Text style={[ModalStyles.headerTitle, { color: Colors.light.text }]}>
+            <ThemedText style={[ModalStyles.headerTitle, { color: Colors.light.text }]}>
               Decline this invite?
-            </Text>
+            </ThemedText>
             <Pressable onPress={handleClose} hitSlop={12}>
               <Ionicons name="close" size={24} color={Colors.light.text} />
             </Pressable>
@@ -148,19 +148,19 @@ export function DeclineInvite({
           >
             {/* Invite summary */}
             <View style={styles.inviteSummary}>
-              <Text style={styles.inviteSummaryText}>
+              <ThemedText style={styles.inviteSummaryText}>
                 Coach {invite.coachName} invited {athleteDisplay} to a{' '}
                 {invite.sessionType.toLowerCase()} session
-              </Text>
+              </ThemedText>
               {invite.proposedSlots.length > 0 && (
-                <Text style={styles.inviteSummaryMuted}>
+                <ThemedText style={styles.inviteSummaryMuted}>
                   {invite.proposedSlots.length} proposed time{invite.proposedSlots.length !== 1 ? 's' : ''}
-                </Text>
+                </ThemedText>
               )}
             </View>
 
             {/* Reason selection */}
-            <Text style={styles.sectionLabel}>Reason (optional):</Text>
+            <ThemedText style={styles.sectionLabel}>Reason (optional):</ThemedText>
             <View style={styles.reasonList}>
               {DECLINE_REASONS.map((reason) => {
                 const isSelected = selectedReason === reason.id;
@@ -188,14 +188,14 @@ export function DeclineInvite({
                       size={20}
                       color={isSelected ? Colors.light.tint : Colors.light.muted}
                     />
-                    <Text
+                    <ThemedText
                       style={[
                         styles.reasonLabel,
                         isSelected && styles.reasonLabelSelected,
                       ]}
                     >
                       {reason.label}
-                    </Text>
+                    </ThemedText>
                   </Pressable>
                 );
               })}
@@ -223,7 +223,7 @@ export function DeclineInvite({
                 onPress={onCounterOffer}
               >
                 <Ionicons name="swap-horizontal-outline" size={18} color={Colors.light.tint} />
-                <Text style={styles.counterOfferText}>Suggest another time</Text>
+                <ThemedText style={styles.counterOfferText}>Suggest another time</ThemedText>
                 <Ionicons name="chevron-forward" size={16} color={Colors.light.tint} />
               </Pressable>
             )}
@@ -237,7 +237,7 @@ export function DeclineInvite({
                 ]}
                 onPress={handleClose}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
               </Pressable>
 
               <Pressable
@@ -249,14 +249,14 @@ export function DeclineInvite({
                 onPress={handleDecline}
                 disabled={isSubmitting}
               >
-                <Text
+                <ThemedText
                   style={[
                     styles.declineButtonText,
                     isSubmitting && styles.declineButtonTextDisabled,
                   ]}
                 >
                   {isSubmitting ? 'Declining...' : 'Decline'}
-                </Text>
+                </ThemedText>
               </Pressable>
             </View>
           </ScrollView>
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.sm,
     marginBottom: Spacing.md,
-    gap: 4,
+    gap: Spacing.xs,
   },
   inviteSummaryText: {
     ...Typography.bodySemiBold,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: 12,
+    paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.sm,
     borderWidth: 1,

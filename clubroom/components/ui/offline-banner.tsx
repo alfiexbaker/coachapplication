@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Radii } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
@@ -67,7 +68,7 @@ export function OfflineBanner() {
         color={textColor}
         style={styles.icon}
       />
-      <Text style={[styles.text, { color: textColor }]}>{message}</Text>
+      <ThemedText style={[styles.text, { color: textColor }]}>{message}</ThemedText>
     </Animated.View>
   );
 }

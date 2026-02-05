@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     right: 2,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.light.surface,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: Colors.light.surface,
     fontSize: 10,
     fontWeight: '700',
     lineHeight: 12,

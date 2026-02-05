@@ -17,7 +17,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Pressable,
   TextInput,
@@ -26,6 +25,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
 import { ModalStyles, CardStyles } from '@/constants/styles';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
@@ -105,38 +105,38 @@ function SessionInfoCard({ booking }: { booking: Booking }) {
       <View style={styles.sessionCardRow}>
         <Ionicons name="football-outline" size={18} color={Colors.light.tint} />
         <View style={styles.sessionCardInfo}>
-          <Text style={styles.sessionCardTitle}>
+          <ThemedText style={styles.sessionCardTitle} numberOfLines={1}>
             {booking.service || 'Coaching Session'}
-          </Text>
-          <Text style={styles.sessionCardMeta}>
+          </ThemedText>
+          <ThemedText style={styles.sessionCardMeta}>
             {sessionDate ? formatSessionDate(sessionDate) : 'Date not set'}
-          </Text>
+          </ThemedText>
           {booking.location || booking.locationLabel ? (
-            <Text style={styles.sessionCardMeta}>
+            <ThemedText style={styles.sessionCardMeta} numberOfLines={1}>
               {booking.locationLabel || booking.location}
-            </Text>
+            </ThemedText>
           ) : null}
         </View>
       </View>
       <View style={styles.sessionCardDetails}>
         <View style={styles.sessionDetailItem}>
           <Ionicons name="person-outline" size={14} color={Colors.light.muted} />
-          <Text style={styles.sessionDetailText}>
+          <ThemedText style={styles.sessionDetailText} numberOfLines={1}>
             {booking.coachName || 'Coach'}
-          </Text>
+          </ThemedText>
         </View>
         <View style={styles.sessionDetailItem}>
           <Ionicons name="people-outline" size={14} color={Colors.light.muted} />
-          <Text style={styles.sessionDetailText}>
+          <ThemedText style={styles.sessionDetailText} numberOfLines={1}>
             {booking.athleteName || 'Athlete'}
-          </Text>
+          </ThemedText>
         </View>
         {booking.duration ? (
           <View style={styles.sessionDetailItem}>
             <Ionicons name="time-outline" size={14} color={Colors.light.muted} />
-            <Text style={styles.sessionDetailText}>
+            <ThemedText style={styles.sessionDetailText}>
               {booking.duration} mins
-            </Text>
+            </ThemedText>
           </View>
         ) : null}
       </View>
@@ -162,21 +162,21 @@ function RefundBanner({ calculation }: { calculation: RefundCalculation }) {
           size={20}
           color={bannerColor}
         />
-        <Text style={[styles.refundBannerTitle, { color: bannerColor }]}>
+        <ThemedText style={[styles.refundBannerTitle, { color: bannerColor }]}>
           {isFullRefund
             ? 'Full refund'
             : isNoRefund
               ? 'No refund'
               : `${calculation.refundPercentage}% refund`}
-        </Text>
+        </ThemedText>
       </View>
-      <Text style={styles.refundExplanation}>{calculation.explanation}</Text>
+      <ThemedText style={styles.refundExplanation}>{calculation.explanation}</ThemedText>
       {calculation.netRefundAmount > 0 && (
         <View style={styles.refundAmountRow}>
-          <Text style={styles.refundAmountLabel}>You will receive</Text>
-          <Text style={[styles.refundAmount, { color: bannerColor }]}>
+          <ThemedText style={styles.refundAmountLabel}>You will receive</ThemedText>
+          <ThemedText style={[styles.refundAmount, { color: bannerColor }]}>
             {'\u00A3'}{calculation.netRefundAmount.toFixed(2)}
-          </Text>
+          </ThemedText>
         </View>
       )}
     </View>
@@ -204,9 +204,9 @@ function ReasonCard({
         size={18}
         color={selected ? Colors.light.tint : Colors.light.muted}
       />
-      <Text style={[styles.reasonLabel, selected && styles.reasonLabelSelected]}>
+      <ThemedText style={[styles.reasonLabel, selected && styles.reasonLabelSelected]} numberOfLines={1}>
         {option.label}
-      </Text>
+      </ThemedText>
       {selected && <Ionicons name="checkmark" size={16} color={Colors.light.tint} />}
     </Pressable>
   );
@@ -361,7 +361,7 @@ export default function CancelFlow({
 
         {/* Header */}
         <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Cancel session</Text>
+          <ThemedText style={styles.modalTitle}>Cancel session</ThemedText>
           <Pressable onPress={onClose} style={styles.closeButton} hitSlop={12}>
             <Ionicons name="close" size={22} color={Colors.light.text} />
           </Pressable>
@@ -384,13 +384,13 @@ export default function CancelFlow({
             {/* Time context */}
             <View style={styles.timeContext}>
               <Ionicons name="time-outline" size={16} color={Colors.light.muted} />
-              <Text style={styles.timeContextText}>
+              <ThemedText style={styles.timeContextText}>
                 {hoursUntil < 1
                   ? 'Less than 1 hour until session'
                   : hoursUntil < 24
                     ? `${Math.round(hoursUntil)} hours until session`
                     : `${Math.round(hoursUntil / 24)} days until session`}
-              </Text>
+              </ThemedText>
             </View>
 
             {/* Refund banner (only for parent cancellations) */}
@@ -400,17 +400,17 @@ export default function CancelFlow({
             {isCoachCancelling && (
               <View style={styles.coachNote}>
                 <Ionicons name="information-circle-outline" size={18} color={Colors.light.warning} />
-                <Text style={styles.coachNoteText}>
+                <ThemedText style={styles.coachNoteText}>
                   Cancelling as a coach will issue a full refund to the parent. Frequent
                   cancellations may affect your profile rating.
-                </Text>
+                </ThemedText>
               </View>
             )}
 
             {/* Reason selection */}
-            <Text style={styles.sectionLabel}>
+            <ThemedText style={styles.sectionLabel}>
               Why are you cancelling?{isCoachCancelling ? ' (required)' : ''}
-            </Text>
+            </ThemedText>
             <View style={styles.reasonsGrid}>
               {reasons.map((opt) => (
                 <ReasonCard
@@ -423,7 +423,7 @@ export default function CancelFlow({
             </View>
 
             {/* Optional note */}
-            <Text style={styles.sectionLabel}>Add a note (optional)</Text>
+            <ThemedText style={styles.sectionLabel}>Add a note (optional)</ThemedText>
             <TextInput
               style={styles.noteInput}
               value={note}
@@ -438,7 +438,7 @@ export default function CancelFlow({
             {/* Action buttons */}
             <View style={styles.buttonsRow}>
               <Pressable style={styles.keepButton} onPress={onClose}>
-                <Text style={styles.keepButtonText}>Keep Session</Text>
+                <ThemedText style={styles.keepButtonText}>Keep Session</ThemedText>
               </Pressable>
               <Pressable
                 style={[
@@ -451,7 +451,7 @@ export default function CancelFlow({
                 {submitting ? (
                   <ActivityIndicator size="small" color={Colors.light.surface} />
                 ) : (
-                  <Text style={styles.confirmButtonText}>Confirm Cancel</Text>
+                  <ThemedText style={styles.confirmButtonText}>Confirm Cancel</ThemedText>
                 )}
               </Pressable>
             </View>
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   sessionDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   sessionDetailText: {
     ...Typography.caption,
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   timeContext: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
   timeContextText: {
@@ -569,8 +569,8 @@ const styles = StyleSheet.create({
   refundBannerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
   refundBannerTitle: {
     ...Typography.bodySemiBold,
@@ -578,13 +578,13 @@ const styles = StyleSheet.create({
   refundExplanation: {
     ...Typography.small,
     color: Colors.light.muted,
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
   },
   refundAmountRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: Spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.light.border,
   },
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   // Coach note
   coachNote: {
     flexDirection: 'row',
-    gap: 8,
+    gap: Spacing.xs,
     backgroundColor: Colors.light.warning + '12',
     borderRadius: Radii.card,
     padding: Spacing.sm,
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 12,
+    paddingVertical: Spacing.sm,
     borderWidth: 1.5,
     borderColor: Colors.light.border,
   },

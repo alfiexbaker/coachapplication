@@ -514,6 +514,19 @@ class BookingService {
   }
 
   /**
+   * Get upcoming bookings for a coach (confirmed/pending, scheduled in the future)
+   */
+  async getUpcomingBookings(coachId: string): Promise<Booking[]> {
+    const bookings = await this.list();
+    const now = new Date();
+    return bookings.filter((b) => {
+      if (b.coachId !== coachId) return false;
+      if (b.status !== 'CONFIRMED' && b.status !== 'PENDING') return false;
+      return new Date(b.scheduledAt) > now;
+    });
+  }
+
+  /**
    * Save a booking directly without validation (for internal service use only)
    * Used by recurringBookingService and other trusted callers
    */

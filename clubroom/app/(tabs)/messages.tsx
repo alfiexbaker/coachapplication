@@ -10,7 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ScreenHeader } from '@/components/primitives/screen-header';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { chatThreads } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -46,10 +46,10 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
         </View>
         <View style={styles.conversationContent}>
           <View style={styles.conversationHeader}>
-            <ThemedText type="defaultSemiBold" style={styles.coachName}>
+            <ThemedText type="defaultSemiBold" style={styles.coachName} numberOfLines={1}>
               {displayName}
             </ThemedText>
-            <ThemedText style={[styles.time, { color: palette.muted }]}>
+            <ThemedText style={[styles.time, { color: palette.muted }]} numberOfLines={1}>
               {new Date(thread.scheduledFor).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </ThemedText>
           </View>
@@ -94,9 +94,9 @@ function GroupConversationRow({ thread, index, onPress }: { thread: ChatThreadSu
                 .join('')}
             </ThemedText>
           </View>
-          <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flex: 1, gap: Spacing.xs / 2 }}>
             <View style={styles.conversationHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.coachName}>
+              <ThemedText type="defaultSemiBold" style={styles.coachName} numberOfLines={1}>
                 {thread.title || thread.coachName}
               </ThemedText>
               <Chip dense>{thread.groupType || 'group'}</Chip>
@@ -116,7 +116,7 @@ function GroupConversationRow({ thread, index, onPress }: { thread: ChatThreadSu
             </View>
           </View>
           <Clickable style={[styles.secondaryButton, { borderColor: palette.tint }]} onPress={onPress}>
-            <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Open</ThemedText>
+            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Open</ThemedText>
           </Clickable>
         </View>
         {thread.lastMessageSnippet ? (
@@ -134,7 +134,7 @@ function GroupConversationRow({ thread, index, onPress }: { thread: ChatThreadSu
             {unreadMentions > 0 ? <Chip dense active>@{unreadMentions} mentions</Chip> : null}
           </View>
           <Clickable onPress={onPress}>
-            <ThemedText style={{ color: palette.premium, fontWeight: '700' }}>Jump in</ThemedText>
+            <ThemedText style={{ color: palette.premium, fontWeight: '600' }}>Jump in</ThemedText>
           </Clickable>
         </View>
       </SurfaceCard>
@@ -230,7 +230,7 @@ export default function MessagesScreen() {
                 },
               ]}
             >
-              <ThemedText style={{ color: active ? '#fff' : palette.text, fontWeight: '700' }}>
+              <ThemedText style={{ color: active ? palette.surface : palette.text, fontWeight: '700' }}>
                 {option.label}
               </ThemedText>
             </Clickable>
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.lg,
-    backgroundColor: '#F7F8FB',
+    backgroundColor: Colors.light.background,
   },
   searchInput: {
     flex: 1,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 4,
+    paddingVertical: Spacing.sm,
     gap: Spacing.md,
   },
   infoCard: {
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   },
   conversationContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   metaPill: {
     fontSize: 13,
@@ -405,24 +405,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   serviceName: {
-    fontSize: 14,
+    fontSize: Typography.small.fontSize,
     fontWeight: '500',
     flex: 1,
   },
   badge: {
     minWidth: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.sm + 2,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: Spacing.xs,
   },
   badgeText: {
     fontSize: 11,
     fontWeight: '700',
   },
   preview: {
-    fontSize: 14,
+    fontSize: Typography.small.fontSize,
   },
   groupCard: {
     marginHorizontal: Spacing.lg,

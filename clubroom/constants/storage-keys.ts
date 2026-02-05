@@ -289,6 +289,15 @@ export const STORAGE_KEYS = {
   /** Match results and statistics */
   MATCHES: 'matches',
 
+  /** Video challenges for squads */
+  CHALLENGES: 'clubroom.challenges',
+
+  /** Challenge submissions from athletes */
+  CHALLENGE_SUBMISSIONS: 'clubroom.challenge_submissions',
+
+  /** Session journal entries (private athlete notes) */
+  SESSION_JOURNAL: 'clubroom.session_journal',
+
   // ============================================================================
   // REVIEWS & RECOGNITION DOMAIN
   // ============================================================================

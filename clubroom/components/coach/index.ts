@@ -9,3 +9,5 @@ export * from './onboarding-checklist';
 export * from './recurring-template-modal';
 export * from './scheduling-rules-editor';
 export * from './scheduling-rules-modal';
+export * from './share-profile';
+export { default as TrialSessionEditor } from './trial-session-editor';

@@ -13,16 +13,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   StyleSheet,
-  Pressable,
   TextInput,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   schedulingRulesService,
@@ -83,63 +84,74 @@ function PresetCard({
   selected: boolean;
   onPress: () => void;
 }) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
   return (
-    <Pressable
-      style={[styles.presetCard, selected && styles.presetCardSelected]}
+    <Clickable
+      style={[
+        styles.presetCard,
+        { backgroundColor: palette.surface, borderColor: palette.border },
+        selected && { borderColor: palette.tint },
+      ]}
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
     >
-      <View style={[styles.presetIconCircle, selected && styles.presetIconCircleSelected]}>
+      <View style={[styles.presetIconCircle, { backgroundColor: palette.background }, selected && { backgroundColor: palette.tint }]}>
         <Ionicons
           name={preset.icon}
           size={20}
-          color={selected ? Colors.light.surface : Colors.light.muted}
+          color={selected ? palette.surface : palette.muted}
         />
       </View>
       <View style={styles.presetInfo}>
-        <Text style={[styles.presetLabel, selected && styles.presetLabelSelected]}>
+        <ThemedText style={[styles.presetLabel, { color: palette.text }, selected && { color: palette.tint }]} numberOfLines={1}>
           {preset.label}
-        </Text>
-        <Text style={styles.presetDescription}>{preset.description}</Text>
+        </ThemedText>
+        <ThemedText style={[styles.presetDescription, { color: palette.muted }]} numberOfLines={2}>
+          {preset.description}
+        </ThemedText>
       </View>
-      <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
-        {selected && <View style={styles.radioInner} />}
+      <View style={[styles.radioOuter, { borderColor: palette.border }, selected && { borderColor: palette.tint }]}>
+        {selected && <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />}
       </View>
-    </Pressable>
+    </Clickable>
   );
 }
 
 function TierTable({ tiers }: { tiers: RefundTier[] }) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
   const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
 
   return (
-    <View style={styles.tierTable}>
+    <View style={[styles.tierTable, { backgroundColor: palette.surface }]}>
       {/* Header */}
-      <View style={styles.tierHeaderRow}>
-        <Text style={[styles.tierHeaderCell, { flex: 2 }]}>Cancellation window</Text>
-        <Text style={[styles.tierHeaderCell, { flex: 1, textAlign: 'right' }]}>Refund</Text>
+      <View style={[styles.tierHeaderRow, { backgroundColor: palette.background }]}>
+        <ThemedText style={[styles.tierHeaderCell, { flex: 2, color: palette.muted }]}>Cancellation window</ThemedText>
+        <ThemedText style={[styles.tierHeaderCell, { flex: 1, textAlign: 'right', color: palette.muted }]}>Refund</ThemedText>
       </View>
       {/* Rows */}
       {sorted.map((tier, idx) => {
         const isLast = idx === sorted.length - 1;
         const refundColor =
           tier.refundPercentage >= 75
-            ? Colors.light.success
+            ? palette.success
             : tier.refundPercentage >= 25
-              ? Colors.light.warning
-              : Colors.light.error;
+              ? palette.warning
+              : palette.error;
 
         return (
           <View
             key={`${tier.hoursBeforeSession}-${tier.refundPercentage}`}
-            style={[styles.tierRow, !isLast && styles.tierRowBorder]}
+            style={[styles.tierRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.border }]}
           >
-            <Text style={[styles.tierCell, { flex: 2 }]}>{tier.description}</Text>
+            <ThemedText style={[styles.tierCell, { flex: 2, color: palette.text }]} numberOfLines={2}>{tier.description}</ThemedText>
             <View style={[styles.tierBadge, { backgroundColor: refundColor + '18' }]}>
-              <Text style={[styles.tierBadgeText, { color: refundColor }]}>
+              <ThemedText style={[styles.tierBadgeText, { color: refundColor }]}>
                 {tier.refundPercentage}%
-              </Text>
+              </ThemedText>
             </View>
           </View>
         );
@@ -157,13 +169,16 @@ interface EditableTierRowProps {
 }
 
 function EditableTierRow({ tier, index, onUpdate, onRemove, canRemove }: EditableTierRowProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
   return (
-    <View style={styles.editableTierRow}>
+    <View style={[styles.editableTierRow, { backgroundColor: palette.surface }]}>
       <View style={styles.editableTierFields}>
         <View style={styles.editableField}>
-          <Text style={styles.editableFieldLabel}>Hours before</Text>
+          <ThemedText style={[styles.editableFieldLabel, { color: palette.muted }]}>Hours before</ThemedText>
           <TextInput
-            style={styles.editableInput}
+            style={[styles.editableInput, { borderColor: palette.border, color: palette.text }]}
             value={String(tier.hoursBeforeSession)}
             onChangeText={(text) => {
               const num = parseInt(text, 10);
@@ -171,13 +186,13 @@ function EditableTierRow({ tier, index, onUpdate, onRemove, canRemove }: Editabl
             }}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor={Colors.light.border}
+            placeholderTextColor={palette.muted}
           />
         </View>
         <View style={styles.editableField}>
-          <Text style={styles.editableFieldLabel}>Refund %</Text>
+          <ThemedText style={[styles.editableFieldLabel, { color: palette.muted }]}>Refund %</ThemedText>
           <TextInput
-            style={styles.editableInput}
+            style={[styles.editableInput, { borderColor: palette.border, color: palette.text }]}
             value={String(tier.refundPercentage)}
             onChangeText={(text) => {
               const num = parseInt(text, 10);
@@ -185,22 +200,22 @@ function EditableTierRow({ tier, index, onUpdate, onRemove, canRemove }: Editabl
             }}
             keyboardType="number-pad"
             placeholder="0"
-            placeholderTextColor={Colors.light.border}
+            placeholderTextColor={palette.muted}
           />
         </View>
       </View>
       <TextInput
-        style={styles.editableDescInput}
+        style={[styles.editableDescInput, { borderColor: palette.border, color: palette.text }]}
         value={tier.description}
         onChangeText={(text) => onUpdate(index, 'description', text)}
         placeholder="Description for this tier"
-        placeholderTextColor={Colors.light.border}
+        placeholderTextColor={palette.muted}
       />
       {canRemove && (
-        <Pressable style={styles.removeTierButton} onPress={() => onRemove(index)}>
-          <Ionicons name="trash-outline" size={16} color={Colors.light.error} />
-          <Text style={styles.removeTierText}>Remove</Text>
-        </Pressable>
+        <Clickable style={styles.removeTierButton} onPress={() => onRemove(index)}>
+          <Ionicons name="trash-outline" size={16} color={palette.error} />
+          <ThemedText style={[styles.removeTierText, { color: palette.error }]}>Remove</ThemedText>
+        </Clickable>
       )}
     </View>
   );
@@ -216,6 +231,8 @@ interface CancellationPolicyEditorProps {
 }
 
 export default function CancellationPolicyEditor({ onSave, onBack }: CancellationPolicyEditorProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
 
@@ -300,24 +317,24 @@ export default function CancellationPolicyEditor({ onSave, onBack }: Cancellatio
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.light.text} />
+      <View style={[styles.loadingContainer, { backgroundColor: palette.background }]}>
+        <ActivityIndicator size="large" color={palette.tint} />
       </View>
     );
   }
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: palette.background }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View style={styles.headerArea}>
-        <Text style={styles.headerTitle}>Cancellation Policy</Text>
-        <Text style={styles.headerSubtitle}>
+        <ThemedText style={[styles.headerTitle, { color: palette.text }]}>Cancellation Policy</ThemedText>
+        <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>
           Choose a preset or create a custom policy. Parents will see this before booking.
-        </Text>
+        </ThemedText>
       </View>
 
       {/* Preset cards */}
@@ -334,7 +351,7 @@ export default function CancellationPolicyEditor({ onSave, onBack }: Cancellatio
 
       {/* Tier table (read-only for presets) */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Refund tiers</Text>
+        <ThemedText style={[styles.sectionTitle, { color: palette.text }]}>Refund tiers</ThemedText>
       </View>
 
       {selectedPreset !== 'custom' ? (
@@ -351,25 +368,25 @@ export default function CancellationPolicyEditor({ onSave, onBack }: Cancellatio
               canRemove={customTiers.length > 1}
             />
           ))}
-          <Pressable style={styles.addTierButton} onPress={addCustomTier}>
-            <Ionicons name="add-circle-outline" size={18} color={Colors.light.tint} />
-            <Text style={styles.addTierText}>Add tier</Text>
-          </Pressable>
+          <Clickable style={[styles.addTierButton, { borderColor: palette.border }]} onPress={addCustomTier}>
+            <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
+            <ThemedText style={[styles.addTierText, { color: palette.tint }]}>Add tier</ThemedText>
+          </Clickable>
         </View>
       )}
 
       {/* Save button */}
-      <Pressable
-        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+      <Clickable
+        style={[styles.saveButton, { backgroundColor: palette.tint }, saving && styles.saveButtonDisabled]}
         onPress={handleSave}
         disabled={saving}
       >
         {saving ? (
-          <ActivityIndicator size="small" color={Colors.light.surface} />
+          <ActivityIndicator size="small" color={palette.surface} />
         ) : (
-          <Text style={styles.saveButtonText}>Save policy</Text>
+          <ThemedText style={[styles.saveButtonText, { color: palette.surface }]}>Save policy</ThemedText>
         )}
-      </Pressable>
+      </Clickable>
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -383,7 +400,6 @@ export default function CancellationPolicyEditor({ onSave, onBack }: Cancellatio
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
   },
   contentContainer: {
     paddingHorizontal: Spacing.sm,
@@ -391,7 +407,6 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -403,12 +418,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.title,
-    color: Colors.light.text,
-    marginBottom: 4,
+    marginBottom: Spacing.xs / 2,
   },
   headerSubtitle: {
     ...Typography.body,
-    color: Colors.light.muted,
   },
 
   // Presets
@@ -419,41 +432,26 @@ const styles = StyleSheet.create({
   presetCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
     borderWidth: 1.5,
-    borderColor: Colors.light.border,
-  },
-  presetCardSelected: {
-    borderColor: Colors.light.tint,
-    backgroundColor: Colors.light.surface,
   },
   presetIconCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.sm,
-  },
-  presetIconCircleSelected: {
-    backgroundColor: Colors.light.tint,
   },
   presetInfo: {
     flex: 1,
   },
   presetLabel: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
-  },
-  presetLabelSelected: {
-    color: Colors.light.tint,
   },
   presetDescription: {
     ...Typography.small,
-    color: Colors.light.muted,
     marginTop: 2,
   },
   radioOuter: {
@@ -461,19 +459,14 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: Colors.light.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     marginLeft: Spacing.xs,
-  },
-  radioOuterSelected: {
-    borderColor: Colors.light.tint,
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: Colors.light.tint,
   },
 
   // Section
@@ -483,12 +476,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.heading,
-    color: Colors.light.text,
   },
 
   // Tier table
   tierTable: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     ...Shadows.light.card,
     overflow: 'hidden',
@@ -498,11 +489,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs + 2,
-    backgroundColor: Colors.light.background,
   },
   tierHeaderCell: {
     ...Typography.caption,
-    color: Colors.light.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -510,24 +499,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 12,
-  },
-  tierRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.light.border,
+    paddingVertical: Spacing.sm,
   },
   tierCell: {
     ...Typography.body,
-    color: Colors.light.text,
   },
   tierBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs / 2,
     borderRadius: Radii.pill,
   },
   tierBadgeText: {
     ...Typography.bodySemiBold,
-    fontSize: 13,
+    fontSize: Typography.small.fontSize,
   },
 
   // Custom tiers editor
@@ -536,7 +520,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   editableTierRow: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
     ...Shadows.light.subtle,
@@ -551,61 +534,52 @@ const styles = StyleSheet.create({
   },
   editableFieldLabel: {
     ...Typography.caption,
-    color: Colors.light.muted,
-    marginBottom: 4,
+    marginBottom: Spacing.xs / 2,
   },
   editableInput: {
-    height: 40,
+    height: Components.button.height,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    borderColor: Colors.light.border,
     paddingHorizontal: Spacing.xs,
     ...Typography.body,
-    color: Colors.light.text,
   },
   editableDescInput: {
-    height: 40,
+    height: Components.button.height,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    borderColor: Colors.light.border,
     paddingHorizontal: Spacing.xs,
     ...Typography.body,
-    color: Colors.light.text,
     marginBottom: Spacing.xs,
   },
   removeTierButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs / 2,
     alignSelf: 'flex-end',
   },
   removeTierText: {
     ...Typography.small,
-    color: Colors.light.error,
   },
   addTierButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: Colors.light.border,
     borderRadius: Radii.card,
   },
   addTierText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.tint,
   },
 
   // Save button
   saveButton: {
     height: Components.button.height,
-    backgroundColor: Colors.light.tint,
     borderRadius: Components.button.borderRadius,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     marginTop: Spacing.sm,
   },
   saveButtonDisabled: {
@@ -613,7 +587,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.surface,
   },
 
   bottomSpacer: {

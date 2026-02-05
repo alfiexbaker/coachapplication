@@ -349,7 +349,7 @@ export function ParentDiscoverScreen() {
                   { backgroundColor: palette.tint, opacity: pressed ? 0.8 : 1 },
                 ]}
               >
-                <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>
+                <ThemedText style={{ color: palette.surface, fontWeight: '600', fontSize: 13 }}>
                   {userClubs.length > 0 ? 'View All' : 'Browse'}
                 </ThemedText>
               </Pressable>
@@ -408,7 +408,7 @@ export function ParentDiscoverScreen() {
                     { backgroundColor: clubInviteCode.trim() ? palette.success : palette.border, opacity: pressed ? 0.8 : 1 },
                   ]}
                 >
-                  <Ionicons name="arrow-forward" size={18} color={clubInviteCode.trim() ? '#fff' : palette.muted} />
+                  <Ionicons name="arrow-forward" size={18} color={clubInviteCode.trim() ? palette.surface : palette.muted} />
                 </Pressable>
               </View>
             </View>
@@ -429,10 +429,10 @@ export function ParentDiscoverScreen() {
                   <SurfaceCard style={[styles.reviewCard, { borderLeftColor: palette.warning }]}>
                     <View style={styles.reviewCardContent}>
                       <View style={styles.reviewInfo}>
-                        <ThemedText type="defaultSemiBold" style={styles.reviewTitle}>
+                        <ThemedText type="defaultSemiBold" style={styles.reviewTitle} numberOfLines={1}>
                           How was {session.athleteName ? `${session.athleteName}'s` : 'the'} session?
                         </ThemedText>
-                        <ThemedText style={[styles.reviewMeta, { color: palette.muted }]}>
+                        <ThemedText style={[styles.reviewMeta, { color: palette.muted }]} numberOfLines={1}>
                           with Coach {session.coachName || 'Coach'} -- {dateStr}
                         </ThemedText>
                       </View>
@@ -450,8 +450,8 @@ export function ParentDiscoverScreen() {
                             });
                           }}
                         >
-                          <Ionicons name="star" size={14} color="#fff" />
-                          <ThemedText style={styles.rateButtonText}>Rate Now</ThemedText>
+                          <Ionicons name="star" size={14} color={palette.surface} />
+                          <ThemedText style={[styles.rateButtonText, { color: palette.surface }]}>Rate Now</ThemedText>
                         </Pressable>
                         <Pressable
                           style={({ pressed }) => [
@@ -621,7 +621,7 @@ export function ParentDiscoverScreen() {
                       </ThemedText>
                     </View>
                     <View style={styles.coachInfo}>
-                      <ThemedText type="defaultSemiBold" style={styles.coachName}>
+                      <ThemedText type="defaultSemiBold" style={styles.coachName} numberOfLines={1}>
                         {coach.name}
                       </ThemedText>
                       <View style={styles.coachMeta}>
@@ -632,7 +632,7 @@ export function ParentDiscoverScreen() {
                           </ThemedText>
                         </View>
                         <View style={styles.metaItem}>
-                          <Ionicons name="star" size={13} color="#f59e0b" />
+                          <Ionicons name="star" size={13} color={palette.warning} />
                           <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                             {coach.rating?.toFixed(1) || '5.0'}
                           </ThemedText>
@@ -647,6 +647,7 @@ export function ParentDiscoverScreen() {
                         per session
                       </ThemedText>
                     </View>
+                    <Ionicons name="chevron-forward" size={18} color={palette.muted} />
                   </View>
                   {/* Next Available Slot */}
                   <View style={[styles.nextAvailable, { backgroundColor: palette.tint + '10' }]}>
@@ -811,7 +812,7 @@ const styles = StyleSheet.create({
   },
   coachInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   coachName: {
     fontSize: 16,
@@ -824,7 +825,7 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   metaText: {
     fontSize: 13,
@@ -849,7 +850,7 @@ const styles = StyleSheet.create({
   },
   focusPill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xs / 2,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
@@ -916,7 +917,7 @@ const styles = StyleSheet.create({
   },
   inviteInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   inviteMessage: {
     fontSize: 14,
@@ -933,8 +934,8 @@ const styles = StyleSheet.create({
   expiryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
+    gap: Spacing.xs / 2,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: 2,
     borderRadius: Radii.sm,
   },
@@ -986,7 +987,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   clubHubItemIconText: {
-    color: '#fff',
+    color: Colors.light.surface,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1034,7 +1035,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   reviewInfo: {
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   reviewTitle: {
     fontSize: 16,
@@ -1050,13 +1051,12 @@ const styles = StyleSheet.create({
   rateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
   },
   rateButtonText: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },

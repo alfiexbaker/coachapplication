@@ -134,10 +134,10 @@ export function BlockUserModal({
                   disabled={blocking}
                 >
                   {blocking ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
+                    <ActivityIndicator color={palette.surface} size="small" />
                   ) : (
                     <>
-                      <Ionicons name="ban" size={18} color="#FFFFFF" />
+                      <Ionicons name="ban" size={18} color={palette.surface} />
                       <ThemedText style={ButtonStyles.primaryText}>
                         Block
                       </ThemedText>

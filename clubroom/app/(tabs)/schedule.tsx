@@ -21,7 +21,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
@@ -325,14 +325,14 @@ export default function ScheduleScreen() {
             <SurfaceCard style={[styles.todayCard, { backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }]}>
               <View style={styles.todayHeader}>
                 <View>
-                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayLabel}>TODAY</ThemedText>
-                  <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.todayDate}>
+                  <ThemedText style={[styles.todayLabel, { color: palette.muted }]}>TODAY</ThemedText>
+                  <ThemedText style={[styles.todayDate, { color: palette.text }]}>
                     {todayData.dayName}, {todayData.date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
                   </ThemedText>
                 </View>
                 <View style={styles.todayStats}>
-                  <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.todayStatValue}>{todaySessions.length}</ThemedText>
-                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayStatLabel}>
+                  <ThemedText style={[styles.todayStatValue, { color: palette.text }]}>{todaySessions.length}</ThemedText>
+                  <ThemedText style={[styles.todayStatLabel, { color: palette.muted }]}>
                     session{todaySessions.length !== 1 ? 's' : ''}
                   </ThemedText>
                 </View>
@@ -341,10 +341,10 @@ export default function ScheduleScreen() {
               {nextSession ? (
                 <View style={styles.nextSessionBanner}>
                   <View style={styles.nextSessionInfo}>
-                    <ThemedText lightColor="#0F172A" darkColor="#0F172A" style={styles.nextSessionTitle}>
+                    <ThemedText style={[styles.nextSessionTitle, { color: palette.text }]} numberOfLines={1}>
                       {nextSession.athleteName || nextSession.title}
                     </ThemedText>
-                    <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.nextSessionMeta}>
+                    <ThemedText style={[styles.nextSessionMeta, { color: palette.muted }]} numberOfLines={1}>
                       {nextSession.time} · {nextSession.location || 'Location TBD'}
                     </ThemedText>
                   </View>
@@ -355,14 +355,14 @@ export default function ScheduleScreen() {
                   </View>
                 </View>
               ) : todaySessions.length === 0 ? (
-                <View style={styles.todayEmpty}>
-                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayEmptyText}>
+                <View style={[styles.todayEmpty, { borderTopColor: palette.border }]}>
+                  <ThemedText style={[styles.todayEmptyText, { color: palette.muted }]}>
                     No sessions today - enjoy your free time!
                   </ThemedText>
                 </View>
               ) : (
-                <View style={styles.todayEmpty}>
-                  <ThemedText lightColor="#6B7280" darkColor="#6B7280" style={styles.todayEmptyText}>
+                <View style={[styles.todayEmpty, { borderTopColor: palette.border }]}>
+                  <ThemedText style={[styles.todayEmptyText, { color: palette.muted }]}>
                     All done for today!
                   </ThemedText>
                 </View>
@@ -402,7 +402,7 @@ export default function ScheduleScreen() {
                       <ThemedText
                         style={[
                           styles.dayPillLabel,
-                          { color: isSelected ? '#fff' : day.isPast ? palette.muted : palette.text },
+                          { color: isSelected ? palette.surface : day.isPast ? palette.muted : palette.text },
                         ]}
                       >
                         {day.dayShort}
@@ -410,7 +410,7 @@ export default function ScheduleScreen() {
                       <ThemedText
                         style={[
                           styles.dayPillNum,
-                          { color: isSelected ? '#fff' : day.isPast ? palette.muted : palette.text },
+                          { color: isSelected ? palette.surface : day.isPast ? palette.muted : palette.text },
                         ]}
                       >
                         {day.dayNum}
@@ -476,8 +476,8 @@ export default function ScheduleScreen() {
                       onPress={() => handleAddSlot(selectedDay.date.getDay())}
                       style={[styles.addSlotBtn, { backgroundColor: palette.tint }]}
                     >
-                      <Ionicons name="add" size={16} color="#fff" />
-                      <ThemedText style={styles.addSlotBtnText}>Add Availability</ThemedText>
+                      <Ionicons name="add" size={16} color={palette.surface} />
+                      <ThemedText style={[styles.addSlotBtnText, { color: palette.surface }]}>Add Availability</ThemedText>
                     </Clickable>
                   )}
                 </View>
@@ -635,15 +635,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   todayLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6B7280',
+    ...Typography.micro,
     letterSpacing: 1,
   },
   todayDate: {
-    fontSize: 20,
+    fontSize: Typography.xl.fontSize,
     fontWeight: '700',
-    color: '#0F172A',
     marginTop: 2,
   },
   todayStats: {
@@ -652,16 +649,14 @@ const styles = StyleSheet.create({
   todayStatValue: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#0F172A',
   },
   todayStatLabel: {
-    fontSize: 12,
-    color: '#6B7280',
+    ...Typography.caption,
   },
   nextSessionBanner: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.light.background,
     borderRadius: Radii.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -670,42 +665,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nextSessionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0F172A',
+    ...Typography.subheading,
   },
   nextSessionMeta: {
-    fontSize: 13,
-    color: '#6B7280',
+    ...Typography.small,
     marginTop: 2,
   },
   nextSessionCountdown: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: '#0F172A',
+    backgroundColor: Colors.light.tint,
     borderRadius: Radii.md,
   },
   countdownText: {
-    fontSize: 13,
+    ...Typography.small,
     fontWeight: '700',
-    color: '#fff',
+    color: Colors.light.surface,
   },
   todayEmpty: {
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
   },
   todayEmptyText: {
-    color: '#6B7280',
-    fontSize: 14,
+    ...Typography.body,
   },
   // Week Strip
   weekSection: {
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: Typography.body.fontSize,
   },
   weekStrip: {
     marginHorizontal: -Spacing.lg,
@@ -721,7 +711,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: Spacing.xs / 4,
   },
   dayPillLabel: {
     fontSize: 11,
@@ -749,7 +739,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   dayDetailSub: {
-    fontSize: 13,
+    ...Typography.small,
     marginTop: 2,
   },
   dayActions: {
@@ -771,7 +761,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyDayText: {
-    fontSize: 14,
+    ...Typography.body,
     textAlign: 'center',
   },
   addSlotBtn: {
@@ -784,9 +774,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   addSlotBtnText: {
-    color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: Typography.body.fontSize,
   },
   sessionsList: {
     gap: Spacing.sm,
@@ -804,22 +793,22 @@ const styles = StyleSheet.create({
     minWidth: 50,
   },
   sessionTimeText: {
-    fontSize: 14,
+    fontSize: Typography.body.fontSize,
   },
   sessionEndTime: {
-    fontSize: 11,
+    fontSize: Typography.micro.fontSize,
   },
   sessionInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   sessionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs / 2,
   },
   sessionMetaText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   // Quick Actions
   quickActions: {
@@ -841,7 +830,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   quickActionLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   // Rules Card
   rulesCard: {
@@ -853,11 +842,11 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   rulesTitle: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   rulesText: {
-    fontSize: 12,
-    marginTop: 4,
+    ...Typography.caption,
+    fontWeight: '400',
+    marginTop: Spacing.xs / 2,
   },
 });
