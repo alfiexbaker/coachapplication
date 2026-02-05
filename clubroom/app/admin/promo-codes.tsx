@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
+import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -24,13 +25,15 @@ import { useAuth } from '@/hooks/use-auth';
 import { promoService } from '@/services/promo-service';
 import type { PromoCode, PromoCodeUsage, PromoCodeStats } from '@/constants/types';
 
+const logger = createLogger('AdminPromoCodesScreen');
+
 type FilterType = 'all' | 'active' | 'expired' | 'exhausted' | 'inactive';
 
 export default function AdminPromoCodesScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const router = useRouter();
-  const { currentUser } = useAuth();
+  useAuth();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,7 +57,7 @@ export default function AdminPromoCodesScreen() {
       setCodes(codesData);
       setStats(statsData);
     } catch (error) {
-      console.error('Failed to load promo codes:', error);
+      logger.error('Failed to load promo codes:', error);
     } finally {
       setLoading(false);
     }
@@ -81,7 +84,7 @@ export default function AdminPromoCodesScreen() {
       }
       await loadData();
     } catch (error) {
-      console.error('Failed to toggle code status:', error);
+      logger.error('Failed to toggle code status:', error);
     }
   };
 
@@ -94,7 +97,7 @@ export default function AdminPromoCodesScreen() {
       const usage = await promoService.getCodeUsage(codeId);
       setUsageData(usage);
     } catch (error) {
-      console.error('Failed to load usage:', error);
+      logger.error('Failed to load usage:', error);
       setUsageData([]);
     } finally {
       setUsageLoading(false);

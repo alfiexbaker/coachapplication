@@ -406,7 +406,7 @@ export function CreatePackageForm({
           style={[
             styles.submitButton,
             { backgroundColor: palette.tint },
-            submitting && styles.buttonDisabled,
+            submitting ? styles.buttonDisabled : undefined,
           ]}
           onPress={handleSubmit}
           disabled={submitting}

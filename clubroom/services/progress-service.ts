@@ -2,10 +2,8 @@ import { storageService } from './storage-service';
 import { badgeService } from './badge-service';
 import { createLogger } from '@/utils/logger';
 import type {
-  FootballObjective,
   Goal,
   GoalMilestone,
-  SkillProgress,
   GoalStatus,
   GoalCategory,
   GoalCreator,
@@ -32,7 +30,7 @@ export interface SkillLevel {
   lastUpdated: string;
   updatedBy: string; // coachId
   trend: 'improving' | 'steady' | 'declining';
-  history: Array<{ date: string; level: number; coachId: string }>;
+  history: { date: string; level: number; coachId: string }[];
 }
 
 export interface AthleteSkillLevels {
@@ -55,7 +53,7 @@ export interface SessionFeedback {
   // Parent/Athlete-visible fields
   publicSummary: string;
   skillsWorkedOn: string[];
-  skillRatings: Array<{ skill: string; rating: number; previousRating?: number }>;
+  skillRatings: { skill: string; rating: number; previousRating?: number }[];
   improvements: string;
   homework: string;
   effortRating: number; // 1-5
@@ -87,12 +85,12 @@ export interface AthleteProgress {
   recentFeedback: SessionFeedback[];
   // Badge summary
   totalBadges: number;
-  recentBadges: Array<{
+  recentBadges: {
     id: string;
     label: string;
     awardedAt: string;
     category?: string;
-  }>;
+  }[];
   // Progression
   currentLevel: { level: number; name: string };
   totalPoints: number;
@@ -191,7 +189,7 @@ async function updateSkillLevel(
 
 async function updateMultipleSkillLevels(
   athleteId: string,
-  skillUpdates: Array<{ skill: string; level: number }>,
+  skillUpdates: { skill: string; level: number }[],
   coachId: string
 ): Promise<SkillLevel[]> {
   const results: SkillLevel[] = [];

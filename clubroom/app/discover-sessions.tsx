@@ -5,7 +5,7 @@
  * Features filtering by skill focus, age range, and session type.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -30,7 +30,7 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('DiscoverSessions');
 
-const SKILL_FILTERS: Array<{ value: FootballObjective | ''; label: string }> = [
+const SKILL_FILTERS: { value: FootballObjective | ''; label: string }[] = [
   { value: '', label: 'All Skills' },
   { value: 'Dribbling', label: 'Dribbling' },
   { value: 'Passing', label: 'Passing' },
@@ -59,12 +59,7 @@ export default function DiscoverSessionsScreen() {
   const [selectedOffering, setSelectedOffering] = useState<SessionOffering | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  // Load all available offerings
-  useEffect(() => {
-    loadOfferings();
-  }, []);
-
-  const loadOfferings = async () => {
+  const loadOfferings = useCallback(async () => {
     setLoading(true);
     try {
       const stored = await AsyncStorage.getItem('session_offerings');
@@ -83,7 +78,12 @@ export default function DiscoverSessionsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id]);
+
+  // Load all available offerings
+  useEffect(() => {
+    loadOfferings();
+  }, [loadOfferings]);
 
   // Filter offerings based on search and filters
   const filteredOfferings = useMemo(() => {

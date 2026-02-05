@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, StyleSheet, TextInput, ScrollView, Pressable, ActionSheetIOS, Platform, Alert } from 'react-native';
+import { View, StyleSheet, TextInput, ScrollView, ActionSheetIOS, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -18,12 +18,16 @@ import { useToast } from '@/components/ui/toast';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { rosterService, type RosterFilters, type RemovalReason, type AthleteRemovalRecord } from '@/services/roster-service';
+import { rosterService, type RemovalReason, type AthleteRemovalRecord } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('RosterScreen');
 
 type StatusFilter = 'ALL' | RosterEntry['status'];
 type SelectionMode = 'none' | 'selecting';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AthleteCard({
   entry,
   index,
@@ -143,7 +147,7 @@ export default function RosterScreen() {
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   // Selection mode state
   const [selectionMode, setSelectionMode] = useState<SelectionMode>('none');
@@ -244,22 +248,22 @@ export default function RosterScreen() {
     );
   }, [roster, showToast]);
 
-  useEffect(() => {
-    loadRoster();
-  }, [currentUser?.id]);
-
-  const loadRoster = async () => {
+  const loadRoster = useCallback(async () => {
     if (!currentUser?.id) return;
     setLoading(true);
     try {
       const data = await rosterService.getRoster(currentUser.id);
       setRoster(data);
     } catch (error) {
-      console.error('Failed to load roster:', error);
+      logger.error('Failed to load roster:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    loadRoster();
+  }, [loadRoster]);
 
   const handleRemoveAthlete = (entry: RosterEntry) => {
     setSelectedAthleteForRemoval(entry);
@@ -340,13 +344,13 @@ export default function RosterScreen() {
             await loadRoster();
             showToast('Athlete restored', 'success');
           } catch (error) {
-            console.error('Failed to undo removal:', error);
+            logger.error('Failed to undo removal:', error);
             showToast('Failed to restore athlete', 'error');
           }
         }
       );
     } catch (error) {
-      console.error('Failed to remove athlete:', error);
+      logger.error('Failed to remove athlete:', error);
       showToast('Failed to remove athlete', 'error');
     } finally {
       setIsRemoving(false);

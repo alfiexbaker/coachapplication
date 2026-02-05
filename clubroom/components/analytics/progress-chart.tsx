@@ -1,4 +1,4 @@
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -6,8 +6,6 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SkillProgress } from '@/constants/types';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CHART_WIDTH = SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2;
 const CHART_HEIGHT = 180;
 
 interface ProgressChartProps {
@@ -41,29 +39,11 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
   }
 
   // Calculate chart dimensions
-  const xStep = CHART_WIDTH / Math.max(dates.length - 1, 1);
   const yMin = 0;
   const yMax = 100;
 
   const getY = (level: number): number => {
     return CHART_HEIGHT - ((level - yMin) / (yMax - yMin)) * CHART_HEIGHT;
-  };
-
-  const getX = (index: number): number => {
-    return index * xStep;
-  };
-
-  // Generate path data for each skill
-  const generatePath = (skill: SkillProgress): string => {
-    const points = dates.map((date, index) => {
-      const historyEntry = skill.history.find((h) => h.date === date);
-      const level = historyEntry?.level || 0;
-      const x = getX(index);
-      const y = getY(level);
-      return { x, y };
-    });
-
-    return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
   };
 
   return (

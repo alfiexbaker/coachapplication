@@ -16,7 +16,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import type { ParentGroup, GroupMessage } from '@/constants/types';
@@ -24,6 +23,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('GroupChatScreen');
 
 export default function GroupChatScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
@@ -58,7 +60,7 @@ export default function GroupChatScreen() {
         await communityService.markMessagesRead(groupId, parentId);
       }
     } catch (error) {
-      console.error('Failed to load group data:', error);
+      logger.error('Failed to load group data:', error);
     } finally {
       setLoading(false);
     }
@@ -91,7 +93,7 @@ export default function GroupChatScreen() {
       );
       await loadData();
     } catch (error) {
-      console.error('Failed to send message:', error);
+      logger.error('Failed to send message:', error);
       setInputValue(messageText); // Restore message on failure
     } finally {
       setSending(false);
@@ -184,7 +186,8 @@ export default function GroupChatScreen() {
     );
   }
 
-  const isAdmin = group.members.some(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _isAdmin = group.members.some(
     (m) => m.parentId === parentId && m.role === 'ADMIN'
   );
 

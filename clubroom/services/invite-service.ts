@@ -26,8 +26,8 @@
  */
 
 import { apiClient } from './api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { notificationTriggers } from './notification-trigger';
 import type {
   SessionInvite,
   TimeSlot,
@@ -41,7 +41,6 @@ import type {
   SquadInviteHistoryEntry,
   Match,
   ClubEvent,
-  MatchPlayer,
 } from '@/constants/types';
 import { notificationService } from './notification-service';
 import { bookingService } from './booking-service';
@@ -53,7 +52,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('InviteService');
 
 // UNIFIED STORAGE - using centralized keys
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -89,13 +88,13 @@ export interface SquadInvitePreview {
   squadId: string;
   squadName: string;
   memberCount: number;
-  members: Array<{
+  members: {
     athleteId: string;
     athleteName: string;
     athleteAge?: number;
     parentId: string;
     parentName: string;
-  }>;
+  }[];
   uniqueParentCount: number;
 }
 
@@ -1068,7 +1067,7 @@ export const inviteService = {
     squadInvitesCache.push(squadInvite);
     await saveSquadInvites(squadInvitesCache);
 
-    return { sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId };
+    return { sent, successful: sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId };
   },
 
   /**
@@ -1084,15 +1083,6 @@ export const inviteService = {
     const eligibleMembers = input.excludeMemberIds
       ? members.filter((m) => !input.excludeMemberIds!.includes(m.athleteId))
       : members;
-
-    // Create match players from squad members
-    const players: MatchPlayer[] = eligibleMembers.map((m) => ({
-      athleteId: m.athleteId,
-      athleteName: m.athleteName,
-      parentId: m.parentId,
-      parentName: m.parentName,
-      status: 'INVITED' as const,
-    }));
 
     // Create match using match service
     const match = await matchService.createMatch({
@@ -1192,7 +1182,7 @@ export const inviteService = {
 
     return {
       match,
-      inviteResult: { sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId },
+      inviteResult: { sent, successful: sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId },
     };
   },
 
@@ -1303,7 +1293,7 @@ export const inviteService = {
 
     return {
       event,
-      inviteResult: { sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId },
+      inviteResult: { sent, successful: sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId },
     };
   },
 
@@ -1403,6 +1393,7 @@ export const inviteService = {
 
     const result: BulkInviteResult = {
       sent,
+      successful: sent,
       failed,
       skipped,
       totalAttempted: members.length,
@@ -1561,6 +1552,7 @@ export const inviteService = {
 
     const result: BulkInviteResult = {
       sent,
+      successful: sent,
       failed,
       skipped,
       totalAttempted: selectedMembers.length,

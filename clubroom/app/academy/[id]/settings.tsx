@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +14,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import type { Academy, AcademyMembership } from '@/constants/types';
+
+const logger = createLogger('AcademySettingsScreen');
 
 export default function AcademySettingsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,11 +34,7 @@ export default function AcademySettingsScreen() {
   const [isPublic, setIsPublic] = useState(true);
   const [requiresApproval, setRequiresApproval] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -56,11 +55,15 @@ export default function AcademySettingsScreen() {
         setUserMembership(membership || null);
       }
     } catch (error) {
-      console.error('Failed to load academy:', error);
+      logger.error('Failed to load academy:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentUser?.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSave = async () => {
     if (!academy) return;
@@ -76,7 +79,7 @@ export default function AcademySettingsScreen() {
       Alert.alert('Success', 'Settings saved successfully');
       router.back();
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      logger.error('Failed to save settings:', error);
       Alert.alert('Error', 'Failed to save settings');
     } finally {
       setSaving(false);

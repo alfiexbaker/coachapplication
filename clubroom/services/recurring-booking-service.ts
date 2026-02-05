@@ -15,7 +15,6 @@ import { createLogger } from '@/utils/logger';
 export { getDayName };
 
 const STORAGE_KEY = 'clubroom.recurring_bookings';
-const GENERATED_BOOKINGS_KEY = 'clubroom.generated_bookings';
 const logger = createLogger('RecurringBookingService');
 
 /**

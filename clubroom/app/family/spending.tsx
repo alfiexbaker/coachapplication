@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, ScrollView, ViewStyle } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -10,11 +10,13 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SpendingChart } from '@/components/family/SpendingChart';
-import { Chip } from '@/components/primitives/chip';
 import { Colors, Spacing, Radii } from '@/constants/theme';
+import { createLogger } from '@/utils/logger';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { familyService, FamilySpending, FamilyMember } from '@/services/family-service';
+
+const logger = createLogger('FamilySpendingScreen');
 
 type DateRangeFilter = '1m' | '3m' | '6m' | '1y' | 'all';
 
@@ -29,7 +31,8 @@ export default function FamilySpendingScreen() {
 
   const [loading, setLoading] = useState(true);
   const [spending, setSpending] = useState<FamilySpending[]>([]);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_members, setMembers] = useState<FamilyMember[]>([]);
   const [dateFilter, setDateFilter] = useState<DateRangeFilter>('3m');
   const [spendingSummary, setSpendingSummary] = useState<{
     totalSpent: number;
@@ -54,7 +57,7 @@ export default function FamilySpendingScreen() {
       setMembers(membersData);
       setSpendingSummary(summaryData);
     } catch (error) {
-      console.error('Failed to load spending data:', error);
+      logger.error('Failed to load spending data:', error);
     } finally {
       setLoading(false);
     }
@@ -193,13 +196,13 @@ export default function FamilySpendingScreen() {
               style={[
                 styles.filterChip,
                 { borderColor: palette.border },
-                dateFilter === filter && { backgroundColor: palette.tint, borderColor: palette.tint },
-              ]}
+                dateFilter === filter ? { backgroundColor: palette.tint, borderColor: palette.tint } : undefined,
+              ].filter(Boolean) as ViewStyle[]}
             >
               <ThemedText
                 style={[
                   styles.filterChipText,
-                  dateFilter === filter && { color: '#FFFFFF' },
+                  dateFilter === filter ? { color: '#FFFFFF' } : undefined,
                 ]}
               >
                 {filter === '1m'

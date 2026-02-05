@@ -114,12 +114,12 @@ export function ParentWelcome({
             <ThemedText
               style={[Typography.title, { color: palette.muted, textAlign: 'center' }]}
             >
-              Let's set up for {childName}
+              Let&apos;s set up for {childName}
             </ThemedText>
             <ThemedText
               style={[Typography.body, { color: palette.muted, textAlign: 'center', marginTop: Spacing.sm }]}
             >
-              We'll help you find the perfect coach based on your child's needs and goals.
+              We&apos;ll help you find the perfect coach based on your child&apos;s needs and goals.
             </ThemedText>
           </View>
         </View>

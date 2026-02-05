@@ -14,25 +14,24 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
-import type { SquadMember } from '@/constants/types';
-
-const logger = createLogger('SquadMemberSelect');
 import {
   inviteService as squadBulkInviteService,
   type SquadMemberWithSelection,
 } from '@/services/invite-service';
+
+const logger = createLogger('SquadMemberSelect');
 
 interface SquadMemberSelectProps {
   squadId: string;
   sessionId?: string;
   selectedMemberIds: string[];
   onSelectionChange: (memberIds: string[]) => void;
+  onParentCountChange?: (count: number) => void;
   showSelectAll?: boolean;
   showNotificationCount?: boolean;
   maxHeight?: number;
@@ -44,6 +43,7 @@ export function SquadMemberSelect({
   sessionId,
   selectedMemberIds,
   onSelectionChange,
+  onParentCountChange,
   showSelectAll = true,
   showNotificationCount = true,
   maxHeight = 400,
@@ -56,11 +56,7 @@ export function SquadMemberSelect({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadMembers();
-  }, [squadId, sessionId]);
-
-  const loadMembers = async () => {
+  const loadMembers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -72,7 +68,11 @@ export function SquadMemberSelect({
     } finally {
       setLoading(false);
     }
-  };
+  }, [squadId, sessionId]);
+
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
 
   const toggleMember = useCallback(
     (memberId: string) => {
@@ -103,6 +103,11 @@ export function SquadMemberSelect({
     const uniqueParents = new Set(selectedMembers.map((m) => m.parentId));
     return uniqueParents.size;
   }, [members, selectedMemberIds]);
+
+  // Report parent count changes to parent component
+  useEffect(() => {
+    onParentCountChange?.(uniqueParentCount);
+  }, [uniqueParentCount, onParentCountChange]);
 
   const selectedCount = selectedMemberIds.length;
   const allSelected = selectedCount > 0 && selectedCount === members.filter((m) => !m.hasPendingInvite).length;

@@ -2,7 +2,8 @@ import type { Goal } from './types';
 
 // Core User Types - Only USER and COACH roles
 // Users with children access child management via hasChildren() check
-export type UserRole = 'COACH' | 'USER';
+// Legacy aliases (PARENT -> USER, Coach -> COACH) for backward compatibility
+export type UserRole = 'COACH' | 'USER' | 'PARENT' | 'Coach' | 'ADMIN';
 
 export interface User {
   id: string;
@@ -61,13 +62,13 @@ export type BookingStatus = 'PENDING' | 'AWAITING_CONFIRMATION' | 'CONFIRMED' | 
 export interface Booking {
   id: string;
   coachId: string;
-  athleteIds: string[]; // The users being coached (supports multiple athletes)
+  athleteIds?: string[]; // The users being coached (supports multiple athletes)
   athleteId?: string; // Deprecated: kept for backwards compatibility
-  bookedById: string; // Could be parent or athlete
+  bookedById?: string; // Could be parent or athlete
   status: BookingStatus;
   isSharedSession?: boolean; // True if multiple athletes share this session
   scheduledAt: string; // ISO date string
-  duration: number; // minutes (default 60)
+  duration?: number; // minutes (default 60)
   location: string;
   notes?: string;
   coachName?: string; // Denormalized for easy display
@@ -76,12 +77,12 @@ export interface Booking {
   isGroupSession?: boolean;
   maxParticipants?: number;
   currentParticipants?: number;
-  participants?: Array<{
+  participants?: {
     id: string;
     name: string;
     avatar: string;
     status: 'confirmed' | 'pending' | 'cancelled';
-  }>;
+  }[];
   service?: string;
   locationLabel?: string;
   start?: string;

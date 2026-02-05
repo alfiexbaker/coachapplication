@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -6,17 +6,19 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ParticipantCard } from '@/components/group/participant-card';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { groupSessionService } from '@/services/group-session-service';
 import { injuryService } from '@/services/injury-service';
 import type { GroupSession, GroupRegistration, BodyPart, InjurySeverity } from '@/constants/types';
+
+const logger = createLogger('SessionRosterScreen');
 
 type FilterType = 'all' | 'registered' | 'waitlisted' | 'attended';
 type AttendanceStatus = 'present' | 'absent' | 'late' | 'unmarked';
@@ -41,11 +43,7 @@ export default function SessionRosterScreen() {
   const [injuryDescription, setInjuryDescription] = useState('');
   const [savingInjury, setSavingInjury] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -56,11 +54,15 @@ export default function SessionRosterScreen() {
       setSession(sessionData);
       setRoster(rosterData);
     } catch (error) {
-      console.error('Failed to load roster:', error);
+      logger.error('Failed to load roster:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleMarkAttendance = async (registration: GroupRegistration, attended: boolean) => {
     if (!session) return;
@@ -72,7 +74,7 @@ export default function SessionRosterScreen() {
       await groupSessionService.markAttendance(registration.id, date, attended);
       await loadData();
     } catch (error) {
-      console.error('Failed to mark attendance:', error);
+      logger.error('Failed to mark attendance:', error);
       Alert.alert('Error', 'Failed to update attendance.');
     }
   };
@@ -91,7 +93,7 @@ export default function SessionRosterScreen() {
               await groupSessionService.cancelRegistration(registration.id);
               await loadData();
             } catch (error) {
-              console.error('Failed to cancel registration:', error);
+              logger.error('Failed to cancel registration:', error);
             }
           },
         },
@@ -137,7 +139,7 @@ export default function SessionRosterScreen() {
       setShowRollCall(false);
       Alert.alert('Success', 'Roll call saved successfully!');
     } catch (error) {
-      console.error('Failed to save roll call:', error);
+      logger.error('Failed to save roll call:', error);
       Alert.alert('Error', 'Failed to save roll call. Please try again.');
     }
   };
@@ -181,7 +183,7 @@ export default function SessionRosterScreen() {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Failed to report injury:', error);
+      logger.error('Failed to report injury:', error);
       Alert.alert('Error', 'Failed to report injury. Please try again.');
     } finally {
       setSavingInjury(false);
@@ -678,7 +680,7 @@ export default function SessionRosterScreen() {
             <View style={[styles.injuryInfoNote, { backgroundColor: `${palette.tint}10` }]}>
               <Ionicons name="information-circle" size={20} color={palette.tint} />
               <ThemedText style={{ color: palette.muted, fontSize: 13, flex: 1 }}>
-                This injury will be logged to the athlete's health records and automatically shared with their parent/guardian.
+                This injury will be logged to the athlete&apos;s health records and automatically shared with their parent/guardian.
               </ThemedText>
             </View>
 

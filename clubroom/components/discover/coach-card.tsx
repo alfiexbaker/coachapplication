@@ -8,16 +8,13 @@ import { CoachProfile } from '@/constants/types';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { formatDistance, formatNextAvailability, formatPriceRange } from '@/utils/format';
+import { formatDistance, formatPriceRange } from '@/utils/format';
 
 interface CoachCardProps {
   coach: CoachProfile;
   active?: boolean;
   onPress?: () => void;
 }
-
-type Palette = typeof Colors.light;
-type IoniconName = keyof typeof Ionicons.glyphMap;
 
 export function CoachCard({ coach, active, onPress }: CoachCardProps) {
   const scheme = useColorScheme() ?? 'light';
@@ -38,7 +35,7 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
         outlineGradient={
           active ? [palette.premium, palette.premium] : undefined
         }
-        style={[styles.card, styles.pressable, active && { borderColor: palette.premium }]}
+        style={[styles.card, styles.pressable, active ? { borderColor: palette.premium } : undefined]}
         gradientPadding={active ? 2 : 0}>
           <View style={styles.row}>
             <Image
@@ -83,57 +80,6 @@ export function CoachCard({ coach, active, onPress }: CoachCardProps) {
   );
 }
 
-const focusColorMap: Record<CoachProfile['footballFocuses'][number], string> = {
-  Dribbling: '#F97316',
-  Passing: '#0EA5E9',
-  Defending: '#7C3AED',
-  Finishing: '#EF4444',
-  Goalkeeping: '#14B8A6',
-  Conditioning: '#F59E0B',
-};
-
-function badgeToneColor(
-  tone: CoachProfile['badges'][number]['tone'] = 'default',
-  palette: Palette,
-) {
-  const toneColorMap = {
-    success: palette.success,
-    warning: palette.warning,
-    default: palette.icon,
-  } as const;
-  return toneColorMap[tone];
-}
-
-function badgeToneBackground(
-  tone: CoachProfile['badges'][number]['tone'] = 'default',
-  palette: Palette,
-) {
-  return `${badgeToneColor(tone, palette)}22`;
-}
-
-function badgeToneIcon(tone: CoachProfile['badges'][number]['tone'] = 'default'): IoniconName {
-  const iconMap = {
-    success: 'ribbon-outline',
-    warning: 'alert-circle-outline',
-    default: 'sparkles-outline',
-  } as const;
-  return iconMap[tone];
-}
-
-interface InfoRowProps {
-  icon: IoniconName;
-  label: string;
-  color: string;
-}
-
-function InfoRow({ icon, label, color }: InfoRowProps) {
-  return (
-    <View style={styles.infoRow}>
-      <Ionicons name={icon} size={14} color={color} />
-      <ThemedText style={[styles.location, styles.infoLabel]}>{label}</ThemedText>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   pressable: {
@@ -214,5 +160,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     marginTop: 1,
+  },
+  location: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  infoLabel: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 });

@@ -23,7 +23,6 @@ interface DownloadButtonProps {
   onDownloadComplete?: (success: boolean) => void;
 }
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
 
 // ============================================================================
 // COMPONENT
@@ -273,7 +272,7 @@ export function DownloadOnlyButton({ invoice, size = 'medium' }: SingleButtonPro
       } else {
         Alert.alert('Failed', 'Could not download the invoice.');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'An error occurred.');
     } finally {
       setDownloading(false);
@@ -309,7 +308,7 @@ export function ShareOnlyButton({ invoice, size = 'medium' }: SingleButtonProps)
 
     try {
       await invoiceService.shareInvoice(invoice.id);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Could not share the invoice.');
     } finally {
       setSharing(false);

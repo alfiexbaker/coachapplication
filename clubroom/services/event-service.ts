@@ -15,6 +15,7 @@
  */
 
 import { apiClient } from './api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
@@ -25,7 +26,6 @@ import type {
   EventAttendance,
   EventAttendanceStats,
   EventRSVP,
-  EventStatus,
   EventTargetAudience,
   RSVPStatus,
   SubmitRSVPInput,
@@ -33,7 +33,7 @@ import type {
 } from '@/constants/types';
 
 // Using centralized storage keys
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 const logger = createLogger('EventService');
 
 // Location validation threshold in meters
@@ -502,7 +502,7 @@ export const eventService = {
   async inviteClub(eventId: string): Promise<void> {
     if (USE_MOCK) {
       // In a real app, this would send notifications to all club members
-      console.log(`[EventService] Inviting all club members to event ${eventId}`);
+      logger.info('Inviting all club members to event', { eventId });
       return;
     }
 
@@ -524,7 +524,7 @@ export const eventService = {
         event.squadIds = squadIds;
         await saveEvents(eventsCache);
       }
-      console.log(`[EventService] Inviting squads ${squadIds.join(', ')} to event ${eventId}`);
+      logger.info('Inviting squads to event', { eventId, squadIds });
       return;
     }
 
@@ -1117,7 +1117,7 @@ export const eventService = {
     userId: string,
     startDate: string,
     endDate: string
-  ): Promise<Array<{
+  ): Promise<{
     id: string;
     title: string;
     date: string;
@@ -1127,7 +1127,7 @@ export const eventService = {
     type: 'EVENT';
     eventType: ClubEventType;
     status: RSVPStatus | null;
-  }>> {
+  }[]> {
     if (USE_MOCK) {
       eventsCache = await loadEvents();
       rsvpsCache = await loadRSVPs();
@@ -1150,7 +1150,7 @@ export const eventService = {
         title: event.title,
         date: event.date,
         startTime: event.startTime,
-        endTime: event.endTime,
+        endTime: event.endTime ?? event.startTime,
         location: event.venue || event.address || 'TBD',
         type: 'EVENT' as const,
         eventType: event.eventType,

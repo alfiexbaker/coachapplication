@@ -18,6 +18,7 @@ const ICONS: Record<NotificationItem['type'], string> = {
   payment: 'card',
   reminder: 'alarm',
   badge: 'ribbon',
+  community: 'people',
 };
 
 // Color coding for different notification types
@@ -28,6 +29,7 @@ const TYPE_COLORS: Record<NotificationItem['type'], { bg: string; icon: string }
   payment: { bg: '#F3E5F5', icon: '#7B1FA2' },
   reminder: { bg: '#FBE9E7', icon: '#D84315' },
   badge: { bg: '#FFF8E1', icon: '#FFA000' },
+  community: { bg: '#E0F7FA', icon: '#00838F' },
 };
 
 export function NotificationCard({

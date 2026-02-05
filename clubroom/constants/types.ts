@@ -16,7 +16,11 @@ export type TransactionType =
   | 'PLATFORM_FEE'
   | 'PROMO_CREDIT'
   | 'TRANSFER_IN'
-  | 'TRANSFER_OUT';
+  | 'TRANSFER_OUT'
+  // Legacy aliases for backward compatibility
+  | 'SESSION_PAYMENT'
+  | 'PENDING_PAYMENT'
+  | 'REFUND';
 
 export type TransactionStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
@@ -364,6 +368,8 @@ export interface BadgeDefinition {
 
 export type BadgeVisibility = 'coach_only' | 'athlete' | 'supporters';
 
+export type VideoVisibility = 'PRIVATE' | 'SHARED' | 'PUBLIC';
+
 export interface BadgeAward {
   id: string;
   badgeId: string;
@@ -396,7 +402,7 @@ export interface BadgeAward {
   badgePointValue?: number;
 }
 
-export interface CoachBadge extends BadgeDefinition {}
+export type CoachBadge = BadgeDefinition;
 
 // School & Invite System
 export interface School {
@@ -460,6 +466,7 @@ export interface ClubSquad {
   clubId: string;
   name: string;
   level: string;
+  description?: string;
   memberCount: number;
   primaryCoach: string;
   meetLocation: string;
@@ -538,6 +545,7 @@ export interface SquadInvitedMember {
 // Result of a bulk invite operation
 export interface BulkInviteResult {
   sent: number;
+  successful: number; // Alias for sent - number of invites successfully sent
   failed: number;
   skipped: number;
   totalAttempted: number;
@@ -688,6 +696,7 @@ export interface CoachProfile {
     maxUsd: number;
     unitLabel: string;
   };
+  sessionRate?: number; // £ GBP per session - alias for priceRange.minUsd
   nextAvailability: string;
   badges: CoachBadge[];
   sessionFormats: TrainingFormat[];
@@ -755,12 +764,12 @@ export interface BookingSummary {
   isGroupSession?: boolean;
   maxParticipants?: number;
   currentParticipants?: number;
-  participants?: Array<{
+  participants?: {
     id: string;
     name: string;
     avatar: string;
     status: 'confirmed' | 'pending' | 'cancelled';
-  }>;
+  }[];
 }
 
 // Session Offering System
@@ -797,6 +806,7 @@ export interface SessionOffering {
   visibility?: 'club' | 'public';
   registrations: SessionRegistration[];
   createdAt: string;
+  duration?: number; // Duration in minutes (default 60)
   priceUsd?: number;
   ageMin?: number; // Minimum age (e.g., 10 for U12)
   ageMax?: number; // Maximum age (e.g., 12 for U12)
@@ -805,6 +815,7 @@ export interface SessionOffering {
 
 export interface AthleteObjective {
   id: string;
+  athleteId?: string; // Optional: links objective to specific athlete (for parents with multiple children)
   label: FootballObjective | 'Custom';
   status: 'active' | 'upcoming' | 'completed';
   updatedAt: string;
@@ -900,10 +911,10 @@ export interface UserProfile {
   bio?: string;
   role: 'User' | 'Parent' | 'Coach' | 'Admin';
   joinedDate: string;
-  children?: Array<{
+  children?: {
     name: string;
     age: number;
-  }>;
+  }[];
   socialLinks?: SocialLinks;
 }
 
@@ -917,17 +928,17 @@ export interface CoachFeedback {
   highlights: string[];
   areasToImprove: string[];
   skillsWorked: FootballObjective[];
-  skillUpdates: Array<{
+  skillUpdates: {
     skill: FootballObjective;
     previousLevel: number;
     newLevel: number;
-  }>;
+  }[];
   createdAt: string;
 }
 
 export interface NotificationItem {
   id: string;
-  type: 'booking' | 'message' | 'review' | 'payment' | 'reminder' | 'badge';
+  type: 'booking' | 'message' | 'review' | 'payment' | 'reminder' | 'badge' | 'community';
   title: string;
   body: string;
   timeLabel?: string;
@@ -944,6 +955,7 @@ export interface NotificationItem {
 // ============================================================================
 
 export interface TimeSlot {
+  id?: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -1150,14 +1162,14 @@ export interface AnnotationExport {
   /** Export timestamp */
   exportedAt: string;
   /** Annotations sorted by timestamp */
-  annotations: Array<{
+  annotations: {
     timestamp: number;
     timestampFormatted: string;
     label: string;
     note?: string;
     type: VideoAnnotationType;
     typeLabel: string;
-  }>;
+  }[];
 }
 
 /**
@@ -3580,7 +3592,7 @@ export interface InjuryStats {
   /** Number of healed injuries */
   healedInjuries: number;
   /** Most commonly injured body parts */
-  commonBodyParts: Array<{ bodyPart: BodyPart; count: number }>;
+  commonBodyParts: { bodyPart: BodyPart; count: number }[];
   /** Average recovery time in days */
   averageRecoveryDays: number;
 }
@@ -3659,18 +3671,18 @@ export interface CancellationStats {
   /** Cancellation rate as percentage (0-100) */
   cancellationRate: number;
   /** Breakdown by cancellation reason */
-  byReason: Array<{
+  byReason: {
     reason: CancellationReason;
     count: number;
     percentage: number;
-  }>;
+  }[];
   /** Breakdown by day of week (0=Sunday, 6=Saturday) */
-  byDayOfWeek: Array<{
+  byDayOfWeek: {
     dayOfWeek: number;
     dayName: string;
     count: number;
     percentage: number;
-  }>;
+  }[];
   /** Average notice time in hours before session */
   avgNoticeHours: number;
   /** Revenue lost to cancellations */
@@ -3757,12 +3769,12 @@ export interface SessionStats {
   /** Most popular session type */
   popularSessionType: string;
   /** Breakdown by session type */
-  bySessionType: Array<{
+  bySessionType: {
     type: string;
     count: number;
     percentage: number;
     revenue: number;
-  }>;
+  }[];
 }
 
 /**
@@ -4214,7 +4226,7 @@ export interface CoachComparison {
   /** Years of experience (derived from join date) */
   yearsExperience: number;
   /** Verification/badge status */
-  badges: Array<{ label: string; tone: 'success' | 'warning' | 'default' }>;
+  badges: { label: string; tone: 'success' | 'warning' | 'default' }[];
   /** Short bio for quick reference */
   shortBio: string;
 }
@@ -4373,4 +4385,18 @@ export interface AuthState {
   tokens: AuthTokens | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+}
+
+// Re-exports from app-types for convenience
+export { User, Session } from './app-types';
+
+// Attachment type for messaging
+export interface Attachment {
+  type: 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+  url: string;
+  name: string;
+  size?: number;
+  mimeType?: string;
+  thumbnailUrl?: string;
+  duration?: number;
 }

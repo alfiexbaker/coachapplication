@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 export type BookingPersona = 'parent' | 'athlete' | 'guest';
 
 // Helper to check if user has children
-const hasChildren = (user: { children?: Array<{ childId: string }> } | null): boolean => {
+const hasChildren = (user: { children?: { childId: string }[] } | null): boolean => {
   return Boolean(user?.children && user.children.length > 0);
 };
 

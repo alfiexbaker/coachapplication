@@ -1,11 +1,10 @@
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Chip } from '@/components/primitives/chip';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
@@ -32,7 +31,6 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
   const statusColor = matchService.getStatusColor(match.status);
   const availability = matchService.getAvailabilitySummary(match);
 
-  const isPast = match.status === 'COMPLETED' || match.status === 'CANCELLED';
   const isUpcoming = match.status === 'SCHEDULED' || match.status === 'LINEUP_SET';
 
   const handlePress = () => {

@@ -94,7 +94,7 @@ export function useSessionNote(bookingId?: string): UseSessionNoteResult {
     return () => {
       active = false;
     };
-  }, [bookingId]);
+  }, [bookingId, logger]);
 
   return {
     note,

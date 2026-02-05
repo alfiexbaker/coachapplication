@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { FamilySpending, FamilySpendingMonth } from '@/constants/types';
+import type { FamilySpending } from '@/constants/types';
 
 interface SpendingChartProps {
   /** Spending data per child */
@@ -19,7 +19,7 @@ interface SpendingChartProps {
   monthsToShow?: number;
 }
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+Dimensions.get('window');
 
 /**
  * SpendingChart visualizes family spending across all children.

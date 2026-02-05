@@ -3,7 +3,7 @@
  *
  * Use this for WOW moments: badge awards, goal completions, streaks, first bookings, etc.
  */
-import { useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useCallback, forwardRef, useImperativeHandle, useState } from 'react';
 import { View, StyleSheet, Modal } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import * as Haptics from 'expo-haptics';
@@ -18,8 +18,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
 
 export interface CelebrationOverlayRef {
   celebrate: (options?: CelebrationOptions) => void;
@@ -40,8 +39,6 @@ interface CelebrationOverlayProps {
 
 export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationOverlayProps>(
   ({ onComplete }, ref) => {
-    const scheme = useColorScheme() ?? 'light';
-    const palette = Colors[scheme];
     const confettiRef = useRef<ConfettiCannon>(null);
 
     const visible = useSharedValue(false);
@@ -49,8 +46,8 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
     const opacity = useSharedValue(0);
     const titleOpacity = useSharedValue(0);
 
-    const [showModal, setShowModal] = React.useState(false);
-    const [options, setOptions] = React.useState<CelebrationOptions>({});
+    const [showModal, setShowModal] = useState(false);
+    const [options, setOptions] = useState<CelebrationOptions>({});
 
     const hide = useCallback(() => {
       opacity.value = withSpring(0, { damping: 15 }, () => {
@@ -91,7 +88,7 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
       // Auto-hide after duration
       const duration = opts.duration ?? 3000;
       setTimeout(hide, duration);
-    }, [opacity, scale, titleOpacity, hide]);
+    }, [visible, opacity, scale, titleOpacity, hide]);
 
     useImperativeHandle(ref, () => ({ celebrate }), [celebrate]);
 
@@ -148,9 +145,6 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
     );
   }
 );
-
-// Need to import React for useState
-import React from 'react';
 
 CelebrationOverlay.displayName = 'CelebrationOverlay';
 

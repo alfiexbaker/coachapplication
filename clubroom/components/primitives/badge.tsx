@@ -1,41 +1,207 @@
-import { StyleSheet, Text, View } from 'react-native';
+/**
+ * Badge Component
+ *
+ * Versatile badge for status indicators, labels, and tags.
+ *
+ * Props:
+ * - label: Text to display
+ * - tone: Semantic color (success, warning, error, info, neutral, premium)
+ * - variant: Visual style (filled, outlined, subtle)
+ * - size: Size variant (sm, md, lg)
+ * - icon: Optional Ionicons icon name
+ *
+ * Usage:
+ *   <Badge label="Active" tone="success" />
+ *   <Badge label="Pending" tone="warning" variant="outlined" />
+ *   <Badge label="4.9" tone="premium" icon="star" size="sm" />
+ */
 
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { Colors, Radii, Spacing } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-interface BadgeProps {
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
+
+export type BadgeTone = 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'premium';
+export type BadgeVariant = 'filled' | 'outlined' | 'subtle';
+export type BadgeSize = 'sm' | 'md' | 'lg';
+
+export interface BadgeProps {
   label: string;
-  tone?: 'success' | 'warning' | 'default';
+  tone?: BadgeTone;
+  variant?: BadgeVariant;
+  size?: BadgeSize;
+  icon?: keyof typeof Ionicons.glyphMap;
 }
 
-export function Badge({ label, tone = 'default' }: BadgeProps) {
+// -----------------------------------------------------------------------------
+// Size config
+// -----------------------------------------------------------------------------
+
+const SIZE_CONFIG: Record<BadgeSize, {
+  paddingH: number;
+  paddingV: number;
+  fontSize: number;
+  iconSize: number;
+  gap: number;
+}> = {
+  sm: {
+    paddingH: Spacing.xs + 2,
+    paddingV: 2,
+    fontSize: 10,
+    iconSize: 10,
+    gap: 2,
+  },
+  md: {
+    paddingH: Spacing.sm,
+    paddingV: Spacing.xs,
+    fontSize: 12,
+    iconSize: 12,
+    gap: 4,
+  },
+  lg: {
+    paddingH: Spacing.sm + 2,
+    paddingV: Spacing.xs + 2,
+    fontSize: 14,
+    iconSize: 14,
+    gap: 6,
+  },
+};
+
+// -----------------------------------------------------------------------------
+// Component
+// -----------------------------------------------------------------------------
+
+export function Badge({
+  label,
+  tone = 'neutral',
+  variant = 'subtle',
+  size = 'md',
+  icon,
+}: BadgeProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const backgroundMap = {
-    success: `${palette.success}22`,
-    warning: `${palette.warning}22`,
-    default: `${palette.muted}22`,
-  } as const;
-  const textMap = {
-    success: palette.success,
-    warning: palette.warning,
-    default: palette.muted,
-  } as const;
+  const sizeConfig = SIZE_CONFIG[size];
+
+  // Get tone color
+  const getToneColor = (): string => {
+    const colorMap: Record<BadgeTone, string> = {
+      success: palette.success,
+      warning: palette.warning,
+      error: palette.error,
+      info: palette.tint,
+      neutral: palette.muted,
+      premium: palette.premium,
+    };
+    return colorMap[tone];
+  };
+
+  const toneColor = getToneColor();
+
+  // Get styles based on variant
+  const getVariantStyles = () => {
+    switch (variant) {
+      case 'filled':
+        return {
+          backgroundColor: toneColor,
+          borderWidth: 0,
+          textColor: palette.onPrimary,
+        };
+      case 'outlined':
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: toneColor,
+          textColor: toneColor,
+        };
+      case 'subtle':
+      default:
+        return {
+          backgroundColor: `${toneColor}15`,
+          borderWidth: 0,
+          textColor: toneColor,
+        };
+    }
+  };
+
+  const variantStyles = getVariantStyles();
 
   return (
-    <View style={[styles.badge, { backgroundColor: backgroundMap[tone] }]}>
-      <Text style={[Typography.xs, styles.label, { color: textMap[tone] }]}>{label}</Text>
+    <View
+      style={[
+        styles.badge,
+        {
+          backgroundColor: variantStyles.backgroundColor,
+          borderWidth: variantStyles.borderWidth,
+          borderColor: variantStyles.borderColor,
+          paddingHorizontal: sizeConfig.paddingH,
+          paddingVertical: sizeConfig.paddingV,
+          gap: sizeConfig.gap,
+        },
+      ]}
+    >
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={sizeConfig.iconSize}
+          color={variantStyles.textColor}
+        />
+      )}
+      <ThemedText
+        style={[
+          styles.label,
+          {
+            color: variantStyles.textColor,
+            fontSize: sizeConfig.fontSize,
+          },
+        ]}
+        lightColor={variant === 'filled' ? '#FFFFFF' : undefined}
+        darkColor={variant === 'filled' ? '#FFFFFF' : undefined}
+      >
+        {label}
+      </ThemedText>
     </View>
   );
 }
 
+// -----------------------------------------------------------------------------
+// Convenience exports for common badge types
+// -----------------------------------------------------------------------------
+
+export function SuccessBadge({ label, ...props }: Omit<BadgeProps, 'tone'>) {
+  return <Badge label={label} tone="success" {...props} />;
+}
+
+export function WarningBadge({ label, ...props }: Omit<BadgeProps, 'tone'>) {
+  return <Badge label={label} tone="warning" {...props} />;
+}
+
+export function ErrorBadge({ label, ...props }: Omit<BadgeProps, 'tone'>) {
+  return <Badge label={label} tone="error" {...props} />;
+}
+
+export function InfoBadge({ label, ...props }: Omit<BadgeProps, 'tone'>) {
+  return <Badge label={label} tone="info" {...props} />;
+}
+
+// -----------------------------------------------------------------------------
+// Styles
+// -----------------------------------------------------------------------------
+
 const styles = StyleSheet.create({
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
     borderRadius: Radii.pill,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
   },
   label: {
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

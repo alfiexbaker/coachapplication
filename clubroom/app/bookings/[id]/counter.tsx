@@ -9,16 +9,13 @@ import { Clickable } from '@/components/primitives/clickable';
 import { TimeProposalForm } from '@/components/negotiate/TimeProposalForm';
 import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 import { counterOfferService } from '@/services/counter-offer-service';
 import { bookingService } from '@/services/booking-service';
+import { createLogger } from '@/utils/logger';
 import type { TimeSlot, CounterOfferProposerRole } from '@/constants/types';
 
-// Mock current user - in production this would come from auth context
-const MOCK_CURRENT_USER = {
-  id: 'parent_1',
-  name: 'Sarah Baker',
-  role: 'PARENT' as CounterOfferProposerRole,
-};
+const logger = createLogger('CounterOffer');
 
 interface BookingData {
   id: string;
@@ -33,6 +30,10 @@ export default function CounterOfferScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser } = useAuth();
+
+  // Determine user role for counter-offer
+  const userRole: CounterOfferProposerRole = currentUser?.role === 'COACH' ? 'COACH' : 'PARENT';
 
   const [booking, setBooking] = useState<BookingData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +75,7 @@ export default function CounterOfferScreen() {
         });
       }
     } catch (err) {
-      console.error('[CounterOfferScreen] Failed to load booking:', err);
+      logger.error('Failed to load booking', err);
       setError('Failed to load booking details');
     } finally {
       setIsLoading(false);
@@ -128,9 +129,9 @@ export default function CounterOfferScreen() {
 
       await counterOfferService.createCounterOffer({
         bookingId: booking.id,
-        proposedBy: MOCK_CURRENT_USER.role,
-        proposerId: MOCK_CURRENT_USER.id,
-        proposerName: MOCK_CURRENT_USER.name,
+        proposedBy: userRole,
+        proposerId: currentUser?.id || '',
+        proposerName: currentUser?.name || currentUser?.fullName || 'User',
         originalTime: getOriginalTime(),
         proposedTime,
         message,
@@ -147,7 +148,7 @@ export default function CounterOfferScreen() {
         ]
       );
     } catch (err) {
-      console.error('[CounterOfferScreen] Failed to create counter-offer:', err);
+      logger.error('Failed to create counter-offer', err);
       Alert.alert('Error', 'Failed to send your proposal. Please try again.');
     } finally {
       setIsSubmitting(false);

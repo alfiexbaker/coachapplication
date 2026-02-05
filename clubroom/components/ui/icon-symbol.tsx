@@ -5,6 +5,10 @@ import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('IconSymbol');
+
 type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
 type IconSymbolName = keyof typeof MAPPING;
 
@@ -61,7 +65,7 @@ export function IconSymbol({
 
   // Debug logging for icon rendering - helps catch missing mappings
   if (!mappedName) {
-    console.error('[IconSymbol] ERROR: No mapping found for:', name);
+    logger.error('No mapping found for:', name);
     // Fallback to a default icon if mapping is missing
     return <MaterialIcons color={color} size={size} name="help-outline" style={style} />;
   }

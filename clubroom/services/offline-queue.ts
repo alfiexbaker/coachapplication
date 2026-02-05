@@ -114,11 +114,11 @@ export function useOfflineQueue() {
           refreshQueueSize();
         });
     }
-  }, [isConnected, wasOffline]);
+  }, [isConnected, wasOffline, isFlushing, refreshQueueSize]);
 
   useEffect(() => {
     refreshQueueSize();
-  }, []);
+  }, [refreshQueueSize]);
 
   return { isConnected, isFlushing, queueSize, addToQueue, flushQueue, refreshQueueSize };
 }

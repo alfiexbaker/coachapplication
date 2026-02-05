@@ -73,7 +73,7 @@ export const seenService = {
   async getSeenStatuses(
     entityType: string,
     entityIds: string[]
-  ): Promise<Array<{ entityId: string; seenBy: string; seenAt: string }>> {
+  ): Promise<{ entityId: string; seenBy: string; seenAt: string }[]> {
     const entries = await apiClient.get<SeenEntry[]>(SEEN_KEY, []);
     const idSet = new Set(entityIds);
 

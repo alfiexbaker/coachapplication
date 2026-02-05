@@ -46,7 +46,7 @@ export default function UserBadgesScreen() {
     pointsToNext: number;
     totalBadges: number;
     categoryBreakdown: CategoryBreakdownItem[];
-    topCategories: Array<{ category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }>;
+    topCategories: { category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[];
   } | null>(null);
 
   useEffect(() => {
@@ -71,8 +71,8 @@ export default function UserBadgesScreen() {
   const sharedCount = supporterFacingAwards.filter((award) => award.shared).length;
   const shareable = supporterFacingAwards.filter((award) => !award.shared);
 
-  // Filter categories with activity
-  const activeCategories = useMemo(
+  // Filter categories with activity (available for future use)
+  useMemo(
     () => progressionData?.categoryBreakdown.filter((cat) => cat.badgeCount > 0) ?? [],
     [progressionData]
   );
@@ -141,7 +141,7 @@ export default function UserBadgesScreen() {
               <Ionicons name="trophy" size={24} color={palette.tint} />
             </View>
             <View style={styles.levelInfo}>
-              <ThemedText type="heading" style={styles.levelName}>
+              <ThemedText type="subtitle" style={styles.levelName}>
                 Level {progressionData.currentLevel.level}: {progressionData.currentLevel.name}
               </ThemedText>
               <ThemedText style={[styles.levelPoints, { color: palette.muted }]}>
@@ -398,7 +398,7 @@ export default function UserBadgesScreen() {
                 <SurfaceCard
                   style={[
                     styles.timelineItem,
-                    award.sessionId && { borderColor: `${palette.tint}30` },
+                    award.sessionId ? { borderColor: `${palette.tint}30` } : undefined,
                   ]}
                 >
                   <View style={styles.timelineHeader}>

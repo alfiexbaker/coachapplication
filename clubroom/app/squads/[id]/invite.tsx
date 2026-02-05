@@ -15,6 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -34,6 +35,8 @@ import type {
   SquadSessionInvite,
   SquadInviteHistoryEntry,
 } from '@/constants/types';
+
+const logger = createLogger('SquadInviteScreen');
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Training'];
 const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
@@ -57,8 +60,8 @@ export default function SquadInviteScreen() {
   const [sessionType, setSessionType] = useState(SESSION_TYPES[0]);
   const [focus, setFocus] = useState(FOCUSES[0]);
   const [sessionTitle, setSessionTitle] = useState('');
-  const [notes, setNotes] = useState('');
-  const [price, setPrice] = useState('');
+  const [notes] = useState('');
+  const [price] = useState('');
   const [proposedSlots, setProposedSlots] = useState<TimeSlot[]>([]);
 
   // Time slot form
@@ -75,13 +78,7 @@ export default function SquadInviteScreen() {
     result: BulkInviteResult;
   } | null>(null);
 
-  useEffect(() => {
-    if (squadId) {
-      loadSquadData();
-    }
-  }, [squadId]);
-
-  const loadSquadData = async () => {
+  const loadSquadData = useCallback(async () => {
     if (!squadId) return;
     setLoading(true);
     try {
@@ -102,12 +99,18 @@ export default function SquadInviteScreen() {
       // Select all members by default
       setSelectedMemberIds(membersData.map((m) => m.id));
     } catch (error) {
-      console.error('Failed to load squad data:', error);
+      logger.error('Failed to load squad data:', error);
       Alert.alert('Error', 'Failed to load squad data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [squadId]);
+
+  useEffect(() => {
+    if (squadId) {
+      loadSquadData();
+    }
+  }, [squadId, loadSquadData]);
 
   const addTimeSlot = useCallback(() => {
     if (!slotDate || !slotStartTime || !slotEndTime) {
@@ -173,7 +176,7 @@ export default function SquadInviteScreen() {
       setInviteResult(result);
       setViewMode('result');
     } catch (error) {
-      console.error('Failed to send bulk invites:', error);
+      logger.error('Failed to send bulk invites:', error);
       Alert.alert('Error', 'Failed to send invites. Please try again.');
       setViewMode('form');
     } finally {

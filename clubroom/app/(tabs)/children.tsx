@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, Image, ScrollView, RefreshControl } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, StyleSheet, ViewStyle, ScrollView } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -11,15 +11,13 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ParentProgressSummary } from '@/components/progress';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { getSessionsForAthlete, formatDate } from '@/constants/mock-data';
+import { getSessionsForAthlete } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
-import { progressService, AthleteProgress } from '@/services/progress-service';
 import { childService, type ChildProfile } from '@/services/child-service';
-import type { User, BadgeAward } from '@/constants/types';
+import type { BadgeAward } from '@/constants/types';
 
 type HubSection = {
   id: string;
@@ -47,7 +45,7 @@ export default function ChildrenHubScreen() {
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [childStats, setChildStats] = useState<Record<string, ChildStats>>({});
   const [recentBadges, setRecentBadges] = useState<BadgeAward[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -400,7 +398,7 @@ export default function ChildrenHubScreen() {
               <SurfaceCard style={[
                 styles.sectionCard,
                 section.unseenCount && section.unseenCount > 0 && { borderColor: section.color, borderWidth: 1 },
-              ]}>
+              ].filter(Boolean) as ViewStyle[]}>
                 <View style={styles.sectionRow}>
                   <View
                     style={[

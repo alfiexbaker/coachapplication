@@ -119,10 +119,10 @@ export function CreateSessionForm({
           <ThemedText
             style={[
               styles.sessionTypeText,
-              sessionType === '1on1' && {
+              sessionType === '1on1' ? {
                 color: scheme === 'light' ? '#FFFFFF' : '#000000',
                 fontWeight: '700',
-              },
+              } : undefined,
             ]}>
             1:1 Session
           </ThemedText>
@@ -145,10 +145,10 @@ export function CreateSessionForm({
           <ThemedText
             style={[
               styles.sessionTypeText,
-              sessionType === 'group' && {
+              sessionType === 'group' ? {
                 color: scheme === 'light' ? '#FFFFFF' : '#000000',
                 fontWeight: '700',
-              },
+              } : undefined,
             ]}>
             Group Session
           </ThemedText>
@@ -177,10 +177,10 @@ export function CreateSessionForm({
           <ThemedText
             style={[
               styles.sessionTypeText,
-              recurrenceType === 'none' && {
+              recurrenceType === 'none' ? {
                 color: scheme === 'light' ? '#FFFFFF' : '#000000',
                 fontWeight: '700',
-              },
+              } : undefined,
             ]}>
             One-time
           </ThemedText>
@@ -203,10 +203,10 @@ export function CreateSessionForm({
           <ThemedText
             style={[
               styles.sessionTypeText,
-              recurrenceType === 'weekly' && {
+              recurrenceType === 'weekly' ? {
                 color: scheme === 'light' ? '#FFFFFF' : '#000000',
                 fontWeight: '700',
-              },
+              } : undefined,
             ]}>
             Weekly Recurring
           </ThemedText>
@@ -467,10 +467,10 @@ export function CreateSessionForm({
                 <ThemedText
                   style={[
                     styles.skillButtonText,
-                    footballSkill === skill && {
+                    footballSkill === skill ? {
                       color: scheme === 'light' ? '#FFFFFF' : '#000000',
                       fontWeight: '700',
-                    },
+                    } : undefined,
                   ]}>
                   {skill}
                 </ThemedText>

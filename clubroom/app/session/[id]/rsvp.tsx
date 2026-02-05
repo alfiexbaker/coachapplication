@@ -88,7 +88,7 @@ export default function RSVPScreen() {
           location: 'Hackney Marshes, Pitch 3',
         });
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to load RSVP data.');
     } finally {
       setLoading(false);
@@ -127,7 +127,7 @@ export default function RSVPScreen() {
           },
         ],
       );
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to submit your response. Please try again.');
     }
   };

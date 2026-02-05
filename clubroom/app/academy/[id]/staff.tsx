@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TextInput, Modal } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
@@ -16,6 +17,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import type { Academy, AcademyMembership, AcademyPermission } from '@/constants/types';
+
+const logger = createLogger('AcademyStaffScreen');
 
 export default function AcademyStaffScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -38,11 +41,7 @@ export default function AcademyStaffScreen() {
   const [editingMember, setEditingMember] = useState<AcademyMembership | null>(null);
   const [editRole, setEditRole] = useState<AcademyMembership['role']>('COACH');
 
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -58,11 +57,15 @@ export default function AcademyStaffScreen() {
         setUserMembership(membership || null);
       }
     } catch (error) {
-      console.error('Failed to load staff:', error);
+      logger.error('Failed to load staff:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentUser?.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const isOwner = userMembership?.role === 'OWNER';
   const canManageStaff = isOwner || userMembership?.permissions.includes('MANAGE_STAFF');
@@ -102,7 +105,7 @@ export default function AcademyStaffScreen() {
       );
       setInviteCode(invite.code);
     } catch (error) {
-      console.error('Failed to create invite:', error);
+      logger.error('Failed to create invite:', error);
       Alert.alert('Error', 'Failed to create invite code');
     } finally {
       setCreatingInvite(false);
@@ -119,7 +122,7 @@ export default function AcademyStaffScreen() {
       await loadData();
       Alert.alert('Success', 'Role updated successfully');
     } catch (error) {
-      console.error('Failed to update role:', error);
+      logger.error('Failed to update role:', error);
       Alert.alert('Error', 'Failed to update role');
     }
   };
@@ -138,7 +141,7 @@ export default function AcademyStaffScreen() {
               await academyService.removeMember(member.id);
               await loadData();
             } catch (error) {
-              console.error('Failed to remove member:', error);
+              logger.error('Failed to remove member:', error);
               Alert.alert('Error', 'Failed to remove member');
             }
           },

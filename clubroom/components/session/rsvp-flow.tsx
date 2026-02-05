@@ -23,8 +23,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
-import { CardStyles, LayoutStyles, TextStyles } from '@/constants/styles';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { CardStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
 
 // ---------------------------------------------------------------------------
@@ -153,8 +153,8 @@ export function RSVPFlow({
           style={({ pressed }) => [
             styles.responseButton,
             styles.goingButton,
-            selectedStatus === 'going' && styles.goingButtonActive,
-            pressed && styles.buttonPressed,
+            selectedStatus === 'going' ? styles.goingButtonActive : undefined,
+            pressed ? styles.buttonPressed : undefined,
           ]}
           onPress={() => handlePress('going')}
           disabled={isSubmitting}
@@ -168,7 +168,7 @@ export function RSVPFlow({
             style={[
               styles.responseButtonText,
               styles.goingText,
-              selectedStatus === 'going' && styles.activeButtonText,
+              selectedStatus === 'going' ? styles.activeButtonText : undefined,
             ]}
           >
             Going
@@ -179,8 +179,8 @@ export function RSVPFlow({
           style={({ pressed }) => [
             styles.responseButton,
             styles.cantButton,
-            selectedStatus === 'not_going' && styles.cantButtonActive,
-            pressed && styles.buttonPressed,
+            selectedStatus === 'not_going' ? styles.cantButtonActive : undefined,
+            pressed ? styles.buttonPressed : undefined,
           ]}
           onPress={() => handlePress('not_going')}
           disabled={isSubmitting}
@@ -194,10 +194,10 @@ export function RSVPFlow({
             style={[
               styles.responseButtonText,
               styles.cantText,
-              selectedStatus === 'not_going' && styles.activeButtonText,
+              selectedStatus === 'not_going' ? styles.activeButtonText : undefined,
             ]}
           >
-            Can't Make It
+            Can&apos;t Make It
           </ThemedText>
         </Pressable>
 
@@ -205,8 +205,8 @@ export function RSVPFlow({
           style={({ pressed }) => [
             styles.responseButton,
             styles.maybeButton,
-            selectedStatus === 'maybe' && styles.maybeButtonActive,
-            pressed && styles.buttonPressed,
+            selectedStatus === 'maybe' ? styles.maybeButtonActive : undefined,
+            pressed ? styles.buttonPressed : undefined,
           ]}
           onPress={() => handlePress('maybe')}
           disabled={isSubmitting}
@@ -220,7 +220,7 @@ export function RSVPFlow({
             style={[
               styles.responseButtonText,
               styles.maybeText,
-              selectedStatus === 'maybe' && styles.activeButtonText,
+              selectedStatus === 'maybe' ? styles.activeButtonText : undefined,
             ]}
           >
             Maybe

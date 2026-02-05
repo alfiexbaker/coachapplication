@@ -23,7 +23,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -73,12 +72,12 @@ interface OnboardingScreenProps {
 // CONSTANTS
 // ============================================================================
 
-const ACCOUNT_TYPES: Array<{
+const ACCOUNT_TYPES: {
   type: AccountType;
   title: string;
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
-}> = [
+}[] = [
   {
     type: 'ATHLETE',
     title: 'I\'m an Athlete',
@@ -93,7 +92,7 @@ const ACCOUNT_TYPES: Array<{
   },
 ];
 
-const SKILL_LEVELS: Array<{ value: SkillLevel; label: string; description: string }> = [
+const SKILL_LEVELS: { value: SkillLevel; label: string; description: string }[] = [
   { value: 'BEGINNER', label: 'Beginner', description: 'Just starting out' },
   { value: 'INTERMEDIATE', label: 'Intermediate', description: '1-3 years experience' },
   { value: 'ADVANCED', label: 'Advanced', description: '3-5 years experience' },
@@ -146,7 +145,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
   const [skillLevel, setSkillLevel] = useState<SkillLevel | null>(null);
   const [position, setPosition] = useState('');
   const [sport, setSport] = useState('');
-  const [goals, setGoals] = useState<string[]>([]);
+  const [goals] = useState<string[]>([]);
   const [hasChildren, setHasChildren] = useState(false);
 
   // Coach specific
@@ -906,7 +905,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
               ]}
             >
               <ThemedText style={styles.nextButtonText}>
-                {step === 'coach-details' || step === 'athlete-details' || step === 'parent-details'
+                {step === 'coach-details' || step === 'athlete-details'
                   ? 'Create Account'
                   : 'Continue'}
               </ThemedText>

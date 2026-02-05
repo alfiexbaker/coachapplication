@@ -2,9 +2,9 @@ import {
   SessionPackage,
   PackagePurchase,
   PackageRedemption,
-  PackagePurchaseStatus,
 } from '@/constants/types';
 import { storageService } from './storage-service';
+import { api } from '@/constants/config';
 import { walletService } from './wallet-service';
 import { createLogger } from '@/utils/logger';
 
@@ -15,7 +15,7 @@ import { createLogger } from '@/utils/logger';
 const STORAGE_KEY_PACKAGES = 'clubroom.packages';
 const STORAGE_KEY_PURCHASES = 'clubroom.package_purchases';
 const STORAGE_KEY_REDEMPTIONS = 'clubroom.package_redemptions';
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 const logger = createLogger('PackageService');
 
 // ============================================================================

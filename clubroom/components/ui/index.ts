@@ -1,7 +1,7 @@
 export * from './collapsible';
 export * from './empty-state';
 export * from './icon-symbol';
-export * from './screen-states';
+export { LoadingState, ErrorState, EmptyStateScreen } from './screen-states';
 export * from './skeleton';
 export * from './status-badge';
 export * from './toast';

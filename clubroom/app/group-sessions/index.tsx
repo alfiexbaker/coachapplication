@@ -14,6 +14,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('GroupSessionsScreen');
 
 type FilterType = 'ALL' | GroupSession['sessionType'];
 
@@ -38,6 +41,7 @@ function SessionCard({
     CAMP: '#FF6B35',
     CLINIC: '#7B68EE',
     TEAM_TRAINING: '#2E8B57',
+    TRAINING: '#2E8B57',
     OPEN_SESSION: '#4169E1',
     TRIAL: '#20B2AA',
   };
@@ -70,8 +74,8 @@ function SessionCard({
           </View>
         )}
 
-        <View style={styles.content}>
-          <View style={styles.header}>
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeader}>
             <View style={styles.titleSection}>
               <ThemedText type="defaultSemiBold" style={styles.title} numberOfLines={2}>
                 {session.title}
@@ -195,7 +199,7 @@ export default function GroupSessionsScreen() {
   const { currentUser } = useAuth();
 
   const [sessions, setSessions] = useState<GroupSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('ALL');
 
   const isCoach = currentUser?.role === 'COACH';
@@ -210,7 +214,7 @@ export default function GroupSessionsScreen() {
       const data = await groupSessionService.discoverSessions();
       setSessions(data);
     } catch (error) {
-      console.error('Failed to load sessions:', error);
+      logger.error('Failed to load sessions:', error);
     } finally {
       setLoading(false);
     }
@@ -400,11 +404,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  content: {
+  cardContent: {
     padding: Spacing.md,
     gap: 8,
   },
-  header: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',

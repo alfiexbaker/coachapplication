@@ -6,7 +6,7 @@
  * Shows celebration animation when a goal is completed.
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -27,26 +27,27 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withSequence,
-  withDelay,
-  runOnJS,
 } from 'react-native-reanimated';
 import ConfettiCannon from 'react-native-confetti-cannon';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import {
   ProgressRing,
-  CategoryBadge,
   MilestoneList,
+  CategoryBadge,
 } from '@/components/goals';
 import { Colors, Spacing, Radii } from '@/constants/theme';
-import type { Goal, GoalStatus, UpdateGoalInput } from '@/constants/types';
+import type { Goal, GoalStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('GoalDetailScreen');
 
 /**
  * Goal details screen showing progress, milestones, and actions.
@@ -75,7 +76,7 @@ export default function GoalDetailScreen() {
       const data = await progressService.getGoalById(id);
       setGoal(data);
     } catch (error) {
-      console.error('Failed to load goal:', error);
+      logger.error('Failed to load goal', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -140,7 +141,7 @@ export default function GoalDetailScreen() {
           }
         }
       } catch (error) {
-        console.error('Failed to toggle milestone:', error);
+        logger.error('Failed to toggle milestone', error);
         Alert.alert('Error', 'Failed to update milestone. Please try again.');
       }
     },
@@ -159,7 +160,7 @@ export default function GoalDetailScreen() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
       } catch (error) {
-        console.error('Failed to add milestone:', error);
+        logger.error('Failed to add milestone', error);
         Alert.alert('Error', 'Failed to add milestone. Please try again.');
       }
     },
@@ -177,7 +178,7 @@ export default function GoalDetailScreen() {
           setGoal(updatedGoal);
         }
       } catch (error) {
-        console.error('Failed to delete milestone:', error);
+        logger.error('Failed to delete milestone', error);
         Alert.alert('Error', 'Failed to delete milestone. Please try again.');
       }
     },
@@ -200,7 +201,7 @@ export default function GoalDetailScreen() {
           }
         }
       } catch (error) {
-        console.error('Failed to update goal status:', error);
+        logger.error('Failed to update goal status', error);
         Alert.alert('Error', 'Failed to update goal. Please try again.');
       }
     },
@@ -225,7 +226,7 @@ export default function GoalDetailScreen() {
               void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               router.back();
             } catch (error) {
-              console.error('Failed to delete goal:', error);
+              logger.error('Failed to delete goal', error);
               Alert.alert('Error', 'Failed to delete goal. Please try again.');
             }
           },
@@ -500,7 +501,7 @@ export default function GoalDetailScreen() {
                 Goal Achieved!
               </ThemedText>
               <ThemedText style={[styles.celebrationSubtitle, { color: palette.muted }]}>
-                Congratulations on completing "{goal.title}"
+                Congratulations on completing &quot;{goal.title}&quot;
               </ThemedText>
             </Animated.View>
             <ConfettiCannon

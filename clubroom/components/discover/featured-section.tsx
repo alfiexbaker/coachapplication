@@ -8,7 +8,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing, Typography, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Typography, Components } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { useColorScheme } from '@/hooks/use-color-scheme';

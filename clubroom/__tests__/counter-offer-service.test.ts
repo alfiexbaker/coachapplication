@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { describe, it, beforeEach, mock } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import type {
   CounterOffer,
   CounterOfferStatus,
@@ -7,17 +7,8 @@ import type {
   TimeSlot,
 } from '../constants/types';
 
-// Mock AsyncStorage
+// Mock storage for testing
 const mockStorage: Record<string, string> = {};
-const AsyncStorageMock = {
-  getItem: async (key: string): Promise<string | null> => mockStorage[key] ?? null,
-  setItem: async (key: string, value: string): Promise<void> => {
-    mockStorage[key] = value;
-  },
-  removeItem: async (key: string): Promise<void> => {
-    delete mockStorage[key];
-  },
-};
 
 // Mock the service inline since we can't import it directly
 // This tests the business logic patterns used in the service

@@ -1,20 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { SectionHeader } from '@/components/primitives/section-header';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { BadgeSectionGrid, BadgeStats } from '@/components/badges/badge-grid';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { badgeService, AllBadgeWithProgress, BadgeType } from '@/services/badge-service';
-import { TierNames, CategoryInfo } from '@/constants/progression';
+import { badgeService, AllBadgeWithProgress } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BadgesScreen');
@@ -197,7 +195,7 @@ export default function AllBadgesScreen() {
                     borderColor: palette.tint,
                   },
                   !isActive && { borderColor: palette.border },
-                ]}
+                ].filter(Boolean) as ViewStyle[]}
               >
                 <Ionicons
                   name={tab.icon}

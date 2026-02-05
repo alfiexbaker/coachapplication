@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -195,7 +195,7 @@ export default function RateCoachScreen() {
         </ThemedView>
 
         <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-          Select a coach you've worked with
+          Select a coach you&apos;ve worked with
         </ThemedText>
 
         <FlatList

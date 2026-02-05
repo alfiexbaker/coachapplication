@@ -85,7 +85,7 @@ function getEntryIcon(
   }
 }
 
-function getDotColor(type: TimelineEntryType, palette: ReturnType<typeof getColors>): string {
+function getDotColor(type: TimelineEntryType, palette: Palette): string {
   switch (type) {
     case 'session':
       return palette.success;
@@ -100,9 +100,7 @@ function getDotColor(type: TimelineEntryType, palette: ReturnType<typeof getColo
   }
 }
 
-function getColors(scheme: 'light' | 'dark') {
-  return Colors[scheme];
-}
+type Palette = (typeof Colors)['light'];
 
 /* ---------- Component ---------- */
 

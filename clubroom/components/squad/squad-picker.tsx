@@ -5,11 +5,10 @@
  * Shows squad name, member count, age group, and allows multi-select.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
@@ -49,15 +48,7 @@ export function SquadPicker({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadSquads();
-  }, [clubId]);
-
-  useEffect(() => {
-    setSelectedIds(selectedSquadIds);
-  }, [selectedSquadIds, visible]);
-
-  const loadSquads = async () => {
+  const loadSquads = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -72,7 +63,15 @@ export function SquadPicker({
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubId, excludeStaffSquad]);
+
+  useEffect(() => {
+    loadSquads();
+  }, [loadSquads]);
+
+  useEffect(() => {
+    setSelectedIds(selectedSquadIds);
+  }, [selectedSquadIds, visible]);
 
   const toggleSquad = (squadId: string) => {
     if (multiSelect) {
@@ -313,11 +312,7 @@ export function InlineSquadSelector({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadSquads();
-  }, [clubId]);
-
-  const loadSquads = async () => {
+  const loadSquads = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -332,7 +327,11 @@ export function InlineSquadSelector({
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubId, excludeStaffSquad]);
+
+  useEffect(() => {
+    loadSquads();
+  }, [loadSquads]);
 
   const toggleSquad = (squadId: string) => {
     if (multiSelect) {

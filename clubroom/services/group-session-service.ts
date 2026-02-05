@@ -14,15 +14,15 @@
  */
 
 import { apiClient } from './api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from './notification-trigger';
 import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective, RecurringPattern } from '@/constants/types';
 import { socialFeedService } from './social-feed-service';
-import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('GroupSessionService');
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // Mock group sessions
 const MOCK_SESSIONS: GroupSession[] = [

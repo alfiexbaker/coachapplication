@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { AnalyticsStatCard, RetentionCard, CancellationChart } from '@/components/analytics';
 import { Colors, Spacing, Radii } from '@/constants/theme';
@@ -19,6 +20,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
 import type { RetentionMetrics, CancellationStats } from '@/constants/types';
+
+const logger = createLogger('RetentionScreen');
 
 /**
  * Retention Metrics Screen
@@ -52,7 +55,7 @@ export default function RetentionScreen() {
       setRetention(retentionData);
       setCancellations(cancellationData);
     } catch (error) {
-      console.error('[RetentionScreen] Failed to fetch data:', error);
+      logger.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }

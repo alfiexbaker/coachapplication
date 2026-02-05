@@ -34,7 +34,7 @@ export default function ConfirmationScreen() {
     if (bookingId) {
       // Booking already created, just navigate
       reset();
-      router.replace(`/booking/${bookingId}`);
+      router.replace(`/booking/${bookingId}` as any);
       return;
     }
 
@@ -47,8 +47,8 @@ export default function ConfirmationScreen() {
       const result = await bookingService.createBooking({
         coachId: coachId || draft.coachId || 'coach_1',
         coachName: draft.coachName || 'Sarah Mitchell',
-        athleteId: draft.childId || 'athlete_1',
-        athleteName: draft.athleteName || 'Tom Henderson',
+        athleteIds: [draft.childId || 'athlete_1'],
+        athleteNames: [draft.athleteName || 'Tom Henderson'],
         bookedById: currentUser?.id || 'unknown',
         bookedByName: currentUser?.name || currentUser?.fullName || 'Unknown',
         scheduledAt: `${draft.date}T${draft.slot}:00`,
@@ -77,7 +77,7 @@ export default function ConfirmationScreen() {
         // Navigate after celebration
         setTimeout(() => {
           reset();
-          router.replace(`/booking/${result.booking!.id}`);
+          router.replace(`/booking/${result.booking!.id}` as any);
         }, 2600);
       } else {
         setError(result.error || 'Failed to create booking. The slot may no longer be available.');

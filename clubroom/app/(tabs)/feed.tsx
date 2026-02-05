@@ -207,6 +207,7 @@ function FeedPost({ post }: { post: AggregatedFeedPost }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DiscoverCoachesCard() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -278,6 +279,7 @@ function ClubHubCard({ clubs }: { clubs: Club[] }) {
   return null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function JoinClubCard({ isCoach }: { isCoach: boolean }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -345,6 +347,7 @@ function JoinClubCard({ isCoach }: { isCoach: boolean }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function OnboardingTipsCard() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -384,6 +387,7 @@ function OnboardingTipsCard() {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function QuickActionsCard({ isCoach }: { isCoach: boolean }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -483,6 +487,7 @@ function EmptyFeedState({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ClubChips({ clubs }: { clubs: Club[] }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -551,8 +556,9 @@ export default function FeedScreen() {
     setRefreshing(false);
   }, [loadFeed]);
 
-  // Get counts for filter badges
-  const filterCounts = useMemo(() => {
+  // Get counts for filter badges (available for future badge display)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _filterCounts = useMemo(() => {
     if (!currentUser?.id) return {};
     const allPosts = socialFeedService.getAggregatedFeed(currentUser.id);
     return {
@@ -562,7 +568,7 @@ export default function FeedScreen() {
       photo: allPosts.filter((p) => p.postType === 'photo').length,
       event: allPosts.filter((p) => p.postType === 'event').length,
     };
-  }, [currentUser?.id, feed]);
+  }, [currentUser?.id]);
 
   return (
     <PageContainer
@@ -1026,5 +1032,66 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Quick Actions Grid
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+  },
+  quickActionItem: {
+    flex: 1,
+    minWidth: 100,
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  // Club Chips
+  clubChipsScroll: {
+    marginTop: Spacing.sm,
+  },
+  clubChipsContainer: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  clubChipsLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  clubChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  clubChipIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clubChipIconText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  clubChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    maxWidth: 100,
   },
 });

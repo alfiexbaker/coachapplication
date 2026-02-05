@@ -269,7 +269,7 @@ describe('GoalCard Component Logic', () => {
 
   describe('Interaction Logic', () => {
     test('goal should be pressable when onPress is provided', () => {
-      const goal = createMockGoal();
+      createMockGoal();
       let pressed = false;
       const onPress = () => {
         pressed = true;

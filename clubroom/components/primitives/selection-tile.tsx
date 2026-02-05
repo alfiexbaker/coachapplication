@@ -44,7 +44,7 @@ export function SelectionTile({
         },
       ]}
     >
-      <View style={[styles.content, layout === 'row' && styles.rowContent]}>
+      <View style={[styles.content, layout === 'row' ? styles.rowContent : undefined]}>
         {iconName && (
           <View style={[styles.icon, { backgroundColor: `${palette.tint}20` }]}>
             <Ionicons name={iconName} size={22} color={palette.tint} />

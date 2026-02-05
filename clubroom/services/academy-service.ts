@@ -13,6 +13,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/constants/config';
 import type { Academy, AcademyMembership, AcademyInvite, AcademyPermission, SportCategory, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
@@ -21,7 +22,7 @@ const logger = createLogger('AcademyService');
 const ACADEMIES_STORAGE_KEY = 'academies';
 const MEMBERSHIPS_STORAGE_KEY = 'academy_memberships';
 const INVITES_STORAGE_KEY = 'academy_invites';
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // Mock academies
 const MOCK_ACADEMIES: Academy[] = [

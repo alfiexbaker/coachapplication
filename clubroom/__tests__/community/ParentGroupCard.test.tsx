@@ -332,7 +332,7 @@ describe('ParentGroupCard Edge Cases', () => {
 
 describe('ParentGroupCard Interaction Logic', () => {
   test('group should be pressable when onPress is provided', () => {
-    const group = createMockGroup();
+    createMockGroup();
     let pressed = false;
     const onPress = () => {
       pressed = true;

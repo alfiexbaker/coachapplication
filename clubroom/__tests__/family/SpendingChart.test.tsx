@@ -7,7 +7,7 @@
 
 import assert from 'node:assert';
 import test, { describe } from 'node:test';
-import type { FamilySpending, FamilySpendingMonth } from '../../constants/types';
+import type { FamilySpending } from '../../constants/types';
 
 // Mock spending data for testing
 const mockSpending: FamilySpending[] = [

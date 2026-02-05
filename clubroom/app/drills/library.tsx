@@ -15,7 +15,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { DrillList } from '@/components/drills';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import type { Drill, DrillCategory } from '@/constants/types';
@@ -23,8 +22,11 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
 
 const CATEGORIES: (DrillCategory | null)[] = [null, 'WARMUP', 'TECHNIQUE', 'FITNESS', 'COOLDOWN', 'TACTICAL'];
+
+const logger = createLogger('DrillLibraryScreen');
 
 /**
  * Drill library screen for coaches to manage their drills.
@@ -39,7 +41,7 @@ export default function DrillLibraryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<DrillCategory | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
 
   // Get current coach ID
   const coachId = currentUser?.id ?? 'coach1';
@@ -52,7 +54,7 @@ export default function DrillLibraryScreen() {
       const data = await drillService.getDrillLibrary(coachId);
       setDrills(data);
     } catch (error) {
-      console.error('Failed to load drill library:', error);
+      logger.error('Failed to load drill library:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

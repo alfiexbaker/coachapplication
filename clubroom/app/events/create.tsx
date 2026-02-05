@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
@@ -18,6 +19,8 @@ import { squadService } from '@/services/squad-service';
 import { inviteService as bulkInviteService } from '@/services/invite-service';
 import type { ClubEventType, EventTargetAudience, ClubSquad } from '@/constants/types';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('CreateEventScreen');
 
 // Default club ID for demo
 const DEFAULT_CLUB_ID = 'club_lions';
@@ -79,7 +82,7 @@ export default function CreateEventScreen() {
       const data = await squadService.getSquads(DEFAULT_CLUB_ID);
       setSquads(data.filter(s => !s.name.toLowerCase().includes('staff')));
     } catch (error) {
-      console.error('Failed to load squads:', error);
+      logger.error('Failed to load squads:', error);
     }
   };
 
@@ -199,7 +202,7 @@ export default function CreateEventScreen() {
         });
       }
     } catch (error) {
-      console.error('Failed to create event:', error);
+      logger.error('Failed to create event:', error);
       Alert.alert('Error', 'Failed to create event. Please try again.');
     } finally {
       setLoading(false);

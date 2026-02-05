@@ -1,10 +1,17 @@
+/**
+ * LoginScreen - Authentication entry point using unified form system.
+ *
+ * Uses useForm for credential state and validation.
+ * Uses FormInput for consistent input styling.
+ * Uses FormButton for consistent button styling.
+ */
+
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,7 +19,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { FormInput, FormButton } from '@/components/forms';
+import { useForm } from '@/hooks/use-form';
+import { validators } from '@/utils/validation';
+import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
@@ -20,23 +30,31 @@ import OnboardingScreen from './onboarding-screen';
 
 type ScreenMode = 'login' | 'signup' | 'coach-signup';
 
+interface LoginFormValues {
+  username: string;
+  password: string;
+}
+
 export default function LoginScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { login, error, availableUsers, registerCoach } = useAuth();
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
 
-  const handleSubmit = () => {
-    if (!username || !password) {
-      return;
-    }
-
-    login(username, password);
-  };
+  const form = useForm<LoginFormValues>({
+    initialValues: {
+      username: '',
+      password: '',
+    },
+    validators: {
+      username: validators.required('Username is required'),
+      password: validators.required('Password is required'),
+    },
+    onSubmit: async (values) => {
+      login(values.username, values.password);
+    },
+  });
 
   const handleSignupComplete = (data: CoachSignupData) => {
     const success = registerCoach(data);
@@ -46,12 +64,10 @@ export default function LoginScreen() {
   };
 
   const handleOnboardingComplete = () => {
-    // For now, just go back to login
-    // In production, this would auto-login the new user
-    setScreenMode('login');
+    // User is already auto-logged in by registerFromOnboarding
+    // The auth gate will automatically redirect to the main app
+    // No action needed here - the AuthProvider has already set currentUser
   };
-
-  const disabled = !username || !password;
 
   // Show onboarding screen for new signups
   if (screenMode === 'signup') {
@@ -89,77 +105,45 @@ export default function LoginScreen() {
             Use one of the preloaded accounts below to explore every screen from a specific
             perspective.
           </ThemedText>
-          <View style={styles.fieldGroup}>
-            <ThemedText style={styles.label}>Username</ThemedText>
-            <TextInput
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="e.g. coach"
-              placeholderTextColor={palette.muted}
-              style={[styles.input, { borderColor: palette.border, backgroundColor: palette.card }]}
-              returnKeyType="next"
-              onSubmitEditing={() => handleSubmit()}
-            />
-          </View>
+          <FormInput
+            label="Username"
+            placeholder="e.g. coach"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="next"
+            {...form.getFieldProps('username')}
+          />
+
           <View style={styles.fieldGroup}>
             <View style={styles.labelRow}>
-              <ThemedText style={styles.label}>Password</ThemedText>
+              <View />
               <Pressable onPress={() => setScreenMode('login')}>
                 <ThemedText style={[styles.forgotLink, { color: palette.tint }]}>
                   Forgot password?
                 </ThemedText>
               </Pressable>
             </View>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                placeholder="••••••••"
-                placeholderTextColor={palette.muted}
-                style={[styles.passwordInput, { borderColor: palette.border, backgroundColor: palette.card }]}
-                returnKeyType="go"
-                onSubmitEditing={handleSubmit}
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-                hitSlop={8}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  color={palette.muted}
-                />
-              </Pressable>
-            </View>
+            <FormInput
+              label="Password"
+              placeholder="••••••••"
+              type="password"
+              returnKeyType="go"
+              {...form.getFieldProps('password')}
+            />
           </View>
+
           {error ? (
             <ThemedText style={[styles.helper, { color: Colors[scheme].error }]}>{error}</ThemedText>
           ) : (
             <ThemedText style={styles.helper}>Credentials are case-insensitive.</ThemedText>
           )}
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [
-              styles.button,
-              {
-                backgroundColor: disabled
-                  ? palette.border
-                  : pressed
-                    ? palette.tintPressed
-                    : palette.tint,
-                opacity: pressed || disabled ? 0.9 : 1,
-              },
-            ]}
-            disabled={disabled}
-            onPress={handleSubmit}>
-            <ThemedText style={styles.buttonLabel} lightColor="#FFFFFF" darkColor="#000000">
-              Continue
-            </ThemedText>
-          </Pressable>
+
+          <FormButton
+            label="Continue"
+            onPress={form.handleSubmit}
+            disabled={!form.isDirty}
+            loading={form.isSubmitting}
+          />
         </SurfaceCard>
 
         {/* Create Account Card */}
@@ -236,55 +220,19 @@ const styles = StyleSheet.create({
   fieldGroup: {
     gap: Spacing.xs,
   },
-  label: {
-    fontWeight: '600',
-  },
   labelRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
+    marginBottom: -Spacing.sm,
   },
   forgotLink: {
     fontSize: 14,
     fontWeight: '500',
   },
-  input: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    fontSize: 16,
-  },
-  passwordContainer: {
-    position: 'relative',
-  },
-  passwordInput: {
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    paddingRight: 48,
-    fontSize: 16,
-  },
-  eyeButton: {
-    position: 'absolute',
-    right: Spacing.md,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-  },
   helper: {
     fontSize: 14,
     opacity: 0.9,
-  },
-  button: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-  },
-  buttonLabel: {
-    fontWeight: '600',
   },
   signupCard: {
     flexDirection: 'row',

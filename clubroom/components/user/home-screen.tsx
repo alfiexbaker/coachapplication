@@ -134,7 +134,7 @@ export function UserHomeScreen() {
         {/* Child Switcher - no "All" option to avoid messy badge aggregation */}
         {hasChildren(currentUser) && currentUser.children && (
           <ChildSwitcher
-            children={currentUser.children}
+            childrenList={currentUser.children}
             selectedId={selectedChildId}
             onSelect={setSelectedChildId}
             showAll={false}

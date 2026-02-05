@@ -229,7 +229,7 @@ export function ProgressReport({
       {coachNote ? (
         <View style={styles.section}>
           <ThemedText style={[styles.sectionTitle, { color: palette.foreground }]}>
-            Coach's Note
+            Coach&apos;s Note
           </ThemedText>
           <View style={[styles.noteBox, { backgroundColor: palette.surfaceSecondary }]}>
             <ThemedText style={[styles.noteText, { color: palette.foreground }]}>

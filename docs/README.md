@@ -2,37 +2,37 @@
 
 This folder keeps the shared source of truth for Clubroom. Use it to stay aligned on what exists, what comes next, and how to extend current flows without reinventing them.
 
+## Quick Start for AI Assistants
+
+1. **Read `SOURCE_OF_TRUTH.md`** - Understand the product vision, roles (Coach, Parent, User), and core principles
+2. **Check `sprints/pre-api/README.md`** - See current work status and sprint roadmap
+3. **Reference `features/`** - Detailed specs for each system (booking, messaging, clubs, etc.)
+4. **Follow `UI_STANDARDS.md`** - Design tokens, component patterns, and theming
+
 ## How to work with these docs
-- Start with `SOURCE_OF_TRUTH.md` to understand the product vision, role experiences, and non-negotiable principles.
-- Map every change to one or more product spines in `SPINE_CATEGORIES.md`; prefer extending the nearest existing flow before proposing anything net-new.
-- Use the sprint briefs in `sprints/` to scope work; keep them frontend-first with mock data unless a backend dependency is explicitly called out.
-- If something feels unclear, update the docs first so intent is searchable before you touch code.
 
-## Document map
-- **SOURCE_OF_TRUTH.md** – Vision, roles, current phase, and key decisions.
-- **SPINE_CATEGORIES.md** – Four product spines (Community, Booking/Revenue, Development, Trust/Ops) and how to apply them.
-- **sprints/** – Current four-sprint plan with scope and deliverables per sprint.
-- **vision/** – Role requirements, feature specs, and software design notes that inform the sprint work.
-- **vision/facebook_parity.md** – Gap analysis to bring community features to Facebook-level quality without adding parallel systems.
-- **technical/** – Data and architecture notes to keep future backend/API work aligned.
-- **functional_overview.md** – Plaintext recap of current app capabilities across navigation, messaging, booking, and scheduling.
+- Map every change to one or more product spines in `SPINE_CATEGORIES.md`
+- Prefer extending existing flows before proposing anything net-new
+- Use sprint briefs in `sprints/pre-api/` to scope work
+- Frontend-first with mock data; backend dependencies are explicitly called out
 
-## Future additions
-- Add API contracts and data schemas here as they mature so frontend and backend stay in lockstep.
-- Capture major design decisions (and their trade-offs) as ADR-style notes in this folder for quick onboarding.
+## Document Map
 
----
+### Core Vision
+| Document | Purpose |
+|----------|---------|
+| `SOURCE_OF_TRUTH.md` | Vision, roles, current phase, key decisions |
+| `SPINE_CATEGORIES.md` | Four product spines (Community, Booking, Development, Trust) |
+| `UI_STANDARDS.md` | Design tokens, typography, spacing, component patterns |
 
-## Deep Analysis Documentation (January 2026)
+### Current Work
+| Document | Purpose |
+|----------|---------|
+| `sprints/pre-api/README.md` | Sprint roadmap and status |
+| `sprints/pre-api/STATUS.md` | Current completion status |
+| `sprints/pre-api/API_README.md` | API contracts and integration notes |
 
-### Overview Documents
-| Document | Description |
-|----------|-------------|
-| [COMPREHENSIVE-ANALYSIS.md](./COMPREHENSIVE-ANALYSIS.md) | Full codebase analysis - user types, relationships, issues |
-| [ACTION-PLAN.md](./ACTION-PLAN.md) | Implementation roadmap with code examples |
-| [CONNECTION-MAP.md](./CONNECTION-MAP.md) | Visual diagrams of all entity relationships |
-
-### Feature-by-Feature Documentation
+### Feature Specifications
 | Feature | Description |
 |---------|-------------|
 | [Booking System](./features/BOOKING-SYSTEM.md) | Sessions, invites, group sessions, payments, availability |
@@ -42,22 +42,50 @@ This folder keeps the shared source of truth for Clubroom. Use it to stay aligne
 | [Profile System](./features/PROFILE-SYSTEM.md) | Coach/user profiles, verification, privacy |
 | [Review System](./features/REVIEW-SYSTEM.md) | Reviews, ratings, session feedback |
 
-### Key Findings Summary
+### Analysis & Planning
+| Document | Purpose |
+|----------|---------|
+| `COMPREHENSIVE-ANALYSIS.md` | Full codebase analysis - user types, relationships |
+| `FEATURE_GAPS.md` | Gap analysis and feature audit |
+| `REVIEW_USER_STORIES_API_READINESS.md` | API readiness assessment |
 
-**Critical Bugs:**
-- Session invites don't create bookings on acceptance
-- Audience filtering not enforced in club feed
-- Privacy settings are UI-only (no backend enforcement)
+### Architecture Reference
+| Document | Purpose |
+|----------|---------|
+| `technical/DATA_ARCHITECTURE.md` | Data models and storage patterns |
+| `technical/DB_MODEL_NOTES.md` | Database schema notes for backend |
+| `vision/SOFTWARE_DESIGN_DOCUMENT.md` | System architecture overview |
 
-**Non-Bilateral Relationships:**
-- Reviews: Parent → Coach only (no coach feedback on athletes)
-- Following: Missing entirely
-- Messaging: Booking-scoped only (no direct messages)
-- Blocking: UI exists but not enforced
+## Codebase Structure
 
-**Recommended Changes:**
-1. Simplify 4 user types (COACH, USER, PARENT, ADMIN) to 2 (USER, COACH)
-2. COACH can be individual or organization with `isLive` flag
-3. USER can be athlete AND/OR parent with `children[]` array
+```
+clubroom/
+├── app/              # Expo Router pages (file-based routing)
+├── components/       # Reusable UI components
+│   ├── primitives/   # Base components (Badge, Button, Card)
+│   ├── ui/           # Composed components (EmptyState, LoadingState)
+│   ├── coach/        # Coach-specific components
+│   ├── parent/       # Parent-specific components
+│   └── booking/      # Booking flow components
+├── services/         # Business logic (mock-ready, API-ready)
+├── hooks/            # Custom React hooks
+├── constants/        # Config, types, theme tokens
+└── utils/            # Utilities (logger, validation)
+```
 
-**Entity Count:** 66 interfaces, 97 routes, 131 components, 23 services
+## Key Patterns
+
+### Services
+- All services use centralized config (`constants/config.ts`)
+- `USE_MOCK = api.useMock` toggles mock/API mode
+- Every service has API integration notes in comments
+
+### Components
+- Use theme tokens from `constants/theme.ts`
+- Follow variant patterns (e.g., `CoachCard` with `compact | discovery | favourite`)
+- Use `LoadingState`, `ErrorState`, `EmptyState` for screen states
+
+### Forms
+- Use `useForm` hook for form state management
+- Use validators from `utils/validation.ts`
+- Use `FormInput`, `FormButton` components

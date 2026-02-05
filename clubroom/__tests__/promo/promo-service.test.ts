@@ -9,7 +9,7 @@ import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
 import { promoService } from '../../services/promo-service';
-import type { PromoCode, CreatePromoCodeParams } from '../../constants/types';
+import type { CreatePromoCodeParams } from '../../constants/types';
 
 // Reset to mock data before each test
 beforeEach(async () => {
@@ -455,7 +455,7 @@ describe('Promo Service', () => {
     });
 
     test('getStatusInfo should return correct info', () => {
-      const statuses: Array<'active' | 'expired' | 'exhausted' | 'inactive'> = [
+      const statuses: ('active' | 'expired' | 'exhausted' | 'inactive')[] = [
         'active',
         'expired',
         'exhausted',
@@ -507,7 +507,7 @@ describe('Promo Service', () => {
       await promoService.clearAllData();
 
       const codes = await promoService.getAllPromoCodes();
-      const stats = await promoService.getCodeStats();
+      // getCodeStats() is available but not needed for this assertion
 
       // After clearing, it returns mock data as fallback
       // but we can check the stats are 0 or codes are from mock

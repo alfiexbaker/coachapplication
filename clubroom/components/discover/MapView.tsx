@@ -15,17 +15,12 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 
 import { CoachMarker, ClusterMarker } from './CoachMarker';
 import { CoachCard } from './coach-card';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CoachProfile, CoachSearchResult } from '@/constants/types';
 

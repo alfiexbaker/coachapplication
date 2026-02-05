@@ -32,8 +32,7 @@ export function AnnotationBadge({
   showLabel = true,
   onPress,
 }: AnnotationBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  useColorScheme();
 
   const config = ANNOTATION_TYPE_CONFIG[type];
 

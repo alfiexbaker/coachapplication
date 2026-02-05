@@ -211,7 +211,7 @@ export function RSVPButton({
             <>
               <Ionicons name="close" size={18} color={getTextColor('NOT_GOING')} />
               <ThemedText style={[styles.rsvpButtonText, { color: getTextColor('NOT_GOING') }]}>
-                Can't Go
+                Can&apos;t Go
               </ThemedText>
             </>
           )}

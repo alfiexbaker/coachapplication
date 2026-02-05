@@ -16,10 +16,8 @@ import {
   Platform,
 } from 'react-native';
 
-import { DifficultyBadge } from './DifficultyBadge';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Components } from '@/constants/theme';
 import type { DrillCategory, DrillDifficulty, CreateDrillInput } from '@/constants/types';

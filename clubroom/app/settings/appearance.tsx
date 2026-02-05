@@ -35,7 +35,7 @@ function ThemeCard({ label, value, selected, onSelect, icon, description }: Them
       <SurfaceCard
         style={[
           styles.themeCard,
-          selected && { borderColor: palette.accent, borderWidth: 2 },
+          selected ? { borderColor: palette.accent, borderWidth: 2 } : undefined,
         ]}
       >
         <View style={[styles.themeIconContainer, { backgroundColor: `${palette.accent}15` }]}>

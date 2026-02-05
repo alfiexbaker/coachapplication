@@ -1,9 +1,8 @@
 import type {
   User,
-  UserRole,
   CoachProfile,
   UserProfile,
-  Relationship,
+  ChildRelationship,
   Booking,
   Session,
   Conversation,
@@ -11,9 +10,17 @@ import type {
   Post,
   Comment,
   Review,
-  SkillLevel,
-  BookingStatus,
-} from './app-types';
+
+  SessionTemplate,
+  CoachSession,
+  GuestAthlete,
+  SessionRequest,
+  AthleteDirectoryEntry,
+  SessionPlan,
+  SessionRecap,
+  AppNotification,
+  PaymentInfo,
+  TeamInviteCode} from './app-types';
 
 import type {
   ChatThreadSummary,
@@ -30,8 +37,14 @@ import type {
   ClubInvite,
   ClubSquad,
   SessionOffering,
-  SocialLinks,
+  AthleteObjective,
+  School,
+  InviteCode,
+  FootballObjective,
 } from './types';
+
+// ===== SESSION MANAGEMENT DATA =====
+
 
 // ===== USERS =====
 export const MOCK_USERS: User[] = [
@@ -297,7 +310,6 @@ export const MOCK_USER_PROFILES: UserProfile[] = [
     skillLevel: 'INTERMEDIATE',
     position: 'Striker',
     goals: [], // Will be populated from MOCK_GOALS
-    parentId: 'user4',
   },
   {
     userId: 'user2',
@@ -305,7 +317,6 @@ export const MOCK_USER_PROFILES: UserProfile[] = [
     skillLevel: 'BEGINNER',
     position: 'Midfielder',
     goals: [],
-    parentId: 'user4',
   },
   {
     userId: 'user3',
@@ -313,27 +324,26 @@ export const MOCK_USER_PROFILES: UserProfile[] = [
     skillLevel: 'ADVANCED',
     position: 'Winger',
     goals: [],
-    parentId: 'user5',
   },
 ];
 
 // ===== RELATIONSHIPS =====
-export const MOCK_RELATIONSHIPS: Relationship[] = [
+export const MOCK_RELATIONSHIPS: ChildRelationship[] = [
   {
     id: 'rel1',
-    parentId: 'user4',
+    userId: 'user4',
     childId: 'user1',
     relationshipType: 'PARENT_CHILD',
   },
   {
     id: 'rel2',
-    parentId: 'user4',
+    userId: 'user4',
     childId: 'user2',
     relationshipType: 'PARENT_CHILD',
   },
   {
     id: 'rel3',
-    parentId: 'user5',
+    userId: 'user5',
     childId: 'user3',
     relationshipType: 'PARENT_CHILD',
   },
@@ -1455,14 +1465,14 @@ export function getUserProfile(userId: string): UserProfile | undefined {
 }
 
 export function getChildrenForParent(parentId: string): User[] {
-  const childIds = MOCK_RELATIONSHIPS.filter((r) => r.parentId === parentId).map((r) => r.childId);
+  const childIds = MOCK_RELATIONSHIPS.filter((r) => r.userId === parentId).map((r) => r.childId);
   return MOCK_USERS.filter((u) => childIds.includes(u.id));
 }
 
 export function getParentForAthlete(athleteId: string): User | undefined {
   const relationship = MOCK_RELATIONSHIPS.find((r) => r.childId === athleteId);
   if (!relationship) return undefined;
-  return MOCK_USERS.find((u) => u.id === relationship.parentId);
+  return MOCK_USERS.find((u) => u.id === relationship.userId);
 }
 
 export function getBookingsForCoach(coachId: string): Booking[] {
@@ -1524,7 +1534,7 @@ export function getPostById(postId: string): Post | undefined {
 }
 
 // Get all coaches with their profiles (for search/discover)
-export function getAllCoachesWithProfiles(): Array<User & { profile: CoachProfile }> {
+export function getAllCoachesWithProfiles(): (User & { profile: CoachProfile })[] {
   return MOCK_USERS.filter((u) => u.role === 'COACH').map((coach) => ({
     ...coach,
     profile: getCoachProfile(coach.id)!,
@@ -1556,22 +1566,6 @@ export function formatDate(date: Date | string): string {
 export function formatDateTime(date: Date | string): string {
   return `${formatDate(date)}, ${formatTime(date)}`;
 }
-
-// ===== SESSION MANAGEMENT DATA =====
-
-import type {
-  SessionTemplate,
-  CoachSession,
-  SessionState,
-  GuestAthlete,
-  SessionRequest,
-  AthleteDirectoryEntry,
-  SessionPlan,
-  SessionRecap,
-  AppNotification,
-  PaymentInfo,
-  TeamInviteCode,
-} from './app-types';
 
 // Session Templates
 export const MOCK_SESSION_TEMPLATES: SessionTemplate[] = [
@@ -2972,6 +2966,35 @@ export function togglePinPost(postId: string, pinnedBy: string): boolean {
   return post.isPinned;
 }
 
+// Track user reactions in memory (simple mock implementation)
+const userReactions: Map<string, Set<string>> = new Map();
+
+export function togglePostReaction(postId: string, userId: string): boolean {
+  const post = clubFeedPosts.find((p) => p.id === postId);
+  if (!post) return false;
+
+  const key = `${postId}`;
+  if (!userReactions.has(key)) {
+    userReactions.set(key, new Set());
+  }
+  const reactions = userReactions.get(key)!;
+
+  if (reactions.has(userId)) {
+    reactions.delete(userId);
+    post.reactionCount = Math.max(0, (post.reactionCount || 0) - 1);
+    return false; // Removed reaction
+  } else {
+    reactions.add(userId);
+    post.reactionCount = (post.reactionCount || 0) + 1;
+    return true; // Added reaction
+  }
+}
+
+export function hasUserReacted(postId: string, userId: string): boolean {
+  const key = `${postId}`;
+  return userReactions.get(key)?.has(userId) ?? false;
+}
+
 export function getPinnedPosts(clubId: string): ClubFeedPost[] {
   return clubFeedPosts.filter((post) => post.clubId === clubId && post.isPinned);
 }
@@ -2993,16 +3016,16 @@ export function getClubInvites(clubId: string): ClubInvite[] {
 // Chat threads for MessagesScreen
 const BASE_CHAT_THREADS: ChatThreadSummary[] = MOCK_CONVERSATIONS.map((conv) => ({
   id: conv.id,
-  kind: 'direct',
-  bookingId: conv.relatedBookingId || 'book1', // Mock booking ID fallback
-  coachName: conv.coachName,
-  childName: conv.athleteName,
+  kind: 'direct' as const,
+  bookingId: conv.relatedBookingId || 'book1',
+  coachName: conv.coachName ?? 'Coach',
+  childName: conv.athleteName ?? 'Athlete',
   serviceName: 'Coaching Session',
   location: 'Hyde Park',
   scheduledFor: conv.lastMessageAt,
-  unreadCount: conv.unreadCount,
+  unreadCount: conv.unreadCount ?? 0,
   safetyCopy: 'All conversations are monitored for safety',
-  pinnedObjectives: ['Finishing', 'Passing'],
+  pinnedObjectives: ['Finishing', 'Passing'] as FootballObjective[],
   lastMessageSnippet: conv.lastMessage,
   lastMessageSender: conv.coachName,
   title: `${conv.athleteName} x ${conv.coachName}`,
@@ -3330,18 +3353,18 @@ export const upcomingBookings: BookingSummary[] = MOCK_BOOKINGS.filter(
   (b) => new Date(b.scheduledAt) > today
 ).map((booking) => ({
   id: booking.id,
-  coachName: booking.coachName,
-  childName: booking.athleteName,
+  coachName: booking.coachName ?? 'Coach',
+  childName: booking.athleteName ?? 'Athlete',
   service: booking.isGroupSession ? 'Group Coaching Session' : 'Football Coaching',
   start: booking.scheduledAt,
   status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
   locationLabel: booking.location,
   coach: {
-    name: booking.coachName,
+    name: booking.coachName ?? 'Coach',
     photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
   },
   client: {
-    name: booking.athleteName,
+    name: booking.athleteName ?? 'Athlete',
     photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
   },
   coachId: booking.coachId,
@@ -3350,7 +3373,7 @@ export const upcomingBookings: BookingSummary[] = MOCK_BOOKINGS.filter(
   isGroupSession: booking.isGroupSession,
   maxParticipants: booking.maxParticipants,
   currentParticipants: booking.currentParticipants,
-  participants: booking.participants,
+  participants: booking.participants ?? [],
 }));
 
 // Session history for StatisticsScreen
@@ -3378,3 +3401,101 @@ export const athleteSkillLevels = [
   { skill: 'Command of Box', level: 73 },
   { skill: 'Reaction Speed', level: 82 },
 ];
+
+// Schools for admin invite codes
+export const schools: School[] = [
+  {
+    id: 'school1',
+    name: 'Riverside Academy',
+    address: '123 River Lane',
+    city: 'London',
+    state: 'Greater London',
+    zipCode: 'E1 2AB',
+    photoUrl: 'https://picsum.photos/seed/school1/200',
+    description: 'Premier football academy',
+    activeCoachesCount: 12,
+    createdAt: '2024-01-15T10:00:00Z',
+  },
+  {
+    id: 'school2',
+    name: 'Elite Sports Centre',
+    address: '456 Park Road',
+    city: 'Manchester',
+    state: 'Greater Manchester',
+    zipCode: 'M1 3CD',
+    photoUrl: 'https://picsum.photos/seed/school2/200',
+    description: 'Multi-sport training facility',
+    activeCoachesCount: 8,
+    createdAt: '2024-02-20T10:00:00Z',
+  },
+];
+
+export const inviteCodes: InviteCode[] = [
+  {
+    id: 'invite1',
+    code: 'RIVER2025',
+    schoolId: 'school1',
+    schoolName: 'Riverside Academy',
+    createdBy: 'admin1',
+    createdAt: '2025-01-01T10:00:00Z',
+    expiresAt: '2025-12-31T23:59:59Z',
+    maxUses: 50,
+    currentUses: 12,
+    status: 'active',
+  },
+  {
+    id: 'invite2',
+    code: 'ELITE2025',
+    schoolId: 'school2',
+    schoolName: 'Elite Sports Centre',
+    createdBy: 'admin1',
+    createdAt: '2025-01-15T10:00:00Z',
+    expiresAt: '2025-06-30T23:59:59Z',
+    maxUses: 30,
+    currentUses: 30,
+    status: 'exhausted',
+  },
+];
+
+// Alias exports for convenience
+export const bookings = MOCK_BOOKINGS;
+
+// Mock athlete objectives
+const MOCK_ATHLETE_OBJECTIVES: AthleteObjective[] = [
+  {
+    id: 'obj1',
+    athleteId: 'user1',
+    label: 'Finishing',
+    status: 'active',
+    updatedAt: '2025-01-15T10:00:00Z',
+    note: 'Working on shooting accuracy',
+    coachName: 'Sarah Mitchell',
+    progress: 65,
+    sessionsCompleted: 5,
+    startDate: '2024-12-01T10:00:00Z',
+  },
+  {
+    id: 'obj2',
+    athleteId: 'user1',
+    label: 'Passing',
+    status: 'active',
+    updatedAt: '2025-01-10T10:00:00Z',
+    coachName: 'Mike Thompson',
+    progress: 40,
+    sessionsCompleted: 3,
+    startDate: '2025-01-01T10:00:00Z',
+  },
+  {
+    id: 'obj3',
+    athleteId: 'user2',
+    label: 'Dribbling',
+    status: 'active',
+    updatedAt: '2025-01-12T10:00:00Z',
+    coachName: 'Sarah Mitchell',
+    progress: 80,
+    sessionsCompleted: 8,
+    startDate: '2024-11-15T10:00:00Z',
+  },
+];
+
+export const activeObjectives: AthleteObjective[] = MOCK_ATHLETE_OBJECTIVES.filter(obj => obj.status === 'active');

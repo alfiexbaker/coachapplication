@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -14,20 +15,16 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite-service';
 import { rosterService } from '@/services/roster-service';
+import { squadService } from '@/services/squad-service';
 import type { TimeSlot, RosterEntry } from '@/constants/types';
+
+const logger = createLogger('GroupInviteScreen');
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Trial'];
 const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
 
 type Step = 'target' | 'athletes' | 'type' | 'slots' | 'preview' | 'confirm';
 type TargetType = 'individual' | 'squad' | 'custom';
-
-// Mock squads for demonstration
-const MOCK_SQUADS: Squad[] = [
-  { id: 'squad_1', name: 'U12 Eagles' },
-  { id: 'squad_2', name: 'U14 Hawks' },
-  { id: 'squad_3', name: 'Beginners Group' },
-];
 
 export default function GroupInviteScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -52,26 +49,41 @@ export default function GroupInviteScreen() {
   const [slotEndTime, setSlotEndTime] = useState('');
   const [slotLocation, setSlotLocation] = useState('');
 
-  // Roster data
+  // Roster and squad data
   const [roster, setRoster] = useState<RosterEntry[]>([]);
-  const [loadingRoster, setLoadingRoster] = useState(false);
+  const [squads, setSquads] = useState<Squad[]>([]);
+  const [, setLoadingRoster] = useState(false);
 
-  useEffect(() => {
-    loadRoster();
-  }, [currentUser?.id]);
-
-  const loadRoster = async () => {
+  const loadRoster = useCallback(async () => {
     if (!currentUser?.id) return;
     setLoadingRoster(true);
     try {
       const data = await rosterService.getRoster(currentUser.id, { status: 'ACTIVE' });
       setRoster(data);
     } catch (error) {
-      console.error('Failed to load roster:', error);
+      logger.error('Failed to load roster', error);
     } finally {
       setLoadingRoster(false);
     }
-  };
+  }, [currentUser?.id]);
+
+  const loadSquads = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      // Get coach's club ID - default to 'club_premier' for now
+      const clubId = (currentUser as any).clubId || 'club_premier';
+      const clubSquads = await squadService.getCoachSquads(currentUser.id, clubId);
+      // Map to Squad format expected by InviteAthleteModal
+      setSquads(clubSquads.map((s) => ({ id: s.id, name: s.name })));
+    } catch (error) {
+      logger.error('Failed to load squads', error);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    loadRoster();
+    loadSquads();
+  }, [loadRoster, loadSquads]);
 
   // Convert roster entries to Athlete format
   const rosterAsAthletes: Athlete[] = roster.map((r) => ({
@@ -210,7 +222,7 @@ export default function GroupInviteScreen() {
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
-      console.error('Failed to create bulk invites:', error);
+      logger.error('Failed to create bulk invites', error);
       Alert.alert('Error', 'Failed to send invites. Please try again.');
     } finally {
       setLoading(false);
@@ -333,7 +345,7 @@ export default function GroupInviteScreen() {
         <Animated.View entering={FadeInDown.springify()} style={styles.squadSelector}>
           <ThemedText style={styles.formLabel}>Select a Squad</ThemedText>
           <View style={styles.squadList}>
-            {MOCK_SQUADS.map((squad) => (
+            {squads.map((squad) => (
               <Clickable
                 key={squad.id}
                 onPress={() => handleSquadSelect(squad.id)}
@@ -707,7 +719,7 @@ export default function GroupInviteScreen() {
         onClose={() => setShowAthleteModal(false)}
         onSelect={handleAthletesSelected}
         athletes={rosterAsAthletes}
-        squads={MOCK_SQUADS}
+        squads={squads}
         multiSelect={true}
         title="Select Athletes"
       />

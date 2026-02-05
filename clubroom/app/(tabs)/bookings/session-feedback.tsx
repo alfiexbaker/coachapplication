@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,15 +18,6 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SessionFeedbackScreen');
 
-const FOOTBALL_SKILLS: FootballObjective[] = [
-  'Dribbling',
-  'Passing',
-  'Defending',
-  'Finishing',
-  'Goalkeeping',
-  'Conditioning',
-];
-
 export default function SessionFeedbackScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -36,9 +27,10 @@ export default function SessionFeedbackScreen() {
 
   // Get athlete's objectives from params
   const athleteObjectivesParam = params.athleteObjectives as string;
-  const athleteObjectives: FootballObjective[] = athleteObjectivesParam
-    ? JSON.parse(athleteObjectivesParam)
-    : [];
+  const athleteObjectives: FootballObjective[] = useMemo(() =>
+    athleteObjectivesParam ? JSON.parse(athleteObjectivesParam) : [],
+    [athleteObjectivesParam]
+  );
   const athleteName = (params.athleteName as string) || 'the athlete';
   const athleteId = params.athleteId as string;
   const bookingId = params.bookingId as string;

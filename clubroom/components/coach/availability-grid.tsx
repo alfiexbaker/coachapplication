@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -127,7 +127,7 @@ export function AvailabilityGrid({
 
               {/* Day Cells */}
               {DAYS.map((_, dayIndex) => {
-                const { available, template } = getSlotStatus(dayIndex, hour);
+                const { available } = getSlotStatus(dayIndex, hour);
                 const isSelected = selectedDay === dayIndex;
 
                 return (

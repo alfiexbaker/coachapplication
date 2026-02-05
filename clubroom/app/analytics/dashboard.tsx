@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import {
   AnalyticsStatCard,
@@ -25,6 +26,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
 import type { CoachAnalytics, CoachAnalyticsPeriod } from '@/constants/types';
+
+const logger = createLogger('AnalyticsDashboardScreen');
 
 const PERIOD_OPTIONS: { label: string; value: CoachAnalyticsPeriod }[] = [
   { label: 'Week', value: 'WEEK' },
@@ -62,7 +65,7 @@ export default function AnalyticsDashboardScreen() {
       const data = await coachAnalyticsService.getCoachAnalytics(currentUser.id, period);
       setAnalytics(data);
     } catch (error) {
-      console.error('[AnalyticsDashboard] Failed to fetch analytics:', error);
+      logger.error('Failed to fetch analytics:', error);
     } finally {
       setLoading(false);
     }

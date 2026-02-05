@@ -9,7 +9,7 @@
  * - Configurable styles and labels
  */
 
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -112,7 +112,7 @@ export function BulkInviteButton({
   const sizeStyles = getSizeStyles();
 
   return (
-    <View style={[styles.container, fullWidth && styles.fullWidth]}>
+    <View style={[styles.container, fullWidth ? styles.fullWidth : undefined]}>
       <Clickable
         onPress={onPress}
         disabled={isDisabled}
@@ -127,7 +127,7 @@ export function BulkInviteButton({
           },
           variant !== 'primary' && styles.outlineButton,
           fullWidth && styles.fullWidth,
-        ]}
+        ].filter(Boolean) as ViewStyle[]}
       >
         {loading ? (
           <ActivityIndicator size="small" color={variantStyles.textColor} />

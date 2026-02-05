@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   ScrollView,
   RefreshControl,
   Modal,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -17,12 +18,15 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import type { ParentGroup, CarpoolOffer } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CommunityHubScreen');
 
 type TabType = 'groups' | 'carpools' | 'discover';
 
@@ -58,7 +62,7 @@ export default function CommunityHubScreen() {
       setPublicGroups(discoverable);
       setCarpoolOffers(carpools);
     } catch (error) {
-      console.error('Failed to load community data:', error);
+      logger.error('Failed to load community data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -92,7 +96,7 @@ export default function CommunityHubScreen() {
       setShowCreateModal(false);
       loadData();
     } catch (error) {
-      console.error('Failed to create group:', error);
+      logger.error('Failed to create group:', error);
     } finally {
       setCreatingGroup(false);
     }
@@ -103,7 +107,7 @@ export default function CommunityHubScreen() {
       await communityService.joinGroup(group.id, parentId, parentName);
       loadData();
     } catch (error) {
-      console.error('Failed to join group:', error);
+      logger.error('Failed to join group:', error);
     }
   };
 
@@ -292,11 +296,11 @@ export default function CommunityHubScreen() {
             onPress={() => setActiveTab(tab.key)}
             style={[
               styles.tab,
-              activeTab === tab.key && {
+              activeTab === tab.key ? {
                 borderBottomColor: palette.tint,
                 borderBottomWidth: 2,
-              },
-            ]}
+              } : undefined,
+            ].filter(Boolean) as ViewStyle[]}
           >
             <Ionicons
               name={tab.icon}

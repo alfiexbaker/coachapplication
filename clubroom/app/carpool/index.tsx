@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,12 +9,14 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CarpoolOfferCard } from '@/components/community/CarpoolOfferCard';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -25,6 +27,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService, CreateCarpoolOfferParams, RequestCarpoolSeatParams } from '@/services/community-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('CarpoolScreen');
 
 type TabType = 'available' | 'my-offers' | 'my-rides';
 
@@ -92,8 +96,8 @@ export default function CarpoolScreen() {
           o.requests.some((r) => r.parentId === parentId && r.status === 'ACCEPTED')
       );
       setMyRides(rides);
-    } catch (error) {
-      console.error('Failed to load carpool data:', error);
+    } catch (_error) {
+      logger.error('Failed to load carpool data', _error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -138,7 +142,7 @@ export default function CarpoolScreen() {
       setCreateForm(initialFormState);
       loadData();
       Alert.alert('Success', 'Your carpool offer has been created!');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to create carpool offer. Please try again.');
     } finally {
       setCreating(false);
@@ -411,7 +415,7 @@ export default function CarpoolScreen() {
                 borderBottomColor: palette.tint,
                 borderBottomWidth: 2,
               },
-            ]}
+            ].filter(Boolean) as ViewStyle[]}
           >
             <ThemedText
               style={[

@@ -22,6 +22,18 @@ export default function PostDetailScreen() {
   const post = getPostById(postId || '');
   const [comments, setComments] = useState(getCommentsForPost(postId || ''));
   const [newComment, setNewComment] = useState('');
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [commentLikes, setCommentLikes] = useState<Record<string, boolean>>({});
+
+  // Initialize like state when post loads
+  React.useEffect(() => {
+    if (post) {
+      const isLiked = post.likes.includes(currentUser?.id || '');
+      setLiked(isLiked);
+      setLikeCount(post.likes.length);
+    }
+  }, [post, currentUser?.id]);
 
   if (!post) {
     return (
@@ -30,11 +42,6 @@ export default function PostDetailScreen() {
       </SafeAreaView>
     );
   }
-
-  const isLiked = post.likes.includes(currentUser?.id || '');
-
-  const [liked, setLiked] = useState(isLiked);
-  const [likeCount, setLikeCount] = useState(post.likes.length);
 
   const handleLike = () => {
     logger.press('LikePost', { postId: post.id });
@@ -73,8 +80,6 @@ export default function PostDetailScreen() {
     setNewComment('');
   };
 
-  const [commentLikes, setCommentLikes] = useState<Record<string, boolean>>({});
-
   const handleCommentLike = (commentId: string) => {
     logger.press('LikeComment', { commentId });
     setCommentLikes((prev) => ({
@@ -95,14 +100,14 @@ export default function PostDetailScreen() {
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Post Content */}
-        <View style={[styles.postCard, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}>
+        <View style={[styles.postCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
           <View style={styles.postHeader}>
             <View style={styles.authorInfo}>
-              <View style={[styles.avatar, { backgroundColor: palette.tintAlt }]}>
+              <View style={[styles.avatar, { backgroundColor: palette.tint }]}>
                 <ThemedText style={{ fontSize: 24 }}>{post.authorAvatar || 'AA'}</ThemedText>
               </View>
               <View style={styles.authorDetails}>
-                <ThemedText type="defaultSemibold">{post.authorName}</ThemedText>
+                <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
                 <ThemedText style={[styles.timestamp, { color: palette.muted }]}>
                   {new Date(post.createdAt).toLocaleDateString()}
                 </ThemedText>
@@ -144,14 +149,14 @@ export default function PostDetailScreen() {
             return (
               <View
                 key={comment.id}
-                style={[styles.commentCard, { backgroundColor: palette.cardBackground, borderColor: palette.border }]}
+                style={[styles.commentCard, { backgroundColor: palette.card, borderColor: palette.border }]}
               >
                 <View style={styles.commentHeader}>
-                  <View style={[styles.commentAvatar, { backgroundColor: palette.tintAlt }]}>
+                  <View style={[styles.commentAvatar, { backgroundColor: palette.tint }]}>
                     <ThemedText style={{ fontSize: 18 }}>{comment.authorAvatar || 'AA'}</ThemedText>
                   </View>
                   <View style={styles.commentDetails}>
-                    <ThemedText type="defaultSemibold">{comment.authorName}</ThemedText>
+                    <ThemedText type="defaultSemiBold">{comment.authorName}</ThemedText>
                     <ThemedText style={[styles.timestamp, { color: palette.muted }]}>
                       {new Date(comment.createdAt).toLocaleDateString()}
                     </ThemedText>
@@ -182,7 +187,7 @@ export default function PostDetailScreen() {
       </ScrollView>
 
       {/* Comment Input */}
-      <View style={[styles.commentInput, { backgroundColor: palette.cardBackground, borderTopColor: palette.border }]}>
+      <View style={[styles.commentInput, { backgroundColor: palette.card, borderTopColor: palette.border }]}>
         <TextInput
           style={[styles.input, { color: palette.text, backgroundColor: palette.background, borderColor: palette.border }]}
           placeholder="Add a comment..."

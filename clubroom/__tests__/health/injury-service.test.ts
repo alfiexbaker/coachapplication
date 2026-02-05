@@ -13,8 +13,6 @@ import type {
   Injury,
   InjurySeverity,
   InjuryStatus,
-  BodyPart,
-  BodyPartCategory,
   LogInjuryInput,
 } from '../../constants/types';
 

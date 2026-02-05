@@ -34,7 +34,7 @@ export default function AthletesScreen() {
 
   const [roster, setRoster] = useState<RosterEntry[]>([]);
   const [upcomingSessions, setUpcomingSessions] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');

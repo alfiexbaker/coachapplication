@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CoachProfile } from '@/constants/types';
 
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   clusterText: {
-    ...Typography.bodySemiBold,
+    fontSize: 15,
     fontWeight: '700',
   },
 });

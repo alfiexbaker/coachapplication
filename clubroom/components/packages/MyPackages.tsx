@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';

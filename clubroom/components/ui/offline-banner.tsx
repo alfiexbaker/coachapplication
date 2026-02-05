@@ -6,23 +6,24 @@
  * Shows brief "Back online" flash on reconnect.
  */
 
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
   withSpring,
-  runOnJS,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Typography, Radii } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect } from 'react';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function OfflineBanner() {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
   const { isConnected, showReconnected } = useConnectionStatus();
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(-100);
@@ -35,19 +36,19 @@ export function OfflineBanner() {
     } else {
       translateY.value = withTiming(-100, { duration: 300 });
     }
-  }, [showBanner]);
+  }, [showBanner, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
   const backgroundColor = showReconnected
-    ? `${Colors.light.success}15`
-    : `${Colors.light.warning}15`;
+    ? `${palette.success}15`
+    : `${palette.warning}15`;
 
   const textColor = showReconnected
-    ? Colors.light.success
-    : Colors.light.warning;
+    ? palette.success
+    : palette.warning;
 
   const iconName = showReconnected ? 'wifi' : 'wifi-outline';
   const message = showReconnected

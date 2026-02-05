@@ -8,8 +8,8 @@ import { buildAvailability, formatServicePrice, SERVICES } from '../constants/bo
 
 const snapshotPath = join(process.cwd(), '__tests__', '__snapshots__', 'book-coach.availability.json');
 const snapshot = JSON.parse(readFileSync(snapshotPath, 'utf-8')) as {
-  availability: Array<{ dayIndex: number; slots: Array<{ templateId: string; title: string; focus: string; durationMinutes: number; serviceType: string; tag: string }> }>;
-  services: Array<{ id: string; title: string; priceLabel: string; capacity: number | null; spotsLeft: number | null }>;
+  availability: { dayIndex: number; slots: { templateId: string; title: string; focus: string; durationMinutes: number; serviceType: string; tag: string }[] }[];
+  services: { id: string; title: string; priceLabel: string; capacity: number | null; spotsLeft: number | null }[];
 };
 
 test('book coach availability stays consistent', () => {

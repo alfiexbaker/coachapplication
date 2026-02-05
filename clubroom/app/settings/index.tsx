@@ -12,7 +12,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { hasChildren, isCoach as checkIsCoach } from '@/utils/user-helpers';
-import { mockUserProfile } from '@/constants/mock-data';
 
 const logger = createLogger('SettingsHub');
 
@@ -70,8 +69,8 @@ export default function SettingsHubScreen() {
           }}
         >
           <View style={styles.profileHeader}>
-            {currentUser?.profilePhotoUrl || mockUserProfile.profilePhotoUrl ? (
-              <Image source={{ uri: currentUser?.profilePhotoUrl || mockUserProfile.profilePhotoUrl }} style={styles.profilePhoto} />
+            {currentUser?.avatar ? (
+              <Image source={{ uri: currentUser.avatar }} style={styles.profilePhoto} />
             ) : (
               <View style={[styles.profilePhoto, { backgroundColor: palette.border }]}>
                 <Ionicons name="person" size={32} color={palette.muted} />
@@ -79,10 +78,10 @@ export default function SettingsHubScreen() {
             )}
             <View style={styles.profileInfo}>
               <ThemedText type="subtitle" style={styles.profileName}>
-                {currentUser?.fullName || currentUser?.name || mockUserProfile.fullName}
+                {currentUser?.fullName || currentUser?.name || 'User'}
               </ThemedText>
               <ThemedText style={[styles.profileEmail, { color: palette.muted }]}>
-                {currentUser?.email || mockUserProfile.email}
+                {currentUser?.email || 'Not set'}
               </ThemedText>
             </View>
             <Ionicons name="chevron-forward" size={20} color={palette.muted} />

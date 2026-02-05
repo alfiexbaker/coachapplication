@@ -8,7 +8,7 @@ import { SettingsRow, SettingsSection } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';

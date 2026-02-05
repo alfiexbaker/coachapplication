@@ -5,7 +5,6 @@ import {
   ScrollView,
   TextInput,
   Pressable,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,8 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
-import { CardStyles } from '@/constants/styles';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -88,17 +86,7 @@ export function ParentDiscoverScreen() {
     }
   }, [children, selectedChildId]);
 
-  // Load pending invites and completed sessions when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      if (currentUser?.id) {
-        loadPendingInvites();
-        loadCompletedSessions();
-      }
-    }, [currentUser?.id])
-  );
-
-  const loadCompletedSessions = async () => {
+  const loadCompletedSessions = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
       const bookings = await bookingService.getBookingsForUser(currentUser.id, 'parent');
@@ -122,7 +110,7 @@ export function ParentDiscoverScreen() {
     } catch (error) {
       logger.error('Failed to load completed sessions', error);
     }
-  };
+  }, [currentUser?.id]);
 
   const dismissReview = async (bookingId: string) => {
     try {
@@ -141,7 +129,7 @@ export function ParentDiscoverScreen() {
     }
   };
 
-  const loadPendingInvites = async () => {
+  const loadPendingInvites = useCallback(async () => {
     if (!currentUser?.id) return;
     setLoadingInvites(true);
     setInvitesError(null);
@@ -157,10 +145,19 @@ export function ParentDiscoverScreen() {
     } finally {
       setLoadingInvites(false);
     }
-  };
+  }, [currentUser?.id]);
 
-  if (!currentUser) return null;
+  // Load pending invites and completed sessions when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (currentUser?.id) {
+        loadPendingInvites();
+        loadCompletedSessions();
+      }
+    }, [currentUser?.id, loadPendingInvites, loadCompletedSessions])
+  );
 
+  // All hooks must be called before any early returns
   const nearbyCoaches = useMemo(() => {
     if (!postcode || postcode.length < 3 || !currentUser) return [];
 
@@ -211,6 +208,9 @@ export function ParentDiscoverScreen() {
       fetchNextAvailableSlots();
     }
   }, [nearbyCoaches]);
+
+  // Early return after all hooks
+  if (!currentUser) return null;
 
   // Format next available slot for display
   const formatNextAvailable = (slot: AvailabilitySlot | null): string => {
@@ -634,14 +634,14 @@ export function ParentDiscoverScreen() {
                         <View style={styles.metaItem}>
                           <Ionicons name="star" size={13} color={palette.warning} />
                           <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                            {coach.rating?.toFixed(1) || '5.0'}
+                            {coach.profile.rating?.toFixed(1) || '5.0'}
                           </ThemedText>
                         </View>
                       </View>
                     </View>
                     <View style={styles.priceInfo}>
                       <ThemedText style={[styles.price, { color: palette.text }]}>
-                        {formatGBP(coach.priceRange?.minUsd || 120)}
+                        {formatGBP(coach.profile.sessionRate || 120)}
                       </ThemedText>
                       <ThemedText style={[styles.priceLabel, { color: palette.muted }]}>
                         per session
@@ -656,9 +656,9 @@ export function ParentDiscoverScreen() {
                       {formatNextAvailable(nextAvailableSlots[coach.id])}
                     </ThemedText>
                   </View>
-                  {coach.footballFocuses && coach.footballFocuses.length > 0 && (
+                  {coach.profile.specialties && coach.profile.specialties.length > 0 && (
                     <View style={styles.focuses}>
-                      {coach.footballFocuses.slice(0, 3).map((focus, index) => (
+                      {coach.profile.specialties.slice(0, 3).map((focus: string, index: number) => (
                         <View
                           key={index}
                           style={[styles.focusPill, { backgroundColor: palette.surface, borderColor: palette.border }]}>

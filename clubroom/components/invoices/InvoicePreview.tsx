@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';

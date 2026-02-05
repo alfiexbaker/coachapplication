@@ -14,9 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EmergencyQuickCard } from '@/components/safety/EmergencyQuickCard';
@@ -30,6 +30,8 @@ import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-serv
 import { rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
 
+const logger = createLogger('EmergencyQuickAccessScreen');
+
 export default function EmergencyQuickAccessScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
   const scheme = useColorScheme() ?? 'light';
@@ -37,7 +39,7 @@ export default function EmergencyQuickAccessScreen() {
   const { currentUser } = useAuth();
 
   const [emergencyData, setEmergencyData] = useState<AthleteEmergencyQuickView | null>(null);
-  const [rosterEntry, setRosterEntry] = useState<RosterEntry | null>(null);
+  const [, setRosterEntry] = useState<RosterEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export default function EmergencyQuickAccessScreen() {
       );
       setEmergencyData(data);
     } catch (err) {
-      console.error('Failed to load emergency data:', err);
+      logger.error('Failed to load emergency data:', err);
       setError('Failed to load emergency information');
     } finally {
       setLoading(false);

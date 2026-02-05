@@ -4,10 +4,7 @@
  * Manages coach profiles, reviews, and public-facing data.
  */
 
-import { apiClient } from './api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { createLogger } from '@/utils/logger';
-import type { CoachProfile, Review } from '@/constants/types';
+import { api } from '@/constants/config';
 
 // Simplified Coach type for public profiles
 export interface Coach {
@@ -28,24 +25,24 @@ export interface Coach {
   nextAvailable?: string;
   badges?: string[];
   footballFocuses?: string[];
-  experiences?: Array<{
+  experiences?: {
     title: string;
     organization: string;
     startDate: string;
     endDate?: string;
     current?: boolean;
     description?: string;
-  }>;
-  certifications?: Array<{
+  }[];
+  certifications?: {
     name: string;
     issuer: string;
     issueDate: string;
     expiryDate?: string;
-  }>;
-  languages?: Array<{
+  }[];
+  languages?: {
     name: string;
     proficiency: string;
-  }>;
+  }[];
 }
 
 // Simplified Review for public display
@@ -60,11 +57,7 @@ export interface PublicReview {
   createdAt: string;
 }
 
-const logger = createLogger('CoachService');
-
-const COACHES_KEY = 'coaches';
-const REVIEWS_KEY = 'coach_reviews';
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // ============================================================================
 // MOCK DATA

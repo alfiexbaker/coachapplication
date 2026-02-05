@@ -13,7 +13,7 @@
  *   });
  */
 
-import { StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, TextStyle } from 'react-native';
 import { Colors, Spacing, Radii, Typography, Components, Shadows } from './theme';
 
 // ============================================================================

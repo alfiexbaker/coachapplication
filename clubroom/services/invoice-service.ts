@@ -1,5 +1,6 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { api } from '@/constants/config';
 import {
   Invoice,
   InvoiceStatus,
@@ -15,7 +16,7 @@ import { createLogger } from '@/utils/logger';
 // ============================================================================
 
 const STORAGE_KEY_INVOICES = 'clubroom.invoices';
-const USE_MOCK = true; // Toggle for mock vs API mode
+const USE_MOCK = api.useMock; // Toggle for mock vs API mode
 const logger = createLogger('InvoiceService');
 
 // Default tax rate for UK VAT
@@ -854,7 +855,7 @@ class InvoiceService {
       currency: 'GBP',
     };
 
-    logger.info('invoice_summary_retrieved', { userId, ...summary });
+    logger.info('invoice_summary_retrieved', summary);
     return summary;
   }
 

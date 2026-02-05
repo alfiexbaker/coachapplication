@@ -16,8 +16,8 @@ import { createLogger } from '@/utils/logger';
 import type { BadgeAward, Goal, SkillProgress } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { SkillRadar } from '@/components/analytics/skill-radar';
-import { SkillsSummary, SkillProgressBar, SkillCategoryGroup } from '@/components/analytics/skill-progress-bar';
-import { StatsRow, MetricsSummary, ProgressMetric, EmptyMetrics } from '@/components/analytics/enhanced-stats';
+import { SkillsSummary, SkillCategoryGroup } from '@/components/analytics/skill-progress-bar';
+import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
 import { GoalProgress, GoalsSummary } from '@/components/analytics/goal-progress';
 
 const logger = createLogger('AthleteProgressScreen');
@@ -32,22 +32,37 @@ export function AthleteProgressScreen() {
   const [activeTab, setActiveTab] = useState<TabType>('progress');
   const [goals, setGoals] = useState<Goal[]>([]);
 
-  if (!currentUser) {
-    return null;
-  }
+  // Get data that hooks depend on (must be before hooks)
+  const userId = currentUser?.id;
+  const athlete = userId ? getUserById(userId) : null;
+  const sessions = useMemo(() => userId ? getSessionsForAthlete(userId) : [], [userId]);
 
+  // All hooks must be called before any early returns
   useEffect(() => {
-    badgeService.listAwardsForAthlete(currentUser.id).then(setAwards);
-    // Mock goals for demo - in real app would fetch from service
-    setGoals(getMockGoals(currentUser.id));
-  }, [currentUser.id]);
+    if (userId) {
+      badgeService.listAwardsForAthlete(userId).then(setAwards);
+      setGoals(getMockGoals(userId));
+    }
+  }, [userId]);
 
-  const athlete = getUserById(currentUser.id);
-  if (!athlete) {
+  // Generate mock skills data for demo
+  const skills: SkillProgress[] = useMemo(() => generateMockSkills(sessions), [sessions]);
+
+  // Group skills by category
+  const skillsByCategory = useMemo(() => {
+    const grouped: Record<string, SkillProgress[]> = {};
+    skills.forEach(skill => {
+      const cat = skill.category || 'General';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(skill);
+    });
+    return grouped;
+  }, [skills]);
+
+  // Early returns after all hooks
+  if (!currentUser || !athlete) {
     return null;
   }
-
-  const sessions = getSessionsForAthlete(currentUser.id);
 
   // Calculate progress trend based on last 3 sessions vs previous 3
   const getProgressTrend = () => {
@@ -85,20 +100,6 @@ export function AthleteProgressScreen() {
   const sortedSessions = [...sessions].sort(
     (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
   );
-
-  // Generate mock skills data for demo
-  const skills: SkillProgress[] = useMemo(() => generateMockSkills(sessions), [sessions]);
-
-  // Group skills by category
-  const skillsByCategory = useMemo(() => {
-    const grouped: Record<string, SkillProgress[]> = {};
-    skills.forEach(skill => {
-      const cat = skill.category || 'General';
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(skill);
-    });
-    return grouped;
-  }, [skills]);
 
   // Calculate stats
   const avgRating = sessions.length > 0
@@ -228,7 +229,7 @@ export function AthleteProgressScreen() {
                   style={[
                     styles.tabLabel,
                     { color: isActive ? '#fff' : palette.muted },
-                    isActive && styles.tabLabelActive,
+                    isActive ? styles.tabLabelActive : undefined,
                   ]}
                 >
                   {tab.label}
@@ -554,16 +555,18 @@ function getMockGoals(athleteId: string): Goal[] {
   return [
     {
       id: 'goal-1',
+      userId: athleteId,
       athleteId,
       title: 'Master 1v1 Dribbling',
       description: 'Improve close control and beat defenders consistently in 1v1 situations',
+      category: 'TECHNIQUE',
       targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       progress: 65,
       milestones: [
-        { id: 'm1', title: 'Complete 10 dribbling drills', isCompleted: true, completedAt: new Date().toISOString() },
-        { id: 'm2', title: 'Successfully beat defender in 5 sessions', isCompleted: true },
-        { id: 'm3', title: 'Use both feet consistently', isCompleted: false },
-        { id: 'm4', title: 'Apply in match situation', isCompleted: false },
+        { id: 'm1', goalId: 'goal-1', order: 0, title: 'Complete 10 dribbling drills', isCompleted: true, completedAt: new Date().toISOString() },
+        { id: 'm2', goalId: 'goal-1', order: 1, title: 'Successfully beat defender in 5 sessions', isCompleted: true },
+        { id: 'm3', goalId: 'goal-1', order: 2, title: 'Use both feet consistently', isCompleted: false },
+        { id: 'm4', goalId: 'goal-1', order: 3, title: 'Apply in match situation', isCompleted: false },
       ],
       status: 'ACTIVE',
       createdBy: 'COACH',
@@ -573,15 +576,17 @@ function getMockGoals(athleteId: string): Goal[] {
     },
     {
       id: 'goal-2',
+      userId: athleteId,
       athleteId,
       title: 'Improve Passing Accuracy',
       description: 'Increase passing accuracy to 85% in training sessions',
+      category: 'TECHNIQUE',
       targetDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
       progress: 40,
       milestones: [
-        { id: 'm5', title: 'Complete passing fundamentals course', isCompleted: true },
-        { id: 'm6', title: 'Practice weighted passes daily', isCompleted: false },
-        { id: 'm7', title: 'Achieve 80% accuracy in drills', isCompleted: false },
+        { id: 'm5', goalId: 'goal-2', order: 0, title: 'Complete passing fundamentals course', isCompleted: true },
+        { id: 'm6', goalId: 'goal-2', order: 1, title: 'Practice weighted passes daily', isCompleted: false },
+        { id: 'm7', goalId: 'goal-2', order: 2, title: 'Achieve 80% accuracy in drills', isCompleted: false },
       ],
       status: 'ACTIVE',
       createdBy: 'ATHLETE',
@@ -591,13 +596,15 @@ function getMockGoals(athleteId: string): Goal[] {
     },
     {
       id: 'goal-3',
+      userId: athleteId,
       athleteId,
       title: 'First Touch Control',
       description: 'Control the ball within one touch consistently',
+      category: 'TECHNIQUE',
       progress: 100,
       milestones: [
-        { id: 'm8', title: 'Practice wall passes', isCompleted: true },
-        { id: 'm9', title: 'Receive and turn drill mastery', isCompleted: true },
+        { id: 'm8', goalId: 'goal-3', order: 0, title: 'Practice wall passes', isCompleted: true },
+        { id: 'm9', goalId: 'goal-3', order: 1, title: 'Receive and turn drill mastery', isCompleted: true },
       ],
       status: 'COMPLETED',
       createdBy: 'COACH',

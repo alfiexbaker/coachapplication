@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { View, StyleSheet, TextInput, Modal, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
@@ -36,7 +35,7 @@ export function AddAnnotationModal({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const [timestamp, setTimestamp] = useState(currentTime);
+  const [timestamp] = useState(currentTime);
   const [label, setLabel] = useState('');
   const [note, setNote] = useState('');
   const [type, setType] = useState<VideoAnnotationType>('TECHNIQUE');
@@ -114,7 +113,7 @@ export function AddAnnotationModal({
               <ThemedText style={[styles.timestampLabel, { color: palette.muted }]}>
                 Timestamp
               </ThemedText>
-              <ThemedText type="heading">{formatTime(timestamp)}</ThemedText>
+              <ThemedText type="title">{formatTime(timestamp)}</ThemedText>
             </View>
             <ThemedText style={{ color: palette.muted }}>
               / {formatTime(duration)}

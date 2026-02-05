@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Appearance, ColorSchemeName, useColorScheme as useRNColorScheme } from 'react-native';
+import { createContext, useContext, useMemo, useState } from 'react';
+import { ColorSchemeName } from 'react-native';
 
 export type ThemeContextValue = {
   colorScheme: NonNullable<ColorSchemeName>;

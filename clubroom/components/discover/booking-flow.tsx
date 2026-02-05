@@ -165,7 +165,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
   const palette = Colors[scheme];
   const availability = useMemo(() => buildAvailability(), []);
   const [selectedDayId, setSelectedDayId] = useState(availability[0]?.id);
-  const [selectedSlotId, setSelectedSlotId] = useState(availability[0]?.slots[0]?.id);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(availability[0]?.slots[0]?.id);
 
   useEffect(() => {
     const day = availability.find((entry) => entry.id === selectedDayId);

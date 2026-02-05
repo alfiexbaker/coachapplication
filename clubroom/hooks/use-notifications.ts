@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { notificationService, ExtendedNotificationItem } from '@/services/notification-service';
-import { useAuth } from '@/hooks/use-auth';
 
-export type NotificationFilter = 'all' | 'booking' | 'message' | 'review' | 'badge' | 'reminder';
+export type NotificationFilter = 'all' | 'booking' | 'message' | 'review' | 'badge' | 'reminder' | 'community';
 
 interface UseNotificationsOptions {
   filter?: NotificationFilter;
@@ -29,7 +28,6 @@ interface UseNotificationsResult {
  */
 export function useNotifications(options: UseNotificationsOptions = {}): UseNotificationsResult {
   const { filter: initialFilter = 'all', autoRefresh = true, refreshInterval = 30000 } = options;
-  const { currentUser } = useAuth();
 
   const [notifications, setNotifications] = useState<ExtendedNotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

@@ -17,6 +17,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -24,14 +25,15 @@ import { VideoPlayer } from '@/components/video/video-player';
 import { TimelineBar } from '@/components/video/TimelineBar';
 import { AnnotationPanel } from '@/components/video/AnnotationPanel';
 import { AnnotationForm } from '@/components/video/AnnotationForm';
-import { AnnotationBadge, AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
-import { QuickAnnotationBar } from '@/components/video/video-annotation';
+import { AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
-import type { SessionVideo, VideoAnnotation, VideoAnnotationType, AnnotatedVideo } from '@/constants/types';
+import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
+
+const logger = createLogger('CoachAnnotateScreen');
 
 type ViewMode = 'timeline' | 'list';
 
@@ -45,7 +47,8 @@ export default function CoachAnnotateScreen() {
   const [video, setVideo] = useState<SessionVideo | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_isPlaying, setIsPlaying] = useState(false);
   const [showAnnotationForm, setShowAnnotationForm] = useState(false);
   const [editingAnnotation, setEditingAnnotation] = useState<VideoAnnotation | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('timeline');
@@ -55,7 +58,8 @@ export default function CoachAnnotateScreen() {
     averagePerMinute: 0,
   });
 
-  const videoRef = useRef<{ seekTo: (time: number) => void } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _videoRef = useRef<{ seekTo: (time: number) => void } | null>(null);
 
   const isOwner = video?.coachId === currentUser?.id;
 
@@ -72,7 +76,7 @@ export default function CoachAnnotateScreen() {
         setAnnotationStats(stats);
       }
     } catch (error) {
-      console.error('Failed to load video:', error);
+      logger.error('Failed to load video:', error);
       Alert.alert('Error', 'Failed to load video. Please try again.');
     } finally {
       setLoading(false);
@@ -126,7 +130,7 @@ export default function CoachAnnotateScreen() {
               await videoService.deleteAnnotation(video.id, annotation.id);
               await loadVideo();
             } catch (error) {
-              console.error('Failed to delete annotation:', error);
+              logger.error('Failed to delete annotation:', error);
               Alert.alert('Error', 'Failed to delete annotation.');
             }
           },
@@ -180,7 +184,7 @@ export default function CoachAnnotateScreen() {
         message: textSummary,
       });
     } catch (error) {
-      console.error('Failed to export:', error);
+      logger.error('Failed to export:', error);
       Alert.alert('Error', 'Failed to export annotations.');
     }
   };
@@ -200,7 +204,7 @@ export default function CoachAnnotateScreen() {
               await videoService.clearAnnotations(video.id);
               await loadVideo();
             } catch (error) {
-              console.error('Failed to clear annotations:', error);
+              logger.error('Failed to clear annotations:', error);
               Alert.alert('Error', 'Failed to clear annotations.');
             }
           },

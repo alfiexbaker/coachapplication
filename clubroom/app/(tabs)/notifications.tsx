@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { NotificationCard } from '@/components/notification/notification-card';
 import { ThemedText } from '@/components/themed-text';
@@ -141,7 +142,7 @@ export function NotificationsPanel({
     if (seedOnMount) {
       notificationService.seedDemoNotifications().then(() => refresh());
     }
-  }, [seedOnMount]);
+  }, [seedOnMount, refresh]);
 
   useEffect(() => {
     if (refreshToken > 0) {
@@ -158,8 +159,8 @@ export function NotificationsPanel({
 
     // Navigate to badge detail if we have an award ID
     if (item.badgeAwardId) {
-      // For now just mark as read - could navigate to badge detail screen
       await markAsRead(item.id);
+      router.push(`/development/badges?highlightBadge=${item.badgeAwardId}`);
     }
   };
 

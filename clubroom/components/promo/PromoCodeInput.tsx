@@ -81,7 +81,7 @@ export function PromoCodeInput({
         setValidationState('invalid');
         setErrorMessage(result.error ?? 'Invalid promo code');
       }
-    } catch (error) {
+    } catch {
       setValidationState('invalid');
       setErrorMessage('Failed to validate code');
     }
@@ -109,7 +109,7 @@ export function PromoCodeInput({
         setValidationState('invalid');
         setErrorMessage(result.error ?? 'Failed to redeem code');
       }
-    } catch (error) {
+    } catch {
       setValidationState('invalid');
       setErrorMessage('Failed to redeem code');
     }
@@ -123,12 +123,6 @@ export function PromoCodeInput({
     if (isValid) return palette.success;
     if (isInvalid) return palette.error;
     return palette.border;
-  };
-
-  const getButtonState = () => {
-    if (isLoading) return 'loading';
-    if (isValid) return 'redeem';
-    return 'validate';
   };
 
   return (

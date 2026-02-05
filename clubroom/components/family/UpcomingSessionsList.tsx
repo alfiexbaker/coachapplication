@@ -1,10 +1,9 @@
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Chip } from '@/components/primitives/chip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -143,7 +142,7 @@ export function UpcomingSessionsList({
               <SurfaceCard
                 style={[
                   styles.sessionCard,
-                  today && { borderColor: session.colorCode, borderWidth: 1 },
+                  today ? { borderColor: session.colorCode, borderWidth: 1 } : undefined,
                 ]}
               >
                 {/* Color Bar */}

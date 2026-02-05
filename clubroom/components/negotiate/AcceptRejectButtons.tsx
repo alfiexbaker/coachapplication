@@ -1,4 +1,4 @@
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -46,7 +46,7 @@ export function AcceptRejectButtons({
   }
 
   return (
-    <View style={[styles.container, isCompact && styles.containerCompact]}>
+    <View style={[styles.container, isCompact ? styles.containerCompact : undefined]}>
       {/* Accept button */}
       <Clickable
         onPress={onAccept}
@@ -54,8 +54,8 @@ export function AcceptRejectButtons({
           styles.button,
           styles.acceptButton,
           { backgroundColor: palette.success },
-          isCompact && styles.buttonCompact,
-        ]}
+          isCompact ? styles.buttonCompact : undefined,
+        ].filter(Boolean) as ViewStyle[]}
         accessibilityLabel={acceptLabel}
         accessibilityRole="button"
       >
@@ -68,7 +68,7 @@ export function AcceptRejectButtons({
           style={[
             styles.buttonText,
             styles.acceptText,
-            isCompact && styles.buttonTextCompact,
+            isCompact ? styles.buttonTextCompact : undefined,
           ]}
         >
           {acceptLabel}
@@ -82,8 +82,8 @@ export function AcceptRejectButtons({
           styles.button,
           styles.rejectButton,
           { backgroundColor: `${palette.error}15`, borderColor: palette.error },
-          isCompact && styles.buttonCompact,
-        ]}
+          isCompact ? styles.buttonCompact : undefined,
+        ].filter(Boolean) as ViewStyle[]}
         accessibilityLabel={rejectLabel}
         accessibilityRole="button"
       >
@@ -96,7 +96,7 @@ export function AcceptRejectButtons({
           style={[
             styles.buttonText,
             { color: palette.error },
-            isCompact && styles.buttonTextCompact,
+            isCompact ? styles.buttonTextCompact : undefined,
           ]}
         >
           {rejectLabel}
@@ -111,8 +111,8 @@ export function AcceptRejectButtons({
             styles.button,
             styles.counterButton,
             { backgroundColor: palette.surface, borderColor: palette.border },
-            isCompact && styles.buttonCompact,
-          ]}
+            isCompact ? styles.buttonCompact : undefined,
+          ].filter(Boolean) as ViewStyle[]}
           accessibilityLabel={counterProposeLabel}
           accessibilityRole="button"
         >
@@ -125,7 +125,7 @@ export function AcceptRejectButtons({
             style={[
               styles.buttonText,
               { color: palette.tint },
-              isCompact && styles.buttonTextCompact,
+              isCompact ? styles.buttonTextCompact : undefined,
             ]}
           >
             {counterProposeLabel}

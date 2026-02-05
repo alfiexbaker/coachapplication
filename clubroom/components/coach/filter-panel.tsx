@@ -37,7 +37,11 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
   const toggleSelection = (key: 'sessionTypes' | 'specialties', value: string) => {
     setFilters((prev) => {
       const set = new Set(prev[key]);
-      set.has(value) ? set.delete(value) : set.add(value);
+      if (set.has(value)) {
+        set.delete(value);
+      } else {
+        set.add(value);
+      }
       return { ...prev, [key]: Array.from(set) };
     });
   };

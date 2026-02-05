@@ -1,13 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+const logger = createLogger('BlockDateModal');
 
 // Block reasons
 const BLOCK_REASONS = [
@@ -166,7 +169,7 @@ export function BlockDateModal({
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
-      console.error('Failed to block dates:', error);
+      logger.error('Failed to block dates:', error);
       Alert.alert('Error', 'Failed to block dates. Please try again.');
     } finally {
       setSaving(false);

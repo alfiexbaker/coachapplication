@@ -17,7 +17,7 @@
  * and have the parent automatically notified."
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Alert,
@@ -36,7 +36,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { bookingService } from '@/services/booking-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
@@ -149,26 +149,25 @@ export default function CancelBookingScreen() {
   }, [isCoach, reason]);
 
   // ---- Load booking ----
-  useEffect(() => {
-    loadBookingDetails();
-  }, [id]);
-
-  const loadBookingDetails = async () => {
+  const loadBookingDetails = useCallback(async () => {
     if (!id) return;
     try {
       const booking = await bookingService.getBooking(id);
       if (booking) {
-        setBookingAmount(booking.price || 35);
+        // Use type assertion for properties that may exist at runtime but not in type definition
+        const bookingAny = booking as any;
+        const bookingPrice = bookingAny.price ?? 35;
+        setBookingAmount(bookingPrice);
         setSessionTime(new Date(booking.scheduledAt));
         setCoachName(booking.coachName || 'Coach');
         setAthleteName(booking.athleteName || 'Athlete');
-        setSessionTitle(booking.sessionTitle || booking.type || 'Session');
+        setSessionTitle(bookingAny.sessionTitle || booking.service || 'Session');
 
         const coachPolicy = await schedulingRulesService.getCancellationPolicy(booking.coachId);
         setPolicy(coachPolicy);
 
         const calculation = schedulingRulesService.calculateRefund(
-          booking.price || 35,
+          bookingPrice,
           new Date(booking.scheduledAt),
           coachPolicy,
         );
@@ -190,7 +189,11 @@ export default function CancelBookingScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadBookingDetails();
+  }, [loadBookingDetails]);
 
   // ---- Actions ----
   const handleCancel = async () => {

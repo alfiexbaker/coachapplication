@@ -24,6 +24,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('HealthDashboardScreen');
 
 /**
  * Health Dashboard Screen showing injury overview and active injuries.
@@ -51,7 +54,7 @@ export default function HealthDashboardScreen() {
       setInjuries(userInjuries);
       setStats(injuryStats);
     } catch (error) {
-      console.error('Failed to load health data:', error);
+      logger.error('Failed to load health data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

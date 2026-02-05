@@ -11,7 +11,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { activeObjectives, getChildrenForParent } from '@/constants/mock-data';
 import { hasChildren } from '@/utils/user-helpers';
-import { AthleteObjective, FootballObjective } from '@/constants/types';
+import type { AthleteObjective, FootballObjective } from '@/constants/types';
 
 const FOOTBALL_OBJECTIVES: FootballObjective[] = [
   'Dribbling',
@@ -27,7 +27,7 @@ export default function ObjectivesScreen() {
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
 
-  const [objectives, setObjectives] = useState(activeObjectives);
+  const [objectives, setObjectives] = useState<AthleteObjective[]>(activeObjectives);
   const [showModal, setShowModal] = useState(false);
   const [editingObjective, setEditingObjective] = useState<AthleteObjective | null>(null);
   const [selectedSkill, setSelectedSkill] = useState<FootballObjective>('Dribbling');
@@ -36,7 +36,7 @@ export default function ObjectivesScreen() {
 
   // Parent-specific: child selection
   const children = useMemo(() => {
-    if (hasChildren(currentUser)) {
+    if (currentUser && hasChildren(currentUser)) {
       return getChildrenForParent(currentUser.id);
     }
     return [];
@@ -49,12 +49,11 @@ export default function ObjectivesScreen() {
   // Filter objectives by selected child for parents
   const filteredObjectives = useMemo(() => {
     if (hasChildren(currentUser) && selectedChildId) {
-      // For parents, filter by child (in real DB, objectives would have athleteId)
-      // For now, showing all objectives but would filter by athleteId === selectedChildId
-      return objectives;
+      // For parents, filter by the selected child's athleteId
+      return objectives.filter((obj) => obj.athleteId === selectedChildId);
     }
-    // For USER, show their own objectives
-    return objectives;
+    // For USER (athlete), show only their own objectives
+    return objectives.filter((obj) => !obj.athleteId || obj.athleteId === currentUser?.id);
   }, [objectives, currentUser, selectedChildId]);
 
   const openAddModal = () => {
@@ -84,9 +83,13 @@ export default function ObjectivesScreen() {
         )
       );
     } else {
-      // Add new
+      // Add new - associate with selected child for parents, or current user for athletes
+      const athleteId = hasChildren(currentUser) && selectedChildId
+        ? selectedChildId
+        : currentUser?.id;
       const newObjective: AthleteObjective = {
         id: `obj-${Date.now()}`,
+        athleteId,
         label: selectedSkill,
         status: 'active',
         updatedAt: new Date().toISOString(),
@@ -186,7 +189,7 @@ export default function ObjectivesScreen() {
                   <Ionicons name="create-outline" size={22} color={palette.tint} />
                 </Pressable>
                 <Pressable onPress={() => deleteObjective(item.id)} hitSlop={8}>
-                  <Ionicons name="trash-outline" size={22} color={palette.destructive} />
+                  <Ionicons name="trash-outline" size={22} color={palette.error} />
                 </Pressable>
               </View>
             </View>

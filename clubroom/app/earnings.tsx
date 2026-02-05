@@ -28,6 +28,9 @@ import type {
   Withdrawal,
   PayoutMethod,
 } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('EarningsScreen');
 
 type FilterOption = { label: string; value: TransactionFilter };
 
@@ -58,7 +61,8 @@ export default function EarningsScreen() {
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   const coachId = currentUser?.id || 'coach1';
-  const coachName = currentUser?.name || currentUser?.fullName || 'Coach';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _coachName = currentUser?.name || currentUser?.fullName || 'Coach';
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -81,11 +85,11 @@ export default function EarningsScreen() {
         setSelectedPayoutMethod(defaultMethod.id);
       }
     } catch (error) {
-      console.error('[EarningsScreen] Failed to load data:', error);
+      logger.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
-  }, [coachId, transactionFilter, selectedPayoutMethod]);
+  }, [coachId, selectedPayoutMethod]);
 
   useEffect(() => {
     loadData();
@@ -137,7 +141,7 @@ export default function EarningsScreen() {
       } else {
         setWithdrawError(result.error || 'Failed to request withdrawal');
       }
-    } catch (error) {
+    } catch {
       setWithdrawError('An error occurred. Please try again.');
     } finally {
       setWithdrawing(false);
@@ -148,7 +152,8 @@ export default function EarningsScreen() {
     return earningsService.formatCurrency(amount, earnings?.currency || 'GBP');
   };
 
-  const getTransactionStatusColor = (status: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _getTransactionStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED':
         return palette.success;

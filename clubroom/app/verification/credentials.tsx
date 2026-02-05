@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
@@ -13,6 +14,8 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { VerificationStatus, VerificationItem } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
+
+const logger = createLogger('CredentialsScreen');
 
 const COACH_ID = 'coach1'; // Mock current user
 
@@ -41,7 +44,7 @@ function CredentialCard({ credential, index }: CredentialCardProps) {
       case 'PENDING':
         return 'warning';
       default:
-        return 'default';
+        return 'neutral';
     }
   };
 
@@ -104,7 +107,7 @@ export default function CredentialsScreen() {
       const data = await verificationService.getStatus(COACH_ID);
       setStatus(data);
     } catch (error) {
-      console.error('Failed to load verification status:', error);
+      logger.error('Failed to load verification status:', error);
     } finally {
       setLoading(false);
     }
@@ -139,7 +142,7 @@ export default function CredentialsScreen() {
       setCustomName('');
       setUploaded(false);
     } catch (error) {
-      console.error('Failed to submit credential:', error);
+      logger.error('Failed to submit credential:', error);
     } finally {
       setSubmitting(false);
     }

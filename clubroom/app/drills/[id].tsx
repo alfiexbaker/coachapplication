@@ -5,7 +5,7 @@
  * instructions, and completion controls.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -30,6 +30,9 @@ import type { AssignedDrill } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('DrillDetailScreen');
 
 /**
  * Drill detail screen showing full assignment information and video.
@@ -57,7 +60,7 @@ export default function DrillDetailScreen() {
       const data = await drillService.getAssignmentById(id);
       setAssignment(data);
     } catch (error) {
-      console.error('Failed to load assignment:', error);
+      logger.error('Failed to load assignment:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,7 +104,7 @@ export default function DrillDetailScreen() {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Failed to complete drill:', error);
+      logger.error('Failed to complete drill:', error);
       Alert.alert('Error', 'Failed to mark drill as complete. Please try again.');
     } finally {
       setCompleting(false);
@@ -127,7 +130,7 @@ export default function DrillDetailScreen() {
               await drillService.uncompleteDrill(assignment.id);
               await loadData();
             } catch (error) {
-              console.error('Failed to uncomplete drill:', error);
+              logger.error('Failed to uncomplete drill:', error);
             }
           },
         },

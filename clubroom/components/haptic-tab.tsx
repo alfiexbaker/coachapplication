@@ -4,7 +4,9 @@ import { forwardRef } from 'react';
 import { Platform, Pressable, type PressableProps, type View } from 'react-native';
 
 type TabButtonProps = BottomTabBarButtonProps &
-  Pick<PressableProps, 'accessibilityLabel' | 'accessibilityState' | 'onPress'>;
+  Pick<PressableProps, 'accessibilityLabel' | 'accessibilityState' | 'onPress'> & {
+    to?: string;
+  };
 
 export const HapticTab = forwardRef<View, TabButtonProps>(function HapticTab(
   { children, href, to, accessibilityLabel, accessibilityState, onPress, onPressIn, ...rest },

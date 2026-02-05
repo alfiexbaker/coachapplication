@@ -5,7 +5,7 @@
  * statistics, and referral history. Provides quick access to share functionality.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
@@ -28,6 +29,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('ReferralsDashboardScreen');
 
 /**
  * Referrals dashboard screen showing code, stats, and history.
@@ -61,7 +64,7 @@ export default function ReferralsDashboardScreen() {
       setStats(userStats);
       setReferrals(history);
     } catch (error) {
-      console.error('Failed to load referral data:', error);
+      logger.error('Failed to load referral data:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

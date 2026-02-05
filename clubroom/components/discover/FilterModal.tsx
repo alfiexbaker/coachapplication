@@ -21,7 +21,7 @@ import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { PriceRangeSlider } from './PriceRangeSlider';
 import { RatingFilter } from './RatingFilter';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type {
   CoachSearchFilters,

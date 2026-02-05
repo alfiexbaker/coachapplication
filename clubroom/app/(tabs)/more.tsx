@@ -2,7 +2,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { CoachAnalyticsScreen } from '@/components/coach/analytics-screen';
 import { UserFindCoachScreen } from '@/components/user/find-coach-screen';
 import { ParentDevelopmentScreen } from '@/components/parent/development-screen';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';

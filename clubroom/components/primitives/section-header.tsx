@@ -4,7 +4,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-interface SectionHeaderProps {
+export interface SectionHeaderProps {
   title: string;
   subtitle?: string;
   eyebrow?: string;

@@ -183,7 +183,7 @@ export function ReportFlow({
                       <ThemedText
                         style={[
                           styles.optionLabel,
-                          isSelected && { color: palette.tint, fontWeight: '600' },
+                          isSelected ? { color: palette.tint, fontWeight: '600' } : undefined,
                         ]}
                       >
                         {type.label}

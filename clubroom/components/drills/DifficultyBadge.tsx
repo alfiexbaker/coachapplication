@@ -33,14 +33,14 @@ export function DifficultyBadge({ difficulty, size = 'medium' }: DifficultyBadge
       style={[
         styles.badge,
         { backgroundColor: bgColor },
-        isSmall && styles.badgeSmall,
+        isSmall ? styles.badgeSmall : undefined,
       ]}
     >
       <ThemedText
         style={[
           styles.text,
           { color },
-          isSmall && styles.textSmall,
+          isSmall ? styles.textSmall : undefined,
         ]}
       >
         {label}

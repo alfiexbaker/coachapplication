@@ -24,7 +24,6 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('FavouriteService');
 const STORAGE_KEY = 'favourites';
-const USE_MOCK = true;
 
 // Mock data for development - some pre-existing favourites
 const MOCK_FAVOURITES: FavouriteCoach[] = [

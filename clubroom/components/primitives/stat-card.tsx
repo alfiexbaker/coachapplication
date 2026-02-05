@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface StatCardProps {
@@ -74,12 +74,12 @@ export function StatCard({
   const finalTrendColor = trendColor || autoTrendColor;
 
   return (
-    <View style={[styles.container, isCompact && styles.containerCompact]}>
+    <View style={[styles.container, isCompact ? styles.containerCompact : undefined]}>
       <View style={styles.valueRow}>
         <ThemedText
           style={[
             styles.value,
-            isCompact && styles.valueCompact,
+            isCompact ? styles.valueCompact : undefined,
             { fontVariant: ['tabular-nums'] as any },
           ]}
         >
@@ -94,7 +94,7 @@ export function StatCard({
           </View>
         ) : null}
       </View>
-      <ThemedText style={[styles.label, isCompact && styles.labelCompact, { color: palette.muted }]}>
+      <ThemedText style={[styles.label, isCompact ? styles.labelCompact : undefined, { color: palette.muted }]}>
         {label}
       </ThemedText>
     </View>

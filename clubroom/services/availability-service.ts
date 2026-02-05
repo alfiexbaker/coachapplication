@@ -12,13 +12,14 @@
  */
 
 import { apiClient } from './api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot, SessionOffering } from '@/constants/types';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('AvailabilityService');
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // Helper to load existing bookings from storage
 async function loadBookings(): Promise<any[]> {

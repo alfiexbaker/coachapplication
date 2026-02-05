@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { View, StyleSheet, TextInput, Keyboard, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 

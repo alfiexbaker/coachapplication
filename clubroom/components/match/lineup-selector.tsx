@@ -1,22 +1,21 @@
 import { useState, useMemo } from 'react';
-import { StyleSheet, View, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { Match, MatchPlayer, MatchPlayerStatus } from '@/constants/types';
+import type { Match, MatchPlayer } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 
 interface LineupSelectorProps {
   match: Match;
-  onSetLineup: (lineup: Array<{
+  onSetLineup: (lineup: {
     athleteId: string;
     position?: string;
     jerseyNumber?: number;
     isReserve?: boolean;
-  }>) => Promise<void>;
+  }[]) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -115,8 +114,8 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
         style={[
           styles.playerRow,
           { borderColor: palette.border },
-          isSelected && { backgroundColor: `${palette.tint}10`, borderColor: palette.tint },
-          isReserve && { backgroundColor: `${palette.warning}10`, borderColor: palette.warning },
+          isSelected ? { backgroundColor: `${palette.tint}10`, borderColor: palette.tint } : undefined,
+          isReserve ? { backgroundColor: `${palette.warning}10`, borderColor: palette.warning } : undefined,
         ]}
         onPress={() => togglePlayerSelection(player)}
       >
@@ -251,7 +250,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
                     <ThemedText style={{ opacity: 0.6 }}>{player.athleteName}</ThemedText>
                     {player.parentNote && (
                       <ThemedText style={[styles.noteText, { color: palette.muted }]} numberOfLines={1}>
-                        "{player.parentNote}"
+                        &quot;{player.parentNote}&quot;
                       </ThemedText>
                     )}
                   </View>
@@ -269,7 +268,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
           style={[
             styles.submitButton,
             { backgroundColor: palette.tint },
-            (isLoading || selectedForLineup.length === 0) && styles.disabledButton,
+            (isLoading || selectedForLineup.length === 0) ? styles.disabledButton : undefined,
           ]}
           onPress={handleSubmitLineup}
           disabled={isLoading || selectedForLineup.length === 0}

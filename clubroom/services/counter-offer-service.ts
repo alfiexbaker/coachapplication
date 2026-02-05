@@ -20,6 +20,7 @@
  */
 
 import { apiClient } from './api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { bookingService } from './booking-service';
 import type {
@@ -36,7 +37,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('CounterOfferService');
 
 // Using centralized storage keys
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // Default expiry for counter-offers (48 hours)
 const DEFAULT_EXPIRY_HOURS = 48;
@@ -212,7 +213,6 @@ export const counterOfferService = {
       await saveNegotiationsToStorage(negotiationsCache);
 
       // Create notification for the other party
-      const recipientRole = input.proposedBy === 'PARENT' ? 'coach' : 'parent';
       const notification: NotificationItem = {
         id: `notif_co_${Date.now()}`,
         type: 'booking',

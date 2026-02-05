@@ -39,10 +39,10 @@ export default function PrivacyPolicyScreen() {
           1. Introduction
         </ThemedText>
         <ThemedText style={[styles.body, { color: palette.text }]}>
-          Clubroom ("we", "our", "us") is committed to protecting your privacy.
+          Clubroom (&quot;we&quot;, &quot;our&quot;, &quot;us&quot;) is committed to protecting your privacy.
           This Privacy Policy explains how we collect, use, disclose, and
           safeguard your information when you use our mobile application and
-          related services (collectively, the "Service"). Please read this policy
+          related services (collectively, the &quot;Service&quot;). Please read this policy
           carefully.
         </ThemedText>
 
@@ -80,7 +80,7 @@ export default function PrivacyPolicyScreen() {
         </ThemedText>
 
         <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-          5. Children's Privacy
+          5. Children&apos;s Privacy
         </ThemedText>
         <ThemedText style={[styles.body, { color: palette.text }]}>
           Clubroom takes the privacy of children seriously. Child profiles are
@@ -137,7 +137,7 @@ export default function PrivacyPolicyScreen() {
         <ThemedText style={[styles.body, { color: palette.text }]}>
           We may update this Privacy Policy from time to time. We will notify you
           of any material changes by posting the new policy within the app and
-          updating the "Last updated" date. Your continued use of the Service
+          updating the &quot;Last updated&quot; date. Your continued use of the Service
           after changes constitutes acceptance of the updated policy.
         </ThemedText>
 

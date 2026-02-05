@@ -198,6 +198,16 @@ export const notificationTriggers = {
     });
   },
 
+  guardianJoined(userName: string, recipientId?: string) {
+    return triggerNotification({
+      type: 'guardian_invited',
+      recipientRole: 'parent',
+      recipientId,
+      title: 'Guardian Joined',
+      body: `${userName} has joined your family account`,
+    });
+  },
+
   // --- Booking Service ---
   bookingConfirmed(coachName: string, dateTime: string, recipientId?: string) {
     return triggerNotification({

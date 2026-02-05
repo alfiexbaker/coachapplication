@@ -12,7 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { schedulingRulesService, SCHEDULING_PRESETS } from '@/services/scheduling-rules-service';
+import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
@@ -56,7 +56,7 @@ const RESCHEDULE_OPTIONS = [
 ];
 
 interface OptionPickerProps<T> {
-  options: Array<{ value: T; label: string; description: string }>;
+  options: { value: T; label: string; description: string }[];
   selectedValue: T;
   onSelect: (value: T) => void;
 }
@@ -111,8 +111,8 @@ export default function SchedulingRulesScreen() {
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
 
-  const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setRules] = useState<CoachSchedulingRules | null>(null);
+  const [, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -310,7 +310,7 @@ export default function SchedulingRulesScreen() {
 
           {!allowSameDayBookings && (
             <ThemedText style={[styles.toggleNote, { color: palette.muted }]}>
-              Bookings for today won't be allowed, regardless of minimum notice
+              Bookings for today won&apos;t be allowed, regardless of minimum notice
             </ThemedText>
           )}
         </SurfaceCard>

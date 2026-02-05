@@ -5,7 +5,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type {
-  CounterOffer,
   CounterOfferStatus,
   NegotiationHistory,
   TimeSlot,
@@ -259,7 +258,7 @@ export function NegotiationTimeline({
                   <View style={[styles.messageBox, { backgroundColor: palette.background }]}>
                     <Ionicons name="chatbubble-outline" size={12} color={palette.muted} />
                     <ThemedText style={[styles.messageText, { color: palette.muted }]}>
-                      "{event.message}"
+                      &quot;{event.message}&quot;
                     </ThemedText>
                   </View>
                 )}

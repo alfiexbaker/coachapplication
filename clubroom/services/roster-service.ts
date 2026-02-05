@@ -14,9 +14,10 @@
  */
 
 import { apiClient } from './api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import type { RosterEntry, RosterNote, FootballObjective } from '@/constants/types';
-const USE_MOCK = true;
+import type { RosterNote, FootballObjective, RosterEntry } from '@/constants/types';
+const USE_MOCK = api.useMock;
 
 export type RemovalReason = 'GRADUATED' | 'MOVED' | 'INACTIVE' | 'OTHER';
 
@@ -354,7 +355,7 @@ export const rosterService = {
         (r) => r.coachId === coachId && r.athleteId === athleteId
       );
       if (entry) {
-        const note = entry.notes.find((n) => n.id === noteId);
+        const note = entry.notes.find((n: RosterNote) => n.id === noteId);
         if (note) {
           note.content = content;
           note.updatedAt = new Date().toISOString();
@@ -383,7 +384,7 @@ export const rosterService = {
         (r) => r.coachId === coachId && r.athleteId === athleteId
       );
       if (entry) {
-        entry.notes = entry.notes.filter((n) => n.id !== noteId);
+        entry.notes = entry.notes.filter((n: RosterNote) => n.id !== noteId);
         await saveToStorage(rosterCache);
       }
       return;
@@ -505,7 +506,7 @@ export const rosterService = {
   async getAllTags(coachId: string): Promise<string[]> {
     const roster = await this.getRoster(coachId);
     const tags = new Set<string>();
-    roster.forEach((r) => r.tags.forEach((t) => tags.add(t)));
+    roster.forEach((r: RosterEntry) => r.tags.forEach((t: string) => tags.add(t)));
     return Array.from(tags).sort();
   },
 

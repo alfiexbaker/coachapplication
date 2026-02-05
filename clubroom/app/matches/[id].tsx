@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
+import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -12,8 +13,10 @@ import { AvailabilityResponse } from '@/components/match/availability-response';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import type { Match, MatchPlayer } from '@/constants/types';
+import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
+
+const logger = createLogger('MatchDetailScreen');
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,20 +37,20 @@ export default function MatchDetailScreen() {
     (p) => p.parentId === currentUser?.id || p.parentId === 'parent_1' // demo fallback
   );
 
-  const loadMatch = async () => {
+  const loadMatch = useCallback(async () => {
     try {
       if (!id) return;
       const data = await matchService.getMatch(id);
       setMatch(data);
     } catch (error) {
-      console.error('Failed to load match:', error);
+      logger.error('Failed to load match:', error);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     setIsLoading(true);
     loadMatch().finally(() => setIsLoading(false));
-  }, [id]);
+  }, [loadMatch]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -56,12 +59,12 @@ export default function MatchDetailScreen() {
   };
 
   const handleSetLineup = async (
-    lineup: Array<{
+    lineup: {
       athleteId: string;
       position?: string;
       jerseyNumber?: number;
       isReserve?: boolean;
-    }>
+    }[]
   ) => {
     if (!match) return;
     setIsSubmitting(true);
@@ -75,7 +78,7 @@ export default function MatchDetailScreen() {
       setShowLineupSelector(false);
       Alert.alert('Lineup Set', 'The lineup has been confirmed and players notified.');
     } catch (error) {
-      console.error('Failed to set lineup:', error);
+      logger.error('Failed to set lineup:', error);
       Alert.alert('Error', 'Failed to set lineup. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -96,7 +99,7 @@ export default function MatchDetailScreen() {
       });
       setMatch(updated);
     } catch (error) {
-      console.error('Failed to respond:', error);
+      logger.error('Failed to respond:', error);
       throw error;
     } finally {
       setIsSubmitting(false);
@@ -111,7 +114,7 @@ export default function MatchDetailScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Save',
-          onPress: async (score) => {
+          onPress: async (score: string | undefined) => {
             if (!score || !match) return;
             const [home, away] = score.split('-').map(Number);
             if (isNaN(home) || isNaN(away)) {
@@ -122,7 +125,7 @@ export default function MatchDetailScreen() {
               const updated = await matchService.recordResult(match.id, { home, away });
               setMatch(updated);
               Alert.alert('Result Recorded', 'The match result has been saved.');
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to record result.');
             }
           },
@@ -146,7 +149,7 @@ export default function MatchDetailScreen() {
             try {
               const updated = await matchService.cancelMatch(match.id);
               setMatch(updated);
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to cancel match.');
             }
           },

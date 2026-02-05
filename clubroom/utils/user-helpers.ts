@@ -6,7 +6,7 @@
 type UserWithCapabilities = {
   role?: string;
   type?: 'USER' | 'COACH';
-  children?: Array<{ childId: string; childName: string }>;
+  children?: { childId: string; childName: string }[];
   skillLevel?: string;
   isOrganization?: boolean;
   isLive?: boolean;

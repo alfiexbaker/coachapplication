@@ -5,7 +5,7 @@
  * URL format: /compare/coach1,coach2,coach3
  */
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -25,7 +25,7 @@ export default function DynamicCompareScreen() {
   const palette = Colors[scheme];
 
   // Parse coach IDs from comma-separated string
-  const coachIds = ids ? ids.split(',').filter(Boolean) : [];
+  const coachIds = useMemo(() => ids ? ids.split(',').filter(Boolean) : [], [ids]);
 
   const handleCoachRemoved = useCallback(
     (removedId: string) => {

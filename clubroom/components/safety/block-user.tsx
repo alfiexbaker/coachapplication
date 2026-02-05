@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { ModalStyles, ButtonStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { blockService } from '@/services/block-service';
@@ -118,7 +118,7 @@ export function BlockUserModal({
                 Block {userName}?
               </ThemedText>
               <ThemedText style={[styles.message, { color: palette.muted }]}>
-                They won't be able to message you, send invites, or find you in
+                They won&apos;t be able to message you, send invites, or find you in
                 search. You can unblock them later from your settings.
               </ThemedText>
 

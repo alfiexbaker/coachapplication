@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { View, StyleSheet, TextInput, ScrollView, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -194,7 +194,7 @@ export default function BadgesScreen() {
             <Clickable
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
-              style={[styles.tabButton, isActive && { backgroundColor: `${palette.tint}12`, borderColor: palette.tint }]}
+              style={[styles.tabButton, isActive ? { backgroundColor: `${palette.tint}12`, borderColor: palette.tint } : undefined].filter(Boolean) as ViewStyle[]}
             >
               <View style={styles.tabLabelRow}>
                 <Ionicons

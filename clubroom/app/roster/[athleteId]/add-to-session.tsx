@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -26,15 +26,11 @@ export default function AddToSessionScreen() {
   const { currentUser } = useAuth();
 
   const [sessions, setSessions] = useState<GroupSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [athleteInfo, setAthleteInfo] = useState<{ parentId?: string; parentName?: string }>({});
 
-  useEffect(() => {
-    loadData();
-  }, [currentUser?.id, athleteId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
       // Load coach's upcoming sessions
@@ -58,7 +54,11 @@ export default function AddToSessionScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id, athleteId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAddToSession = async (session: GroupSession) => {
     if (!athleteId || !athleteName) return;

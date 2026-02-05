@@ -28,11 +28,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
 import {
   ModalStyles,
-  ButtonStyles,
   InputStyles,
 } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
-import type { SessionInvite } from '@/constants/types';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -61,11 +59,11 @@ export interface DeclineReason {
 // Constants
 // ---------------------------------------------------------------------------
 
-const DECLINE_REASONS: Array<{
+const DECLINE_REASONS: {
   id: DeclineReason['category'];
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-}> = [
+}[] = [
   { id: 'schedule_conflict', label: 'Schedule conflict', icon: 'calendar-outline' },
   { id: 'too_far', label: 'Too far away', icon: 'location-outline' },
   { id: 'price', label: 'Price too high', icon: 'cash-outline' },
@@ -169,7 +167,7 @@ export function DeclineInvite({
                     key={reason.id}
                     style={[
                       styles.reasonItem,
-                      isSelected && styles.reasonItemSelected,
+                      isSelected ? styles.reasonItemSelected : undefined,
                     ]}
                     onPress={() =>
                       setSelectedReason(isSelected ? null : reason.id)
@@ -178,7 +176,7 @@ export function DeclineInvite({
                     <View
                       style={[
                         styles.radioOuter,
-                        isSelected && styles.radioOuterSelected,
+                        isSelected ? styles.radioOuterSelected : undefined,
                       ]}
                     >
                       {isSelected && <View style={styles.radioInner} />}
@@ -191,7 +189,7 @@ export function DeclineInvite({
                     <ThemedText
                       style={[
                         styles.reasonLabel,
-                        isSelected && styles.reasonLabelSelected,
+                        isSelected ? styles.reasonLabelSelected : undefined,
                       ]}
                     >
                       {reason.label}
@@ -233,7 +231,7 @@ export function DeclineInvite({
               <Pressable
                 style={({ pressed }) => [
                   styles.cancelButton,
-                  pressed && styles.buttonPressed,
+                  pressed ? styles.buttonPressed : undefined,
                 ]}
                 onPress={handleClose}
               >
@@ -243,8 +241,8 @@ export function DeclineInvite({
               <Pressable
                 style={({ pressed }) => [
                   styles.declineButton,
-                  isSubmitting && styles.declineButtonDisabled,
-                  pressed && !isSubmitting && styles.buttonPressed,
+                  isSubmitting ? styles.declineButtonDisabled : undefined,
+                  pressed && !isSubmitting ? styles.buttonPressed : undefined,
                 ]}
                 onPress={handleDecline}
                 disabled={isSubmitting}
@@ -252,7 +250,7 @@ export function DeclineInvite({
                 <ThemedText
                   style={[
                     styles.declineButtonText,
-                    isSubmitting && styles.declineButtonTextDisabled,
+                    isSubmitting ? styles.declineButtonTextDisabled : undefined,
                   ]}
                 >
                   {isSubmitting ? 'Declining...' : 'Decline'}

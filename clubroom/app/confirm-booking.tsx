@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -30,7 +30,8 @@ export default function ConfirmBookingScreen() {
 
   const coachId = params.coachId as string;
   const coachName = params.coachName as string;
-  const slotId = params.slotId as string;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _slotId = params.slotId as string;
   const slotTitle = params.slotTitle as string;
   const slotFocus = params.slotFocus as string;
   const slotStart = params.slotStart as string;
@@ -38,9 +39,9 @@ export default function ConfirmBookingScreen() {
   const price = parseFloat(params.price as string);
   const serviceType = params.serviceType as string;
   const objectivesParam = params.objectives as string;
-  const objectives = objectivesParam ? JSON.parse(objectivesParam) : [];
+  const objectives = useMemo(() => objectivesParam ? JSON.parse(objectivesParam) : [], [objectivesParam]);
   const athleteIdsParam = params.athleteIds as string;
-  const athleteIds = athleteIdsParam ? JSON.parse(athleteIdsParam) : [];
+  const athleteIds = useMemo(() => athleteIdsParam ? JSON.parse(athleteIdsParam) : [], [athleteIdsParam]);
 
   // Mock group participants for group sessions
   const isGroupSession = serviceType === 'Small Group';
@@ -60,7 +61,7 @@ export default function ConfirmBookingScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Get athlete info from athleteIds
-  const [athletesInfo, setAthletesInfo] = useState<Array<{ id: string; name: string; avatar?: string }>>([]);
+  const [athletesInfo, setAthletesInfo] = useState<{ id: string; name: string; avatar?: string }[]>([]);
 
   const slotDate = new Date(slotStart);
   const formattedDate = slotDate.toLocaleDateString('en-US', {
@@ -197,7 +198,8 @@ export default function ConfirmBookingScreen() {
 
       setIsProcessing(false);
 
-      const totalPrice = price * athletesInfo.length;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _totalPrice = price * athletesInfo.length;
       const message = athletesInfo.length === 1
         ? `Your session with ${coachName} has been booked for ${formattedDate} at ${formattedTime}`
         : `Shared session booked for ${athleteNames} with ${coachName} on ${formattedDate} at ${formattedTime}`;
@@ -220,7 +222,7 @@ export default function ConfirmBookingScreen() {
           },
         ]
       );
-    } catch (error) {
+    } catch {
       setIsProcessing(false);
       Alert.alert('Error', 'Failed to process booking. Please try again.');
     }

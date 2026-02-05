@@ -10,8 +10,6 @@ import { View, StyleSheet, Dimensions, Pressable, GestureResponderEvent } from '
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  runOnJS,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -21,7 +19,7 @@ import { AnnotationMarker, CompactAnnotationMarker } from './AnnotationMarker';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
-import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
+import type { VideoAnnotation } from '@/constants/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -50,9 +48,8 @@ export function TimelineBar({
   const palette = Colors[scheme];
 
   const [timelineWidth, setTimelineWidth] = useState(SCREEN_WIDTH - Spacing.lg * 2);
-  const [isDragging, setIsDragging] = useState(false);
 
-  const progressWidth = useSharedValue(0);
+  useSharedValue(0);
 
   const formatTimestamp = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);

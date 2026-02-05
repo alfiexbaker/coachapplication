@@ -1,12 +1,14 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
+import { StyleSheet, Text, type TextProps, type TextStyle } from 'react-native';
 
 import { Fonts, Typography } from '@/constants/theme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
+type TextType = 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'eyebrow' | 'heading' | 'display';
+
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'eyebrow';
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'eyebrow' | 'heading' | 'display';
 };
 
 export function ThemedText({
@@ -18,16 +20,22 @@ export function ThemedText({
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
+  const typeStyles: Record<TextType, TextStyle | undefined> = {
+    default: styles.default,
+    title: styles.title,
+    defaultSemiBold: styles.defaultSemiBold,
+    subtitle: styles.subtitle,
+    link: styles.link,
+    eyebrow: styles.eyebrow,
+    heading: styles.heading,
+    display: styles.display,
+  };
+
   return (
     <Text
       style={[
         { color, fontFamily: Fonts?.sans },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
-        type === 'eyebrow' ? styles.eyebrow : undefined,
+        typeStyles[type],
         style,
       ]}
       {...rest}
@@ -52,6 +60,9 @@ const styles = StyleSheet.create({
     ...Typography.lg,
     fontWeight: '600',
   },
+  heading: {
+    ...Typography.heading,
+  },
   eyebrow: {
     ...Typography.xs,
     textTransform: 'uppercase',
@@ -62,5 +73,8 @@ const styles = StyleSheet.create({
   link: {
     ...Typography.base,
     color: '#1D4ED8',
+  },
+  display: {
+    ...Typography.display,
   },
 });

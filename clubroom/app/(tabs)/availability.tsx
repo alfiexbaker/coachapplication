@@ -18,6 +18,9 @@ import { BlockDateModal } from '@/components/coach/block-date-modal';
 import { SchedulingRulesModal } from '@/components/coach/scheduling-rules-modal';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AvailabilityScreen');
 
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -57,7 +60,7 @@ export default function AvailabilityScreen() {
 
   const [templates, setTemplates] = useState<AvailabilityTemplate[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<AvailabilityTemplate | null>(null);
@@ -101,7 +104,7 @@ export default function AvailabilityScreen() {
         setShowQuickSetup(true);
       }
     } catch (error) {
-      console.error('Failed to load templates:', error);
+      logger.error('Failed to load templates:', error);
     } finally {
       setLoading(false);
     }
@@ -122,7 +125,7 @@ export default function AvailabilityScreen() {
       });
       setUpcomingBookings(sorted);
     } catch (error) {
-      console.error('Failed to load upcoming bookings:', error);
+      logger.error('Failed to load upcoming bookings:', error);
     }
   }, [coachId]);
 
@@ -180,7 +183,7 @@ export default function AvailabilityScreen() {
       await loadTemplates();
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (error) {
-      console.error('Failed to delete template:', error);
+      logger.error('Failed to delete template:', error);
     }
   };
 
@@ -206,7 +209,7 @@ export default function AvailabilityScreen() {
       setShowQuickSetup(false);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
-      console.error('Failed to apply preset:', error);
+      logger.error('Failed to apply preset:', error);
       Alert.alert('Error', 'Failed to apply preset. Please try again.');
     }
   };
@@ -238,7 +241,7 @@ export default function AvailabilityScreen() {
         });
       }
     } catch (error) {
-      console.error('Failed to block dates:', error);
+      logger.error('Failed to block dates:', error);
       throw error;
     }
   };
@@ -482,7 +485,7 @@ export default function AvailabilityScreen() {
                   <View key={booking.id}>
                     {index > 0 && <View style={[styles.bookingDivider, { backgroundColor: palette.border }]} />}
                     <Clickable
-                      onPress={() => router.push(`/booking/${booking.id}`)}
+                      onPress={() => router.push(`/booking/${booking.id}` as any)}
                       style={styles.bookingItem}
                     >
                       <View style={[styles.bookingDate, { backgroundColor: `${palette.tint}10` }]}>
@@ -519,7 +522,7 @@ export default function AvailabilityScreen() {
               </View>
               <ThemedText style={styles.quickActionTitle}>Add Availability</ThemedText>
               <ThemedText style={[styles.quickActionDesc, { color: palette.muted }]}>
-                Set when you're available
+                Set when you&apos;re available
               </ThemedText>
             </TouchableOpacity>
 

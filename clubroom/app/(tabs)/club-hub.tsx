@@ -29,11 +29,13 @@ import {
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering, Match } from '@/constants/types';
+import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering, Match , GroupSession } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { matchService } from '@/services/match-service';
-import type { GroupSession } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('ClubHub');
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
 
@@ -98,7 +100,7 @@ export default function ClubHubScreen() {
         const memberList = await clubService.getMembers(membership.clubId);
         setMembers(memberList);
       } catch (error) {
-        console.error('Failed to load members:', error);
+        logger.error('Failed to load members:', error);
       }
     }
   }, [membership?.clubId]);
@@ -110,7 +112,7 @@ export default function ClubHubScreen() {
         const sessions = await groupSessionService.getClubTrainingSessions(membership.clubId);
         setTrainingSessions(sessions);
       } catch (error) {
-        console.error('Failed to load training sessions:', error);
+        logger.error('Failed to load training sessions:', error);
       }
     }
   }, [membership?.clubId]);
@@ -122,7 +124,7 @@ export default function ClubHubScreen() {
         const matches = await matchService.getUpcomingMatches(membership.clubId);
         setUpcomingMatches(matches.slice(0, 3)); // Show max 3 upcoming
       } catch (error) {
-        console.error('Failed to load upcoming matches:', error);
+        logger.error('Failed to load upcoming matches:', error);
       }
     }
   }, [membership?.clubId]);
@@ -173,13 +175,13 @@ export default function ClubHubScreen() {
             await loadMembers();
             showToast('Member restored', 'success');
           } catch (error) {
-            console.error('Failed to undo removal:', error);
+            logger.error('Failed to undo removal:', error);
             showToast('Failed to restore member', 'error');
           }
         }
       );
     } catch (error) {
-      console.error('Failed to remove member:', error);
+      logger.error('Failed to remove member:', error);
       showToast('Failed to remove member', 'error');
     } finally {
       setIsRemovingMember(false);
@@ -260,6 +262,7 @@ export default function ClubHubScreen() {
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
   // Get counts for filter badges
+  // Note: feed is intentionally included to recompute when feed changes (e.g., after pin toggle)
   const filterCounts = useMemo(() => {
     if (!membership?.clubId) return {};
     const allPosts = getClubFeed(membership.clubId);
@@ -269,6 +272,7 @@ export default function ClubHubScreen() {
       photo: allPosts.filter(p => p.postType === 'photo').length,
       event: allPosts.filter(p => p.postType === 'event').length,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- feed triggers recomputation when posts are modified
   }, [membership?.clubId, feed]);
 
   return (
@@ -352,7 +356,7 @@ export default function ClubHubScreen() {
                 key={filter.key}
                 style={[
                   styles.filterTab,
-                  feedFilter === filter.key && { backgroundColor: `${palette.tint}15`, borderColor: palette.tint },
+                  feedFilter === filter.key ? { backgroundColor: `${palette.tint}15`, borderColor: palette.tint } : undefined,
                   { borderColor: palette.border }
                 ]}
                 onPress={() => setFeedFilter(filter.key)}

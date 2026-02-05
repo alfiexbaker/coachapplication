@@ -10,12 +10,7 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { familyService } from '../../services/family-service';
 import type {
-  FamilyMember,
-  FamilyCalendarEvent,
-  FamilySpending,
-  FamilyOverview,
   FamilyDateRange,
-  ChildProgressSummary,
 } from '../../constants/types';
 
 // Reset to mock data before each test

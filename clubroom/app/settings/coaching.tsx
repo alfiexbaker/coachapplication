@@ -22,7 +22,7 @@ import {
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Shadows } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';
@@ -55,7 +55,7 @@ function Stepper({ label, value, onValueChange, min, max, step, suffix, helperTe
       <View style={styles.stepperControl}>
         <Pressable
           onPress={() => canDecrement && onValueChange(value - step)}
-          style={[styles.stepperButton, !canDecrement && styles.stepperButtonDisabled]}
+          style={[styles.stepperButton, !canDecrement ? styles.stepperButtonDisabled : undefined]}
           accessibilityLabel={`Decrease ${label}`}
         >
           <Ionicons name="remove" size={18} color={canDecrement ? Colors.light.text : Colors.light.border} />
@@ -65,7 +65,7 @@ function Stepper({ label, value, onValueChange, min, max, step, suffix, helperTe
         </ThemedText>
         <Pressable
           onPress={() => canIncrement && onValueChange(value + step)}
-          style={[styles.stepperButton, !canIncrement && styles.stepperButtonDisabled]}
+          style={[styles.stepperButton, !canIncrement ? styles.stepperButtonDisabled : undefined]}
           accessibilityLabel={`Increase ${label}`}
         >
           <Ionicons name="add" size={18} color={canIncrement ? Colors.light.text : Colors.light.border} />

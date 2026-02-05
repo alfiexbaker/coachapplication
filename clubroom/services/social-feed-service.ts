@@ -2,6 +2,8 @@ import type { ClubFeedPost, ClubPostType } from '@/constants/types';
 import {
   addClubFeedPost,
   togglePinPost,
+  togglePostReaction,
+  hasUserReacted,
   getClubFeed,
   getPinnedPosts,
   getAnnouncements,
@@ -15,6 +17,7 @@ import { notificationService } from './notification-service';
 type CreateClubPostInput = {
   clubId: string;
   clubName?: string;
+  squadId?: string; // For squad-specific posts
   authorId: string;
   authorName: string;
   title: string;
@@ -145,13 +148,21 @@ class ClubFeedService {
   /**
    * React to a post (like/heart)
    */
-  toggleReaction(postId: string, userId: string): void {
-    // In production, this would update the database
-    // For now, we just log the action
+  toggleReaction(postId: string, userId: string): boolean {
+    const isNowReacted = togglePostReaction(postId, userId);
     this.logger.info('post_reaction_toggled', {
       postId,
       userId,
+      isReacted: isNowReacted,
     });
+    return isNowReacted;
+  }
+
+  /**
+   * Check if user has reacted to a post
+   */
+  hasUserReacted(postId: string, userId: string): boolean {
+    return hasUserReacted(postId, userId);
   }
 
   /**
@@ -198,8 +209,6 @@ class ClubFeedService {
       this.logger.warn('add_post_no_club', { authorId: input.authorId });
       return undefined;
     }
-
-    const club = clubs.find((c) => c.id === clubId);
 
     const post = addClubFeedPost({
       clubId,

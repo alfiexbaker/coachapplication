@@ -26,7 +26,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
-import { CardStyles } from '@/constants/styles';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BlockedDatesEditor');
@@ -248,8 +247,8 @@ function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }
               key={dateStr}
               style={[
                 calStyles.dayCell,
-                isSelected && calStyles.dayCellSelected,
-                isBlocked && !isSelected && calStyles.dayCellBlocked,
+                isSelected ? calStyles.dayCellSelected : undefined,
+                isBlocked && !isSelected ? calStyles.dayCellBlocked : undefined,
               ]}
               onPress={() => !isPast && onSelectDate(dateStr)}
               disabled={isPast}
@@ -257,10 +256,10 @@ function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }
               <Text
                 style={[
                   calStyles.dayText,
-                  isPast && calStyles.dayTextPast,
-                  isToday && calStyles.dayTextToday,
-                  isSelected && calStyles.dayTextSelected,
-                  isBlocked && !isSelected && calStyles.dayTextBlocked,
+                  isPast ? calStyles.dayTextPast : undefined,
+                  isToday ? calStyles.dayTextToday : undefined,
+                  isSelected ? calStyles.dayTextSelected : undefined,
+                  isBlocked && !isSelected ? calStyles.dayTextBlocked : undefined,
                 ]}
               >
                 {dayNum}
@@ -452,6 +451,29 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
     logger.debug('Date range blocked', { start, end });
   }, [coachId, selectedStart, selectedEnd, reason, blockedDates, onUpdate]);
 
+  // Helper to actually block the week
+  const doBlockWeek = useCallback(
+    async (start: string, end: string) => {
+      const newBlock: BlockedDateRange = {
+        id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        coachId,
+        startDate: start,
+        endDate: end,
+        reason: 'Blocked entire week',
+        createdAt: new Date().toISOString(),
+      };
+
+      const updated = [...blockedDates, newBlock].sort(
+        (a, b) => a.startDate.localeCompare(b.startDate),
+      );
+      setBlockedDates(updated);
+      await saveBlockedDates(coachId, updated);
+      onUpdate?.(updated);
+      logger.debug('Week blocked', { start, end });
+    },
+    [coachId, blockedDates, onUpdate],
+  );
+
   // Block this week
   const handleBlockThisWeek = useCallback(async () => {
     const { start, end } = getWeekRange();
@@ -475,29 +497,7 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
     } else {
       await doBlockWeek(start, end);
     }
-  }, [coachId, blockedDates, onUpdate]);
-
-  const doBlockWeek = useCallback(
-    async (start: string, end: string) => {
-      const newBlock: BlockedDateRange = {
-        id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-        coachId,
-        startDate: start,
-        endDate: end,
-        reason: 'Blocked entire week',
-        createdAt: new Date().toISOString(),
-      };
-
-      const updated = [...blockedDates, newBlock].sort(
-        (a, b) => a.startDate.localeCompare(b.startDate),
-      );
-      setBlockedDates(updated);
-      await saveBlockedDates(coachId, updated);
-      onUpdate?.(updated);
-      logger.debug('Week blocked', { start, end });
-    },
-    [coachId, blockedDates, onUpdate],
-  );
+  }, [coachId, doBlockWeek]);
 
   // Remove a blocked range
   const handleRemoveBlock = useCallback(
@@ -597,7 +597,7 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
               return (
                 <View
                   key={block.id}
-                  style={[styles.listItem, !isLast && styles.listItemBorder]}
+                  style={[styles.listItem, !isLast ? styles.listItemBorder : undefined]}
                 >
                   <View style={styles.listItemInfo}>
                     <Text style={[styles.listItemDate, isPast && styles.listItemDatePast]}>

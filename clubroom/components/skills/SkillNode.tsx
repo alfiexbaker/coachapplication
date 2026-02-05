@@ -21,7 +21,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SkillNode as SkillNodeType } from '@/constants/types';
 

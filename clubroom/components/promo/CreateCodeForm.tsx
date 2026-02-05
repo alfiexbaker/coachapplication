@@ -443,7 +443,7 @@ export function CreateCodeForm({
           style={[
             styles.submitButton,
             { backgroundColor: palette.tint, opacity: submitting ? 0.6 : 1 },
-            !onCancel && styles.submitButtonFull,
+            !onCancel ? styles.submitButtonFull : undefined,
           ]}
           onPress={handleSubmit}
           disabled={submitting}

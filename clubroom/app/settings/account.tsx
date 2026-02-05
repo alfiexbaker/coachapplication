@@ -13,7 +13,6 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
-import { mockUserProfile } from '@/constants/mock-data';
 
 const logger = createLogger('AccountSettings');
 
@@ -25,8 +24,8 @@ export default function AccountSettingsScreen() {
   // Edit mode states
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPhone, setEditingPhone] = useState(false);
-  const [email, setEmail] = useState(mockUserProfile.email);
-  const [phone, setPhone] = useState(mockUserProfile.phone || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [phone, setPhone] = useState((currentUser as any)?.phone || '');
 
   const handleSaveEmail = () => {
     logger.press('SaveEmail', { email });

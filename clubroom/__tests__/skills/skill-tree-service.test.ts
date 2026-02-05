@@ -9,7 +9,7 @@ import assert from 'node:assert';
 import test, { describe, beforeEach, after } from 'node:test';
 
 import { skillTreeService, SKILL_TREE_CATEGORIES } from '../../services/skill-tree-service';
-import type { SkillTreeCategory, SkillNodeProgress } from '../../constants/types';
+import type { SkillTreeCategory } from '../../constants/types';
 
 const TEST_USER_ID = 'test_user_skills';
 

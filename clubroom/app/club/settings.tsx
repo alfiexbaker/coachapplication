@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert, Share } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, Alert, Share, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,8 +14,8 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubService, type ClubMember } from '@/services/club-service';
-import { getClubById, getClubSquads, getClubInvites, clubInvites as mockInvites } from '@/constants/mock-data';
-import type { Club, ClubSquad, ClubInvite, ClubRole } from '@/constants/types';
+import { getClubById, getClubSquads, getClubInvites } from '@/constants/mock-data';
+import type { Club, ClubSquad, ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ClubSettings');
@@ -33,7 +33,7 @@ export default function ClubSettingsScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const { currentUser } = useAuth();
+  useAuth();
   const { showToast } = useToast();
 
   const [club, setClub] = useState<Club | null>(null);
@@ -199,7 +199,7 @@ export default function ClubSettingsScreen() {
               styles.tab,
               activeSection === section.key && { backgroundColor: `${palette.tint}15` },
               { borderColor: activeSection === section.key ? palette.tint : palette.border },
-            ]}
+            ].filter(Boolean) as ViewStyle[]}
             onPress={() => setActiveSection(section.key)}
           >
             <Ionicons
@@ -382,7 +382,7 @@ export default function ClubSettingsScreen() {
                     key={squad.id}
                     style={[styles.squadRow, { borderColor: palette.border }]}
                     onPress={() => router.push({
-                      pathname: '/club/squad/[id]',
+                      pathname: '/club/squad/[id]' as any,
                       params: { id: squad.id, clubId },
                     })}
                   >

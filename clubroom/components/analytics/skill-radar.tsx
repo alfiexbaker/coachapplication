@@ -147,7 +147,7 @@ export function SkillRadar({
             onPress={() => setViewMode('radar')}
             style={[
               styles.toggleButton,
-              viewMode === 'radar' && { backgroundColor: palette.tint }
+              viewMode === 'radar' ? { backgroundColor: palette.tint } : undefined
             ]}
           >
             <Ionicons
@@ -160,7 +160,7 @@ export function SkillRadar({
             onPress={() => setViewMode('list')}
             style={[
               styles.toggleButton,
-              viewMode === 'list' && { backgroundColor: palette.tint }
+              viewMode === 'list' ? { backgroundColor: palette.tint } : undefined
             ]}
           >
             <Ionicons
@@ -238,7 +238,7 @@ export function SkillRadar({
                   >
                     <View style={[
                       styles.skillLabelBg,
-                      isSelected && { backgroundColor: `${skillColor}20`, borderColor: skillColor, borderWidth: 1 }
+                      isSelected ? { backgroundColor: `${skillColor}20`, borderColor: skillColor, borderWidth: 1 } : undefined
                     ]}>
                       <ThemedText style={[
                         styles.skillLabelText,

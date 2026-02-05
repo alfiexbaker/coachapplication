@@ -9,7 +9,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SkillLevelGrid } from './skill-level-card';
 import { FeedbackList } from './session-feedback-card';
-import type { AthleteProgress, SkillLevel, SessionFeedback } from '@/services/progress-service';
+import type { AthleteProgress } from '@/services/progress-service';
 import type { Goal } from '@/constants/types';
 
 type ProgressDashboardProps = {

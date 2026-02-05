@@ -20,20 +20,20 @@ import { CounterOfferCard } from '@/components/negotiate/CounterOfferCard';
 import { NegotiationTimeline } from '@/components/negotiate/NegotiationTimeline';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/hooks/use-auth';
 import { counterOfferService } from '@/services/counter-offer-service';
+import { createLogger } from '@/utils/logger';
 import type { NegotiationHistory, CounterOffer } from '@/constants/types';
 
-// Mock current user - in production this would come from auth context
-const MOCK_CURRENT_USER = {
-  id: 'parent_1',
-  name: 'Sarah Baker',
-  role: 'PARENT' as const,
-};
+const logger = createLogger('NegotiateScreen');
 
 export default function NegotiateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser } = useAuth();
+
+  const currentUserId = currentUser?.id || '';
 
   const [negotiation, setNegotiation] = useState<NegotiationHistory | null>(null);
   const [pendingOffer, setPendingOffer] = useState<CounterOffer | null>(null);
@@ -66,18 +66,18 @@ export default function NegotiateScreen() {
         const pending = history.offers.find(
           (offer) =>
             offer.status === 'PENDING' &&
-            offer.proposerId !== MOCK_CURRENT_USER.id
+            offer.proposerId !== currentUserId
         );
         setPendingOffer(pending || null);
       }
     } catch (err) {
-      console.error('[NegotiateScreen] Failed to load data:', err);
+      logger.error('Failed to load data', err);
       setError('Failed to load negotiation details');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [id]);
+  }, [id, currentUserId]);
 
   useEffect(() => {
     loadData();
@@ -106,7 +106,7 @@ export default function NegotiateScreen() {
         ]
       );
     } catch (err) {
-      console.error('[NegotiateScreen] Failed to accept offer:', err);
+      logger.error('Failed to accept offer', err);
       Alert.alert('Error', 'Failed to accept the proposal. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -144,7 +144,7 @@ export default function NegotiateScreen() {
         ]
       );
     } catch (err) {
-      console.error('[NegotiateScreen] Failed to reject offer:', err);
+      logger.error('Failed to reject offer', err);
       Alert.alert('Error', 'Failed to decline the proposal. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -321,7 +321,7 @@ export default function NegotiateScreen() {
         <View style={[styles.section, styles.timelineSection]}>
           <NegotiationTimeline
             negotiation={negotiation}
-            currentUserId={MOCK_CURRENT_USER.id}
+            currentUserId={currentUserId}
           />
         </View>
 
@@ -353,7 +353,7 @@ export default function NegotiateScreen() {
               Decline Proposal
             </ThemedText>
             <ThemedText style={[styles.modalSubtitle, { color: palette.muted }]}>
-              Let them know why this time doesn't work (optional)
+              Let them know why this time doesn&apos;t work (optional)
             </ThemedText>
             <TextInput
               style={[

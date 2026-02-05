@@ -170,7 +170,7 @@ export function SessionJournal({ coachNotes, pastEntries, onSave }: SessionJourn
           <View style={styles.sectionHeader}>
             <Ionicons name="clipboard-outline" size={Components.icon.md} color={palette.tint} />
             <ThemedText style={[styles.sectionTitle, { color: palette.foreground }]}>
-              Coach's Notes
+              Coach&apos;s Notes
             </ThemedText>
           </View>
           <ThemedText style={[styles.coachNotes, { color: palette.foreground }]}>

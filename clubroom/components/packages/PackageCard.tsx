@@ -44,7 +44,7 @@ export function PackageCard({
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-      <SurfaceCard style={[styles.card, compact && styles.cardCompact]} onPress={onPress}>
+      <SurfaceCard style={[styles.card, compact ? styles.cardCompact : undefined]} onPress={onPress}>
         {/* Discount Badge */}
         {pkg.discountPercent > 0 && (
           <View style={[styles.discountBadge, { backgroundColor: palette.success }]}>

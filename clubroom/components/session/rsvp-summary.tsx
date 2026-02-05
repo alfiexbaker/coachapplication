@@ -18,8 +18,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Components, Shadows } from '@/constants/theme';
-import { CardStyles, LayoutStyles, ButtonStyles } from '@/constants/styles';
+import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { CardStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
 import { rsvpService } from '@/services/rsvp-service';
 import type { SessionRsvp } from '@/constants/types';
@@ -116,7 +116,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
       ]);
       setRsvps(sessionRsvps);
       setCounts(sessionCounts);
-    } catch (error) {
+    } catch {
       // Fail silently, show empty state
     } finally {
       setLoading(false);
@@ -160,7 +160,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
         'Reminders Sent',
         `Reminder sent to ${counts.pending} parent${counts.pending !== 1 ? 's' : ''}.`,
       );
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to send reminders. Please try again.');
     } finally {
       setSendingReminder(false);

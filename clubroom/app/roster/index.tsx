@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -16,6 +16,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService, RosterFilters, RosterStats } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
+
+const logger = createLogger('RosterScreen');
 
 export default function RosterScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -33,12 +35,7 @@ export default function RosterScreen() {
 
   const coachId = currentUser?.id || 'coach_1';
 
-  useEffect(() => {
-    loadData();
-    loadTags();
-  }, [coachId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [rosterData, statsData] = await Promise.all([
@@ -48,30 +45,31 @@ export default function RosterScreen() {
       setRoster(rosterData);
       setStats(statsData);
     } catch (error) {
-      console.error('Failed to load roster:', error);
+      logger.error('Failed to load roster:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [coachId, filters, searchQuery]);
 
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       const tags = await rosterService.getAllTags(coachId);
       setAllTags(tags);
     } catch (error) {
-      console.error('Failed to load tags:', error);
+      logger.error('Failed to load tags:', error);
     }
-  };
+  }, [coachId]);
+
+  useEffect(() => {
+    loadData();
+    loadTags();
+  }, [loadData, loadTags]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  }, [filters, searchQuery]);
-
-  useEffect(() => {
-    loadData();
-  }, [filters, searchQuery]);
+  }, [loadData]);
 
   const handleFilterChange = (newFilters: RosterFilters) => {
     setFilters(newFilters);

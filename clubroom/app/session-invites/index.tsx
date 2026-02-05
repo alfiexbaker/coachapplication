@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { PageHeader } from '@/components/primitives/page-header';
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { Clickable } from '@/components/primitives/clickable';
@@ -17,6 +17,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite-service';
 import { hasChildren, isCoach } from '@/utils/user-helpers';
 import type { SessionInvite } from '@/constants/types';
+
+const logger = createLogger('SessionInvitesScreen');
 
 type ViewMode = 'sent' | 'received';
 type FilterMode = 'all' | 'pending' | 'responded';
@@ -173,7 +175,7 @@ function InviteCard({
 
         {invite.notes && (
           <ThemedText style={[styles.notes, { color: palette.muted }]} numberOfLines={2}>
-            "{invite.notes}"
+            &quot;{invite.notes}&quot;
           </ThemedText>
         )}
 
@@ -253,17 +255,10 @@ export default function SessionInvitesScreen() {
   const userHasChildren = hasChildren(currentUser);
   const [mode, setMode] = useState<ViewMode>(userIsCoach ? 'sent' : 'received');
   const [filter, setFilter] = useState<FilterMode>('all');
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Reload when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      loadInvites();
-    }, [currentUser?.id, mode])
-  );
-
-  const loadInvites = async () => {
+  const loadInvites = useCallback(async () => {
     if (!currentUser?.id) return;
     setLoading(true);
     try {
@@ -273,11 +268,18 @@ export default function SessionInvitesScreen() {
           : await sessionInviteService.getParentInvites(currentUser.id);
       setInvites(data);
     } catch (error) {
-      console.error('Failed to load invites:', error);
+      logger.error('Failed to load invites', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id, mode]);
+
+  // Reload when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadInvites();
+    }, [loadInvites])
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -302,7 +304,7 @@ export default function SessionInvitesScreen() {
               });
               Alert.alert('Done', 'Invite declined. The coach has been notified.');
               loadInvites();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to decline invite. Please try again.');
             }
           },
@@ -325,7 +327,7 @@ export default function SessionInvitesScreen() {
               await sessionInviteService.cancelInvite(invite.id);
               Alert.alert('Done', 'Invite cancelled.');
               loadInvites();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to cancel invite. Please try again.');
             }
           },
@@ -347,7 +349,7 @@ export default function SessionInvitesScreen() {
             try {
               await sessionInviteService.dismissInvite(invite.id);
               loadInvites();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to remove invite. Please try again.');
             }
           },

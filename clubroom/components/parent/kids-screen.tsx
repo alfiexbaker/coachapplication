@@ -38,7 +38,7 @@ export function ParentKidsScreen() {
             Kids
           </ThemedText>
           <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-            Manage your children's training
+            Manage your children&apos;s training
           </ThemedText>
         </View>
 
@@ -72,7 +72,7 @@ export function ParentKidsScreen() {
                       childName: child.name,
                       hasUpcomingSession: !!nextSession
                     });
-                    router.push(`/child-progress/${child.id}`);
+                    router.push(`/child-progress/${child.id}` as any);
                   }}
                   style={({ pressed }) => [
                     styles.kidCard,

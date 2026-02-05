@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Animated, StyleSheet, View, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -14,7 +14,7 @@ import { useNotificationToast } from '@/hooks/use-notifications';
 
 const logger = createLogger('NotificationToast');
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+Dimensions.get('window');
 
 const ICONS: Record<string, string> = {
   booking: 'calendar',
@@ -38,7 +38,24 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
   const [toast, setToast] = useState<ToastState>({ notification: null, visible: false });
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hideToast = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: -100,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacityAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setToast({ notification: null, visible: false });
+    });
+  }, [slideAnim, opacityAnim]);
 
   const showToast = useCallback((notification: ExtendedNotificationItem) => {
     // Clear any existing timeout
@@ -67,24 +84,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     timeoutRef.current = setTimeout(() => {
       hideToast();
     }, 6000);
-  }, [slideAnim, opacityAnim]);
-
-  const hideToast = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: -100,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setToast({ notification: null, visible: false });
-    });
-  }, [slideAnim, opacityAnim]);
+  }, [slideAnim, opacityAnim, hideToast]);
 
   const handlePress = useCallback(() => {
     hideToast();

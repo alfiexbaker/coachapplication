@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
@@ -19,7 +19,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { BulkInviteResult, BulkInviteError, SquadInvitedMember } from '@/constants/types';
+import type { BulkInviteResult, SquadInvitedMember } from '@/constants/types';
 
 interface InviteResultCardProps {
   result: BulkInviteResult;
@@ -51,7 +51,6 @@ export function InviteResultCard({
 
   // Determine overall status
   const isFullSuccess = failed === 0 && skipped === 0;
-  const isPartialSuccess = sent > 0 && (failed > 0 || skipped > 0);
   const isFullFailure = sent === 0 && totalAttempted > 0;
 
   const getStatusConfig = () => {

@@ -21,8 +21,8 @@ export interface WelcomeFlowProps {
   clubName: string;
   clubColor?: string;
   squadNames?: string[];
-  upcomingEvents?: Array<{ title: string; date: string }>;
-  coaches?: Array<{ name: string; role: string }>;
+  upcomingEvents?: { title: string; date: string }[];
+  coaches?: { name: string; role: string }[];
   onComplete: () => void;
   onSkip?: () => void;
 }

@@ -17,7 +17,7 @@ import { createLogger } from '@/utils/logger';
 import type { Session, BadgeAward, BadgeCategory } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
-import { ProgressionLevel, CategoryInfo, TierNames } from '@/constants/progression';
+import { ProgressionLevel } from '@/constants/progression';
 import { childService, type ChildProfile } from '@/services/child-service';
 
 const logger = createLogger('AthleteDetailScreen');
@@ -40,7 +40,7 @@ export default function AthleteDetailScreen() {
     progressPercent: number;
     pointsToNext: number;
     totalBadges: number;
-    topCategories: Array<{ category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }>;
+    topCategories: { category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[];
   } | null>(null);
 
   const athlete = getUserById(athleteId!);
@@ -119,7 +119,7 @@ export default function AthleteDetailScreen() {
     };
 
     loadChildProfile();
-  }, [athlete]);
+  }, [athlete, athleteId]);
 
   if (!athlete || !currentUser) {
     return null;

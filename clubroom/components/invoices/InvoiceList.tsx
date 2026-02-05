@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { InvoiceCard } from './InvoiceCard';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';

@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 
 import { PageContainer } from '@/components/primitives/page-container';
+import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +14,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
+
+const logger = createLogger('MatchesScreen');
 
 type MatchFilter = 'upcoming' | 'past' | 'all';
 
@@ -34,7 +37,7 @@ export default function MatchesScreen() {
 
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  const loadMatches = async () => {
+  const loadMatches = useCallback(async () => {
     try {
       // For demo, using club_1; in real app would get from user's club
       const clubId = 'club_1';
@@ -50,14 +53,14 @@ export default function MatchesScreen() {
 
       setMatches(data);
     } catch (error) {
-      console.error('Failed to load matches:', error);
+      logger.error('Failed to load matches:', error);
     }
-  };
+  }, [filter]);
 
   useEffect(() => {
     setIsLoading(true);
     loadMatches().finally(() => setIsLoading(false));
-  }, [filter]);
+  }, [loadMatches]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -180,7 +183,7 @@ export default function MatchesScreen() {
                 key={f.key}
                 style={[
                   styles.filterTab,
-                  filter === f.key && { backgroundColor: `${palette.tint}15`, borderColor: palette.tint },
+                  filter === f.key ? { backgroundColor: `${palette.tint}15`, borderColor: palette.tint } : undefined,
                   { borderColor: palette.border },
                 ]}
                 onPress={() => setFilter(f.key)}

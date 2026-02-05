@@ -247,7 +247,7 @@ export function SessionInviteCard({
       {/* Notes */}
       {invite.notes && (
         <ThemedText style={[styles.notes, { color: palette.muted }]} numberOfLines={2}>
-          "{invite.notes}"
+          &quot;{invite.notes}&quot;
         </ThemedText>
       )}
 

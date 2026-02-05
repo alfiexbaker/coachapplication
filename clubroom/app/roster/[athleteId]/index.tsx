@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Image, Alert, TextInput, Modal } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, Alert, TextInput, Modal, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,9 @@ import { rosterService } from '@/services/roster-service';
 import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-service';
 import { childService, type ChildProfile } from '@/services/child-service';
 import type { RosterEntry, FootballObjective } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('AthleteDetail');
 
 const FOCUS_OPTIONS: FootballObjective[] = [
   'Dribbling',
@@ -49,11 +52,7 @@ export default function AthleteDetailScreen() {
 
   const coachId = currentUser?.id || 'coach_1';
 
-  useEffect(() => {
-    loadData();
-  }, [athleteId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!athleteId) return;
     setLoading(true);
     try {
@@ -69,11 +68,15 @@ export default function AthleteDetailScreen() {
       const child = await childService.getChild(athleteId);
       setChildData(child);
     } catch (error) {
-      console.error('Failed to load athlete:', error);
+      logger.error('Failed to load athlete:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [athleteId, coachId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleNavigateToEmergency = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -87,7 +90,7 @@ export default function AthleteDetailScreen() {
       await loadData();
       setShowStatusModal(false);
     } catch (error) {
-      console.error('Failed to update status:', error);
+      logger.error('Failed to update status:', error);
     }
   };
 
@@ -98,7 +101,7 @@ export default function AthleteDetailScreen() {
       await loadData();
       setShowFocusModal(false);
     } catch (error) {
-      console.error('Failed to update focus:', error);
+      logger.error('Failed to update focus:', error);
     }
   };
 
@@ -110,7 +113,7 @@ export default function AthleteDetailScreen() {
       setNewTag('');
       await loadData();
     } catch (error) {
-      console.error('Failed to add tag:', error);
+      logger.error('Failed to add tag:', error);
     }
   };
 
@@ -121,7 +124,7 @@ export default function AthleteDetailScreen() {
       await rosterService.updateTags(coachId, entry.athleteId, tags);
       await loadData();
     } catch (error) {
-      console.error('Failed to remove tag:', error);
+      logger.error('Failed to remove tag:', error);
     }
   };
 
@@ -131,7 +134,7 @@ export default function AthleteDetailScreen() {
       await rosterService.addNote(coachId, entry.athleteId, content);
       await loadData();
     } catch (error) {
-      console.error('Failed to add note:', error);
+      logger.error('Failed to add note:', error);
     }
   };
 
@@ -147,7 +150,7 @@ export default function AthleteDetailScreen() {
             await rosterService.deleteNote(coachId, entry.athleteId, noteId);
             await loadData();
           } catch (error) {
-            console.error('Failed to delete note:', error);
+            logger.error('Failed to delete note:', error);
           }
         },
       },
@@ -202,7 +205,7 @@ export default function AthleteDetailScreen() {
                 { text: 'Cancel', style: 'cancel' },
                 {
                   text: 'Send Message',
-                  onPress: () => router.push(`/chat?athleteId=${entry.athleteId}`),
+                  onPress: () => router.push(`/chat?athleteId=${entry.athleteId}` as any),
                 },
                 {
                   text: 'Schedule Session',
@@ -225,7 +228,7 @@ export default function AthleteDetailScreen() {
                           text: 'Remove',
                           style: 'destructive',
                           onPress: async () => {
-                            await rosterService.removeFromRoster(coachId, entry.athleteId);
+                            await rosterService.removeAthlete(coachId, entry.athleteId, 'OTHER');
                             router.back();
                           },
                         },
@@ -646,7 +649,7 @@ export default function AthleteDetailScreen() {
                   style={[
                     styles.optionRow,
                     entry.status === status && { backgroundColor: `${rosterService.getStatusColor(status)}15` },
-                  ]}
+                  ].filter(Boolean) as ViewStyle[]}
                 >
                   <View
                     style={[styles.statusDot, { backgroundColor: rosterService.getStatusColor(status) }]}
@@ -679,7 +682,7 @@ export default function AthleteDetailScreen() {
                 style={[
                   styles.optionRow,
                   entry.primaryFocus === focus && { backgroundColor: `${palette.tint}15` },
-                ]}
+                ].filter(Boolean) as ViewStyle[]}
               >
                 <ThemedText style={{ flex: 1 }}>{focus}</ThemedText>
                 {entry.primaryFocus === focus && (

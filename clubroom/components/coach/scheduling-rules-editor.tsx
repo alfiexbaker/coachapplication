@@ -18,13 +18,12 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withSequence,
-  runOnJS,
 } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';

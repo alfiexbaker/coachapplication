@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -59,7 +59,7 @@ export function FamilyCalendar({
     const startDay = firstDay.getDay();
     const totalDays = lastDay.getDate();
 
-    const days: Array<{ date: Date | null; isCurrentMonth: boolean }> = [];
+    const days: { date: Date | null; isCurrentMonth: boolean }[] = [];
 
     // Add empty slots for days before the first of the month
     for (let i = 0; i < startDay; i++) {
@@ -133,13 +133,13 @@ export function FamilyCalendar({
             style={[
               styles.filterChip,
               { borderColor: palette.border },
-              selectedChildId === null && { backgroundColor: palette.tint, borderColor: palette.tint },
-            ]}
+              selectedChildId === null ? { backgroundColor: palette.tint, borderColor: palette.tint } : undefined,
+            ].filter(Boolean) as ViewStyle[]}
           >
             <ThemedText
               style={[
                 styles.filterChipText,
-                selectedChildId === null && { color: '#FFFFFF' },
+                selectedChildId === null ? { color: '#FFFFFF' } : undefined,
               ]}
             >
               All Children
@@ -152,20 +152,20 @@ export function FamilyCalendar({
               style={[
                 styles.filterChip,
                 { borderColor: member.colorCode },
-                selectedChildId === member.id && { backgroundColor: member.colorCode },
-              ]}
+                selectedChildId === member.id ? { backgroundColor: member.colorCode } : undefined,
+              ].filter(Boolean) as ViewStyle[]}
             >
               <View
                 style={[
                   styles.filterDot,
                   { backgroundColor: member.colorCode },
-                  selectedChildId === member.id && { backgroundColor: '#FFFFFF' },
+                  selectedChildId === member.id ? { backgroundColor: '#FFFFFF' } : undefined,
                 ]}
               />
               <ThemedText
                 style={[
                   styles.filterChipText,
-                  selectedChildId === member.id && { color: '#FFFFFF' },
+                  selectedChildId === member.id ? { color: '#FFFFFF' } : undefined,
                 ]}
               >
                 {member.name.split(' ')[0]}
@@ -218,16 +218,16 @@ export function FamilyCalendar({
                 <View
                   style={[
                     styles.dayContent,
-                    selected && { backgroundColor: palette.tint },
-                    today && !selected && { borderColor: palette.tint, borderWidth: 1 },
+                    selected ? { backgroundColor: palette.tint } : undefined,
+                    today && !selected ? { borderColor: palette.tint, borderWidth: 1 } : undefined,
                   ]}
                 >
                   {item.date && (
                     <ThemedText
                       style={[
                         styles.dayText,
-                        selected && { color: '#FFFFFF' },
-                        !item.isCurrentMonth && { color: palette.muted },
+                        selected ? { color: '#FFFFFF' } : undefined,
+                        !item.isCurrentMonth ? { color: palette.muted } : undefined,
                       ]}
                     >
                       {item.date.getDate()}

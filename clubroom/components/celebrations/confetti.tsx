@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const PARTICLE_COUNT = 35;
 const DURATION = 3000;
@@ -35,7 +32,6 @@ export interface ConfettiProps {
 }
 
 export function Confetti({ active }: ConfettiProps) {
-  const scheme = useColorScheme() ?? 'light';
   const animationRef = useRef(new Animated.Value(0)).current;
 
   const particles = useMemo<Particle[]>(() => {

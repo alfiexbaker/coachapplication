@@ -143,7 +143,7 @@ export function MilestoneList({
             <ThemedText
               style={[
                 styles.compactText,
-                milestone.isCompleted && styles.completedText,
+                milestone.isCompleted ? styles.completedText : undefined,
                 { color: milestone.isCompleted ? palette.muted : palette.text },
               ]}
               numberOfLines={1}
@@ -308,7 +308,7 @@ function MilestoneItem({
           <ThemedText
             style={[
               styles.milestoneTitle,
-              milestone.isCompleted && styles.completedText,
+              milestone.isCompleted ? styles.completedText : undefined,
               { color: milestone.isCompleted ? palette.muted : palette.text },
             ]}
           >

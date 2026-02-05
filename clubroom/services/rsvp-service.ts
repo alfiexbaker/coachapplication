@@ -51,7 +51,7 @@ export const rsvpService = {
    */
   async createForSession(
     sessionId: string,
-    members: Array<{ userId: string; childId?: string; childName?: string }>,
+    members: { userId: string; childId?: string; childName?: string }[],
   ): Promise<SessionRsvp[]> {
     const rsvps = await loadRsvps();
     const now = new Date().toISOString();

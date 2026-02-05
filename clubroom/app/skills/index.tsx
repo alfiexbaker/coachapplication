@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -19,9 +19,9 @@ import { ProgressBadge } from '@/components/skills/ProgressBadge';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { skillTreeService, SKILL_TREE_CATEGORIES } from '@/services/skill-tree-service';
+import { skillTreeService } from '@/services/skill-tree-service';
 import { createLogger } from '@/utils/logger';
-import type { SkillTree, SkillTreeCategory } from '@/constants/types';
+import type { SkillTreeCategory } from '@/constants/types';
 
 const logger = createLogger('SkillsScreen');
 
@@ -43,7 +43,8 @@ export default function SkillsScreen() {
 
   const [trees, setTrees] = useState<TreeSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_isRefreshing, setIsRefreshing] = useState(false);
 
   const loadTrees = useCallback(async () => {
     if (!currentUser) return;
@@ -62,7 +63,8 @@ export default function SkillsScreen() {
     loadTrees().finally(() => setIsLoading(false));
   }, [loadTrees]);
 
-  const handleRefresh = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleRefresh = async () => {
     setIsRefreshing(true);
     await loadTrees();
     setIsRefreshing(false);
@@ -88,7 +90,7 @@ export default function SkillsScreen() {
               await skillTreeService.initializeMockProgress(currentUser.id);
               await loadTrees();
               Alert.alert('Success', 'Demo progress has been added!');
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to initialize demo progress');
             }
           },

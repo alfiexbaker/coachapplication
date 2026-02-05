@@ -6,7 +6,6 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Platform } from 'react-native';
 import { pushNotificationService } from '@/services/push-notification-service';
 import { createLogger } from '@/utils/logger';
 
@@ -15,6 +14,7 @@ const logger = createLogger('usePushNotifications');
 // Lazy-load expo-notifications
 let Notifications: typeof import('expo-notifications') | null = null;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   Notifications = require('expo-notifications');
 } catch {
   // Not installed

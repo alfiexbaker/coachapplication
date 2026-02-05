@@ -11,10 +11,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FilterModal } from '@/components/discover/FilterModal';
-import { Colors, Spacing } from '@/constants/theme';
+import { createLogger } from '@/utils/logger';
+import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { discoverService } from '@/services/discover-service';
 import type { CoachSearchFilters, FilterOptions } from '@/constants/types';
+
+const logger = createLogger('FiltersScreen');
 
 export default function FiltersScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -44,13 +47,15 @@ export default function FiltersScreen() {
         setFilterOptions(options);
         setResultCount(options.totalCount);
       } catch (error) {
-        console.error('[FiltersScreen] Failed to parse filters:', error);
+        logger.error('Failed to parse filters', error);
       } finally {
         setLoading(false);
       }
     };
 
     parseFilters();
+  // Note: filters is intentionally excluded from deps as we only want to parse on params.filters change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.filters]);
 
   // Update result count when filters change
@@ -72,7 +77,7 @@ export default function FiltersScreen() {
       const filtersParam = encodeURIComponent(JSON.stringify(newFilters));
 
       router.replace({
-        pathname: returnTo as `/${string}`,
+        pathname: returnTo as any,
         params: { appliedFilters: filtersParam },
       });
     },

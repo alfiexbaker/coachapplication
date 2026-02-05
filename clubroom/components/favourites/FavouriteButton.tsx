@@ -20,7 +20,6 @@ import Animated, {
   withSequence,
   withTiming,
   interpolateColor,
-  runOnJS,
 } from 'react-native-reanimated';
 
 import { Colors, Spacing } from '@/constants/theme';

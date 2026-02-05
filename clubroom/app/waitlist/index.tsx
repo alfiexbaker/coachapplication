@@ -13,7 +13,10 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { waitlistService } from '@/services/waitlist-service';
+import { createLogger } from '@/utils/logger';
 import type { WaitlistEntry } from '@/constants/types';
+
+const logger = createLogger('WaitlistScreen');
 
 export default function WaitlistScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -31,7 +34,7 @@ export default function WaitlistScreen() {
       const data = await waitlistService.getUserWaitlists(currentUser.id);
       setEntries(data);
     } catch (error) {
-      console.error('Failed to load waitlists:', error);
+      logger.error('Failed to load waitlists', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -52,7 +55,7 @@ export default function WaitlistScreen() {
       await waitlistService.leaveWaitlist(entryId);
       setEntries((prev) => prev.filter((e) => e.id !== entryId));
     } catch (error) {
-      console.error('Failed to leave waitlist:', error);
+      logger.error('Failed to leave waitlist', error);
     }
   };
 
@@ -65,7 +68,7 @@ export default function WaitlistScreen() {
         );
       }
     } catch (error) {
-      console.error('Failed to update auto-book:', error);
+      logger.error('Failed to update auto-book', error);
     }
   };
 
@@ -140,7 +143,7 @@ export default function WaitlistScreen() {
             <View style={styles.infoRow}>
               <Ionicons name="notifications" size={16} color={palette.tint} />
               <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-                You'll receive a notification when a spot opens up
+                You&apos;ll receive a notification when a spot opens up
               </ThemedText>
             </View>
           </View>

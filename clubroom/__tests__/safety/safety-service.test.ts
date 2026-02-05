@@ -10,7 +10,6 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { safetyService } from '../../services/safety-service';
 import type {
-  EmergencyInfo,
   EmergencyContact,
   MedicalInfo,
 } from '../../constants/types';

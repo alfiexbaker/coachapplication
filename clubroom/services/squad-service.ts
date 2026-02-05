@@ -11,6 +11,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/constants/config';
 import type { ClubSquad, SquadMember } from '@/constants/types';
 import { clubSquads } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
@@ -18,7 +19,33 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('SquadService');
 
 const SQUAD_MEMBERS_KEY = 'squad_members';
-const USE_MOCK = true;
+const SQUADS_KEY = 'club_squads';
+const USE_MOCK = api.useMock;
+
+// Cache for custom squads (created by users)
+let customSquadsCache: ClubSquad[] = [];
+
+async function loadCustomSquads(): Promise<ClubSquad[]> {
+  try {
+    const stored = await AsyncStorage.getItem(SQUADS_KEY);
+    if (stored) {
+      customSquadsCache = JSON.parse(stored);
+      return customSquadsCache;
+    }
+  } catch (error) {
+    logger.error('Failed to load custom squads', error);
+  }
+  return [];
+}
+
+async function saveCustomSquads(squads: ClubSquad[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(SQUADS_KEY, JSON.stringify(squads));
+    customSquadsCache = squads;
+  } catch (error) {
+    logger.error('Failed to save custom squads', error);
+  }
+}
 
 // Mock squad members data
 const MOCK_SQUAD_MEMBERS: SquadMember[] = [
@@ -192,22 +219,16 @@ async function loadMembers(): Promise<SquadMember[]> {
   return [...MOCK_SQUAD_MEMBERS];
 }
 
-async function saveMembers(members: SquadMember[]): Promise<void> {
-  try {
-    await AsyncStorage.setItem(SQUAD_MEMBERS_KEY, JSON.stringify(members));
-    membersCache = members;
-  } catch (error) {
-    logger.error('Failed to save members', error);
-  }
-}
-
 export const squadService = {
   /**
    * Get all squads for a club
    */
   async getSquads(clubId: string): Promise<ClubSquad[]> {
     if (USE_MOCK) {
-      return clubSquads.filter((s) => s.clubId === clubId);
+      const custom = await loadCustomSquads();
+      const mockSquads = clubSquads.filter((s) => s.clubId === clubId);
+      const customForClub = custom.filter((s) => s.clubId === clubId);
+      return [...mockSquads, ...customForClub];
     }
 
     const response = await fetch(`/api/clubs/${clubId}/squads`);
@@ -219,11 +240,55 @@ export const squadService = {
    */
   async getSquad(squadId: string): Promise<ClubSquad | null> {
     if (USE_MOCK) {
-      return clubSquads.find((s) => s.id === squadId) || null;
+      const fromMock = clubSquads.find((s) => s.id === squadId);
+      if (fromMock) return fromMock;
+
+      const custom = await loadCustomSquads();
+      return custom.find((s) => s.id === squadId) || null;
     }
 
     const response = await fetch(`/api/squads/${squadId}`);
     if (!response.ok) return null;
+    return response.json();
+  },
+
+  /**
+   * Create a new squad
+   */
+  async createSquad(input: {
+    clubId: string;
+    name: string;
+    level: string;
+    description?: string;
+    meetingLocation?: string;
+    ageGroup?: string;
+    skillLevel?: string;
+    focusAreas?: string[];
+  }): Promise<ClubSquad> {
+    const newSquad: ClubSquad = {
+      id: `squad_${Date.now()}`,
+      clubId: input.clubId,
+      name: input.name,
+      level: input.level,
+      memberCount: 0,
+      description: input.description,
+      meetLocation: input.meetingLocation ?? 'TBD',
+      primaryCoach: 'coach_1',
+    };
+
+    if (USE_MOCK) {
+      const custom = await loadCustomSquads();
+      custom.push(newSquad);
+      await saveCustomSquads(custom);
+      logger.info('Squad created', { squadId: newSquad.id, name: newSquad.name });
+      return newSquad;
+    }
+
+    const response = await fetch('/api/squads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newSquad),
+    });
     return response.json();
   },
 
@@ -264,7 +329,7 @@ export const squadService = {
    */
   async getSquadParents(
     squadId: string
-  ): Promise<Array<{ parentId: string; parentName: string; parentEmail?: string; athletes: string[] }>> {
+  ): Promise<{ parentId: string; parentName: string; parentEmail?: string; athletes: string[] }[]> {
     const members = await this.getSquadMembers(squadId);
 
     const parentMap = new Map<
@@ -302,9 +367,12 @@ export const squadService = {
    */
   async getCoachSquads(coachId: string, clubId: string): Promise<ClubSquad[]> {
     const squads = await this.getSquads(clubId);
-    // In a real app, we'd filter by coach assignment
-    // For now, return all squads in the club
-    return squads.filter((s) => s.id !== 'squad_staff');
+    // Filter by coach assignment - show squads where coach is primary coach
+    // Also include squads without a coach assigned (for assignment)
+    return squads.filter((s) =>
+      s.id !== 'squad_staff' &&
+      (s.primaryCoach === coachId || !s.primaryCoach)
+    );
   },
 
   /**

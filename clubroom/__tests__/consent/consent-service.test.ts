@@ -10,7 +10,7 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { consentService, CONSENT_TYPE_LABELS, CONSENT_TYPE_ICONS } from '../../services/consent-service';
 import { safetyService } from '../../services/safety-service';
-import type { AthleteConsent, Consent, ConsentType } from '../../constants/types';
+import type { AthleteConsent, Consent } from '../../constants/types';
 
 // Reset to mock data before each test
 beforeEach(async () => {

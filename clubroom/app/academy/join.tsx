@@ -39,7 +39,7 @@ export default function JoinTeamScreen() {
 
     setLoading(true);
     try {
-      const membership = await academyService.joinWithCode(code, currentUser.id);
+      const membership = await academyService.joinWithCode(code, currentUser.id, currentUser.name, currentUser.avatar);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       logger.info('team_joined', { teamId: membership.academyId });
       Alert.alert('Welcome!', 'You have successfully joined the team', [
@@ -121,7 +121,7 @@ export default function JoinTeamScreen() {
           <View style={[styles.infoCard, { backgroundColor: `${palette.info}10` }]}>
             <Ionicons name="information-circle" size={20} color={palette.info} />
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-              Don't have a code? Ask your coach or club administrator for an invite.
+              Don&apos;t have a code? Ask your coach or club administrator for an invite.
             </ThemedText>
           </View>
         </View>

@@ -150,7 +150,7 @@ export function AttachmentPicker({
           size: asset.fileSize,
           mimeType: asset.mimeType || 'video/mp4',
           thumbnailUrl: asset.uri,
-          duration: asset.duration,
+          duration: asset.duration ?? undefined,
         };
         onSelect([attachment]);
         onClose();

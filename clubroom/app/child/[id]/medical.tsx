@@ -12,6 +12,9 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { EmergencyInfo, MedicalInfo, Consent, ConsentType } from '@/constants/types';
 import { safetyService } from '@/services/safety-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('MedicalInfoScreen');
 
 type TagInputProps = {
   label: string;
@@ -139,7 +142,7 @@ export default function MedicalInfoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const [info, setInfo] = useState<EmergencyInfo | null>(null);
+  const [, setInfo] = useState<EmergencyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -172,7 +175,7 @@ export default function MedicalInfoScreen() {
       setNotes(data.medical.notes ?? '');
       setConsents(data.consents);
     } catch (error) {
-      console.error('Failed to load medical info:', error);
+      logger.error('Failed to load medical info:', error);
     } finally {
       setLoading(false);
     }
@@ -223,7 +226,7 @@ export default function MedicalInfoScreen() {
 
       router.back();
     } catch (error) {
-      console.error('Failed to save medical info:', error);
+      logger.error('Failed to save medical info:', error);
     } finally {
       setSaving(false);
     }

@@ -144,9 +144,9 @@ export function SeverityPicker({ selectedSeverity, onSelect }: SeverityPickerPro
                 style={[
                   styles.scaleSegment,
                   { backgroundColor: info.color },
-                  isSelected && styles.scaleSegmentSelected,
-                  index === 0 && styles.scaleSegmentFirst,
-                  index === SEVERITY_OPTIONS.length - 1 && styles.scaleSegmentLast,
+                  isSelected ? styles.scaleSegmentSelected : undefined,
+                  index === 0 ? styles.scaleSegmentFirst : undefined,
+                  index === SEVERITY_OPTIONS.length - 1 ? styles.scaleSegmentLast : undefined,
                 ]}
               />
             );

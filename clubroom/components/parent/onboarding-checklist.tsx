@@ -6,8 +6,8 @@ import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
-import { CardStyles, ButtonStyles, LayoutStyles } from '@/constants/styles';
+import { Colors, Spacing, Typography } from '@/constants/theme';
+import { CardStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ============================================================================
@@ -110,7 +110,6 @@ export function ParentOnboardingChecklist({
   const completedCount = items.filter((item) => item.isComplete).length;
   const totalCount = items.length;
   const progress = completedCount / totalCount;
-  const allComplete = completedCount === totalCount;
 
   if (isDismissed) {
     return null;
@@ -160,7 +159,7 @@ export function ParentOnboardingChecklist({
               style={[
                 styles.checkCircle,
                 { borderColor: palette.border },
-                item.isComplete && { backgroundColor: palette.success, borderColor: palette.success },
+                item.isComplete ? { backgroundColor: palette.success, borderColor: palette.success } : undefined,
               ]}
             >
               {item.isComplete && (
@@ -171,7 +170,7 @@ export function ParentOnboardingChecklist({
               style={[
                 styles.itemLabel,
                 { color: palette.text },
-                item.isComplete && { color: palette.muted, textDecorationLine: 'line-through' },
+                item.isComplete ? { color: palette.muted, textDecorationLine: 'line-through' } : undefined,
               ]}
               numberOfLines={1}
             >

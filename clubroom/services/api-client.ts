@@ -4,6 +4,12 @@
  * Every service imports this instead of touching AsyncStorage directly.
  * When backend exists, swap the implementation — services don't change.
  *
+ * Features:
+ * - Config-driven settings (base URL, timeout, mock mode)
+ * - Rate limiting based on config
+ * - Offline queue for write operations
+ * - Automatic token refresh
+ *
  * Usage:
  *   import { apiClient } from './api-client';
  *   const items = await apiClient.get<Item[]>(STORAGE_KEYS.ITEMS, []);
@@ -14,12 +20,49 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createLogger } from '@/utils/logger';
 import { authService } from '@/services/auth-service';
 import { ApiError, UnauthorizedError, NetworkError } from '@/constants/error-types';
+import { api, rateLimits } from '@/constants/config';
 
 const logger = createLogger('ApiClient');
 
-// Toggle between mock (AsyncStorage) and real API
-const USE_MOCK = process.env.EXPO_PUBLIC_USE_MOCK !== 'false';
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+// Config-driven settings
+const USE_MOCK = api.useMock;
+const API_BASE_URL = api.baseUrl;
+const API_TIMEOUT = api.timeout;
+
+// -----------------------------------------------------------------------------
+// Rate Limiter
+// -----------------------------------------------------------------------------
+
+class RateLimiter {
+  private requests: number[] = [];
+  private readonly maxRequests: number;
+  private readonly windowMs = 60000; // 1 minute
+
+  constructor(maxRequestsPerMinute: number) {
+    this.maxRequests = maxRequestsPerMinute;
+  }
+
+  canMakeRequest(): boolean {
+    const now = Date.now();
+    this.requests = this.requests.filter((t) => now - t < this.windowMs);
+    return this.requests.length < this.maxRequests;
+  }
+
+  recordRequest(): void {
+    this.requests.push(Date.now());
+  }
+
+  async waitForSlot(): Promise<void> {
+    while (!this.canMakeRequest()) {
+      const oldest = Math.min(...this.requests);
+      const waitTime = this.windowMs - (Date.now() - oldest) + 10;
+      logger.debug('Rate limited, waiting', { waitTime });
+      await new Promise((resolve) => setTimeout(resolve, Math.min(waitTime, 1000)));
+    }
+  }
+}
+
+const rateLimiter = new RateLimiter(rateLimits.apiRequestsPerMinute);
 
 // Re-export for backwards compatibility
 export { ApiError };
@@ -101,6 +144,10 @@ let _isRefreshing = false;
 let _refreshPromise: Promise<void> | null = null;
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  // Rate limiting
+  await rateLimiter.waitForSlot();
+  rateLimiter.recordRequest();
+
   // Get auth token from authService
   let authHeaders: Record<string, string> = {};
   if (!USE_MOCK) {
@@ -116,6 +163,10 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
   let response: Response;
   try {
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
@@ -123,10 +174,15 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
         ...authHeaders,
         ...options?.headers,
       },
+      signal: controller.signal,
     });
-  } catch (error: any) {
-    logger.error('Network request failed', error);
-    throw new NetworkError(error.message || 'Network request failed');
+
+    clearTimeout(timeoutId);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Network request failed';
+    const isTimeout = error instanceof Error && error.name === 'AbortError';
+    logger.error(isTimeout ? 'Request timeout' : 'Network request failed', error);
+    throw new NetworkError(isTimeout ? `Request timeout after ${API_TIMEOUT}ms` : errorMessage);
   }
 
   if (response.status === 401) {
@@ -273,7 +329,7 @@ export const apiClient = {
    * Read-modify-write pattern. Reads current value, applies updater, saves result.
    */
   async update<T>(key: string, updater: (current: T) => T, fallback: T): Promise<T> {
-    const current = await this.get<T>(key, fallback);
+    const current = (await this.get(key, fallback)) as T;
     const updated = updater(current);
     await this.set(key, updated);
     return updated;

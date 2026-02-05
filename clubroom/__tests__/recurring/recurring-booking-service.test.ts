@@ -15,7 +15,6 @@ import {
   getStatusLabel,
 } from '../../services/recurring-booking-service';
 import type {
-  RecurringBooking,
   CreateRecurringBookingParams,
   RecurrenceFrequency,
 } from '../../constants/types';
@@ -466,7 +465,7 @@ test('getActiveUserRecurringBookings returns only active bookings', async () => 
   await recurringBookingService.clearAll();
 
   // Create active booking
-  const active = await recurringBookingService.createRecurring(mockCreateParams);
+  await recurringBookingService.createRecurring(mockCreateParams);
 
   // Create and pause another booking
   const paused = await recurringBookingService.createRecurring({

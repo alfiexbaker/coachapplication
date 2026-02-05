@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------

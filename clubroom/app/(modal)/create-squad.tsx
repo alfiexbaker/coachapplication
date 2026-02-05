@@ -17,6 +17,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubs } from '@/constants/mock-data';
+import { squadService } from '@/services/squad-service';
 
 const AGE_GROUPS = [
   { label: 'U8', min: 5, max: 8 },
@@ -52,7 +53,7 @@ const SKILL_TAGS = [
 export default function CreateSquadScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const { currentUser } = useAuth();
+  useAuth();
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
 
   const [squadName, setSquadName] = useState('');
@@ -88,11 +89,20 @@ export default function CreateSquadScreen() {
 
     setIsSubmitting(true);
     try {
-      // In a real app, this would call an API
-      // For now, we'll just show a success message
+      const newSquad = await squadService.createSquad({
+        clubId: clubId!,
+        name: squadName.trim(),
+        level: `${selectedAgeGroup.label} · ${selectedLevel}`,
+        description: selectedTags.length > 0 ? `Focus: ${selectedTags.join(', ')}` : undefined,
+        meetingLocation: meetLocation.trim() || undefined,
+        ageGroup: selectedAgeGroup.label,
+        skillLevel: selectedLevel,
+        focusAreas: selectedTags,
+      });
+
       Alert.alert(
         'Squad Created',
-        `${squadName} has been created successfully!`,
+        `${newSquad.name} has been created successfully!`,
         [
           {
             text: 'OK',
@@ -100,7 +110,7 @@ export default function CreateSquadScreen() {
           },
         ]
       );
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to create squad. Please try again.');
     } finally {
       setIsSubmitting(false);

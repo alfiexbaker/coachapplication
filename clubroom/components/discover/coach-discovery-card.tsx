@@ -15,8 +15,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { SurfaceCard } from '@/components/primitives/surface-card';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------

@@ -191,10 +191,10 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
                 key={option.value}
                 style={[
                   styles.typeOption,
-                  type === option.value && {
+                  type === option.value ? {
                     borderColor: palette.tint,
                     borderWidth: 2,
-                  },
+                  } : undefined,
                 ]}
                 onPress={() => setType(option.value)}
                 tactile={!loading}
@@ -218,7 +218,7 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
                   type="defaultSemiBold"
                   style={[
                     styles.typeLabel,
-                    type === option.value && { color: palette.tint },
+                    type === option.value ? { color: palette.tint } : undefined,
                   ]}
                 >
                   {option.label}
@@ -261,7 +261,7 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
                   type="defaultSemiBold"
                   style={[
                     styles.privacyLabel,
-                    isPublic && { color: palette.tint },
+                    isPublic ? { color: palette.tint } : undefined,
                   ]}
                 >
                   Public
@@ -296,7 +296,7 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
                   type="defaultSemiBold"
                   style={[
                     styles.privacyLabel,
-                    !isPublic && { color: palette.tint },
+                    !isPublic ? { color: palette.tint } : undefined,
                   ]}
                 >
                   Private

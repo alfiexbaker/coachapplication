@@ -8,7 +8,7 @@
  */
 
 import assert from 'node:assert';
-import test, { describe, beforeEach, mock } from 'node:test';
+import test, { describe, beforeEach } from 'node:test';
 
 import { comparisonService } from '../../services/comparison-service';
 import { discoverService } from '../../services/discover-service';

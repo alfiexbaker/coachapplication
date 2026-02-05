@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +15,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite-service';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
+
+const logger = createLogger('SessionInviteDetailScreen');
 
 export default function SessionInviteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,22 +45,22 @@ export default function SessionInviteDetailScreen() {
   const isOwner = invite?.coachId === currentUser?.id;
   const isRecipient = invite?.parentId === currentUser?.id;
 
-  useEffect(() => {
-    loadInvite();
-  }, [id]);
-
-  const loadInvite = async () => {
+  const loadInvite = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
       const data = await sessionInviteService.getInvite(id);
       setInvite(data);
     } catch (error) {
-      console.error('Failed to load invite:', error);
+      logger.error('Failed to load invite', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadInvite();
+  }, [loadInvite]);
 
   const handleAccept = async () => {
     if (!invite || selectedSlot === null) {
@@ -90,7 +93,7 @@ export default function SessionInviteDetailScreen() {
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error('Failed to accept invite:', error);
+      logger.error('Failed to accept invite', error);
       Alert.alert('Error', 'Failed to accept invite. Please try again.');
     } finally {
       setResponding(false);
@@ -115,7 +118,7 @@ export default function SessionInviteDetailScreen() {
               { text: 'OK', onPress: () => router.back() },
             ]);
           } catch (error) {
-            console.error('Failed to decline invite:', error);
+            logger.error('Failed to decline invite', error);
           } finally {
             setResponding(false);
           }
@@ -138,7 +141,7 @@ export default function SessionInviteDetailScreen() {
               { text: 'OK', onPress: () => router.back() },
             ]);
           } catch (error) {
-            console.error('Failed to cancel invite:', error);
+            logger.error('Failed to cancel invite', error);
           }
         },
       },
@@ -189,7 +192,7 @@ export default function SessionInviteDetailScreen() {
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
-      console.error('Failed to send counter proposal:', error);
+      logger.error('Failed to send counter proposal', error);
       Alert.alert('Error', 'Failed to send counter proposal. Please try again.');
     } finally {
       setResponding(false);
@@ -205,7 +208,7 @@ export default function SessionInviteDetailScreen() {
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error('Failed to accept counter proposal:', error);
+      logger.error('Failed to accept counter proposal', error);
       Alert.alert('Error', 'Failed to accept counter proposal. Please try again.');
     } finally {
       setResponding(false);
@@ -572,7 +575,7 @@ export default function SessionInviteDetailScreen() {
               </ThemedText>
               {invite.counterNote && (
                 <ThemedText style={[styles.counterNote, { color: palette.muted }]}>
-                  "{invite.counterNote}"
+                  &quot;{invite.counterNote}&quot;
                 </ThemedText>
               )}
               {invite.counterProposal.map((slot, index) => (

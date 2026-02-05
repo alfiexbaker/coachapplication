@@ -31,8 +31,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { clubInvites as mockClubInvites, getClubById } from '@/constants/mock-data';
-import type { ClubInvite, ClubRole } from '@/constants/types';
+import { getClubById } from '@/constants/mock-data';
+import type { ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CoachInvitesScreen');
@@ -130,7 +130,7 @@ export default function CoachInvitesScreen() {
     };
 
     processIncomingInvite();
-  }, [params.code, params.clubId, params.clubName, currentUser]);
+  }, [params.code, params.clubId, params.clubName, params.role, currentUser]);
 
   useEffect(() => {
     loadInvites();

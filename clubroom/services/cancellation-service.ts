@@ -13,10 +13,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, RefundCalculation, RefundTier } from '@/constants/types';
-import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CancellationService');

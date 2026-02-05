@@ -1372,7 +1372,7 @@ class SkillTreeService {
   async getTreesSummary(
     userId: string
   ): Promise<
-    Array<{
+    {
       treeId: string;
       category: SkillTreeCategory;
       name: string;
@@ -1381,7 +1381,7 @@ class SkillTreeService {
       totalNodes: number;
       unlockedNodes: number;
       percentComplete: number;
-    }>
+    }[]
   > {
     const trees = await this.getAllSkillTreesWithProgress(userId);
 

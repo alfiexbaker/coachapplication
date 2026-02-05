@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
@@ -17,6 +18,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
 import { hasChildren } from '@/utils/user-helpers';
 import type { GroupSession, GroupRegistration } from '@/constants/types';
+
+const logger = createLogger('GroupSessionDetailScreen');
 
 export default function GroupSessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,11 +35,7 @@ export default function GroupSessionDetailScreen() {
   const isCoach = currentUser?.id === session?.coachId;
   const userHasChildren = hasChildren(currentUser);
 
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -47,11 +46,15 @@ export default function GroupSessionDetailScreen() {
       setSession(sessionData);
       setRoster(rosterData);
     } catch (error) {
-      console.error('Failed to load session:', error);
+      logger.error('Failed to load session:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleRegister = async () => {
     if (!session || !currentUser) return;
@@ -73,7 +76,7 @@ export default function GroupSessionDetailScreen() {
           : 'Registration successful!'
       );
     } catch (error) {
-      console.error('Failed to register:', error);
+      logger.error('Failed to register:', error);
       Alert.alert('Error', 'Failed to register. Please try again.');
     } finally {
       setRegistering(false);
@@ -93,7 +96,7 @@ export default function GroupSessionDetailScreen() {
             await groupSessionService.cancelSession(session.id);
             router.back();
           } catch (error) {
-            console.error('Failed to cancel:', error);
+            logger.error('Failed to cancel:', error);
           }
         },
       },
@@ -129,13 +132,15 @@ export default function GroupSessionDetailScreen() {
 
   const spotsLeft = session.maxParticipants - session.currentParticipants;
   const isFull = spotsLeft <= 0;
-  const firstDate = session.schedule[0];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _firstDate = session.schedule[0];
   const isFree = session.pricePerParticipant === 0;
 
   const typeColors: Record<GroupSession['sessionType'], string> = {
     CAMP: '#FF6B35',
     CLINIC: '#7B68EE',
     TEAM_TRAINING: '#2E8B57',
+    TRAINING: '#2E8B57',
     OPEN_SESSION: '#4169E1',
     TRIAL: '#20B2AA',
   };

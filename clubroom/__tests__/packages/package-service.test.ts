@@ -12,58 +12,6 @@ import test from 'node:test';
  * - Utility methods
  */
 
-// Mock the dependencies before importing the service
-const mockStorage: Record<string, string> = {};
-
-const mockStorageService = {
-  async getItem<T>(key: string, fallback: T): Promise<T> {
-    const value = mockStorage[key];
-    if (value) {
-      return JSON.parse(value) as T;
-    }
-    return fallback;
-  },
-  async setItem(key: string, value: unknown): Promise<void> {
-    mockStorage[key] = JSON.stringify(value);
-  },
-  async removeItem(key: string): Promise<void> {
-    delete mockStorage[key];
-  },
-};
-
-// Mock wallet service
-const mockWalletService = {
-  balances: new Map<string, number>([['user1', 500], ['user2', 50]]),
-
-  async hasSufficientBalance(userId: string, amount: number): Promise<boolean> {
-    const balance = this.balances.get(userId) || 0;
-    return balance >= amount;
-  },
-
-  async getBalance(userId: string): Promise<number> {
-    return this.balances.get(userId) || 0;
-  },
-
-  async payForBooking(
-    userId: string,
-    _bookingId: string,
-    amount: number,
-    _metadata?: Record<string, unknown>
-  ): Promise<{ success: boolean; transaction?: { id: string }; error?: string; newBalance?: number }> {
-    const balance = this.balances.get(userId) || 0;
-    if (balance < amount) {
-      return { success: false, error: 'Insufficient balance' };
-    }
-    const newBalance = balance - amount;
-    this.balances.set(userId, newBalance);
-    return {
-      success: true,
-      transaction: { id: `txn_${Date.now()}` },
-      newBalance,
-    };
-  },
-};
-
 // Test data
 const testPackage = {
   id: 'test_pkg_1',
@@ -104,11 +52,6 @@ const inactivePackage = {
   isActive: false,
 };
 
-// Reset mock storage before each test
-function resetStorage() {
-  Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
-  mockWalletService.balances = new Map([['user1', 500], ['user2', 50]]);
-}
 
 // ============================================================================
 // FORMAT PRICE TESTS

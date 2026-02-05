@@ -39,8 +39,8 @@ export default function TermsOfServiceScreen() {
           1. Acceptance of Terms
         </ThemedText>
         <ThemedText style={[styles.body, { color: palette.text }]}>
-          By accessing or using the Clubroom application ("Service"), you agree to
-          be bound by these Terms of Service ("Terms"). If you do not agree to
+          By accessing or using the Clubroom application (&quot;Service&quot;), you agree to
+          be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree to
           these Terms, you may not use the Service. We reserve the right to update
           these Terms at any time, and your continued use of the Service
           constitutes acceptance of any changes.

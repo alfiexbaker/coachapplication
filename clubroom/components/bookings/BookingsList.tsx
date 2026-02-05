@@ -44,7 +44,7 @@ export function BookingsList({
           style={[
             styles.filterPill,
             { borderColor: timeFilter === 'upcoming' ? palette.tint : palette.border },
-            timeFilter === 'upcoming' && { backgroundColor: `${palette.tint}10` },
+            timeFilter === 'upcoming' ? { backgroundColor: `${palette.tint}10` } : undefined,
           ]}
         >
           <ThemedText
@@ -61,7 +61,7 @@ export function BookingsList({
           style={[
             styles.filterPill,
             { borderColor: timeFilter === 'past' ? palette.tint : palette.border },
-            timeFilter === 'past' && { backgroundColor: `${palette.tint}10` },
+            timeFilter === 'past' ? { backgroundColor: `${palette.tint}10` } : undefined,
           ]}
         >
           <ThemedText

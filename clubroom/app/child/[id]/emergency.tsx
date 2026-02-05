@@ -14,6 +14,9 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { EmergencyInfo, EmergencyContact } from '@/constants/types';
 import { safetyService } from '@/services/safety-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('EmergencyContactsScreen');
 
 type ContactCardProps = {
   contact: EmergencyContact;
@@ -251,7 +254,7 @@ export default function EmergencyContactsScreen() {
       const data = await safetyService.getEmergencyInfo(id);
       setInfo(data);
     } catch (error) {
-      console.error('Failed to load emergency info:', error);
+      logger.error('Failed to load emergency info:', error);
     } finally {
       setLoading(false);
     }
@@ -268,7 +271,7 @@ export default function EmergencyContactsScreen() {
       await loadInfo();
       setShowForm(false);
     } catch (error) {
-      console.error('Failed to add contact:', error);
+      logger.error('Failed to add contact:', error);
     }
   };
 
@@ -279,7 +282,7 @@ export default function EmergencyContactsScreen() {
       await loadInfo();
       setEditingContact(null);
     } catch (error) {
-      console.error('Failed to update contact:', error);
+      logger.error('Failed to update contact:', error);
     }
   };
 
@@ -289,7 +292,7 @@ export default function EmergencyContactsScreen() {
       await safetyService.removeContact(id, contactId);
       await loadInfo();
     } catch (error) {
-      console.error('Failed to delete contact:', error);
+      logger.error('Failed to delete contact:', error);
     }
   };
 
@@ -299,7 +302,7 @@ export default function EmergencyContactsScreen() {
       await safetyService.updateContact(id, contactId, { isPrimary: true });
       await loadInfo();
     } catch (error) {
-      console.error('Failed to set primary contact:', error);
+      logger.error('Failed to set primary contact:', error);
     }
   };
 

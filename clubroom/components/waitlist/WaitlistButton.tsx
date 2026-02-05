@@ -72,7 +72,7 @@ export function WaitlistButton({
     if (isOnWaitlist && onToggleAutoBook) {
       try {
         await onToggleAutoBook(value);
-      } catch (error) {
+      } catch {
         setLocalAutoBook(!value); // Revert on error
       }
     }
@@ -86,7 +86,7 @@ export function WaitlistButton({
         <View
           style={[
             styles.onWaitlistCard,
-            compact && styles.onWaitlistCardCompact,
+            compact ? styles.onWaitlistCardCompact : undefined,
             { backgroundColor: `${palette.warning}10`, borderColor: palette.warning },
           ]}
         >
@@ -100,7 +100,7 @@ export function WaitlistButton({
             </View>
             {!compact && (
               <ThemedText style={[styles.waitlistLabel, { color: palette.muted }]}>
-                You're on the waitlist
+                You&apos;re on the waitlist
               </ThemedText>
             )}
           </View>

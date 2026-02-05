@@ -10,7 +10,7 @@
  * evaluate their qualifications, reviews, and offerings before booking."
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -19,7 +19,8 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
-  TouchableOpacity,
+  ViewStyle,
+  TextStyle,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -145,7 +146,7 @@ export default function PublicCoachProfileScreen() {
       setCoach(data);
       const reviewData = await coachService.getCoachReviews(coachId);
       setReviews(reviewData);
-    } catch (error) {
+    } catch {
       // Fail silently - empty state will show
     } finally {
       setLoading(false);
@@ -168,14 +169,14 @@ export default function PublicCoachProfileScreen() {
 
   const handleBook = () => {
     router.push({
-      pathname: '/book/[coachId]',
+      pathname: '/book/[coachId]' as any,
       params: { coachId: coachId! },
     });
   };
 
   const handleMessage = () => {
     router.push({
-      pathname: '/messages/[conversationId]',
+      pathname: '/messages/[conversationId]' as any,
       params: { conversationId: `coach-${coachId}` },
     });
   };
@@ -617,7 +618,7 @@ export default function PublicCoachProfileScreen() {
                 style={[
                   styles.tab,
                   isActive && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
-                ]}
+                ].filter(Boolean) as ViewStyle[]}
               >
                 <Ionicons
                   name={tab.icon}
@@ -629,7 +630,7 @@ export default function PublicCoachProfileScreen() {
                     Typography.small,
                     { color: isActive ? palette.tint : palette.muted },
                     isActive && { fontWeight: '600' },
-                  ]}
+                  ].filter(Boolean) as TextStyle[]}
                 >
                   {tab.label}
                 </ThemedText>

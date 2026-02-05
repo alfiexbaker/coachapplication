@@ -30,7 +30,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { inviteService as squadBulkInviteService } from '@/services/invite-service';
 import { squadService } from '@/services/squad-service';
 import { createLogger } from '@/utils/logger';
-import type { TimeSlot, BulkInviteResult, ClubSquad, SquadSessionInvite, SquadInvitedMember } from '@/constants/types';
+import type { TimeSlot, BulkInviteResult, ClubSquad, SquadSessionInvite } from '@/constants/types';
 
 const logger = createLogger('SquadBulkInvite');
 
@@ -58,7 +58,7 @@ export default function SquadBulkInviteScreen() {
   const [price, setPrice] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [proposedSlots, setProposedSlots] = useState<TimeSlot[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [sendingInvites, setSendingInvites] = useState(false);
   const [inviteResult, setInviteResult] = useState<{
     squadInvite: SquadSessionInvite;
@@ -72,7 +72,7 @@ export default function SquadBulkInviteScreen() {
   const [slotLocation, setSlotLocation] = useState('');
 
   // Get club ID from current user's club membership
-  const clubId = currentUser?.clubId || currentUser?.primaryClubId || 'default_club';
+  const clubId = (currentUser as any)?.clubId || (currentUser as any)?.primaryClubId || 'default_club';
 
   // Load squad when ID changes
   useEffect(() => {
@@ -156,11 +156,8 @@ export default function SquadBulkInviteScreen() {
     }
   };
 
-  const uniqueParentCount = useMemo(() => {
-    // This will be calculated properly when we have the members loaded
-    // For now, approximate as 70-80% of selected members
-    return Math.ceil(selectedMemberIds.length * 0.75);
-  }, [selectedMemberIds]);
+  // Track unique parent count from SquadMemberSelect component
+  const [uniqueParentCount, setUniqueParentCount] = useState(0);
 
   const sendBulkInvites = async () => {
     if (!currentUser || selectedSquadIds.length === 0) return;
@@ -186,7 +183,7 @@ export default function SquadBulkInviteScreen() {
       setInviteResult(result);
       setStep('result');
     } catch (error) {
-      console.error('Failed to send bulk invites:', error);
+      logger.error('Failed to send bulk invites', error);
       Alert.alert('Error', 'Failed to send invites. Please try again.');
     } finally {
       setSendingInvites(false);
@@ -343,6 +340,7 @@ export default function SquadBulkInviteScreen() {
           sessionId={params.sessionId}
           selectedMemberIds={selectedMemberIds}
           onSelectionChange={setSelectedMemberIds}
+          onParentCountChange={setUniqueParentCount}
           showSelectAll
           showNotificationCount
           maxHeight={350}

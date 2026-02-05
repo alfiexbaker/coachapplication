@@ -23,8 +23,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
-import { CardStyles, LayoutStyles } from '@/constants/styles';
+import { Colors, Spacing, Radii, Typography, Shadows } from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -583,7 +582,7 @@ export default function SmartSlots({
       {/* Quick action: Copy last week */}
       <Pressable style={styles.copyWeekButton} onPress={handleCopyLastWeek}>
         <Ionicons name="copy-outline" size={18} color={Colors.light.tint} />
-        <Text style={styles.copyWeekText}>Copy last week's schedule</Text>
+        <Text style={styles.copyWeekText}>Copy last week&apos;s schedule</Text>
         <Ionicons name="chevron-forward" size={16} color={Colors.light.muted} />
       </Pressable>
 

@@ -11,7 +11,7 @@ const TAB_BAR_HEIGHT = 60;
 const UNDO_DURATION = 5000; // 5 seconds for undo
 
 interface ToastOptions {
-  tone?: 'default' | 'success' | 'error';
+  tone?: 'default' | 'success' | 'error' | 'warning';
   action?: {
     label: string;
     onPress: () => void;
@@ -20,7 +20,7 @@ interface ToastOptions {
 }
 
 type ToastContextValue = {
-  showToast: (message: string, options?: ToastOptions | 'default' | 'success' | 'error') => void;
+  showToast: (message: string, options?: ToastOptions | 'default' | 'success' | 'error' | 'warning') => void;
   showUndoToast: (message: string, onUndo: () => void) => void;
   hideToast: () => void;
 };
@@ -30,10 +30,10 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<{
     message: string;
-    tone: 'default' | 'success' | 'error';
+    tone: 'default' | 'success' | 'error' | 'warning';
     action?: { label: string; onPress: () => void };
   } | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hideToast = useCallback(() => {
     if (timeoutRef.current) {
@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const showToast = useCallback((
     message: string,
-    options?: ToastOptions | 'default' | 'success' | 'error'
+    options?: ToastOptions | 'default' | 'success' | 'error' | 'warning'
   ) => {
     // Clear any existing timeout
     if (timeoutRef.current) {
@@ -109,14 +109,14 @@ function Toast({
   onActionPress,
 }: {
   message?: string;
-  tone?: 'default' | 'success' | 'error';
+  tone?: 'default' | 'success' | 'error' | 'warning';
   action?: { label: string; onPress: () => void };
   onActionPress?: () => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const insets = useSafeAreaInsets();
-  const toneColor = tone === 'success' ? palette.success : tone === 'error' ? palette.error : palette.text;
+  const toneColor = tone === 'success' ? palette.success : tone === 'error' ? palette.error : tone === 'warning' ? palette.warning : palette.text;
 
   // Calculate bottom position accounting for tab bar and safe area
   const bottomPosition = TAB_BAR_HEIGHT + Math.max(insets.bottom, Spacing.sm);

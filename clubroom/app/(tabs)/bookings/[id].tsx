@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Image, ScrollView, StyleSheet, View, Alert, Pressable, ActivityIndicator, Linking } from 'react-native';
+import { Image, ScrollView, StyleSheet, View, Alert, Pressable, ActivityIndicator, Linking, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -482,7 +482,7 @@ export default function SessionDetailScreen() {
                   styles.primaryButton,
                   { backgroundColor: palette.tint },
                   pressed && { opacity: 0.8 },
-                ]}>
+                ].filter(Boolean) as ViewStyle[]}>
                 <Ionicons name="create" size={20} color="#FFFFFF" />
                 <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
                   Add Session Feedback
@@ -497,7 +497,7 @@ export default function SessionDetailScreen() {
                     styles.primaryButton,
                     { backgroundColor: palette.tint },
                     pressed && { opacity: 0.8 },
-                  ]}>
+                  ].filter(Boolean) as ViewStyle[]}>
                   <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
                   <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
                     Message Client
@@ -511,7 +511,7 @@ export default function SessionDetailScreen() {
                       styles.halfButton,
                       { borderColor: palette.border },
                       pressed && { backgroundColor: palette.border, opacity: 0.7 },
-                    ]}>
+                    ].filter(Boolean) as ViewStyle[]}>
                     <Ionicons name="calendar-outline" size={18} color={palette.foreground} />
                     <ThemedText style={styles.secondaryButtonText}>Reschedule</ThemedText>
                   </Clickable>
@@ -522,7 +522,7 @@ export default function SessionDetailScreen() {
                       styles.halfButton,
                       { borderColor: palette.border },
                       pressed && { backgroundColor: palette.border, opacity: 0.7 },
-                    ]}>
+                    ].filter(Boolean) as ViewStyle[]}>
                     <Ionicons name="cash-outline" size={18} color={palette.foreground} />
                     <ThemedText style={styles.secondaryButtonText}>Refund</ThemedText>
                   </Clickable>
@@ -534,7 +534,7 @@ export default function SessionDetailScreen() {
                     styles.secondaryButton,
                     { borderColor: '#EF4444' },
                     pressed && { backgroundColor: '#FEE2E2', opacity: 0.7 },
-                  ]}>
+                  ].filter(Boolean) as ViewStyle[]}>
                   <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
                   <ThemedText style={[styles.secondaryButtonText, { color: '#EF4444' }]}>
                     Cancel Booking
@@ -552,7 +552,7 @@ export default function SessionDetailScreen() {
                 styles.primaryButton,
                 { backgroundColor: palette.tint },
                 pressed && { opacity: 0.8 },
-              ]}>
+              ].filter(Boolean) as ViewStyle[]}>
               <Ionicons name="chatbubble" size={20} color="#FFFFFF" />
               <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
                 Message Coach
@@ -565,7 +565,7 @@ export default function SessionDetailScreen() {
                 styles.secondaryButton,
                 { borderColor: palette.border },
                 pressed && { backgroundColor: palette.border, opacity: 0.7 },
-              ]}>
+              ].filter(Boolean) as ViewStyle[]}>
               <Ionicons name="warning-outline" size={20} color={palette.foreground} />
               <ThemedText style={styles.secondaryButtonText}>Report Problem</ThemedText>
             </Clickable>

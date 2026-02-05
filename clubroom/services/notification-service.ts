@@ -5,7 +5,6 @@ import {
   MutedCoach,
   NotificationChannel,
   QuietHours,
-  TypeNotificationPreference,
 } from '@/constants/types';
 import { storageService } from './storage-service';
 import { createLogger } from '@/utils/logger';

@@ -13,7 +13,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -353,7 +353,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
         <Button
           onPress={handleSubmit}
           disabled={!isValid || loading}
-          style={[styles.footerButton, !onCancel && styles.fullWidthButton]}
+          style={[styles.footerButton, !onCancel ? styles.fullWidthButton : undefined].filter(Boolean) as ViewStyle[]}
         >
           {loading ? 'Saving...' : isEditing ? 'Update Goal' : 'Create Goal'}
         </Button>

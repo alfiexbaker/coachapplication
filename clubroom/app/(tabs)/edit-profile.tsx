@@ -24,7 +24,7 @@ import { FOOTBALL_OBJECTIVES } from '@/constants/booking-types';
 import { coachProfiles, mockUserProfile } from '@/constants/mock-data';
 import { CoachCertification, CoachExperience, CoachLanguage, FootballObjective, SocialLinks } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { isCoach } from '@/utils/user-helpers';
+import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('EditProfile');
@@ -65,11 +65,13 @@ const createBlankCertification = (): CoachCertification => ({
 export default function EditProfileScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
+  const { currentUser: authUser } = useAuth();
 
-  // Detect user role - for demo, using mockUserProfile to determine role
-  // In production, this would come from authentication context
-  const currentUser = mockUserProfile.role === 'Coach' ? { ...mockUserProfile, type: 'COACH' as const } : mockUserProfile;
-  const userIsCoach = isCoach(currentUser);
+  // Use the authenticated user from auth context
+  // Fall back to mock data for development if not logged in
+  const currentUser = authUser || mockUserProfile;
+  // Check if user is a coach based on role/type property
+  const userIsCoach = currentUser?.role === 'COACH' || (currentUser as any)?.type === 'COACH';
 
   // Get initial data based on role
   const coach = userIsCoach ? coachProfiles[0] : null;

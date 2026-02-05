@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -16,6 +17,8 @@ import { groupSessionService } from '@/services/group-session-service';
 import { getClubMembershipForUser, getClubById, getClubSquads } from '@/constants/mock-data';
 import { hasChildren } from '@/utils/user-helpers';
 import type { GroupSession, ClubSquad } from '@/constants/types';
+
+const logger = createLogger('TrainingScheduleScreen');
 
 type ViewMode = 'list' | 'calendar';
 
@@ -231,11 +234,7 @@ export default function TrainingScheduleScreen() {
   const userHasChildren = hasChildren(currentUser);
   const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
 
-  useEffect(() => {
-    loadData();
-  }, [currentUser]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!currentUser) return;
 
     setLoading(true);
@@ -249,11 +248,15 @@ export default function TrainingScheduleScreen() {
         setTrainingSessions(sessions);
       }
     } catch (error) {
-      console.error('Failed to load training sessions:', error);
+      logger.error('Failed to load training sessions', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const filteredSessions = selectedSquadId
     ? trainingSessions.filter((s) => s.squadId === selectedSquadId)
@@ -287,7 +290,7 @@ export default function TrainingScheduleScreen() {
         <TouchableOpacity
           style={[
             styles.toggleOption,
-            viewMode === 'list' && { backgroundColor: palette.tint },
+            viewMode === 'list' ? { backgroundColor: palette.tint } : undefined,
           ]}
           onPress={() => setViewMode('list')}
         >
@@ -305,7 +308,7 @@ export default function TrainingScheduleScreen() {
         <TouchableOpacity
           style={[
             styles.toggleOption,
-            viewMode === 'calendar' && { backgroundColor: palette.tint },
+            viewMode === 'calendar' ? { backgroundColor: palette.tint } : undefined,
           ]}
           onPress={() => setViewMode('calendar')}
         >

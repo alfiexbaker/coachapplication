@@ -1,20 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { RSVPButtons } from '@/components/event/rsvp-buttons';
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
-import type { ClubEvent, RSVPStatus, EventAttendee } from '@/constants/types';
+import type { ClubEvent, RSVPStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('EventDetailScreen');
 
 export default function EventDetailScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -33,7 +36,7 @@ export default function EventDetailScreen() {
       const data = await eventService.getEvent(id);
       setEvent(data);
     } catch (error) {
-      console.error('Failed to load event:', error);
+      logger.error('Failed to load event:', error);
     } finally {
       setLoading(false);
     }
@@ -60,7 +63,7 @@ export default function EventDetailScreen() {
       );
       await loadEvent();
     } catch (error) {
-      console.error('Failed to RSVP:', error);
+      logger.error('Failed to RSVP:', error);
       Alert.alert('Error', 'Failed to save your response. Please try again.');
     }
   };
@@ -79,7 +82,7 @@ export default function EventDetailScreen() {
             await loadEvent();
             Alert.alert('Success', 'Event published and members notified!');
           } catch (error) {
-            console.error('Failed to publish:', error);
+            logger.error('Failed to publish:', error);
             Alert.alert('Error', 'Failed to publish event.');
           }
         },
@@ -100,7 +103,7 @@ export default function EventDetailScreen() {
             await eventService.cancelEvent(event.id);
             await loadEvent();
           } catch (error) {
-            console.error('Failed to cancel:', error);
+            logger.error('Failed to cancel:', error);
             Alert.alert('Error', 'Failed to cancel event.');
           }
         },
@@ -314,7 +317,7 @@ export default function EventDetailScreen() {
                 <ThemedText style={[styles.statNumber, { color: palette.error }]}>
                   {notGoing}
                 </ThemedText>
-                <ThemedText style={[styles.statLabel, { color: palette.error }]}>Can't Go</ThemedText>
+                <ThemedText style={[styles.statLabel, { color: palette.error }]}>Can&apos;t Go</ThemedText>
               </View>
               {totalGuests > 0 && (
                 <View style={[styles.statBox, { backgroundColor: palette.surface }]}>

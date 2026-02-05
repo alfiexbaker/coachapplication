@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,7 +7,6 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { calendarService } from '@/services/calendar-service';
 import type { Booking } from '@/constants/app-types';
-import type { CalendarProvider } from '@/constants/types';
 
 export interface CalendarExportButtonProps {
   /** Single booking to export */
@@ -41,8 +40,6 @@ export function CalendarExportButton({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [isExporting, setIsExporting] = useState(false);
-  const [showProviderMenu, setShowProviderMenu] = useState(false);
-
   const handleExport = async () => {
     if (disabled || isExporting) return;
 
@@ -72,33 +69,6 @@ export function CalendarExportButton({
     } finally {
       setIsExporting(false);
     }
-  };
-
-  const handleLinkExport = (provider: CalendarProvider) => {
-    setShowProviderMenu(false);
-
-    if (!booking) {
-      Alert.alert('Error', 'No booking to export');
-      return;
-    }
-
-    const link = calendarService.generateCalendarLink(booking, provider);
-
-    // Show link to user (in a real app, this would open the URL or copy to clipboard)
-    Alert.alert(
-      'Calendar Link',
-      `Open this link to add the event to your ${provider} calendar:\n\n${link}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Copy Link',
-          onPress: () => {
-            // In a real implementation, use Clipboard.setStringAsync
-            Alert.alert('Link copied to clipboard');
-          },
-        },
-      ]
-    );
   };
 
   const getSizeStyles = () => {

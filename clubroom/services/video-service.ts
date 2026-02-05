@@ -24,14 +24,14 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/constants/config';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType, AnnotatedVideo, AnnotationExport } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('VideoService');
 
 const STORAGE_KEY = 'session_videos';
-const ANNOTATIONS_STORAGE_KEY = 'video_annotations';
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 /**
  * Annotation type configuration with colors and labels

@@ -43,7 +43,7 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
         message: `Join ${club.name} on the app! Use invite code: ${club.inviteCode}`,
         title: `Join ${club.name}`,
       });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to share invite code');
     }
   };

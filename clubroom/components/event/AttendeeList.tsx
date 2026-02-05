@@ -7,7 +7,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import type { EventRSVP, EventAttendance, EventAttendanceStats, RSVPStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 
 import { AttendeeCard } from './AttendeeCard';

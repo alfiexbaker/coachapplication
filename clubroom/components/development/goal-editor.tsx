@@ -276,7 +276,7 @@ export function GoalEditor({ initialData, athleteAge, onSave }: GoalEditorProps)
               style={[
                 styles.milestoneText,
                 { color: palette.foreground },
-                ms.completed && styles.milestoneCompleted,
+                ms.completed ? styles.milestoneCompleted : undefined,
               ]}
               numberOfLines={1}
             >

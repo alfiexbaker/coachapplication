@@ -15,7 +15,6 @@ import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type {
   CoachSearchFilters,
-  ActiveFilter,
   FootballObjective,
   TrainingFormat,
 } from '@/constants/types';

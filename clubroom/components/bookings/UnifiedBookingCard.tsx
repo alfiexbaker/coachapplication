@@ -36,7 +36,6 @@ interface UnifiedBookingCardProps {
 }
 
 interface ExtendedBooking extends BookingSummary {
-  coach?: { photoUrl?: string };
   athleteId?: string;
   price?: number;
   duration?: number;

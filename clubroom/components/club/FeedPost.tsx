@@ -35,7 +35,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
   };
 
   return (
-    <SurfaceCard style={[styles.feedCard, post.isPinned && { borderColor: palette.tint, borderWidth: 1 }]}>
+    <SurfaceCard style={[styles.feedCard, post.isPinned ? { borderColor: palette.tint, borderWidth: 1 } : undefined]}>
       {/* Pinned indicator */}
       {post.isPinned && (
         <View style={[styles.pinnedBadge, { backgroundColor: `${palette.tint}15` }]}>

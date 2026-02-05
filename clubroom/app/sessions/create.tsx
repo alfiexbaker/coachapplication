@@ -12,16 +12,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import Animated, { FadeInRight } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { SessionOffering, FootballObjective } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+import { rosterService } from '@/services/roster-service';
+
+const logger = createLogger('CreateSession');
 
 // Session type options
 type SessionType = '1on1' | 'small_group' | 'group' | 'camp';
@@ -94,23 +98,28 @@ export default function CreateSessionScreen() {
   // Step 4: Invite
   const [inviteMode, setInviteMode] = useState<'open' | 'invite'>('open');
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
-  const [pastAthletes, setPastAthletes] = useState<Array<{ id: string; name: string }>>([]);
+  const [pastAthletes, setPastAthletes] = useState<{ id: string; name: string }[]>([]);
 
   // Load saved locations
   useEffect(() => {
     loadSavedLocations();
   }, []);
 
-  // Load past athletes for invite
+  // Load athletes from roster for invite
   useEffect(() => {
     const loadPastAthletes = async () => {
-      // In real app, fetch from bookings service
-      // For now, mock data
-      setPastAthletes([
-        { id: 'user1', name: 'Alex Thompson' },
-        { id: 'user2', name: 'Jamie Wilson' },
-        { id: 'user3', name: 'Sam Roberts' },
-      ]);
+      if (!currentUser?.id) return;
+      try {
+        // Fetch from roster service - athletes the coach has worked with
+        const roster = await rosterService.getRoster(currentUser.id);
+        const athletes = roster.map((entry) => ({
+          id: entry.athleteId,
+          name: entry.athleteName,
+        }));
+        setPastAthletes(athletes);
+      } catch (error) {
+        logger.error('Failed to load athletes', error);
+      }
     };
     loadPastAthletes();
   }, [currentUser]);
@@ -122,7 +131,7 @@ export default function CreateSessionScreen() {
         setSavedLocations(JSON.parse(stored));
       }
     } catch (error) {
-      console.error('Failed to load saved locations:', error);
+      logger.error('Failed to load saved locations', error);
     }
   };
 
@@ -133,7 +142,7 @@ export default function CreateSessionScreen() {
     try {
       await AsyncStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
     } catch (error) {
-      console.error('Failed to save location:', error);
+      logger.error('Failed to save location', error);
     }
   };
 
@@ -208,7 +217,7 @@ export default function CreateSessionScreen() {
         id: `session_${Date.now()}`,
         coachId: currentUser.id,
         coachName: currentUser.name || currentUser.fullName || 'Coach',
-        coachPhotoUrl: currentUser.avatarUrl,
+        coachPhotoUrl: currentUser.avatar,
         title,
         description: description || undefined,
         sessionType: sessionType === '1on1' ? '1on1' : 'group',
@@ -235,7 +244,7 @@ export default function CreateSessionScreen() {
       // If invite mode, send invites to selected athletes
       if (inviteMode === 'invite' && selectedAthletes.length > 0) {
         // Would call sessionInviteService.createBulk() here
-        console.log('Sending invites to:', selectedAthletes);
+        logger.info('Sending invites to athletes', { athleteIds: selectedAthletes });
       }
 
       Alert.alert(
@@ -263,7 +272,7 @@ export default function CreateSessionScreen() {
         ]
       );
     } catch (error) {
-      console.error('Failed to create session:', error);
+      logger.error('Failed to create session:', error);
       Alert.alert('Error', 'Failed to create session. Please try again.');
     } finally {
       setLoading(false);

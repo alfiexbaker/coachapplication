@@ -14,22 +14,22 @@ import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import {
   GoalCard,
-  GoalList,
-  GoalSectionHeader,
   ProgressRing,
-  CategoryBadge,
 } from '@/components/goals';
 import { Colors, Spacing, Radii } from '@/constants/theme';
-import type { Goal, GoalStatus, GoalCategory } from '@/constants/types';
+import type { Goal, GoalCategory } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('GoalsDashboardScreen');
 
 type TabFilter = 'active' | 'completed' | 'all';
 
@@ -57,7 +57,7 @@ export default function GoalsDashboardScreen() {
       const userGoals = await progressService.getUserGoals(userId);
       setGoals(userGoals);
     } catch (error) {
-      console.error('Failed to load goals:', error);
+      logger.error('Failed to load goals', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

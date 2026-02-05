@@ -182,7 +182,7 @@ function CarpoolOfferCardComponent({
       <View style={styles.actions}>
         {isOwnOffer ? (
           <Button
-            onPress={onManageRequests}
+            onPress={onManageRequests ?? (() => {})}
             variant="secondary"
             style={styles.actionButton}
           >
@@ -207,7 +207,7 @@ function CarpoolOfferCardComponent({
           </View>
         ) : !isFull && offer.status === 'ACTIVE' ? (
           <Button
-            onPress={onRequestSeat}
+            onPress={onRequestSeat ?? (() => {})}
             style={styles.actionButton}
           >
             Request Seat

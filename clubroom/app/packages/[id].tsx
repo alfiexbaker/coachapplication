@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PurchaseButton } from '@/components/packages/PurchaseButton';
@@ -15,6 +16,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { packageService } from '@/services/package-service';
 import type { SessionPackage } from '@/constants/types';
+
+const logger = createLogger('PackageDetailScreen');
 
 /**
  * Package detail screen - view package details and purchase
@@ -41,14 +44,14 @@ export default function PackageDetailScreen() {
           const data = await packageService.getPackageById(id);
           setPkg(data);
         } catch (error) {
-          console.error('Failed to load package:', error);
+          logger.error('Failed to load package:', error);
           showToast('Failed to load package', 'error');
         } finally {
           setLoading(false);
         }
       }
       loadPackage();
-    }, [id])
+    }, [id, showToast])
   );
 
   const handlePurchaseSuccess = (purchaseId: string) => {
@@ -179,7 +182,7 @@ export default function PackageDetailScreen() {
         <Animated.View entering={FadeInDown.delay(150).springify()}>
           <SurfaceCard style={styles.sectionCard}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              What's Included
+              What&apos;s Included
             </ThemedText>
 
             <View style={styles.detailsGrid}>

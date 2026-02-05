@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -25,6 +26,8 @@ import { useToast } from '@/components/ui/toast';
 import { packageService } from '@/services/package-service';
 import type { SessionPackage } from '@/constants/types';
 
+const logger = createLogger('ManagePackagesScreen');
+
 /**
  * Coach package management screen - create, edit, and delete packages
  */
@@ -35,7 +38,7 @@ export default function ManagePackagesScreen() {
   const { showToast } = useToast();
 
   const [packages, setPackages] = useState<SessionPackage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState<SessionPackage | null>(null);
@@ -57,12 +60,12 @@ export default function ManagePackagesScreen() {
       setPackages(packagesData);
       setStats(statsData);
     } catch (error) {
-      console.error('Failed to load packages:', error);
+      logger.error('Failed to load packages:', error);
       showToast('Failed to load packages', 'error');
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, showToast]);
 
   useFocusEffect(
     useCallback(() => {
@@ -102,7 +105,7 @@ export default function ManagePackagesScreen() {
         );
         loadData();
       }
-    } catch (error) {
+    } catch {
       showToast('Failed to update package', 'error');
     }
   };
@@ -123,7 +126,7 @@ export default function ManagePackagesScreen() {
                 showToast('Package deleted', 'success');
                 loadData();
               }
-            } catch (error) {
+            } catch {
               showToast('Failed to delete package', 'error');
             }
           },

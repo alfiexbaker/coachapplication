@@ -216,7 +216,7 @@ export function CounterOfferCard({
         <View style={[styles.messageContainer, { backgroundColor: palette.background }]}>
           <Ionicons name="chatbubble-outline" size={14} color={palette.muted} />
           <ThemedText style={[styles.messageText, { color: palette.text }]}>
-            "{offer.message}"
+            &quot;{offer.message}&quot;
           </ThemedText>
         </View>
       )}

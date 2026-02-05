@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Modal, ScrollView, StyleSheet, TextInput, View, Image, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -84,7 +84,7 @@ export function BadgeAwardModal({
       }
     });
     logger.info('badge_award_opened', { athleteId, sessionId, coachId });
-  }, [visible, athleteId, coachId, sessionId, initialNote, initialReason]);
+  }, [visible, athleteId, coachId, sessionId, initialNote, initialReason, selectedBadgeId]);
 
   const handleBadgeSelect = (badgeId: string) => {
     Haptics.selectionAsync();

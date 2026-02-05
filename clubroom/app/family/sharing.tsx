@@ -12,7 +12,7 @@
  * with my partner so we can both manage bookings and stay informed."
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -35,7 +35,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   familyService,
-  PERMISSION_DESCRIPTIONS,
   RELATIONSHIP_OPTIONS,
 } from '@/services/family-service';
 import type {
@@ -80,13 +79,7 @@ export default function FamilySharingScreen() {
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviting, setInviting] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadFamilyData();
-    }, [currentUser])
-  );
-
-  const loadFamilyData = async () => {
+  const loadFamilyData = useCallback(async () => {
     if (!currentUser?.id) return;
 
     try {
@@ -101,7 +94,13 @@ export default function FamilySharingScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id, currentUser?.fullName]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFamilyData();
+    }, [loadFamilyData])
+  );
 
   const handleInvite = async () => {
     if (!family || !currentUser) return;
@@ -248,7 +247,7 @@ export default function FamilySharingScreen() {
           </ThemedText>
           <ThemedText style={[styles.introText, { color: palette.muted }]}>
             Invite your partner, grandparents, or caregivers to view schedules,
-            book sessions, and track your children's progress.
+            book sessions, and track your children&apos;s progress.
           </ThemedText>
         </SurfaceCard>
 

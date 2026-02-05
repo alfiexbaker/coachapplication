@@ -18,16 +18,17 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/constants/config';
 import type {
   CoachEarnings,
   EarningTransaction,
   PayoutMethod,
   Withdrawal,
-  WithdrawalStatus,
-  PayoutMethodType,
-  TransactionStatus,
 } from '@/constants/types';
 import { bookingService } from './booking-service';
+
+// Transaction filter type for earnings queries
+export type TransactionFilter = 'all' | 'payments' | 'refunds' | 'withdrawals';
 
 // Storage keys
 const EARNINGS_KEY = 'clubroom.earnings';
@@ -35,7 +36,7 @@ const PAYOUT_METHODS_KEY = 'clubroom.payout_methods';
 const WITHDRAWALS_KEY = 'clubroom.withdrawals';
 const TRANSACTIONS_KEY = 'clubroom.earning_transactions';
 
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 const PLATFORM_FEE_PERCENT = 10;
 
 // ============================================================================

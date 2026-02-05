@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { ThemedText } from '@/components/themed-text';
 import { Chip } from '@/components/primitives/chip';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { FamilyMember } from '@/constants/types';
 
@@ -56,7 +56,7 @@ export function FamilyMemberCard({
   };
 
   const content = (
-    <SurfaceCard style={[styles.card, compact && styles.cardCompact]}>
+    <SurfaceCard style={[styles.card, compact ? styles.cardCompact : undefined]}>
       <View style={styles.header}>
         {/* Avatar */}
         {member.avatar ? (

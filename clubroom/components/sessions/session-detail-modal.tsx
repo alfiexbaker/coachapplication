@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -126,7 +126,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
               await AsyncStorage.setItem('session_offerings', JSON.stringify(updatedOfferings));
               Alert.alert('Cancelled', `Session on ${formattedDate} has been cancelled.`);
               onUpdate?.();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to cancel session. Please try again.');
             }
           },
@@ -176,7 +176,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
               Alert.alert('Booking Cancelled', 'Your booking has been cancelled. The coach has been notified.');
               onUpdate?.();
               onClose();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to cancel booking. Please try again.');
             }
           },
@@ -216,7 +216,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
               Alert.alert('Series Ended', 'All future sessions have been cancelled.');
               onUpdate?.();
               onClose();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to end series. Please try again.');
             }
           },
@@ -235,7 +235,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
     r => r.userId === currentUser?.id && r.status === 'confirmed'
   );
 
-  const children = hasChildren(currentUser) ? getChildrenForParent(currentUser.id) : [];
+  const children = currentUser && hasChildren(currentUser) ? getChildrenForParent(currentUser.id) : [];
   const hasMultipleKids = children.length > 1;
 
   const handleBook = async () => {
@@ -287,7 +287,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
 
       onUpdate?.();
       onClose();
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to book session. Please try again.');
     }
   };
@@ -533,7 +533,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                         size={20}
                         color={selectedChildId === child.id ? palette.tint : palette.icon}
                       />
-                      <ThemedText>{child.name} (Age {child.age})</ThemedText>
+                      <ThemedText>{child.name}</ThemedText>
                     </Pressable>
                   ))}
                 </SurfaceCard>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, TextInput, Modal, Pressable } from 'react-native';
+import { StyleSheet, View, TextInput, Modal, Pressable, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
@@ -63,7 +63,6 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
 
   const getButtonStyle = (status: RSVPStatus) => {
     const isSelected = currentRSVP?.status === status;
-    const isLoading = loading === status;
 
     if (isSelected) {
       switch (status) {
@@ -191,8 +190,8 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
           style={[
             styles.rsvpButton,
             getButtonStyle('GOING'),
-            isDisabled && styles.disabledButton,
-          ].filter(Boolean) as any[]}
+            isDisabled ? styles.disabledButton : undefined,
+          ].filter(Boolean) as ViewStyle[]}
         >
           <Ionicons name="checkmark" size={18} color={getTextColor('GOING')} />
           <ThemedText style={[styles.rsvpButtonText, { color: getTextColor('GOING') }]}>
@@ -206,8 +205,8 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
           style={[
             styles.rsvpButton,
             getButtonStyle('MAYBE'),
-            isDisabled && styles.disabledButton,
-          ].filter(Boolean) as any[]}
+            isDisabled ? styles.disabledButton : undefined,
+          ].filter(Boolean) as ViewStyle[]}
         >
           <Ionicons name="help" size={18} color={getTextColor('MAYBE')} />
           <ThemedText style={[styles.rsvpButtonText, { color: getTextColor('MAYBE') }]}>
@@ -221,8 +220,8 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
           style={[
             styles.rsvpButton,
             getButtonStyle('NOT_GOING'),
-            disabled && styles.disabledButton,
-          ].filter(Boolean) as any[]}
+            disabled ? styles.disabledButton : undefined,
+          ].filter(Boolean) as ViewStyle[]}
         >
           <Ionicons name="close" size={18} color={getTextColor('NOT_GOING')} />
           <ThemedText style={[styles.rsvpButtonText, { color: getTextColor('NOT_GOING') }]}>

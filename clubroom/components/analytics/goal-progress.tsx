@@ -51,7 +51,7 @@ export function GoalProgress({
             )}
             <ThemedText
               type="defaultSemiBold"
-              style={[styles.title, isAbandoned && { textDecorationLine: 'line-through' }]}
+              style={[styles.title, isAbandoned ? { textDecorationLine: 'line-through' } : undefined]}
             >
               {goal.title}
             </ThemedText>
@@ -207,10 +207,10 @@ function MilestoneItem({ milestone, onComplete, disabled }: MilestoneItemProps) 
         <ThemedText
           style={[
             styles.milestoneTitle,
-            milestone.isCompleted && {
+            milestone.isCompleted ? {
               textDecorationLine: 'line-through',
               color: palette.muted,
-            },
+            } : undefined,
           ]}
         >
           {milestone.title}

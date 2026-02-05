@@ -4,7 +4,6 @@ import {
   MedicalInfo,
   Consent,
   ConsentType,
-  RosterEntry,
 } from '@/constants/types';
 import { storageService } from './storage-service';
 
@@ -468,7 +467,7 @@ class SafetyService {
    */
   async getSessionSafetyInfo(
     sessionId: string,
-    attendees: Array<{ athleteId: string; athleteName: string }>
+    attendees: { athleteId: string; athleteName: string }[]
   ): Promise<SessionSafetyInfo> {
     const athletes: AthleteEmergencyQuickView[] = [];
     const allAllergies = new Set<string>();
@@ -638,7 +637,7 @@ class SafetyService {
    * Call this before a session starts to ensure offline access
    */
   async preCacheSessionEmergencyInfo(
-    attendees: Array<{ athleteId: string; athleteName: string }>
+    attendees: { athleteId: string; athleteName: string }[]
   ): Promise<void> {
     for (const attendee of attendees) {
       try {

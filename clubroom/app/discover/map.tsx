@@ -18,9 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { MapView } from '@/components/discover/MapView';
+import { createLogger } from '@/utils/logger';
 import { FilterBar } from '@/components/discover/FilterBar';
 import { FilterModal } from '@/components/discover/FilterModal';
-import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { discoverService } from '@/services/discover-service';
@@ -30,6 +30,8 @@ import type {
   CoachProfile,
   FilterOptions,
 } from '@/constants/types';
+
+const logger = createLogger('MapScreen');
 
 // Default location (London)
 const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278 };
@@ -59,7 +61,7 @@ export default function MapScreen() {
       setCoaches(response.results);
       setFilterOptions(response.filterOptions);
     } catch (error) {
-      console.error('[MapScreen] Failed to load coaches:', error);
+      logger.error('Failed to load coaches', error);
     } finally {
       setLoading(false);
     }
@@ -76,11 +78,11 @@ export default function MapScreen() {
           location: parsed.location ?? prev.location,
         }));
       } catch (error) {
-        console.error('[MapScreen] Failed to parse filters:', error);
+        logger.error('Failed to parse filters', error);
       }
     }
     loadCoaches();
-  }, [params.filters]);
+  }, [params.filters, loadCoaches]);
 
   // Reload when filters change
   useEffect(() => {
@@ -110,7 +112,7 @@ export default function MapScreen() {
 
   const handleCoachPress = useCallback(
     (coach: CoachProfile) => {
-      router.push(`/book/${coach.id}` as `/${string}`);
+      router.push(`/book/${coach.id}` as any);
     },
     [router]
   );

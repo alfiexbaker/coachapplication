@@ -9,13 +9,13 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  runOnJS,
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface PriceRangeSliderProps {

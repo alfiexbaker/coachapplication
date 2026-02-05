@@ -1,6 +1,7 @@
 export * from './analytics-screen';
 export * from './availability-grid';
 export * from './block-date-modal';
+export * from './CoachCard';
 export * from './development-screen';
 export * from './filter-panel';
 export * from './invite-athlete-modal';

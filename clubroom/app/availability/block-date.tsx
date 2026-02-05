@@ -180,7 +180,7 @@ export default function BlockDateScreen() {
                     color={isSelected ? palette.tint : palette.muted}
                   />
                   <ThemedText
-                    style={[styles.reasonLabel, isSelected && { color: palette.tint }]}
+                    style={[styles.reasonLabel, isSelected ? { color: palette.tint } : undefined]}
                   >
                     {option.label}
                   </ThemedText>

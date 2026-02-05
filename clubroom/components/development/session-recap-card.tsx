@@ -33,7 +33,7 @@ function StarRow({
   palette,
 }: {
   rating: number;
-  palette: ReturnType<typeof getColors>;
+  palette: Palette;
 }) {
   return (
     <View style={starStyles.row}>
@@ -53,9 +53,7 @@ const starStyles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 2 },
 });
 
-function getColors(scheme: 'light' | 'dark') {
-  return Colors[scheme];
-}
+type Palette = (typeof Colors)['light'];
 
 /* ---------- Component ---------- */
 

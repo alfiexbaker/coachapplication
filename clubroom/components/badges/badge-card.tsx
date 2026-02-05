@@ -68,7 +68,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
       <SurfaceCard
         style={[
           styles.compactCard,
-          isLocked && styles.lockedCard,
+          isLocked ? styles.lockedCard : undefined,
           { borderColor: isLocked ? palette.border : `${tierColor}40` },
         ]}
         onPress={onPress}
@@ -97,7 +97,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
         <View style={styles.compactContent}>
           <ThemedText
             type="defaultSemiBold"
-            style={[styles.compactLabel, isLocked && { color: palette.muted }]}
+            style={[styles.compactLabel, isLocked ? { color: palette.muted } : undefined]}
             numberOfLines={1}
           >
             {badge.label}
@@ -128,7 +128,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
     <SurfaceCard
       style={[
         styles.card,
-        isLocked && styles.lockedCard,
+        isLocked ? styles.lockedCard : undefined,
         { borderColor: isLocked ? palette.border : `${tierColor}40` },
       ]}
       onPress={onPress}
@@ -176,7 +176,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
       <View style={styles.infoSection}>
         <ThemedText
           type="defaultSemiBold"
-          style={[styles.label, isLocked && { color: palette.muted }]}
+          style={[styles.label, isLocked ? { color: palette.muted } : undefined]}
           numberOfLines={2}
         >
           {badge.label}

@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
@@ -14,6 +15,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService, CreateAcademyInput } from '@/services/academy-service';
 import type { FootballObjective } from '@/constants/types';
+
+const logger = createLogger('CreateAcademyScreen');
 
 const SPECIALTY_OPTIONS: FootballObjective[] = [
   'Dribbling',
@@ -117,7 +120,7 @@ export default function CreateAcademyScreen() {
         params: { id: academy.id },
       });
     } catch (error) {
-      console.error('Failed to create academy:', error);
+      logger.error('Failed to create academy:', error);
     } finally {
       setLoading(false);
     }

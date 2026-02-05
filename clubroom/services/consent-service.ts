@@ -62,15 +62,30 @@ class ConsentService {
   /**
    * Get consent status for a single athlete
    */
-  async getAthleteConsents(athleteId: string): Promise<AthleteConsent | null> {
+  async getAthleteConsents(athleteId: string, coachId?: string): Promise<AthleteConsent | null> {
     try {
       const emergencyInfo = await safetyService.getEmergencyInfo(athleteId);
-      // We need to get the athlete name from roster
-      // For now, return with athleteId as name placeholder
+
+      // Get athlete name from roster if coachId provided
+      let athleteName = 'Unknown';
+      let parentName = 'Unknown';
+      let athletePhotoUrl: string | undefined;
+
+      if (coachId) {
+        const roster = await rosterService.getRoster(coachId);
+        const entry = roster.find((r) => r.athleteId === athleteId);
+        if (entry) {
+          athleteName = entry.athleteName;
+          parentName = entry.parentName;
+          athletePhotoUrl = entry.athletePhotoUrl;
+        }
+      }
+
       return {
         athleteId,
-        athleteName: 'Unknown',
-        parentName: 'Unknown',
+        athleteName,
+        athletePhotoUrl,
+        parentName,
         consents: emergencyInfo.consents,
         lastUpdated: emergencyInfo.updatedAt,
       };

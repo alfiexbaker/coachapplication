@@ -1,4 +1,5 @@
 import { apiClient } from './api-client';
+import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from './notification-trigger';
 import {
@@ -9,7 +10,6 @@ import {
   FamilyOverview,
   FamilyDateRange,
   ChildProgressSummary,
-  BadgeAward,
   FamilyAccount,
   FamilyGuardian,
   GuardianInvite,
@@ -21,7 +21,7 @@ import { createLogger } from '@/utils/logger';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 const logger = createLogger('FamilyService');
 
 // Color palette for children in calendar/charts

@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ShareButton } from './ShareButton';
 import { Colors, Spacing, Radii } from '@/constants/theme';
@@ -63,7 +62,7 @@ export function ReferralCodeCard({
 
       // Reset copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to copy code to clipboard');
     }
   }, [referralCode.code]);

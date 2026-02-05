@@ -2,10 +2,13 @@ import React from 'react';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { createLogger } from '@/utils/logger';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { SocialLinks as SocialLinksType, SocialPlatform } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+const logger = createLogger('SocialLinks');
 
 interface SocialLinkConfig {
   icon: string;
@@ -95,7 +98,7 @@ export function SocialLinks({
         await Linking.openURL(url);
       }
     } catch (error) {
-      console.error('Failed to open social link:', error);
+      logger.error('Failed to open social link:', error);
     }
   };
 

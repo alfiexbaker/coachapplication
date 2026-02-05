@@ -5,7 +5,7 @@
  * Shows both completed and pending referrals.
  */
 
-import { View, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -55,14 +55,6 @@ export function ReferralHistory({
   const palette = Colors[scheme];
 
   const displayReferrals = maxItems ? referrals.slice(0, maxItems) : referrals;
-
-  const renderItem = ({ item, index }: { item: Referral; index: number }) => (
-    <ReferralHistoryItem
-      referral={item}
-      onPress={onReferralPress ? () => onReferralPress(item) : undefined}
-      isLast={index === displayReferrals.length - 1}
-    />
-  );
 
   const content = (
     <>

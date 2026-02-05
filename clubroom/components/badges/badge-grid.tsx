@@ -6,7 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { BadgeCard } from './badge-card';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { AllBadgeWithProgress, BadgeType } from '@/services/badge-service';
+import type { AllBadgeWithProgress } from '@/services/badge-service';
 
 interface BadgeGridProps {
   badges: AllBadgeWithProgress[];

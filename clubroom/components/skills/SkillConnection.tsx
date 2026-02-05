@@ -77,32 +77,27 @@ export function SkillConnection({
   const lineColor = isUnlocked ? themeColor : palette.border;
   const lineOpacity = isUnlocked ? 1 : 0.4;
 
-  // Animated props for the line stroke
+  // Calculate curve parameters (used when curved=true)
+  const midX = (fromX + toX) / 2;
+  const midY = (fromY + toY) / 2;
+  const perpX = -(toY - fromY) * 0.2;
+  const perpY = (toX - fromX) * 0.2;
+  const controlX = midX + perpX;
+  const controlY = midY + perpY;
+  const pathD = `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`;
+  const curveLength = lineLength * 1.2;
+
+  // Animated props for the line stroke (must be called unconditionally)
   const animatedLineProps = useAnimatedProps(() => ({
     strokeDashoffset: lineLength * (1 - animationProgress.value),
   }));
 
+  // Animated props for curved path (must be called unconditionally)
+  const animatedPathProps = useAnimatedProps(() => ({
+    strokeDashoffset: curveLength * (1 - animationProgress.value),
+  }));
+
   if (curved) {
-    // Calculate control point for quadratic bezier curve
-    const midX = (fromX + toX) / 2;
-    const midY = (fromY + toY) / 2;
-
-    // Offset the control point perpendicular to the line
-    const perpX = -(toY - fromY) * 0.2;
-    const perpY = (toX - fromX) * 0.2;
-
-    const controlX = midX + perpX;
-    const controlY = midY + perpY;
-
-    const pathD = `M ${fromX} ${fromY} Q ${controlX} ${controlY} ${toX} ${toY}`;
-
-    // Approximate curve length
-    const curveLength = lineLength * 1.2;
-
-    const animatedPathProps = useAnimatedProps(() => ({
-      strokeDashoffset: curveLength * (1 - animationProgress.value),
-    }));
-
     return (
       <View style={[styles.container, { width: containerWidth, height: containerHeight }]} pointerEvents="none">
         <Svg width={containerWidth} height={containerHeight} style={StyleSheet.absoluteFill}>

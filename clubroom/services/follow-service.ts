@@ -23,12 +23,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Follow, FollowRequest, NotificationItem } from '@/constants/types';
 import { notificationService } from './notification-service';
+import { coachService } from './coach-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('FollowService');
 const STORAGE_KEY = 'follows';
 const REQUESTS_KEY = 'follow_requests';
-const USE_MOCK = true;
 
 // Mock data for development - some pre-existing follows
 const MOCK_FOLLOWS: Follow[] = [
@@ -296,9 +296,11 @@ export const followService = {
   async getSuggestedCoaches(userId: string, limit: number = 5): Promise<string[]> {
     const following = await this.getFollowingIds(userId);
 
-    // In a real app, this would use ML/recommendations
-    // For now, return mock coach IDs not already followed
-    const allCoachIds = ['coach1', 'coach2', 'coach3'];
+    // Get all available coaches from the coach service
+    const allCoaches = await coachService.getCoaches();
+    const allCoachIds = allCoaches.map((c) => c.id);
+
+    // Filter out coaches the user already follows
     const suggestions = allCoachIds.filter((id) => !following.includes(id));
 
     return suggestions.slice(0, limit);

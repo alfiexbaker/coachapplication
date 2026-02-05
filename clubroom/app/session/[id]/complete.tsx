@@ -12,7 +12,7 @@
  * so I can track athlete progress and provide feedback."
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -32,7 +32,6 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Components } from '@/constants/theme';
-import { CardStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
@@ -70,7 +69,8 @@ export default function SessionCompleteScreen() {
   const [overallEffort, setOverallEffort] = useState(3);
   const [homework, setHomework] = useState('');
   const [availableBadges, setAvailableBadges] = useState<BadgeDefinition[]>([]);
-  const [showBadgeSelector, setShowBadgeSelector] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_showBadgeSelector, setShowBadgeSelector] = useState<string | null>(null);
 
   // Step navigation: attendance -> notes -> badges -> summary
   type CompletionStep = 'attendance' | 'notes' | 'badges' | 'summary';
@@ -85,12 +85,7 @@ export default function SessionCompleteScreen() {
   // Source type: session offering or booking (AWAITING_COMPLETION)
   const [sourceType, setSourceType] = useState<'offering' | 'booking'>('offering');
 
-  useEffect(() => {
-    loadSession();
-    loadBadges();
-  }, [id]);
-
-  const loadSession = async () => {
+  const loadSession = useCallback(async () => {
     if (!id) return;
 
     try {
@@ -173,11 +168,16 @@ export default function SessionCompleteScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadSession();
+    loadBadges();
+  }, [loadSession]);
 
   const loadBadges = async () => {
     try {
-      const badges = await badgeService.listBadges();
+      const badges = await badgeService.listDefinitions();
       setAvailableBadges(badges);
     } catch (error) {
       logger.error('Failed to load badges', error);
@@ -227,22 +227,19 @@ export default function SessionCompleteScreen() {
       });
 
       // Award badges
-      for (const [regId, athleteData] of Object.entries(attendance)) {
+      for (const athleteData of Object.values(attendance)) {
         if (athleteData.badges.length > 0 && athleteData.status === 'present') {
           for (const badgeId of athleteData.badges) {
             const badge = availableBadges.find(b => b.id === badgeId);
             if (badge) {
               await badgeService.awardBadge({
-                recipientId: athleteData.registration.userId,
-                recipientName: athleteData.registration.userName,
-                recipientType: 'athlete',
+                athleteId: athleteData.registration.userId,
+                athleteName: athleteData.registration.userName,
                 badgeId: badge.id,
-                badgeLabel: badge.label,
-                badgeCategory: badge.category,
-                badgeTier: badge.tier,
                 coachId: currentUser.id,
                 coachName: currentUser.fullName || 'Coach',
                 sessionId: session.id,
+                reason: badge.label,
                 note: athleteData.note || undefined,
               });
             }
@@ -397,7 +394,8 @@ export default function SessionCompleteScreen() {
           </ThemedText>
         ) : (
           attendanceList.map(({ registration, status, badges }) => {
-            const icon = getAttendanceIcon(status);
+            const _icon = getAttendanceIcon(status);
+            void _icon;
             return (
               <View key={registration.id} style={[styles.athleteRow, { borderBottomColor: palette.border }]}>
                 <View style={styles.athleteInfo}>
@@ -428,7 +426,7 @@ export default function SessionCompleteScreen() {
                         key={s}
                         style={[
                           styles.attendanceBtn,
-                          isSelected && { backgroundColor: `${btnIcon.color}15` },
+                          isSelected ? { backgroundColor: `${btnIcon.color}15` } : undefined,
                         ]}
                         onPress={() => updateAttendance(registration.id, { status: s })}
                       >

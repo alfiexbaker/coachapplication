@@ -7,7 +7,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Match, MatchPlayer } from '@/constants/types';
-import { matchService } from '@/services/match-service';
 
 interface AvailabilityResponseProps {
   match: Match;
@@ -46,7 +45,7 @@ export function AvailabilityResponse({
 
     try {
       await onRespond(status, note || undefined);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to submit response. Please try again.');
     }
   };
@@ -154,7 +153,7 @@ export function AvailabilityResponse({
         {player.parentNote && (
           <View style={[styles.noteDisplay, { backgroundColor: palette.surface }]}>
             <ThemedText style={[styles.noteLabel, { color: palette.muted }]}>Your note:</ThemedText>
-            <ThemedText style={styles.noteContent}>"{player.parentNote}"</ThemedText>
+            <ThemedText style={styles.noteContent}>&quot;{player.parentNote}&quot;</ThemedText>
           </View>
         )}
 

@@ -16,12 +16,14 @@ let Notifications: typeof import('expo-notifications') | null = null;
 let Device: any = null;
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   Notifications = require('expo-notifications');
 } catch {
   logger.warn('expo-notifications not installed. Push notifications disabled.');
 }
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   Device = require('expo-device');
 } catch {
   logger.warn('expo-device not installed. Device checks disabled.');

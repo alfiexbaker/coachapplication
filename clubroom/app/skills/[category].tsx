@@ -13,7 +13,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -248,7 +247,7 @@ export default function SkillTreeDetailScreen() {
             <Ionicons name="alert-circle-outline" size={40} color={palette.error} />
             <ThemedText type="defaultSemiBold">Tree Not Found</ThemedText>
             <ThemedText style={{ color: palette.muted }}>
-              Could not load the skill tree for "{category}"
+              Could not load the skill tree for &quot;{category}&quot;
             </ThemedText>
           </SurfaceCard>
         )}

@@ -5,6 +5,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
+import { createLogger } from '@/utils/logger';
 import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
 import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
@@ -14,6 +15,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilitySlot } from '@/constants/types';
+
+const logger = createLogger('ScheduleScreen');
 
 export default function ScheduleScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
@@ -63,12 +66,12 @@ export default function ScheduleScreen() {
         }
       }
     } catch (err) {
-      console.error('[ScheduleScreen] Failed to fetch availability:', err);
+      logger.error('Failed to fetch availability:', err);
       setError('Unable to load available times. Please try again.');
     } finally {
       setIsLoading(false);
     }
-  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration]);
+  }, [coachId, dateRange.startDate, dateRange.endDate, draft.duration, draft.date, updateDraft]);
 
   useEffect(() => {
     fetchAvailability();

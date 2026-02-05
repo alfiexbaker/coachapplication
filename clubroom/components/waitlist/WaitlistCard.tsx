@@ -53,7 +53,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
     <SurfaceCard
       style={[
         styles.card,
-        isNotified && { borderColor: palette.success, borderWidth: 2 },
+        isNotified ? { borderColor: palette.success, borderWidth: 2 } : undefined,
       ]}
     >
       {isNotified && (

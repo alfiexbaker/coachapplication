@@ -41,7 +41,7 @@ export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTablePro
         data = state.coaches;
       }
       setCoaches(data);
-    } catch (err) {
+    } catch {
       setError('Failed to load comparison data');
     } finally {
       setIsLoading(false);

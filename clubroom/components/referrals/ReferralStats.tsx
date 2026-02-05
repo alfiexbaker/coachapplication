@@ -212,7 +212,7 @@ function StatCard({
   flex,
 }: StatCardProps) {
   return (
-    <View style={[styles.statCard, { backgroundColor: palette.background }, flex && styles.flexCard]}>
+    <View style={[styles.statCard, { backgroundColor: palette.background }, flex ? styles.flexCard : undefined]}>
       <View style={[styles.statCardIcon, { backgroundColor: iconBgColor }]}>
         <Ionicons name={icon} size={20} color={iconColor} />
       </View>

@@ -184,7 +184,7 @@ export default function BookingsScreen() {
 
   const handleFindCoachPress = () => {
     logger.press('FindCoachButton', { route: '/(tabs)/index' });
-    router.push('/(tabs)/index');
+    router.push('/(tabs)/index' as any);
   };
 
   const handleOfferingPress = (offering: SessionOffering) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Modal, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,16 +50,9 @@ export function InviteSessionFlow({
   const [selectedSession, setSelectedSession] = useState<UpcomingSession | null>(null);
   const [selectedAthletes, setSelectedAthletes] = useState<Athlete[]>([]);
   const [isNewSession, setIsNewSession] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
 
-  // Load upcoming sessions
-  useEffect(() => {
-    if (visible) {
-      loadUpcomingSessions();
-    }
-  }, [visible]);
-
-  const loadUpcomingSessions = async () => {
+  const loadUpcomingSessions = useCallback(async () => {
     setLoading(true);
     try {
       // Load from AsyncStorage (bookings/sessions)
@@ -84,7 +77,14 @@ export function InviteSessionFlow({
     } finally {
       setLoading(false);
     }
-  };
+  }, [coachId]);
+
+  // Load upcoming sessions
+  useEffect(() => {
+    if (visible) {
+      loadUpcomingSessions();
+    }
+  }, [visible, loadUpcomingSessions]);
 
   const handleChoiceSelect = (choice: 'existing' | 'new') => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -282,7 +282,7 @@ export function InviteSessionFlow({
                       Add to Existing Session
                     </ThemedText>
                     <ThemedText style={[styles.choiceDesc, { color: palette.muted }]}>
-                      Invite athletes to a session you've already scheduled
+                      Invite athletes to a session you&apos;ve already scheduled
                     </ThemedText>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={palette.muted} />

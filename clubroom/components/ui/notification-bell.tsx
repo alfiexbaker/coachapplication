@@ -8,7 +8,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNotificationCount } from '@/hooks/use-notifications';
 import { Clickable } from '@/components/primitives/clickable';
@@ -36,8 +36,11 @@ export function NotificationBell({ size = 24, color }: NotificationBellProps) {
       <View style={styles.container}>
         <Ionicons name="notifications-outline" size={size} color={iconColor} />
         {unreadCount > 0 && (
-          <View style={[styles.badge, { backgroundColor: palette.error }]}>
-            <ThemedText style={styles.badgeText}>
+          <View style={[
+            styles.badge,
+            { backgroundColor: palette.error, borderColor: palette.surface }
+          ]}>
+            <ThemedText style={[styles.badgeText, { color: palette.onError }]}>
               {unreadCount > 99 ? '99+' : unreadCount}
             </ThemedText>
           </View>
@@ -66,10 +69,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: Colors.light.surface,
   },
   badgeText: {
-    color: Colors.light.surface,
     fontSize: 10,
     fontWeight: '700',
     lineHeight: 12,

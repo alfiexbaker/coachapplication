@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -6,12 +6,15 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { analyticsService, type AnalyticsPeriod } from '@/services/analytics-service';
 import type { AthleteAnalytics, Goal, SkillProgress } from '@/constants/types';
+
+const logger = createLogger('AthleteAnalyticsScreen');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -234,29 +237,29 @@ export default function AthleteAnalyticsScreen() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<AnalyticsPeriod>('MONTH');
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [athleteId, period]);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     if (!athleteId) return;
     setLoading(true);
     try {
       const data = await analyticsService.getAthleteAnalytics(athleteId, period);
       setAnalytics(data);
     } catch (error) {
-      console.error('Failed to load analytics:', error);
+      logger.error('Failed to load analytics:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [athleteId, period]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   const handleCompleteMilestone = async (goalId: string, milestoneId: string) => {
     try {
       await analyticsService.completeMilestone(goalId, milestoneId);
       loadAnalytics();
     } catch (error) {
-      console.error('Failed to complete milestone:', error);
+      logger.error('Failed to complete milestone:', error);
     }
   };
 
@@ -294,10 +297,10 @@ export default function AthleteAnalyticsScreen() {
           onPress={async () => {
             try {
               await Share.share({
-                message: `Check out ${analytics.athleteName}'s progress! ${analytics.totalSessions} sessions completed with an average performance of ${analytics.avgPerformance.toFixed(1)}/5.`,
+                message: `Check out ${analytics.athleteName}'s progress! ${analytics.totalSessions} sessions completed with an average rating of ${analytics.averageSessionRating.toFixed(1)}/5.`,
                 title: `${analytics.athleteName} Progress Report`,
               });
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to share progress report.');
             }
           }}

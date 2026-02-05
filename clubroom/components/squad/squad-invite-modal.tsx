@@ -8,7 +8,7 @@
  * - Send confirmation
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -19,14 +19,14 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
-
-const logger = createLogger('SquadInviteModal');
-import type { ClubSquad, SquadMember, TimeSlot } from '@/constants/types';
+import type { ClubSquad, TimeSlot } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
 import {
   inviteService as bulkInviteService,
   type SquadInvitePreview,
 } from '@/services/invite-service';
+
+const logger = createLogger('SquadInviteModal');
 
 type InviteType = 'SESSION' | 'MATCH' | 'EVENT';
 type Step = 'squads' | 'preview' | 'confirm';
@@ -103,16 +103,7 @@ export function SquadInviteModal({
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      loadSquads();
-      setStep('squads');
-      setSelectedSquadIds(preSelectedSquadIds);
-      setExcludedMemberIds([]);
-    }
-  }, [visible, clubId]);
-
-  const loadSquads = async () => {
+  const loadSquads = useCallback(async () => {
     setLoading(true);
     try {
       let data = await squadService.getSquads(clubId);
@@ -123,7 +114,16 @@ export function SquadInviteModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [clubId]);
+
+  useEffect(() => {
+    if (visible) {
+      loadSquads();
+      setStep('squads');
+      setSelectedSquadIds(preSelectedSquadIds);
+      setExcludedMemberIds([]);
+    }
+  }, [visible, clubId, loadSquads, preSelectedSquadIds]);
 
   const loadPreview = async () => {
     setLoading(true);
@@ -237,16 +237,18 @@ export function SquadInviteModal({
               priceUsd: sessionProps.priceUsd,
               excludeMemberIds: excludedMemberIds,
             });
-            totalSuccess += squadResult.successful;
+            totalSuccess += squadResult.sent;
             totalFailed += squadResult.failed;
-            lastId = squadResult.squadInviteId || '';
+            lastId = squadResult.groupId || '';
           }
 
           result = {
-            successful: totalSuccess,
+            sent: totalSuccess,
             failed: totalFailed,
+            skipped: 0,
+            totalAttempted: totalSuccess + totalFailed,
             errors: [],
-            squadInviteId: lastId,
+            groupId: lastId,
           };
         }
       } else if (inviteType === 'MATCH' && matchProps) {
@@ -293,8 +295,8 @@ export function SquadInviteModal({
 
       if (result) {
         onSuccess({
-          squadInviteId: result.squadInviteId || '',
-          successful: result.successful,
+          squadInviteId: result.groupId || '',
+          successful: result.sent,
           failed: result.failed,
         });
         onClose();
@@ -434,7 +436,7 @@ export function SquadInviteModal({
                       <ThemedText
                         style={[
                           { fontSize: 14 },
-                          isExcluded && { textDecorationLine: 'line-through' },
+                          isExcluded ? { textDecorationLine: 'line-through' } : undefined,
                         ]}
                       >
                         {member.athleteName}

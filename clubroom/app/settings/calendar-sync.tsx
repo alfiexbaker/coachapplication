@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SettingsSection, SettingsToggleRow, SettingsRow } from '@/components/settings';
+import { SettingsSection, SettingsToggleRow } from '@/components/settings';
 import { CalendarProviderSelect } from '@/components/calendar/CalendarProviderSelect';
 import { SyncSettingsCard } from '@/components/calendar/SyncSettingsCard';
 import { Clickable } from '@/components/primitives/clickable';
@@ -30,12 +30,7 @@ export default function CalendarSyncScreen() {
   const [isExporting, setIsExporting] = useState(false);
   const [settings, setSettings] = useState<CalendarSyncSettings | null>(null);
 
-  // Load settings on mount
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     setIsLoading(true);
     try {
       const userId = currentUser?.id ?? 'current_user';
@@ -53,7 +48,12 @@ export default function CalendarSyncScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentUser?.id]);
+
+  // Load settings on mount
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const saveSettings = useCallback(
     async (updates: Partial<CalendarSyncSettings>) => {

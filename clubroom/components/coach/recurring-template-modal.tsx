@@ -3,6 +3,7 @@ import { View, StyleSheet, Modal, ScrollView, Pressable, TextInput, Alert } from
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -10,11 +11,22 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AvailabilityTemplate } from '@/constants/types';
 
+const logger = createLogger('RecurringTemplateModal');
+
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 // Time options for picker
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am to 8pm
+
+// Common locations - defined outside component to be stable
+const COMMON_LOCATIONS = [
+  'Hackney Marshes',
+  'Victoria Park',
+  'London Fields',
+  'Indoor Facility',
+  'Online Session',
+];
 const formatHour = (hour: number) => {
   if (hour === 12) return '12:00 PM';
   if (hour > 12) return `${hour - 12}:00 PM`;
@@ -146,16 +158,9 @@ export function RecurringTemplateModal({
 
   const isEditing = !!editingTemplate;
 
-  // Common locations
-  const COMMON_LOCATIONS = [
-    'Hackney Marshes',
-    'Victoria Park',
-    'London Fields',
-    'Indoor Facility',
-    'Online Session',
-  ];
-
   useEffect(() => {
+    if (!visible) return; // Only run when modal becomes visible
+
     if (editingTemplate) {
       // Editing single template
       setSelectedDays([editingTemplate.dayOfWeek]);
@@ -261,7 +266,7 @@ export function RecurringTemplateModal({
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
-      console.error('Failed to save template:', error);
+      logger.error('Failed to save template:', error);
       Alert.alert('Error', 'Failed to save availability. Please try again.');
     } finally {
       setSaving(false);
@@ -283,7 +288,7 @@ export function RecurringTemplateModal({
             void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             onClose();
           } catch (error) {
-            console.error('Failed to delete template:', error);
+            logger.error('Failed to delete template:', error);
           } finally {
             setSaving(false);
           }

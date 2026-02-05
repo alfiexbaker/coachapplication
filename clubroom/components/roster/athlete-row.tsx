@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { View, StyleSheet, Image, Pressable, Animated, Alert } from 'react-native';
+import { View, StyleSheet, Image, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 

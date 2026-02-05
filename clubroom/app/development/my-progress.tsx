@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TextInput, Alert, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { progressService, AthleteProgress, SessionFeedback } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
-import type { BadgeAward, Goal } from '@/constants/types';
+import type { BadgeAward } from '@/constants/types';
 
 const logger = createLogger('MyProgressScreen');
 
@@ -65,7 +65,7 @@ export default function MyProgressScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.name]);
 
   useFocusEffect(
     useCallback(() => {
@@ -82,15 +82,20 @@ export default function MyProgressScreen() {
     if (!newGoalTitle.trim() || !currentUser) return;
 
     try {
-      await progressService.createGoal({
-        athleteId: currentUser.id,
-        title: newGoalTitle.trim(),
-        progress: 0,
-        milestones: [],
-        status: 'ACTIVE',
-        createdBy: 'ATHLETE',
-        createdById: currentUser.id,
-      });
+      await progressService.createGoal(
+        currentUser.id,
+        {
+          userId: currentUser.id,
+          athleteId: currentUser.id,
+          title: newGoalTitle.trim(),
+          category: 'OTHER',
+          progress: 0,
+          milestones: [],
+          status: 'ACTIVE',
+          createdBy: 'ATHLETE',
+          createdById: currentUser.id,
+        }
+      );
 
       setNewGoalTitle('');
       setShowGoalForm(false);
@@ -209,12 +214,12 @@ export default function MyProgressScreen() {
               onPress={() => setActiveTab(tab.id as typeof activeTab)}
               style={[
                 styles.tab,
-                activeTab === tab.id && [styles.activeTab, { borderBottomColor: palette.tint }],
-              ]}
+                activeTab === tab.id ? [styles.activeTab, { borderBottomColor: palette.tint }] : undefined,
+              ].filter(Boolean) as ViewStyle[]}
             >
               <View style={[
                 styles.tabIconContainer,
-                activeTab === tab.id && { backgroundColor: `${palette.tint}15` }
+                activeTab === tab.id ? { backgroundColor: `${palette.tint}15` } : undefined,
               ]}>
                 <Ionicons
                   name={tab.icon as any}

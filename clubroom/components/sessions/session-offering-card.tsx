@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { scale, scaleFont, moderateScale } from '@/utils/scale';
+import { scaleFont } from '@/utils/scale';
 
 interface SessionOfferingCardProps {
   offering: SessionOffering;

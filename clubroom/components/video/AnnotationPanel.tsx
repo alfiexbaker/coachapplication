@@ -12,7 +12,6 @@ import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Chip } from '@/components/primitives/chip';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';

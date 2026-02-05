@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +14,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import type { Academy, AcademyMembership } from '@/constants/types';
+
+const logger = createLogger('AcademyDetailScreen');
 
 function StaffCard({
   member,
@@ -80,11 +83,7 @@ export default function AcademyDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [userMembership, setUserMembership] = useState<AcademyMembership | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, [id, currentUser?.id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -100,11 +99,15 @@ export default function AcademyDetailScreen() {
         setUserMembership(membership || null);
       }
     } catch (error) {
-      console.error('Failed to load academy:', error);
+      logger.error('Failed to load academy:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentUser?.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const isOwner = userMembership?.role === 'OWNER';
   const canManage = isOwner || userMembership?.permissions.includes('MANAGE_STAFF');

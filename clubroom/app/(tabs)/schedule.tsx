@@ -9,12 +9,12 @@
  */
 
 import { useCallback, useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Modal, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -69,6 +69,7 @@ export default function ScheduleScreen() {
   const [offerings, setOfferings] = useState<SessionOffering[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
+  const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [showAddSlotModal, setShowAddSlotModal] = useState(false);
@@ -108,6 +109,30 @@ export default function ScheduleScreen() {
         weekEnd.toISOString().split('T')[0]
       );
       setBookings(coachBookings);
+
+      // Load blocked dates
+      try {
+        const blockedKey = 'clubroom.blocked_dates';
+        const allBlockedJson = await AsyncStorage.getItem(blockedKey);
+        if (allBlockedJson) {
+          const allBlocked = JSON.parse(allBlockedJson);
+          const coachBlocked = allBlocked[coachId] || [];
+          const blockedSet = new Set<string>();
+          for (const bd of coachBlocked) {
+            // Expand date ranges into individual dates
+            let cur = bd.startDate;
+            while (cur <= bd.endDate) {
+              blockedSet.add(cur);
+              const d = new Date(cur + 'T00:00:00');
+              d.setDate(d.getDate() + 1);
+              cur = d.toISOString().split('T')[0];
+            }
+          }
+          setBlockedDates(blockedSet);
+        }
+      } catch (err) {
+        logger.warn('Failed to load blocked dates', err);
+      }
 
       logger.debug('Loaded schedule data', {
         templates: templatesData.length,
@@ -202,10 +227,10 @@ export default function ScheduleScreen() {
         isPast: date < new Date(today.toISOString().split('T')[0]),
         sessions: daySessions,
         availabilitySlots,
-        isBlocked: false, // TODO: Check overrides
+        isBlocked: blockedDates.has(dateStr),
       };
     });
-  }, [templates, bookings, offerings]);
+  }, [templates, bookings, offerings, blockedDates]);
 
   // Today's data
   const todayData = weekData.find(d => d.isToday);
@@ -232,8 +257,9 @@ export default function ScheduleScreen() {
     return `in ${mins}m`;
   };
 
-  // Weekly summary
-  const weekSummary = useMemo(() => {
+  // Weekly summary (available for future display)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _weekSummary = useMemo(() => {
     const totalSessions = weekData.reduce((sum, d) => sum + d.sessions.length, 0);
     const daysWithSessions = weekData.filter(d => d.sessions.length > 0).length;
     const totalHours = templates.reduce((sum, t) => {

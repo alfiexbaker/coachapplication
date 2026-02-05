@@ -23,9 +23,9 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/constants/config';
 import type {
   Match,
-  MatchPlayer,
   MatchPlayerStatus,
   MatchResult,
   MatchStatus,
@@ -39,7 +39,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('MatchService');
 
 const STORAGE_KEY = 'matches';
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // Mock data for development
 const MOCK_MATCHES: Match[] = [
@@ -187,12 +187,12 @@ export interface CreateMatchInput {
 
 export interface InvitePlayersInput {
   matchId: string;
-  players: Array<{
+  players: {
     athleteId: string;
     athleteName: string;
     parentId: string;
     parentName?: string;
-  }>;
+  }[];
 }
 
 export interface RespondToMatchInput {
@@ -205,12 +205,12 @@ export interface RespondToMatchInput {
 
 export interface SetLineupInput {
   matchId: string;
-  lineup: Array<{
+  lineup: {
     athleteId: string;
     position?: string;
     jerseyNumber?: number;
     isReserve?: boolean;
-  }>;
+  }[];
 }
 
 async function loadFromStorage(): Promise<Match[]> {
@@ -363,12 +363,12 @@ export const matchService = {
   async inviteSquad(
     matchId: string,
     squadId: string,
-    players: Array<{
+    players: {
       athleteId: string;
       athleteName: string;
       parentId: string;
       parentName?: string;
-    }>
+    }[]
   ): Promise<Match> {
     return this.invitePlayers({ matchId, players });
   },

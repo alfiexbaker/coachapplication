@@ -34,6 +34,11 @@ export interface PageHeaderProps {
   onBackPress?: () => void;
 
   /**
+   * Alias for onBackPress for backward compatibility
+   */
+  onBack?: () => void;
+
+  /**
    * Optional right action button text
    */
   action?: string;
@@ -80,6 +85,7 @@ export function PageHeader({
   left,
   showBack,
   onBackPress,
+  onBack, // Alias for onBackPress
   action,
   actionIcon,
   onActionPress,
@@ -91,8 +97,9 @@ export function PageHeader({
   const router = useRouter();
 
   const handleBackPress = () => {
-    if (onBackPress) {
-      onBackPress();
+    const backHandler = onBackPress ?? onBack;
+    if (backHandler) {
+      backHandler();
     } else {
       router.back();
     }
@@ -152,7 +159,7 @@ export function PageHeader({
                     style={[
                       styles.actionText,
                       { color: palette.foreground },
-                      !actionIcon && styles.actionTextOnly,
+                      !actionIcon ? styles.actionTextOnly : undefined,
                     ]}
                   >
                     {action}

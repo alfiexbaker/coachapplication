@@ -54,7 +54,7 @@ export function MedicalCard({
       return { label: 'Allergy Alert', tone: 'warning' as const };
     }
     if (hasConditions || hasMedications) {
-      return { label: 'Medical Info', tone: 'default' as const };
+      return { label: 'Medical Info', tone: 'info' as const };
     }
     return null;
   };
@@ -153,7 +153,7 @@ export function MedicalCard({
             </ThemedText>
           </View>
           {contacts.length > 1 && (
-            <Badge label={`+${contacts.length - 1}`} tone="default" />
+            <Badge label={`+${contacts.length - 1}`} tone="neutral" />
           )}
         </Clickable>
       )}

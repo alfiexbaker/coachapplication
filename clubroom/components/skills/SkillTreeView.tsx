@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, Dimensions, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
@@ -59,17 +59,6 @@ export function SkillTreeView({
     const { width, height } = event.nativeEvent.layout;
     setContainerSize({ width, height });
   }, []);
-
-  // Group nodes by level for layered layout
-  const nodesByLevel = useMemo(() => {
-    const levels: Map<number, SkillNodeType[]> = new Map();
-    tree.nodes.forEach((node) => {
-      const existing = levels.get(node.level) ?? [];
-      existing.push(node);
-      levels.set(node.level, existing);
-    });
-    return levels;
-  }, [tree.nodes]);
 
   // Generate connections based on prerequisites
   const connections = useMemo<ConnectionData[]>(() => {
@@ -141,9 +130,6 @@ export function SkillTreeView({
 
   // Calculate stats
   const unlockedCount = tree.nodes.filter((n) => n.isUnlocked).length;
-  const totalXp = tree.nodes
-    .filter((n) => n.isUnlocked)
-    .reduce((sum, n) => sum + n.xpRequired, 0);
 
   return (
     <GestureHandlerRootView style={styles.root}>

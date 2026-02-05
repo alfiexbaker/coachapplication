@@ -18,6 +18,37 @@
  */
 
 // Re-export all types needed for API integration
+import type {
+  UserProfile,
+  CoachProfile,
+  AvailabilityTemplate,
+  AvailabilityOverride,
+  AvailabilitySlot,
+  SessionOffering,
+  SessionRegistration,
+  SessionInvite,
+  TimeSlot,
+  FamilyAccount,
+  FamilyGuardian,
+  FamilyMember,
+  GuardianInvite,
+  Wallet,
+  WalletTransaction,
+  CoachEarnings,
+  Withdrawal,
+  PayoutMethod,
+  Notification,
+  NotificationPreferences,
+  BadgeDefinition,
+  BadgeAward,
+  CoachReview,
+  CancellationPolicy,
+  RefundCalculation,
+  CoachSchedulingRules,
+} from '@/constants/types';
+
+import type { Booking } from '@/constants/app-types';
+
 export type {
   // User & Auth
   SimplifiedUserType,
@@ -71,8 +102,6 @@ export type {
 
 export type { Booking } from '@/constants/app-types';
 export type { CreateBookingParams, BookingDraft } from './booking-service';
-
-import type { UserProfile, CoachProfile } from '@/constants/types';
 
 // ============================================================================
 // API CONFIGURATION
@@ -195,16 +224,6 @@ export interface AuthAPI {
   };
 }
 
-// ============================================================================
-// AVAILABILITY ENDPOINTS (Priority: HIGH)
-// ============================================================================
-
-import type {
-  AvailabilityTemplate,
-  AvailabilityOverride,
-  AvailabilitySlot,
-} from '@/constants/types';
-
 export interface AvailabilityAPI {
   /**
    * GET /coaches/:coachId/availability/templates
@@ -304,12 +323,6 @@ export interface AvailabilityAPI {
     response: AvailabilitySlot[];
   };
 }
-
-// ============================================================================
-// BOOKING ENDPOINTS (Priority: HIGH)
-// ============================================================================
-
-import type { Booking } from '@/constants/app-types';
 
 export interface BookingAPI {
   /**
@@ -417,12 +430,6 @@ export interface BookingAPI {
   };
 }
 
-// ============================================================================
-// SESSION OFFERINGS ENDPOINTS (Priority: HIGH)
-// ============================================================================
-
-import type { SessionOffering, SessionRegistration } from '@/constants/types';
-
 export interface SessionOfferingAPI {
   /**
    * GET /sessions/offerings
@@ -521,12 +528,6 @@ export interface SessionOfferingAPI {
   };
 }
 
-// ============================================================================
-// SESSION INVITES ENDPOINTS (Priority: HIGH)
-// ============================================================================
-
-import type { SessionInvite, TimeSlot } from '@/constants/types';
-
 export interface SessionInviteAPI {
   /**
    * GET /session-invites
@@ -613,17 +614,6 @@ export interface SessionInviteAPI {
     response: SessionInvite;
   };
 }
-
-// ============================================================================
-// FAMILY ENDPOINTS (Priority: HIGH)
-// ============================================================================
-
-import type {
-  FamilyAccount,
-  FamilyGuardian,
-  FamilyMember,
-  GuardianInvite,
-} from '@/constants/types';
 
 export interface FamilyAPI {
   /**
@@ -742,10 +732,10 @@ export interface FamilyAPI {
     path: '/family/upcoming';
     query: { limit?: number };
     response: {
-      sessions: Array<{
+      sessions: {
         booking: Booking;
         child: FamilyMember;
-      }>;
+      }[];
     };
   };
 
@@ -760,31 +750,19 @@ export interface FamilyAPI {
     response: {
       totalSpent: number;
       sessionCount: number;
-      byChild: Array<{
+      byChild: {
         childId: string;
         childName: string;
         amount: number;
         sessions: number;
-      }>;
-      byMonth: Array<{
+      }[];
+      byMonth: {
         month: string;
         amount: number;
-      }>;
+      }[];
     };
   };
 }
-
-// ============================================================================
-// WALLET & PAYMENTS ENDPOINTS (Priority: HIGH)
-// ============================================================================
-
-import type {
-  Wallet,
-  WalletTransaction,
-  CoachEarnings,
-  Withdrawal,
-  PayoutMethod,
-} from '@/constants/types';
 
 export interface WalletAPI {
   /**
@@ -880,12 +858,6 @@ export interface EarningsAPI {
   };
 }
 
-// ============================================================================
-// NOTIFICATIONS ENDPOINTS (Priority: MEDIUM)
-// ============================================================================
-
-import type { Notification, NotificationPreferences } from '@/constants/types';
-
 export interface NotificationAPI {
   /**
    * GET /notifications
@@ -962,12 +934,6 @@ export interface NotificationAPI {
   };
 }
 
-// ============================================================================
-// BADGES & PROGRESS ENDPOINTS (Priority: MEDIUM)
-// ============================================================================
-
-import type { BadgeDefinition, BadgeAward } from '@/constants/types';
-
 export interface BadgeAPI {
   /**
    * GET /badges
@@ -1018,20 +984,14 @@ export interface BadgeAPI {
     response: {
       level: string;
       totalPoints: number;
-      categoryProgress: Array<{
+      categoryProgress: {
         category: string;
         points: number;
         badgesEarned: number;
-      }>;
+      }[];
     };
   };
 }
-
-// ============================================================================
-// REVIEWS ENDPOINTS (Priority: MEDIUM)
-// ============================================================================
-
-import type { CoachReview } from '@/constants/types';
 
 export interface ReviewAPI {
   /**
@@ -1068,12 +1028,6 @@ export interface ReviewAPI {
   };
 }
 
-// ============================================================================
-// CANCELLATION POLICY ENDPOINTS (Priority: MEDIUM)
-// ============================================================================
-
-import type { CancellationPolicy, RefundCalculation } from '@/constants/types';
-
 export interface CancellationAPI {
   /**
    * GET /coaches/:coachId/cancellation-policy
@@ -1108,12 +1062,6 @@ export interface CancellationAPI {
     response: RefundCalculation;
   };
 }
-
-// ============================================================================
-// SCHEDULING RULES ENDPOINTS (Priority: MEDIUM)
-// ============================================================================
-
-import type { CoachSchedulingRules } from '@/constants/types';
 
 export interface SchedulingRulesAPI {
   /**
@@ -1355,12 +1303,12 @@ export interface MessagingAPI {
     path: '/messages/threads';
     query: { limit?: number; offset?: number };
     response: {
-      threads: Array<{
+      threads: {
         id: string;
-        participants: Array<{ id: string; name: string; avatar?: string }>;
+        participants: { id: string; name: string; avatar?: string }[];
         lastMessage: { body: string; sentAt: string; senderId: string };
         unreadCount: number;
-      }>;
+      }[];
       total: number;
     };
   };
@@ -1375,13 +1323,13 @@ export interface MessagingAPI {
     params: { threadId: string };
     query: { limit?: number; before?: string };
     response: {
-      messages: Array<{
+      messages: {
         id: string;
         body: string;
         senderId: string;
         sentAt: string;
         readAt?: string;
-      }>;
+      }[];
       hasMore: boolean;
     };
   };
@@ -1440,13 +1388,13 @@ export interface ClubAPI {
     path: '/clubs';
     query: { role?: 'member' | 'admin'; limit?: number };
     response: {
-      clubs: Array<{
+      clubs: {
         id: string;
         name: string;
         description: string;
         memberCount: number;
         avatar?: string;
-      }>;
+      }[];
       total: number;
     };
   };
@@ -1463,7 +1411,7 @@ export interface ClubAPI {
       id: string;
       name: string;
       description: string;
-      members: Array<{ id: string; name: string; role: string }>;
+      members: { id: string; name: string; role: string }[];
       settings: Record<string, any>;
     };
   };
@@ -1478,7 +1426,7 @@ export interface ClubAPI {
     params: { clubId: string };
     query: { limit?: number; before?: string };
     response: {
-      posts: Array<{
+      posts: {
         id: string;
         authorId: string;
         authorName: string;
@@ -1486,7 +1434,7 @@ export interface ClubAPI {
         createdAt: string;
         likes: number;
         comments: number;
-      }>;
+      }[];
       hasMore: boolean;
     };
   };
@@ -1546,7 +1494,7 @@ export interface AnalyticsAPI {
       averageRating: number;
       retentionRate: number;
       upcomingSessions: number;
-      trends: Array<{ date: string; sessions: number; revenue: number }>;
+      trends: { date: string; sessions: number; revenue: number }[];
     };
   };
 
@@ -1562,7 +1510,7 @@ export interface AnalyticsAPI {
     response: {
       totalSessions: number;
       badgesEarned: number;
-      skillProgress: Array<{ skill: string; level: number; change: number }>;
+      skillProgress: { skill: string; level: number; change: number }[];
       attendance: number;
     };
   };

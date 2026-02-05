@@ -37,8 +37,8 @@ const DURATION_OPTIONS = [
   { value: 120, label: '2 hours' },
 ];
 
-function getNextSevenDays(): Array<{ date: string; label: string; dayName: string }> {
-  const days: Array<{ date: string; label: string; dayName: string }> = [];
+function getNextSevenDays(): { date: string; label: string; dayName: string }[] {
+  const days: { date: string; label: string; dayName: string }[] = [];
   const today = new Date();
 
   for (let i = 0; i < 14; i++) {

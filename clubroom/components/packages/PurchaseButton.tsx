@@ -153,7 +153,7 @@ export function PurchaseButton({
         style={[
           styles.button,
           { backgroundColor: palette.tint },
-          (disabled || purchasing) && styles.buttonDisabled,
+          (disabled || purchasing) ? styles.buttonDisabled : undefined,
         ]}
         onPress={handlePurchase}
         disabled={disabled || purchasing}

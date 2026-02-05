@@ -18,10 +18,13 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { walletService, type WalletTransaction, type Wallet } from '@/services/wallet-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('WalletScreen');
 
 const PRESET_AMOUNTS = [10, 25, 50, 100];
 
@@ -91,7 +94,7 @@ export default function WalletScreen() {
       setWallet(walletData);
       setTransactions(transactionsData);
     } catch (error) {
-      console.error('Failed to load wallet data:', error);
+      logger.error('Failed to load wallet data:', error);
     } finally {
       setLoading(false);
     }

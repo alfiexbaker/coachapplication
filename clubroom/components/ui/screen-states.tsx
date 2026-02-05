@@ -1,3 +1,17 @@
+/**
+ * Screen States
+ *
+ * Reusable components for common screen states:
+ * - LoadingState: Skeleton loading with variants (list, card, detail, form, calendar)
+ * - ErrorState: Error display with retry button
+ * - EmptyState: Re-exported from empty-state.tsx for convenience
+ *
+ * Usage:
+ *   <LoadingState variant="list" />
+ *   <ErrorState message="Failed to load" onRetry={refetch} />
+ *   <EmptyState title="No items" message="Add your first item" />
+ */
+
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -8,34 +22,26 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
-import {
-  ButtonStyles,
-  EmptyStateStyles,
-} from '@/constants/styles';
+import { ButtonStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
+
+// Re-export EmptyState for convenience (single source of truth)
+export { EmptyState } from './empty-state';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-type LoadingVariant = 'list' | 'card' | 'detail' | 'form' | 'calendar';
+export type LoadingVariant = 'list' | 'card' | 'detail' | 'form' | 'calendar';
 
-interface LoadingStateProps {
+export interface LoadingStateProps {
   variant: LoadingVariant;
 }
 
-interface ErrorStateProps {
+export interface ErrorStateProps {
   message: string;
   onRetry: () => void;
   title?: string;
-}
-
-interface EmptyStateComponentProps {
-  icon: string;
-  title: string;
-  message: string;
-  actionLabel?: string;
-  onAction?: () => void;
 }
 
 // ============================================================================
@@ -257,39 +263,13 @@ export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
 }
 
 // ============================================================================
-// EMPTY STATE
+// EMPTY STATE - Use EmptyState from './empty-state' (re-exported above)
 // ============================================================================
 
-export function EmptyStateScreen({
-  icon,
-  title,
-  message,
-  actionLabel,
-  onAction,
-}: EmptyStateComponentProps) {
-  return (
-    <View style={EmptyStateStyles.container}>
-      <View style={EmptyStateStyles.icon}>
-        <Ionicons
-          name={icon as any}
-          size={28}
-          color={Colors.light.muted}
-        />
-      </View>
-      <ThemedText style={EmptyStateStyles.title}>{title}</ThemedText>
-      <ThemedText style={EmptyStateStyles.message}>{message}</ThemedText>
-      {actionLabel && onAction ? (
-        <TouchableOpacity
-          style={emptyStyles.actionButton}
-          onPress={onAction}
-          activeOpacity={0.8}
-        >
-          <ThemedText style={emptyStyles.actionButtonText}>{actionLabel}</ThemedText>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  );
-}
+/**
+ * @deprecated Use EmptyState from '@/components/ui/empty-state' instead
+ */
+export const EmptyStateScreen = null; // Removed - use EmptyState instead
 
 // ============================================================================
 // STYLESHEETS
@@ -392,12 +372,4 @@ const errorStyles = StyleSheet.create({
   },
 });
 
-const emptyStyles = StyleSheet.create({
-  actionButton: {
-    ...ButtonStyles.primary,
-    marginTop: Spacing.xs,
-  },
-  actionButtonText: {
-    ...ButtonStyles.primaryText,
-  },
-});
+// Empty styles removed - EmptyState is now the single source of truth

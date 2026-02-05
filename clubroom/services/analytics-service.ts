@@ -16,7 +16,6 @@ import type {
   AthleteAnalytics,
   SkillProgress,
   Goal,
-  GoalMilestone,
   FootballObjective,
   CoachAnalytics,
   CoachAnalyticsPeriod,
@@ -24,24 +23,23 @@ import type {
   RevenueDataPoint,
   RetentionMetrics,
   CancellationStats,
-  CancellationReason,
   SessionStats,
   PeakHoursData,
   TopSkillData,
-  TrendDirection,
 } from '@/constants/types';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { createLogger } from '@/utils/logger';
+import { api } from '@/constants/config';
 
 const logger = createLogger('AnalyticsService');
 
 const ANALYTICS_STORAGE_KEY = 'athlete_analytics';
 const GOALS_STORAGE_KEY = 'athlete_goals';
 const COACH_ANALYTICS_STORAGE_KEY = 'coach_analytics';
-const USE_MOCK = true;
 
-// Helper constants
-const PLATFORM_FEE_PERCENT = 10;
+// Use centralized config for mock mode
+const USE_MOCK = api.useMock;
+
 
 // Mock analytics data
 const MOCK_ANALYTICS: AthleteAnalytics[] = [
@@ -616,15 +614,6 @@ function getDateRangeForPeriod(period: CoachAnalyticsPeriod): AnalyticsDateRange
   };
 }
 
-/**
- * Helper to determine trend direction
- */
-function getTrendDirection(current: number, previous: number): TrendDirection {
-  const changePercent = previous > 0 ? ((current - previous) / previous) * 100 : current > 0 ? 100 : 0;
-  if (changePercent > 2) return 'UP';
-  if (changePercent < -2) return 'DOWN';
-  return 'STABLE';
-}
 
 /**
  * Generate mock revenue chart data

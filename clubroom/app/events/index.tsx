@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
@@ -9,11 +9,14 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
+import { createLogger } from '@/utils/logger';
 import type { ClubEvent } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('EventsListScreen');
 
 type EventFilter = 'upcoming' | 'past' | 'all';
 
@@ -35,7 +38,7 @@ export default function EventsListScreen() {
       const data = await eventService.getAllClubEvents(clubId);
       setEvents(data);
     } catch (error) {
-      console.error('Failed to load events:', error);
+      logger.error('Failed to load events:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

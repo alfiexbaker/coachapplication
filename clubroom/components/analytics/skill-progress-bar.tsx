@@ -4,11 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   FadeIn,
   FadeInDown,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  useSharedValue,
-  withSequence,
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
@@ -233,12 +228,12 @@ export function SkillCategoryGroup({
 
   // Calculate category average
   const avgLevel = skills.reduce((sum, s) => sum + s.currentLevel, 0) / skills.length;
-  const avgChange = skills.reduce((sum, s) => sum + s.changePercent, 0) / skills.length;
+  const avgChangeValue = skills.reduce((sum, s) => sum + s.changePercent, 0) / skills.length;
   const levelInfo = getSkillLevelInfo(avgLevel);
 
-  const trendColor = avgChange > 0
+  const trendColor = avgChangeValue > 0
     ? palette.success
-    : avgChange < 0
+    : avgChangeValue < 0
     ? palette.error
     : palette.muted;
 
@@ -271,7 +266,7 @@ export function SkillCategoryGroup({
             </View>
             <View style={[styles.trendBadgeSmall, { backgroundColor: `${trendColor}15` }]}>
               <Ionicons
-                name={avgChange > 0 ? 'arrow-up' : avgChange < 0 ? 'arrow-down' : 'remove'}
+                name={avgChangeValue > 0 ? 'arrow-up' : avgChangeValue < 0 ? 'arrow-down' : 'remove'}
                 size={10}
                 color={trendColor}
               />
@@ -307,7 +302,7 @@ function getCategoryIcon(category: string): keyof typeof Ionicons.glyphMap {
     'Technical': 'football',
     'Physical': 'fitness',
     'Tactical': 'bulb',
-    'Mental': 'brain',
+    'Mental': 'bulb',
     'Dribbling': 'football',
     'Passing': 'arrow-forward-circle',
     'Defending': 'shield',
@@ -342,7 +337,6 @@ export function SkillsSummary({ skills }: SkillsSummaryProps) {
   }
 
   const avgLevel = skills.reduce((sum, s) => sum + s.currentLevel, 0) / skills.length;
-  const avgChange = skills.reduce((sum, s) => sum + s.changePercent, 0) / skills.length;
   const improvingCount = skills.filter(s => s.changePercent > 0).length;
   const decliningCount = skills.filter(s => s.changePercent < 0).length;
   const steadyCount = skills.filter(s => s.changePercent === 0).length;

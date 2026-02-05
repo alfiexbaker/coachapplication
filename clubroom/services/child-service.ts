@@ -9,12 +9,13 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ChildService');
 
 const STORAGE_KEY = 'children_profiles';
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -139,7 +140,7 @@ export const DISABILITY_TYPES = [
   'Other',
 ];
 
-export const SPECIAL_NEEDS_CATEGORIES: Array<{ id: SpecialNeed['category']; label: string; examples: string[] }> = [
+export const SPECIAL_NEEDS_CATEGORIES: { id: SpecialNeed['category']; label: string; examples: string[] }[] = [
   {
     id: 'PHYSICAL',
     label: 'Physical',

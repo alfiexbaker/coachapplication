@@ -249,7 +249,7 @@ export default function CreateClubScreen() {
 
           <View style={styles.features}>
             <ThemedText type="defaultSemiBold" style={styles.featuresTitle}>
-              What you'll get
+              What you&apos;ll get
             </ThemedText>
             {[
               { icon: 'people-outline', text: 'Invite athletes and parents with a code' },

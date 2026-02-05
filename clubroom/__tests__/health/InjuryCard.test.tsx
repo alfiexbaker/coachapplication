@@ -304,7 +304,7 @@ describe('InjuryCard Component Logic', () => {
 
   describe('Interaction Logic', () => {
     test('injury should be pressable when onPress is provided', () => {
-      const injury = createMockInjury();
+      createMockInjury();
       let pressed = false;
       const onPress = () => {
         pressed = true;

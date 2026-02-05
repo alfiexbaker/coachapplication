@@ -12,6 +12,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('BookingReview');
 
 const PLATFORM_FEE_PERCENT = 0.15; // 15% platform fee
 
@@ -37,24 +40,26 @@ export default function ReviewScreen() {
         setCoach(coachData);
         // Store coach name in draft for confirmation
         if (coachData) {
-          updateDraft({ coachName: coachData.fullName });
+          updateDraft({ coachName: coachData.name });
         }
       } catch (error) {
-        console.error('Failed to load coach:', error);
+        logger.error('Failed to load coach:', error);
       } finally {
         setLoading(false);
       }
     };
     loadCoach();
-  }, [coachId]);
+  }, [coachId, updateDraft]);
 
   // Calculate price based on coach's actual rate
   const getSessionPrice = () => {
-    if (!coach?.sessionRate) return 60; // Default fallback
+    // Use minPriceUsd from Coach type, fallback to 60
+    const coachRate = coach?.minPriceUsd ?? 60;
+    if (!coachRate) return 60; // Default fallback
 
-    // Coach sessionRate is their hourly rate
+    // Coach minPriceUsd is their hourly rate
     // Adjust for session type
-    const baseRate = coach.sessionRate;
+    const baseRate = coachRate;
     switch (draft.sessionType) {
       case '1-on-1':
         return baseRate; // Standard rate for 1-on-1
@@ -120,7 +125,7 @@ export default function ReviewScreen() {
         />
 
         <View style={[styles.card, { borderColor: palette.border }]}>
-          <SummaryRow label="Coach" value={coach?.fullName || draft.coachName || 'Coach'} />
+          <SummaryRow label="Coach" value={coach?.name || draft.coachName || 'Coach'} />
           <SummaryRow label="Date" value={draft.date || 'Pick a date'} />
           <SummaryRow label="Time" value={draft.slot || 'Pick a slot'} />
           <SummaryRow label="Session" value={draft.sessionType || 'Select type'} />
@@ -133,7 +138,7 @@ export default function ReviewScreen() {
         <View style={[styles.card, { borderColor: palette.border }]}>
           <ThemedText type="defaultSemiBold">Payment method</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            {draft.paymentMethod || 'Wallet balance'}
+            {(draft as any).paymentMethod || 'Wallet balance'}
           </ThemedText>
           <Clickable onPress={() => router.push('/payment/methods')}>
             <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Change</ThemedText>
@@ -194,12 +199,12 @@ export default function ReviewScreen() {
             <SummaryRow label="Promo discount" value={`-£${promoDiscount.toFixed(2)}`} />
           )}
           <View style={[styles.divider, { backgroundColor: palette.border }]} />
-          <SummaryRow label="Total" value={`£${total.toFixed(2)}`} bold />
+          <SummaryRow label="Total" value={`£${total.toFixed(2)}`} />
         </View>
 
-        {coach?.sessionRate && (
+        {coach?.minPriceUsd && (
           <ThemedText style={[styles.rateNote, { color: palette.muted }]}>
-            {coach.fullName}'s rate: £{coach.sessionRate}/hour
+            {coach.name}&apos;s rate: £{coach.minPriceUsd}/hour
           </ThemedText>
         )}
       </ScrollView>
@@ -207,7 +212,7 @@ export default function ReviewScreen() {
         <Clickable
           onPress={() => {
             // Store final price in draft
-            updateDraft({ totalPrice: total, sessionPrice, platformFee });
+            updateDraft({ totalPrice: total, price: sessionPrice });
             router.push(`/book/${coachId}/confirmation`);
           }}
           style={[styles.cta, { backgroundColor: palette.tint }]}

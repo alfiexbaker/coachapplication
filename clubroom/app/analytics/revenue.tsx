@@ -19,6 +19,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
 import type { CoachAnalytics, CoachAnalyticsPeriod, RevenueDataPoint } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('RevenueScreen');
 
 const PERIOD_OPTIONS: { label: string; value: CoachAnalyticsPeriod }[] = [
   { label: 'Week', value: 'WEEK' },
@@ -60,7 +63,7 @@ export default function RevenueScreen() {
       setAnalytics(analyticsData);
       setRevenueData(chartData);
     } catch (error) {
-      console.error('[RevenueScreen] Failed to fetch data:', error);
+      logger.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }

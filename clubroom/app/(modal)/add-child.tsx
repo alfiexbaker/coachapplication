@@ -40,7 +40,6 @@ import {
   type Disability,
   type SpecialNeed,
   DISABILITY_TYPES,
-  SPECIAL_NEEDS_CATEGORIES,
 } from '@/services/child-service';
 
 type Step = 'basic' | 'special_needs' | 'medical' | 'emergency' | 'consents';
@@ -55,14 +54,14 @@ const STEP_TITLES: Record<Step, string> = {
   consents: 'Permissions & Consents',
 };
 
-const GENDERS: Array<{ id: Gender; label: string }> = [
+const GENDERS: { id: Gender; label: string }[] = [
   { id: 'MALE', label: 'Male' },
   { id: 'FEMALE', label: 'Female' },
   { id: 'OTHER', label: 'Other' },
   { id: 'PREFER_NOT_TO_SAY', label: 'Prefer not to say' },
 ];
 
-const RELATIONSHIPS: Array<{ id: Relationship; label: string }> = [
+const RELATIONSHIPS: { id: Relationship; label: string }[] = [
   { id: 'SON', label: 'Son' },
   { id: 'DAUGHTER', label: 'Daughter' },
   { id: 'WARD', label: 'Ward' },
@@ -92,6 +91,7 @@ export default function AddChildScreen() {
   const [hasSpecialNeeds, setHasSpecialNeeds] = useState<boolean | null>(null);
   const [disabilities, setDisabilities] = useState<Disability[]>([]);
   const [specialNeeds, setSpecialNeeds] = useState<SpecialNeed[]>([]);
+  void setSpecialNeeds; // Currently unused but available for future use
   const [selectedDisabilityType, setSelectedDisabilityType] = useState<string | null>(null);
   const [disabilityDescription, setDisabilityDescription] = useState('');
   const [communicationNotes, setCommunicationNotes] = useState('');
@@ -248,7 +248,7 @@ export default function AddChildScreen() {
       Alert.alert('Success', `${firstName}'s profile has been created!`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to create child profile. Please try again.');
     } finally {
       setSaving(false);
@@ -548,7 +548,7 @@ export default function AddChildScreen() {
       <SurfaceCard style={styles.infoCard}>
         <Ionicons name="medkit-outline" size={24} color={palette.warning} />
         <ThemedText style={[styles.infoText, { color: palette.muted }]}>
-          Medical information is critical for your child's safety during sessions.
+          Medical information is critical for your child&apos;s safety during sessions.
         </ThemedText>
       </SurfaceCard>
 

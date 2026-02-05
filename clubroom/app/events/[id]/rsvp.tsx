@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,13 +17,15 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { RSVPButton } from '@/components/event/RSVPButton';
 import { Colors, Spacing, Radii } from '@/constants/theme';
+import { createLogger } from '@/utils/logger';
 import type { ClubEvent, EventRSVP, RSVPStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('EventRSVPScreen');
 
 export default function EventRSVPScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -59,7 +61,7 @@ export default function EventRSVPScreen() {
         setNote(rsvpData.note || '');
       }
     } catch (error) {
-      console.error('Failed to load data:', error);
+      logger.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
@@ -101,7 +103,7 @@ export default function EventRSVPScreen() {
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
-      console.error('Failed to submit RSVP:', error);
+      logger.error('Failed to submit RSVP:', error);
       Alert.alert('Error', 'Failed to save your response. Please try again.');
     } finally {
       setSubmitting(false);

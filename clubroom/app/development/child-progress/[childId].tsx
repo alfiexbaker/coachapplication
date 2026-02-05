@@ -1,23 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, RefreshControl, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { PageContainer } from '@/components/primitives/page-container';
 import { Clickable } from '@/components/primitives/clickable';
-import { Chip } from '@/components/primitives/chip';
 import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import { getUserById, getSessionsForAthlete, formatDate } from '@/constants/mock-data';
+import { getUserById, formatDate } from '@/constants/mock-data';
 import { progressService, AthleteProgress, SessionFeedback } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
-import type { BadgeAward, Goal } from '@/constants/types';
+import type { BadgeAward } from '@/constants/types';
 
 const logger = createLogger('ChildProgressScreen');
 
@@ -25,7 +23,7 @@ export default function ChildProgressScreen() {
   const { childId } = useLocalSearchParams<{ childId: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const { currentUser } = useAuth();
+  useAuth();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -152,8 +150,8 @@ export default function ChildProgressScreen() {
               onPress={() => setActiveTab(tab.id as typeof activeTab)}
               style={[
                 styles.tab,
-                activeTab === tab.id && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
-              ]}
+                activeTab === tab.id ? { borderBottomColor: palette.tint, borderBottomWidth: 2 } : undefined,
+              ].filter(Boolean) as ViewStyle[]}
             >
               <Ionicons
                 name={tab.icon as any}

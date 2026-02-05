@@ -21,6 +21,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('LogInjuryScreen');
 
 /**
  * Log injury screen with multi-step form.
@@ -43,7 +46,7 @@ export default function LogInjuryScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         router.back();
       } catch (error) {
-        console.error('Failed to log injury:', error);
+        logger.error('Failed to log injury:', error);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } finally {
         setLoading(false);

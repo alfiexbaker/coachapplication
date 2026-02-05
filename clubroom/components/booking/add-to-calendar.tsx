@@ -20,7 +20,6 @@
 
 import React, { useState } from 'react';
 import {
-  View,
   Pressable,
   StyleSheet,
   Alert,
@@ -29,7 +28,7 @@ import {
 } from 'react-native';
 import * as Calendar from 'expo-calendar';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { Colors, Spacing, Components } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 // ---------------------------------------------------------------------------
@@ -168,7 +167,7 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
       );
 
       onSuccess?.();
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to add event to calendar. Please try again.');
     } finally {
       setLoading(false);
@@ -179,8 +178,8 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
     <Pressable
       style={({ pressed }) => [
         styles.button,
-        added && styles.buttonAdded,
-        pressed && !added && styles.buttonPressed,
+        added ? styles.buttonAdded : undefined,
+        pressed && !added ? styles.buttonPressed : undefined,
       ]}
       onPress={handleAddToCalendar}
       disabled={loading || added}
@@ -194,7 +193,7 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
             size={20}
             color={added ? Colors.light.success : Colors.light.tint}
           />
-          <ThemedText style={[styles.buttonText, added && styles.buttonTextAdded]}>
+          <ThemedText style={[styles.buttonText, added ? styles.buttonTextAdded : undefined]}>
             {added ? 'Added to Calendar' : 'Add to Calendar'}
           </ThemedText>
         </>

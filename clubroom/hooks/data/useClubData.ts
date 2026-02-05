@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { clubService, type ClubMember, type ClubMemberRemovalRecord } from '@/services/club-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { createLogger } from '@/utils/logger';
-import type { Club, ClubSquad, GroupSession, ClubEvent, ClubFeedPost, ClubRole } from '@/constants/types';
+import type { ClubSquad, GroupSession, ClubRole } from '@/constants/types';
 
 const logger = createLogger('useClubData');
 
@@ -96,7 +96,7 @@ export function useClubData(
   const {
     includeMembers = true,
     includeSessions = true,
-    includeSquads = true,
+    // Note: includeSquads option is available in API but squads are always fetched
     includeRemovals = false,
   } = options ?? {};
 
@@ -210,7 +210,7 @@ export function useClubData(
     } finally {
       setLoading(false);
     }
-  }, [clubId, includeMembers, includeSessions, includeSquads, includeRemovals]);
+  }, [clubId, includeMembers, includeSessions, includeRemovals]);
 
   // Fetch data on mount and when dependencies change
   useEffect(() => {

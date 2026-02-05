@@ -9,7 +9,7 @@ export interface ClickableProps {
   onLongPress?: () => void;
   delayLongPress?: number;
   style?: ViewStyle | ViewStyle[] | ((state: { pressed: boolean }) => ViewStyle | ViewStyle[]);
-  children: React.ReactNode;
+  children?: React.ReactNode;
   disabled?: boolean;
   hitSlop?: number;
   accessibilityLabel?: string;
@@ -45,7 +45,7 @@ export function Clickable({
       accessibilityRole={accessibilityRole}
       style={(state) => [
         resolveStyle({ pressed: state.pressed }) as ViewStyle | ViewStyle[],
-        disabled && { opacity: 0.5 },
+        disabled ? { opacity: 0.5 } : undefined,
       ]}
     >
       {children}

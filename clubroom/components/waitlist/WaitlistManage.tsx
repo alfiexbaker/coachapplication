@@ -135,7 +135,7 @@ export function WaitlistManage({
               key={entry.id}
               style={[
                 styles.entryRow,
-                index < entries.length - 1 && { borderBottomColor: palette.border, borderBottomWidth: 1 },
+                index < entries.length - 1 ? { borderBottomColor: palette.border, borderBottomWidth: 1 } : undefined,
               ]}
             >
               <View style={styles.entryInfo}>

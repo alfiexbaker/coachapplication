@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -13,18 +14,22 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite-service';
 import { academyService } from '@/services/academy-service';
-import type { TimeSlot, Academy, SessionInvite } from '@/constants/types';
+import { rosterService } from '@/services/roster-service';
+import type { TimeSlot, Academy, SessionInvite, RosterEntry } from '@/constants/types';
+
+const logger = createLogger('CreateSessionInviteScreen');
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Trial'];
 const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
 
 type Step = 'athlete' | 'club' | 'type' | 'slots' | 'details' | 'confirm';
 
-const MOCK_ATHLETES = [
-  { id: 'athlete_1', name: 'Tom Baker', parentId: 'parent_1', parentName: 'Sarah Baker' },
-  { id: 'athlete_2', name: 'Lucy Baker', parentId: 'parent_1', parentName: 'Sarah Baker' },
-  { id: 'athlete_3', name: 'James Wilson', parentId: 'parent_2', parentName: 'Mike Wilson' },
-];
+interface AthleteOption {
+  id: string;
+  name: string;
+  parentId: string;
+  parentName: string;
+}
 
 export default function CreateSessionInviteScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -32,7 +37,8 @@ export default function CreateSessionInviteScreen() {
   const { currentUser } = useAuth();
 
   const [step, setStep] = useState<Step>('athlete');
-  const [selectedAthletes, setSelectedAthletes] = useState<typeof MOCK_ATHLETES>([]);
+  const [athletes, setAthletes] = useState<AthleteOption[]>([]);
+  const [selectedAthletes, setSelectedAthletes] = useState<AthleteOption[]>([]);
   const [selectedClub, setSelectedClub] = useState<Academy | null>(null);
   const [myAcademies, setMyAcademies] = useState<Academy[]>([]);
   const [sessionType, setSessionType] = useState('');
@@ -49,15 +55,23 @@ export default function CreateSessionInviteScreen() {
   const [slotEndTime, setSlotEndTime] = useState('');
   const [slotLocation, setSlotLocation] = useState('');
 
-  // Load coach's academies and sent invites
-  useEffect(() => {
-    if (currentUser?.id) {
-      loadAcademies();
-      loadSentInvites();
+  const loadAthletes = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      const roster = await rosterService.getRoster(currentUser.id);
+      const athleteOptions = roster.map((entry: RosterEntry) => ({
+        id: entry.athleteId,
+        name: entry.athleteName,
+        parentId: entry.parentId,
+        parentName: entry.parentName,
+      }));
+      setAthletes(athleteOptions);
+    } catch (error) {
+      logger.error('Failed to load athletes', error);
     }
   }, [currentUser?.id]);
 
-  const loadAcademies = async () => {
+  const loadAcademies = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
       const academies = await academyService.getUserAcademies(currentUser.id);
@@ -67,21 +81,30 @@ export default function CreateSessionInviteScreen() {
         setSelectedClub(academies[0]);
       }
     } catch (error) {
-      console.error('Failed to load academies:', error);
+      logger.error('Failed to load academies', error);
     }
-  };
+  }, [currentUser?.id]);
 
-  const loadSentInvites = async () => {
+  const loadSentInvites = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
       const invites = await sessionInviteService.getCoachInvites(currentUser.id);
       setSentInvites(invites.slice(0, 5)); // Show latest 5
     } catch (error) {
-      console.error('Failed to load sent invites:', error);
+      logger.error('Failed to load sent invites', error);
     }
-  };
+  }, [currentUser?.id]);
 
-  const toggleAthlete = (athlete: typeof MOCK_ATHLETES[0]) => {
+  // Load coach's academies, athletes, and sent invites
+  useEffect(() => {
+    if (currentUser?.id) {
+      loadAcademies();
+      loadAthletes();
+      loadSentInvites();
+    }
+  }, [currentUser?.id, loadAcademies, loadAthletes, loadSentInvites]);
+
+  const toggleAthlete = (athlete: AthleteOption) => {
     const isSelected = selectedAthletes.some((a) => a.id === athlete.id);
     if (isSelected) {
       setSelectedAthletes(selectedAthletes.filter((a) => a.id !== athlete.id));
@@ -165,27 +188,29 @@ export default function CreateSessionInviteScreen() {
       const parentId = selectedAthletes[0].parentId;
       const parentName = selectedAthletes[0].parentName;
 
-      await sessionInviteService.createInvite({
-        coachId: currentUser.id,
-        coachName: currentUser.name || 'Coach',
-        clubName: selectedClub?.name, // Include club name
-        athleteIds: selectedAthletes.map((a) => a.id),
-        athleteNames: selectedAthletes.map((a) => a.name),
-        parentId,
-        parentName,
-        proposedSlots,
-        sessionType,
-        focus,
-        notes: notes || undefined,
-        priceUsd: price ? parseFloat(price) : undefined,
-        expiresInDays: 7,
-      });
+      await sessionInviteService.createInvite(
+        selectedAthletes.map((a) => a.id),
+        {
+          coachId: currentUser.id,
+          coachName: currentUser.name || 'Coach',
+          clubName: selectedClub?.name, // Include club name
+          athleteNames: selectedAthletes.map((a) => a.name),
+          parentId,
+          parentName,
+          proposedSlots,
+          sessionType,
+          focus,
+          notes: notes || undefined,
+          priceUsd: price ? parseFloat(price) : undefined,
+          expiresInDays: 7,
+        }
+      );
 
       Alert.alert('Invite Sent', 'Your session invite has been sent to the parent.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
-      console.error('Failed to create invite:', error);
+      logger.error('Failed to create invite', error);
       Alert.alert('Error', 'Failed to send invite. Please try again.');
     } finally {
       setLoading(false);
@@ -352,7 +377,7 @@ export default function CreateSessionInviteScreen() {
       </ThemedText>
 
       <View style={styles.athleteList}>
-        {MOCK_ATHLETES.map((athlete) => {
+        {athletes.map((athlete) => {
           const isSelected = selectedAthletes.some((a) => a.id === athlete.id);
           return (
             <Clickable

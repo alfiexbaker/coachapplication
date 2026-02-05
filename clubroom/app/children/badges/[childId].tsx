@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -28,13 +28,13 @@ export default function ChildBadgesScreen() {
     progressPercent: number;
     pointsToNext: number;
     totalBadges: number;
-    categoryBreakdown: Array<{
+    categoryBreakdown: {
       category: BadgeCategory;
       label: string;
       badgeCount: number;
-    }>;
+    }[];
   } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const child = getUserById(childId!);
 
@@ -109,7 +109,7 @@ export default function ChildBadgesScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <ThemedText type="title" style={styles.headerTitle}>
-            {child.name}'s Badges
+            {child.name}&apos;s Badges
           </ThemedText>
           <ThemedText style={[styles.headerSubtitle, { color: palette.muted }]}>
             {awards.length} badge{awards.length !== 1 ? 's' : ''} earned
@@ -187,8 +187,8 @@ export default function ChildBadgesScreen() {
               <SurfaceCard
                 style={[
                   styles.badgeCard,
-                  highlightBadge === award.id && { borderColor: '#F59E0B', borderWidth: 2 },
-                  isRecent(award.awardedAt) && !award.seenByParent && { backgroundColor: '#F59E0B08' },
+                  highlightBadge === award.id ? { borderColor: '#F59E0B', borderWidth: 2 } : undefined,
+                  isRecent(award.awardedAt) && !award.seenByParent ? { backgroundColor: '#F59E0B08' } : undefined,
                 ]}
               >
                 {/* Badge Header */}
@@ -246,11 +246,11 @@ export default function ChildBadgesScreen() {
                     <View style={styles.noteLabelRow}>
                       <Ionicons name="chatbubble" size={14} color={palette.tint} />
                       <ThemedText type="defaultSemiBold" style={[styles.noteLabel, { color: palette.tint }]}>
-                        Coach's Note
+                        Coach&apos;s Note
                       </ThemedText>
                     </View>
                     <ThemedText style={styles.noteText}>
-                      "{award.note}"
+                      &quot;{award.note}&quot;
                     </ThemedText>
                   </View>
                 )}

@@ -14,7 +14,7 @@
  * are being cancelled and can track patterns."
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -27,13 +27,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
-import { ModalStyles, CardStyles } from '@/constants/styles';
+import { ModalStyles } from '@/constants/styles';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { cancellationService } from '@/services/cancellation-service';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { Booking } from '@/constants/app-types';
-import type { CancellationPolicy, RefundCalculation } from '@/constants/types';
+import type { RefundCalculation } from '@/constants/types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -194,7 +194,7 @@ function ReasonCard({
 }) {
   return (
     <Pressable
-      style={[styles.reasonCard, selected && styles.reasonCardSelected]}
+      style={[styles.reasonCard, selected ? styles.reasonCardSelected : undefined]}
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
@@ -204,7 +204,7 @@ function ReasonCard({
         size={18}
         color={selected ? Colors.light.tint : Colors.light.muted}
       />
-      <ThemedText style={[styles.reasonLabel, selected && styles.reasonLabelSelected]} numberOfLines={1}>
+      <ThemedText style={[styles.reasonLabel, selected ? styles.reasonLabelSelected : undefined]} numberOfLines={1}>
         {option.label}
       </ThemedText>
       {selected && <Ionicons name="checkmark" size={16} color={Colors.light.tint} />}
@@ -232,7 +232,10 @@ export default function CancelFlow({
 
   const reasons = userRole === 'coach' ? COACH_REASONS : PARENT_REASONS;
   const isCoachCancelling = userRole === 'coach';
-  const sessionStartTime = new Date(booking.scheduledAt || booking.start || Date.now());
+  const sessionStartTime = useMemo(
+    () => new Date(booking.scheduledAt || booking.start || Date.now()),
+    [booking.scheduledAt, booking.start]
+  );
   const bookingAmount = 35; // Default session price; in production read from booking
 
   // Load policy and calculate refund
@@ -251,7 +254,7 @@ export default function CancelFlow({
         setLoading(false);
       }
     })();
-  }, [visible, booking.coachId]);
+  }, [visible, booking.coachId, bookingAmount, sessionStartTime]);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -443,7 +446,7 @@ export default function CancelFlow({
               <Pressable
                 style={[
                   styles.confirmButton,
-                  (!canConfirm || submitting) && styles.confirmButtonDisabled,
+                  (!canConfirm || submitting) ? styles.confirmButtonDisabled : undefined,
                 ]}
                 onPress={handleConfirm}
                 disabled={!canConfirm || submitting}

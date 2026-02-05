@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
@@ -17,6 +18,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 
+const logger = createLogger('VideoDetailScreen');
+
 export default function VideoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const scheme = useColorScheme() ?? 'light';
@@ -27,9 +30,11 @@ export default function VideoDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [showAnnotationModal, setShowAnnotationModal] = useState(false);
-  const [pendingAnnotationType, setPendingAnnotationType] = useState<VideoAnnotationType | undefined>();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_pendingAnnotationType, setPendingAnnotationType] = useState<VideoAnnotationType | undefined>();
 
-  const isCoach = currentUser?.role === 'COACH';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _isCoach = currentUser?.role === 'COACH';
   const isOwner = video?.coachId === currentUser?.id;
 
   const loadVideo = useCallback(async () => {
@@ -39,7 +44,7 @@ export default function VideoDetailScreen() {
       const data = await videoService.getVideo(id);
       setVideo(data);
     } catch (error) {
-      console.error('Failed to load video:', error);
+      logger.error('Failed to load video:', error);
     } finally {
       setLoading(false);
     }
@@ -72,7 +77,8 @@ export default function VideoDetailScreen() {
     }
   };
 
-  const handleDeleteAnnotation = async (annotationId: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleDeleteAnnotation = async (annotationId: string) => {
     if (!video) return;
     Alert.alert('Delete Annotation', 'Are you sure you want to delete this annotation?', [
       { text: 'Cancel', style: 'cancel' },
@@ -84,7 +90,7 @@ export default function VideoDetailScreen() {
             await videoService.removeAnnotation(video.id, annotationId);
             await loadVideo();
           } catch (error) {
-            console.error('Failed to delete annotation:', error);
+            logger.error('Failed to delete annotation:', error);
           }
         },
       },
@@ -100,7 +106,7 @@ export default function VideoDetailScreen() {
         url: video.videoUrl,
       });
     } catch (error) {
-      console.error('Failed to share:', error);
+      logger.error('Failed to share:', error);
     }
   };
 
@@ -115,7 +121,7 @@ export default function VideoDetailScreen() {
         Alert.alert('Shared', 'Video has been shared with parents.');
         await loadVideo();
       } catch (error) {
-        console.error('Failed to share video:', error);
+        logger.error('Failed to share video:', error);
       }
     } else {
       try {
@@ -123,7 +129,7 @@ export default function VideoDetailScreen() {
         Alert.alert('Made Private', 'Video is now private.');
         await loadVideo();
       } catch (error) {
-        console.error('Failed to make private:', error);
+        logger.error('Failed to make private:', error);
       }
     }
   };
@@ -140,7 +146,7 @@ export default function VideoDetailScreen() {
             await videoService.deleteVideo(video.id);
             router.back();
           } catch (error) {
-            console.error('Failed to delete video:', error);
+            logger.error('Failed to delete video:', error);
           }
         },
       },

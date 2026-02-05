@@ -3,6 +3,7 @@ import { BadgeAward, BadgeDefinition, BadgeVisibility, BadgeCategory } from '@/c
 import { storageService } from './storage-service';
 import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
+import { bookingService } from './booking-service';
 import { createLogger } from '@/utils/logger';
 import {
   ProgressionLevel,
@@ -28,6 +29,7 @@ type AwardBadgeInput = {
   overrideCooldown?: boolean;
   overrideNote?: string;
   context?: 'session' | 'athlete_profile';
+  recipientId?: string; // Optional notification recipient
 };
 
 class BadgeService {
@@ -398,7 +400,7 @@ class BadgeService {
    * Get category breakdown for an athlete showing badge counts and milestone progress
    */
   async getCategoryBreakdown(athleteId: string): Promise<
-    Array<{
+    {
       category: BadgeCategory;
       label: string;
       icon: string;
@@ -408,7 +410,7 @@ class BadgeService {
       badgesToNext: number;
       progressPercent: number;
       totalPoints: number;
-    }>
+    }[]
   > {
     const awards = await this.listAwardsForAthlete(athleteId);
     const categories: BadgeCategory[] = [
@@ -462,7 +464,7 @@ class BadgeService {
   async getTopCategories(
     athleteId: string,
     limit = 3,
-  ): Promise<Array<{ category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }>> {
+  ): Promise<{ category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[]> {
     const breakdown = await this.getCategoryBreakdown(athleteId);
     return breakdown
       .filter((cat) => cat.badgeCount > 0)
@@ -486,8 +488,18 @@ class BadgeService {
     progressPercent: number;
     pointsToNext: number;
     totalBadges: number;
-    categoryBreakdown: Awaited<ReturnType<typeof this.getCategoryBreakdown>>;
-    topCategories: Awaited<ReturnType<typeof this.getTopCategories>>;
+    categoryBreakdown: {
+      category: BadgeCategory;
+      label: string;
+      icon: string;
+      badgeCount: number;
+      currentMilestone: string;
+      nextMilestone: string | null;
+      badgesToNext: number;
+      progressPercent: number;
+      totalPoints: number;
+    }[];
+    topCategories: { category: BadgeCategory; label: string; badgeCount: number; totalPoints: number }[];
   }> {
     const [progress, categoryBreakdown, topCategories, awards] = await Promise.all([
       this.getProgressToNextLevel(athleteId),
@@ -621,10 +633,15 @@ class BadgeService {
     });
 
     // Add special event badges
+    // Check if athlete has earned any event badges from their awards
+    const eventAwards = awards.filter((a) =>
+      SPECIAL_EVENT_BADGES.some((e) => e.id === a.badgeId)
+    );
+    const earnedEventIds = new Set(eventAwards.map((a) => a.badgeId));
+
     SPECIAL_EVENT_BADGES.forEach((event) => {
-      // Special event badges are unlocked based on specific conditions
-      // For now, mock some as unlocked
-      const isUnlocked = event.mockUnlocked ?? false;
+      const isUnlocked = earnedEventIds.has(event.id);
+      const award = eventAwards.find((a) => a.badgeId === event.id);
 
       allBadges.push({
         id: event.id,
@@ -635,7 +652,7 @@ class BadgeService {
         pointValue: event.pointValue,
         badgeType: 'event',
         isUnlocked,
-        earnedAt: isUnlocked ? event.mockEarnedAt : undefined,
+        earnedAt: award?.awardedAt,
         progress: isUnlocked ? 100 : 0,
         progressLabel: isUnlocked ? 'Earned' : event.requirementLabel,
       });
@@ -671,18 +688,20 @@ class BadgeService {
   }
 
   /**
-   * Get mock session count for an athlete
+   * Get session count for an athlete from booking data
    */
   private async getSessionCount(athleteId: string): Promise<number> {
-    // In production, this would query actual session data
-    // For now, return mock data based on athleteId
-    const mockCounts: Record<string, number> = {
-      'user1': 47,
-      'user2': 12,
-      'user3': 8,
-      'athlete1': 23,
-    };
-    return mockCounts[athleteId] ?? 5;
+    try {
+      const bookings = await bookingService.getBookingsForUser(athleteId, 'athlete');
+      // Count completed sessions
+      const completedCount = bookings.filter(
+        (b) => b.status === 'COMPLETED' || b.status === 'AWAITING_COMPLETION'
+      ).length;
+      return completedCount;
+    } catch (error) {
+      this.logger.error('Failed to get session count', error);
+      return 0;
+    }
   }
 
   /**
@@ -841,7 +860,7 @@ const STREAK_BADGES = [
 ];
 
 // Special event badge definitions
-const SPECIAL_EVENT_BADGES: Array<{
+const SPECIAL_EVENT_BADGES: {
   id: string;
   label: string;
   description: string;
@@ -851,7 +870,7 @@ const SPECIAL_EVENT_BADGES: Array<{
   requirementLabel: string;
   mockUnlocked?: boolean;
   mockEarnedAt?: string;
-}> = [
+}[] = [
   {
     id: 'event_summer_camp',
     label: 'Summer Camp Graduate',

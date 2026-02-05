@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
@@ -149,11 +148,6 @@ export function InviteAthleteModal({
     setSkillFilter(level);
   };
 
-  const selectByAgeRange = (filter: AgeFilter) => {
-    const ageAthletes = athletes.filter((a) => isInAgeRange(a.age, filter));
-    setSelectedAthletes(ageAthletes);
-    setAgeFilter(filter);
-  };
 
   const resetFilters = () => {
     setSkillFilter('ALL');

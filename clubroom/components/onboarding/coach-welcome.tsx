@@ -43,7 +43,7 @@ interface ValuePropItem {
 const VALUE_PROPS: ValuePropItem[] = [
   { icon: 'calendar-outline', text: 'Manage bookings and availability in one place' },
   { icon: 'people-outline', text: 'Build your roster and track athlete progress' },
-  { icon: 'wallet-outline', text: 'Get paid directly -- no middleman fees' },
+  { icon: 'wallet-outline', text: 'Get paid directly - no middleman fees' },
 ];
 
 export interface CoachWelcomeProps {
@@ -315,7 +315,7 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
           <View style={styles.pageContent}>
             <Ionicons name="checkmark-circle" size={80} color={palette.success} />
             <ThemedText style={[Typography.display, { color: palette.text, textAlign: 'center' }]}>
-              You're ready!
+              You&apos;re ready!
             </ThemedText>
             <ThemedText
               style={[Typography.body, { color: palette.muted, textAlign: 'center' }]}

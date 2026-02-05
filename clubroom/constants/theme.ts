@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 // Minimal light palette focused on clarity and whitespace
 const ink = '#0F172A';
@@ -39,6 +39,16 @@ export const Colors = {
     overlay: 'rgba(15, 23, 42, 0.08)',
     premium: accent,
     surfaceSecondary: canvas,
+    // Additional semantic colors
+    info: '#2563EB',
+    destructive: error,
+    // Text on colored backgrounds
+    onPrimary: '#FFFFFF',
+    onSecondary: '#FFFFFF',
+    onSuccess: '#FFFFFF',
+    onError: '#FFFFFF',
+    onInfo: '#FFFFFF',
+    onDestructive: '#FFFFFF',
   },
   dark: {
     // Keep dark mode aligned with the minimalist light palette
@@ -63,13 +73,22 @@ export const Colors = {
     overlay: 'rgba(15, 23, 42, 0.08)',
     premium: accent,
     surfaceSecondary: canvas,
+    // Additional semantic colors
+    info: '#2563EB',
+    destructive: error,
+    // Text on colored backgrounds
+    onPrimary: '#FFFFFF',
+    onSecondary: '#FFFFFF',
+    onSuccess: '#FFFFFF',
+    onError: '#FFFFFF',
+    onInfo: '#FFFFFF',
+    onDestructive: '#FFFFFF',
   },
 } as const;
 
 export type ThemeName = keyof typeof Colors;
 
 // Uber-discipline spacing system: 8/16/24/32 rhythm
-const baseSpacing = 8;
 
 export const Spacing = {
   xs: 8,   // Micro spacing between text and small UI elements
@@ -89,7 +108,21 @@ export const Radii = {
   md: 12,
   lg: 16,
   xl: 24,
+  '2xl': 32,
   pill: 999,
+  rounded: 999, // Alias for pill - circular elements
+  full: 999,    // Alias for fully rounded elements
+} as const;
+
+// Border width tokens - standardized across all components
+export const Borders = {
+  width: {
+    none: 0,
+    hairline: StyleSheet.hairlineWidth,
+    thin: 1,
+    medium: 2,
+    thick: 3,
+  },
 } as const;
 
 // Typography system - refined, light, modern

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, TextInput, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +14,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { bookings, getUserById, getClubById } from '@/constants/mock-data';
 import type { ClubRole } from '@/constants/types';
-import { clubService } from '@/services/club-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('InviteMembers');
@@ -64,25 +63,25 @@ export default function InviteMembersScreen() {
       const isParent = bookedBy !== booking.athleteId;
 
       // Get the user who booked (could be parent or athlete)
-      const user = getUserById(bookedBy);
+      const user = getUserById(bookedBy!);
       if (!user) return;
 
-      const existing = userMap.get(bookedBy);
+      const existing = userMap.get(bookedBy!);
       if (existing) {
         existing.sessionCount++;
         if (new Date(booking.scheduledAt) > new Date(existing.lastSessionDate)) {
           existing.lastSessionDate = booking.scheduledAt;
         }
       } else {
-        const athlete = isParent ? getUserById(booking.athleteId) : null;
-        userMap.set(bookedBy, {
-          userId: bookedBy,
-          userName: user.fullName || user.username || 'Unknown',
-          userAvatar: user.photoUrl,
+        const athlete = isParent && booking.athleteId ? getUserById(booking.athleteId) : null;
+        userMap.set(bookedBy!, {
+          userId: bookedBy!,
+          userName: user.name || 'Unknown',
+          userAvatar: user.avatar,
           sessionCount: 1,
           lastSessionDate: booking.scheduledAt,
           isParent,
-          childName: athlete?.fullName || athlete?.username,
+          childName: athlete?.name,
         });
       }
     });
@@ -177,7 +176,7 @@ export default function InviteMembersScreen() {
           style={[
             styles.tab,
             activeTab === 'past-sessions' && { backgroundColor: palette.tint },
-          ]}
+          ].filter(Boolean) as ViewStyle[]}
           onPress={() => setActiveTab('past-sessions')}
         >
           <Ionicons
@@ -198,7 +197,7 @@ export default function InviteMembersScreen() {
           style={[
             styles.tab,
             activeTab === 'manual' && { backgroundColor: palette.tint },
-          ]}
+          ].filter(Boolean) as ViewStyle[]}
           onPress={() => setActiveTab('manual')}
         >
           <Ionicons
@@ -381,7 +380,7 @@ export default function InviteMembersScreen() {
           <SurfaceCard style={styles.manualCard}>
             <ThemedText type="defaultSemiBold">Invite by Email</ThemedText>
             <ThemedText style={[styles.manualDescription, { color: palette.muted }]}>
-              Send an invite link directly to someone's email
+              Send an invite link directly to someone&apos;s email
             </ThemedText>
 
             <View style={styles.manualInputRow}>

@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { useFocusEffect, router } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
-import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
+import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoiceList } from '@/components/invoices';
 import { Colors, Spacing, Radii } from '@/constants/theme';
@@ -14,6 +15,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { invoiceService } from '@/services/invoice-service';
 import { Invoice, InvoiceSummary, InvoiceFilter } from '@/constants/types';
+
+const logger = createLogger('InvoicesScreen');
 
 // ============================================================================
 // COMPONENT
@@ -44,7 +47,7 @@ export default function InvoicesScreen() {
       setInvoices(invoicesData);
       setSummary(summaryData);
     } catch (error) {
-      console.error('Failed to load invoices:', error);
+      logger.error('Failed to load invoices', error);
     } finally {
       setLoading(false);
     }
@@ -72,7 +75,7 @@ export default function InvoicesScreen() {
       if (!loading) {
         loadData();
       }
-    }, [filter])
+    }, [loading, loadData])
   );
 
   if (loading) {
@@ -164,7 +167,7 @@ export default function InvoicesScreen() {
         onFilterChange={handleFilterChange}
         showFilters={true}
         emptyMessage="No invoices yet"
-        ListHeaderComponent={renderSummary()}
+        ListHeaderComponent={renderSummary() ?? undefined}
       />
     </PageContainer>
   );

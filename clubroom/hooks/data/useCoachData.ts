@@ -275,6 +275,7 @@ export function useCoachRoster(
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- We intentionally use specific filter fields to avoid infinite re-renders when object reference changes
   }, [coachId, filters?.status, filters?.skillLevel, filters?.tags?.join(','), filters?.search]);
 
   useEffect(() => {

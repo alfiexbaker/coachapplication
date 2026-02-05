@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
@@ -15,7 +16,9 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService, CreateGroupSessionInput } from '@/services/group-session-service';
-import type { GroupSession, GroupSessionSchedule, FootballObjective, ClubSquad } from '@/constants/types';
+import type { GroupSession, GroupSessionSchedule, FootballObjective } from '@/constants/types';
+
+const logger = createLogger('CreateGroupSessionScreen');
 
 const SESSION_TYPES: { key: GroupSession['sessionType']; label: string; icon: string; forSquad?: boolean }[] = [
   { key: 'CAMP', label: 'Camp', icon: 'sunny' },
@@ -138,7 +141,7 @@ export default function CreateGroupSessionScreen() {
       const input: CreateGroupSessionInput = {
         coachId: currentUser.id,
         coachName: currentUser.name || 'Coach',
-        coachPhotoUrl: currentUser.avatarUrl,
+        coachPhotoUrl: currentUser.avatar,
         title,
         description,
         sessionType,
@@ -170,7 +173,7 @@ export default function CreateGroupSessionScreen() {
         });
       }
     } catch (error) {
-      console.error('Failed to create session:', error);
+      logger.error('Failed to create session:', error);
     } finally {
       setLoading(false);
     }
@@ -683,7 +686,7 @@ export default function CreateGroupSessionScreen() {
           sessionProps={{
             coachId: currentUser.id,
             coachName: currentUser.name || 'Coach',
-            coachPhotoUrl: currentUser.avatarUrl,
+            coachPhotoUrl: currentUser.avatar,
             proposedSlots: [{
               id: `slot_${Date.now()}`,
               date: scheduleDate,

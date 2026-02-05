@@ -11,7 +11,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import { api } from '@/constants/config';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { Booking } from '@/constants/app-types';
 import type {
@@ -24,7 +25,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('CalendarService');
 
 const SETTINGS_STORAGE_KEY = 'calendar_sync_settings';
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // Default settings for new users
 const DEFAULT_SETTINGS: Omit<CalendarSyncSettings, 'userId'> = {

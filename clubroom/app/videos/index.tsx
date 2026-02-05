@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +15,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
 import type { SessionVideo } from '@/constants/types';
+
+const logger = createLogger('VideosScreen');
 
 function VideoCard({
   video,
@@ -112,7 +115,7 @@ export default function VideosScreen() {
   const { currentUser } = useAuth();
 
   const [videos, setVideos] = useState<SessionVideo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalVideos: 0,
     totalViews: 0,
@@ -121,11 +124,7 @@ export default function VideosScreen() {
 
   const isCoach = currentUser?.role === 'COACH';
 
-  useEffect(() => {
-    loadVideos();
-  }, [currentUser?.id]);
-
-  const loadVideos = async () => {
+  const loadVideos = useCallback(async () => {
     if (!currentUser?.id) return;
     setLoading(true);
     try {
@@ -135,11 +134,15 @@ export default function VideosScreen() {
       const videoStats = await videoService.getCoachVideoStats(currentUser.id);
       setStats(videoStats);
     } catch (error) {
-      console.error('Failed to load videos:', error);
+      logger.error('Failed to load videos:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    loadVideos();
+  }, [loadVideos]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>

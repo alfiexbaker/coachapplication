@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { AthletePicker } from '@/components/ui/booking/AthletePicker';
+import { createLogger } from '@/utils/logger';
 import { AvailabilityPicker } from '@/components/ui/booking/availability-picker';
 import { BookingStepper } from '@/components/ui/booking/booking-stepper';
 import { CoachSummaryCard } from '@/components/ui/booking/coach-summary-card';
@@ -25,8 +26,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { hasChildren, isAthlete } from '@/utils/user-helpers';
 import { availabilityService } from '@/services/availability-service';
 import type { DayAvailability, SlotInstance } from '@/constants/booking-types';
-import type { FootballObjective, AvailabilitySlot } from '@/constants/types';
-import type { User } from '@/constants/app-types';
+import type { FootballObjective } from '@/constants/types';
+
+const logger = createLogger('BookCoachScreen');
 
 const TOTAL_STEPS = { parent: 4, athlete: 3 } as const;
 
@@ -36,7 +38,7 @@ export default function BookCoachScreen() {
   const params = useLocalSearchParams();
   const coachId = params.coachId as string;
   const { currentUser } = useAuth();
-  const { persona, isParent, userId } = useBookingPersona();
+  const { userId } = useBookingPersona();
 
   const { coach, coachProfile } = resolveCoachAndProfile(coachId);
 
@@ -127,12 +129,12 @@ export default function BookCoachScreen() {
         setSelectedDayId(availabilityDays[0].id);
       }
     } catch (error) {
-      console.error('Failed to fetch availability:', error);
+      logger.error('Failed to fetch availability:', error);
       setAvailability([]);
     } finally {
       setLoadingAvailability(false);
     }
-  }, [coachId, selectedServiceId]);
+  }, [coachId, selectedServiceId, selectedDayId]);
 
   // Fetch availability on mount and when service changes
   useEffect(() => {

@@ -24,8 +24,11 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
 
 type TabFilter = 'pending' | 'completed' | 'all';
+
+const logger = createLogger('DrillsDashboardScreen');
 
 /**
  * Drills dashboard screen for athletes showing assigned drills.
@@ -57,7 +60,7 @@ export default function DrillsDashboardScreen() {
       setAssignments(assignmentsData);
       setStats(statsData);
     } catch (error) {
-      console.error('Failed to load drills:', error);
+      logger.error('Failed to load drills:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -114,7 +117,7 @@ export default function DrillsDashboardScreen() {
       // Reload data to update UI
       loadData();
     } catch (error) {
-      console.error('Failed to toggle completion:', error);
+      logger.error('Failed to toggle completion:', error);
     }
   }, [loadData]);
 

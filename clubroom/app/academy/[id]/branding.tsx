@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert, Image } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, TextInput, Alert, Image, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
@@ -13,6 +14,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService, UpdateBrandingInput } from '@/services/academy-service';
 import type { Academy, AcademyMembership } from '@/constants/types';
+
+const logger = createLogger('AcademyBrandingScreen');
 
 const COLOR_OPTIONS = [
   '#1E40AF', // Blue
@@ -46,11 +49,7 @@ export default function AcademyBrandingScreen() {
   const [website, setWebsite] = useState('');
   const [address, setAddress] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -75,11 +74,15 @@ export default function AcademyBrandingScreen() {
         setUserMembership(membership || null);
       }
     } catch (error) {
-      console.error('Failed to load academy:', error);
+      logger.error('Failed to load academy:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentUser?.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSave = async () => {
     if (!academy) return;
@@ -101,7 +104,7 @@ export default function AcademyBrandingScreen() {
       Alert.alert('Success', 'Branding updated successfully');
       router.back();
     } catch (error) {
-      console.error('Failed to save branding:', error);
+      logger.error('Failed to save branding:', error);
       Alert.alert('Error', 'Failed to update branding');
     } finally {
       setSaving(false);
@@ -181,7 +184,7 @@ export default function AcademyBrandingScreen() {
                     styles.colorOption,
                     { backgroundColor: color },
                     primaryColor === color && styles.colorSelected,
-                  ]}
+                  ].filter(Boolean) as ViewStyle[]}
                 >
                   {primaryColor === color && (
                     <Ionicons name="checkmark" size={18} color="#fff" />
@@ -202,7 +205,7 @@ export default function AcademyBrandingScreen() {
                     styles.colorOption,
                     { backgroundColor: color },
                     secondaryColor === color && styles.colorSelected,
-                  ]}
+                  ].filter(Boolean) as ViewStyle[]}
                 >
                   {secondaryColor === color && (
                     <Ionicons name="checkmark" size={18} color="#fff" />

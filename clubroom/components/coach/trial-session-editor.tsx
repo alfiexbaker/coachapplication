@@ -21,13 +21,14 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography, Shadows } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -383,7 +384,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
 
       {/* Save Button */}
       <Clickable
-        style={[styles.saveButton, { backgroundColor: palette.tint }, saving && styles.saveButtonDisabled]}
+        style={[styles.saveButton, { backgroundColor: palette.tint }, saving ? styles.saveButtonDisabled : undefined].filter(Boolean) as ViewStyle[]}
         onPress={handleSave}
         disabled={saving}
       >

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
-import { MOCK_USERS, getUserById } from '@/constants/mock-data';
+import { getUserById } from '@/constants/mock-data';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
 import type { OnboardingData, AccountType } from '@/services/auth-service';
@@ -10,7 +10,7 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAuth');
 
-export type UserRole = 'USER' | 'COACH' | 'ADMIN';
+export type UserRole = 'USER' | 'COACH' | 'ADMIN' | 'PARENT' | 'Coach';
 export type SimplifiedUserType = 'USER' | 'COACH';
 
 type DemoUser = Omit<User, 'role'> & {
@@ -284,9 +284,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [registeredUsers]);
 
-  const login = (username: string, password: string) => {
+  const login = useCallback((username: string, password: string) => {
     const normalizedUsername = username.trim().toLowerCase();
     logger.info('Login attempt', { username: normalizedUsername });
 
@@ -314,9 +314,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logger.warn('Login failed: Invalid credentials', { username: normalizedUsername });
     setError('Invalid username or password.');
     return false;
-  };
+  }, [registeredUsers]);
 
-  const registerCoach = (data: CoachSignupData) => {
+  const registerCoach = useCallback((data: CoachSignupData) => {
     // Generate username from email
     const username = data.email.split('@')[0].toLowerCase();
     logger.info('Coach registration attempt', { username, email: data.email });
@@ -347,13 +347,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       schoolName: data.schoolName,
       role: newUser.role
     });
-    setRegisteredUsers([...registeredUsers, newUser]);
+    setRegisteredUsers((prev) => [...prev, newUser]);
     setCurrentUser(newUser);
     setError(null);
     return true;
-  };
+  }, [registeredUsers]);
 
-  const registerFromOnboarding = (data: OnboardingData) => {
+  const registerFromOnboarding = useCallback((data: OnboardingData) => {
     // Generate username from email
     const username = data.email.split('@')[0].toLowerCase();
     logger.info('Onboarding registration attempt', { username, email: data.email, accountType: data.accountType });
@@ -405,13 +405,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: newUser.role
     });
 
-    setRegisteredUsers([...registeredUsers, newUser]);
+    setRegisteredUsers((prev) => [...prev, newUser]);
     setCurrentUser(newUser);
     setError(null);
     return true;
-  };
+  }, [registeredUsers]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     if (currentUser) {
       logger.info('User logged out', {
         username: currentUser.username,
@@ -434,6 +434,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       await AsyncStorage.removeItem('session_bookings');
       logger.info('Session data cleared');
@@ -444,7 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Reset navigation back to the login screen
     router.dismissAll();
     router.replace('/');
-  };
+  }, [currentUser]);
 
   const forgotPassword = async (email: string) => {
     logger.info('Forgot password requested', { email });
@@ -464,7 +465,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       error,
       availableUsers: registeredUsers,
     }),
-    [currentUser, error, isLoading, registeredUsers]
+    [currentUser, error, isLoading, registeredUsers, login, logout, registerCoach, registerFromOnboarding]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

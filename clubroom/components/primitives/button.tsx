@@ -10,6 +10,7 @@ export interface ButtonProps {
   disabled?: boolean;
   style?: ViewStyle | ViewStyle[];
   variant?: 'primary' | 'secondary' | 'outline';
+  size?: 'small' | 'medium' | 'large';
 }
 
 export function Button({
@@ -52,7 +53,7 @@ export function Button({
     }
 
     if (variant === 'primary') {
-      return scheme === 'dark' ? '#000000' : '#FFFFFF';
+      return palette.onPrimary;
     }
 
     return palette.foreground;

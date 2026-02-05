@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { createLogger } from '@/utils/logger';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
@@ -32,9 +33,11 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Club, ClubFeedPost, ClubMembership, ClubSquad, SessionOffering, ClubInvite, ClubEvent } from '@/constants/types';
-import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
+import { clubService, type ClubMember, type MemberRemovalReason } from '@/services/club-service';
 import { eventService } from '@/services/event-service';
 import { EventCard } from '@/components/event/event-card';
+
+const logger = createLogger('ClubDetail');
 
 type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
 
@@ -330,7 +333,7 @@ export default function ClubDetailScreen() {
       const memberList = await clubService.getMembers(id);
       setMembers(memberList);
     } catch (error) {
-      console.error('Failed to load members:', error);
+      logger.error('Failed to load members', error);
     }
   }, [id]);
 
@@ -340,7 +343,7 @@ export default function ClubDetailScreen() {
       const events = await eventService.getUpcomingEvents(id);
       setUpcomingEvents(events);
     } catch (error) {
-      console.error('Failed to load events:', error);
+      logger.error('Failed to load events', error);
     }
   }, [id]);
 
@@ -405,12 +408,12 @@ export default function ClubDetailScreen() {
           await loadMembers();
           showToast('Member restored', 'success');
         } catch (error) {
-          console.error('Failed to undo removal:', error);
+          logger.error('Failed to undo removal', error);
           showToast('Failed to restore member', 'error');
         }
       });
     } catch (error) {
-      console.error('Failed to remove member:', error);
+      logger.error('Failed to remove member', error);
       showToast('Failed to remove member', 'error');
     } finally {
       setIsRemovingMember(false);
@@ -440,7 +443,7 @@ export default function ClubDetailScreen() {
       photo: allPosts.filter((p) => p.postType === 'photo').length,
       event: allPosts.filter((p) => p.postType === 'event').length,
     };
-  }, [id, feed]);
+  }, [id]);
 
   if (!club) {
     return (
@@ -638,10 +641,10 @@ export default function ClubDetailScreen() {
                 key={filter.key}
                 style={[
                   styles.filterTab,
-                  feedFilter === filter.key && {
+                  feedFilter === filter.key ? {
                     backgroundColor: `${palette.tint}15`,
                     borderColor: palette.tint,
-                  },
+                  } : undefined,
                   { borderColor: palette.border },
                 ]}
                 onPress={() => setFeedFilter(filter.key)}

@@ -26,20 +26,16 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { DifficultyBadge } from '@/components/drills';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
-import type { Drill } from '@/constants/types';
+import { Colors, Spacing, Radii } from '@/constants/theme';
+import type { Drill, RosterEntry } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
+import { rosterService } from '@/services/roster-service';
+import { createLogger } from '@/utils/logger';
 import { scaleFont } from '@/utils/scale';
 
-// Mock athlete data - in production this would come from roster service
-const MOCK_ATHLETES = [
-  { id: 'user1', name: 'Alex Thompson', age: 14 },
-  { id: 'user2', name: 'Jordan Smith', age: 12 },
-  { id: 'user3', name: 'Casey Williams', age: 15 },
-  { id: 'user4', name: 'Morgan Davis', age: 13 },
-];
+const logger = createLogger('AssignDrillScreen');
 
 interface Athlete {
   id: string;
@@ -58,6 +54,7 @@ export default function AssignDrillScreen() {
 
   // State
   const [drill, setDrill] = useState<Drill | null>(null);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,27 +74,36 @@ export default function AssignDrillScreen() {
   const coachName = currentUser?.name ?? 'Coach';
 
   /**
-   * Load drill data
+   * Load drill and roster data
    */
   useEffect(() => {
-    async function loadDrill() {
-      if (!drillId) {
-        setLoading(false);
-        return;
-      }
-
+    async function loadData() {
       try {
-        const data = await drillService.getDrillById(drillId);
-        setDrill(data);
+        // Load drill if ID provided
+        if (drillId) {
+          const drillData = await drillService.getDrillById(drillId);
+          setDrill(drillData);
+        }
+
+        // Load roster (athletes from coach's roster)
+        if (coachId) {
+          const roster = await rosterService.getRoster(coachId, { status: 'ACTIVE' });
+          const athleteList = roster.map((entry: RosterEntry) => ({
+            id: entry.athleteId,
+            name: entry.athleteName,
+            age: entry.athleteAge,
+          }));
+          setAthletes(athleteList);
+        }
       } catch (error) {
-        console.error('Failed to load drill:', error);
+        logger.error('Failed to load data', error);
       } finally {
         setLoading(false);
       }
     }
 
-    loadDrill();
-  }, [drillId]);
+    loadData();
+  }, [drillId, coachId]);
 
   /**
    * Handle date selection
@@ -172,7 +178,7 @@ export default function AssignDrillScreen() {
         ]
       );
     } catch (error) {
-      console.error('Failed to assign drill:', error);
+      logger.error('Failed to assign drill', error);
       Alert.alert('Error', 'Failed to assign drill. Please try again.');
     } finally {
       setSubmitting(false);
@@ -307,7 +313,7 @@ export default function AssignDrillScreen() {
                 Select Athlete *
               </ThemedText>
               <View style={styles.athleteGrid}>
-                {MOCK_ATHLETES.map((athlete) => {
+                {athletes.map((athlete) => {
                   const isSelected = selectedAthlete?.id === athlete.id;
                   return (
                     <Clickable

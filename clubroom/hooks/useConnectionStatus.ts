@@ -5,7 +5,7 @@
  * Triggers offline queue flush on reconnect via api-client.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { setConnectionStatus } from '@/services/api-client';
 

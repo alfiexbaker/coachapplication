@@ -21,6 +21,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CreateDrillScreen');
 
 /**
  * Screen for creating a new drill in the coach's library.
@@ -67,7 +70,7 @@ export default function CreateDrillScreen() {
           },
         ]);
       } catch (error) {
-        console.error('Failed to create drill:', error);
+        logger.error('Failed to create drill:', error);
         Alert.alert('Error', 'Failed to create drill. Please try again.');
       } finally {
         setIsSubmitting(false);

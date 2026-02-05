@@ -87,7 +87,7 @@ export function AnnotationForm({
         note: note.trim() || undefined,
         type,
       });
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to save annotation. Please try again.');
     } finally {
       setSaving(false);

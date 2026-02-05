@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
@@ -12,6 +13,8 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { VerificationStatus } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
+
+const logger = createLogger('IdUploadScreen');
 
 const COACH_ID = 'coach1'; // Mock current user
 
@@ -35,7 +38,7 @@ export default function IdUploadScreen() {
       const data = await verificationService.getStatus(COACH_ID);
       setStatus(data);
     } catch (error) {
-      console.error('Failed to load verification status:', error);
+      logger.error('Failed to load verification status:', error);
     } finally {
       setLoading(false);
     }
@@ -63,7 +66,7 @@ export default function IdUploadScreen() {
       );
       router.back();
     } catch (error) {
-      console.error('Failed to submit ID:', error);
+      logger.error('Failed to submit ID:', error);
     } finally {
       setSubmitting(false);
     }
@@ -75,7 +78,7 @@ export default function IdUploadScreen() {
       await verificationService.mockApproveVerification(COACH_ID, 'identity');
       router.back();
     } catch (error) {
-      console.error('Failed to approve:', error);
+      logger.error('Failed to approve:', error);
     } finally {
       setSubmitting(false);
     }

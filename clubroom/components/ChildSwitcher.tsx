@@ -10,13 +10,13 @@ interface Child {
 }
 
 interface ChildSwitcherProps {
-  children: Child[];
+  childrenList: Child[];
   selectedId: string | null;
   onSelect: (childId: string | null) => void;
   showAll?: boolean; // Set false to hide "All" option (e.g., for badges)
 }
 
-export function ChildSwitcher({ children, selectedId, onSelect, showAll = true }: ChildSwitcherProps) {
+export function ChildSwitcher({ childrenList, selectedId, onSelect, showAll = true }: ChildSwitcherProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
@@ -59,7 +59,7 @@ export function ChildSwitcher({ children, selectedId, onSelect, showAll = true }
         contentContainerStyle={styles.scrollContent}
       >
         {showAll && renderPill(null, 'All')}
-        {children.map((child) => renderPill(child.childId, child.childName))}
+        {childrenList.map((child) => renderPill(child.childId, child.childName))}
       </ScrollView>
     </View>
   );

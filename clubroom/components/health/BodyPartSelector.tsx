@@ -118,7 +118,7 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
                     <ThemedText
                       style={[
                         styles.categoryLabel,
-                        hasSelectedPart && { color: palette.tint },
+                        hasSelectedPart ? { color: palette.tint } : undefined,
                       ]}
                     >
                       {category.label}

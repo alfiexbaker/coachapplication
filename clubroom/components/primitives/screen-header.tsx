@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
@@ -61,7 +61,7 @@ export function ScreenHeader({
   return (
     <View style={[
       styles.container,
-      bordered && { borderBottomWidth: 1, borderBottomColor: palette.border },
+      bordered ? { borderBottomWidth: 1, borderBottomColor: palette.border } : undefined,
     ]}>
       <View style={styles.content}>
         <View style={styles.textContainer}>

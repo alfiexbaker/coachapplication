@@ -23,11 +23,14 @@ import { Clickable } from '@/components/primitives/clickable';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FavouriteCoachCard } from '@/components/favourites/FavouriteCoachCard';
 import { Colors, Spacing } from '@/constants/theme';
+import { createLogger } from '@/utils/logger';
 import type { FavouriteCoach } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { favouriteService } from '@/services/favourite-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('FavouritesScreen');
 
 /**
  * Favourites screen showing saved coaches with quick re-booking.
@@ -52,7 +55,7 @@ export default function FavouritesScreen() {
       const userFavourites = await favouriteService.getFavourites(userId);
       setFavourites(userFavourites);
     } catch (error) {
-      console.error('Failed to load favourites:', error);
+      logger.error('Failed to load favourites:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -84,7 +87,7 @@ export default function FavouritesScreen() {
         await favouriteService.removeFavourite(userId, favourite.coachId);
       } catch (error) {
         // Revert on error
-        console.error('Failed to remove favourite:', error);
+        logger.error('Failed to remove favourite:', error);
         setFavourites((prev) => [...prev, favourite]);
       } finally {
         setTogglingId(null);

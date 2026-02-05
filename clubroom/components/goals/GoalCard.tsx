@@ -148,7 +148,7 @@ export function GoalCard({
                 ]}
               >
                 {isOverdue ? 'Overdue: ' : 'Target: '}
-                {goalService.formatTargetDate(goal.targetDate)}
+                {progressService.formatTargetDate(goal.targetDate)}
               </ThemedText>
             </View>
           )}
@@ -204,7 +204,7 @@ export function GoalCard({
                   { color: isOverdue ? palette.error : palette.muted },
                 ]}
               >
-                {goalService.formatTargetDate(goal.targetDate)}
+                {progressService.formatTargetDate(goal.targetDate)}
               </ThemedText>
             </View>
           )}

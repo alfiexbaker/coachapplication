@@ -3,12 +3,15 @@ import { View, StyleSheet, Modal, ScrollView, ActivityIndicator } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
+
+const logger = createLogger('PaymentModal');
 
 interface PaymentModalProps {
   visible: boolean;
@@ -63,7 +66,7 @@ export function PaymentModal({
       // Reset state after close
       setPaymentStep('review');
     } catch (error) {
-      console.error('Payment failed:', error);
+      logger.error('Payment failed:', error);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setPaymentStep('review');
     } finally {

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { VerificationBadge } from '@/components/verification/verification-badge';
@@ -12,6 +13,8 @@ import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { VerificationStatus, VerificationItem } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
+
+const logger = createLogger('VerificationHubScreen');
 
 const COACH_ID = 'coach1'; // Mock current user
 
@@ -76,7 +79,7 @@ export default function VerificationHubScreen() {
       const data = await verificationService.getStatus(COACH_ID);
       setStatus(data);
     } catch (error) {
-      console.error('Failed to load verification status:', error);
+      logger.error('Failed to load verification status:', error);
     } finally {
       setLoading(false);
     }
@@ -264,7 +267,7 @@ export default function VerificationHubScreen() {
                     'Upload your public liability insurance certificate to get verified.',
                     [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Upload', onPress: () => router.push('/verification/insurance') },
+                      { text: 'Upload', onPress: () => router.push('/verification/insurance' as any) },
                     ]
                   );
                 }

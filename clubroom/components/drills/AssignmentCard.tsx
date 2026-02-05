@@ -6,7 +6,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View, ViewStyle } from 'react-native';
 
 import { DifficultyBadge } from './DifficultyBadge';
 import { Clickable } from '@/components/primitives/clickable';
@@ -77,9 +77,9 @@ export function AssignmentCard({
           onPress={onComplete}
           style={[
             styles.checkbox,
-            assignment.isCompleted && styles.checkboxCompleted,
+            assignment.isCompleted ? styles.checkboxCompleted : undefined,
             { borderColor: assignment.isCompleted ? palette.success : palette.border },
-          ]}
+          ].filter(Boolean) as ViewStyle[]}
           hitSlop={8}
         >
           {assignment.isCompleted && (
@@ -94,7 +94,7 @@ export function AssignmentCard({
               type="defaultSemiBold"
               style={[
                 styles.compactTitle,
-                assignment.isCompleted && styles.completedText,
+                assignment.isCompleted ? styles.completedText : undefined,
               ]}
               numberOfLines={1}
             >
@@ -183,7 +183,7 @@ export function AssignmentCard({
           {/* Title */}
           <ThemedText
             type="defaultSemiBold"
-            style={[styles.title, assignment.isCompleted && styles.completedText]}
+            style={[styles.title, assignment.isCompleted ? styles.completedText : undefined]}
             numberOfLines={2}
           >
             {drill?.title ?? 'Unknown Drill'}

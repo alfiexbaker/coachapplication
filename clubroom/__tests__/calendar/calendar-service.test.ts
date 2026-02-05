@@ -6,11 +6,11 @@
  */
 
 import assert from 'node:assert';
-import test, { describe, beforeEach } from 'node:test';
+import test, { describe } from 'node:test';
 
 import { calendarService } from '../../services/calendar-service';
 import type { Booking } from '../../constants/app-types';
-import type { CalendarEvent, CalendarSyncSettings, CalendarProvider } from '../../constants/types';
+import type { CalendarProvider } from '../../constants/types';
 
 // Mock booking data
 const mockBooking: Booking = {

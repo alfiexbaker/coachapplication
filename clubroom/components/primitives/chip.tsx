@@ -6,11 +6,15 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface ChipProps extends PressableProps {
   active?: boolean;
+  selected?: boolean; // Alias for active
   dense?: boolean;
+  label?: string;
   style?: StyleProp<ViewStyle>;
 }
 
-export function Chip({ active, dense, children, style, ...props }: PropsWithChildren<ChipProps>) {
+export function Chip({ active, selected, dense, label, children, style, ...props }: PropsWithChildren<ChipProps>) {
+  // Support both 'active' and 'selected' props
+  const isActive = active ?? selected ?? false;
   const scheme = useColorScheme() ?? 'light';
   const baseColor = Colors[scheme];
 
@@ -19,10 +23,10 @@ export function Chip({ active, dense, children, style, ...props }: PropsWithChil
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.base,
-        dense && styles.dense,
+        dense ? styles.dense : undefined,
         {
-          backgroundColor: active ? `${baseColor.tint}15` : baseColor.surface,
-          borderColor: active ? baseColor.tint : baseColor.border,
+          backgroundColor: isActive ? `${baseColor.tint}15` : baseColor.surface,
+          borderColor: isActive ? baseColor.tint : baseColor.border,
           opacity: pressed ? 0.8 : 1,
         },
         style,
@@ -32,11 +36,11 @@ export function Chip({ active, dense, children, style, ...props }: PropsWithChil
         style={[
           dense ? Typography.xs : Typography.sm,
           {
-            color: active ? baseColor.tint : baseColor.muted,
-            fontWeight: active ? '600' : '500',
+            color: isActive ? baseColor.tint : baseColor.muted,
+            fontWeight: isActive ? '600' : '500',
           },
         ]}>
-        {children}
+        {label ?? children}
       </Text>
     </Pressable>
   );

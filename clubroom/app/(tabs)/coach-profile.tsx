@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  FlatList,
   Image,
   Linking,
   ScrollView,
   StyleSheet,
   View,
+  ViewStyle,
+  TextStyle,
   ActivityIndicator,
   Alert,
   Switch,
@@ -19,7 +20,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Components, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components } from '@/constants/theme';
 import { coachProfiles } from '@/constants/mock-data';
 import {
   CoachPost,
@@ -34,6 +35,9 @@ import { SessionOfferingCard } from '@/components/sessions/session-offering-card
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
 import { SocialLinks } from '@/components/profile/social-links';
 import { followService } from '@/services/follow-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CoachProfile');
 
 type TabType = 'posts' | 'about' | 'photos' | 'sessions' | 'reviews';
 
@@ -75,7 +79,7 @@ export default function CoachProfileScreen() {
         setIsFollowing(following);
         setFollowerCount(count);
       } catch (error) {
-        console.error('Failed to load follow data:', error);
+        logger.error('Failed to load follow data:', error);
       }
     };
 
@@ -106,7 +110,7 @@ export default function CoachProfileScreen() {
         setFollowerCount((prev) => prev + 1);
       }
     } catch (error) {
-      console.error('Failed to toggle follow:', error);
+      logger.error('Failed to toggle follow:', error);
     } finally {
       setFollowLoading(false);
     }
@@ -153,7 +157,7 @@ export default function CoachProfileScreen() {
         );
       }
     } catch (error) {
-      console.error('Failed to update live status:', error);
+      logger.error('Failed to update live status:', error);
       Alert.alert('Error', 'Failed to update your status. Please try again.');
     } finally {
       setLiveLoading(false);
@@ -171,7 +175,7 @@ export default function CoachProfileScreen() {
           setSessionOfferings(coachOfferings);
         }
       } catch (error) {
-        console.error('Failed to load session offerings', error);
+        logger.error('Failed to load session offerings', error);
       }
     };
     loadSessionOfferings();
@@ -183,9 +187,9 @@ export default function CoachProfileScreen() {
       style={[
         styles.tabButton,
         activeTab === tab && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
-      ]}>
+      ].filter(Boolean) as ViewStyle[]}>
       <ThemedText
-        style={[styles.tabText, { color: palette.muted }, activeTab === tab && { fontWeight: '600', color: palette.tint }]}>
+        style={[styles.tabText, { color: palette.muted }, activeTab === tab && { fontWeight: '600', color: palette.tint }].filter(Boolean) as TextStyle[]}>
         {label}
       </ThemedText>
     </Clickable>
@@ -446,10 +450,10 @@ export default function CoachProfileScreen() {
               <Clickable
                 style={[
                   styles.followButton,
-                  isFollowing
-                    ? [styles.followingButton, { borderColor: palette.tint }]
-                    : { backgroundColor: palette.tint },
-                ]}
+                  isFollowing && styles.followingButton,
+                  isFollowing && { borderColor: palette.tint },
+                  !isFollowing && { backgroundColor: palette.tint },
+                ].filter(Boolean) as ViewStyle[]}
                 onPress={handleFollowToggle}
                 disabled={followLoading}>
                 {followLoading ? (

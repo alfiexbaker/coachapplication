@@ -4,7 +4,7 @@
  * Allows coaches to modify existing availability templates.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -55,11 +55,7 @@ export default function EditTemplateScreen() {
   const [maxSlots, setMaxSlots] = useState(1);
   const [bufferMinutes, setBufferMinutes] = useState(15);
 
-  useEffect(() => {
-    loadTemplate();
-  }, [id]);
-
-  const loadTemplate = async () => {
+  const loadTemplate = useCallback(async () => {
     if (!id || !currentUser?.id) return;
 
     try {
@@ -79,7 +75,11 @@ export default function EditTemplateScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, currentUser?.id]);
+
+  useEffect(() => {
+    loadTemplate();
+  }, [loadTemplate]);
 
   const handleSave = async () => {
     if (!currentUser?.id || !template) return;
@@ -131,7 +131,7 @@ export default function EditTemplateScreen() {
               await availabilityService.deleteTemplate(template.id);
               Alert.alert('Deleted', 'Template removed');
               router.back();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to delete template');
             }
           },

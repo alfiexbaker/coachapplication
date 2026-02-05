@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -20,6 +21,8 @@ import {
   CONSENT_TYPE_LABELS,
 } from '@/services/consent-service';
 import type { AthleteConsent, ConsentSummary, ConsentType } from '@/constants/types';
+
+const logger = createLogger('ConsentsScreen');
 
 function LoadingSkeleton() {
   return (
@@ -112,11 +115,7 @@ export default function ConsentsScreen() {
 
   const coachId = currentUser?.id || 'coach_1';
 
-  useEffect(() => {
-    loadData();
-  }, [coachId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [consentsData, summaryData] = await Promise.all([
@@ -129,21 +128,21 @@ export default function ConsentsScreen() {
       setConsents(consentsData);
       setSummary(summaryData);
     } catch (error) {
-      console.error('Failed to load consents:', error);
+      logger.error('Failed to load consents:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [coachId, filters, searchQuery]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  }, [filters, searchQuery]);
-
-  useEffect(() => {
-    loadData();
-  }, [filters, searchQuery]);
+  }, [loadData]);
 
   const handleFilterChange = (newFilters: ConsentFilters) => {
     setFilters(newFilters);

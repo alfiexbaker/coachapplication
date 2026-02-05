@@ -11,11 +11,8 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { coachAnalyticsService } from '../../services/analytics-service';
 import type {
-  CoachAnalytics,
   CoachAnalyticsPeriod,
   RevenueDataPoint,
-  RetentionMetrics,
-  CancellationStats,
   PeakHoursData,
   TopSkillData,
 } from '../../constants/types';

@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
     // Log error with detailed information
     logger.error('React Error Boundary caught an error', error);
     logger.group('Error Details');
-    logger.error('Component Stack', new Error(errorInfo.componentStack));
+    logger.error('Component Stack', new Error(errorInfo.componentStack ?? undefined));
     logger.error('Error Name', { name: error.name });
     logger.error('Error Message', { message: error.message });
     logger.error('Error Stack', { stack: error.stack });

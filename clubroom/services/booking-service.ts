@@ -1,6 +1,4 @@
 import { Booking } from '@/constants/app-types';
-import { MOCK_BOOKINGS } from '@/constants/mock-data';
-import { storageService } from './storage-service';
 import { availabilityService } from './availability-service';
 import { notificationService } from './notification-service';
 import { apiClient } from './api-client';
@@ -22,6 +20,7 @@ export type BookingDraft = {
   childId?: string;
   childIds?: string[];
   price?: number;
+  totalPrice?: number;
   coachId?: string;
   coachName?: string;
   athleteId?: string;

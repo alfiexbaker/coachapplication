@@ -6,7 +6,7 @@
  */
 
 import { useCallback } from 'react';
-import { Share, StyleSheet, Alert, Platform } from 'react-native';
+import { Share, StyleSheet, Alert, Platform, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -125,8 +125,8 @@ export function ShareButton({
         style={[
           styles.iconButton,
           { backgroundColor: palette.tint },
-          disabled && styles.disabledButton,
-        ]}
+          disabled ? styles.disabledButton : undefined,
+        ].filter(Boolean) as ViewStyle[]}
       >
         <Ionicons name="share-social-outline" size={20} color="#FFFFFF" />
       </Clickable>
@@ -144,8 +144,8 @@ export function ShareButton({
             borderColor: palette.tint,
             paddingVertical: size === 'small' ? Spacing.xs : size === 'large' ? Spacing.md : Spacing.sm,
           },
-          disabled && styles.disabledButton,
-        ]}
+          disabled ? styles.disabledButton : undefined,
+        ].filter(Boolean) as ViewStyle[]}
       >
         <Ionicons
           name="share-social-outline"
@@ -171,7 +171,7 @@ export function ShareButton({
         styles.defaultButton,
         size === 'small' && styles.smallButton,
         size === 'large' && styles.largeButton,
-      ]}
+      ].filter(Boolean) as ViewStyle[]}
     >
       <Ionicons
         name="share-social-outline"
@@ -201,8 +201,9 @@ export function SharePreview({ code, userName, creditAmount }: SharePreviewProps
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const message = referralService.getShareMessage(code, userName, creditAmount);
-  const url = referralService.getShareUrl(code);
+  // Generate share content (used for display purposes)
+  referralService.getShareMessage(code, userName, creditAmount);
+  referralService.getShareUrl(code);
 
   return (
     <Clickable style={[styles.previewContainer, { backgroundColor: palette.background }]}>

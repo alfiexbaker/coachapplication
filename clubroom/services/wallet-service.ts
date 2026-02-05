@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/constants/config';
 import {
   Wallet,
   WalletTransaction,
@@ -8,13 +8,16 @@ import {
 import { storageService } from './storage-service';
 import { createLogger } from '@/utils/logger';
 
+// Re-export types for consumers
+export type { Wallet, WalletTransaction, TransactionType, TransactionStatus };
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 const STORAGE_KEY_WALLETS = 'clubroom.wallets';
 const STORAGE_KEY_TRANSACTIONS = 'clubroom.wallet_transactions';
-const USE_MOCK = true; // Toggle for mock vs API mode
+const USE_MOCK = api.useMock; // Toggle for mock vs API mode
 const logger = createLogger('WalletService');
 
 // Simulated payment processing delay (ms)

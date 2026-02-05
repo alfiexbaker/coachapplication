@@ -32,6 +32,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('InjuryDetailScreen');
 
 /**
  * Injury detail screen showing full injury information and recovery timeline.
@@ -64,7 +67,7 @@ export default function InjuryDetailScreen() {
         setNoteProgress(data.recoveryPercent);
       }
     } catch (error) {
-      console.error('Failed to load injury:', error);
+      logger.error('Failed to load injury:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -104,7 +107,7 @@ export default function InjuryDetailScreen() {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
-      console.error('Failed to add note:', error);
+      logger.error('Failed to add note:', error);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setSaving(false);
@@ -131,7 +134,7 @@ export default function InjuryDetailScreen() {
                 void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               }
             } catch (error) {
-              console.error('Failed to mark as healed:', error);
+              logger.error('Failed to mark as healed:', error);
             } finally {
               setSaving(false);
             }

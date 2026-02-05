@@ -13,12 +13,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 
+import { createLogger } from '@/utils/logger';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Chip } from '@/components/primitives/chip';
-import { InlineSquadSelector } from '@/components/squad/squad-picker';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -26,6 +25,8 @@ import type { MatchType, ClubSquad } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 import { squadService } from '@/services/squad-service';
 import { inviteService as bulkInviteService } from '@/services/invite-service';
+
+const logger = createLogger('CreateMatchScreen');
 
 const MATCH_TYPES: { type: MatchType; label: string; icon: string }[] = [
   { type: 'FRIENDLY', label: 'Friendly', icon: 'people-outline' },
@@ -71,6 +72,18 @@ export default function CreateMatchScreen() {
 
   // Load selected squad info when changed
   useEffect(() => {
+    const loadSquadInfo = async () => {
+      if (!selectedSquadId) return;
+      try {
+        const squad = await squadService.getSquad(selectedSquadId);
+        setSelectedSquad(squad);
+        const members = await squadService.getSquadMembers(selectedSquadId);
+        setSquadMemberCount(members.length);
+      } catch (error) {
+        logger.error('Failed to load squad info:', error);
+      }
+    };
+
     if (selectedSquadId) {
       loadSquadInfo();
     }
@@ -81,19 +94,7 @@ export default function CreateMatchScreen() {
       const data = await squadService.getSquads(DEFAULT_CLUB_ID);
       setSquads(data.filter(s => !s.name.toLowerCase().includes('staff')));
     } catch (error) {
-      console.error('Failed to load squads:', error);
-    }
-  };
-
-  const loadSquadInfo = async () => {
-    if (!selectedSquadId) return;
-    try {
-      const squad = await squadService.getSquad(selectedSquadId);
-      setSelectedSquad(squad);
-      const members = await squadService.getSquadMembers(selectedSquadId);
-      setSquadMemberCount(members.length);
-    } catch (error) {
-      console.error('Failed to load squad info:', error);
+      logger.error('Failed to load squads:', error);
     }
   };
 
@@ -233,7 +234,7 @@ export default function CreateMatchScreen() {
         );
       }
     } catch (error) {
-      console.error('Failed to create match:', error);
+      logger.error('Failed to create match:', error);
       Alert.alert('Error', 'Failed to create match. Please try again.');
     } finally {
       setIsSubmitting(false);

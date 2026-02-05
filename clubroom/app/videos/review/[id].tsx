@@ -17,19 +17,22 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { VideoPlayer } from '@/components/video/video-player';
-import { TimelineBar, CompactTimeline } from '@/components/video/TimelineBar';
+import { TimelineBar } from '@/components/video/TimelineBar';
 import { AnnotationPanel } from '@/components/video/AnnotationPanel';
-import { AnnotationBadge, AnnotationTypesSummary, AnnotationInlineIndicator } from '@/components/video/AnnotationBadge';
+import { AnnotationBadge, AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
+
+const logger = createLogger('AthleteReviewScreen');
 
 export default function AthleteReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -70,7 +73,7 @@ export default function AthleteReviewScreen() {
         setAnnotationStats(stats);
       }
     } catch (error) {
-      console.error('Failed to load video:', error);
+      logger.error('Failed to load video:', error);
       Alert.alert('Error', 'Failed to load video. Please try again.');
     } finally {
       setLoading(false);
@@ -101,7 +104,7 @@ export default function AthleteReviewScreen() {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [currentTime, video, activeAnnotation]);
+  }, [currentTime, video, activeAnnotation, showAnnotationDetails]);
 
   // Handlers
   const handleTimeUpdate = (time: number) => {

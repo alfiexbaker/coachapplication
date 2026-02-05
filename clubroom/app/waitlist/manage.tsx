@@ -14,6 +14,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { waitlistService } from '@/services/waitlist-service';
 import type { WaitlistEntry, WaitlistSummary } from '@/constants/types';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('WaitlistManage');
 
 export default function ManageWaitlistScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -40,7 +43,7 @@ export default function ManageWaitlistScreen() {
         setSessionEntries(entries);
       }
     } catch (error) {
-      console.error('Failed to load waitlists:', error);
+      logger.error('Failed to load waitlists', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -68,7 +71,7 @@ export default function ManageWaitlistScreen() {
       const entries = await waitlistService.getSessionWaitlist(sessionId);
       setSessionEntries(entries);
     } catch (error) {
-      console.error('Failed to load session waitlist:', error);
+      logger.error('Failed to load session waitlist', error);
     }
   };
 
@@ -86,7 +89,7 @@ export default function ManageWaitlistScreen() {
         Alert.alert('No One on Waitlist', 'There is no one waiting for this session.');
       }
     } catch (error) {
-      console.error('Failed to notify:', error);
+      logger.error('Failed to notify', error);
       Alert.alert('Error', 'Failed to send notification. Please try again.');
     } finally {
       setActionLoading(null);
@@ -115,7 +118,7 @@ export default function ManageWaitlistScreen() {
                 Alert.alert('Error', result.error || 'Failed to promote from waitlist.');
               }
             } catch (error) {
-              console.error('Failed to promote:', error);
+              logger.error('Failed to promote', error);
               Alert.alert('Error', 'Failed to promote. Please try again.');
             } finally {
               setActionLoading(null);
@@ -142,7 +145,7 @@ export default function ManageWaitlistScreen() {
               setSessionEntries((prev) => prev.filter((e) => e.id !== entryId));
               loadWaitlists();
             } catch (error) {
-              console.error('Failed to remove:', error);
+              logger.error('Failed to remove', error);
               Alert.alert('Error', 'Failed to remove. Please try again.');
             } finally {
               setActionLoading(null);

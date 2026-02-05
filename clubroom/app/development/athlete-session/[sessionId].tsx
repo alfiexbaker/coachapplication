@@ -116,7 +116,7 @@ export default function AthleteSessionDetailScreen() {
         {hasNotes ? (
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Coach's Notes
+              Coach&apos;s Notes
             </ThemedText>
             <SurfaceCard style={styles.notesCard}>
               <ThemedText style={styles.notesText}>
@@ -127,7 +127,7 @@ export default function AthleteSessionDetailScreen() {
         ) : (
           <View style={styles.section}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Coach's Notes
+              Coach&apos;s Notes
             </ThemedText>
             <SurfaceCard style={styles.emptyNotes}>
               <Ionicons name="document-text-outline" size={32} color={palette.muted} />

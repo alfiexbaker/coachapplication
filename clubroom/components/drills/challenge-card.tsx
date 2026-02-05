@@ -6,7 +6,6 @@
  * to submit an attempt.
  */
 
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 

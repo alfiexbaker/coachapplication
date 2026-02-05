@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Shadows } from '@/constants/theme';
 import { CardStyles, LayoutStyles } from '@/constants/styles';
 
 // ---------------------------------------------------------------------------
@@ -128,25 +128,25 @@ export default function TravelRadiusPicker({
         <Text style={styles.title}>Travel Radius</Text>
         <View style={styles.unitToggle}>
           <Pressable
-            style={[styles.unitButton, unit === 'miles' && styles.unitButtonActive]}
+            style={[styles.unitButton, unit === 'miles' ? styles.unitButtonActive : undefined]}
             onPress={() => setUnit('miles')}
             accessibilityRole="button"
             accessibilityLabel="Switch to miles"
           >
             <Text
-              style={[styles.unitButtonText, unit === 'miles' && styles.unitButtonTextActive]}
+              style={[styles.unitButtonText, unit === 'miles' ? styles.unitButtonTextActive : undefined]}
             >
               mi
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.unitButton, unit === 'km' && styles.unitButtonActive]}
+            style={[styles.unitButton, unit === 'km' ? styles.unitButtonActive : undefined]}
             onPress={() => setUnit('km')}
             accessibilityRole="button"
             accessibilityLabel="Switch to kilometres"
           >
             <Text
-              style={[styles.unitButtonText, unit === 'km' && styles.unitButtonTextActive]}
+              style={[styles.unitButtonText, unit === 'km' ? styles.unitButtonTextActive : undefined]}
             >
               km
             </Text>
@@ -196,13 +196,13 @@ export default function TravelRadiusPicker({
         {QUICK_VALUES.map((val) => (
           <Pressable
             key={val}
-            style={[styles.quickSetBtn, localValue === val && styles.quickSetBtnActive]}
+            style={[styles.quickSetBtn, localValue === val ? styles.quickSetBtnActive : undefined]}
             onPress={() => handleQuickSet(val)}
             accessibilityRole="button"
             accessibilityLabel={`Set radius to ${val} miles`}
           >
             <Text
-              style={[styles.quickSetText, localValue === val && styles.quickSetTextActive]}
+              style={[styles.quickSetText, localValue === val ? styles.quickSetTextActive : undefined]}
             >
               {val} mi
             </Text>

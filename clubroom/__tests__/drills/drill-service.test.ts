@@ -10,7 +10,6 @@ import test, { describe, beforeEach } from 'node:test';
 
 import { drillService } from '../../services/drill-service';
 import type {
-  Drill,
   DrillCategory,
   DrillDifficulty,
   AssignedDrill,

@@ -22,6 +22,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('InjuryHistoryScreen');
 
 type StatusFilter = InjuryStatus | 'ALL';
 
@@ -47,7 +50,7 @@ export default function InjuryHistoryScreen() {
       const userInjuries = await injuryService.getUserInjuries(userId, true);
       setInjuries(userInjuries);
     } catch (error) {
-      console.error('Failed to load injuries:', error);
+      logger.error('Failed to load injuries:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

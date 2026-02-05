@@ -12,6 +12,7 @@ import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { PageContainer } from '@/components/primitives/page-container';
+import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoicePreview, DownloadButton } from '@/components/invoices';
@@ -21,11 +22,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { invoiceService } from '@/services/invoice-service';
 import { Invoice } from '@/constants/types';
 
+const logger = createLogger('InvoiceDetailScreen');
+
 // ============================================================================
 // TYPES
 // ============================================================================
 
-type IoniconsName = keyof typeof Ionicons.glyphMap;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _IoniconsName = keyof typeof Ionicons.glyphMap;
 
 // ============================================================================
 // COMPONENT
@@ -50,7 +54,7 @@ export default function InvoiceDetailScreen() {
       const data = await invoiceService.getInvoiceById(id);
       setInvoice(data);
     } catch (error) {
-      console.error('Failed to load invoice:', error);
+      logger.error('Failed to load invoice', error);
     } finally {
       setLoading(false);
     }
@@ -78,7 +82,7 @@ export default function InvoiceDetailScreen() {
       } else {
         Alert.alert('Failed', result.error || 'Could not send invoice');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'An error occurred while sending the invoice');
     } finally {
       setActionLoading(false);
@@ -100,7 +104,7 @@ export default function InvoiceDetailScreen() {
             try {
               await invoiceService.markAsPaid(invoice.id);
               loadInvoice();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to update invoice');
             } finally {
               setActionLoading(false);
@@ -127,7 +131,7 @@ export default function InvoiceDetailScreen() {
             try {
               await invoiceService.voidInvoice(invoice.id, 'Voided by user');
               loadInvoice();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to void invoice');
             } finally {
               setActionLoading(false);
@@ -182,7 +186,7 @@ export default function InvoiceDetailScreen() {
           title={invoice.invoiceNumber}
           subtitle={invoiceService.getStatusLabel(invoice.status)}
           showBack
-          rightContent={
+          right={
             <DownloadButton invoice={invoice} variant="icon" size="medium" />
           }
         />

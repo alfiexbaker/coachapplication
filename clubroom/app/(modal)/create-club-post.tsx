@@ -16,13 +16,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { Chip } from '@/components/primitives/chip';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubFeedService } from '@/services/social-feed-service';
 import { getClubById, getClubMembershipForUser, clubSquads } from '@/constants/mock-data';
-import type { ClubPostType, ClubSquad } from '@/constants/types';
+import type { ClubPostType } from '@/constants/types';
 
 type PostTypeOption = {
   key: ClubPostType;
@@ -176,7 +175,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.typeOption,
                     { borderColor: postType === type.key ? palette.tint : palette.border },
-                    postType === type.key && { backgroundColor: `${palette.tint}10` }
+                    postType === type.key ? { backgroundColor: `${palette.tint}10` } : undefined
                   ]}
                   onPress={() => setPostType(type.key)}
                 >
@@ -207,7 +206,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.postAsOption,
                     { borderColor: postAs === 'self' ? palette.tint : palette.border },
-                    postAs === 'self' && { backgroundColor: `${palette.tint}10` }
+                    postAs === 'self' ? { backgroundColor: `${palette.tint}10` } : undefined
                   ]}
                   onPress={() => setPostAs('self')}
                 >
@@ -224,7 +223,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.postAsOption,
                     { borderColor: postAs === 'club' ? palette.tint : palette.border },
-                    postAs === 'club' && { backgroundColor: `${palette.tint}10` }
+                    postAs === 'club' ? { backgroundColor: `${palette.tint}10` } : undefined
                   ]}
                   onPress={() => setPostAs('club')}
                 >
@@ -250,7 +249,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.audienceOption,
                     { borderColor: audienceType === 'club' ? palette.tint : palette.border },
-                    audienceType === 'club' && { backgroundColor: `${palette.tint}10` }
+                    audienceType === 'club' ? { backgroundColor: `${palette.tint}10` } : undefined
                   ]}
                   onPress={() => {
                     setAudienceType('club');
@@ -270,7 +269,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.audienceOption,
                     { borderColor: audienceType === 'squad' ? palette.tint : palette.border },
-                    audienceType === 'squad' && { backgroundColor: `${palette.tint}10` }
+                    audienceType === 'squad' ? { backgroundColor: `${palette.tint}10` } : undefined
                   ]}
                   onPress={() => setAudienceType('squad')}
                 >

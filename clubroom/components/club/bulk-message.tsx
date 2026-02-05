@@ -4,7 +4,6 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,7 +30,7 @@ export interface Recipient {
 }
 
 export interface BulkMessageProps {
-  squads?: Array<{ id: string; name: string }>;
+  squads?: { id: string; name: string }[];
   onSend: (scope: RecipientScope, squadId: string | null, message: string) => void;
   onBack?: () => void;
   recipients?: Recipient[];

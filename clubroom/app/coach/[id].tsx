@@ -17,6 +17,7 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
+  ViewStyle,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,19 +27,21 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Chip } from '@/components/primitives/chip';
 import { Button } from '@/components/primitives/button';
 import { Colors, Radii, Spacing } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
+import { createLogger } from '@/utils/logger';
+
+const logger = createLogger('CoachProfileScreen');
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COVER_HEIGHT = 180;
 
 type TabId = 'about' | 'reviews' | 'sessions';
 
-const TABS: Array<{ id: TabId; label: string; icon: string }> = [
+const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: 'about', label: 'About', icon: 'person-outline' },
   { id: 'reviews', label: 'Reviews', icon: 'star-outline' },
   { id: 'sessions', label: 'Sessions', icon: 'calendar-outline' },
@@ -69,7 +72,7 @@ export default function CoachProfileScreen() {
       const reviewData = await coachService.getCoachReviews(id);
       setReviews(reviewData);
     } catch (error) {
-      console.error('Failed to load coach:', error);
+      logger.error('Failed to load coach:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -91,14 +94,14 @@ export default function CoachProfileScreen() {
 
   const handleBook = () => {
     router.push({
-      pathname: '/book/[coachId]',
+      pathname: '/book/[coachId]' as any,
       params: { coachId: id },
     });
   };
 
   const handleMessage = () => {
     router.push({
-      pathname: '/messages/[conversationId]',
+      pathname: '/messages/[conversationId]' as any,
       params: { conversationId: `coach-${id}` },
     });
   };
@@ -507,8 +510,8 @@ export default function CoachProfileScreen() {
               onPress={() => setActiveTab(tab.id)}
               style={[
                 styles.tab,
-                activeTab === tab.id && { borderBottomColor: palette.tint, borderBottomWidth: 2 },
-              ]}
+                activeTab === tab.id ? { borderBottomColor: palette.tint, borderBottomWidth: 2 } : undefined,
+              ].filter(Boolean) as ViewStyle[]}
             >
               <Ionicons
                 name={tab.icon as any}

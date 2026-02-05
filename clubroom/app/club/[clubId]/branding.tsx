@@ -17,7 +17,7 @@ export default function BrandingScreen() {
   const palette = Colors[scheme];
   const router = useRouter();
 
-  const [branding, setBranding] = useState<ClubBranding | null>(null);
+  const [, setBranding] = useState<ClubBranding | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 

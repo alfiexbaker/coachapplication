@@ -16,8 +16,8 @@ import { createLogger } from '@/utils/logger';
 import type { BadgeAward, SkillProgress, Goal } from '@/constants/types';
 import { badgeService } from '@/services/badge-service';
 import { SkillRadar } from '@/components/analytics/skill-radar';
-import { SkillsSummary, SkillCategoryGroup } from '@/components/analytics/skill-progress-bar';
-import { StatsRow, EmptyMetrics, MetricsSummary } from '@/components/analytics/enhanced-stats';
+import { SkillsSummary } from '@/components/analytics/skill-progress-bar';
+import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
 import { GoalProgress, GoalsSummary } from '@/components/analytics/goal-progress';
 
 const logger = createLogger('ParentDevelopmentScreen');
@@ -29,16 +29,105 @@ export function ParentDevelopmentScreen() {
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
 
-  if (!currentUser) return null;
+  // Get data before hooks (all hooks must be called unconditionally)
+  const userId = currentUser?.id;
+  const children = userId ? getChildrenForParent(userId) : [];
+  const firstChildId = children[0]?.id;
 
-  const children = getChildrenForParent(currentUser.id);
-  const [selectedChildId, setSelectedChildId] = useState(children[0]?.id);
+  // All useState hooks must be before any early returns
+  const [selectedChildId, setSelectedChildId] = useState<string | undefined>(firstChildId);
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [coachOnlyCount, setCoachOnlyCount] = useState(0);
   const [activeTab, setActiveTab] = useState<TabType>('progress');
 
+  // Derived data
   const selectedChild = children.find((c) => c.id === selectedChildId);
-  const sessions = selectedChild ? getSessionsForAthlete(selectedChild.id) : [];
+  const sessions = useMemo(() => {
+    return selectedChild ? getSessionsForAthlete(selectedChild.id) : [];
+  }, [selectedChild]);
+
+  // Generate mock skills (useMemo before early return)
+  const skills: SkillProgress[] = useMemo(() => {
+    if (sessions.length === 0) return [];
+    const skillNames = ['Dribbling', 'Passing', 'Shooting', 'Defending', 'Positioning', 'First Touch'];
+    const categories = ['Technical', 'Technical', 'Technical', 'Physical', 'Tactical', 'Technical'];
+    return skillNames.map((name, index) => ({
+      skillName: name,
+      category: categories[index],
+      currentLevel: Math.floor(40 + Math.random() * 45),
+      previousLevel: Math.floor(35 + Math.random() * 40),
+      changePercent: Math.floor(-5 + Math.random() * 20),
+      history: Array.from({ length: 7 }, (_, i) => ({
+        date: new Date(Date.now() - (6 - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        level: Math.floor(35 + Math.random() * 50),
+      })),
+    }));
+  }, [sessions]);
+
+  // Mock goals
+  const goals: Goal[] = useMemo(() => {
+    if (!selectedChild) return [];
+    return [
+      {
+        id: 'goal-1',
+        userId: selectedChild.id,
+        athleteId: selectedChild.id,
+        title: 'Master 1v1 Dribbling',
+        description: 'Improve close control and beat defenders consistently',
+        category: 'TECHNIQUE',
+        targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        progress: 65,
+        milestones: [
+          { id: 'm1', goalId: 'goal-1', order: 0, title: 'Complete 10 dribbling drills', isCompleted: true },
+          { id: 'm2', goalId: 'goal-1', order: 1, title: 'Beat defender in 5 sessions', isCompleted: true },
+          { id: 'm3', goalId: 'goal-1', order: 2, title: 'Use both feet consistently', isCompleted: false },
+        ],
+        status: 'ACTIVE',
+        createdBy: 'COACH',
+        createdById: 'coach-1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'goal-2',
+        userId: selectedChild.id,
+        athleteId: selectedChild.id,
+        title: 'Improve Passing Accuracy',
+        category: 'TECHNIQUE',
+        progress: 40,
+        milestones: [
+          { id: 'm4', goalId: 'goal-2', order: 0, title: 'Complete passing course', isCompleted: true },
+          { id: 'm5', goalId: 'goal-2', order: 1, title: 'Achieve 80% accuracy', isCompleted: false },
+        ],
+        status: 'ACTIVE',
+        createdBy: 'ATHLETE',
+        createdById: selectedChild.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+  }, [selectedChild]);
+
+  useEffect(() => {
+    if (!selectedChildId) return;
+    badgeService
+      .listAwardsForAthlete(selectedChildId)
+      .then((childAwards) => {
+        const supporterVisible = childAwards.filter((award) => award.visibility !== 'coach_only');
+        setAwards(supporterVisible);
+        setCoachOnlyCount(childAwards.length - supporterVisible.length);
+      });
+  }, [selectedChildId]);
+
+  const sharedBadges = useMemo(() => awards.filter((award) => award.shared), [awards]);
+
+  // Early return after all hooks
+  if (!currentUser) {
+    return null;
+  }
+
+  const activeGoals = goals.filter(g => g.status === 'ACTIVE');
+  const completedGoals = goals.filter(g => g.status === 'COMPLETED');
 
   // Calculate progress metrics
   const getProgressTrend = () => {
@@ -63,79 +152,6 @@ export function ParentDevelopmentScreen() {
     (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
   );
 
-  // Generate mock skills
-  const skills: SkillProgress[] = useMemo(() => {
-    if (sessions.length === 0) return [];
-    const skillNames = ['Dribbling', 'Passing', 'Shooting', 'Defending', 'Positioning', 'First Touch'];
-    const categories = ['Technical', 'Technical', 'Technical', 'Physical', 'Tactical', 'Technical'];
-    return skillNames.map((name, index) => ({
-      skillName: name,
-      category: categories[index],
-      currentLevel: Math.floor(40 + Math.random() * 45),
-      previousLevel: Math.floor(35 + Math.random() * 40),
-      changePercent: Math.floor(-5 + Math.random() * 20),
-      history: Array.from({ length: 7 }, (_, i) => ({
-        date: new Date(Date.now() - (6 - i) * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        level: Math.floor(35 + Math.random() * 50),
-      })),
-    }));
-  }, [sessions]);
-
-  // Mock goals
-  const goals: Goal[] = useMemo(() => {
-    if (!selectedChild) return [];
-    return [
-      {
-        id: 'goal-1',
-        athleteId: selectedChild.id,
-        title: 'Master 1v1 Dribbling',
-        description: 'Improve close control and beat defenders consistently',
-        targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        progress: 65,
-        milestones: [
-          { id: 'm1', title: 'Complete 10 dribbling drills', isCompleted: true },
-          { id: 'm2', title: 'Beat defender in 5 sessions', isCompleted: true },
-          { id: 'm3', title: 'Use both feet consistently', isCompleted: false },
-        ],
-        status: 'ACTIVE',
-        createdBy: 'COACH',
-        createdById: 'coach-1',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'goal-2',
-        athleteId: selectedChild.id,
-        title: 'Improve Passing Accuracy',
-        progress: 40,
-        milestones: [
-          { id: 'm4', title: 'Complete passing course', isCompleted: true },
-          { id: 'm5', title: 'Achieve 80% accuracy', isCompleted: false },
-        ],
-        status: 'ACTIVE',
-        createdBy: 'ATHLETE',
-        createdById: selectedChild.id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ];
-  }, [selectedChild]);
-
-  useEffect(() => {
-    if (!selectedChildId) return;
-    badgeService
-      .listAwardsForAthlete(selectedChildId)
-      .then((childAwards) => {
-        const supporterVisible = childAwards.filter((award) => award.visibility !== 'coach_only');
-        setAwards(supporterVisible);
-        setCoachOnlyCount(childAwards.length - supporterVisible.length);
-      });
-  }, [selectedChildId]);
-
-  const sharedBadges = useMemo(() => awards.filter((award) => award.shared), [awards]);
-  const activeGoals = goals.filter(g => g.status === 'ACTIVE');
-  const completedGoals = goals.filter(g => g.status === 'COMPLETED');
-
   // Stats
   const avgRating = sessions.length > 0
     ? (sessions.reduce((sum, s) => sum + s.performanceRating, 0) / sessions.length).toFixed(1)
@@ -157,11 +173,11 @@ export function ParentDevelopmentScreen() {
           </ThemedText>
           {children.length === 1 ? (
             <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              Tracking {children[0].name}'s progress
+              Tracking {children[0].name}&apos;s progress
             </ThemedText>
           ) : children.length > 1 ? (
             <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
-              Track your children's progress
+              Track your children&apos;s progress
             </ThemedText>
           ) : (
             <ThemedText style={[styles.subtitle, { color: palette.muted }]}>
@@ -189,7 +205,7 @@ export function ParentDevelopmentScreen() {
                     }}
                     style={[
                       styles.childTab,
-                      isSelected && [styles.childTabActive, { backgroundColor: palette.tint }],
+                      isSelected ? [styles.childTabActive, { backgroundColor: palette.tint }] : undefined,
                     ]}
                   >
                     <View style={[
@@ -302,7 +318,7 @@ export function ParentDevelopmentScreen() {
                     onPress={() => setActiveTab(tab.key)}
                     style={[
                       styles.tab,
-                      isActive && [styles.tabActive, { backgroundColor: palette.tint }],
+                      isActive ? [styles.tabActive, { backgroundColor: palette.tint }] : undefined,
                     ]}
                   >
                     <Ionicons
@@ -448,7 +464,7 @@ export function ParentDevelopmentScreen() {
                             </ThemedText>
                             {award.note && (
                               <ThemedText style={[styles.badgeNote, { color: palette.text }]} numberOfLines={2}>
-                                "{award.note}"
+                                &quot;{award.note}&quot;
                               </ThemedText>
                             )}
                             <ThemedText style={[styles.badgeDate, { color: palette.muted }]}>

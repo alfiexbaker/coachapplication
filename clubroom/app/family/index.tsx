@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { PageContainer } from '@/components/primitives/page-container';
+import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
@@ -22,6 +23,8 @@ import {
   FamilyOverview,
 } from '@/services/family-service';
 
+const logger = createLogger('FamilyDashboardScreen');
+
 /**
  * Family Dashboard - Main overview screen for parents
  * Shows all children, upcoming sessions, and quick access to calendar and spending
@@ -32,7 +35,8 @@ export default function FamilyDashboardScreen() {
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_refreshing, setRefreshing] = useState(false);
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [upcomingSessions, setUpcomingSessions] = useState<FamilyCalendarEvent[]>([]);
   const [overview, setOverview] = useState<FamilyOverview | null>(null);
@@ -51,7 +55,7 @@ export default function FamilyDashboardScreen() {
       setUpcomingSessions(sessionsData);
       setOverview(overviewData);
     } catch (error) {
-      console.error('Failed to load family data:', error);
+      logger.error('Failed to load family data:', error);
     } finally {
       setLoading(false);
     }
@@ -63,7 +67,8 @@ export default function FamilyDashboardScreen() {
     }, [loadData])
   );
 
-  const handleRefresh = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);

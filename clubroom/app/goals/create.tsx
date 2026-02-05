@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { GoalForm } from '@/components/goals';
 import { Colors, Spacing } from '@/constants/theme';
@@ -22,6 +23,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 import { hasChildren } from '@/utils/user-helpers';
+
+const logger = createLogger('CreateGoalScreen');
 
 /**
  * Screen for creating or editing a goal.
@@ -48,7 +51,7 @@ export default function CreateGoalScreen() {
           const data = await progressService.getGoalById(editId);
           setGoal(data);
         } catch (error) {
-          console.error('Failed to load goal:', error);
+          logger.error('Failed to load goal', error);
           Alert.alert('Error', 'Failed to load goal for editing.');
           router.back();
         } finally {
@@ -98,7 +101,7 @@ export default function CreateGoalScreen() {
           router.replace({ pathname: '/goals/[id]', params: { id: newGoal.id } });
         }
       } catch (error) {
-        console.error('Failed to save goal:', error);
+        logger.error('Failed to save goal', error);
         Alert.alert(
           'Error',
           isEditing ? 'Failed to update goal. Please try again.' : 'Failed to create goal. Please try again.'

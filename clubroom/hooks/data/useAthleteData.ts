@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { badgeService, type AllBadgeWithProgress } from '@/services/badge-service';
-import { progressService, type AthleteProgress, type SessionFeedback } from '@/services/progress-service';
+import { progressService, type SessionFeedback } from '@/services/progress-service';
 import { createLogger } from '@/utils/logger';
 import type { BadgeAward, Goal } from '@/constants/types';
 
@@ -42,12 +42,12 @@ export interface AthleteBadgeSummary {
   totalBadges: number;
   recentBadges: BadgeAward[];
   allBadgesWithProgress: AllBadgeWithProgress[];
-  topCategories: Array<{
+  topCategories: {
     category: string;
     label: string;
     badgeCount: number;
     totalPoints: number;
-  }>;
+  }[];
 }
 
 export interface AthleteGoalsSummary {

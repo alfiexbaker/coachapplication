@@ -9,7 +9,6 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
-import type { CoachSchedulingRules } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SchedulingRulesModal');

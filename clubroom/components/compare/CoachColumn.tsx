@@ -35,7 +35,7 @@ function ValueCell({ label, value, isBest, icon, suffix }: ValueCellProps) {
   const palette = Colors[scheme];
 
   return (
-    <View style={[styles.cell, isBest && { backgroundColor: `${palette.success}10` }]}>
+    <View style={[styles.cell, isBest ? { backgroundColor: `${palette.success}10` } : undefined]}>
       <View style={styles.cellHeader}>
         {icon && <Ionicons name={icon} size={14} color={palette.muted} />}
         <ThemedText style={[styles.cellLabel, { color: palette.muted }]}>{label}</ThemedText>

@@ -25,7 +25,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';

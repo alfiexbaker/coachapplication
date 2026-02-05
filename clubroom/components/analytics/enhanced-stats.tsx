@@ -1,14 +1,12 @@
-import { ReactNode } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Mini sparkline chart component
 interface SparklineProps {
@@ -224,13 +222,13 @@ export function EnhancedStatCard({
 
 // Stats row with multiple metrics
 interface StatsRowProps {
-  stats: Array<{
+  stats: {
     value: string | number;
     label: string;
     icon?: keyof typeof Ionicons.glyphMap;
     iconColor?: string;
     trend?: number;
-  }>;
+  }[];
 }
 
 export function StatsRow({ stats }: StatsRowProps) {
@@ -363,11 +361,11 @@ export function ProgressMetric({
 // Summary card with key metrics
 interface MetricsSummaryProps {
   title: string;
-  metrics: Array<{
+  metrics: {
     value: string | number;
     label: string;
     trend?: { value: number; label: string };
-  }>;
+  }[];
   highlight?: {
     label: string;
     value: string | number;
@@ -439,12 +437,12 @@ export function MetricsSummary({ title, metrics, highlight }: MetricsSummaryProp
               <ThemedText style={[styles.metricsSummaryItemLabel, { color: palette.muted }]}>
                 {metric.label}
               </ThemedText>
-              {metric.trend && (
+              {metric.trend && trendColor && (
                 <View style={[styles.metricsSummaryTrend, { backgroundColor: `${trendColor}12` }]}>
                   <Ionicons
                     name={metric.trend.value > 0 ? 'arrow-up' : 'arrow-down'}
                     size={10}
-                    color={trendColor || palette.muted}
+                    color={trendColor}
                   />
                   <ThemedText style={[styles.metricsSummaryTrendText, { color: trendColor }]}>
                     {metric.trend.label}

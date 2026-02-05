@@ -116,7 +116,7 @@ export function SafetyChecklist({
             key={item.key}
             style={[
               styles.item,
-              index < items.length - 1 && { borderBottomColor: palette.border },
+              index < items.length - 1 ? { borderBottomColor: palette.border } : undefined,
             ]}
           >
             <View

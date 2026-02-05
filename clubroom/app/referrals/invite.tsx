@@ -14,6 +14,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -24,6 +25,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
+
+const logger = createLogger('ReferralInviteScreen');
 
 /**
  * Screen for sharing referral codes with multiple options.
@@ -50,7 +53,7 @@ export default function ReferralInviteScreen() {
         const code = await referralService.getUserCode(userId, userName);
         setReferralCode(code);
       } catch (error) {
-        console.error('Failed to load referral code:', error);
+        logger.error('Failed to load referral code:', error);
         Alert.alert('Error', 'Failed to load your referral code');
       } finally {
         setLoading(false);
@@ -69,7 +72,7 @@ export default function ReferralInviteScreen() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to copy code');
     }
   }, [referralCode]);
@@ -84,7 +87,7 @@ export default function ReferralInviteScreen() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to copy link');
     }
   }, [referralCode]);
@@ -256,7 +259,7 @@ export default function ReferralInviteScreen() {
               <View style={styles.termsContainer}>
                 <ThemedText style={[styles.termsText, { color: palette.muted }]}>
                   Credits are awarded after your friend completes their first booking.
-                  Credits expire 12 months from the date they're earned.
+                  Credits expire 12 months from the date they&apos;re earned.
                 </ThemedText>
               </View>
             </Animated.View>
@@ -288,8 +291,7 @@ interface ShareOptionProps {
 }
 
 function ShareOption({ icon, label, color, code, userName, creditAmount }: ShareOptionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  useColorScheme();
 
   // All options trigger the native share sheet for now
   // Could be customized to open specific apps if needed

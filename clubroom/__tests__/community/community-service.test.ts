@@ -6,7 +6,7 @@
  */
 
 import assert from 'node:assert';
-import test, { describe, beforeEach } from 'node:test';
+import test, { describe } from 'node:test';
 
 import {
   communityService,
@@ -14,7 +14,7 @@ import {
   CreateCarpoolOfferParams,
   RequestCarpoolSeatParams,
 } from '../../services/community-service';
-import type { GroupType, ParentGroup, CarpoolOffer, GroupMessage } from '../../constants/types';
+import type { GroupType } from '../../constants/types';
 
 describe('Community Service', () => {
   describe('Group Management', () => {

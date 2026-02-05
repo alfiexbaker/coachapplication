@@ -70,7 +70,8 @@ export default function EventAttendeesScreen() {
     }, [loadData])
   );
 
-  const handleRefresh = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleRefresh = () => {
     setRefreshing(true);
     loadData();
   };
@@ -89,7 +90,7 @@ export default function EventAttendeesScreen() {
   const handleAttendeePress = (userId: string) => {
     logger.press('AttendeeRow', { userId });
     // Navigate to user profile
-    router.push(`/profile/${userId}`);
+    router.push(`/profile/${userId}` as any);
   };
 
   if (loading) {
@@ -199,7 +200,7 @@ export default function EventAttendeesScreen() {
             style={[styles.coachActionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
             onPress={() => {
               logger.press('SendReminder', { eventId: id });
-              const nonResponders = rsvps.filter((r) => r.status === 'pending').length;
+              const nonResponders = rsvps.filter((r) => r.status === 'MAYBE').length;
               Alert.alert(
                 'Send Reminder',
                 nonResponders > 0

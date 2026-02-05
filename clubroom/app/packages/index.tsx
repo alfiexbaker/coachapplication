@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
+import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PackageList } from '@/components/packages/PackageList';
@@ -15,6 +16,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { packageService } from '@/services/package-service';
 import type { SessionPackage } from '@/constants/types';
+
+const logger = createLogger('PackagesScreen');
 
 type TabType = 'browse' | 'my-packages';
 
@@ -39,7 +42,7 @@ export default function PackagesScreen() {
       const data = await packageService.discoverPackages();
       setPackages(data);
     } catch (error) {
-      console.error('Failed to load packages:', error);
+      logger.error('Failed to load packages:', error);
     } finally {
       setLoading(false);
     }

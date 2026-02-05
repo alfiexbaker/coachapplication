@@ -18,6 +18,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
@@ -92,13 +93,13 @@ function PresetCard({
       style={[
         styles.presetCard,
         { backgroundColor: palette.surface, borderColor: palette.border },
-        selected && { borderColor: palette.tint },
-      ]}
+        selected ? { borderColor: palette.tint } : undefined,
+      ].filter(Boolean) as ViewStyle[]}
       onPress={onPress}
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityLabel={`${preset.label} policy${selected ? ', selected' : ''}`}
     >
-      <View style={[styles.presetIconCircle, { backgroundColor: palette.background }, selected && { backgroundColor: palette.tint }]}>
+      <View style={[styles.presetIconCircle, { backgroundColor: palette.background }, selected ? { backgroundColor: palette.tint } : undefined]}>
         <Ionicons
           name={preset.icon}
           size={20}
@@ -106,14 +107,14 @@ function PresetCard({
         />
       </View>
       <View style={styles.presetInfo}>
-        <ThemedText style={[styles.presetLabel, { color: palette.text }, selected && { color: palette.tint }]} numberOfLines={1}>
+        <ThemedText style={[styles.presetLabel, { color: palette.text }, selected ? { color: palette.tint } : undefined]} numberOfLines={1}>
           {preset.label}
         </ThemedText>
         <ThemedText style={[styles.presetDescription, { color: palette.muted }]} numberOfLines={2}>
           {preset.description}
         </ThemedText>
       </View>
-      <View style={[styles.radioOuter, { borderColor: palette.border }, selected && { borderColor: palette.tint }]}>
+      <View style={[styles.radioOuter, { borderColor: palette.border }, selected ? { borderColor: palette.tint } : undefined]}>
         {selected && <View style={[styles.radioInner, { backgroundColor: palette.tint }]} />}
       </View>
     </Clickable>
@@ -377,7 +378,7 @@ export default function CancellationPolicyEditor({ onSave, onBack }: Cancellatio
 
       {/* Save button */}
       <Clickable
-        style={[styles.saveButton, { backgroundColor: palette.tint }, saving && styles.saveButtonDisabled]}
+        style={[styles.saveButton, { backgroundColor: palette.tint }, saving ? styles.saveButtonDisabled : undefined].filter(Boolean) as ViewStyle[]}
         onPress={handleSave}
         disabled={saving}
       >

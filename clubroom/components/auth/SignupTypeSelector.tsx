@@ -142,7 +142,7 @@ export function SignupTypeSelector({
                       type="defaultSemiBold"
                       style={[
                         styles.cardTitle,
-                        isSelected && { color: palette.tint },
+                        isSelected ? { color: palette.tint } : undefined,
                       ]}
                     >
                       {option.title}

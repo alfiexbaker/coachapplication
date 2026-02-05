@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
@@ -26,6 +26,12 @@ export default function ChatScreen() {
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);
   const [postingAs, setPostingAs] = useState<string | undefined>();
 
+  const refresh = useCallback(async () => {
+    if (!threadId) return;
+    const list = await messagingService.listMessages(threadId);
+    setMessages(list);
+  }, [threadId]);
+
   useEffect(() => {
     messagingService.listThreads().then((threads) => {
       const found = threads.find((t) => t.id === threadId) || threads[0];
@@ -33,13 +39,7 @@ export default function ChatScreen() {
       setPostingAs(found?.postingAsOptions?.[0]);
     });
     refresh();
-  }, [threadId]);
-
-  const refresh = async () => {
-    if (!threadId) return;
-    const list = await messagingService.listMessages(threadId);
-    setMessages(list);
-  };
+  }, [threadId, refresh]);
 
   const handleSend = async (body: string) => {
     if (!threadId) return;

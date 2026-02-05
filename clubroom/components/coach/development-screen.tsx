@@ -10,7 +10,6 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii, Components } from '@/constants/theme';
-import { CardStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -21,7 +20,6 @@ import {
 import type { Session, User, Booking } from '@/constants/app-types';
 import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
-import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 
 const logger = createLogger('CoachDevelopmentScreen');
 
@@ -45,16 +43,7 @@ export function CoachDevelopmentScreen() {
   const [loading, setLoading] = useState(true);
   const [awaitingCompletion, setAwaitingCompletion] = useState<Booking[]>([]);
 
-  // Load sessions needing completion on focus
-  useFocusEffect(
-    useCallback(() => {
-      if (currentUser?.id) {
-        loadAwaitingCompletion();
-      }
-    }, [currentUser?.id])
-  );
-
-  const loadAwaitingCompletion = async () => {
+  const loadAwaitingCompletion = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
       const bookings = await bookingService.getAwaitingCompletion(currentUser.id);
@@ -62,7 +51,16 @@ export function CoachDevelopmentScreen() {
     } catch (error) {
       logger.error('Failed to load awaiting completion', error);
     }
-  };
+  }, [currentUser?.id]);
+
+  // Load sessions needing completion on focus
+  useFocusEffect(
+    useCallback(() => {
+      if (currentUser?.id) {
+        loadAwaitingCompletion();
+      }
+    }, [currentUser?.id, loadAwaitingCompletion])
+  );
 
   // Load sessions from both mock data and AsyncStorage
   useEffect(() => {
@@ -180,13 +178,6 @@ export function CoachDevelopmentScreen() {
       </PageContainer>
     );
   }
-
-  // Calculate key stats
-  const activeAthletes = athletesWithSessions.length;
-  const totalSessions = allSessions.length;
-  const avgRating = allSessions.length > 0
-    ? (allSessions.reduce((sum, s) => sum + s.performanceRating, 0) / allSessions.length).toFixed(1)
-    : '0';
 
   logger.debug('Coach development screen rendered', {
     athleteCount: athletesWithSessions.length,

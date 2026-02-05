@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /* ---------- Types ---------- */
@@ -113,7 +113,6 @@ export function SkillRadar({ skills }: SkillRadarProps) {
 
         {/* Axis lines + labels */}
         {skills.map((skill, idx) => {
-          const endPoint = polarToXY(idx, numAxes, 1);
           const labelPoint = polarToXY(idx, numAxes, 1.25);
           const angle =
             (360 * idx) / numAxes - 90;

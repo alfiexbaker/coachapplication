@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { createLogger } from '@/utils/logger';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -21,6 +22,8 @@ import {
 } from '@/services/family-service';
 import { eventService } from '@/services/event-service';
 
+const logger = createLogger('FamilyCalendarScreen');
+
 /**
  * Family Calendar Screen - Shows all children's sessions in one calendar view
  * Supports filtering by child and date range
@@ -35,7 +38,8 @@ export default function FamilyCalendarScreen() {
   const [events, setEvents] = useState<FamilyCalendarEvent[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<FamilyDateRange>(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [dateRange, _setDateRange] = useState<FamilyDateRange>(() => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
@@ -68,6 +72,7 @@ export default function FamilyCalendarScreen() {
         status: 'CONFIRMED' as const,
         childId: '', // Club events don't belong to a specific child
         childName: 'Club Event',
+        colorCode: '#6366F1', // Default color for club events
         coachId: '',
         coachName: event.location,
         location: event.location,
@@ -83,7 +88,7 @@ export default function FamilyCalendarScreen() {
       );
       setEvents(allEvents);
     } catch (error) {
-      console.error('Failed to load calendar data:', error);
+      logger.error('Failed to load calendar data:', error);
     } finally {
       setLoading(false);
     }

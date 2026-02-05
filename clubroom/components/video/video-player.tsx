@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, useSharedValue, withTiming } from 'react-native-reanimated';
 import Slider from '@react-native-community/slider';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -11,7 +11,7 @@ import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { VideoAnnotation } from '@/constants/types';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+Dimensions.get('window');
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -43,7 +43,6 @@ export function VideoPlayer({
   const [videoDuration, setVideoDuration] = useState(duration);
   const [isBuffering, setIsBuffering] = useState(false);
   const [showControls, setShowControls] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const controlsOpacity = useSharedValue(1);
 
@@ -99,10 +98,6 @@ export function VideoPlayer({
   const handleSliderChange = (value: number) => {
     seekTo(value);
   };
-
-  const controlsStyle = useAnimatedStyle(() => ({
-    opacity: controlsOpacity.value,
-  }));
 
   // Calculate annotation marker positions
   const getAnnotationPosition = (timestamp: number): number => {
@@ -183,7 +178,9 @@ export function VideoPlayer({
                             : '#2196F3',
                       },
                     ]}
-                  />
+                  >
+                    <></>
+                  </Clickable>
                 ))}
 
                 <Slider

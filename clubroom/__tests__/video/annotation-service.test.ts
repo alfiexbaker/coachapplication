@@ -6,7 +6,7 @@
  */
 
 import assert from 'node:assert';
-import test, { describe, beforeEach } from 'node:test';
+import test, { describe } from 'node:test';
 
 import { videoService, ANNOTATION_TYPE_CONFIG, CreateAnnotationInput } from '../../services/video-service';
 import type { VideoAnnotationType } from '../../constants/types';
@@ -72,7 +72,7 @@ describe('Annotation Service', () => {
         type: 'HIGHLIGHT',
       };
 
-      const annotation = await videoService.addAnnotation('vid_1', input);
+      const annotation = await videoService.createAnnotation('vid_1', input);
 
       assert.ok(annotation);
       assert.ok(annotation.id);
@@ -89,7 +89,7 @@ describe('Annotation Service', () => {
         type: 'TECHNIQUE',
       };
 
-      const annotation = await videoService.addAnnotation(
+      const annotation = await videoService.createAnnotation(
         'vid_1',
         input,
         'coach_1',
@@ -110,7 +110,7 @@ describe('Annotation Service', () => {
         label: 'To Be Deleted',
         type: 'GENERAL',
       };
-      const annotation = await videoService.addAnnotation('vid_1', input);
+      const annotation = await videoService.createAnnotation('vid_1', input);
 
       // Then delete it
       const result = await videoService.deleteAnnotation('vid_1', annotation.id);

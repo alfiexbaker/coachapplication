@@ -29,6 +29,7 @@ const MAX_RECENT_SEARCHES = 10;
 let importedCoachProfiles: CoachProfile[] = [];
 try {
   // Dynamic require to avoid build-time issues in test environments
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const mockData = require('@/constants/mock-data');
   if (mockData?.coachProfiles) {
     importedCoachProfiles = mockData.coachProfiles;
@@ -253,12 +254,6 @@ function calculateDistance(
   return R * c;
 }
 
-/**
- * Convert kilometers to miles
- */
-function kmToMiles(km: number): number {
-  return km * 0.621371;
-}
 
 /**
  * Check if coach matches text search query

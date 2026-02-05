@@ -18,7 +18,7 @@ import { useNotificationCount } from '@/hooks/use-notifications';
 type UserWithSimplifiedFields = {
   role?: UserRole | 'ADMIN';
   type?: 'USER' | 'COACH';
-  children?: Array<{ childId: string; childName: string }>;
+  children?: { childId: string; childName: string }[];
   skillLevel?: string;
   isOrganization?: boolean;
   isLive?: boolean;
@@ -99,10 +99,32 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
   },
+  // 'Coach' is an alias for COACH (lowercase variant in UserRole)
+  Coach: {
+    primary: [
+      { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
+      { name: 'schedule', title: 'Schedule', icon: 'calendar.badge.clock' },
+      { name: 'athletes', title: 'Athletes', icon: 'person.2.fill' },
+      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
+      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
+    ],
+    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
+  },
   // USER: Home, Feed, Bookings, Messages, Profile
   // Users with children can access child management via Profile > Children
   // Booking flow supports "Book for Child" when user has children
   USER: {
+    primary: [
+      { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
+      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
+      { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
+      { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
+      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
+    ],
+    hidden: [...BASE_HIDDEN_ROUTES, 'club-hub', 'more', 'schedule', 'athletes', 'children'],
+  },
+  // PARENT: Same as USER (parents are users with children)
+  PARENT: {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },

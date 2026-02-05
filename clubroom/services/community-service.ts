@@ -5,15 +5,29 @@ import {
   GroupMessage,
   CarpoolOffer,
   CarpoolRequest,
-  CarpoolOfferStatus,
-  CarpoolRequestStatus,
   ChatAttachment,
 } from '@/constants/types';
 import { storageService } from './storage-service';
+import { notificationService } from './notification-service';
 
 const GROUPS_STORAGE_KEY = 'clubroom.parent_groups';
 const MESSAGES_STORAGE_KEY = 'clubroom.group_messages';
 const CARPOOLS_STORAGE_KEY = 'clubroom.carpool_offers';
+const GROUP_INVITES_KEY = 'clubroom.group_invites';
+
+// Group invite type
+interface GroupInvite {
+  id: string;
+  groupId: string;
+  groupName: string;
+  inviterId: string;
+  inviterName: string;
+  inviteeId: string;
+  inviteeName: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
+  createdAt: string;
+  respondedAt?: string;
+}
 
 // Mock data for initial state
 const mockGroups: ParentGroup[] = [
@@ -390,7 +404,7 @@ class CommunityService {
     inviterId: string,
     inviteeId: string,
     inviteeName: string
-  ): Promise<void> {
+  ): Promise<GroupInvite> {
     const group = await this.getGroup(groupId);
     if (!group) {
       throw new Error('Group not found');
@@ -407,18 +421,125 @@ class CommunityService {
       throw new Error('User is already a member');
     }
 
-    // For now, directly add the member (in production, this would send an invite)
-    const newMember: GroupMember = {
-      parentId: inviteeId,
-      parentName: inviteeName,
-      role: 'MEMBER',
-      joinedAt: new Date().toISOString(),
+    // Check for existing pending invite
+    const existingInvites = await this.getGroupInvites(inviteeId);
+    if (existingInvites.some((i) => i.groupId === groupId && i.status === 'PENDING')) {
+      throw new Error('Invite already sent');
+    }
+
+    // Create the invite
+    const invite: GroupInvite = {
+      id: `group_invite_${Date.now()}`,
+      groupId,
+      groupName: group.name,
+      inviterId,
+      inviterName: inviter.parentName,
+      inviteeId,
+      inviteeName,
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
     };
 
-    group.members.push(newMember);
-    group.updatedAt = new Date().toISOString();
+    // Save invite
+    const allInvites = await storageService.getItem<GroupInvite[]>(GROUP_INVITES_KEY, []);
+    allInvites.push(invite);
+    await storageService.setItem(GROUP_INVITES_KEY, allInvites);
 
-    await this.persistGroups();
+    // Send notification to invitee
+    await notificationService.create({
+      id: `notif_group_invite_${Date.now()}`,
+      type: 'community',
+      title: 'Group Invite',
+      body: `${inviter.parentName} invited you to join ${group.name}`,
+      timeLabel: 'Just now',
+      read: false,
+      actionLabel: 'View Invite',
+    });
+
+    return invite;
+  }
+
+  /**
+   * Get pending group invites for a user
+   */
+  async getGroupInvites(userId: string): Promise<GroupInvite[]> {
+    const allInvites = await storageService.getItem<GroupInvite[]>(GROUP_INVITES_KEY, []);
+    return allInvites.filter((i) => i.inviteeId === userId);
+  }
+
+  /**
+   * Get pending invites for a user
+   */
+  async getPendingInvites(userId: string): Promise<GroupInvite[]> {
+    const invites = await this.getGroupInvites(userId);
+    return invites.filter((i) => i.status === 'PENDING');
+  }
+
+  /**
+   * Accept a group invite
+   */
+  async acceptGroupInvite(inviteId: string): Promise<void> {
+    const allInvites = await storageService.getItem<GroupInvite[]>(GROUP_INVITES_KEY, []);
+    const inviteIndex = allInvites.findIndex((i) => i.id === inviteId);
+
+    if (inviteIndex === -1) {
+      throw new Error('Invite not found');
+    }
+
+    const invite = allInvites[inviteIndex];
+    if (invite.status !== 'PENDING') {
+      throw new Error('Invite already responded to');
+    }
+
+    // Update invite status
+    allInvites[inviteIndex].status = 'ACCEPTED';
+    allInvites[inviteIndex].respondedAt = new Date().toISOString();
+    await storageService.setItem(GROUP_INVITES_KEY, allInvites);
+
+    // Add member to group
+    const group = await this.getGroup(invite.groupId);
+    if (group) {
+      const newMember: GroupMember = {
+        parentId: invite.inviteeId,
+        parentName: invite.inviteeName,
+        role: 'MEMBER',
+        joinedAt: new Date().toISOString(),
+      };
+      group.members.push(newMember);
+      group.updatedAt = new Date().toISOString();
+      await this.persistGroups();
+
+      // Notify inviter
+      await notificationService.create({
+        id: `notif_invite_accepted_${Date.now()}`,
+        type: 'community',
+        title: 'Invite Accepted',
+        body: `${invite.inviteeName} joined ${group.name}`,
+        timeLabel: 'Just now',
+        read: false,
+      });
+    }
+  }
+
+  /**
+   * Decline a group invite
+   */
+  async declineGroupInvite(inviteId: string): Promise<void> {
+    const allInvites = await storageService.getItem<GroupInvite[]>(GROUP_INVITES_KEY, []);
+    const inviteIndex = allInvites.findIndex((i) => i.id === inviteId);
+
+    if (inviteIndex === -1) {
+      throw new Error('Invite not found');
+    }
+
+    const invite = allInvites[inviteIndex];
+    if (invite.status !== 'PENDING') {
+      throw new Error('Invite already responded to');
+    }
+
+    allInvites[inviteIndex].status = 'DECLINED';
+    allInvites[inviteIndex].respondedAt = new Date().toISOString();
+    await storageService.setItem(GROUP_INVITES_KEY, allInvites);
   }
 
   /**

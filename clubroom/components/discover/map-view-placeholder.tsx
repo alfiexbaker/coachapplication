@@ -10,14 +10,12 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   LayoutChangeEvent,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing, Typography, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CoachMarkerPill } from './coach-marker';

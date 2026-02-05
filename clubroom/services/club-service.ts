@@ -16,16 +16,16 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ClubMembership, ClubRole } from '@/constants/types';
-import { clubMemberships } from '@/constants/mock-data';
+import type { ClubRole, ClubMembership } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { api } from '@/constants/config';
 
 const logger = createLogger('ClubService');
 
 const CLUB_MEMBERS_KEY = 'club_members';
 const MEMBER_REMOVAL_KEY = 'club_member_removals';
 const CLUB_BRANDING_KEY = 'club_branding';
-const USE_MOCK = true;
+const USE_MOCK = api.useMock;
 
 // ============================================================================
 // BRANDING TYPES

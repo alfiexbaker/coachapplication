@@ -1,0 +1,123 @@
+/**
+ * FilterChip - Single selectable filter chip.
+ *
+ * The atomic building block of the filter system.
+ * Can be used standalone or composed into groups.
+ */
+
+import { Pressable, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Spacing, Radii, Typography, Components, Borders } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+
+export interface FilterChipProps {
+  /** Chip label text */
+  label: string;
+  /** Is this chip currently selected/active */
+  active?: boolean;
+  /** Press handler */
+  onPress: () => void;
+  /** Optional icon name (Ionicons) */
+  icon?: string;
+  /** Show checkmark when active (default: false) */
+  showCheckmark?: boolean;
+  /** Show dropdown chevron (default: false) */
+  showChevron?: boolean;
+  /** Size variant */
+  size?: 'sm' | 'md';
+  /** Disabled state */
+  disabled?: boolean;
+  /** Optional count badge */
+  count?: number;
+}
+
+export function FilterChip({
+  label,
+  active = false,
+  onPress,
+  icon,
+  showCheckmark = false,
+  showChevron = false,
+  size = 'md',
+  disabled = false,
+  count,
+}: FilterChipProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  const iconSize = size === 'sm' ? 14 : Components.icon.sm;
+  const height = size === 'sm' ? 32 : Components.button.height;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active, disabled }}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.chip,
+        {
+          height,
+          backgroundColor: active ? `${palette.tint}15` : palette.surface,
+          borderColor: active ? palette.tint : palette.border,
+          opacity: pressed ? 0.8 : disabled ? 0.5 : 1,
+        },
+        size === 'sm' ? styles.chipSm : undefined,
+      ]}
+    >
+      {icon && (
+        <Ionicons
+          name={(active ? icon.replace('-outline', '') : icon) as any}
+          size={iconSize}
+          color={active ? palette.tint : palette.muted}
+        />
+      )}
+
+      <ThemedText
+        style={[
+          styles.label,
+          size === 'sm' ? styles.labelSm : undefined,
+          { color: active ? palette.tint : palette.muted },
+          active ? styles.labelActive : undefined,
+        ]}
+      >
+        {label}
+        {count !== undefined && count > 0 && ` (${count})`}
+      </ThemedText>
+
+      {showCheckmark && active && (
+        <Ionicons name="checkmark" size={iconSize} color={palette.tint} />
+      )}
+
+      {showChevron && active && (
+        <Ionicons name="chevron-down" size={12} color={palette.tint} />
+      )}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs / 2,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.pill,
+    borderWidth: Borders.width.thin,
+  },
+  chipSm: {
+    paddingHorizontal: Spacing.xs,
+  },
+  label: {
+    ...Typography.small,
+    fontWeight: '500',
+  },
+  labelSm: {
+    fontSize: 12,
+  },
+  labelActive: {
+    fontWeight: '600',
+  },
+});
