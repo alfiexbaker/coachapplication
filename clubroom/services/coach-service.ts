@@ -4,7 +4,8 @@
  * Manages coach profiles, reviews, and public-facing data.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import type { CoachProfile, Review } from '@/constants/types';
 

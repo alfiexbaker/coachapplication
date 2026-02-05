@@ -5,5 +5,7 @@ export * from './development-screen';
 export * from './filter-panel';
 export * from './invite-athlete-modal';
 export * from './invite-session-flow';
+export * from './onboarding-checklist';
 export * from './recurring-template-modal';
+export * from './scheduling-rules-editor';
 export * from './scheduling-rules-modal';

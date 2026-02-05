@@ -25,7 +25,9 @@
  * - WebSocket event: session_invite_received
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationTriggers } from './notification-trigger';
 import type {
   SessionInvite,
   TimeSlot,
@@ -50,11 +52,7 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('InviteService');
 
-// UNIFIED STORAGE - single key for all invites
-const STORAGE_KEY = 'session_invites';
-const SQUAD_INVITES_KEY = 'squad_invites';
-const SQUAD_SESSION_INVITES_KEY = 'squad_session_invites';
-const SQUAD_INVITE_HISTORY_KEY = 'squad_invite_history';
+// UNIFIED STORAGE - using centralized keys
 const USE_MOCK = true;
 
 // ============================================================================
@@ -273,10 +271,8 @@ let inviteHistoryCache: SquadInviteHistoryEntry[] = [];
 
 async function loadFromStorage(): Promise<SessionInvite[]> {
   try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
+    const stored = await apiClient.get<SessionInvite[] | null>(STORAGE_KEYS.SESSION_INVITES, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load from storage', error);
   }
@@ -285,7 +281,7 @@ async function loadFromStorage(): Promise<SessionInvite[]> {
 
 async function saveToStorage(invites: SessionInvite[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(invites));
+    await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);
   } catch (error) {
     logger.error('Failed to save to storage', error);
   }
@@ -293,8 +289,7 @@ async function saveToStorage(invites: SessionInvite[]): Promise<void> {
 
 async function loadSquadInvites(): Promise<SquadInvite[]> {
   try {
-    const stored = await AsyncStorage.getItem(SQUAD_INVITES_KEY);
-    if (stored) return JSON.parse(stored);
+    return await apiClient.get<SquadInvite[]>(STORAGE_KEYS.SQUAD_INVITES, []);
   } catch (error) {
     logger.error('Failed to load squad invites', error);
   }
@@ -303,7 +298,7 @@ async function loadSquadInvites(): Promise<SquadInvite[]> {
 
 async function saveSquadInvites(invites: SquadInvite[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(SQUAD_INVITES_KEY, JSON.stringify(invites));
+    await apiClient.set(STORAGE_KEYS.SQUAD_INVITES, invites);
     squadInvitesCache = invites;
   } catch (error) {
     logger.error('Failed to save squad invites', error);
@@ -312,8 +307,7 @@ async function saveSquadInvites(invites: SquadInvite[]): Promise<void> {
 
 async function loadSquadSessionInvites(): Promise<SquadSessionInvite[]> {
   try {
-    const stored = await AsyncStorage.getItem(SQUAD_SESSION_INVITES_KEY);
-    if (stored) return JSON.parse(stored);
+    return await apiClient.get<SquadSessionInvite[]>(STORAGE_KEYS.SQUAD_SESSION_INVITES, []);
   } catch (error) {
     logger.error('Failed to load squad session invites', error);
   }
@@ -322,7 +316,7 @@ async function loadSquadSessionInvites(): Promise<SquadSessionInvite[]> {
 
 async function saveSquadSessionInvites(invites: SquadSessionInvite[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(SQUAD_SESSION_INVITES_KEY, JSON.stringify(invites));
+    await apiClient.set(STORAGE_KEYS.SQUAD_SESSION_INVITES, invites);
     squadSessionInvitesCache = invites;
   } catch (error) {
     logger.error('Failed to save squad session invites', error);
@@ -331,8 +325,7 @@ async function saveSquadSessionInvites(invites: SquadSessionInvite[]): Promise<v
 
 async function loadInviteHistory(): Promise<SquadInviteHistoryEntry[]> {
   try {
-    const stored = await AsyncStorage.getItem(SQUAD_INVITE_HISTORY_KEY);
-    if (stored) return JSON.parse(stored);
+    return await apiClient.get<SquadInviteHistoryEntry[]>(STORAGE_KEYS.SQUAD_INVITE_HISTORY, []);
   } catch (error) {
     logger.error('Failed to load invite history', error);
   }
@@ -341,7 +334,7 @@ async function loadInviteHistory(): Promise<SquadInviteHistoryEntry[]> {
 
 async function saveInviteHistory(history: SquadInviteHistoryEntry[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(SQUAD_INVITE_HISTORY_KEY, JSON.stringify(history));
+    await apiClient.set(STORAGE_KEYS.SQUAD_INVITE_HISTORY, history);
     inviteHistoryCache = history;
   } catch (error) {
     logger.error('Failed to save invite history', error);
@@ -529,8 +522,8 @@ export const inviteService = {
           const bookingResult = await bookingService.createBooking({
             coachId: invite.coachId,
             coachName: invite.coachName,
-            athleteId: invite.athleteIds[0], // Primary athlete
-            athleteName: invite.athleteNames[0],
+            athleteIds: [invite.athleteIds[0]], // Primary athlete
+            athleteNames: [invite.athleteNames[0]],
             bookedById: invite.parentId,
             bookedByName: invite.parentName,
             scheduledAt,
@@ -748,8 +741,8 @@ export const inviteService = {
       const bookingResult = await bookingService.createBooking({
         coachId: invite.coachId,
         coachName: invite.coachName,
-        athleteId: invite.athleteIds[0], // Primary athlete
-        athleteName: invite.athleteNames[0],
+        athleteIds: [invite.athleteIds[0]], // Primary athlete
+        athleteNames: [invite.athleteNames[0]],
         bookedById: invite.parentId,
         bookedByName: invite.parentName,
         scheduledAt,
@@ -1015,9 +1008,9 @@ export const inviteService = {
     });
 
     const groupId = `squad_session_${Date.now()}`;
-    let successful = 0;
+    let sent = 0;
     let failed = 0;
-    const errors: Array<{ memberId: string; error: string }> = [];
+    const errors: BulkInviteError[] = [];
 
     // Create invite for each parent
     for (const [parentId, athletes] of parentMap.entries()) {
@@ -1040,11 +1033,12 @@ export const inviteService = {
           priceUsd: input.priceUsd,
           groupId,
         });
-        successful++;
+        sent++;
       } catch (error) {
         failed++;
         errors.push({
           memberId: athletes[0].athleteId,
+          athleteName: athletes[0].athleteName,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -1074,7 +1068,7 @@ export const inviteService = {
     squadInvitesCache.push(squadInvite);
     await saveSquadInvites(squadInvitesCache);
 
-    return { successful, failed, errors, squadInviteId: groupId };
+    return { sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId };
   },
 
   /**
@@ -1164,9 +1158,9 @@ export const inviteService = {
       parentMap.set(m.parentId, [...existing, m]);
     });
 
-    let successful = 0;
+    let sent = 0;
     let failed = 0;
-    const errors: Array<{ memberId: string; error: string }> = [];
+    const errors: BulkInviteError[] = [];
 
     for (const [parentId, athletes] of parentMap.entries()) {
       try {
@@ -1185,11 +1179,12 @@ export const inviteService = {
           },
           timeLabel: 'Just now',
         });
-        successful++;
+        sent++;
       } catch (error) {
         failed++;
         errors.push({
           memberId: athletes[0].athleteId,
+          athleteName: athletes[0].athleteName,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -1197,7 +1192,7 @@ export const inviteService = {
 
     return {
       match,
-      inviteResult: { successful, failed, errors, squadInviteId: groupId },
+      inviteResult: { sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId },
     };
   },
 
@@ -1274,9 +1269,9 @@ export const inviteService = {
       parentMap.set(m.parentId, [...existing, m]);
     });
 
-    let successful = 0;
+    let sent = 0;
     let failed = 0;
-    const errors: Array<{ memberId: string; error: string }> = [];
+    const errors: BulkInviteError[] = [];
 
     for (const [parentId, athletes] of parentMap.entries()) {
       try {
@@ -1295,11 +1290,12 @@ export const inviteService = {
           },
           timeLabel: 'Just now',
         });
-        successful++;
+        sent++;
       } catch (error) {
         failed++;
         errors.push({
           memberId: athletes[0].athleteId,
+          athleteName: athletes[0].athleteName,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
@@ -1307,7 +1303,7 @@ export const inviteService = {
 
     return {
       event,
-      inviteResult: { successful, failed, errors, squadInviteId: groupId },
+      inviteResult: { sent, failed, skipped: 0, totalAttempted: eligibleMembers.length, errors, groupId },
     };
   },
 
@@ -1818,10 +1814,10 @@ export const inviteService = {
     squadInvitesCache = [];
     squadSessionInvitesCache = [];
     inviteHistoryCache = [];
-    await AsyncStorage.removeItem(STORAGE_KEY);
-    await AsyncStorage.removeItem(SQUAD_INVITES_KEY);
-    await AsyncStorage.removeItem(SQUAD_SESSION_INVITES_KEY);
-    await AsyncStorage.removeItem(SQUAD_INVITE_HISTORY_KEY);
+    await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);
+    await apiClient.remove(STORAGE_KEYS.SQUAD_INVITES);
+    await apiClient.remove(STORAGE_KEYS.SQUAD_SESSION_INVITES);
+    await apiClient.remove(STORAGE_KEYS.SQUAD_INVITE_HISTORY);
   },
 
   // ==========================================================================

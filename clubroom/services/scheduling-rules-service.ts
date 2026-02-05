@@ -456,7 +456,7 @@ class SchedulingRulesService {
     try {
       const stored = await AsyncStorage.getItem(CANCELLATION_STORAGE_KEY);
       this.policiesCache = stored ? JSON.parse(stored) : [];
-      return this.policiesCache;
+      return this.policiesCache || [];
     } catch (error) {
       logger.error('Failed to load cancellation policies', error);
       return [];

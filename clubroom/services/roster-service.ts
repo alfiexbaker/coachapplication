@@ -13,11 +13,9 @@
  * - GET /api/coaches/:id/roster/removed - Get removal history
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { RosterEntry, RosterNote, FootballObjective } from '@/constants/types';
-
-const STORAGE_KEY = 'coach_roster';
-const REMOVAL_HISTORY_KEY = 'roster_removal_history';
 const USE_MOCK = true;
 
 export type RemovalReason = 'GRADUATED' | 'MOVED' | 'INACTIVE' | 'OTHER';
@@ -203,8 +201,7 @@ let removalHistoryCache: AthleteRemovalRecord[] = [];
 
 async function loadRemovalHistory(): Promise<AthleteRemovalRecord[]> {
   try {
-    const stored = await AsyncStorage.getItem(REMOVAL_HISTORY_KEY);
-    if (stored) return JSON.parse(stored);
+    return await apiClient.get<AthleteRemovalRecord[]>(STORAGE_KEYS.ROSTER_REMOVAL_HISTORY, []);
   } catch (error) {
     console.error('[RosterService] Failed to load removal history:', error);
   }
@@ -213,7 +210,7 @@ async function loadRemovalHistory(): Promise<AthleteRemovalRecord[]> {
 
 async function saveRemovalHistory(history: AthleteRemovalRecord[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(REMOVAL_HISTORY_KEY, JSON.stringify(history));
+    await apiClient.set(STORAGE_KEYS.ROSTER_REMOVAL_HISTORY, history);
   } catch (error) {
     console.error('[RosterService] Failed to save removal history:', error);
   }
@@ -221,8 +218,8 @@ async function saveRemovalHistory(history: AthleteRemovalRecord[]): Promise<void
 
 async function loadFromStorage(): Promise<RosterEntry[]> {
   try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<RosterEntry[] | null>(STORAGE_KEYS.ROSTER, null);
+    if (stored) return stored;
   } catch (error) {
     console.error('[RosterService] Failed to load from storage:', error);
   }
@@ -231,7 +228,7 @@ async function loadFromStorage(): Promise<RosterEntry[]> {
 
 async function saveToStorage(roster: RosterEntry[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(roster));
+    await apiClient.set(STORAGE_KEYS.ROSTER, roster);
   } catch (error) {
     console.error('[RosterService] Failed to save to storage:', error);
   }

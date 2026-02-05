@@ -851,6 +851,11 @@ export interface ChatAttachment {
   thumbnailUrl?: string;
 }
 
+export interface MessageReadReceipt {
+  recipientId: string;
+  readAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   threadId: string;
@@ -860,6 +865,7 @@ export interface ChatMessage {
   createdAt: string;
   status: 'sent' | 'delivered' | 'seen' | 'pending';
   attachments?: ChatAttachment[];
+  readReceipts?: MessageReadReceipt[];
 }
 
 export interface ChatThreadSummary {
@@ -969,6 +975,8 @@ export interface SessionInvite {
   groupId?: string; // Links invites that were sent as part of a group/bulk send
   bookingId?: string; // Link to created booking (bidirectional)
   dismissed?: boolean; // When parent removes/hides the invite from their view
+  declineReason?: 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+  declineNote?: string;
 }
 
 // ============================================================================
@@ -1402,6 +1410,14 @@ export interface Goal {
   createdAt: string;
   /** Timestamp when the goal was last updated */
   updatedAt: string;
+  /** Whether the coach has verified this goal */
+  coachVerified?: boolean;
+  /** When the coach verified this goal */
+  coachVerifiedAt?: string;
+  /** Whether the parent has acknowledged this goal */
+  parentAcknowledged?: boolean;
+  /** When the parent acknowledged this goal */
+  parentAcknowledgedAt?: string;
 }
 
 /**
@@ -2554,6 +2570,10 @@ export interface WaitlistEntry {
   bookingId?: string;
   /** Additional notes from the user */
   notes?: string;
+  /** User's response when notified of availability */
+  userResponse?: 'accepted' | 'declined' | 'expired';
+  /** When the user responded to the notification */
+  userRespondedAt?: string;
 }
 
 /**
@@ -4268,4 +4288,89 @@ export interface CalendarSyncSettings {
   lastSyncAt?: string;
   /** User ID this setting belongs to */
   userId: string;
+}
+
+// ============================================================================
+// BILATERAL INTERACTION TYPES (Sprint 6D)
+// ============================================================================
+
+/** Session attendance tracking by coach */
+export interface SessionAttendance {
+  bookingId: string;
+  records: AttendanceRecord[];
+  completedAt: string;
+  completedBy: string;
+}
+
+/** Individual athlete attendance record */
+export interface AttendanceRecord {
+  athleteId: string;
+  athleteName: string;
+  status: 'ATTENDED' | 'NO_SHOW' | 'LATE';
+  notes?: string;
+  effortRating?: number;
+  focusAreas?: string[];
+  improvement?: string;
+  drillAssigned?: string;
+}
+
+/** Record of a booking cancellation */
+export interface CancellationRecord {
+  bookingId: string;
+  cancelledBy: string;
+  cancelledAt: string;
+  reason?: 'child_ill' | 'schedule_change' | 'weather' | 'venue' | 'emergency' | 'other';
+  note?: string;
+  policyTierApplied?: string;
+}
+
+/** Structured reason for declining an invite */
+export interface InviteDeclineReason {
+  category: 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
+  note?: string;
+}
+
+/** RSVP for a session */
+export interface SessionRsvp {
+  id: string;
+  sessionId: string;
+  userId: string;
+  childId?: string;
+  childName?: string;
+  status: 'going' | 'not_going' | 'maybe' | 'pending';
+  respondedAt?: string;
+  createdAt: string;
+}
+
+/** Blocked date range for coach availability */
+export interface BlockedDateRange {
+  id: string;
+  coachId: string;
+  startDate: string;
+  endDate: string;
+  reason?: string;
+  createdAt: string;
+}
+
+/** Tracks when entities are seen by users */
+export interface SeenStatus {
+  entityType: 'message' | 'invite_response' | 'rsvp' | 'booking_request' | 'goal';
+  entityId: string;
+  seenBy: string;
+  seenAt: string;
+}
+
+/** Authentication tokens */
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+}
+
+/** Authentication state */
+export interface AuthState {
+  user: any; // SimplifiedUser or SimplifiedCoach
+  tokens: AuthTokens | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
 }

@@ -11,6 +11,8 @@ export default function SettingsLayout() {
       <Stack.Screen name="calendar-sync" />
       <Stack.Screen name="scheduling" />
       <Stack.Screen name="help" />
+      <Stack.Screen name="terms" />
+      <Stack.Screen name="privacy-policy" />
     </Stack>
   );
 }

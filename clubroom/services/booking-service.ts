@@ -3,13 +3,12 @@ import { MOCK_BOOKINGS } from '@/constants/mock-data';
 import { storageService } from './storage-service';
 import { availabilityService } from './availability-service';
 import { notificationService } from './notification-service';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BookingService');
-
-// Consolidated storage key - all bookings now stored here
-const SESSION_BOOKINGS_KEY = 'session_bookings';
 
 export type BookingDraft = {
   sessionType?: string;
@@ -65,11 +64,7 @@ class BookingService {
 
   async list(): Promise<Booking[]> {
     try {
-      const stored = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-      return [];
+      return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
     } catch (error) {
       logger.error('Failed to list bookings', error);
       return [];
@@ -86,9 +81,8 @@ class BookingService {
 
     // Also check session bookings
     try {
-      const sessionBookingsRaw = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      if (sessionBookingsRaw) {
-        const sessionBookings = JSON.parse(sessionBookingsRaw);
+      const sessionBookings = await apiClient.get<any[]>(STORAGE_KEYS.BOOKINGS, []);
+      if (sessionBookings.length > 0) {
         const sessionBooking = sessionBookings.find((b: any) => b.id === id);
         if (sessionBooking) {
           return {
@@ -115,7 +109,7 @@ class BookingService {
   async updateStatus(id: string, status: Booking['status']) {
     const bookings = await this.list();
     const updated = bookings.map((b) => (b.id === id ? { ...b, status } : b));
-    await AsyncStorage.setItem(SESSION_BOOKINGS_KEY, JSON.stringify(updated));
+    await apiClient.set(STORAGE_KEYS.BOOKINGS, updated);
     return updated.find((b) => b.id === id);
   }
 
@@ -125,7 +119,7 @@ class BookingService {
     const updated = bookings.map((b) =>
       b.id === id ? { ...b, status: 'CANCELLED', cancellationReason: reason } : b
     );
-    await AsyncStorage.setItem(SESSION_BOOKINGS_KEY, JSON.stringify(updated));
+    await apiClient.set(STORAGE_KEYS.BOOKINGS, updated);
 
     // Notify the other party about the cancellation
     if (booking) {
@@ -136,24 +130,12 @@ class BookingService {
           })
         : 'upcoming date';
 
-      if (cancelledBy === 'parent' && booking.coachId) {
+      if (cancelledBy === 'parent') {
         // Notify coach when parent cancels
-        await notificationService.notifyCoachBookingCancelled({
-          coachId: booking.coachId,
-          parentName: 'Parent',
-          date,
-          bookingId: id,
-        });
+        await notificationTriggers.bookingCancelled('Parent', date, 'coach', booking.coachId);
       } else {
         // Notify parent when coach cancels
-        await notificationService.create({
-          id: `notif_cancel_${Date.now()}`,
-          type: 'booking',
-          title: 'Booking Cancelled',
-          body: `Coach ${booking.coachName} cancelled your session for ${date}`,
-          timeLabel: 'Just now',
-          read: false,
-        });
+        await notificationTriggers.bookingCancelled(booking.coachName || 'Coach', date, 'parent', booking.bookedById);
       }
     }
 
@@ -255,13 +237,18 @@ class BookingService {
 
     // Save to session bookings storage
     try {
-      const existingBookings = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      const bookings = existingBookings ? JSON.parse(existingBookings) : [];
+      const bookings = await apiClient.get<any[]>(STORAGE_KEYS.BOOKINGS, []);
       bookings.push(newBooking);
-      await AsyncStorage.setItem(SESSION_BOOKINGS_KEY, JSON.stringify(bookings));
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
 
       // Create notifications for coach and parent
       await this.createBookingNotifications(newBooking, bookedByName);
+
+      // Trigger notification for coach
+      const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric',
+      });
+      await notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
 
       return { success: true, booking: newBooking };
     } catch (error) {
@@ -312,8 +299,7 @@ class BookingService {
    */
   async getBookingsForUser(userId: string, role: 'coach' | 'parent' | 'athlete'): Promise<any[]> {
     try {
-      const stored = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      const bookings = stored ? JSON.parse(stored) : [];
+      const bookings = await apiClient.get<any[]>(STORAGE_KEYS.BOOKINGS, []);
 
       switch (role) {
         case 'coach':
@@ -336,8 +322,7 @@ class BookingService {
    */
   async confirmBooking(bookingId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const stored = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      const bookings = stored ? JSON.parse(stored) : [];
+      const bookings = await apiClient.get<any[]>(STORAGE_KEYS.BOOKINGS, []);
 
       const bookingIndex = bookings.findIndex((b: any) => b.id === bookingId);
       if (bookingIndex === -1) {
@@ -345,7 +330,7 @@ class BookingService {
       }
 
       bookings[bookingIndex].status = 'CONFIRMED';
-      await AsyncStorage.setItem(SESSION_BOOKINGS_KEY, JSON.stringify(bookings));
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
 
       // Create confirmation notification
       const booking = bookings[bookingIndex];
@@ -476,15 +461,67 @@ class BookingService {
   }
 
   /**
+   * Update a booking with partial fields
+   */
+  async updateBooking(id: string, updates: Partial<Booking>): Promise<Booking> {
+    const bookings = await this.list();
+    const index = bookings.findIndex((b) => b.id === id);
+    if (index === -1) throw new Error('Booking not found');
+
+    const updated = { ...bookings[index], ...updates };
+    bookings[index] = updated;
+    await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
+    return updated;
+  }
+
+  /**
+   * Check if a confirmed booking has passed its session end time and
+   * transition it to AWAITING_COMPLETION status automatically.
+   */
+  async checkAndTransitionStatus(bookingId: string): Promise<Booking> {
+    const booking = await this.getBooking(bookingId);
+    if (!booking) throw new Error('Booking not found');
+
+    const sessionEnd = new Date(booking.scheduledAt);
+    sessionEnd.setMinutes(sessionEnd.getMinutes() + (booking.duration || 60));
+
+    if (booking.status === 'CONFIRMED' && new Date() > sessionEnd) {
+      return this.updateBooking(bookingId, { status: 'AWAITING_COMPLETION' as any });
+    }
+    return booking;
+  }
+
+  /**
+   * Get all bookings for a coach that are awaiting completion.
+   * Also auto-detects confirmed sessions whose time has passed.
+   */
+  async getAwaitingCompletion(coachId: string): Promise<Booking[]> {
+    const bookings = await this.list();
+    const now = new Date();
+
+    return bookings.filter((b) => {
+      if (b.coachId !== coachId) return false;
+      if (b.status === 'AWAITING_COMPLETION') return true;
+
+      // Auto-transition confirmed sessions that have passed
+      if (b.status === 'CONFIRMED') {
+        const end = new Date(b.scheduledAt);
+        end.setMinutes(end.getMinutes() + (b.duration || 60));
+        return now > end;
+      }
+      return false;
+    });
+  }
+
+  /**
    * Save a booking directly without validation (for internal service use only)
    * Used by recurringBookingService and other trusted callers
    */
   async saveBookingDirect(booking: any): Promise<{ success: boolean; error?: string }> {
     try {
-      const existingBookings = await AsyncStorage.getItem(SESSION_BOOKINGS_KEY);
-      const bookings = existingBookings ? JSON.parse(existingBookings) : [];
+      const bookings = await apiClient.get<any[]>(STORAGE_KEYS.BOOKINGS, []);
       bookings.push(booking);
-      await AsyncStorage.setItem(SESSION_BOOKINGS_KEY, JSON.stringify(bookings));
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
       return { success: true };
     } catch (error) {
       logger.error('Failed to save booking directly', error);

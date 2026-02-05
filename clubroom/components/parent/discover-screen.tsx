@@ -12,11 +12,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { CardStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -29,8 +31,10 @@ import {
 } from '@/constants/mock-data';
 import { availabilityService } from '@/services/availability-service';
 import { inviteService as sessionInviteService } from '@/services/invite-service';
+import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
 import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
+import type { Booking } from '@/constants/app-types';
 
 const logger = createLogger('ParentDiscoverScreen');
 
@@ -47,6 +51,7 @@ export function ParentDiscoverScreen() {
   const [selectedChildId, setSelectedChildId] = useState<string | undefined>(undefined);
   const [loadingInvites, setLoadingInvites] = useState(false);
   const [invitesError, setInvitesError] = useState<string | null>(null);
+  const [completedSessions, setCompletedSessions] = useState<Booking[]>([]);
 
   // Get children for the current parent
   const children = useMemo(() => {
@@ -83,14 +88,58 @@ export function ParentDiscoverScreen() {
     }
   }, [children, selectedChildId]);
 
-  // Load pending invites when screen comes into focus
+  // Load pending invites and completed sessions when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       if (currentUser?.id) {
         loadPendingInvites();
+        loadCompletedSessions();
       }
     }, [currentUser?.id])
   );
+
+  const loadCompletedSessions = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const bookings = await bookingService.getBookingsForUser(currentUser.id, 'parent');
+      const dismissed = await AsyncStorage.getItem('dismissed_reviews');
+      const dismissedMap: Record<string, number> = dismissed ? JSON.parse(dismissed) : {};
+      const now = Date.now();
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+
+      const needsReview = bookings.filter((b: any) => {
+        if (b.status !== 'COMPLETED') return false;
+        const dismissedAt = dismissedMap[b.id];
+        // If dismissed, re-prompt after 24h once
+        if (dismissedAt) {
+          const secondDismiss = dismissedMap[`${b.id}_second`];
+          if (secondDismiss) return false; // Already prompted twice
+          return now - dismissedAt > ONE_DAY;
+        }
+        return true;
+      });
+      setCompletedSessions(needsReview.slice(0, 2));
+    } catch (error) {
+      logger.error('Failed to load completed sessions', error);
+    }
+  };
+
+  const dismissReview = async (bookingId: string) => {
+    try {
+      const dismissed = await AsyncStorage.getItem('dismissed_reviews');
+      const dismissedMap: Record<string, number> = dismissed ? JSON.parse(dismissed) : {};
+      if (dismissedMap[bookingId]) {
+        // Second dismiss
+        dismissedMap[`${bookingId}_second`] = Date.now();
+      } else {
+        dismissedMap[bookingId] = Date.now();
+      }
+      await AsyncStorage.setItem('dismissed_reviews', JSON.stringify(dismissedMap));
+      setCompletedSessions(prev => prev.filter(b => b.id !== bookingId));
+    } catch (error) {
+      logger.error('Failed to dismiss review', error);
+    }
+  };
 
   const loadPendingInvites = async () => {
     if (!currentUser?.id) return;
@@ -365,6 +414,62 @@ export function ParentDiscoverScreen() {
             </View>
           </SurfaceCard>
         </Animated.View>
+
+        {/* Review Prompt for Completed Sessions */}
+        {completedSessions.length > 0 && (
+          <Animated.View entering={FadeInDown.springify()} style={styles.reviewSection}>
+            {completedSessions.map((session, index) => {
+              const sessionDate = new Date(session.scheduledAt);
+              const isToday = sessionDate.toDateString() === new Date().toDateString();
+              const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              const dateStr = isToday ? `Today ${timeStr}` : sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ` ${timeStr}`;
+
+              return (
+                <Animated.View key={session.id} entering={FadeInDown.delay(index * 80).springify()}>
+                  <SurfaceCard style={[styles.reviewCard, { borderLeftColor: palette.warning }]}>
+                    <View style={styles.reviewCardContent}>
+                      <View style={styles.reviewInfo}>
+                        <ThemedText type="defaultSemiBold" style={styles.reviewTitle}>
+                          How was {session.athleteName ? `${session.athleteName}'s` : 'the'} session?
+                        </ThemedText>
+                        <ThemedText style={[styles.reviewMeta, { color: palette.muted }]}>
+                          with Coach {session.coachName || 'Coach'} -- {dateStr}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.reviewActions}>
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.rateButton,
+                            { backgroundColor: palette.tint, opacity: pressed ? 0.8 : 1 },
+                          ]}
+                          onPress={() => {
+                            logger.press('RateNow', { bookingId: session.id });
+                            router.push({
+                              pathname: '/review/create' as any,
+                              params: { bookingId: session.id, coachId: session.coachId },
+                            });
+                          }}
+                        >
+                          <Ionicons name="star" size={14} color="#fff" />
+                          <ThemedText style={styles.rateButtonText}>Rate Now</ThemedText>
+                        </Pressable>
+                        <Pressable
+                          style={({ pressed }) => [
+                            styles.laterButton,
+                            { borderColor: palette.border, opacity: pressed ? 0.7 : 1 },
+                          ]}
+                          onPress={() => dismissReview(session.id)}
+                        >
+                          <ThemedText style={[styles.laterButtonText, { color: palette.muted }]}>Later</ThemedText>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </SurfaceCard>
+                </Animated.View>
+              );
+            })}
+          </Animated.View>
+        )}
 
         {/* Loading State for Invites */}
         {loadingInvites && (
@@ -914,5 +1019,57 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Review prompt styles
+  reviewSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  reviewCard: {
+    padding: Spacing.md,
+    borderLeftWidth: 3,
+  },
+  reviewCardContent: {
+    gap: Spacing.sm,
+  },
+  reviewInfo: {
+    gap: 4,
+  },
+  reviewTitle: {
+    fontSize: 16,
+    letterSpacing: -0.2,
+  },
+  reviewMeta: {
+    fontSize: 13,
+  },
+  reviewActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  rateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+  },
+  rateButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  laterButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+  },
+  laterButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

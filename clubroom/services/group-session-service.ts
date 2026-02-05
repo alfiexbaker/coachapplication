@@ -13,16 +13,15 @@
  * - GET /api/group-sessions/:id/roster - Get participants
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationTriggers } from './notification-trigger';
 import type { GroupSession, GroupRegistration, GroupSessionSchedule, FootballObjective, RecurringPattern } from '@/constants/types';
 import { socialFeedService } from './social-feed-service';
 import { notificationService } from './notification-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('GroupSessionService');
-
-const SESSIONS_STORAGE_KEY = 'group_sessions';
-const REGISTRATIONS_STORAGE_KEY = 'group_registrations';
 const USE_MOCK = true;
 
 // Mock group sessions
@@ -274,6 +273,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_1',
     athleteId: 'user1',
     athleteName: 'Tom Henderson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-06T09:00:00Z',
     paidAt: '2026-01-06T09:05:00Z',
@@ -284,6 +285,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_1',
     athleteId: 'user2',
     athleteName: 'Emma Henderson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-06T09:30:00Z',
     paidAt: '2026-01-06T09:35:00Z',
@@ -294,6 +297,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_1',
     athleteId: 'user3',
     athleteName: 'James Wilson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-07T10:00:00Z',
     paidAt: '2026-01-07T10:05:00Z',
@@ -304,6 +309,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_1',
     athleteId: 'user4',
     athleteName: 'Sophie Taylor',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-07T14:00:00Z',
     paidAt: '2026-01-07T14:02:00Z',
@@ -314,6 +321,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_1',
     athleteId: 'user5',
     athleteName: 'Liam Davies',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'WAITLISTED',
     registeredAt: '2026-01-08T11:00:00Z',
     attendedDates: [],
@@ -324,6 +333,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_2',
     athleteId: 'user1',
     athleteName: 'Tom Henderson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-09T10:00:00Z',
     paidAt: '2026-01-09T10:02:00Z',
@@ -334,6 +345,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_2',
     athleteId: 'user3',
     athleteName: 'James Wilson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-09T11:00:00Z',
     paidAt: '2026-01-09T11:05:00Z',
@@ -344,6 +357,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_2',
     athleteId: 'user6',
     athleteName: 'Ella Martinez',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-10T09:00:00Z',
     paidAt: '2026-01-10T09:10:00Z',
@@ -355,6 +370,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_3',
     athleteId: 'user2',
     athleteName: 'Emma Henderson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-11T15:00:00Z',
     paidAt: '2026-01-11T15:05:00Z',
@@ -365,6 +382,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_3',
     athleteId: 'user5',
     athleteName: 'Liam Davies',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-11T16:00:00Z',
     paidAt: '2026-01-11T16:02:00Z',
@@ -376,6 +395,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_4',
     athleteId: 'user4',
     athleteName: 'Sophie Taylor',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-12T10:00:00Z',
     attendedDates: [],
@@ -385,6 +406,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_4',
     athleteId: 'user6',
     athleteName: 'Ella Martinez',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-12T11:00:00Z',
     attendedDates: [],
@@ -395,6 +418,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_training_1',
     athleteId: 'user1',
     athleteName: 'Tom Henderson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-01T09:00:00Z',
     attendedDates: ['2026-01-14', '2026-01-21'],
@@ -404,6 +429,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_training_1',
     athleteId: 'user2',
     athleteName: 'Emma Henderson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-01T09:00:00Z',
     attendedDates: ['2026-01-14'],
@@ -413,6 +440,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_training_1',
     athleteId: 'user3',
     athleteName: 'James Wilson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-02T10:00:00Z',
     attendedDates: ['2026-01-14', '2026-01-21'],
@@ -422,6 +451,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_training_1',
     athleteId: 'user4',
     athleteName: 'Sophie Taylor',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-02T10:30:00Z',
     attendedDates: ['2026-01-14'],
@@ -431,6 +462,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_training_1',
     athleteId: 'user5',
     athleteName: 'Liam Davies',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-03T11:00:00Z',
     attendedDates: [],
@@ -440,6 +473,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_training_1',
     athleteId: 'user6',
     athleteName: 'Ella Martinez',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-03T12:00:00Z',
     attendedDates: ['2026-01-14', '2026-01-21'],
@@ -450,6 +485,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_training_3',
     athleteId: 'user1',
     athleteName: 'Tom Henderson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'REGISTERED',
     registeredAt: '2026-01-01T08:00:00Z',
     attendedDates: ['2026-01-15'],
@@ -459,6 +496,8 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
     sessionId: 'gs_training_3',
     athleteId: 'user3',
     athleteName: 'James Wilson',
+    parentId: 'user_parent_01',
+    parentName: 'Sarah Johnson',
     status: 'ATTENDED',
     registeredAt: '2026-01-01T08:30:00Z',
     attendedDates: ['2026-01-15'],
@@ -470,8 +509,8 @@ let registrationsCache: GroupRegistration[] = [...MOCK_REGISTRATIONS];
 
 async function loadSessions(): Promise<GroupSession[]> {
   try {
-    const stored = await AsyncStorage.getItem(SESSIONS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<GroupSession[] | null>(STORAGE_KEYS.GROUP_SESSIONS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load sessions', error);
   }
@@ -480,7 +519,7 @@ async function loadSessions(): Promise<GroupSession[]> {
 
 async function saveSessions(sessions: GroupSession[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+    await apiClient.set(STORAGE_KEYS.GROUP_SESSIONS, sessions);
   } catch (error) {
     logger.error('Failed to save sessions', error);
   }
@@ -488,8 +527,8 @@ async function saveSessions(sessions: GroupSession[]): Promise<void> {
 
 async function loadRegistrations(): Promise<GroupRegistration[]> {
   try {
-    const stored = await AsyncStorage.getItem(REGISTRATIONS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<GroupRegistration[] | null>(STORAGE_KEYS.GROUP_REGISTRATIONS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load registrations', error);
   }
@@ -498,7 +537,7 @@ async function loadRegistrations(): Promise<GroupRegistration[]> {
 
 async function saveRegistrations(registrations: GroupRegistration[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(REGISTRATIONS_STORAGE_KEY, JSON.stringify(registrations));
+    await apiClient.set(STORAGE_KEYS.GROUP_REGISTRATIONS, registrations);
   } catch (error) {
     logger.error('Failed to save registrations', error);
   }
@@ -683,6 +722,11 @@ export const groupSessionService = {
       sessionsCache = await loadSessions();
       sessionsCache.push(newSession);
       await saveSessions(sessionsCache);
+
+      // Trigger notification for group session creation
+      const firstDate = newSession.schedule[0]?.date || 'TBD';
+      await notificationTriggers.groupSessionCreated(newSession.title, firstDate);
+
       return newSession;
     }
 
@@ -743,6 +787,10 @@ export const groupSessionService = {
 
       session.status = 'CANCELLED';
       await saveSessions(sessionsCache);
+
+      // Trigger notification for group session cancellation
+      await notificationTriggers.groupSessionCancelled(session.title);
+
       return session;
     }
 
@@ -788,6 +836,11 @@ export const groupSessionService = {
       registrationsCache.push(registration);
       await saveRegistrations(registrationsCache);
 
+      // Trigger notification to coach for new registration
+      if (!isFull) {
+        await notificationTriggers.groupRegistered(athleteName, session.title, session.coachId);
+      }
+
       // Update session counts
       if (isFull) {
         session.waitlistCount += 1;
@@ -824,6 +877,12 @@ export const groupSessionService = {
       const wasRegistered = registration.status === 'REGISTERED';
       registration.status = 'CANCELLED';
       await saveRegistrations(registrationsCache);
+
+      // Trigger notification to coach for cancelled registration
+      const sessionForNotif = sessionsCache.find((s) => s.id === registration.sessionId);
+      if (sessionForNotif && wasRegistered) {
+        await notificationTriggers.groupCancelledRegistration(registration.athleteName, sessionForNotif.title, sessionForNotif.coachId);
+      }
 
       // Update session counts
       const session = sessionsCache.find((s) => s.id === registration.sessionId);

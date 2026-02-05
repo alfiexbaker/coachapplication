@@ -56,7 +56,7 @@ export interface ChildRelationship {
 }
 
 // Bookings & Sessions
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type BookingStatus = 'PENDING' | 'AWAITING_CONFIRMATION' | 'CONFIRMED' | 'AWAITING_COMPLETION' | 'COMPLETED' | 'CANCELLED';
 
 export interface Booking {
   id: string;
@@ -87,6 +87,13 @@ export interface Booking {
   start?: string;
   // Session invite link (bidirectional)
   sessionInviteId?: string;
+  // Bilateral confirmation fields
+  confirmationMode?: 'auto' | 'manual';  // coach preference
+  confirmedAt?: string;                    // when coach confirmed (manual mode)
+  declinedReason?: string;                 // if coach declines booking request
+  cancelledBy?: string;                    // userId who cancelled
+  cancelledAt?: string;                    // when cancelled
+  cancelReason?: string;                   // reason for cancellation
 }
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';

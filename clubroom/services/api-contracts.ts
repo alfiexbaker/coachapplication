@@ -34,7 +34,7 @@ export type {
   SessionOffering,
   SessionRegistration,
   SessionInvite,
-  ProposedSlot,
+  TimeSlot,
 
   // Family & Children
   FamilyAccount,
@@ -53,12 +53,11 @@ export type {
   PayoutMethod,
 
   // Progress & Badges
-  Badge,
+  BadgeDefinition,
   BadgeAward,
-  ProgressionLevel,
 
   // Notifications
-  AppNotification,
+  Notification,
   NotificationPreferences,
 
   // Reviews & Feedback
@@ -66,12 +65,14 @@ export type {
 
   // Cancellation
   CancellationPolicy,
-  CancellationRequest,
+  CancellationReason,
   RefundCalculation,
 } from '@/constants/types';
 
 export type { Booking } from '@/constants/app-types';
 export type { CreateBookingParams, BookingDraft } from './booking-service';
+
+import type { UserProfile, CoachProfile } from '@/constants/types';
 
 // ============================================================================
 // API CONFIGURATION
@@ -158,6 +159,39 @@ export interface AuthAPI {
     path: '/auth/forgot-password';
     body: { email: string };
     response: { success: boolean; message: string };
+  };
+
+  /**
+   * POST /auth/reset-password
+   * Reset password using token from email
+   */
+  resetPassword: {
+    method: 'POST';
+    path: '/auth/reset-password';
+    body: { token: string; newPassword: string };
+    response: { success: boolean };
+  };
+
+  /**
+   * GET /auth/check-email
+   * PUBLIC: Check if an email is available for registration
+   */
+  checkEmail: {
+    method: 'GET';
+    path: '/auth/check-email';
+    query: { email: string };
+    response: { available: boolean };
+  };
+
+  /**
+   * POST /auth/verify-email
+   * Verify email address with code
+   */
+  verifyEmail: {
+    method: 'POST';
+    path: '/auth/verify-email';
+    body: { code: string };
+    response: { success: boolean };
   };
 }
 
@@ -491,7 +525,7 @@ export interface SessionOfferingAPI {
 // SESSION INVITES ENDPOINTS (Priority: HIGH)
 // ============================================================================
 
-import type { SessionInvite, ProposedSlot } from '@/constants/types';
+import type { SessionInvite, TimeSlot } from '@/constants/types';
 
 export interface SessionInviteAPI {
   /**
@@ -521,7 +555,7 @@ export interface SessionInviteAPI {
       parentId?: string;
       parentName?: string;
       parentEmail: string;
-      proposedSlots: ProposedSlot[];
+      proposedSlots: TimeSlot[];
       message?: string;
       sessionType: string;
       skillFocus: string[];
@@ -573,7 +607,7 @@ export interface SessionInviteAPI {
     path: '/session-invites/:inviteId/counter';
     params: { inviteId: string };
     body: {
-      proposedSlots: ProposedSlot[];
+      proposedSlots: TimeSlot[];
       message?: string;
     };
     response: SessionInvite;
@@ -850,7 +884,7 @@ export interface EarningsAPI {
 // NOTIFICATIONS ENDPOINTS (Priority: MEDIUM)
 // ============================================================================
 
-import type { AppNotification, NotificationPreferences } from '@/constants/types';
+import type { Notification, NotificationPreferences } from '@/constants/types';
 
 export interface NotificationAPI {
   /**
@@ -866,7 +900,7 @@ export interface NotificationAPI {
       offset?: number;
     };
     response: {
-      notifications: AppNotification[];
+      notifications: Notification[];
       unreadCount: number;
     };
   };
@@ -932,7 +966,7 @@ export interface NotificationAPI {
 // BADGES & PROGRESS ENDPOINTS (Priority: MEDIUM)
 // ============================================================================
 
-import type { Badge, BadgeAward, ProgressionLevel } from '@/constants/types';
+import type { BadgeDefinition, BadgeAward } from '@/constants/types';
 
 export interface BadgeAPI {
   /**
@@ -943,7 +977,7 @@ export interface BadgeAPI {
     method: 'GET';
     path: '/badges';
     query: { category?: string };
-    response: Badge[];
+    response: BadgeDefinition[];
   };
 
   /**
@@ -982,7 +1016,7 @@ export interface BadgeAPI {
     path: '/athletes/:athleteId/progression';
     params: { athleteId: string };
     response: {
-      level: ProgressionLevel;
+      level: string;
       totalPoints: number;
       categoryProgress: Array<{
         category: string;
@@ -1127,8 +1161,6 @@ export interface SchedulingRulesAPI {
 // COACH PROFILE ENDPOINTS (Priority: MEDIUM)
 // ============================================================================
 
-import type { CoachProfile } from '@/constants/types';
-
 export interface CoachProfileAPI {
   /**
    * GET /coaches/:coachId
@@ -1211,7 +1243,7 @@ export interface WebSocketEvents {
   'invite:countered': { invite: SessionInvite };
 
   // Notification events
-  'notification:new': { notification: AppNotification };
+  'notification:new': { notification: Notification };
 
   // Chat/messaging events
   'message:received': { conversationId: string; message: any };
@@ -1306,4 +1338,247 @@ export const SERVICE_MIGRATION_STATUS = {
   'analytics-service': { status: 'PARTIAL', endpoints: 3 },
   'social-feed-service': { status: 'PARTIAL', endpoints: 4 },
   'messaging-service': { status: 'PARTIAL', endpoints: 5 },
+  'club-service': { status: 'PARTIAL', endpoints: 6 },
 } as const;
+
+// ============================================================================
+// MESSAGING ENDPOINTS (Priority: MEDIUM)
+// ============================================================================
+
+export interface MessagingAPI {
+  /**
+   * GET /messages/threads
+   * Get all message threads for current user
+   */
+  listThreads: {
+    method: 'GET';
+    path: '/messages/threads';
+    query: { limit?: number; offset?: number };
+    response: {
+      threads: Array<{
+        id: string;
+        participants: Array<{ id: string; name: string; avatar?: string }>;
+        lastMessage: { body: string; sentAt: string; senderId: string };
+        unreadCount: number;
+      }>;
+      total: number;
+    };
+  };
+
+  /**
+   * GET /messages/threads/:threadId
+   * Get messages in a thread
+   */
+  getThread: {
+    method: 'GET';
+    path: '/messages/threads/:threadId';
+    params: { threadId: string };
+    query: { limit?: number; before?: string };
+    response: {
+      messages: Array<{
+        id: string;
+        body: string;
+        senderId: string;
+        sentAt: string;
+        readAt?: string;
+      }>;
+      hasMore: boolean;
+    };
+  };
+
+  /**
+   * POST /messages/threads/:threadId/messages
+   * Send a message in a thread
+   */
+  sendMessage: {
+    method: 'POST';
+    path: '/messages/threads/:threadId/messages';
+    params: { threadId: string };
+    body: { body: string; attachments?: string[] };
+    response: {
+      id: string;
+      body: string;
+      senderId: string;
+      sentAt: string;
+    };
+  };
+
+  /**
+   * POST /messages/threads
+   * Create a new thread
+   */
+  createThread: {
+    method: 'POST';
+    path: '/messages/threads';
+    body: { participantIds: string[]; initialMessage?: string };
+    response: { threadId: string };
+  };
+
+  /**
+   * PUT /messages/threads/:threadId/read
+   * Mark all messages in thread as read
+   */
+  markThreadRead: {
+    method: 'PUT';
+    path: '/messages/threads/:threadId/read';
+    params: { threadId: string };
+    response: { success: boolean };
+  };
+}
+
+// ============================================================================
+// CLUB ENDPOINTS (Priority: MEDIUM)
+// ============================================================================
+
+export interface ClubAPI {
+  /**
+   * GET /clubs
+   * Get clubs for current user
+   */
+  listClubs: {
+    method: 'GET';
+    path: '/clubs';
+    query: { role?: 'member' | 'admin'; limit?: number };
+    response: {
+      clubs: Array<{
+        id: string;
+        name: string;
+        description: string;
+        memberCount: number;
+        avatar?: string;
+      }>;
+      total: number;
+    };
+  };
+
+  /**
+   * GET /clubs/:clubId
+   * Get club details
+   */
+  getClub: {
+    method: 'GET';
+    path: '/clubs/:clubId';
+    params: { clubId: string };
+    response: {
+      id: string;
+      name: string;
+      description: string;
+      members: Array<{ id: string; name: string; role: string }>;
+      settings: Record<string, any>;
+    };
+  };
+
+  /**
+   * GET /clubs/:clubId/feed
+   * Get club feed posts
+   */
+  getClubFeed: {
+    method: 'GET';
+    path: '/clubs/:clubId/feed';
+    params: { clubId: string };
+    query: { limit?: number; before?: string };
+    response: {
+      posts: Array<{
+        id: string;
+        authorId: string;
+        authorName: string;
+        body: string;
+        createdAt: string;
+        likes: number;
+        comments: number;
+      }>;
+      hasMore: boolean;
+    };
+  };
+
+  /**
+   * POST /clubs/:clubId/feed
+   * Create a post in club feed
+   */
+  createPost: {
+    method: 'POST';
+    path: '/clubs/:clubId/feed';
+    params: { clubId: string };
+    body: { body: string; attachments?: string[] };
+    response: { id: string; createdAt: string };
+  };
+
+  /**
+   * POST /clubs/:clubId/members
+   * Add member to club
+   */
+  addMember: {
+    method: 'POST';
+    path: '/clubs/:clubId/members';
+    params: { clubId: string };
+    body: { userId: string; role: string };
+    response: { success: boolean };
+  };
+
+  /**
+   * DELETE /clubs/:clubId/members/:userId
+   * Remove member from club
+   */
+  removeMember: {
+    method: 'DELETE';
+    path: '/clubs/:clubId/members/:userId';
+    params: { clubId: string; userId: string };
+    response: { success: boolean };
+  };
+}
+
+// ============================================================================
+// ANALYTICS ENDPOINTS (Priority: LOW)
+// ============================================================================
+
+export interface AnalyticsAPI {
+  /**
+   * GET /analytics/coach/dashboard
+   * Get coach dashboard analytics
+   */
+  coachDashboard: {
+    method: 'GET';
+    path: '/analytics/coach/dashboard';
+    query: { period?: 'week' | 'month' | 'quarter' | 'year' };
+    response: {
+      totalSessions: number;
+      totalRevenue: number;
+      averageRating: number;
+      retentionRate: number;
+      upcomingSessions: number;
+      trends: Array<{ date: string; sessions: number; revenue: number }>;
+    };
+  };
+
+  /**
+   * GET /analytics/athlete/:athleteId
+   * Get athlete progress analytics
+   */
+  athleteProgress: {
+    method: 'GET';
+    path: '/analytics/athlete/:athleteId';
+    params: { athleteId: string };
+    query: { period?: 'month' | 'quarter' | 'year' };
+    response: {
+      totalSessions: number;
+      badgesEarned: number;
+      skillProgress: Array<{ skill: string; level: number; change: number }>;
+      attendance: number;
+    };
+  };
+
+  /**
+   * POST /analytics/events
+   * Track analytics event
+   */
+  trackEvent: {
+    method: 'POST';
+    path: '/analytics/events';
+    body: {
+      event: string;
+      properties?: Record<string, any>;
+      timestamp?: string;
+    };
+    response: { success: boolean };
+  };
+}

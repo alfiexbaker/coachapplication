@@ -1,9 +1,8 @@
 import { chatThreads, chatMessages } from '@/constants/mock-data';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationService } from './notification-service';
-
-const STORAGE_KEY = 'clubroom.messages';
 
 export class MessagingService {
   private inMemoryThreads: ChatThreadSummary[] = chatThreads;
@@ -24,7 +23,7 @@ export class MessagingService {
   }
 
   async listMessages(threadId: string): Promise<ChatMessage[]> {
-    const persisted = await storageService.getItem<Record<string, ChatMessage[]>>(STORAGE_KEY, {});
+    const persisted = await apiClient.get<Record<string, ChatMessage[]>>(STORAGE_KEYS.MESSAGES, {});
     const messages = persisted[threadId] || this.inMemoryMessages[threadId] || [];
     return messages.sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -111,11 +110,11 @@ export class MessagingService {
   }
 
   async deleteMessage(threadId: string, messageId: string) {
-    const persisted = await storageService.getItem<Record<string, ChatMessage[]>>(STORAGE_KEY, {});
+    const persisted = await apiClient.get<Record<string, ChatMessage[]>>(STORAGE_KEYS.MESSAGES, {});
     const current = persisted[threadId] || this.inMemoryMessages[threadId] || [];
     const updated = current.filter((msg) => msg.id !== messageId);
     persisted[threadId] = updated;
-    await storageService.setItem(STORAGE_KEY, persisted);
+    await apiClient.set(STORAGE_KEYS.MESSAGES, persisted);
     // Also update in-memory cache
     if (this.inMemoryMessages[threadId]) {
       this.inMemoryMessages[threadId] = this.inMemoryMessages[threadId].filter((msg) => msg.id !== messageId);
@@ -123,19 +122,19 @@ export class MessagingService {
   }
 
   private async updateStatus(threadId: string, messageId: string, status: ChatMessage['status']) {
-    const persisted = await storageService.getItem<Record<string, ChatMessage[]>>(STORAGE_KEY, {});
+    const persisted = await apiClient.get<Record<string, ChatMessage[]>>(STORAGE_KEYS.MESSAGES, {});
     const current = persisted[threadId] || this.inMemoryMessages[threadId] || [];
     const updated = current.map((msg) => (msg.id === messageId ? { ...msg, status } : msg));
     persisted[threadId] = updated;
-    await storageService.setItem(STORAGE_KEY, persisted);
+    await apiClient.set(STORAGE_KEYS.MESSAGES, persisted);
   }
 
   private async persistMessage(threadId: string, message: ChatMessage) {
-    const persisted = await storageService.getItem<Record<string, ChatMessage[]>>(STORAGE_KEY, {});
+    const persisted = await apiClient.get<Record<string, ChatMessage[]>>(STORAGE_KEYS.MESSAGES, {});
     const current = persisted[threadId] || this.inMemoryMessages[threadId] || [];
     const updated = [...current, message];
     persisted[threadId] = updated;
-    await storageService.setItem(STORAGE_KEY, persisted);
+    await apiClient.set(STORAGE_KEYS.MESSAGES, persisted);
   }
 }
 

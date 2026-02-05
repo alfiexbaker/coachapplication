@@ -16,6 +16,53 @@ import { ScreenHeader } from '@/components/primitives/screen-header';
 
 const logger = createLogger('NotificationsScreen');
 
+// ============================================================================
+// DAY GROUPING HELPER
+// ============================================================================
+
+interface GroupedNotifications {
+  label: string;
+  items: ExtendedNotificationItem[];
+}
+
+function groupByDay(notifications: ExtendedNotificationItem[]): GroupedNotifications[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today.getTime() - 86400000);
+
+  const groups: Record<string, ExtendedNotificationItem[]> = {
+    Today: [],
+    Yesterday: [],
+    Earlier: [],
+  };
+
+  for (const item of notifications) {
+    const createdAt = item.createdAt ? new Date(item.createdAt) : null;
+    const timeLabel = (item.timeLabel || '').toLowerCase();
+
+    if (
+      timeLabel.includes('just now') ||
+      timeLabel.includes('min ago') ||
+      timeLabel.includes('hour ago') ||
+      timeLabel.includes('hours ago') ||
+      (createdAt && createdAt >= today)
+    ) {
+      groups.Today.push(item);
+    } else if (
+      timeLabel.includes('yesterday') ||
+      (createdAt && createdAt >= yesterday && createdAt < today)
+    ) {
+      groups.Yesterday.push(item);
+    } else {
+      groups.Earlier.push(item);
+    }
+  }
+
+  return Object.entries(groups)
+    .filter(([_, items]) => items.length > 0)
+    .map(([label, items]) => ({ label, items }));
+}
+
 // Filter options
 const FILTERS: { key: NotificationFilter; label: string; icon: string }[] = [
   { key: 'all', label: 'All', icon: 'apps' },
@@ -220,14 +267,21 @@ export function NotificationsPanel({
                 </ThemedText>
               </View>
             )}
-            {visibleItems.map((item) => (
-              <NotificationCard
-                key={item.id}
-                item={item}
-                onPress={() => handleNotificationPress(item.id)}
-                onShare={item.type === 'badge' ? () => handleShare(item) : undefined}
-                onAddToFeed={item.type === 'badge' && !item.handled ? () => handleAddToFeed(item) : undefined}
-              />
+            {groupByDay(visibleItems).map((group) => (
+              <View key={group.label} style={styles.dayGroup}>
+                <ThemedText style={[styles.dayLabel, { color: palette.muted }]}>
+                  {group.label}
+                </ThemedText>
+                {group.items.map((item) => (
+                  <NotificationCard
+                    key={item.id}
+                    item={item}
+                    onPress={() => handleNotificationPress(item.id)}
+                    onShare={item.type === 'badge' ? () => handleShare(item) : undefined}
+                    onAddToFeed={item.type === 'badge' && !item.handled ? () => handleAddToFeed(item) : undefined}
+                  />
+                ))}
+              </View>
             ))}
           </>
         )}
@@ -374,5 +428,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     marginBottom: Spacing.xs,
+  },
+  dayGroup: {
+    gap: Spacing.sm,
+  },
+  dayLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    paddingBottom: Spacing.xs,
   },
 });

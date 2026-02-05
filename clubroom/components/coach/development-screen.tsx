@@ -1,7 +1,7 @@
-import { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { ThemedText } from '@/components/themed-text';
@@ -10,6 +10,7 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { CardStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -17,7 +18,8 @@ import {
   getUserById,
   formatDate,
 } from '@/constants/mock-data';
-import type { Session, User } from '@/constants/app-types';
+import type { Session, User, Booking } from '@/constants/app-types';
+import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
 import { BadgeAwardModal, BADGE_REASONS } from '@/components/badges/badge-award-modal';
 
@@ -41,6 +43,26 @@ export function CoachDevelopmentScreen() {
   const { currentUser } = useAuth();
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [awaitingCompletion, setAwaitingCompletion] = useState<Booking[]>([]);
+
+  // Load sessions needing completion on focus
+  useFocusEffect(
+    useCallback(() => {
+      if (currentUser?.id) {
+        loadAwaitingCompletion();
+      }
+    }, [currentUser?.id])
+  );
+
+  const loadAwaitingCompletion = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const bookings = await bookingService.getAwaitingCompletion(currentUser.id);
+      setAwaitingCompletion(bookings);
+    } catch (error) {
+      logger.error('Failed to load awaiting completion', error);
+    }
+  };
 
   // Load sessions from both mock data and AsyncStorage
   useEffect(() => {
@@ -195,7 +217,7 @@ export function CoachDevelopmentScreen() {
           {quickActions.map((action) => (
             <Clickable
               key={action.route}
-              onPress={() => router.push(action.route)}
+              onPress={() => router.push(action.route as any)}
               style={styles.quickActionItem}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}15` }]}>
@@ -208,9 +230,55 @@ export function CoachDevelopmentScreen() {
           ))}
         </View>
 
+        {/* Sessions to Complete Card */}
+        {awaitingCompletion.length > 0 && (
+          <SurfaceCard style={[styles.sectionCard, styles.completionCard]}>
+            <View style={styles.completionHeader}>
+              <View style={[styles.completionIconCircle, { backgroundColor: `${palette.warning}15` }]}>
+                <Ionicons name="clipboard-outline" size={20} color={palette.warning} />
+              </View>
+              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+                {awaitingCompletion.length} session{awaitingCompletion.length !== 1 ? 's' : ''} need completing
+              </ThemedText>
+            </View>
+
+            {awaitingCompletion.slice(0, 3).map((booking) => {
+              const sessionDate = new Date(booking.scheduledAt);
+              const isToday = sessionDate.toDateString() === new Date().toDateString();
+              const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              const dateStr = isToday ? `Today ${timeStr}` : sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ` ${timeStr}`;
+
+              return (
+                <Pressable
+                  key={booking.id}
+                  style={({ pressed }) => [
+                    styles.completionRow,
+                    { borderColor: palette.border, opacity: pressed ? 0.7 : 1 },
+                  ]}
+                  onPress={() => router.push(`/session/${booking.id}/complete` as any)}
+                >
+                  <View style={styles.completionRowContent}>
+                    <ThemedText type="defaultSemiBold" style={styles.completionRowTitle} numberOfLines={1}>
+                      {booking.service || 'Session'} {booking.athleteName ? `with ${booking.athleteName}` : ''}
+                    </ThemedText>
+                    <ThemedText style={[styles.completionRowMeta, { color: palette.muted }]}>
+                      {dateStr}
+                    </ThemedText>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={palette.muted} />
+                </Pressable>
+              );
+            })}
+
+            <ThemedText style={[styles.completionHint, { color: palette.muted }]}>
+              Tap to mark attendance &amp; add notes
+            </ThemedText>
+          </SurfaceCard>
+        )}
+
         <SurfaceCard style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
-            <ThemedText type="heading" style={styles.sectionTitle}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
               Needs attention
             </ThemedText>
             <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
@@ -294,7 +362,7 @@ export function CoachDevelopmentScreen() {
 
         <SurfaceCard style={styles.sectionCard}>
           <View style={styles.sectionHeaderRow}>
-            <ThemedText type="heading" style={styles.sectionTitle}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
               Recent sessions
             </ThemedText>
             <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
@@ -447,7 +515,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: Radii.rounded,
+    borderRadius: Radii.md,
     borderWidth: 1,
   },
   pillLabel: {
@@ -497,6 +565,47 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 
+
+  // Sessions to complete card
+  completionCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.light.warning,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  completionIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  completionRowContent: {
+    flex: 1,
+    gap: 2,
+  },
+  completionRowTitle: {
+    fontSize: 14,
+    letterSpacing: -0.1,
+  },
+  completionRowMeta: {
+    fontSize: 12,
+  },
+  completionHint: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
 
   // Empty state
   emptyState: {

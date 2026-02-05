@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import { MOCK_USERS, getUserById } from '@/constants/mock-data';
 import type { User } from '@/constants/app-types';
 import type { ChildReference, StaffMember } from '@/constants/types';
 import type { OnboardingData, AccountType } from '@/services/auth-service';
+import { authService } from '@/services/auth-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('useAuth');
@@ -232,10 +233,12 @@ const DEMO_USERS: DemoUser[] = [
 type AuthContextValue = {
   currentUser: DemoUser | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (username: string, password: string) => boolean;
   logout: () => Promise<void>;
   registerCoach: (data: CoachSignupData) => boolean;
   registerFromOnboarding: (data: OnboardingData) => boolean;
+  forgotPassword: (email: string) => Promise<void>;
   error: string | null;
   availableUsers: DemoUser[];
 };
@@ -245,7 +248,43 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<DemoUser | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [registeredUsers, setRegisteredUsers] = useState<DemoUser[]>(DEMO_USERS);
+
+  // Check auth state on app start for session persistence
+  useEffect(() => {
+    let mounted = true;
+
+    const checkPersistedAuth = async () => {
+      try {
+        const authState = await authService.checkAuth();
+        if (mounted && authState.isAuthenticated && authState.user) {
+          // Try to find matching demo user for backwards compatibility
+          const demoMatch = registeredUsers.find(
+            u => u.email?.toLowerCase() === authState.user!.email.toLowerCase()
+          );
+          if (demoMatch) {
+            const userRecord = getUserById(demoMatch.id);
+            const mergedUser = userRecord ? { ...demoMatch, ...userRecord } : demoMatch;
+            setCurrentUser(mergedUser);
+            logger.success('Session restored from storage', { userId: mergedUser.id });
+          }
+        }
+      } catch (err) {
+        logger.error('Failed to restore auth state', err);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    checkPersistedAuth();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const login = (username: string, password: string) => {
     const normalizedUsername = username.trim().toLowerCase();
@@ -265,6 +304,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setCurrentUser(mergedUser);
       setError(null);
+
+      // Store tokens for session persistence (fire and forget)
+      authService.login(match.email || `${match.username}@demo.clubroom.app`, match.password).catch(() => {});
+
       return true;
     }
 
@@ -289,7 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: username,
       username,
       password: data.password,
-      role: 'COACH', // Fixed: was 'Coach', now 'COACH' to match UserRole type
+      role: 'COACH',
       fullName: data.fullName,
       email: data.email,
       schoolId: data.schoolId,
@@ -383,7 +426,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentUser(null);
     setError(null);
 
-    // Clear any persisted session data
+    // Clear persisted auth tokens and session data
+    try {
+      await authService.logout();
+    } catch (error) {
+      logger.error('Failed to clear auth tokens', error);
+    }
+
     try {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       await AsyncStorage.removeItem('session_bookings');
@@ -397,18 +446,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.replace('/');
   };
 
+  const forgotPassword = async (email: string) => {
+    logger.info('Forgot password requested', { email });
+    await authService.forgotPassword(email);
+  };
+
   const value = useMemo(
     () => ({
       currentUser,
       isAuthenticated: currentUser != null,
+      isLoading,
       login,
       logout,
       registerCoach,
       registerFromOnboarding,
+      forgotPassword,
       error,
       availableUsers: registeredUsers,
     }),
-    [currentUser, error, registeredUsers]
+    [currentUser, error, isLoading, registeredUsers]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

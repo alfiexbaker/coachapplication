@@ -19,7 +19,9 @@
  * - GET /api/negotiations/:bookingId - Get negotiation history
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { bookingService } from './booking-service';
 import type {
   CounterOffer,
   CounterOfferStatus,
@@ -33,8 +35,7 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CounterOfferService');
 
-const COUNTER_OFFERS_KEY = 'counter_offers';
-const NEGOTIATIONS_KEY = 'negotiations';
+// Using centralized storage keys
 const USE_MOCK = true;
 
 // Default expiry for counter-offers (48 hours)
@@ -110,10 +111,8 @@ export interface RejectCounterOfferInput {
 
 async function loadCounterOffersFromStorage(): Promise<CounterOffer[]> {
   try {
-    const stored = await AsyncStorage.getItem(COUNTER_OFFERS_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
+    const stored = await apiClient.get<CounterOffer[] | null>(STORAGE_KEYS.COUNTER_OFFERS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load counter offers', error);
   }
@@ -122,7 +121,7 @@ async function loadCounterOffersFromStorage(): Promise<CounterOffer[]> {
 
 async function saveCounterOffersToStorage(offers: CounterOffer[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(COUNTER_OFFERS_KEY, JSON.stringify(offers));
+    await apiClient.set(STORAGE_KEYS.COUNTER_OFFERS, offers);
   } catch (error) {
     logger.error('Failed to save counter offers', error);
   }
@@ -130,10 +129,8 @@ async function saveCounterOffersToStorage(offers: CounterOffer[]): Promise<void>
 
 async function loadNegotiationsFromStorage(): Promise<NegotiationHistory[]> {
   try {
-    const stored = await AsyncStorage.getItem(NEGOTIATIONS_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
+    const stored = await apiClient.get<NegotiationHistory[] | null>(STORAGE_KEYS.NEGOTIATIONS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load negotiations', error);
   }
@@ -142,7 +139,7 @@ async function loadNegotiationsFromStorage(): Promise<NegotiationHistory[]> {
 
 async function saveNegotiationsToStorage(negotiations: NegotiationHistory[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(NEGOTIATIONS_KEY, JSON.stringify(negotiations));
+    await apiClient.set(STORAGE_KEYS.NEGOTIATIONS, negotiations);
   } catch (error) {
     logger.error('Failed to save negotiations', error);
   }
@@ -290,6 +287,37 @@ export const counterOfferService = {
       };
 
       await notificationService.create(notification);
+
+      // CRITICAL: Create a real booking when counter-offer is accepted
+      if (offer.proposedTime) {
+        const negotiation = negotiationsCache.find((n) => n.bookingId === offer.bookingId);
+        if (negotiation) {
+          const scheduledAt = `${offer.proposedTime.date}T${offer.proposedTime.startTime}:00`;
+          const [startH, startM] = offer.proposedTime.startTime.split(':').map(Number);
+          const [endH, endM] = offer.proposedTime.endTime.split(':').map(Number);
+          const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+
+          const bookingResult = await bookingService.createBooking({
+            coachId: negotiation.coachId,
+            coachName: negotiation.coachName,
+            athleteIds: [negotiation.athleteId],
+            athleteNames: [negotiation.athleteName],
+            bookedById: negotiation.parentId,
+            bookedByName: negotiation.parentName,
+            scheduledAt,
+            duration: durationMinutes > 0 ? durationMinutes : 60,
+            location: offer.proposedTime.location || 'Coach preferred location',
+            service: 'Rescheduled Session',
+            serviceType: '1-on-1',
+          });
+
+          if (bookingResult.success) {
+            logger.info('Booking created from counter-offer', { bookingId: bookingResult.booking?.id });
+          } else {
+            logger.error('Failed to create booking from counter-offer', { error: bookingResult.error });
+          }
+        }
+      }
 
       return counterOffersCache[index];
     }
@@ -581,8 +609,8 @@ export const counterOfferService = {
    * Clear all data (for testing)
    */
   async clearAll(): Promise<void> {
-    await AsyncStorage.removeItem(COUNTER_OFFERS_KEY);
-    await AsyncStorage.removeItem(NEGOTIATIONS_KEY);
+    await apiClient.remove(STORAGE_KEYS.COUNTER_OFFERS);
+    await apiClient.remove(STORAGE_KEYS.NEGOTIATIONS);
     counterOffersCache = [];
     negotiationsCache = [];
   },

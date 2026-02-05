@@ -1,4 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationTriggers } from './notification-trigger';
 import {
   FamilyMember,
   FamilySpending,
@@ -14,17 +16,11 @@ import {
   GuardianPermission,
   GuardianRole,
 } from '@/constants/types';
-import { storageService } from './storage-service';
 import { createLogger } from '@/utils/logger';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
-
-const STORAGE_KEY_MEMBERS = 'clubroom.family_members';
-const STORAGE_KEY_BOOKINGS = 'clubroom.family_bookings';
-const STORAGE_KEY_ACCOUNTS = 'family_accounts';
-const STORAGE_KEY_INVITES = 'guardian_invites';
 const USE_MOCK = true;
 const logger = createLogger('FamilyService');
 
@@ -820,6 +816,10 @@ class FamilyService {
     account.updatedAt = new Date().toISOString();
 
     await this.saveAccounts(accounts);
+
+    // Trigger notification for updated permissions
+    await notificationTriggers.guardianPermissionsUpdated(guardian.userId);
+
     logger.debug('PermissionsUpdated', { familyId, guardianId, newPermissions });
 
     return guardian;
@@ -962,6 +962,9 @@ class FamilyService {
       inviteeEmail,
       role,
     });
+
+    // Trigger notification for invited guardian
+    await notificationTriggers.guardianInvited(account?.name || 'Family');
 
     return invite;
   }
@@ -1143,6 +1146,10 @@ class FamilyService {
     account.updatedAt = new Date().toISOString();
 
     await this.saveAccounts(accounts);
+
+    // Trigger notification for removed guardian
+    await notificationTriggers.guardianRemoved(account.name, guardian.userId);
+
     logger.debug('GuardianRemoved', { familyId, guardianId });
   }
 
@@ -1159,27 +1166,27 @@ class FamilyService {
 
   private async getAllMembers(): Promise<FamilyMember[]> {
     if (USE_MOCK) {
-      return storageService.getItem<FamilyMember[]>(STORAGE_KEY_MEMBERS, MOCK_FAMILY_MEMBERS);
+      return apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, MOCK_FAMILY_MEMBERS);
     }
-    return storageService.getItem<FamilyMember[]>(STORAGE_KEY_MEMBERS, []);
+    return apiClient.get<FamilyMember[]>(STORAGE_KEYS.FAMILY_MEMBERS, []);
   }
 
   private async saveMembers(members: FamilyMember[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_MEMBERS, members);
+    await apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, members);
   }
 
   private async getAllBookings(): Promise<FamilyCalendarEvent[]> {
     if (USE_MOCK) {
-      return storageService.getItem<FamilyCalendarEvent[]>(
-        STORAGE_KEY_BOOKINGS,
+      return apiClient.get<FamilyCalendarEvent[]>(
+        STORAGE_KEYS.FAMILY_BOOKINGS,
         MOCK_FAMILY_BOOKINGS
       );
     }
-    return storageService.getItem<FamilyCalendarEvent[]>(STORAGE_KEY_BOOKINGS, []);
+    return apiClient.get<FamilyCalendarEvent[]>(STORAGE_KEYS.FAMILY_BOOKINGS, []);
   }
 
   private async saveBookings(bookings: FamilyCalendarEvent[]): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_BOOKINGS, bookings);
+    await apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, bookings);
   }
 
   /**
@@ -1187,8 +1194,7 @@ class FamilyService {
    */
   private async loadAccounts(): Promise<FamilyAccount[]> {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY_ACCOUNTS);
-      const accounts = stored ? JSON.parse(stored) : [];
+      const accounts = await apiClient.get<FamilyAccount[]>(STORAGE_KEYS.FAMILY_ACCOUNTS, []);
       accounts.forEach((a: FamilyAccount) => this.accountsCache.set(a.id, a));
       return accounts;
     } catch (error) {
@@ -1201,7 +1207,7 @@ class FamilyService {
    * Save family accounts
    */
   private async saveAccounts(accounts: FamilyAccount[]): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(accounts));
+    await apiClient.set(STORAGE_KEYS.FAMILY_ACCOUNTS, accounts);
     accounts.forEach(a => this.accountsCache.set(a.id, a));
   }
 
@@ -1210,8 +1216,7 @@ class FamilyService {
    */
   private async loadInvites(): Promise<GuardianInvite[]> {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY_INVITES);
-      return stored ? JSON.parse(stored) : [];
+      return await apiClient.get<GuardianInvite[]>(STORAGE_KEYS.GUARDIAN_INVITES, []);
     } catch (error) {
       logger.error('Failed to load invites', error);
       return [];
@@ -1222,7 +1227,7 @@ class FamilyService {
    * Save invites
    */
   private async saveInvites(invites: GuardianInvite[]): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEY_INVITES, JSON.stringify(invites));
+    await apiClient.set(STORAGE_KEYS.GUARDIAN_INVITES, invites);
   }
 
   private calculateMonthlyBreakdown(
@@ -1320,8 +1325,8 @@ class FamilyService {
    * Clear all family data
    */
   async clearAllData(): Promise<void> {
-    await storageService.setItem(STORAGE_KEY_MEMBERS, []);
-    await storageService.setItem(STORAGE_KEY_BOOKINGS, []);
+    await apiClient.set(STORAGE_KEYS.FAMILY_MEMBERS, []);
+    await apiClient.set(STORAGE_KEYS.FAMILY_BOOKINGS, []);
     logger.info('family_data_cleared');
   }
 }

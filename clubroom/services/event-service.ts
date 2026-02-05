@@ -14,7 +14,9 @@
  * - GET /api/events/:id/attendees - Get attendees
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '@/utils/logger';
 import type {
   ClubEvent,
@@ -30,9 +32,7 @@ import type {
   CheckInInput,
 } from '@/constants/types';
 
-const EVENTS_STORAGE_KEY = 'club_events';
-const RSVPS_STORAGE_KEY = 'event_rsvps';
-const ATTENDANCE_STORAGE_KEY = 'event_attendance';
+// Using centralized storage keys
 const USE_MOCK = true;
 const logger = createLogger('EventService');
 
@@ -250,8 +250,8 @@ let attendanceCache: EventAttendance[] = [...MOCK_ATTENDANCE];
 
 async function loadRSVPs(): Promise<EventRSVP[]> {
   try {
-    const stored = await AsyncStorage.getItem(RSVPS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<EventRSVP[] | null>(STORAGE_KEYS.EVENT_RSVPS, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load RSVPs', error);
   }
@@ -260,7 +260,7 @@ async function loadRSVPs(): Promise<EventRSVP[]> {
 
 async function saveRSVPs(rsvps: EventRSVP[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(RSVPS_STORAGE_KEY, JSON.stringify(rsvps));
+    await apiClient.set(STORAGE_KEYS.EVENT_RSVPS, rsvps);
     rsvpsCache = rsvps;
   } catch (error) {
     logger.error('Failed to save RSVPs', error);
@@ -269,8 +269,8 @@ async function saveRSVPs(rsvps: EventRSVP[]): Promise<void> {
 
 async function loadAttendance(): Promise<EventAttendance[]> {
   try {
-    const stored = await AsyncStorage.getItem(ATTENDANCE_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<EventAttendance[] | null>(STORAGE_KEYS.EVENT_ATTENDANCE, null);
+    if (stored) return stored;
   } catch (error) {
     logger.error('Failed to load attendance', error);
   }
@@ -279,7 +279,7 @@ async function loadAttendance(): Promise<EventAttendance[]> {
 
 async function saveAttendance(attendance: EventAttendance[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(attendance));
+    await apiClient.set(STORAGE_KEYS.EVENT_ATTENDANCE, attendance);
     attendanceCache = attendance;
   } catch (error) {
     console.error('[EventService] Failed to save attendance:', error);
@@ -310,8 +310,8 @@ function calculateDistance(
 
 async function loadEvents(): Promise<ClubEvent[]> {
   try {
-    const stored = await AsyncStorage.getItem(EVENTS_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const stored = await apiClient.get<ClubEvent[] | null>(STORAGE_KEYS.CLUB_EVENTS, null);
+    if (stored) return stored;
   } catch (error) {
     console.error('[EventService] Failed to load events:', error);
   }
@@ -320,7 +320,7 @@ async function loadEvents(): Promise<ClubEvent[]> {
 
 async function saveEvents(events: ClubEvent[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
+    await apiClient.set(STORAGE_KEYS.CLUB_EVENTS, events);
     eventsCache = events;
   } catch (error) {
     console.error('[EventService] Failed to save events:', error);
@@ -390,6 +390,10 @@ export const eventService = {
       eventsCache = await loadEvents();
       eventsCache.push(newEvent);
       await saveEvents(eventsCache);
+
+      // Trigger notification for event creation
+      await notificationTriggers.eventCreated(newEvent.title, newEvent.date);
+
       return newEvent;
     }
 
@@ -432,6 +436,10 @@ export const eventService = {
 
       event.status = 'CANCELLED';
       await saveEvents(eventsCache);
+
+      // Trigger notification for event cancellation
+      await notificationTriggers.eventCancelled(event.title);
+
       return event;
     }
 
@@ -563,6 +571,10 @@ export const eventService = {
       }
 
       await saveEvents(eventsCache);
+
+      // Trigger RSVP notification to event creator (coach)
+      await notificationTriggers.eventRsvp(userName, event.title, status, event.createdBy);
+
       return attendee;
     }
 

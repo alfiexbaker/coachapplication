@@ -17,7 +17,9 @@
  * - GET /api/assignments/:athleteId/stats - Get assignment statistics
  */
 
-import { storageService } from './storage-service';
+import { apiClient } from './api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '../utils/logger';
 import type {
   Drill,
@@ -31,9 +33,7 @@ import type {
 
 const logger = createLogger('DrillService');
 
-// Storage keys
-const DRILLS_STORAGE_KEY = 'drills.library';
-const ASSIGNMENTS_STORAGE_KEY = 'drills.assignments';
+// Using centralized storage keys
 
 // Mock data for demonstration
 const MOCK_DRILLS: Drill[] = [
@@ -227,7 +227,7 @@ const MOCK_ASSIGNMENTS: AssignedDrill[] = [
  * Get all drills from storage
  */
 async function getAllDrills(): Promise<Drill[]> {
-  const drills = await storageService.getItem<Drill[]>(DRILLS_STORAGE_KEY, []);
+  const drills = await apiClient.get<Drill[]>(STORAGE_KEYS.DRILLS, []);
   if (drills.length === 0) {
     return [...MOCK_DRILLS];
   }
@@ -238,14 +238,14 @@ async function getAllDrills(): Promise<Drill[]> {
  * Save all drills to storage
  */
 async function saveDrills(drills: Drill[]): Promise<void> {
-  await storageService.setItem(DRILLS_STORAGE_KEY, drills);
+  await apiClient.set(STORAGE_KEYS.DRILLS, drills);
 }
 
 /**
  * Get all assignments from storage
  */
 async function getAllAssignments(): Promise<AssignedDrill[]> {
-  const assignments = await storageService.getItem<AssignedDrill[]>(ASSIGNMENTS_STORAGE_KEY, []);
+  const assignments = await apiClient.get<AssignedDrill[]>(STORAGE_KEYS.DRILL_ASSIGNMENTS, []);
   if (assignments.length === 0) {
     return [...MOCK_ASSIGNMENTS];
   }
@@ -256,7 +256,7 @@ async function getAllAssignments(): Promise<AssignedDrill[]> {
  * Save all assignments to storage
  */
 async function saveAssignments(assignments: AssignedDrill[]): Promise<void> {
-  await storageService.setItem(ASSIGNMENTS_STORAGE_KEY, assignments);
+  await apiClient.set(STORAGE_KEYS.DRILL_ASSIGNMENTS, assignments);
 }
 
 /**
@@ -447,6 +447,9 @@ async function assignDrill(
     dueDate: params.dueDate,
   });
 
+  // Notify parent that a drill has been assigned to their athlete
+  await notificationTriggers.drillAssigned(assignedByName, drill.title, athleteName);
+
   return newAssignment;
 }
 
@@ -550,6 +553,15 @@ async function completeDrill(
     drillId: assignment.drillId,
     athleteId: assignment.athleteId,
   });
+
+  // Notify coach that the athlete completed the drill
+  const drills = await getAllDrills();
+  const completedDrill = drills.find((d) => d.id === assignment.drillId);
+  await notificationTriggers.drillCompleted(
+    assignment.athleteName || 'Athlete',
+    completedDrill?.title || 'Drill',
+    assignment.assignedBy,
+  );
 
   return updatedAssignment;
 }
