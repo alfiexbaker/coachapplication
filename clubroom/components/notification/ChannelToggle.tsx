@@ -16,7 +16,7 @@ import { View, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { NotificationChannel } from '@/constants/types';
 
@@ -100,8 +100,8 @@ export function ChannelToggle({
                 styles.iconContainer,
                 {
                   backgroundColor: isEnabled
-                    ? `${palette.accent}15`
-                    : `${palette.muted}15`,
+                    ? withAlpha(palette.accent, 0.09)
+                    : withAlpha(palette.muted, 0.09),
                 },
               ]}
             >
@@ -129,7 +129,7 @@ export function ChannelToggle({
               value={isEnabled}
               onValueChange={(newValue) => onChange(channel.key, newValue)}
               trackColor={{ false: palette.border, true: palette.accent }}
-              thumbColor="#FFFFFF"
+              thumbColor={palette.surface}
               disabled={disabled || loading}
               style={loading ? styles.loadingSwitch : undefined}
             />
@@ -161,15 +161,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  title: {
-    fontSize: 16,
-  },
-  subtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  title: { ...Typography.subheading },
+  subtitle: { ...Typography.small, lineHeight: 18 },
   loadingSwitch: {
     opacity: 0.5,
   },

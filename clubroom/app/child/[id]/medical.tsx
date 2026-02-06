@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { EmergencyInfo, MedicalInfo, Consent, ConsentType } from '@/constants/types';
 import { safetyService } from '@/services/safety-service';
@@ -53,7 +53,7 @@ function TagInput({ label, placeholder, items, onAdd, onRemove }: TagInputProps)
           onPress={handleAdd}
           style={[styles.addTagButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={20} color="#fff" />
+          <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
       {items.length > 0 && (
@@ -61,7 +61,7 @@ function TagInput({ label, placeholder, items, onAdd, onRemove }: TagInputProps)
           {items.map((item, index) => (
             <View
               key={index}
-              style={[styles.tag, { backgroundColor: `${palette.tint}10`, borderColor: palette.border }]}
+              style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border }]}
             >
               <ThemedText style={styles.tagText}>{item}</ThemedText>
               <Clickable onPress={() => onRemove(index)}>
@@ -112,7 +112,7 @@ function ConsentToggle({ consent, onToggle }: ConsentToggleProps) {
     >
       <View style={{ flex: 1 }}>
         <ThemedText type="defaultSemiBold">{info.title}</ThemedText>
-        <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+        <ThemedText style={{ color: palette.muted, ...Typography.small }}>
           {info.description}
         </ThemedText>
       </View>
@@ -128,7 +128,7 @@ function ConsentToggle({ consent, onToggle }: ConsentToggleProps) {
           style={[
             styles.toggleKnob,
             {
-              backgroundColor: '#fff',
+              backgroundColor: Colors.light.surface,
               transform: [{ translateX: consent.granted ? 18 : 2 }],
             },
           ]}
@@ -360,7 +360,7 @@ export default function MedicalInfoScreen() {
 
         <SurfaceCard style={styles.section}>
           <ThemedText type="defaultSemiBold">Consents</ThemedText>
-          <ThemedText style={{ color: palette.muted, fontSize: 13, marginBottom: Spacing.sm }}>
+          <ThemedText style={{ color: palette.muted, ...Typography.small, marginBottom: Spacing.sm }}>
             Manage permissions for your child during sessions
           </ThemedText>
           {consents.map((consent) => (
@@ -405,20 +405,19 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   fieldLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   textArea: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
     minHeight: 100,
     textAlignVertical: 'top',
   },
@@ -431,7 +430,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   addTagButton: {
     width: 44,
@@ -455,7 +454,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tagText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   consentRow: {
     flexDirection: 'row',
@@ -466,12 +465,12 @@ const styles = StyleSheet.create({
   toggle: {
     width: 48,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
   },
   toggleKnob: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
   },
 });

@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 import type { ClubSquad } from '@/constants/types';
@@ -146,12 +146,12 @@ export function SquadPicker({
               onPress={selectAll}
               style={[
                 styles.quickActionButton,
-                { backgroundColor: `${palette.tint}10` },
+                { backgroundColor: withAlpha(palette.tint, 0.06) },
               ]}
             >
               <Ionicons name="checkmark-done" size={14} color={palette.tint} />
               <ThemedText
-                style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}
+                style={ { color: palette.tint, ...Typography.caption }}
               >
                 Select All
               </ThemedText>
@@ -163,7 +163,7 @@ export function SquadPicker({
                 { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
               ]}
             >
-              <ThemedText style={{ color: palette.text, fontSize: 12 }}>
+              <ThemedText style={{ ...Typography.caption, color: palette.text }}>
                 Clear
               </ThemedText>
             </Clickable>
@@ -173,7 +173,7 @@ export function SquadPicker({
         {/* Selected Summary */}
         {selectedIds.length > 0 && (
           <View
-            style={[styles.selectedBanner, { backgroundColor: `${palette.tint}10` }]}
+            style={[styles.selectedBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
           >
             <Ionicons name="people" size={18} color={palette.tint} />
             <ThemedText style={{ color: palette.tint, fontWeight: '600', flex: 1 }}>
@@ -221,7 +221,7 @@ export function SquadPicker({
                     styles.squadItem,
                     {
                       backgroundColor: isSelected
-                        ? `${palette.tint}10`
+                        ? withAlpha(palette.tint, 0.06)
                         : palette.surface,
                       borderColor: isSelected ? palette.tint : palette.border,
                     },
@@ -230,7 +230,7 @@ export function SquadPicker({
                   <View
                     style={[
                       styles.squadIcon,
-                      { backgroundColor: `${palette.tint}15` },
+                      { backgroundColor: withAlpha(palette.tint, 0.09) },
                     ]}
                   >
                     <Ionicons name="people" size={24} color={palette.tint} />
@@ -242,22 +242,22 @@ export function SquadPicker({
                       <View
                         style={[
                           styles.metaChip,
-                          { backgroundColor: `${palette.tint}10` },
+                          { backgroundColor: withAlpha(palette.tint, 0.06) },
                         ]}
                       >
                         <ThemedText
-                          style={{ fontSize: 11, color: palette.tint }}
+                          style={{ ...Typography.caption, color: palette.tint }}
                         >
                           {ageGroup}
                         </ThemedText>
                       </View>
-                      <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                         {squad.memberCount} athlete{squad.memberCount !== 1 ? 's' : ''}
                       </ThemedText>
                     </View>
                     {squad.primaryCoach && (
                       <ThemedText
-                        style={{ color: palette.muted, fontSize: 11 }}
+                        style={{ ...Typography.caption, color: palette.muted }}
                       >
                         Coach: {squad.primaryCoach}
                       </ThemedText>
@@ -274,7 +274,7 @@ export function SquadPicker({
                     ]}
                   >
                     {isSelected && (
-                      <Ionicons name="checkmark" size={14} color="#fff" />
+                      <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
                     )}
                   </View>
                 </Clickable>
@@ -347,7 +347,7 @@ export function InlineSquadSelector({
   if (loading) {
     return (
       <View style={styles.inlineLoading}>
-        <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+        <ThemedText style={{ ...Typography.small, color: palette.muted }}>
           Loading squads...
         </ThemedText>
       </View>
@@ -358,7 +358,7 @@ export function InlineSquadSelector({
     return (
       <Clickable onPress={loadSquads} style={styles.inlineError}>
         <Ionicons name="alert-circle" size={16} color={palette.error} />
-        <ThemedText style={{ color: palette.error, fontSize: 13 }}>
+        <ThemedText style={{ ...Typography.small, color: palette.error }}>
           {error}. Tap to retry.
         </ThemedText>
       </Clickable>
@@ -388,21 +388,15 @@ export function InlineSquadSelector({
               <Ionicons
                 name="people"
                 size={14}
-                color={isSelected ? '#fff' : palette.muted}
+                color={isSelected ? palette.onPrimary : palette.muted}
               />
               <ThemedText
-                style={{
-                  fontSize: 13,
-                  color: isSelected ? '#fff' : palette.text,
-                }}
+                style={{ ...Typography.small, color: isSelected ? palette.onPrimary : palette.text }}
               >
                 {squad.name}
               </ThemedText>
               <ThemedText
-                style={{
-                  fontSize: 11,
-                  color: isSelected ? 'rgba(255,255,255,0.8)' : palette.muted,
-                }}
+                style={{ ...Typography.caption, color: isSelected ? 'rgba(255,255,255,0.8)' : palette.muted }}
               >
                 ({squad.memberCount})
               </ThemedText>
@@ -477,13 +471,13 @@ const styles = StyleSheet.create({
   squadIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   squadInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   squadMeta: {
     flexDirection: 'row',
@@ -491,14 +485,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   metaChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -507,10 +501,7 @@ const styles = StyleSheet.create({
   inlineContainer: {
     gap: Spacing.xs,
   },
-  inlineLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  inlineLabel: { ...Typography.bodySmallSemiBold },
   inlineChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',

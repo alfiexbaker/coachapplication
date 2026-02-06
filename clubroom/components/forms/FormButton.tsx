@@ -68,7 +68,7 @@ export function FormButton({
     const base = {
       container: {} as ViewStyle,
       text: {} as TextStyle,
-      iconColor: '#FFFFFF',
+      iconColor: palette.onPrimary,
     };
 
     switch (variant) {
@@ -77,8 +77,8 @@ export function FormButton({
           container: {
             backgroundColor: isDisabled ? palette.border : palette.tint,
           },
-          text: { color: '#FFFFFF' },
-          iconColor: '#FFFFFF',
+          text: { color: palette.onPrimary },
+          iconColor: palette.onPrimary,
         };
       case 'secondary':
         return {
@@ -95,8 +95,8 @@ export function FormButton({
           container: {
             backgroundColor: isDisabled ? palette.border : palette.error,
           },
-          text: { color: '#FFFFFF' },
-          iconColor: '#FFFFFF',
+          text: { color: palette.onPrimary },
+          iconColor: palette.onPrimary,
         };
       case 'ghost':
         return {
@@ -187,7 +187,7 @@ export function FormButton({
         <View style={styles.content}>
           {leftIcon && (
             <IconSymbol
-              name={leftIcon as any}
+              name={leftIcon as React.ComponentProps<typeof IconSymbol>['name']}
               size={sizeStyles.iconSize}
               color={variantStyles.iconColor}
               style={styles.leftIcon}
@@ -205,7 +205,7 @@ export function FormButton({
           </ThemedText>
           {rightIcon && (
             <IconSymbol
-              name={rightIcon as any}
+              name={rightIcon as React.ComponentProps<typeof IconSymbol>['name']}
               size={sizeStyles.iconSize}
               color={variantStyles.iconColor}
               style={styles.rightIcon}

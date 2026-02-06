@@ -11,6 +11,7 @@
 import { useCallback, useState, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiClient } from '@/services/api-client';
@@ -21,12 +22,12 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
-import type { AvailabilityTemplate, SessionOffering, CoachSchedulingRules } from '@/constants/types';
+import type { AvailabilityTemplate, SessionOffering, CoachSchedulingRules, BlockedDateRange, Booking } from '@/constants/types';
 import { RecurringTemplateModal } from '@/components/coach/recurring-template-modal';
 import { createLogger } from '@/utils/logger';
 
@@ -67,7 +68,7 @@ export default function ScheduleScreen() {
 
   const [templates, setTemplates] = useState<AvailabilityTemplate[]>([]);
   const [offerings, setOfferings] = useState<SessionOffering[]>([]);
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -110,7 +111,7 @@ export default function ScheduleScreen() {
       // Load blocked dates
       try {
         const blockedKey = 'clubroom.blocked_dates';
-        const allBlocked = await apiClient.get<Record<string, any[]> | null>(blockedKey, null);
+        const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]> | null>(blockedKey, null);
         if (allBlocked) {
           const coachBlocked = allBlocked[coachId] || [];
           const blockedSet = new Set<string>();
@@ -166,7 +167,7 @@ export default function ScheduleScreen() {
       const daySessions: SessionData[] = [];
 
       // From bookings
-      bookings.forEach((b: any) => {
+      bookings.forEach((b) => {
         const bDate = b.scheduledAt?.split('T')[0];
         if (bDate === dateStr && b.status !== 'CANCELLED') {
           const startDate = new Date(b.scheduledAt);
@@ -199,7 +200,7 @@ export default function ScheduleScreen() {
             title: o.title,
             time: startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
             endTime: endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-            athleteCount: o.registrations?.filter((r: any) => r.status === 'confirmed').length || 0,
+            athleteCount: o.registrations?.filter((r) => r.status === 'confirmed').length || 0,
             location: o.location,
             status: 'confirmed',
             type: 'offering',
@@ -277,7 +278,7 @@ export default function ScheduleScreen() {
 
   const handleSessionPress = (session: SessionData) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/booking/${session.id}` as any);
+    router.push(Routes.bookingCancel(session.id));
   };
 
   const handleAddSlot = (dayIndex?: number) => {
@@ -313,7 +314,7 @@ export default function ScheduleScreen() {
 
   const handleOpenSettings = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push('/availability/scheduling-rules' as any);
+    router.push(Routes.AVAILABILITY_SCHEDULING_RULES);
   };
 
   // Loading state
@@ -414,7 +415,7 @@ export default function ScheduleScreen() {
                           backgroundColor: isSelected
                             ? palette.tint
                             : day.isToday
-                            ? `${palette.tint}15`
+                            ? withAlpha(palette.tint, 0.09)
                             : palette.surface,
                           borderColor: day.isToday && !isSelected ? palette.tint : 'transparent',
                           borderWidth: day.isToday && !isSelected ? 1.5 : 0,
@@ -551,10 +552,10 @@ export default function ScheduleScreen() {
         <Animated.View entering={FadeInDown.delay(400).springify()}>
           <View style={styles.quickActions}>
             <Clickable
-              onPress={() => router.push('/(tabs)/availability' as any)}
+              onPress={() => router.push(Routes.AVAILABILITY)}
               style={[styles.quickAction, { backgroundColor: palette.surface }]}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="time-outline" size={22} color={palette.success} />
               </View>
               <ThemedText type="defaultSemiBold" style={styles.quickActionLabel}>
@@ -563,10 +564,10 @@ export default function ScheduleScreen() {
             </Clickable>
 
             <Clickable
-              onPress={() => router.push('/(tabs)/bookings' as any)}
+              onPress={() => router.push(Routes.BOOKINGS)}
               style={[styles.quickAction, { backgroundColor: palette.surface }]}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.accent}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
                 <Ionicons name="calendar-outline" size={22} color={palette.accent} />
               </View>
               <ThemedText type="defaultSemiBold" style={styles.quickActionLabel}>
@@ -575,10 +576,10 @@ export default function ScheduleScreen() {
             </Clickable>
 
             <Clickable
-              onPress={() => router.push('/sessions/create' as any)}
+              onPress={() => router.push(Routes.SESSIONS_CREATE)}
               style={[styles.quickAction, { backgroundColor: palette.surface }]}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="add-circle-outline" size={22} color={palette.tint} />
               </View>
               <ThemedText type="defaultSemiBold" style={styles.quickActionLabel}>
@@ -642,7 +643,7 @@ const styles = StyleSheet.create({
   settingsButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -661,16 +662,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   todayDate: {
-    fontSize: Typography.xl.fontSize,
-    fontWeight: '700',
-    marginTop: 2,
+    ...Typography.title,
+    marginTop: Spacing.micro,
   },
   todayStats: {
     alignItems: 'flex-end',
   },
   todayStatValue: {
-    fontSize: 28,
-    fontWeight: '700',
+    ...Typography.display,
   },
   todayStatLabel: {
     ...Typography.caption,
@@ -691,7 +690,7 @@ const styles = StyleSheet.create({
   },
   nextSessionMeta: {
     ...Typography.small,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   nextSessionCountdown: {
     paddingHorizontal: Spacing.md,
@@ -701,7 +700,6 @@ const styles = StyleSheet.create({
   },
   countdownText: {
     ...Typography.small,
-    fontWeight: '700',
     color: Colors.light.surface,
   },
   todayEmpty: {
@@ -736,19 +734,17 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 4,
   },
   dayPillLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   dayPillNum: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title,
   },
   dayDot: {
     position: 'absolute',
     bottom: 8,
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   // Day Detail
   dayDetailCard: {
@@ -762,7 +758,7 @@ const styles = StyleSheet.create({
   },
   dayDetailSub: {
     ...Typography.small,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   dayActions: {
     flexDirection: 'row',
@@ -771,7 +767,7 @@ const styles = StyleSheet.create({
   dayActionBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -847,7 +843,7 @@ const styles = StyleSheet.create({
   quickActionIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -868,7 +864,6 @@ const styles = StyleSheet.create({
   },
   rulesText: {
     ...Typography.caption,
-    fontWeight: '400',
     marginTop: Spacing.xs / 2,
   },
 });

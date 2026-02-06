@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface SelectionTileProps {
@@ -38,7 +38,7 @@ export function SelectionTile({
         styles.tile,
         {
           borderColor: selected ? palette.tint : palette.border,
-          backgroundColor: selected ? `${palette.tint}12` : palette.surface,
+          backgroundColor: selected ? withAlpha(palette.tint, 0.07) : palette.surface,
           opacity: pressed ? 0.85 : 1,
           flexDirection: layout === 'row' ? 'row' : 'column',
         },
@@ -46,7 +46,7 @@ export function SelectionTile({
     >
       <View style={[styles.content, layout === 'row' ? styles.rowContent : undefined]}>
         {iconName && (
-          <View style={[styles.icon, { backgroundColor: `${palette.tint}20` }]}>
+          <View style={[styles.icon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
             <Ionicons name={iconName} size={22} color={palette.tint} />
           </View>
         )}
@@ -93,8 +93,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  meta: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  meta: { ...Typography.caption },
 });

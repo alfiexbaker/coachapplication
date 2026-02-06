@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
 import type { ParentGroup, GroupType } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
@@ -71,7 +71,7 @@ function ParentGroupCardComponent({ group, onPress, compact = false }: ParentGro
   if (compact) {
     return (
       <SurfaceCard style={styles.compactCard} onPress={onPress}>
-        <View style={[styles.avatarContainer, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.avatarContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
         </View>
         <View style={styles.compactContent}>
@@ -109,7 +109,7 @@ function ParentGroupCardComponent({ group, onPress, compact = false }: ParentGro
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
       <View style={styles.header}>
-        <View style={[styles.avatarLarge, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.avatarLarge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={28} color={palette.tint} />
         </View>
         <View style={styles.headerInfo}>
@@ -117,7 +117,7 @@ function ParentGroupCardComponent({ group, onPress, compact = false }: ParentGro
             {group.name}
           </ThemedText>
           <View style={styles.metaRow}>
-            <View style={[styles.typeBadge, { backgroundColor: `${palette.accent}15` }]}>
+            <View style={[styles.typeBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
               <ThemedText style={[styles.typeBadgeText, { color: palette.accent }]}>
                 {typeLabel}
               </ThemedText>
@@ -184,13 +184,13 @@ const styles = StyleSheet.create({
   avatarLarge: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   title: {
     fontSize: scaleFont(17),
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   typeBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   typeBadgeText: {
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   memberInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   memberCount: {
     fontSize: scaleFont(12),
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     marginTop: Spacing.xs,
     borderTopWidth: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   lastMessageLabel: {
     fontSize: scaleFont(11),
@@ -253,13 +253,13 @@ const styles = StyleSheet.create({
   unreadBadgeLarge: {
     minWidth: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: Spacing.xxs,
   },
   unreadTextLarge: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontSize: scaleFont(12),
     fontWeight: '700',
   },
@@ -275,13 +275,13 @@ const styles = StyleSheet.create({
   avatarContainer: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   compactContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactHeader: {
     flexDirection: 'row',
@@ -309,13 +309,13 @@ const styles = StyleSheet.create({
   unreadBadge: {
     minWidth: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 5,
   },
   unreadText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontSize: scaleFont(11),
     fontWeight: '700',
   },

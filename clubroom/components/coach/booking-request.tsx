@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ export function BookingRequest({
   return (
     <SurfaceCard style={styles.card}>
       {/* Status badge */}
-      <View style={[styles.badge, { backgroundColor: palette.warning + '18' }]}>
+      <View style={[styles.badge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
         <Ionicons name="time-outline" size={Components.icon.sm} color={palette.warning} />
         <ThemedText style={[Typography.caption, { color: palette.warning }]}>
           Pending Confirmation
@@ -101,11 +101,11 @@ export function BookingRequest({
           style={({ pressed }) => [
             styles.confirmButton,
             {
-              backgroundColor: pressed ? palette.success + 'DD' : palette.success,
+              backgroundColor: pressed ? withAlpha(palette.success, 0.87) : palette.success,
             },
           ]}
         >
-          <Ionicons name="checkmark" size={Components.icon.md} color="#FFFFFF" />
+          <Ionicons name="checkmark" size={Components.icon.md} color={palette.onPrimary} />
           <ThemedText style={styles.confirmLabel}>Confirm</ThemedText>
         </Pressable>
 
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   confirmLabel: {
     ...Typography.bodySemiBold,
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
   },
   alternativeButton: {
     flex: 1,

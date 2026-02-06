@@ -1,13 +1,14 @@
 import { Alert, Image, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SettingsRow, SettingsSection } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Components } from '@/constants/theme';
+import { Colors, Spacing, Components, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -33,7 +34,7 @@ export default function SettingsHubScreen() {
             logger.press('ConfirmLogout', { userId: currentUser?.id });
             await logout();
             logger.info('Logout complete - returning to login screen');
-            router.replace('/');
+            router.replace(Routes.ROOT);
           },
         },
       ]
@@ -65,7 +66,7 @@ export default function SettingsHubScreen() {
           style={styles.profileCard}
           onPress={() => {
             logger.press('ProfileCard', { targetRoute: '/(tabs)/edit-profile' });
-            router.push('/(tabs)/edit-profile');
+            router.push(Routes.EDIT_PROFILE);
           }}
         >
           <View style={styles.profileHeader}>
@@ -96,7 +97,7 @@ export default function SettingsHubScreen() {
             subtitle="Email, password, delete account"
             onPress={() => {
               logger.press('AccountSettings');
-              router.push('/settings/account');
+              router.push(Routes.SETTINGS_ACCOUNT);
             }}
           />
           {isCoach && (
@@ -106,7 +107,7 @@ export default function SettingsHubScreen() {
               subtitle="Services, rates, verification"
               onPress={() => {
                 logger.press('CoachProfile');
-                router.push('/(tabs)/coach-profile');
+                router.push(Routes.COACH_PROFILE);
               }}
             />
           )}
@@ -117,7 +118,7 @@ export default function SettingsHubScreen() {
               subtitle="Set your schedule and time slots"
               onPress={() => {
                 logger.press('Availability');
-                router.push('/(tabs)/availability');
+                router.push(Routes.AVAILABILITY);
               }}
             />
           )}
@@ -128,7 +129,7 @@ export default function SettingsHubScreen() {
               subtitle="Manage your children's profiles"
               onPress={() => {
                 logger.press('ChildrenManagement');
-                router.push('/(tabs)/children');
+                router.push(Routes.CHILDREN);
               }}
             />
           )}
@@ -142,7 +143,7 @@ export default function SettingsHubScreen() {
             subtitle="Push, email, and session reminders"
             onPress={() => {
               logger.press('NotificationSettings');
-              router.push('/settings/notifications');
+              router.push(Routes.SETTINGS_NOTIFICATIONS);
             }}
           />
           <SettingsRow
@@ -151,7 +152,7 @@ export default function SettingsHubScreen() {
             subtitle="Export sessions to Google/Apple Calendar"
             onPress={() => {
               logger.press('CalendarSync');
-              router.push('/settings/calendar-sync');
+              router.push(Routes.SETTINGS_CALENDAR_SYNC);
             }}
           />
           <SettingsRow
@@ -160,7 +161,7 @@ export default function SettingsHubScreen() {
             subtitle="Dark mode and display settings"
             onPress={() => {
               logger.press('AppearanceSettings');
-              router.push('/settings/appearance');
+              router.push(Routes.SETTINGS_APPEARANCE);
             }}
           />
           <SettingsRow
@@ -182,7 +183,7 @@ export default function SettingsHubScreen() {
             subtitle="Profile visibility and data sharing"
             onPress={() => {
               logger.press('PrivacySettings');
-              router.push('/settings/privacy');
+              router.push(Routes.SETTINGS_PRIVACY);
             }}
           />
           <SettingsRow
@@ -205,7 +206,7 @@ export default function SettingsHubScreen() {
               subtitle={isCoach ? 'Manage how you get paid' : 'Manage your payment methods'}
               onPress={() => {
                 logger.press('PaymentMethods');
-                router.push('/payment/methods');
+                router.push(Routes.PAYMENT_METHODS);
               }}
             />
             {isCoach && (
@@ -215,7 +216,7 @@ export default function SettingsHubScreen() {
                 subtitle="View your earnings and payouts"
                 onPress={() => {
                   logger.press('Earnings');
-                  router.push('/(tabs)/earnings');
+                  router.push(Routes.EARNINGS);
                 }}
               />
             )}
@@ -230,7 +231,7 @@ export default function SettingsHubScreen() {
             subtitle="FAQ, contact us, report a problem"
             onPress={() => {
               logger.press('HelpSupport');
-              router.push('/settings/help');
+              router.push(Routes.SETTINGS_HELP);
             }}
           />
           <SettingsRow
@@ -285,8 +286,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   content: {
     paddingHorizontal: Spacing.lg,
@@ -310,14 +310,13 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   profileName: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   profileEmail: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   versionContainer: {
     alignItems: 'center',
@@ -325,6 +324,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   versionText: {
-    fontSize: 13,
+    ...Typography.small,
   },
 });

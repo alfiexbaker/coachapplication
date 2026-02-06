@@ -1,7 +1,8 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -72,9 +73,9 @@ export function CoachDevelopmentScreen() {
         const mockSessions = getSessionsForCoach(currentUser.id);
 
         // Get stored sessions (both from bookings and manual add)
-        const asyncSessions = await apiClient.get<any[]>('coach_sessions', []);
+        const asyncSessions = await apiClient.get<Session[]>('coach_sessions', []);
         const coachAsyncSessions = asyncSessions.filter(
-          (s: any) => s.coachId === currentUser.id
+          (s) => s.coachId === currentUser.id
         );
 
         // Combine both sources
@@ -207,10 +208,10 @@ export function CoachDevelopmentScreen() {
           {quickActions.map((action) => (
             <Clickable
               key={action.route}
-              onPress={() => router.push(action.route as any)}
+              onPress={() => router.push(action.route as Href)}
               style={styles.quickActionItem}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(action.color, 0.09) }]}>
                 <Ionicons name={action.icon} size={20} color={action.color} />
               </View>
               <ThemedText style={[styles.quickActionLabel, { color: palette.text }]}>
@@ -224,7 +225,7 @@ export function CoachDevelopmentScreen() {
         {awaitingCompletion.length > 0 && (
           <SurfaceCard style={[styles.sectionCard, styles.completionCard]}>
             <View style={styles.completionHeader}>
-              <View style={[styles.completionIconCircle, { backgroundColor: `${palette.warning}15` }]}>
+              <View style={[styles.completionIconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <Ionicons name="clipboard-outline" size={20} color={palette.warning} />
               </View>
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
@@ -245,7 +246,7 @@ export function CoachDevelopmentScreen() {
                     styles.completionRow,
                     { borderColor: palette.border, opacity: pressed ? 0.7 : 1 },
                   ]}
-                  onPress={() => router.push(`/session/${booking.id}/complete` as any)}
+                  onPress={() => router.push(Routes.sessionComplete(booking.id))}
                 >
                   <View style={styles.completionRowContent}>
                     <ThemedText type="defaultSemiBold" style={styles.completionRowTitle} numberOfLines={1}>
@@ -295,13 +296,13 @@ export function CoachDevelopmentScreen() {
                       athleteName: entry.athlete.name,
                       needsNotes: entry.needsNotes,
                     });
-                    router.push(`/development/athlete/${entry.athlete.id}`);
+                    router.push(Routes.developmentAthlete(entry.athlete.id));
                   }}
                   style={[styles.rowCard, styles.attentionCard, { borderColor: palette.border }]}
                 >
                   <View style={styles.rowTop}>
                     <View style={styles.rowLeft}>
-                      <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                      <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                         <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                           {entry.athlete.avatar || entry.athlete.name.charAt(0)}
                         </ThemedText>
@@ -323,19 +324,19 @@ export function CoachDevelopmentScreen() {
 
                   <View style={styles.actionRow}>
                     {entry.needsNotes && (
-                      <View style={[styles.pill, { backgroundColor: `${palette.error}10` }]}>
+                      <View style={[styles.pill, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                         <Ionicons name="document-text" size={12} color={palette.error} />
                         <ThemedText style={[styles.pillLabel, { color: palette.error }]}>Add notes</ThemedText>
                       </View>
                     )}
                     {entry.averageRating < 4 && (
-                      <View style={[styles.pill, { backgroundColor: `${palette.tint}10` }]}>
+                      <View style={[styles.pill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                         <Ionicons name="trending-up" size={12} color={palette.tint} />
                         <ThemedText style={[styles.pillLabel, { color: palette.tint }]}>Boost rating</ThemedText>
                       </View>
                     )}
                     {entry.daysSinceLast >= 10 && (
-                      <View style={[styles.pill, { backgroundColor: `${palette.icon}0f` }]}>
+                      <View style={[styles.pill, { backgroundColor: withAlpha(palette.icon, 0.06) }]}>
                         <Ionicons name="time" size={12} color={palette.icon} />
                         <ThemedText style={[styles.pillLabel, { color: palette.icon }]}>Reach out</ThemedText>
                       </View>
@@ -366,7 +367,7 @@ export function CoachDevelopmentScreen() {
                   style={[styles.recentRow, { borderColor: palette.border }]}
                 >
                   <View style={styles.rowLeft}>
-                    <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                    <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                         {athlete?.avatar || athlete?.name?.charAt(0) || '?'}
                       </ThemedText>
@@ -388,7 +389,7 @@ export function CoachDevelopmentScreen() {
                         athleteId: session.athleteId,
                         source: 'RecentSessions',
                       });
-                      router.push(`/development/session/${session.id}`);
+                      router.push(Routes.developmentSession(session.id));
                     }}
                   >
                     <View style={[styles.actionPill, { borderColor: palette.tint }]}>
@@ -414,20 +415,17 @@ const styles = StyleSheet.create({
   },
   quickActionItem: {
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     flex: 1,
   },
   quickActionIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickActionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  quickActionLabel: { ...Typography.caption },
   sectionCard: {
     gap: Spacing.sm,
     padding: Spacing.sm,
@@ -438,14 +436,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.sm,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '500',
-    letterSpacing: -0.2,
-  },
-  sectionHint: {
-    fontSize: 12,
-  },
+  sectionTitle: { ...Typography.heading, letterSpacing: -0.2 },
+  sectionHint: { ...Typography.caption },
   recentRow: {
     padding: Spacing.sm,
     borderRadius: Radii.card,
@@ -475,7 +467,7 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   rowLeft: {
     flex: 1,
@@ -485,14 +477,14 @@ const styles = StyleSheet.create({
   },
   rowContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   actionPill: {
@@ -504,15 +496,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  pillLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: -0.1,
-  },
-  subtleMeta: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
+  pillLabel: { ...Typography.caption, letterSpacing: -0.1 },
+  subtleMeta: { ...Typography.caption, lineHeight: 18 },
   avatar: {
     width: Components.avatar.md,
     height: Components.avatar.md,
@@ -522,34 +507,24 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'visible',
   },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '500',
-  },
+  avatarText: { ...Typography.heading },
   badge: {
     position: 'absolute',
     top: -2,
     right: -2,
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
     borderWidth: 2,
     borderColor: '#1F2025',
   },
   athleteDetails: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  athleteName: {
-    fontSize: 15,
-    fontWeight: '500',
-    letterSpacing: -0.1,
-  },
-  athleteMetadata: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '400',
-  },
+  athleteName: { ...Typography.bodySemiBold, letterSpacing: -0.1 },
+  athleteMetadata: { ...Typography.small, lineHeight: 18,
+    fontWeight: '400' },
 
 
   // Sessions to complete card
@@ -565,7 +540,7 @@ const styles = StyleSheet.create({
   completionIconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -579,19 +554,11 @@ const styles = StyleSheet.create({
   },
   completionRowContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  completionRowTitle: {
-    fontSize: 14,
-    letterSpacing: -0.1,
-  },
-  completionRowMeta: {
-    fontSize: 12,
-  },
-  completionHint: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
+  completionRowTitle: { ...Typography.bodySmall, letterSpacing: -0.1 },
+  completionRowMeta: { ...Typography.caption },
+  completionHint: { ...Typography.caption, textAlign: 'center' },
 
   // Empty state
   emptyState: {
@@ -608,15 +575,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '500',
-    letterSpacing: -0.2,
-  },
-  emptyText: {
-    fontSize: 14,
-    lineHeight: 20,
+  emptyTitle: { ...Typography.heading, letterSpacing: -0.2 },
+  emptyText: { ...Typography.bodySmall, lineHeight: 20,
     textAlign: 'center',
-    maxWidth: 260,
-  },
+    maxWidth: 260 },
 });

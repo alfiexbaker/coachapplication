@@ -1,6 +1,6 @@
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
 import type { AvailabilitySlot } from '@/constants/types';
@@ -50,7 +50,7 @@ export function TimeSlotPicker({ selectedSlot, onSelect, slots, isLoading }: Tim
             style={[
               styles.slot,
               {
-                backgroundColor: active ? `${palette.tint}15` : palette.surface,
+                backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
                 borderColor: active ? palette.tint : palette.border,
               },
             ]}
@@ -82,10 +82,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     minWidth: 90,
   },
-  location: {
-    fontSize: 11,
-    marginTop: 2,
-  },
+  location: { ...Typography.caption, marginTop: Spacing.micro },
   centered: {
     paddingVertical: Spacing.xl,
     alignItems: 'center',

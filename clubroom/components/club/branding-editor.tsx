@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ClubBranding } from '@/services/club-service';
 
@@ -86,7 +86,7 @@ function ColorPickerRow({
             }}
           >
             {value === color ? (
-              <Ionicons name="checkmark" size={Components.icon.sm} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={Components.icon.sm} color={palette.onPrimary} />
             ) : null}
           </Clickable>
         ))}
@@ -139,7 +139,7 @@ function ColorPickerRow({
               justifyContent: 'center',
             }}
           >
-            <ThemedText style={{ color: '#FFFFFF', ...Typography.caption }}>Apply</ThemedText>
+            <ThemedText style={{ ...Typography.caption, color: palette.onPrimary }}>Apply</ThemedText>
           </Clickable>
         </View>
       )}
@@ -180,11 +180,11 @@ function LivePreviewCard({
           ]}
         >
           {branding.coverPhotoUrl ? (
-            <ThemedText style={[styles.previewCoverText, { color: '#FFFFFF' }]}>
+            <ThemedText style={[styles.previewCoverText, { color: Colors.light.onPrimary }]}>
               Cover Photo
             </ThemedText>
           ) : (
-            <Ionicons name="image-outline" size={Components.icon.xl} color="rgba(255,255,255,0.5)" />
+            <Ionicons name="image-outline" size={Components.icon.xl} color={withAlpha(Colors.light.onPrimary, 0.5)} />
           )}
         </View>
 
@@ -197,15 +197,15 @@ function LivePreviewCard({
             ]}
           >
             {branding.badgeUrl ? (
-              <ThemedText style={{ color: '#FFFFFF', ...Typography.caption }}>Badge</ThemedText>
+              <ThemedText style={{ ...Typography.caption, color: Colors.light.onPrimary }}>Badge</ThemedText>
             ) : (
-              <Ionicons name="shield-outline" size={Components.icon.md} color="#FFFFFF" />
+              <Ionicons name="shield-outline" size={Components.icon.md} color={Colors.light.onPrimary} />
             )}
           </View>
           <View style={styles.previewTextContainer}>
             <ThemedText
               style={{
-                color: '#FFFFFF',
+                color: Colors.light.onPrimary,
                 ...Typography.heading,
               }}
               numberOfLines={1}
@@ -215,7 +215,7 @@ function LivePreviewCard({
             {branding.tagline ? (
               <ThemedText
                 style={{
-                  color: 'rgba(255,255,255,0.7)',
+                  color: withAlpha(Colors.light.onPrimary, 0.7),
                   ...Typography.small,
                 }}
                 numberOfLines={1}
@@ -428,6 +428,6 @@ const styles = StyleSheet.create({
   },
   previewTextContainer: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
 });

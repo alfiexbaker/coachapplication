@@ -22,8 +22,9 @@ import Animated, {
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';
@@ -70,7 +71,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Buffer Between Sessions',
     helper: 'Break time between back-to-back bookings',
     icon: 'pause-outline',
-    iconBg: '#0F172A',
+    iconBg: Colors.light.tint,
     step: 5,
     min: 0,
     max: 60,
@@ -81,7 +82,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Minimum Advance Booking',
     helper: 'How much notice athletes must give when booking',
     icon: 'time-outline',
-    iconBg: '#C78000',
+    iconBg: Colors.light.warning,
     step: 1,
     min: 0,
     max: 72,
@@ -100,7 +101,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Max Advance Booking',
     helper: 'How far ahead athletes can book sessions',
     icon: 'calendar-outline',
-    iconBg: '#1C8C5E',
+    iconBg: Colors.light.success,
     step: 7,
     min: 7,
     max: 90,
@@ -114,7 +115,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Reschedule Deadline',
     helper: 'Minimum notice to reschedule a booking',
     icon: 'swap-horizontal-outline',
-    iconBg: '#0F172A',
+    iconBg: Colors.light.tint,
     step: 1,
     min: 1,
     max: 48,
@@ -132,7 +133,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Max Concurrent Sessions',
     helper: 'Maximum sessions running at the same time',
     icon: 'people-outline',
-    iconBg: '#0F172A',
+    iconBg: Colors.light.tint,
     step: 1,
     min: 1,
     max: 5,
@@ -170,7 +171,7 @@ function StepperRow({ config, value, onChange, palette }: StepperRowProps) {
   return (
     <View style={styles.stepperRow}>
       <View style={styles.stepperInfo}>
-        <View style={[styles.stepperIcon, { backgroundColor: `${config.iconBg}12` }]}>
+        <View style={[styles.stepperIcon, { backgroundColor: withAlpha(config.iconBg, 0.07) }]}>
           <Ionicons name={config.icon} size={18} color={config.iconBg} />
         </View>
         <View style={styles.stepperLabels}>
@@ -350,13 +351,13 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
             toastAnimatedStyle,
           ]}
         >
-          <Ionicons name="checkmark-circle" size={16} color="#fff" />
+          <Ionicons name="checkmark-circle" size={16} color={Colors.light.onSuccess} />
           <ThemedText style={styles.toastText}>Saved</ThemedText>
         </Animated.View>
       )}
 
       {/* Info banner */}
-      <View style={[styles.infoBanner, { backgroundColor: `${palette.tint}08` }]}>
+      <View style={[styles.infoBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
         <Ionicons name="information-circle" size={20} color={palette.tint} />
         <ThemedText style={[styles.infoText, { color: palette.muted }]}>
           Changes are saved automatically as you adjust each setting.
@@ -367,7 +368,7 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
       <SurfaceCard style={styles.steppersCard}>
         {visibleSteppers.map((config, idx) => (
           <View key={config.key}>
-            {idx > 0 && <View style={[styles.divider, { backgroundColor: palette.border }]} />}
+            {idx > 0 && <Divider spacing={Spacing.xs} />}
             <StepperRow
               config={config}
               value={rules[config.key] as number}
@@ -383,7 +384,7 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
         {/* Allow Same-Day Bookings */}
         <View style={styles.toggleRow}>
           <View style={styles.toggleInfo}>
-            <View style={[styles.toggleIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="today-outline" size={16} color={palette.success} />
             </View>
             <View style={styles.toggleLabels}>
@@ -399,16 +400,16 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
             value={rules.allowSameDayBookings}
             onValueChange={(v) => handleToggle('allowSameDayBookings', v)}
             trackColor={{ false: palette.border, true: palette.success }}
-            thumbColor="#fff"
+            thumbColor={Colors.light.surface}
           />
         </View>
 
-        <View style={[styles.divider, { backgroundColor: palette.border }]} />
+        <Divider spacing={Spacing.xs} />
 
         {/* Allow Rescheduling */}
         <View style={styles.toggleRow}>
           <View style={styles.toggleInfo}>
-            <View style={[styles.toggleIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
             </View>
             <View style={styles.toggleLabels}>
@@ -424,7 +425,7 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
             value={rules.allowRescheduling}
             onValueChange={(v) => handleToggle('allowRescheduling', v)}
             trackColor={{ false: palette.border, true: palette.tint }}
-            thumbColor="#fff"
+            thumbColor={Colors.light.surface}
           />
         </View>
       </SurfaceCard>
@@ -453,17 +454,13 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
     zIndex: 10,
   },
-  toastText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  toastText: { ...Typography.smallSemiBold, color: Colors.light.onSuccess },
 
   // Info banner
   infoBanner: {
@@ -473,11 +470,8 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.sm,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  infoText: { ...Typography.small, flex: 1,
+    lineHeight: 18 },
 
   // Steppers card
   steppersCard: {
@@ -497,21 +491,16 @@ const styles = StyleSheet.create({
   stepperIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepperLabels: {
     flex: 1,
   },
-  stepperLabel: {
-    fontSize: 14,
-  },
-  stepperHelper: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 2,
-  },
+  stepperLabel: { ...Typography.bodySmall },
+  stepperHelper: { ...Typography.caption, lineHeight: 16,
+    marginTop: Spacing.micro },
 
   // Stepper control group
   stepperControls: {
@@ -537,16 +526,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     paddingHorizontal: Spacing.xs,
   },
-  stepperValueText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-
-  // Divider
-  divider: {
-    height: 1,
-    marginVertical: Spacing.xs,
-  },
+  stepperValueText: { ...Typography.bodySmall, textAlign: 'center' },
 
   // Toggles card
   togglesCard: {
@@ -568,19 +548,14 @@ const styles = StyleSheet.create({
   toggleIcon: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   toggleLabels: {
     flex: 1,
   },
-  toggleLabel: {
-    fontSize: 14,
-  },
-  toggleHelper: {
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 1,
-  },
+  toggleLabel: { ...Typography.bodySmall },
+  toggleHelper: { ...Typography.caption, lineHeight: 16,
+    marginTop: 1 },
 });

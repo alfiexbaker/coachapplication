@@ -8,7 +8,8 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Colors, Radii } from '@/constants/theme';
+import { Routes } from '@/navigation/routes';
+import { Colors, Radii , Typography, Spacing} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNotificationCount } from '@/hooks/use-notifications';
 import { Clickable } from '@/components/primitives/clickable';
@@ -28,7 +29,7 @@ export function NotificationBell({ size = 24, color }: NotificationBellProps) {
   const iconColor = color || palette.text;
 
   const handlePress = () => {
-    router.push('/(tabs)/notifications');
+    router.push(Routes.NOTIFICATIONS);
   };
 
   return (
@@ -67,12 +68,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
     borderWidth: 2,
   },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 12,
-  },
+  badgeText: { ...Typography.micro, lineHeight: 12 },
 });

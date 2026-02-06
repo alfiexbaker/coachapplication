@@ -5,7 +5,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { FamilyMember } from '@/constants/types';
 
@@ -65,7 +65,7 @@ export function FamilyMemberCard({
           <View
             style={[
               styles.avatarPlaceholder,
-              { backgroundColor: `${member.colorCode}20` },
+              { backgroundColor: withAlpha(member.colorCode, 0.12) },
             ]}
           >
             <ThemedText
@@ -158,7 +158,7 @@ export function FamilyMemberCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.md,
   },
   cardCompact: {
@@ -173,49 +173,40 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
   },
   avatarPlaceholder: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
+  avatarText: { ...Typography.title },
   info: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  name: {
-    fontSize: 16,
-  },
+  name: { ...Typography.subheading },
   colorDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  meta: {
-    fontSize: 13,
-  },
-  metaDivider: {
-    fontSize: 13,
-  },
+  meta: { ...Typography.small },
+  metaDivider: { ...Typography.small },
   skillChip: {
     alignSelf: 'flex-start',
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   statsRow: {
     flexDirection: 'row',
@@ -226,13 +217,8 @@ const styles = StyleSheet.create({
   stat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  statLabel: {
-    fontSize: 12,
-  },
+  statValue: { ...Typography.bodySmallSemiBold },
+  statLabel: { ...Typography.caption },
 });

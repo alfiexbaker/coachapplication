@@ -21,7 +21,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { DateTimeField } from '@/components/ui/primitives';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { CarpoolOffer } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -176,7 +177,11 @@ export default function CarpoolScreen() {
         message: requestMessage || undefined,
       };
 
-      await communityService.requestCarpoolSeat(params);
+      const seatResult = await communityService.requestCarpoolSeat(params);
+      if (!seatResult.success) {
+        Alert.alert('Error', seatResult.error.message);
+        return;
+      }
       setShowRequestModal(false);
       loadData();
       Alert.alert('Success', 'Your seat request has been sent!');
@@ -217,7 +222,11 @@ export default function CarpoolScreen() {
           text: 'Accept',
           onPress: async () => {
             try {
-              await communityService.acceptCarpoolRequest(offerId, requestId);
+              const acceptResult = await communityService.acceptCarpoolRequest(offerId, requestId);
+              if (!acceptResult.success) {
+                Alert.alert('Error', acceptResult.error.message);
+                return;
+              }
               loadData();
               Alert.alert('Success', 'Request accepted!');
             } catch (error) {
@@ -230,7 +239,11 @@ export default function CarpoolScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await communityService.declineCarpoolRequest(offerId, requestId);
+              const declineResult = await communityService.declineCarpoolRequest(offerId, requestId);
+              if (!declineResult.success) {
+                Alert.alert('Error', declineResult.error.message);
+                return;
+              }
               loadData();
               Alert.alert('Declined', 'Request has been declined.');
             } catch (error) {
@@ -254,7 +267,11 @@ export default function CarpoolScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await communityService.cancelCarpoolOffer(offer.id, parentId);
+              const cancelResult = await communityService.cancelCarpoolOffer(offer.id, parentId);
+              if (!cancelResult.success) {
+                Alert.alert('Error', cancelResult.error.message);
+                return;
+              }
               loadData();
             } catch (error) {
               Alert.alert('Error', (error as Error).message);
@@ -278,7 +295,7 @@ export default function CarpoolScreen() {
     action?: { label: string; onPress: () => void }
   ) => (
     <View style={styles.emptyState}>
-      <View style={[styles.emptyIcon, { backgroundColor: `${palette.tint}15` }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <Ionicons name={icon} size={48} color={palette.tint} />
       </View>
       <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -399,7 +416,7 @@ export default function CarpoolScreen() {
           onPress={() => setShowCreateModal(true)}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
+          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
 
@@ -438,7 +455,7 @@ export default function CarpoolScreen() {
                 <ThemedText
                   style={[
                     styles.tabBadgeText,
-                    { color: activeTab === tab.key ? '#FFFFFF' : palette.muted },
+                    { color: activeTab === tab.key ? Colors.light.onPrimary : palette.muted },
                   ]}
                 >
                   {tab.count}
@@ -551,18 +568,11 @@ export default function CarpoolScreen() {
               </View>
 
               <View style={styles.formSection}>
-                <ThemedText type="defaultSemiBold" style={styles.label}>
-                  Pickup Time *
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text },
-                  ]}
-                  placeholder="e.g., 09:00"
-                  placeholderTextColor={palette.muted}
+                <DateTimeField
+                  mode="time"
+                  label="Pickup Time *"
                   value={createForm.pickupTime}
-                  onChangeText={(v) => setCreateForm({ ...createForm, pickupTime: v })}
+                  onChange={(v) => setCreateForm({ ...createForm, pickupTime: v })}
                 />
               </View>
 
@@ -571,7 +581,7 @@ export default function CarpoolScreen() {
                   style={[
                     styles.toggleRow,
                     {
-                      backgroundColor: createForm.returnOffered ? `${palette.tint}15` : palette.surface,
+                      backgroundColor: createForm.returnOffered ? withAlpha(palette.tint, 0.09) : palette.surface,
                       borderColor: createForm.returnOffered ? palette.tint : palette.border,
                     },
                   ]}
@@ -761,12 +771,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -780,25 +790,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     marginBottom: -1,
   },
   tabLabel: {
-    fontSize: scaleFont(13),
-    fontWeight: '600',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
   tabBadge: {
     minWidth: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: Spacing.xxs,
   },
   tabBadgeText: {
-    fontSize: scaleFont(11),
-    fontWeight: '700',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   scrollView: {
     flex: 1,
@@ -826,7 +834,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -836,7 +844,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
   },
   emptyButton: {
@@ -848,8 +856,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   cancelLinkText: {
-    fontSize: scaleFont(13),
-    fontWeight: '500',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
 
   // Modal styles
@@ -865,7 +872,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: scaleFont(20),
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
   },
   modalContent: {
     flex: 1,
@@ -878,15 +885,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   label: {
-    fontSize: scaleFont(14),
-    marginBottom: 4,
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
+    marginBottom: Spacing.xxs,
   },
   input: {
     height: 48,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: scaleFont(16),
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
   },
   textArea: {
     minHeight: 80,
@@ -894,7 +901,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: scaleFont(16),
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
   },
   toggleRow: {
     flexDirection: 'row',
@@ -905,10 +912,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   toggleLabel: {
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
   },
   offerSummary: {
-    gap: 4,
+    gap: Spacing.xxs,
     marginBottom: Spacing.md,
   },
   modalActions: {

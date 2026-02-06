@@ -13,7 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubs } from '@/constants/mock-data';
@@ -143,17 +143,17 @@ export default function CreateSquadScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <ThemedText type="defaultSemiBold">Create Group</ThemedText>
-          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{club.name}</ThemedText>
+          <ThemedText style={{ color: palette.muted, ...Typography.caption }}>{club.name}</ThemedText>
         </View>
         <TouchableOpacity
           onPress={handleCreate}
-          disabled={isSubmitting || !squadName.trim()}
+          disabled={isSubmitting || !squadName.trim() || !selectedAgeGroup || !selectedLevel}
           style={[
             styles.createButton,
-            { backgroundColor: squadName.trim() ? palette.tint : palette.border },
+            { backgroundColor: (squadName.trim() && selectedAgeGroup && selectedLevel) ? palette.tint : palette.border },
           ]}
         >
-          <ThemedText style={{ color: squadName.trim() ? '#fff' : palette.muted, fontWeight: '600', fontSize: 14 }}>
+          <ThemedText style={{ color: (squadName.trim() && selectedAgeGroup && selectedLevel) ? Colors.light.onPrimary : palette.muted, ...Typography.bodySmallSemiBold }}>
             {isSubmitting ? 'Creating...' : 'Create'}
           </ThemedText>
         </TouchableOpacity>
@@ -190,9 +190,8 @@ export default function CreateSquadScreen() {
               >
                 <ThemedText
                   style={{
-                    color: selectedAgeGroup?.label === age.label ? '#fff' : palette.text,
-                    fontWeight: '600',
-                    fontSize: 14,
+                    color: selectedAgeGroup?.label === age.label ? Colors.light.onPrimary : palette.text,
+                    ...Typography.bodySmallSemiBold,
                   }}
                 >
                   {age.label}
@@ -220,9 +219,8 @@ export default function CreateSquadScreen() {
               >
                 <ThemedText
                   style={{
-                    color: selectedLevel === level ? '#fff' : palette.text,
-                    fontWeight: '500',
-                    fontSize: 13,
+                    color: selectedLevel === level ? Colors.light.onPrimary : palette.text,
+                    ...Typography.smallSemiBold,
                   }}
                 >
                   {level}
@@ -248,7 +246,7 @@ export default function CreateSquadScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Focus Areas</ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Select up to 3</ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Select up to 3</ThemedText>
           </View>
           <View style={styles.tagsGrid}>
             {SKILL_TAGS.map((tag) => {
@@ -259,7 +257,7 @@ export default function CreateSquadScreen() {
                   style={[
                     styles.tagPill,
                     {
-                      backgroundColor: isSelected ? `${palette.success}15` : palette.surface,
+                      backgroundColor: isSelected ? withAlpha(palette.success, 0.09) : palette.surface,
                       borderColor: isSelected ? palette.success : palette.border,
                     },
                   ]}
@@ -269,8 +267,7 @@ export default function CreateSquadScreen() {
                   <ThemedText
                     style={{
                       color: isSelected ? palette.success : palette.text,
-                      fontWeight: isSelected ? '600' : '500',
-                      fontSize: 13,
+                      ...Typography.smallSemiBold,
                     }}
                   >
                     {tag}
@@ -288,13 +285,13 @@ export default function CreateSquadScreen() {
             <SurfaceCard style={styles.previewCard}>
               <View style={styles.previewHeader}>
                 <View style={[styles.previewBadge, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
+                  <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.bodySmallSemiBold }}>
                     {squadName.slice(0, 2).toUpperCase()}
                   </ThemedText>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>{squadName}</ThemedText>
-                  <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                  <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>{squadName}</ThemedText>
+                  <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                     {selectedAgeGroup.label} · {selectedLevel}
                   </ThemedText>
                 </View>
@@ -302,14 +299,14 @@ export default function CreateSquadScreen() {
               {meetLocation && (
                 <View style={styles.previewMeta}>
                   <Ionicons name="location-outline" size={14} color={palette.muted} />
-                  <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{meetLocation}</ThemedText>
+                  <ThemedText style={{ color: palette.muted, ...Typography.small }}>{meetLocation}</ThemedText>
                 </View>
               )}
               {selectedTags.length > 0 && (
                 <View style={styles.previewTags}>
                   {selectedTags.map((tag) => (
-                    <View key={tag} style={[styles.previewTag, { backgroundColor: `${palette.tint}15` }]}>
-                      <ThemedText style={{ color: palette.tint, fontSize: 11, fontWeight: '600' }}>{tag}</ThemedText>
+                    <View key={tag} style={[styles.previewTag, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                      <ThemedText style={{ color: palette.tint, ...Typography.caption }}>{tag}</ThemedText>
                     </View>
                   ))}
                 </View>
@@ -365,7 +362,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   optionsGrid: {
     flexDirection: 'row',
@@ -403,7 +400,7 @@ const styles = StyleSheet.create({
   previewBadge: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -419,7 +416,7 @@ const styles = StyleSheet.create({
   },
   previewTag: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
 });

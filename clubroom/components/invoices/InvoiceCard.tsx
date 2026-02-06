@@ -1,10 +1,11 @@
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Invoice, InvoiceStatus } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
@@ -82,7 +83,7 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
     if (onPress) {
       onPress();
     } else {
-      router.push(`/invoices/${invoice.id}`);
+      router.push(Routes.invoice(invoice.id));
     }
   };
 
@@ -122,7 +123,7 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
             <Ionicons name={getStatusIcon(invoice.status)} size={14} color={statusColor} />
             <ThemedText style={[styles.statusText, { color: statusColor }]}>
               {invoiceService.getStatusLabel(invoice.status)}
@@ -163,7 +164,7 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
 
       {/* Due Date Warning */}
       {invoice.status === 'SENT' && invoice.dueDate && (
-        <View style={[styles.dueWarning, { backgroundColor: `${palette.warning}10` }]}>
+        <View style={[styles.dueWarning, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
           <Ionicons name="time-outline" size={14} color={palette.warning} />
           <ThemedText style={[styles.dueText, { color: palette.warning }]}>
             Due by {formatDate(invoice.dueDate)}
@@ -188,39 +189,29 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   headerLeft: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  invoiceNumber: {
-    fontSize: 12,
-  },
-  amount: {
-    fontSize: 20,
-  },
+  statusText: { ...Typography.caption },
+  invoiceNumber: { ...Typography.caption },
+  amount: { ...Typography.title },
   details: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  detailText: {
-    fontSize: 14,
-    flex: 1,
-  },
+  detailText: { ...Typography.bodySmall, flex: 1 },
   coachRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -229,21 +220,16 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     marginTop: Spacing.xs,
   },
-  coachLabel: {
-    fontSize: 13,
-  },
+  coachLabel: { ...Typography.small },
   dueWarning: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     borderRadius: Radii.sm,
   },
-  dueText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  dueText: { ...Typography.caption },
 
   // Compact styles
   compactContainer: {
@@ -257,28 +243,20 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   compactContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   compactRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  compactTitle: {
-    fontSize: 15,
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  compactSubtext: {
-    fontSize: 13,
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  compactDate: {
-    fontSize: 12,
-  },
+  compactTitle: { ...Typography.body, flex: 1,
+    marginRight: Spacing.sm },
+  compactSubtext: { ...Typography.small, flex: 1,
+    marginRight: Spacing.sm },
+  compactDate: { ...Typography.caption },
 });

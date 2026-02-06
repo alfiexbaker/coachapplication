@@ -4,7 +4,7 @@ import { Chip } from '@/components/primitives/chip';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
 import { ChatThreadSummary } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -23,7 +23,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
     <SurfaceCard style={styles.card}>
       <View style={styles.headerRow}>
         <View
-          style={[styles.avatar, { backgroundColor: `${palette.tint}22` }]}
+          style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.13) }]}
           accessibilityLabel={`${displayName} avatar placeholder`}>
           <IconSymbol name="person.circle" size={28} color={palette.tint} />
         </View>
@@ -32,12 +32,12 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
           <View style={styles.subtitleRow}>
             <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
             {isGroup && thread.scopeLabel ? (
-              <View style={[styles.tag, { backgroundColor: `${palette.tint}12` }]}>
+              <View style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                 <ThemedText style={styles.tagLabel}>{thread.scopeLabel}</ThemedText>
               </View>
             ) : null}
             {isGroup && thread.groupType ? (
-              <View style={[styles.tag, { backgroundColor: `${palette.secondary}14` }]}>
+              <View style={[styles.tag, { backgroundColor: withAlpha(palette.secondary, 0.08) }]}>
                 <ThemedText style={styles.tagLabel}>{thread.groupType}</ThemedText>
               </View>
             ) : null}
@@ -45,7 +45,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
         </View>
         {thread.unreadCount ? (
           <View style={[styles.badge, { backgroundColor: palette.tint }]}>
-            <ThemedText style={styles.badgeLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">
+            <ThemedText style={styles.badgeLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
               {thread.unreadCount}
             </ThemedText>
           </View>
@@ -82,7 +82,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
           <ThemedText>{thread.memberCount} members</ThemedText>
           {typeof thread.unreadMentions === 'number' && thread.unreadMentions > 0 ? (
             <View style={[styles.badge, { backgroundColor: palette.secondary }]}>
-              <ThemedText style={styles.badgeLabel} lightColor="#FFFFFF" darkColor="#FFFFFF">@{thread.unreadMentions}</ThemedText>
+              <ThemedText style={styles.badgeLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>@{thread.unreadMentions}</ThemedText>
             </View>
           ) : null}
         </View>
@@ -135,14 +135,10 @@ const styles = StyleSheet.create({
   },
   tag: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  tagLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
+  tagLabel: { ...Typography.caption, textTransform: 'capitalize' },
   badge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
@@ -162,11 +158,8 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.md,
   },
-  safetyCopy: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  safetyCopy: { ...Typography.small, flex: 1,
+    lineHeight: 18 },
   objectivesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

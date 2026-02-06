@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 import { referralService } from '@/services/referral-service';
@@ -128,7 +128,7 @@ export function ShareButton({
           disabled ? styles.disabledButton : undefined,
         ].filter(Boolean) as ViewStyle[]}
       >
-        <Ionicons name="share-social-outline" size={20} color="#FFFFFF" />
+        <Ionicons name="share-social-outline" size={20} color={palette.onPrimary} />
       </Clickable>
     );
   }
@@ -176,7 +176,7 @@ export function ShareButton({
       <Ionicons
         name="share-social-outline"
         size={size === 'small' ? 16 : size === 'large' ? 22 : 18}
-        color="#FFFFFF"
+        color={palette.onPrimary}
       />
       {label}
     </Button>
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -257,10 +257,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     borderWidth: 1.5,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
   },
   labelText: {
-    marginLeft: 2,
+    marginLeft: Spacing.micro,
   },
   disabledButton: {
     opacity: 0.5,
@@ -271,10 +271,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
     gap: Spacing.xs,
   },
   previewIcon: {
-    marginLeft: 4,
+    marginLeft: Spacing.xxs,
   },
 });

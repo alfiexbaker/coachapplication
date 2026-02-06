@@ -1,15 +1,15 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
+import { Colors, Spacing} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
 
 // Web-compatible clickable wrapper using Pressable
 type ClickableProps = {
   onPress: () => void;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 };
 
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: Spacing.xs + Spacing.xxs,
     gap: 10,
   },
   tab: {
@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },

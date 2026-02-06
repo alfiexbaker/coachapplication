@@ -12,6 +12,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -19,10 +20,11 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { DateTimeField } from '@/components/ui/primitives';
 import { SquadMemberSelect } from '@/components/squad/SquadMemberSelect';
 import { BulkInviteButton } from '@/components/squad/BulkInviteButton';
 import { InviteResultCard } from '@/components/squad/InviteResultCard';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as squadBulkInviteService } from '@/services/invite';
@@ -196,7 +198,7 @@ export default function SquadInviteScreen() {
   };
 
   const handleViewInvites = () => {
-    router.push('/session-invites');
+    router.push(Routes.SESSION_INVITES);
   };
 
   if (loading) {
@@ -262,8 +264,8 @@ export default function SquadInviteScreen() {
       </View>
 
       {/* Squad Info Banner */}
-      <View style={[styles.squadBanner, { backgroundColor: `${palette.tint}10` }]}>
-        <View style={[styles.squadBannerIcon, { backgroundColor: `${palette.tint}15` }]}>
+      <View style={[styles.squadBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+        <View style={[styles.squadBannerIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="people" size={20} color={palette.tint} />
         </View>
         <View style={styles.squadBannerInfo}>
@@ -287,7 +289,7 @@ export default function SquadInviteScreen() {
                   key={entry.id}
                   style={[styles.historyCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
                 >
-                  <ThemedText type="defaultSemiBold" numberOfLines={1} style={{ fontSize: 13 }}>
+                  <ThemedText type="defaultSemiBold" numberOfLines={1} style={{ ...Typography.small }}>
                     {entry.sessionTitle}
                   </ThemedText>
                   <ThemedText style={[styles.historyMeta, { color: palette.muted }]}>
@@ -335,7 +337,7 @@ export default function SquadInviteScreen() {
                   ]}
                 >
                   <ThemedText
-                    style={{ color: sessionType === type ? '#fff' : palette.text, fontSize: 12 }}
+                    style={{ color: sessionType === type ? Colors.light.onPrimary : palette.text, ...Typography.caption }}
                   >
                     {type}
                   </ThemedText>
@@ -359,7 +361,7 @@ export default function SquadInviteScreen() {
                     },
                   ]}
                 >
-                  <ThemedText style={{ color: focus === f ? '#fff' : palette.text, fontSize: 12 }}>
+                  <ThemedText style={{ color: focus === f ? Colors.light.onPrimary : palette.text, ...Typography.caption }}>
                     {f}
                   </ThemedText>
                 </Clickable>
@@ -376,35 +378,29 @@ export default function SquadInviteScreen() {
 
           <SurfaceCard style={styles.slotFormCard}>
             <View style={styles.slotFormRow}>
-              <View style={[styles.slotInput, { flex: 1 }]}>
-                <TextInput
-                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                  placeholder="Date (2026-01-15)"
-                  placeholderTextColor={palette.muted}
-                  value={slotDate}
-                  onChangeText={setSlotDate}
-                />
-              </View>
+              <DateTimeField
+                mode="date"
+                label="Date"
+                value={slotDate}
+                onChange={setSlotDate}
+                style={{ flex: 1 }}
+              />
             </View>
             <View style={styles.slotFormRow}>
-              <View style={styles.slotInput}>
-                <TextInput
-                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                  placeholder="Start (16:00)"
-                  placeholderTextColor={palette.muted}
-                  value={slotStartTime}
-                  onChangeText={setSlotStartTime}
-                />
-              </View>
-              <View style={styles.slotInput}>
-                <TextInput
-                  style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                  placeholder="End (17:00)"
-                  placeholderTextColor={palette.muted}
-                  value={slotEndTime}
-                  onChangeText={setSlotEndTime}
-                />
-              </View>
+              <DateTimeField
+                mode="time"
+                label="Start"
+                value={slotStartTime}
+                onChange={setSlotStartTime}
+                style={{ flex: 1 }}
+              />
+              <DateTimeField
+                mode="time"
+                label="End"
+                value={slotEndTime}
+                onChange={setSlotEndTime}
+                style={{ flex: 1 }}
+              />
             </View>
             <View style={styles.slotFormRow}>
               <View style={[styles.slotInput, { flex: 1 }]}>
@@ -420,7 +416,7 @@ export default function SquadInviteScreen() {
                 onPress={addTimeSlot}
                 style={[styles.addButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="add" size={20} color="#fff" />
+                <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
               </Clickable>
             </View>
           </SurfaceCard>
@@ -433,14 +429,14 @@ export default function SquadInviteScreen() {
                   style={[styles.slotItem, { backgroundColor: palette.surface, borderColor: palette.border }]}
                 >
                   <View style={styles.slotInfo}>
-                    <ThemedText type="defaultSemiBold" style={{ fontSize: 13 }}>
+                    <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>
                       {new Date(slot.date).toLocaleDateString('en-GB', {
                         weekday: 'short',
                         day: 'numeric',
                         month: 'short',
                       })}
                     </ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                       {slot.startTime} - {slot.endTime}
                       {slot.location && ` at ${slot.location}`}
                     </ThemedText>
@@ -526,16 +522,16 @@ const styles = StyleSheet.create({
   squadBannerIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   squadBannerInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   squadBannerMeta: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   content: {
     padding: Spacing.lg,
@@ -547,7 +543,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 15,
+    ...Typography.body,
     marginBottom: Spacing.xs,
   },
   historyCard: {
@@ -556,28 +552,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginRight: Spacing.sm,
     minWidth: 160,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   historyMeta: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   historyDate: {
-    fontSize: 10,
+    ...Typography.micro,
   },
   formRow: {
     gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
   formLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   input: {
     height: 42,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   optionsRow: {
     flexDirection: 'row',
@@ -586,7 +581,7 @@ const styles = StyleSheet.create({
   },
   optionChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
@@ -621,7 +616,7 @@ const styles = StyleSheet.create({
   },
   slotInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   footer: {
     padding: Spacing.lg,

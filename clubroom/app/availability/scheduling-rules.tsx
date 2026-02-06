@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
@@ -79,7 +79,7 @@ function OptionPicker<T extends number>({ options, selectedValue, onSelect }: Op
             style={[
               styles.optionCard,
               {
-                backgroundColor: isSelected ? `${palette.tint}12` : palette.background,
+                backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.background,
                 borderColor: isSelected ? palette.tint : palette.border,
                 borderWidth: isSelected ? 2 : 1,
               },
@@ -96,7 +96,7 @@ function OptionPicker<T extends number>({ options, selectedValue, onSelect }: Op
             </ThemedText>
             {isSelected && (
               <View style={[styles.checkCircle, { backgroundColor: palette.tint }]}>
-                <Ionicons name="checkmark" size={12} color="#fff" />
+                <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />
               </View>
             )}
           </Clickable>
@@ -176,7 +176,7 @@ export default function SchedulingRulesScreen() {
     }
   };
 
-  const updateField = (setter: (value: any) => void) => (value: any) => {
+  const updateField = <T,>(setter: (value: T) => void) => (value: T) => {
     setter(value);
     setHasChanges(true);
   };
@@ -207,7 +207,7 @@ export default function SchedulingRulesScreen() {
         {/* Minimum Booking Notice */}
         <SurfaceCard style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: `${palette.warning}15` }]}>
+            <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
               <Ionicons name="time-outline" size={22} color={palette.warning} />
             </View>
             <View style={styles.sectionTitleContainer}>
@@ -225,7 +225,7 @@ export default function SchedulingRulesScreen() {
           />
 
           {minimumAdvanceHours === 0 && (
-            <View style={[styles.warningBanner, { backgroundColor: `${palette.warning}10` }]}>
+            <View style={[styles.warningBanner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
               <Ionicons name="warning-outline" size={18} color={palette.warning} />
               <ThemedText style={[styles.warningText, { color: palette.warning }]}>
                 Athletes can book at any time, even last minute
@@ -237,7 +237,7 @@ export default function SchedulingRulesScreen() {
         {/* Buffer Time */}
         <SurfaceCard style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="pause-outline" size={22} color={palette.tint} />
             </View>
             <View style={styles.sectionTitleContainer}>
@@ -254,7 +254,7 @@ export default function SchedulingRulesScreen() {
             onSelect={updateField(setBufferMinutes)}
           />
 
-          <View style={[styles.tipBanner, { backgroundColor: `${palette.success}08` }]}>
+          <View style={[styles.tipBanner, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
             <Ionicons name="bulb-outline" size={18} color={palette.success} />
             <ThemedText style={[styles.tipText, { color: palette.muted }]}>
               Use buffer time to travel between locations, rest, or prepare equipment
@@ -265,7 +265,7 @@ export default function SchedulingRulesScreen() {
         {/* Advance Booking Window */}
         <SurfaceCard style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: `${palette.accent}15` }]}>
+            <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
               <Ionicons name="calendar-outline" size={22} color={palette.accent} />
             </View>
             <View style={styles.sectionTitleContainer}>
@@ -287,7 +287,7 @@ export default function SchedulingRulesScreen() {
         <SurfaceCard style={styles.toggleSection}>
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
-              <View style={[styles.toggleIcon, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="today-outline" size={20} color={palette.success} />
               </View>
               <View style={styles.toggleTextContainer}>
@@ -304,7 +304,7 @@ export default function SchedulingRulesScreen() {
                 updateField(setAllowSameDayBookings)(value);
               }}
               trackColor={{ false: palette.border, true: palette.success }}
-              thumbColor="#fff"
+              thumbColor={Colors.light.surface}
             />
           </View>
 
@@ -319,7 +319,7 @@ export default function SchedulingRulesScreen() {
         <SurfaceCard style={styles.section}>
           <View style={styles.toggleRow}>
             <View style={styles.toggleInfo}>
-              <View style={[styles.toggleIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="swap-horizontal-outline" size={20} color={palette.tint} />
               </View>
               <View style={styles.toggleTextContainer}>
@@ -336,7 +336,7 @@ export default function SchedulingRulesScreen() {
                 updateField(setAllowRescheduling)(value);
               }}
               trackColor={{ false: palette.border, true: palette.tint }}
-              thumbColor="#fff"
+              thumbColor={Colors.light.surface}
             />
           </View>
 
@@ -359,7 +359,7 @@ export default function SchedulingRulesScreen() {
         </SurfaceCard>
 
         {/* Summary */}
-        <SurfaceCard style={[styles.summaryCard, { backgroundColor: `${palette.tint}08` }]}>
+        <SurfaceCard style={[styles.summaryCard, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>
             Summary
           </ThemedText>
@@ -421,7 +421,7 @@ export default function SchedulingRulesScreen() {
             <ThemedText style={styles.saveButtonText}>Saving...</ThemedText>
           ) : (
             <>
-              <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+              <Ionicons name="checkmark-circle-outline" size={20} color={Colors.light.onPrimary} />
               <ThemedText style={styles.saveButtonText}>Save Rules</ThemedText>
             </>
           )}
@@ -453,17 +453,16 @@ const styles = StyleSheet.create({
   sectionIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitleContainer: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   sectionSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   optionsGrid: {
     flexDirection: 'row',
@@ -479,14 +478,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   optionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     textAlign: 'center',
   },
   optionDesc: {
-    fontSize: 11,
+    ...Typography.caption,
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   checkCircle: {
     position: 'absolute',
@@ -494,7 +492,7 @@ const styles = StyleSheet.create({
     right: 6,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -508,7 +506,7 @@ const styles = StyleSheet.create({
   },
   warningText: {
     flex: 1,
-    fontSize: 13,
+    ...Typography.small,
   },
   tipBanner: {
     flexDirection: 'row',
@@ -520,8 +518,7 @@ const styles = StyleSheet.create({
   },
   tipText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   toggleSection: {
     padding: Spacing.lg,
@@ -541,7 +538,7 @@ const styles = StyleSheet.create({
   toggleIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -549,11 +546,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   toggleSubtext: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   toggleNote: {
-    fontSize: 12,
+    ...Typography.caption,
     marginTop: Spacing.sm,
     fontStyle: 'italic',
   },
@@ -574,7 +571,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   summaryText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     flex: 1,
   },
   footer: {
@@ -595,8 +592,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   saveButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

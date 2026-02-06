@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 import Animated, { FadeInRight } from 'react-native-reanimated';
@@ -18,10 +19,10 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import type { SessionOffering, FootballObjective } from '@/constants/types';
+import type { SessionOffering, FootballObjective, SessionInviteType } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { rosterService } from '@/services/roster-service';
 
@@ -95,7 +96,7 @@ export default function CreateSessionScreen() {
   const [price, setPrice] = useState('');
 
   // Step 4: Invite
-  const [inviteMode, setInviteMode] = useState<'open' | 'invite'>('open');
+  const [inviteType, setInviteType] = useState<SessionInviteType>('OPEN');
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [pastAthletes, setPastAthletes] = useState<{ id: string; name: string }[]>([]);
 
@@ -220,6 +221,7 @@ export default function CreateSessionScreen() {
         title,
         description: description || undefined,
         sessionType: sessionType === '1on1' ? '1on1' : 'group',
+        inviteType,
         maxParticipants: participants,
         location,
         scheduledAt,
@@ -239,10 +241,10 @@ export default function CreateSessionScreen() {
       offerings.push(newOffering);
       await apiClient.set('session_offerings', offerings);
 
-      // If invite mode, send invites to selected athletes
-      if (inviteMode === 'invite' && selectedAthletes.length > 0) {
+      // If closed/invite-only mode, send invites to selected athletes
+      if (inviteType === 'CLOSED' && selectedAthletes.length > 0) {
         // Would call sessionInviteService.createBulk() here
-        logger.info('Sending invites to athletes', { athleteIds: selectedAthletes });
+        logger.info('Sending invites to athletes', { athleteIds: selectedAthletes, inviteType });
       }
 
       Alert.alert(
@@ -251,7 +253,7 @@ export default function CreateSessionScreen() {
         [
           {
             text: 'View Schedule',
-            onPress: () => router.replace('/(tabs)/schedule'),
+            onPress: () => router.replace(Routes.SCHEDULE),
           },
           {
             text: 'Create Another',
@@ -263,7 +265,7 @@ export default function CreateSessionScreen() {
               setPrice('');
               setSelectedDate('');
               setFocusAreas([]);
-              setInviteMode('open');
+              setInviteType('OPEN');
               setSelectedAthletes([]);
             },
           },
@@ -290,7 +292,7 @@ export default function CreateSessionScreen() {
             ]}
           >
             {i < currentStepIndex && (
-              <Ionicons name="checkmark" size={12} color="#fff" />
+              <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />
             )}
           </View>
           {i < steps.length - 1 && (
@@ -337,7 +339,7 @@ export default function CreateSessionScreen() {
               style={[
                 styles.typeCard,
                 {
-                  backgroundColor: sessionType === type.key ? `${palette.tint}12` : palette.surface,
+                  backgroundColor: sessionType === type.key ? withAlpha(palette.tint, 0.07) : palette.surface,
                   borderColor: sessionType === type.key ? palette.tint : palette.border,
                 },
               ]}
@@ -346,14 +348,14 @@ export default function CreateSessionScreen() {
                 style={[
                   styles.typeIcon,
                   {
-                    backgroundColor: sessionType === type.key ? palette.tint : `${palette.muted}20`,
+                    backgroundColor: sessionType === type.key ? palette.tint : withAlpha(palette.muted, 0.12),
                   },
                 ]}
               >
                 <Ionicons
                   name={type.icon}
                   size={22}
-                  color={sessionType === type.key ? '#fff' : palette.muted}
+                  color={sessionType === type.key ? Colors.light.onPrimary : palette.muted}
                 />
               </View>
               <ThemedText
@@ -411,7 +413,7 @@ export default function CreateSessionScreen() {
                 <ThemedText
                   style={[
                     styles.durationText,
-                    { color: duration === opt.value ? '#fff' : palette.text },
+                    { color: duration === opt.value ? Colors.light.onPrimary : palette.text },
                   ]}
                 >
                   {opt.label}
@@ -484,7 +486,7 @@ export default function CreateSessionScreen() {
               <ThemedText
                 style={[
                   styles.focusText,
-                  { color: focusAreas.includes(area) ? '#fff' : palette.text },
+                  { color: focusAreas.includes(area) ? Colors.light.onPrimary : palette.text },
                 ]}
               >
                 {area}
@@ -511,7 +513,7 @@ export default function CreateSessionScreen() {
               style={[
                 styles.recurrenceCard,
                 {
-                  backgroundColor: recurrence === opt.key ? `${palette.tint}12` : palette.surface,
+                  backgroundColor: recurrence === opt.key ? withAlpha(palette.tint, 0.07) : palette.surface,
                   borderColor: recurrence === opt.key ? palette.tint : palette.border,
                 },
               ]}
@@ -598,7 +600,7 @@ export default function CreateSessionScreen() {
                     style={[
                       styles.savedChip,
                       {
-                        backgroundColor: location === loc ? `${palette.tint}12` : palette.surface,
+                        backgroundColor: location === loc ? withAlpha(palette.tint, 0.07) : palette.surface,
                         borderColor: location === loc ? palette.tint : palette.border,
                       },
                     ]}
@@ -656,7 +658,7 @@ export default function CreateSessionScreen() {
             <ThemedText type="title" style={styles.reviewTitle}>
               {title || 'Untitled Session'}
             </ThemedText>
-            <View style={[styles.typeBadge, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.typeBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name={typeConfig?.icon || 'fitness'} size={14} color={palette.tint} />
               <ThemedText style={[styles.typeBadgeText, { color: palette.tint }]}>
                 {typeConfig?.label}
@@ -694,7 +696,7 @@ export default function CreateSessionScreen() {
                 <ThemedText type="defaultSemiBold">
                   {selectedDate} at {selectedTime}
                 </ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   {recurrenceLabel}
                 </ThemedText>
               </View>
@@ -745,7 +747,7 @@ export default function CreateSessionScreen() {
                 {focusAreas.map(area => (
                   <View
                     key={area}
-                    style={[styles.focusTag, { backgroundColor: `${palette.success}15` }]}
+                    style={[styles.focusTag, { backgroundColor: withAlpha(palette.success, 0.09) }]}
                   >
                     <ThemedText style={[styles.focusTagText, { color: palette.success }]}>
                       {area}
@@ -758,11 +760,45 @@ export default function CreateSessionScreen() {
         </SurfaceCard>
 
         <ThemedText style={[styles.reviewNote, { color: palette.muted }]}>
-          Your session will be visible to athletes once published.
+          {inviteType === 'OPEN'
+            ? 'Your session will be visible to all athletes once published.'
+            : inviteType === 'CLOSED'
+            ? 'Only invited athletes will be able to see this session.'
+            : 'Only squad members will be able to see this session.'}
         </ThemedText>
       </Animated.View>
     );
   };
+
+  const INVITE_TYPE_OPTIONS: {
+    key: SessionInviteType;
+    label: string;
+    description: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    colorKey: keyof typeof palette;
+  }[] = [
+    {
+      key: 'OPEN',
+      label: 'Open Session',
+      description: 'Visible when browsing your available sessions',
+      icon: 'globe-outline',
+      colorKey: 'success',
+    },
+    {
+      key: 'CLOSED',
+      label: 'Invite Only',
+      description: 'Only athletes you explicitly invite can see/book',
+      icon: 'lock-closed-outline',
+      colorKey: 'warning',
+    },
+    {
+      key: 'SQUAD_ONLY',
+      label: 'Squad Only',
+      description: 'Only members of selected squad(s) can see/book',
+      icon: 'people-outline',
+      colorKey: 'info',
+    },
+  ];
 
   const renderInviteStep = () => (
     <Animated.View entering={FadeInRight.springify()} style={styles.stepContent}>
@@ -771,59 +807,38 @@ export default function CreateSessionScreen() {
           Who can join?
         </ThemedText>
 
-        <Clickable
-          onPress={() => setInviteMode('open')}
-          style={[
-            styles.inviteModeCard,
-            {
-              borderColor: inviteMode === 'open' ? palette.tint : palette.border,
-              backgroundColor: inviteMode === 'open' ? `${palette.tint}08` : palette.surface,
-            },
-          ]}
-        >
-          <View style={[styles.inviteModeIcon, { backgroundColor: `${palette.success}15` }]}>
-            <Ionicons name="globe-outline" size={24} color={palette.success} />
-          </View>
-          <View style={styles.inviteModeInfo}>
-            <ThemedText type="defaultSemiBold">Open Session</ThemedText>
-            <ThemedText style={[styles.inviteModeDesc, { color: palette.muted }]}>
-              Anyone can discover and book
-            </ThemedText>
-          </View>
-          {inviteMode === 'open' && (
-            <Ionicons name="checkmark-circle" size={24} color={palette.tint} />
-          )}
-        </Clickable>
-
-        <Clickable
-          onPress={() => setInviteMode('invite')}
-          style={[
-            styles.inviteModeCard,
-            {
-              borderColor: inviteMode === 'invite' ? palette.tint : palette.border,
-              backgroundColor: inviteMode === 'invite' ? `${palette.tint}08` : palette.surface,
-            },
-          ]}
-        >
-          <View style={[styles.inviteModeIcon, { backgroundColor: `${palette.warning}15` }]}>
-            <Ionicons name="mail-outline" size={24} color={palette.warning} />
-          </View>
-          <View style={styles.inviteModeInfo}>
-            <ThemedText type="defaultSemiBold">Invite Only</ThemedText>
-            <ThemedText style={[styles.inviteModeDesc, { color: palette.muted }]}>
-              Send invites to specific athletes
-            </ThemedText>
-          </View>
-          {inviteMode === 'invite' && (
-            <Ionicons name="checkmark-circle" size={24} color={palette.tint} />
-          )}
-        </Clickable>
+        {INVITE_TYPE_OPTIONS.map((option) => (
+          <Clickable
+            key={option.key}
+            onPress={() => setInviteType(option.key)}
+            style={[
+              styles.inviteModeCard,
+              {
+                borderColor: inviteType === option.key ? palette.tint : palette.border,
+                backgroundColor: inviteType === option.key ? withAlpha(palette.tint, 0.03) : palette.surface,
+              },
+            ]}
+          >
+            <View style={[styles.inviteModeIcon, { backgroundColor: withAlpha(palette[option.colorKey], 0.09) }]}>
+              <Ionicons name={option.icon} size={24} color={palette[option.colorKey] as string} />
+            </View>
+            <View style={styles.inviteModeInfo}>
+              <ThemedText type="defaultSemiBold">{option.label}</ThemedText>
+              <ThemedText style={[styles.inviteModeDesc, { color: palette.muted }]}>
+                {option.description}
+              </ThemedText>
+            </View>
+            {inviteType === option.key && (
+              <Ionicons name="checkmark-circle" size={24} color={palette.tint} />
+            )}
+          </Clickable>
+        ))}
       </View>
 
-      {inviteMode === 'invite' && (
+      {inviteType === 'CLOSED' && (
         <SurfaceCard style={styles.athleteList}>
           <ThemedText type="defaultSemiBold" style={styles.athleteListTitle}>
-            Select Athletes
+            Select Athletes to Invite
           </ThemedText>
           {pastAthletes.map(athlete => (
             <Clickable
@@ -833,12 +848,12 @@ export default function CreateSessionScreen() {
                 styles.athleteRow,
                 {
                   backgroundColor: selectedAthletes.includes(athlete.id)
-                    ? `${palette.tint}08`
+                    ? withAlpha(palette.tint, 0.03)
                     : 'transparent',
                 },
               ]}
             >
-              <View style={[styles.athleteAvatar, { backgroundColor: `${palette.tint}20` }]}>
+              <View style={[styles.athleteAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
                   {athlete.name.charAt(0)}
                 </ThemedText>
@@ -858,11 +873,22 @@ export default function CreateSessionScreen() {
                 ]}
               >
                 {selectedAthletes.includes(athlete.id) && (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
+                  <Ionicons name="checkmark" size={14} color={Colors.light.onPrimary} />
                 )}
               </View>
             </Clickable>
           ))}
+        </SurfaceCard>
+      )}
+
+      {inviteType === 'SQUAD_ONLY' && (
+        <SurfaceCard style={styles.athleteList}>
+          <ThemedText type="defaultSemiBold" style={styles.athleteListTitle}>
+            Squad Access
+          </ThemedText>
+          <ThemedText style={[styles.inviteModeDesc, { color: palette.muted }]}>
+            Only members of your squads will be able to view and book this session.
+          </ThemedText>
         </SurfaceCard>
       )}
     </Animated.View>
@@ -953,7 +979,7 @@ const styles = StyleSheet.create({
   stepDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -964,8 +990,7 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     textAlign: 'center',
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
     paddingBottom: Spacing.sm,
   },
   scrollView: {
@@ -982,13 +1007,13 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   input: {
     height: 48,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     borderWidth: 1,
   },
   smallInput: {
@@ -1015,16 +1040,15 @@ const styles = StyleSheet.create({
   typeIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   typeLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   typeDesc: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   durationRow: {
     flexDirection: 'row',
@@ -1037,8 +1061,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   durationText: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   focusGrid: {
     flexDirection: 'row',
@@ -1052,8 +1075,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   focusText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   recurrenceRow: {
     flexDirection: 'row',
@@ -1070,16 +1092,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   recurrenceLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   savedLocations: {
     marginTop: Spacing.xs,
     gap: Spacing.xs,
   },
   savedLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   savedRow: {
     flexDirection: 'row',
@@ -1088,15 +1108,15 @@ const styles = StyleSheet.create({
   savedChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
     maxWidth: 180,
   },
   savedText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   priceRow: {
     flexDirection: 'row',
@@ -1104,15 +1124,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   currencySymbol: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   priceInput: {
     flex: 1,
     maxWidth: 120,
   },
   priceHint: {
-    fontSize: 12,
+    ...Typography.caption,
     marginTop: Spacing.xs,
   },
   reviewCard: {
@@ -1126,23 +1145,21 @@ const styles = StyleSheet.create({
   },
   reviewTitle: {
     flex: 1,
-    fontSize: 20,
+    ...Typography.title,
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   typeBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   reviewDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   reviewDivider: {
     height: 1,
@@ -1157,8 +1174,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   reviewItemLabel: {
-    fontSize: 12,
-    marginBottom: 2,
+    ...Typography.caption,
+    marginBottom: Spacing.micro,
   },
   reviewPriceRow: {
     flexDirection: 'row',
@@ -1175,16 +1192,15 @@ const styles = StyleSheet.create({
   },
   focusTag: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   focusTagText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   reviewNote: {
     textAlign: 'center',
-    fontSize: 13,
+    ...Typography.small,
     marginTop: Spacing.md,
   },
   footer: {
@@ -1202,16 +1218,16 @@ const styles = StyleSheet.create({
   inviteModeIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   inviteModeInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   inviteModeDesc: {
-    fontSize: 13,
+    ...Typography.small,
   },
   athleteList: {
     gap: Spacing.sm,
@@ -1229,18 +1245,18 @@ const styles = StyleSheet.create({
   athleteAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   athleteName: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

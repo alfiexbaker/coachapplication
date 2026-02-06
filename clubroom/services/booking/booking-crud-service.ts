@@ -4,6 +4,10 @@
  * Handles basic CRUD operations for bookings: create, read, update, cancel.
  * Manages draft state and direct booking creation with validation.
  *
+ * Uses an in-memory Map<string, Booking> cache with 30s TTL (same pattern as
+ * BaseService) to avoid redundant reads from storage. All write operations
+ * invalidate the cache so the next read re-populates from storage.
+ *
  * API Integration Notes:
  * - Bookings are persisted via apiClient (AsyncStorage in dev, API in prod)
  * - Draft state is kept in memory for the booking flow wizard
@@ -20,6 +24,9 @@ import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
 
 const logger = createLogger('BookingCrudService');
+
+/** Maximum age (ms) before cache is considered stale. */
+const CACHE_MAX_AGE = 30_000;
 
 export type BookingDraft = {
   sessionType?: string;
@@ -62,6 +69,54 @@ export interface CreateBookingParams {
 class BookingCrudService {
   private draft: BookingDraft = {};
 
+  // ---------------------------------------------------------------------------
+  // In-memory cache (mirrors BaseService pattern)
+  // ---------------------------------------------------------------------------
+
+  /** ID-indexed cache for O(1) lookups. `null` means cache is cold / invalidated. */
+  private _cache: Map<string, Booking> | null = null;
+  private _cacheTimestamp = 0;
+
+  /**
+   * Returns the ID-indexed cache, lazily loading from storage on first access
+   * or when the cache has exceeded its TTL.
+   */
+  private async getCache(): Promise<Map<string, Booking>> {
+    const now = Date.now();
+    if (this._cache === null || now - this._cacheTimestamp > CACHE_MAX_AGE) {
+      const data = await this.loadFromStorage();
+      this._cache = new Map(data.map((item) => [item.id, item]));
+      this._cacheTimestamp = now;
+    }
+    return this._cache;
+  }
+
+  /** Invalidate the in-memory cache. Called after every write operation. */
+  private invalidateCache(): void {
+    this._cache = null;
+    this._cacheTimestamp = 0;
+  }
+
+  /** Load all bookings from storage. */
+  private async loadFromStorage(): Promise<Booking[]> {
+    try {
+      return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+    } catch (error) {
+      logger.error('Failed to load bookings from storage', error);
+      return [];
+    }
+  }
+
+  /** Save all bookings to storage and invalidate cache. */
+  private async saveToStorage(bookings: Booking[]): Promise<void> {
+    await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
+    this.invalidateCache();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Draft methods
+  // ---------------------------------------------------------------------------
+
   getDraft() {
     return this.draft;
   }
@@ -74,9 +129,14 @@ class BookingCrudService {
     this.draft = {};
   }
 
+  // ---------------------------------------------------------------------------
+  // Read methods (use cache)
+  // ---------------------------------------------------------------------------
+
   async list(): Promise<Booking[]> {
     try {
-      return await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+      const cache = await this.getCache();
+      return Array.from(cache.values());
     } catch (error) {
       logger.error('Failed to list bookings', error);
       return [];
@@ -84,76 +144,65 @@ class BookingCrudService {
   }
 
   /**
-   * Get a single booking by ID
+   * Get a single booking by ID.
+   * Uses the O(1) cache lookup instead of scanning the full list.
    */
   async getBooking(id: string): Promise<Booking | null> {
-    const bookings = await this.list();
-    const booking = bookings.find((b) => b.id === id);
-    if (booking) return booking;
-
-    // Also check session bookings
     try {
-      const sessionBookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
-      if (sessionBookings.length > 0) {
-        const sessionBooking = sessionBookings.find((b) => b.id === id);
-        if (sessionBooking) {
-          return {
-            id: sessionBooking.id,
-            coachId: sessionBooking.coachId,
-            coachName: sessionBooking.coachName,
-            athleteId: sessionBooking.athleteId,
-            athleteName: sessionBooking.athleteName,
-            scheduledAt: sessionBooking.scheduledAt,
-            location: sessionBooking.location,
-            service: sessionBooking.service,
-            status: sessionBooking.status,
-            price: sessionBooking.price || 35,
-          } as Booking;
-        }
-      }
+      const cache = await this.getCache();
+      return cache.get(id) ?? null;
     } catch (error) {
-      logger.error('Failed to check session bookings', error);
+      logger.error('Failed to get booking', error);
+      return null;
     }
-
-    return null;
   }
 
   /**
-   * Get a specific booking by ID
+   * Get a specific booking by ID.
+   * Uses the O(1) cache lookup instead of scanning the full list.
    */
   async getById(id: string): Promise<Booking | undefined> {
-    const bookings = await this.list();
-    return bookings.find((b) => b.id === id);
+    try {
+      const cache = await this.getCache();
+      return cache.get(id);
+    } catch (error) {
+      logger.error('Failed to get booking by id', error);
+      return undefined;
+    }
   }
+
+  // ---------------------------------------------------------------------------
+  // Write methods (invalidate cache after every write)
+  // ---------------------------------------------------------------------------
 
   /**
    * Update a booking with partial fields
    */
   async updateBooking(id: string, updates: Partial<Booking>): Promise<Result<Booking, ServiceError>> {
-    const bookings = await this.list();
+    const bookings = await this.loadFromStorage();
     const index = bookings.findIndex((b) => b.id === id);
     if (index === -1) return err(notFound('Booking', id));
 
     const updated = { ...bookings[index], ...updates };
     bookings[index] = updated;
-    await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
+    await this.saveToStorage(bookings);
     return ok(updated);
   }
 
   async updateStatus(id: string, status: Booking['status']) {
-    const bookings = await this.list();
+    const bookings = await this.loadFromStorage();
     const updated = bookings.map((b) => (b.id === id ? { ...b, status } : b));
-    await apiClient.set(STORAGE_KEYS.BOOKINGS, updated);
+    await this.saveToStorage(updated);
     return updated.find((b) => b.id === id);
   }
 
   async cancel(id: string, reason: string, cancelledBy: 'coach' | 'parent' = 'parent') {
-    const bookings = await this.list();
+    const bookings = await this.loadFromStorage();
     const booking = bookings.find((b) => b.id === id);
     const updated = bookings.map((b) =>
-      b.id === id ? { ...b, status: 'CANCELLED', cancellationReason: reason } : b
+      b.id === id ? { ...b, status: 'CANCELLED' as const, cancellationReason: reason } : b
     );
-    await apiClient.set(STORAGE_KEYS.BOOKINGS, updated);
+    await this.saveToStorage(updated);
 
     // Notify the other party about the cancellation
     if (booking) {
@@ -221,7 +270,7 @@ class BookingCrudService {
   /**
    * Create a new booking with validation and notifications
    */
-  async createBooking(params: CreateBookingParams): Promise<{ success: boolean; booking?: Booking; error?: string }> {
+  async createBooking(params: CreateBookingParams): Promise<Result<Booking, ServiceError>> {
     const {
       coachId,
       coachName,
@@ -247,7 +296,7 @@ class BookingCrudService {
     // Validate against availability
     const validation = await this.validateBooking(coachId, date, time, duration);
     if (!validation.valid) {
-      return { success: false, error: validation.reason };
+      return err(validationError(validation.reason || 'Booking validation failed'));
     }
 
     // Calculate total price (base price * number of athletes)
@@ -278,11 +327,11 @@ class BookingCrudService {
       sessionInviteId, // Link to session invite if created from one
     };
 
-    // Save to session bookings storage
+    // Save to bookings storage
     try {
-      const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+      const bookings = await this.loadFromStorage();
       bookings.push(newBooking as Booking);
-      await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
+      await this.saveToStorage(bookings);
 
       // Create notifications for coach and parent
       await this.createBookingNotifications(newBooking as Booking, bookedByName);
@@ -306,10 +355,10 @@ class BookingCrudService {
         price: totalPrice,
       });
 
-      return { success: true, booking: newBooking as Booking };
+      return ok(newBooking as Booking);
     } catch (error) {
       logger.error('Failed to create booking', error);
-      return { success: false, error: 'Failed to save booking. Please try again.' };
+      return err(storageError('Failed to save booking. Please try again.'));
     }
   }
 
@@ -421,9 +470,9 @@ class BookingCrudService {
    */
   async saveBookingDirect(booking: Booking): Promise<{ success: boolean; error?: string }> {
     try {
-      const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+      const bookings = await this.loadFromStorage();
       bookings.push(booking);
-      await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
+      await this.saveToStorage(bookings);
       return { success: true };
     } catch (error) {
       logger.error('Failed to save booking directly', error);

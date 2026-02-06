@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { Colors, Radii, Typography, Spacing} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -104,7 +104,7 @@ export default function PostDetailScreen() {
           <View style={styles.postHeader}>
             <View style={styles.authorInfo}>
               <View style={[styles.avatar, { backgroundColor: palette.tint }]}>
-                <ThemedText style={{ fontSize: 24 }}>{post.authorAvatar || 'AA'}</ThemedText>
+                <ThemedText style={{ ...Typography.display }}>{post.authorAvatar || 'AA'}</ThemedText>
               </View>
               <View style={styles.authorDetails}>
                 <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
@@ -153,7 +153,7 @@ export default function PostDetailScreen() {
               >
                 <View style={styles.commentHeader}>
                   <View style={[styles.commentAvatar, { backgroundColor: palette.tint }]}>
-                    <ThemedText style={{ fontSize: 18 }}>{comment.authorAvatar || 'AA'}</ThemedText>
+                    <ThemedText style={{ ...Typography.heading }}>{comment.authorAvatar || 'AA'}</ThemedText>
                   </View>
                   <View style={styles.commentDetails}>
                     <ThemedText type="defaultSemiBold">{comment.authorName}</ThemedText>
@@ -204,7 +204,7 @@ export default function PostDetailScreen() {
           onPress={handleAddComment}
           disabled={!newComment.trim()}
         >
-          <IconSymbol name="arrow.up" size={20} color="#FFFFFF" />
+          <IconSymbol name="arrow.up" size={20} color={Colors.light.onPrimary} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -237,11 +237,11 @@ const styles = StyleSheet.create({
   postCard: {
     margin: 16,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 1,
   },
   postHeader: {
-    marginBottom: 12,
+    marginBottom: Spacing.xs + Spacing.xxs,
   },
   authorInfo: {
     flexDirection: 'row',
@@ -250,49 +250,48 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: Spacing.xs + Spacing.xxs,
   },
   authorDetails: {
     flex: 1,
   },
   timestamp: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   postContent: {
-    fontSize: 16,
-    lineHeight: 22,
-    marginBottom: 12,
+    ...Typography.subheading,
+    marginBottom: Spacing.xs + Spacing.xxs,
   },
   postActions: {
     flexDirection: 'row',
     gap: 20,
-    paddingTop: 12,
+    paddingTop: Spacing.xs + Spacing.xxs,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.05)',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   actionText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   commentsSection: {
     paddingHorizontal: 16,
   },
   commentsTitle: {
-    marginBottom: 12,
+    marginBottom: Spacing.xs + Spacing.xxs,
   },
   commentCard: {
-    padding: 12,
-    borderRadius: 8,
+    padding: Spacing.xs + Spacing.xxs,
+    borderRadius: Radii.sm,
     borderWidth: 1,
-    marginBottom: 12,
+    marginBottom: Spacing.xs + Spacing.xxs,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -302,7 +301,7 @@ const styles = StyleSheet.create({
   commentAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -311,30 +310,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   commentContent: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
     marginBottom: 8,
   },
   commentLike: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     alignSelf: 'flex-start',
   },
   likeCount: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   commentInput: {
     flexDirection: 'row',
-    padding: 12,
-    gap: 12,
+    padding: Spacing.xs + Spacing.xxs,
+    gap: Spacing.xs + Spacing.xxs,
     borderTopWidth: 1,
     alignItems: 'flex-end',
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     paddingHorizontal: 16,
     paddingVertical: 10,
     maxHeight: 100,
@@ -342,7 +340,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { apiClient } from '@/services/api-client';
@@ -16,7 +17,7 @@ import { apiClient } from '@/services/api-client';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -70,12 +71,9 @@ export function ParentDiscoverScreen() {
 
   const handleJoinClub = () => {
     if (clubInviteCode.trim()) {
-      router.push({
-        pathname: '/(tabs)/club-hub',
-        params: { code: clubInviteCode.trim().toUpperCase() },
-      });
+      router.push(Routes.CLUB_HUB);
     } else {
-      router.push('/(tabs)/club-hub');
+      router.push(Routes.CLUB_HUB);
     }
   };
 
@@ -94,7 +92,7 @@ export function ParentDiscoverScreen() {
       const now = Date.now();
       const ONE_DAY = 24 * 60 * 60 * 1000;
 
-      const needsReview = bookings.filter((b: any) => {
+      const needsReview = bookings.filter((b) => {
         if (b.status !== 'COMPLETED') return false;
         const dismissedAt = dismissedMap[b.id];
         // If dismissed, re-prompt after 24h once
@@ -329,25 +327,25 @@ export function ParentDiscoverScreen() {
         <Animated.View entering={FadeInDown.springify()} style={styles.clubHubSection}>
           <SurfaceCard style={styles.clubHubCard}>
             <View style={styles.clubHubHeader}>
-              <View style={[styles.clubHubIconCircle, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.clubHubIconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="shield" size={24} color={palette.tint} />
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText type="defaultSemiBold" style={{ fontSize: 17 }}>
+                <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>
                   Club Hub
                 </ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                <ThemedText style={{ ...Typography.small, color: palette.muted }}>
                   {userClubs.length > 0 ? `${userClubs.length} club${userClubs.length > 1 ? 's' : ''} joined` : 'Join your team'}
                 </ThemedText>
               </View>
               <Pressable
-                onPress={() => router.push('/(tabs)/club-hub')}
+                onPress={() => router.push(Routes.CLUB_HUB)}
                 style={({ pressed }) => [
                   styles.clubHubViewButton,
                   { backgroundColor: palette.tint, opacity: pressed ? 0.8 : 1 },
                 ]}
               >
-                <ThemedText style={{ color: palette.surface, fontWeight: '600', fontSize: 13 }}>
+                <ThemedText style={{ ...Typography.smallSemiBold, color: palette.surface }}>
                   {userClubs.length > 0 ? 'View All' : 'Browse'}
                 </ThemedText>
               </Pressable>
@@ -359,10 +357,10 @@ export function ParentDiscoverScreen() {
                 {userClubs.slice(0, 2).map((club) => (
                   <Pressable
                     key={club.id}
-                    onPress={() => router.push({ pathname: '/club/[id]', params: { id: club.id } })}
+                    onPress={() => router.push(Routes.club(club.id))}
                     style={({ pressed }) => [
                       styles.clubHubItem,
-                      { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20`, opacity: pressed ? 0.8 : 1 },
+                      { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: withAlpha(palette.tint, 0.12), opacity: pressed ? 0.8 : 1 },
                     ]}
                   >
                     <View style={[styles.clubHubItemIcon, { backgroundColor: palette.tint }]}>
@@ -371,10 +369,10 @@ export function ParentDiscoverScreen() {
                       </ThemedText>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }} numberOfLines={1}>
+                      <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }} numberOfLines={1}>
                         {club.name}
                       </ThemedText>
-                      <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                         {club.memberCount} members
                       </ThemedText>
                     </View>
@@ -442,10 +440,7 @@ export function ParentDiscoverScreen() {
                           ]}
                           onPress={() => {
                             logger.press('RateNow', { bookingId: session.id });
-                            router.push({
-                              pathname: '/review/create' as any,
-                              params: { bookingId: session.id, coachId: session.coachId },
-                            });
+                            router.push(Routes.reviewCreate(session.id, session.coachId));
                           }}
                         >
                           <Ionicons name="star" size={14} color={palette.surface} />
@@ -478,7 +473,7 @@ export function ParentDiscoverScreen() {
 
         {/* Error State for Invites */}
         {invitesError && !loadingInvites && (
-          <View style={[styles.errorContainer, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}>
+          <View style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
             <Ionicons name="alert-circle" size={16} color={palette.error} />
             <ThemedText style={[styles.errorText, { color: palette.error }]}>{invitesError}</ThemedText>
             <Clickable onPress={loadPendingInvites}>
@@ -497,7 +492,7 @@ export function ParentDiscoverScreen() {
                   Pending Invites ({pendingInvites.length})
                 </ThemedText>
               </View>
-              <Clickable onPress={() => router.push('/session-invites')}>
+              <Clickable onPress={() => router.push(Routes.SESSION_INVITES)}>
                 <ThemedText style={[styles.viewAllLink, { color: palette.tint }]}>View All</ThemedText>
               </Clickable>
             </View>
@@ -514,13 +509,13 @@ export function ParentDiscoverScreen() {
               return (
                 <Clickable
                   key={invite.id}
-                  onPress={() => router.push({ pathname: '/session-invites/[id]', params: { id: invite.id } })}
+                  onPress={() => router.push(Routes.sessionInvite(invite.id))}
                   style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
                 >
                   <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
                     <SurfaceCard style={[styles.inviteCard, { borderLeftColor: palette.warning }]}>
                       <View style={styles.inviteCardContent}>
-                        <View style={[styles.inviteAvatar, { backgroundColor: `${palette.tint}10` }]}>
+                        <View style={[styles.inviteAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                           <ThemedText style={[styles.inviteAvatarText, { color: palette.tint }]}>
                             {invite.coachName.split(' ').map((n) => n[0]).join('')}
                           </ThemedText>
@@ -542,7 +537,7 @@ export function ParentDiscoverScreen() {
                                   : 'View times'}
                               </ThemedText>
                             </View>
-                            <View style={[styles.expiryBadge, { backgroundColor: `${palette.warning}15` }]}>
+                            <View style={[styles.expiryBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                               <Ionicons name="time-outline" size={10} color={palette.warning} />
                               <ThemedText style={[styles.expiryText, { color: palette.warning }]}>
                                 Respond soon
@@ -601,10 +596,7 @@ export function ParentDiscoverScreen() {
                 key={coach.id}
                 onPress={() => {
                   logger.press('CoachCard', { coachId: coach.id, selectedChildId });
-                  router.push({
-                    pathname: '/book-coach',
-                    params: { coachId: coach.id, selectedChildId },
-                  });
+                  router.push(Routes.BOOK_COACH);
                 }}
                 style={({ pressed }) => [
                   styles.coachCard,
@@ -613,7 +605,7 @@ export function ParentDiscoverScreen() {
               >
                 <SurfaceCard style={styles.cardContent}>
                   <View style={styles.coachHeader}>
-                    <View style={[styles.avatar, { backgroundColor: palette.tint + '15' }]}>
+                    <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                         {coach.avatar || coach.name.charAt(0)}
                       </ThemedText>
@@ -648,7 +640,7 @@ export function ParentDiscoverScreen() {
                     <Ionicons name="chevron-forward" size={18} color={palette.muted} />
                   </View>
                   {/* Next Available Slot */}
-                  <View style={[styles.nextAvailable, { backgroundColor: palette.tint + '10' }]}>
+                  <View style={[styles.nextAvailable, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                     <Ionicons name="time-outline" size={14} color={palette.tint} />
                     <ThemedText style={[styles.nextAvailableText, { color: palette.tint }]}>
                       {formatNextAvailable(nextAvailableSlots[coach.id])}
@@ -694,15 +686,8 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  title: { ...Typography.display, letterSpacing: -0.6 },
+  subtitle: { ...Typography.bodySmall, lineHeight: 20 },
   loadingContainer: {
     padding: Spacing.lg,
     alignItems: 'center',
@@ -716,16 +701,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  errorText: {
-    flex: 1,
-    fontSize: 13,
-  },
-  retryLink: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  errorText: { ...Typography.small, flex: 1 },
+  retryLink: { ...Typography.smallSemiBold },
   singleChild: {
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   childTabs: {
     marginTop: Spacing.xs,
@@ -739,10 +718,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
     borderBottomWidth: 2,
   },
-  tabText: {
-    fontSize: 15,
-    letterSpacing: 0.2,
-  },
+  tabText: { ...Typography.body, letterSpacing: 0.2 },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -752,39 +728,24 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-    paddingVertical: 0,
-  },
+  searchInput: { ...Typography.bodySemiBold, flex: 1,
+    paddingVertical: 0 },
   emptyState: {
     paddingTop: Spacing['3xl'],
     paddingHorizontal: Spacing.lg,
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: Spacing.sm,
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  emptyTitle: { ...Typography.heading, marginTop: Spacing.sm },
+  emptyText: { ...Typography.bodySmall, textAlign: 'center',
+    lineHeight: 20 },
   coachList: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.md,
     paddingTop: Spacing.md,
   },
-  resultsText: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  resultsText: { ...Typography.smallSemiBold, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   coachCard: {
     // No styles needed
   },
@@ -800,22 +761,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 22,
-    fontWeight: '700',
-  },
+  avatarText: { ...Typography.title },
   coachInfo: {
     flex: 1,
     gap: Spacing.xs / 2,
   },
-  coachName: {
-    fontSize: 16,
-    letterSpacing: -0.2,
-  },
+  coachName: { ...Typography.subheading, letterSpacing: -0.2 },
   coachMeta: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -825,22 +780,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  metaText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  metaText: { ...Typography.smallSemiBold },
   priceInfo: {
     alignItems: 'flex-end',
   },
-  price: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  priceLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  price: { ...Typography.heading, letterSpacing: -0.3 },
+  priceLabel: { ...Typography.caption },
   focuses: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -852,10 +797,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
-  focusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  focusText: { ...Typography.caption },
   nextAvailable: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -865,10 +807,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
   },
-  nextAvailableText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  nextAvailableText: { ...Typography.caption },
   // Pending Invites Section
   pendingInvitesSection: {
     paddingHorizontal: Spacing.lg,
@@ -886,13 +825,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  sectionTitle: {
-    fontSize: 15,
-  },
-  viewAllLink: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  sectionTitle: { ...Typography.body },
+  viewAllLink: { ...Typography.smallSemiBold },
   inviteCard: {
     padding: Spacing.md,
     borderLeftWidth: 3,
@@ -905,42 +839,31 @@ const styles = StyleSheet.create({
   inviteAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  inviteAvatarText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  inviteAvatarText: { ...Typography.bodySmallSemiBold },
   inviteInfo: {
     flex: 1,
     gap: Spacing.xs / 2,
   },
-  inviteMessage: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
+  inviteMessage: { ...Typography.bodySmall, lineHeight: 18 },
   inviteMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
-  inviteMetaText: {
-    fontSize: 12,
-  },
+  inviteMetaText: { ...Typography.caption },
   expiryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  expiryText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  expiryText: { ...Typography.micro },
   // Club Hub Section
   clubHubSection: {
     paddingHorizontal: Spacing.lg,
@@ -957,7 +880,7 @@ const styles = StyleSheet.create({
   clubHubIconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -980,15 +903,11 @@ const styles = StyleSheet.create({
   clubHubItemIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clubHubItemIconText: {
-    color: Colors.light.surface,
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  clubHubItemIconText: { ...Typography.caption, color: Colors.light.surface },
   clubHubJoinSection: {
     borderTopWidth: 1,
     paddingTop: Spacing.md,
@@ -1008,14 +927,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  clubInviteText: {
-    flex: 1,
-    fontSize: 14,
-  },
+  clubInviteText: { ...Typography.bodySmall, flex: 1 },
   clubJoinButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1035,13 +951,8 @@ const styles = StyleSheet.create({
   reviewInfo: {
     gap: Spacing.xs / 2,
   },
-  reviewTitle: {
-    fontSize: 16,
-    letterSpacing: -0.2,
-  },
-  reviewMeta: {
-    fontSize: 13,
-  },
+  reviewTitle: { ...Typography.subheading, letterSpacing: -0.2 },
+  reviewMeta: { ...Typography.small },
   reviewActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -1054,10 +965,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
   },
-  rateButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  rateButtonText: { ...Typography.bodySmallSemiBold },
   laterButton: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1066,8 +974,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
-  laterButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  laterButtonText: { ...Typography.bodySmallSemiBold },
 });

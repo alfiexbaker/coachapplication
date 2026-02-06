@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
 import type { DrillCategory, DrillDifficulty, CreateDrillInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { drillService } from '@/services/drill-service';
@@ -208,7 +208,7 @@ export function DrillForm({
                   style={[
                     styles.categoryOption,
                     {
-                      backgroundColor: isSelected ? `${info.color}20` : palette.surface,
+                      backgroundColor: isSelected ? withAlpha(info.color, 0.12) : palette.surface,
                       borderColor: isSelected ? info.color : palette.border,
                     },
                   ]}
@@ -289,7 +289,7 @@ export function DrillForm({
                 <ThemedText
                   style={[
                     styles.durationOptionText,
-                    { color: duration === mins.toString() ? '#FFFFFF' : palette.text },
+                    { color: duration === mins.toString() ? palette.onPrimary : palette.text },
                   ]}
                 >
                   {mins}
@@ -454,11 +454,11 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: scaleFont(12),
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   helperText: {
     fontSize: scaleFont(12),
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   optionsRow: {
     flexDirection: 'row',
@@ -468,8 +468,8 @@ const styles = StyleSheet.create({
   categoryOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: 10,
     borderRadius: Radii.sm,
     borderWidth: 1,
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.md,
     borderWidth: 1,
   },

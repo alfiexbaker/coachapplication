@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,7 +11,7 @@ import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
@@ -45,27 +46,24 @@ function TrainingCard({
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
       <SurfaceCard
         style={styles.trainingCard}
-        onPress={() => router.push({
-          pathname: '/group-sessions/[id]',
-          params: { id: session.id },
-        })}
+        onPress={() => router.push(Routes.groupSession(session.id))}
       >
         <View style={styles.cardHeader}>
           <View style={styles.cardTitleSection}>
-            <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
               {session.title}
             </ThemedText>
             {session.squadName && (
-              <View style={[styles.squadBadge, { backgroundColor: `${palette.tint}15` }]}>
-                <ThemedText style={{ color: palette.tint, fontSize: 11, fontWeight: '600' }}>
+              <View style={[styles.squadBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
                   {session.squadName}
                 </ThemedText>
               </View>
             )}
           </View>
           {session.pricePerParticipant === 0 ? (
-            <View style={[styles.freeBadge, { backgroundColor: `${palette.success}15` }]}>
-              <ThemedText style={{ color: palette.success, fontSize: 12, fontWeight: '700' }}>
+            <View style={[styles.freeBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+              <ThemedText style={{ color: palette.success, ...Typography.caption }}>
                 FREE
               </ThemedText>
             </View>
@@ -80,7 +78,7 @@ function TrainingCard({
           {/* Recurring pattern */}
           {session.isRecurring && session.recurringPattern && (
             <View style={styles.detailRow}>
-              <View style={[styles.iconCircle, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="repeat" size={14} color={palette.tint} />
               </View>
               <ThemedText style={{ color: palette.text }}>
@@ -92,7 +90,7 @@ function TrainingCard({
           {/* Next session */}
           {nextDate && (
             <View style={styles.detailRow}>
-              <View style={[styles.iconCircle, { backgroundColor: `${palette.warning}15` }]}>
+              <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <Ionicons name="calendar" size={14} color={palette.warning} />
               </View>
               <ThemedText style={{ color: palette.text }}>
@@ -107,7 +105,7 @@ function TrainingCard({
 
           {/* Location */}
           <View style={styles.detailRow}>
-            <View style={[styles.iconCircle, { backgroundColor: `${palette.muted}15` }]}>
+            <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
               <Ionicons name="location" size={14} color={palette.muted} />
             </View>
             <ThemedText style={{ color: palette.muted }} numberOfLines={1}>
@@ -117,14 +115,14 @@ function TrainingCard({
 
           {/* Participants */}
           <View style={styles.detailRow}>
-            <View style={[styles.iconCircle, { backgroundColor: `${palette.muted}15` }]}>
+            <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
               <Ionicons name="people" size={14} color={palette.muted} />
             </View>
             <ThemedText style={{ color: palette.muted }}>
               {session.currentParticipants}/{session.maxParticipants} participants
             </ThemedText>
             {session.waitlistCount > 0 && (
-              <ThemedText style={{ color: palette.warning, fontSize: 12 }}>
+              <ThemedText style={{ color: palette.warning, ...Typography.caption }}>
                 (+{session.waitlistCount} waitlist)
               </ThemedText>
             )}
@@ -140,14 +138,14 @@ function TrainingCard({
               <Ionicons name="person" size={14} color={palette.muted} />
             </View>
           )}
-          <ThemedText style={{ color: palette.muted, flex: 1, fontSize: 13 }}>
+          <ThemedText style={{ color: palette.muted, flex: 1, ...Typography.small }}>
             Coach {session.coachName}
           </ThemedText>
           {userHasChildrenView && (
             <TouchableOpacity
               style={[styles.rsvpButton, { backgroundColor: palette.tint }]}
             >
-              <ThemedText style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+              <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.caption }}>
                 RSVP
               </ThemedText>
             </TouchableOpacity>
@@ -180,7 +178,7 @@ function WeeklyCalendarView({
         return (
           <View key={day} style={[styles.calendarDay, { borderColor: palette.border }]}>
             <View style={[styles.dayHeader, { backgroundColor: palette.surface }]}>
-              <ThemedText type="defaultSemiBold" style={{ fontSize: 13 }}>
+              <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>
                 {day}
               </ThemedText>
             </View>
@@ -189,25 +187,22 @@ function WeeklyCalendarView({
                 daySessions.map((session) => (
                   <TouchableOpacity
                     key={session.id}
-                    style={[styles.calendarSession, { backgroundColor: `${palette.tint}10` }]}
-                    onPress={() => router.push({
-                      pathname: '/group-sessions/[id]',
-                      params: { id: session.id },
-                    })}
+                    style={[styles.calendarSession, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
+                    onPress={() => router.push(Routes.groupSession(session.id))}
                   >
                     <ThemedText
-                      style={{ color: palette.tint, fontSize: 11, fontWeight: '600' }}
+                      style={{ color: palette.tint, ...Typography.caption }}
                       numberOfLines={1}
                     >
                       {session.title}
                     </ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 10 }}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.micro }}>
                       {session.recurringPattern?.startTime}
                     </ThemedText>
                   </TouchableOpacity>
                 ))
               ) : (
-                <ThemedText style={{ color: palette.muted, fontSize: 10, textAlign: 'center' }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.micro, textAlign: 'center' }}>
                   -
                 </ThemedText>
               )}
@@ -277,10 +272,10 @@ export default function TrainingScheduleScreen() {
         </View>
         {isCoach && (
           <Clickable
-            onPress={() => router.push('/group-sessions/create')}
+            onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
             style={[styles.addButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="add" size={20} color="#fff" />
+            <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -297,10 +292,10 @@ export default function TrainingScheduleScreen() {
           <Ionicons
             name="list"
             size={18}
-            color={viewMode === 'list' ? '#fff' : palette.muted}
+            color={viewMode === 'list' ? Colors.light.onPrimary : palette.muted}
           />
           <ThemedText
-            style={{ color: viewMode === 'list' ? '#fff' : palette.muted, fontSize: 13 }}
+            style={{ color: viewMode === 'list' ? Colors.light.onPrimary : palette.muted, ...Typography.small }}
           >
             List
           </ThemedText>
@@ -315,10 +310,10 @@ export default function TrainingScheduleScreen() {
           <Ionicons
             name="calendar"
             size={18}
-            color={viewMode === 'calendar' ? '#fff' : palette.muted}
+            color={viewMode === 'calendar' ? Colors.light.onPrimary : palette.muted}
           />
           <ThemedText
-            style={{ color: viewMode === 'calendar' ? '#fff' : palette.muted, fontSize: 13 }}
+            style={{ color: viewMode === 'calendar' ? Colors.light.onPrimary : palette.muted, ...Typography.small }}
           >
             Week
           </ThemedText>
@@ -344,7 +339,7 @@ export default function TrainingScheduleScreen() {
             onPress={() => setSelectedSquadId(null)}
           >
             <ThemedText
-              style={{ color: !selectedSquadId ? '#fff' : palette.text, fontSize: 13 }}
+              style={{ color: !selectedSquadId ? Colors.light.onPrimary : palette.text, ...Typography.small }}
             >
               All Squads
             </ThemedText>
@@ -362,7 +357,7 @@ export default function TrainingScheduleScreen() {
               onPress={() => setSelectedSquadId(squad.id)}
             >
               <ThemedText
-                style={{ color: selectedSquadId === squad.id ? '#fff' : palette.text, fontSize: 13 }}
+                style={{ color: selectedSquadId === squad.id ? Colors.light.onPrimary : palette.text, ...Typography.small }}
               >
                 {squad.name}
               </ThemedText>
@@ -417,7 +412,7 @@ export default function TrainingScheduleScreen() {
                 <ThemedText type="heading" style={{ color: palette.success }}>
                   12
                 </ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   Attended
                 </ThemedText>
               </View>
@@ -426,7 +421,7 @@ export default function TrainingScheduleScreen() {
                 <ThemedText type="heading" style={{ color: palette.warning }}>
                   2
                 </ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   Missed
                 </ThemedText>
               </View>
@@ -435,7 +430,7 @@ export default function TrainingScheduleScreen() {
                 <ThemedText type="heading" style={{ color: palette.tint }}>
                   86%
                 </ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   Rate
                 </ThemedText>
               </View>
@@ -462,13 +457,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   addButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -476,7 +471,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
     borderRadius: Radii.md,
-    padding: 4,
+    padding: Spacing.xxs,
   },
   toggleOption: {
     flex: 1,
@@ -528,12 +523,12 @@ const styles = StyleSheet.create({
   squadBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   freeBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   cardDetails: {
@@ -547,7 +542,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -561,12 +556,12 @@ const styles = StyleSheet.create({
   coachPhoto: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
   },
   coachPhotoPlaceholder: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -577,7 +572,7 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     flexDirection: 'row',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   calendarDay: {
     flex: 1,
@@ -590,14 +585,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayContent: {
-    padding: 4,
-    gap: 4,
+    padding: Spacing.xxs,
+    gap: Spacing.xxs,
     minHeight: 80,
   },
   calendarSession: {
-    padding: 4,
-    borderRadius: 4,
-    gap: 2,
+    padding: Spacing.xxs,
+    borderRadius: Radii.xs,
+    gap: Spacing.micro,
   },
   attendanceCard: {
     marginTop: Spacing.lg,
@@ -615,7 +610,7 @@ const styles = StyleSheet.create({
   },
   attendanceStat: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   attendanceDivider: {
     width: 1,

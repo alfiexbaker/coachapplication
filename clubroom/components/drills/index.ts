@@ -11,3 +11,8 @@ export { AssignmentCard } from './AssignmentCard';
 export { DrillList, DrillSectionHeader } from './DrillList';
 export { VideoPlayer, NoVideoPlaceholder } from './VideoPlayer';
 export { DrillForm } from './DrillForm';
+export { DrillInfoHeader } from './DrillInfoHeader';
+export { DrillCoachNotes } from './DrillCoachNotes';
+export { DrillInstructions } from './DrillInstructions';
+export { DrillFeedbackCard } from './DrillFeedbackCard';
+export { DrillCompletionSection } from './DrillCompletionSection';

@@ -9,10 +9,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Shadows } from '@/constants/theme';
+import { Colors, Radii, Spacing, Shadows , Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { comparisonService } from '@/services/comparison-service';
 
@@ -63,7 +64,7 @@ export function CompareBar({
 
   const handleCompare = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/compare');
+    router.push(Routes.COMPARE);
   }, []);
 
   const handleClear = useCallback(async () => {
@@ -132,7 +133,7 @@ export function CompareBar({
             style={({ pressed }) => [
               styles.compareButton,
               {
-                backgroundColor: pressed ? 'rgba(255,255,255,0.9)' : '#fff',
+                backgroundColor: pressed ? 'rgba(255,255,255,0.9)' : palette.surface,
               },
             ]}
           >
@@ -171,29 +172,18 @@ const styles = StyleSheet.create({
   countBadge: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  countText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  countText: { ...Typography.subheading, color: Colors.light.onPrimary },
   textContainer: {
     flex: 1,
   },
-  title: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  subtitle: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    marginTop: 1,
-  },
+  title: { ...Typography.bodySemiBold, color: Colors.light.onPrimary },
+  subtitle: { ...Typography.caption, color: 'rgba(255,255,255,0.7)',
+    marginTop: 1 },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,8 +200,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.button,
   },
-  compareButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  compareButtonText: { ...Typography.bodySmallSemiBold },
 });

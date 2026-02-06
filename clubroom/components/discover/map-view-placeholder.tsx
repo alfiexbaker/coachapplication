@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CoachMarkerPill } from './coach-marker';
 
@@ -125,7 +125,7 @@ export function MapViewPlaceholder({
             key={`h-${pos}`}
             style={[
               styles.gridLineH,
-              { top: `${pos * 100}%`, backgroundColor: `${palette.border}60` },
+              { top: `${pos * 100}%`, backgroundColor: withAlpha(palette.border, 0.38) },
             ]}
           />
         ))}
@@ -134,7 +134,7 @@ export function MapViewPlaceholder({
             key={`v-${pos}`}
             style={[
               styles.gridLineV,
-              { left: `${pos * 100}%`, backgroundColor: `${palette.border}60` },
+              { left: `${pos * 100}%`, backgroundColor: withAlpha(palette.border, 0.38) },
             ]}
           />
         ))}
@@ -143,19 +143,19 @@ export function MapViewPlaceholder({
         <View
           style={[
             styles.diagonalRoad,
-            { backgroundColor: `${palette.border}40`, transform: [{ rotate: '30deg' }] },
+            { backgroundColor: withAlpha(palette.border, 0.25), transform: [{ rotate: '30deg' }] },
           ]}
         />
         <View
           style={[
             styles.diagonalRoad2,
-            { backgroundColor: `${palette.border}40`, transform: [{ rotate: '-20deg' }] },
+            { backgroundColor: withAlpha(palette.border, 0.25), transform: [{ rotate: '-20deg' }] },
           ]}
         />
 
         {/* Green "park" patches */}
-        <View style={[styles.parkPatch, styles.park1, { backgroundColor: `${palette.success}12` }]} />
-        <View style={[styles.parkPatch, styles.park2, { backgroundColor: `${palette.success}10` }]} />
+        <View style={[styles.parkPatch, styles.park1, { backgroundColor: withAlpha(palette.success, 0.07) }]} />
+        <View style={[styles.parkPatch, styles.park2, { backgroundColor: withAlpha(palette.success, 0.06) }]} />
 
         {/* User location dot */}
         <View style={[styles.userDot, { backgroundColor: palette.tint }]}>
@@ -198,8 +198,8 @@ export function MapViewPlaceholder({
             },
           ]}
         >
-          <Ionicons name="search" size={Components.icon.sm} color="#FFFFFF" />
-          <ThemedText style={styles.searchAreaText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+          <Ionicons name="search" size={Components.icon.sm} color={palette.onPrimary} />
+          <ThemedText style={styles.searchAreaText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
             Search this area
           </ThemedText>
         </Pressable>
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: Radii.pill,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.surface,
   },
   markerContainer: {
     position: 'absolute',

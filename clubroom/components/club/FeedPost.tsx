@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ClubFeedPost } from '@/constants/types';
 
@@ -38,7 +38,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
     <SurfaceCard style={[styles.feedCard, post.isPinned ? { borderColor: palette.tint, borderWidth: 1 } : undefined]}>
       {/* Pinned indicator */}
       {post.isPinned && (
-        <View style={[styles.pinnedBadge, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.pinnedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="pin" size={12} color={palette.tint} />
           <ThemedText style={[styles.pinnedText, { color: palette.tint }]}>Pinned</ThemedText>
         </View>
@@ -46,19 +46,19 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Post header */}
       <View style={styles.feedHeader}>
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}10`, borderColor: palette.border, borderWidth: 1 }]}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border, borderWidth: 1 }]}>
           <ThemedText style={styles.avatarText}>{initials}</ThemedText>
         </View>
         <View style={{ flex: 1 }}>
           <View style={styles.authorRow}>
             <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
             {post.postAs === 'club' && (
-              <View style={[styles.clubBadge, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>Club</ThemedText>
               </View>
             )}
           </View>
-          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+          <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
             {formatDate(post.createdAt)} · {post.audienceLabel || post.audience}
           </ThemedText>
         </View>
@@ -78,7 +78,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Post content */}
       <View style={styles.postContent}>
-        <ThemedText type="defaultSemiBold" style={{ fontSize: 15 }}>{post.title}</ThemedText>
+        <ThemedText type="defaultSemiBold" style={{ ...Typography.body }}>{post.title}</ThemedText>
         <ThemedText style={{ lineHeight: 20, color: palette.text }}>{post.body}</ThemedText>
       </View>
 
@@ -93,7 +93,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Event details */}
       {post.postType === 'event' && post.eventDate && (
-        <View style={[styles.eventDetails, { backgroundColor: `${palette.tint}08`, borderColor: palette.border }]}>
+        <View style={[styles.eventDetails, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: palette.border }]}>
           <View style={styles.eventRow}>
             <Ionicons name="calendar" size={16} color={palette.tint} />
             <ThemedText style={{ color: palette.text }}>
@@ -124,7 +124,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
           {post.attachments.map((attachment, idx) => (
             <View key={idx} style={[styles.attachmentChip, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <Ionicons name="attach" size={14} color={palette.muted} />
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{attachment}</ThemedText>
+              <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{attachment}</ThemedText>
             </View>
           ))}
         </View>
@@ -134,11 +134,11 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
       <View style={styles.feedFooter}>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{post.reactionCount ?? 0}</ThemedText>
+          <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.reactionCount ?? 0}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{post.commentCount ?? 0}</ThemedText>
+          <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.commentCount ?? 0}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
@@ -156,16 +156,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     marginBottom: Spacing.xs,
   },
-  pinnedText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  pinnedText: { ...Typography.caption },
   feedHeader: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -174,30 +171,24 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  avatarText: { ...Typography.bodySmallSemiBold },
   authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
   clubBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
   },
-  clubBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  clubBadgeText: { ...Typography.micro },
   postContent: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   postImage: {
     width: '100%',
@@ -223,9 +214,9 @@ const styles = StyleSheet.create({
   attachmentChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
@@ -237,6 +228,6 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
 });

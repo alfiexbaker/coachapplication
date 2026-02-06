@@ -18,7 +18,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 
 export interface CelebrationOverlayRef {
   celebrate: (options?: CelebrationOptions) => void;
@@ -115,15 +115,15 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
         <Animated.View style={[styles.overlay, containerStyle]}>
           <View style={styles.content}>
             <Animated.View style={[styles.iconContainer, iconStyle]}>
-              <View style={[styles.iconCircle, { backgroundColor: `${iconColor}20` }]}>
+              <View style={[styles.iconCircle, { backgroundColor: withAlpha(iconColor, 0.12) }]}>
                 <Ionicons name={icon} size={64} color={iconColor} />
               </View>
             </Animated.View>
 
             <Animated.View style={[styles.textContainer, titleStyle]}>
-              <ThemedText style={[styles.title, { color: '#fff' }]}>{title}</ThemedText>
+              <ThemedText style={[styles.title, { color: Colors.light.onPrimary }]}>{title}</ThemedText>
               {subtitle && (
-                <ThemedText style={[styles.subtitle, { color: 'rgba(255,255,255,0.8)' }]}>
+                <ThemedText style={[styles.subtitle, { color: withAlpha(Colors.light.onPrimary, 0.8) }]}>
                   {subtitle}
                 </ThemedText>
               )}
@@ -151,7 +151,7 @@ CelebrationOverlay.displayName = 'CelebrationOverlay';
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(15,23,42,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: Radii.pill,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -173,15 +173,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    maxWidth: 280,
-  },
+  title: { ...Typography.display, textAlign: 'center',
+    letterSpacing: -0.5 },
+  subtitle: { ...Typography.subheading, textAlign: 'center',
+    maxWidth: 280 },
 });

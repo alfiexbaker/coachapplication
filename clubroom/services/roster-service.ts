@@ -42,7 +42,7 @@ export interface AthleteRemovalRecord {
 const MOCK_ROSTER: RosterEntry[] = [
   {
     id: 'roster_1',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     athleteId: 'athlete_1',
     athleteName: 'Tom Baker',
     athleteAge: 11,
@@ -77,7 +77,7 @@ const MOCK_ROSTER: RosterEntry[] = [
   },
   {
     id: 'roster_2',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     athleteId: 'athlete_2',
     athleteName: 'Lucy Baker',
     athleteAge: 9,
@@ -104,10 +104,16 @@ const MOCK_ROSTER: RosterEntry[] = [
     tags: ['midfielder', 'new-starter'],
     primaryFocus: 'Passing',
     notificationPreference: 'ALL',
+    senInfo: {
+      hasSen: true,
+      conditions: ['Dyspraxia'],
+      supportNotes: 'Extra time for coordination drills. Responds well to visual demonstrations.',
+      communicationPreferences: 'Clear step-by-step instructions. Avoid rushing between activities.',
+    },
   },
   {
     id: 'roster_3',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     athleteId: 'athlete_3',
     athleteName: 'James Wilson',
     athleteAge: 12,
@@ -139,10 +145,16 @@ const MOCK_ROSTER: RosterEntry[] = [
     tags: ['defender', 'captain', 'academy-track', 'long-term'],
     primaryFocus: 'Defending',
     notificationPreference: 'IMPORTANT',
+    senInfo: {
+      hasSen: true,
+      conditions: ['ADHD'],
+      supportNotes: 'Short activity bursts. Clear verbal instructions. Positive reinforcement.',
+      communicationPreferences: 'Direct and concise. Use his name before giving instructions.',
+    },
   },
   {
     id: 'roster_4',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     athleteId: 'athlete_4',
     athleteName: 'Emma Thompson',
     athleteAge: 10,
@@ -170,7 +182,7 @@ const MOCK_ROSTER: RosterEntry[] = [
   },
   {
     id: 'roster_5',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     athleteId: 'athlete_5',
     athleteName: 'Oliver Chen',
     athleteAge: 14,

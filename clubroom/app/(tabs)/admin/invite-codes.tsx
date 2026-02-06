@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { inviteCodes, schools } from '@/constants/mock-data';
 import { InviteCode, School } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -86,10 +86,10 @@ export default function InviteCodesScreen() {
           <View style={styles.codeTop}>
             <Pressable
               onPress={() => copyToClipboard(item.code)}
-              style={[styles.codeBadge, { backgroundColor: `${statusColor}20` }]}>
+              style={[styles.codeBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
               <ThemedText style={[styles.codeText, { color: statusColor }]}>{item.code}</ThemedText>
             </Pressable>
-            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+            <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
               <ThemedText style={[styles.statusText, { color: statusColor }]}>
                 {item.status === 'active' && !isExpired && !isExhausted
                   ? 'Active'
@@ -146,7 +146,7 @@ export default function InviteCodesScreen() {
         <Pressable
           onPress={() => setShowCreateModal(true)}
           style={[styles.createButton, { backgroundColor: palette.tint }]}>
-          <ThemedText style={styles.createButtonText} lightColor="#FFFFFF" darkColor="#000000">
+          <ThemedText style={styles.createButtonText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.text}>
             + New Code
           </ThemedText>
         </Pressable>
@@ -196,8 +196,8 @@ export default function InviteCodesScreen() {
                       styles.schoolOptionText,
                       selectedSchool?.id === school.id && { fontWeight: '600' },
                     ]}
-                    lightColor={selectedSchool?.id === school.id ? '#FFFFFF' : undefined}
-                    darkColor={selectedSchool?.id === school.id ? '#000000' : undefined}>
+                    lightColor={selectedSchool?.id === school.id ? Colors.light.onPrimary : undefined}
+                    darkColor={selectedSchool?.id === school.id ? Colors.dark.text : undefined}>
                     {school.name}
                   </ThemedText>
                   <ThemedText
@@ -252,7 +252,7 @@ export default function InviteCodesScreen() {
                   opacity: selectedSchool ? 1 : 0.5,
                 },
               ]}>
-              <ThemedText style={styles.generateButtonText} lightColor="#FFFFFF" darkColor="#000000">
+              <ThemedText style={styles.generateButtonText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.text}>
                 Generate Code
               </ThemedText>
             </Pressable>
@@ -309,18 +309,16 @@ const styles = StyleSheet.create({
   },
   codeText: {
     fontFamily: 'monospace',
-    fontWeight: '700',
-    fontSize: 16,
+    ...Typography.subheading,
     letterSpacing: 1,
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
     textTransform: 'uppercase',
   },
   schoolName: {
@@ -331,10 +329,10 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   statItem: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.6,
   },
   statValue: {
@@ -360,7 +358,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   closeButton: {
-    fontSize: 24,
+    ...Typography.display,
     opacity: 0.6,
   },
   modalContent: {
@@ -378,19 +376,19 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   schoolOption: {
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   schoolOptionText: {
     fontWeight: '500',
   },
   schoolOptionSubtext: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.8,
   },
   generateButton: {
@@ -400,7 +398,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   generateButtonText: {
-    fontWeight: '600',
-    fontSize: 16,
+    ...Typography.subheading,
   },
 });

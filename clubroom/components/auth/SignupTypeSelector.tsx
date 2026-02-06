@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export type SignupType = 'player' | 'parent' | 'coach';
@@ -114,7 +114,7 @@ export function SignupTypeSelector({
                     styles.card,
                     {
                       backgroundColor: isSelected
-                        ? `${palette.tint}08`
+                        ? withAlpha(palette.tint, 0.03)
                         : palette.surface,
                       borderColor: isSelected ? palette.tint : palette.border,
                       borderWidth: isSelected ? 2 : 1,
@@ -126,8 +126,8 @@ export function SignupTypeSelector({
                       styles.iconContainer,
                       {
                         backgroundColor: isSelected
-                          ? `${palette.tint}15`
-                          : `${palette.tint}08`,
+                          ? withAlpha(palette.tint, 0.09)
+                          : withAlpha(palette.tint, 0.03),
                       },
                     ]}
                   >
@@ -234,11 +234,10 @@ const styles = StyleSheet.create({
   },
   cardText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   cardTitle: {
     ...Typography.heading,
-    fontSize: 17,
   },
   cardSubtitle: {
     ...Typography.body,
@@ -246,7 +245,7 @@ const styles = StyleSheet.create({
   radioOuter: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -254,7 +253,7 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
   footer: {
     padding: Spacing.lg,

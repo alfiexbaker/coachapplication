@@ -11,8 +11,6 @@
 
 import { Booking } from '@/constants/app-types';
 import { notificationService } from '../notification-service';
-import { apiClient } from '../api-client';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
@@ -22,22 +20,19 @@ const logger = createLogger('BookingStatusService');
 
 export const bookingStatusService = {
   /**
-   * Confirm a pending booking (for coach)
+   * Confirm a pending booking (for coach).
+   * Delegates to bookingCrudService.updateBooking() so the write goes through
+   * the cache-aware path instead of hitting apiClient directly.
    */
   async confirmBooking(bookingId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
-
-      const bookingIndex = bookings.findIndex((b) => b.id === bookingId);
-      if (bookingIndex === -1) {
+      const result = await bookingCrudService.updateBooking(bookingId, { status: 'CONFIRMED' });
+      if (!result.success) {
         return { success: false, error: 'Booking not found' };
       }
 
-      bookings[bookingIndex].status = 'CONFIRMED';
-      await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
-
       // Create confirmation notification
-      const booking = bookings[bookingIndex];
+      const booking = result.data;
       await notificationService.create({
         id: `notif-confirmed-${Date.now()}`,
         type: 'booking',

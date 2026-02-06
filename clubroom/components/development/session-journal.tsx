@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   timelineDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
     marginTop: Spacing.sm,
   },
   timelineCard: {

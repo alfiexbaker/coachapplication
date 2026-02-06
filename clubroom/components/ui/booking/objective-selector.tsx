@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { FootballObjective } from '@/constants/types';
 
@@ -40,9 +40,9 @@ export function ObjectiveSelector({ objectives, selectedObjectives, onToggle }: 
               <Ionicons
                 name={isSelected ? 'checkmark-circle' : 'radio-button-off-outline'}
                 size={20}
-                color={isSelected ? '#fff' : palette.muted}
+                color={isSelected ? palette.onPrimary : palette.muted}
               />
-              <ThemedText style={[styles.label, { color: isSelected ? '#fff' : palette.text }]}>
+              <ThemedText style={[styles.label, { color: isSelected ? palette.onPrimary : palette.text }]}>
                 {objective}
               </ThemedText>
             </Pressable>
@@ -58,14 +58,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
-  title: {
-    fontSize: 16,
-    paddingHorizontal: Spacing.lg,
-  },
-  helper: {
-    fontSize: 13,
-    paddingHorizontal: Spacing.lg,
-  },
+  title: { ...Typography.subheading, paddingHorizontal: Spacing.lg },
+  helper: { ...Typography.small, paddingHorizontal: Spacing.lg },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -81,8 +75,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1.25,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  label: { ...Typography.bodySmallSemiBold },
 });

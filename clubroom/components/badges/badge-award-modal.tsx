@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { badgeService } from '@/services/badge-service';
 import { BadgeAward, BadgeDefinition } from '@/constants/types';
@@ -192,7 +192,7 @@ export function BadgeAwardModal({
               {athletePhotoUrl ? (
                 <Image source={{ uri: athletePhotoUrl }} style={styles.avatar} />
               ) : (
-                <View style={[styles.avatarPlaceholder, { backgroundColor: `${palette.tint}20` }]}>
+                <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                   <Ionicons name="person" size={24} color={palette.tint} />
                 </View>
               )}
@@ -236,17 +236,17 @@ export function BadgeAwardModal({
                           style={[
                             styles.badgeCard,
                             {
-                              backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                              backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                               borderColor: isSelected ? palette.tint : palette.border,
                             },
                           ]}
                         >
                           <View style={[
                             styles.badgeIconCircle,
-                            { backgroundColor: isSelected ? `${palette.tint}20` : `${palette.muted}15` }
+                            { backgroundColor: isSelected ? withAlpha(palette.tint, 0.12) : withAlpha(palette.muted, 0.09) }
                           ]}>
                             <Ionicons
-                              name={getBadgeIcon(badge) as any}
+                              name={getBadgeIcon(badge) as keyof typeof Ionicons.glyphMap}
                               size={24}
                               color={isSelected ? palette.tint : palette.icon}
                             />
@@ -325,7 +325,7 @@ export function BadgeAwardModal({
                 <View style={styles.quickNotes}>
                   {QUICK_NOTES.map((quickNote) => (
                     <Pressable key={quickNote} onPress={() => handleQuickNote(quickNote)}>
-                      <View style={[styles.quickNotePill, { backgroundColor: `${palette.tint}10` }]}>
+                      <View style={[styles.quickNotePill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                         <ThemedText style={[styles.quickNoteText, { color: palette.tint }]}>
                           + {quickNote}
                         </ThemedText>
@@ -347,7 +347,7 @@ export function BadgeAwardModal({
                 </ThemedText>
                 <SurfaceCard style={[styles.previewCard, { borderColor: palette.border }]}>
                   <View style={styles.previewHeader}>
-                    <View style={[styles.previewBadgeIcon, { backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.previewBadgeIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <Ionicons name="ribbon" size={20} color={palette.tint} />
                     </View>
                     <View style={styles.previewHeaderText}>
@@ -369,7 +369,7 @@ export function BadgeAwardModal({
 
             {/* Error */}
             {error && (
-              <View style={[styles.errorBanner, { backgroundColor: `${palette.error}15` }]}>
+              <View style={[styles.errorBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <Ionicons name="alert-circle" size={16} color={palette.error} />
                 <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
               </View>
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   header: {
     flexDirection: 'row',
@@ -428,22 +428,20 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
   },
   avatarPlaceholder: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sessionLabel: {
-    fontSize: 13,
-  },
+  sessionLabel: { ...Typography.small },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -458,9 +456,7 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.sm,
   },
-  sectionTitle: {
-    fontSize: 15,
-  },
+  sectionTitle: { ...Typography.body },
   badgeScroll: {
     gap: Spacing.sm,
     paddingRight: Spacing.lg,
@@ -476,22 +472,18 @@ const styles = StyleSheet.create({
   badgeIconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  badgeLabel: { ...Typography.caption, textAlign: 'center' },
   selectedCheck: {
     position: 'absolute',
     top: 8,
     right: 8,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -506,21 +498,15 @@ const styles = StyleSheet.create({
     borderRadius: Radii.rounded,
     borderWidth: 1,
   },
-  reasonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  reasonText: { ...Typography.bodySmallSemiBold },
   noteInputContainer: {
     borderRadius: Radii.lg,
     borderWidth: 1,
     overflow: 'hidden',
   },
-  noteInput: {
-    padding: Spacing.md,
-    fontSize: 15,
+  noteInput: { ...Typography.body, padding: Spacing.md,
     minHeight: 80,
-    textAlignVertical: 'top',
-  },
+    textAlignVertical: 'top' },
   quickNotes: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -530,17 +516,11 @@ const styles = StyleSheet.create({
   },
   quickNotePill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.rounded,
   },
-  quickNoteText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  charCount: {
-    fontSize: 12,
-    textAlign: 'right',
-  },
+  quickNoteText: { ...Typography.caption },
+  charCount: { ...Typography.caption, textAlign: 'right' },
   previewCard: {
     padding: Spacing.md,
     gap: Spacing.sm,
@@ -553,23 +533,16 @@ const styles = StyleSheet.create({
   previewBadgeIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   previewHeaderText: {
     flex: 1,
   },
-  previewReason: {
-    fontSize: 13,
-  },
-  previewNote: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  previewFooter: {
-    fontSize: 12,
-  },
+  previewReason: { ...Typography.small },
+  previewNote: { ...Typography.bodySmall, lineHeight: 20 },
+  previewFooter: { ...Typography.caption },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { ConsentGrid } from './ConsentGrid';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AthleteConsent } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
@@ -72,7 +72,7 @@ export function ConsentCard({
           <View
             style={[
               styles.countBadge,
-              { backgroundColor: `${getStatusColor()}15` },
+              { backgroundColor: withAlpha(getStatusColor(), 0.09) },
             ]}
           >
             <ThemedText
@@ -103,7 +103,7 @@ export function ConsentCard({
         </View>
 
         {hasContentPosting && (
-          <View style={[styles.contentBadge, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.contentBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="share-social" size={12} color={palette.success} />
             <ThemedText style={[styles.contentBadgeText, { color: palette.success }]}>
               Content OK
@@ -155,7 +155,7 @@ export function ConsentCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: 0,
   },
   header: {
@@ -166,38 +166,29 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
   },
   avatarPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  avatarText: { ...Typography.bodySmallSemiBold },
   info: {
     flex: 1,
   },
-  parentName: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  parentName: { ...Typography.caption, marginTop: Spacing.micro },
   countContainer: {
     alignItems: 'flex-end',
   },
   countBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  countText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  countText: { ...Typography.smallSemiBold },
   gridSection: {
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
@@ -214,23 +205,18 @@ const styles = StyleSheet.create({
   statusItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  statusText: {
-    fontSize: 12,
-  },
+  statusText: { ...Typography.caption },
   contentBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  contentBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  contentBadgeText: { ...Typography.caption },
   detailsSection: {
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
@@ -247,17 +233,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  detailLabel: {
-    fontSize: 13,
-  },
+  detailLabel: { ...Typography.small },
   detailRight: {
     alignItems: 'flex-end',
   },
-  detailValue: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  detailMeta: {
-    fontSize: 10,
-  },
+  detailValue: { ...Typography.caption },
+  detailMeta: { ...Typography.micro },
 });

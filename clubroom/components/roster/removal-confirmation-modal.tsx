@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { RemovalReason } from '@/services/roster-service';
 import type { MemberRemovalReason } from '@/services/club-service';
@@ -77,7 +77,7 @@ export function RemovalConfirmationModal({
         <SurfaceCard style={styles.modalCard}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={[styles.iconContainer, { backgroundColor: `${palette.error}15` }]}>
+            <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
               <Ionicons name="person-remove-outline" size={24} color={palette.error} />
             </View>
             <View style={styles.headerText}>
@@ -105,12 +105,12 @@ export function RemovalConfirmationModal({
                         styles.reasonCard,
                         {
                           borderColor: isSelected ? palette.tint : palette.border,
-                          backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                          backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                         },
                       ]}
                     >
                       <Ionicons
-                        name={reason.icon as any}
+                        name={reason.icon as keyof typeof Ionicons.glyphMap}
                         size={20}
                         color={isSelected ? palette.tint : palette.icon}
                       />
@@ -153,7 +153,7 @@ export function RemovalConfirmationModal({
             <View style={[styles.archiveRow, { borderColor: palette.border }]}>
               <View style={styles.archiveInfo}>
                 <ThemedText type="defaultSemiBold">Keep history</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                   Archive session history and notes for records
                 </ThemedText>
               </View>
@@ -167,9 +167,9 @@ export function RemovalConfirmationModal({
           )}
 
           {/* Warning */}
-          <View style={[styles.warningBox, { backgroundColor: `${palette.warning}10`, borderColor: palette.warning }]}>
+          <View style={[styles.warningBox, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }]}>
             <Ionicons name="information-circle" size={18} color={palette.warning} />
-            <ThemedText style={{ color: palette.warning, flex: 1, fontSize: 13 }}>
+            <ThemedText style={{ ...Typography.small, color: palette.warning, flex: 1 }}>
               {archive
                 ? 'This will remove them from active roster but keep their history.'
                 : 'This action cannot be undone. All data will be permanently deleted.'}
@@ -196,7 +196,7 @@ export function RemovalConfirmationModal({
                   },
                 ]}
               >
-                <ThemedText style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
                   {isLoading ? 'Removing...' : 'Remove'}
                 </ThemedText>
               </View>
@@ -230,13 +230,13 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerText: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   section: {
     gap: Spacing.sm,
@@ -255,19 +255,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  reasonLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  input: {
-    borderWidth: 1,
+  reasonLabel: { ...Typography.bodySmallSemiBold },
+  input: { ...Typography.body, borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 15,
     minHeight: 60,
-    textAlignVertical: 'top',
-  },
+    textAlignVertical: 'top' },
   archiveRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -278,7 +272,7 @@ const styles = StyleSheet.create({
   },
   archiveInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   warningBox: {
     flexDirection: 'row',

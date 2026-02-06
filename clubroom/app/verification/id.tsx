@@ -9,7 +9,7 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { VerificationStatus } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
@@ -109,7 +109,7 @@ export default function IdUploadScreen() {
 
         {isVerified ? (
           <SurfaceCard style={styles.statusCard}>
-            <View style={[styles.statusIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="checkmark-circle" size={48} color={palette.success} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
@@ -124,7 +124,7 @@ export default function IdUploadScreen() {
           </SurfaceCard>
         ) : isPending ? (
           <SurfaceCard style={styles.statusCard}>
-            <View style={[styles.statusIcon, { backgroundColor: `${palette.warning}15` }]}>
+            <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
               <Ionicons name="time" size={48} color={palette.warning} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
@@ -161,18 +161,18 @@ export default function IdUploadScreen() {
                         borderColor:
                           selectedType === type.id ? palette.tint : palette.border,
                         backgroundColor:
-                          selectedType === type.id ? `${palette.tint}08` : palette.card,
+                          selectedType === type.id ? withAlpha(palette.tint, 0.03) : palette.card,
                       },
                     ]}
                   >
                     <Ionicons
-                      name={type.icon as any}
+                      name={type.icon as keyof typeof Ionicons.glyphMap}
                       size={28}
                       color={selectedType === type.id ? palette.tint : palette.muted}
                     />
                     <ThemedText
                       style={{
-                        fontSize: 13,
+                        ...Typography.small,
                         color: selectedType === type.id ? palette.tint : palette.text,
                         fontWeight: selectedType === type.id ? '600' : '400',
                       }}
@@ -192,7 +192,7 @@ export default function IdUploadScreen() {
                     <Ionicons name="document" size={32} color={palette.success} />
                     <View style={{ flex: 1 }}>
                       <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
-                      <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                      <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                         {ID_TYPES.find((t) => t.id === selectedType)?.label}
                       </ThemedText>
                     </View>
@@ -207,7 +207,7 @@ export default function IdUploadScreen() {
                   >
                     <Ionicons name="cloud-upload" size={40} color={palette.muted} />
                     <ThemedText type="defaultSemiBold">Tap to upload</ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                       Take a photo or choose from gallery
                     </ThemedText>
                   </Clickable>
@@ -226,7 +226,7 @@ export default function IdUploadScreen() {
                 ].map((req, index) => (
                   <View key={index} style={styles.requirementRow}>
                     <Ionicons name="checkmark" size={16} color={palette.success} />
-                    <ThemedText style={{ color: palette.muted, fontSize: 13, flex: 1 }}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.small, flex: 1 }}>
                       {req}
                     </ThemedText>
                   </View>
@@ -277,16 +277,16 @@ const styles = StyleSheet.create({
   statusIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     justifyContent: 'center',
     alignItems: 'center',
   },
   statusTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   statusText: {
     textAlign: 'center',
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   mockButton: {
     marginTop: Spacing.sm,

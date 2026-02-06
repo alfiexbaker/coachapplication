@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Match, MatchPlayer } from '@/constants/types';
 
@@ -56,19 +56,19 @@ export function AvailabilityResponse({
     return (
       <SurfaceCard
         style={styles.card}
-        outlineGradient={isReserve ? ['#F59E0B', '#FCD34D'] : ['#16A34A', '#4ADE80']}
+        outlineGradient={isReserve ? [Colors.light.warning, withAlpha(Colors.light.warning, 0.67)] : [Colors.light.success, withAlpha(Colors.light.success, 0.67)]}
       >
         <View style={styles.selectionHeader}>
           <View
             style={[
               styles.iconCircle,
-              { backgroundColor: isReserve ? '#F59E0B' : '#16A34A' }
+              { backgroundColor: isReserve ? Colors.light.warning : Colors.light.success }
             ]}
           >
             <Ionicons
               name={isReserve ? 'hourglass' : 'football'}
               size={28}
-              color="#fff"
+              color={palette.onPrimary}
             />
           </View>
           <ThemedText type="title" style={styles.selectionTitle}>
@@ -124,7 +124,7 @@ export function AvailabilityResponse({
           <View
             style={[
               styles.statusIcon,
-              { backgroundColor: isAvailable ? `${palette.success}15` : `${palette.error}15` }
+              { backgroundColor: isAvailable ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) }
             ]}
           >
             <Ionicons
@@ -225,7 +225,7 @@ export function AvailabilityResponse({
       </View>
 
       {match.notes && (
-        <View style={[styles.coachNote, { backgroundColor: `${palette.tint}08` }]}>
+        <View style={[styles.coachNote, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <Ionicons name="chatbubble-outline" size={16} color={palette.tint} />
           <ThemedText style={styles.coachNoteText}>{match.notes}</ThemedText>
         </View>
@@ -257,8 +257,8 @@ export function AvailabilityResponse({
           onPress={() => handleResponse('AVAILABLE')}
           disabled={isLoading}
         >
-          <Ionicons name="checkmark-circle" size={22} color="#fff" />
-          <ThemedText style={styles.responseButtonText}>Available</ThemedText>
+          <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
+          <ThemedText style={[styles.responseButtonText, { color: palette.onSuccess }]}>Available</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -273,12 +273,12 @@ export function AvailabilityResponse({
           <Ionicons
             name="close-circle"
             size={22}
-            color={showNoteInput ? '#fff' : palette.error}
+            color={showNoteInput ? palette.onError : palette.error}
           />
           <ThemedText
             style={[
               styles.responseButtonText,
-              { color: showNoteInput ? '#fff' : palette.error }
+              { color: showNoteInput ? palette.onError : palette.error }
             ]}
           >
             {showNoteInput ? 'Confirm Unavailable' : 'Unavailable'}
@@ -311,15 +311,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  inviteTitle: {
-    fontSize: 20,
-    textAlign: 'center',
-  },
-  inviteMessage: {
-    textAlign: 'center',
-    fontSize: 15,
-    lineHeight: 22,
-  },
+  inviteTitle: { ...Typography.title, textAlign: 'center' },
+  inviteMessage: { ...Typography.body, textAlign: 'center',
+    lineHeight: 22 },
   matchInfo: {
     padding: Spacing.md,
     borderRadius: Radii.md,
@@ -330,14 +324,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  matchInfoText: {
-    fontSize: 14,
-    flex: 1,
-  },
-  addressText: {
-    fontSize: 13,
-    marginLeft: 26,
-  },
+  matchInfoText: { ...Typography.bodySmall, flex: 1 },
+  addressText: { ...Typography.small, marginLeft: 26 },
   coachNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -345,25 +333,17 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.sm,
   },
-  coachNoteText: {
-    fontSize: 13,
-    flex: 1,
-    fontStyle: 'italic',
-  },
+  coachNoteText: { ...Typography.small, flex: 1,
+    fontStyle: 'italic' },
   noteInputContainer: {
     gap: Spacing.xs,
   },
-  noteInputLabel: {
-    fontSize: 13,
-  },
-  noteInput: {
-    borderRadius: Radii.md,
+  noteInputLabel: { ...Typography.small },
+  noteInput: { ...Typography.bodySmall, borderRadius: Radii.md,
     borderWidth: 1,
     padding: Spacing.sm,
-    fontSize: 14,
     minHeight: 60,
-    textAlignVertical: 'top',
-  },
+    textAlignVertical: 'top' },
   responseButtons: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -381,18 +361,12 @@ const styles = StyleSheet.create({
   unavailableButton: {
     borderWidth: 1,
   },
-  responseButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  responseButtonText: { ...Typography.bodySemiBold },
   cancelNoteButton: {
     alignItems: 'center',
     padding: Spacing.sm,
   },
-  cancelNoteText: {
-    fontSize: 14,
-  },
+  cancelNoteText: { ...Typography.bodySmall },
   responseHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -401,33 +375,23 @@ const styles = StyleSheet.create({
   statusIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   responseInfo: {
     flex: 1,
   },
-  responseSubtext: {
-    fontSize: 13,
-  },
+  responseSubtext: { ...Typography.small },
   noteDisplay: {
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  noteLabel: {
-    fontSize: 12,
-  },
-  noteContent: {
-    fontSize: 14,
-    fontStyle: 'italic',
-  },
-  waitingText: {
-    fontSize: 13,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
+  noteLabel: { ...Typography.caption },
+  noteContent: { ...Typography.bodySmall, fontStyle: 'italic' },
+  waitingText: { ...Typography.small, textAlign: 'center',
+    fontStyle: 'italic' },
   changeButton: {
     alignSelf: 'center',
     paddingHorizontal: Spacing.md,
@@ -435,9 +399,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  changeButtonText: {
-    fontSize: 13,
-  },
+  changeButtonText: { ...Typography.small },
   selectionHeader: {
     alignItems: 'center',
     gap: Spacing.sm,
@@ -445,17 +407,11 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectionTitle: {
-    fontSize: 22,
-    textAlign: 'center',
-  },
-  selectionMessage: {
-    textAlign: 'center',
-    fontSize: 15,
-    lineHeight: 22,
-  },
+  selectionTitle: { ...Typography.title, textAlign: 'center' },
+  selectionMessage: { ...Typography.body, textAlign: 'center',
+    lineHeight: 22 },
 });

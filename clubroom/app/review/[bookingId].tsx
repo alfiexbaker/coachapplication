@@ -8,12 +8,27 @@ import { ReviewForm } from '@/components/review/review-form';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useState, useEffect, useCallback } from 'react';
 import { createLogger } from '@/utils/logger';
-
+import type { Booking } from '@/constants/app-types';
 const logger = createLogger('ReviewScreen');
+
+/** Stored review shape (superset of display-only CoachReview) */
+interface StoredReview {
+  id: string;
+  coachId: string;
+  coachName: string;
+  parentName: string;
+  rating: number;
+  text: string;
+  content: string;
+  createdAt: string;
+  sessionDate: string;
+  bookingId?: string;
+  categories?: Record<string, number>;
+}
 
 interface BookingInfo {
   id: string;
@@ -37,15 +52,15 @@ export default function ReviewScreen() {
   // Load booking info
   const loadBooking = useCallback(async () => {
     try {
-      const bookings = await apiClient.get<any[]>('session_bookings', []);
+      const bookings = await apiClient.get<Booking[]>('session_bookings', []);
       if (bookings.length > 0) {
-        const found = bookings.find((b: any) => b.id === bookingId);
+        const found = bookings.find((b) => b.id === bookingId);
         if (found) {
           setBooking({
             id: found.id,
             coachId: found.coachId,
-            coachName: found.coachName,
-            service: found.service,
+            coachName: found.coachName ?? 'Coach',
+            service: found.service ?? 'Session',
             scheduledAt: found.scheduledAt,
           });
         }
@@ -66,17 +81,20 @@ export default function ReviewScreen() {
   }) => {
     try {
       // Save review to storage
-      const reviews = await apiClient.get<any[]>('coach_reviews', []);
+      const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
 
-      const newReview = {
+      const newReview: StoredReview = {
         id: `review_${Date.now()}`,
         bookingId,
-        coachId: booking?.coachId,
-        coachName: booking?.coachName,
+        coachId: booking?.coachId ?? '',
+        coachName: booking?.coachName ?? 'Coach',
+        parentName: 'Parent',
         rating: payload.rating,
         text: payload.text,
+        content: payload.text,
         categories: payload.categories,
         createdAt: new Date().toISOString(),
+        sessionDate: booking?.scheduledAt ?? new Date().toISOString(),
       };
 
       reviews.push(newReview);
@@ -119,7 +137,7 @@ export default function ReviewScreen() {
         {booking && (
           <SurfaceCard style={styles.sessionCard}>
             <View style={styles.sessionHeader}>
-              <View style={[styles.coachAvatar, { backgroundColor: palette.tint + '20' }]}>
+              <View style={[styles.coachAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <Ionicons name="person" size={24} color={palette.tint} />
               </View>
               <View style={styles.sessionInfo}>
@@ -134,7 +152,7 @@ export default function ReviewScreen() {
 
         {submitted && submittedReview ? (
           <View style={styles.successContainer}>
-            <View style={[styles.successIcon, { backgroundColor: palette.success + '20' }]}>
+            <View style={[styles.successIcon, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
               <Ionicons name="checkmark-circle" size={48} color={palette.success} />
             </View>
             <ThemedText type="subtitle" style={styles.successTitle}>
@@ -186,16 +204,16 @@ const styles = StyleSheet.create({
   coachAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sessionInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   sessionMeta: {
-    fontSize: 13,
+    ...Typography.small,
   },
   successContainer: {
     alignItems: 'center',
@@ -205,7 +223,7 @@ const styles = StyleSheet.create({
   successIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -225,8 +243,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   doneButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

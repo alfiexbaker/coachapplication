@@ -3,10 +3,11 @@ import { RefreshControl, ScrollView, StyleSheet, View, ActivityIndicator } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { NotificationCard } from '@/components/notification/notification-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { notificationService, ExtendedNotificationItem } from '@/services/notification-service';
 import { Clickable } from '@/components/primitives/clickable';
@@ -100,14 +101,14 @@ function FilterChip({
         ]}
       >
         <Ionicons
-          name={icon as any}
+          name={icon as keyof typeof Ionicons.glyphMap}
           size={14}
-          color={isActive ? '#fff' : palette.muted}
+          color={isActive ? Colors.light.onPrimary : palette.muted}
         />
         <ThemedText
           style={[
             styles.filterLabel,
-            { color: isActive ? '#fff' : palette.text },
+            { color: isActive ? Colors.light.onPrimary : palette.text },
           ]}
         >
           {label}
@@ -160,7 +161,7 @@ export function NotificationsPanel({
     // Navigate to badge detail if we have an award ID
     if (item.badgeAwardId) {
       await markAsRead(item.id);
-      router.push(`/development/badges?highlightBadge=${item.badgeAwardId}`);
+      router.push(Routes.developmentBadgesHighlight(item.badgeAwardId));
     }
   };
 
@@ -261,9 +262,9 @@ export function NotificationsPanel({
         ) : (
           <>
             {unreadCount > 0 && (
-              <View style={[styles.unreadBanner, { backgroundColor: `${palette.tint}10` }]}>
+              <View style={[styles.unreadBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <Ionicons name="notifications" size={16} color={palette.tint} />
-                <ThemedText style={{ color: palette.tint, fontWeight: '600', marginLeft: 6 }}>
+                <ThemedText style={{ color: palette.tint, fontWeight: '600', marginLeft: Spacing.xxs }}>
                   {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
                 </ThemedText>
               </View>
@@ -329,7 +330,7 @@ export default function NotificationsScreen() {
             <Clickable onPress={handleMarkAllRead}>
               <View style={styles.headerButton}>
                 <Ionicons name="checkmark-done" size={18} color={palette.tint} />
-                <ThemedText style={{ color: palette.tint, fontWeight: '600', fontSize: 13 }}>
+                <ThemedText style={{ color: palette.tint, ...Typography.smallSemiBold }}>
                   Mark all read
                 </ThemedText>
               </View>
@@ -338,7 +339,7 @@ export default function NotificationsScreen() {
           <Clickable onPress={handleClearAll}>
             <View style={styles.headerButton}>
               <Ionicons name="trash-outline" size={18} color={palette.muted} />
-              <ThemedText style={{ color: palette.muted, fontWeight: '600', fontSize: 13 }}>
+              <ThemedText style={{ color: palette.muted, ...Typography.smallSemiBold }}>
                 Clear all
               </ThemedText>
             </View>
@@ -371,19 +372,18 @@ const styles = StyleSheet.create({
   headerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   badge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.md,
     minWidth: 20,
     alignItems: 'center',
   },
   badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
   },
   filterBar: {
     paddingHorizontal: Spacing.lg,
@@ -393,15 +393,14 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
   filterLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   content: {
     padding: Spacing.lg,
@@ -418,8 +417,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
     marginTop: Spacing.md,
   },
   unreadBanner: {
@@ -434,8 +432,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   dayLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
     paddingBottom: Spacing.xs,

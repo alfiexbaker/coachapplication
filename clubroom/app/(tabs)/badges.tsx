@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { badgeService } from '@/services/badge-service';
@@ -93,10 +94,7 @@ export default function UserBadgesScreen() {
   const handleBadgeTap = (award: BadgeAward) => {
     if (award.sessionId) {
       logger.press('BadgeToSession', { awardId: award.id, sessionId: award.sessionId });
-      router.push({
-        pathname: '/development/athlete-session/[sessionId]',
-        params: { sessionId: award.sessionId },
-      });
+      router.push(Routes.developmentSession(award.sessionId));
     }
   };
 
@@ -160,7 +158,7 @@ export default function UserBadgesScreen() {
                   {progressionData.pointsToNext} pts to go
                 </ThemedText>
               </View>
-              <View style={[styles.progressBar, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.progressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <View
                   style={[
                     styles.progressFill,
@@ -190,7 +188,7 @@ export default function UserBadgesScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <View style={[styles.toneBadge, { backgroundColor: `${palette.tint}12` }]}>
+              <View style={[styles.toneBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                 <Ionicons name="sparkles" size={14} color={palette.tint} />
               </View>
               <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Last badge</ThemedText>
@@ -223,12 +221,12 @@ export default function UserBadgesScreen() {
                 style={[
                   styles.categoryCard,
                   {
-                    backgroundColor: cat.badgeCount > 0 ? `${palette.tint}08` : palette.surface,
+                    backgroundColor: cat.badgeCount > 0 ? withAlpha(palette.tint, 0.03) : palette.surface,
                     borderColor: cat.badgeCount > 0 ? palette.tint : palette.border,
                   },
                 ]}
               >
-                <View style={[styles.categoryIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.categoryIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons
                     name={getCategoryIcon(cat.category)}
                     size={18}
@@ -250,7 +248,7 @@ export default function UserBadgesScreen() {
                     <ThemedText style={[styles.milestoneText, { color: palette.muted }]}>
                       {cat.badgeCount}/{cat.badgeCount + cat.badgesToNext} to {cat.nextMilestone}
                     </ThemedText>
-                    <View style={[styles.miniProgressBar, { backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.miniProgressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <View
                         style={[
                           styles.miniProgressFill,
@@ -265,7 +263,7 @@ export default function UserBadgesScreen() {
                 )}
 
                 {cat.currentMilestone !== 'None' && (
-                  <View style={[styles.milestoneBadge, { backgroundColor: `${palette.success}15` }]}>
+                  <View style={[styles.milestoneBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <Ionicons name="checkmark-circle" size={12} color={palette.success} />
                     <ThemedText style={[styles.milestoneBadgeText, { color: palette.success }]}>
                       {cat.currentMilestone}
@@ -292,10 +290,10 @@ export default function UserBadgesScreen() {
           </View>
         </View>
         <Clickable
-          onPress={() => router.push('/badges')}
+          onPress={() => router.push(Routes.BADGES_INDEX)}
           style={[styles.primaryButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="grid-outline" size={18} color="#FFFFFF" />
+          <Ionicons name="grid-outline" size={18} color={Colors.light.onPrimary} />
           <ThemedText style={styles.primaryButtonText}>Browse All Badges</ThemedText>
         </Clickable>
       </SurfaceCard>
@@ -310,13 +308,13 @@ export default function UserBadgesScreen() {
         </View>
         <View style={styles.progressActions}>
           <Clickable
-            onPress={() => router.push('/(tabs)/bookings')}
+            onPress={() => router.push(Routes.BOOKINGS)}
             style={[styles.primaryButton, { backgroundColor: palette.tint }]}
           >
             <ThemedText style={styles.primaryButtonText}>View bookings</ThemedText>
           </Clickable>
           <Clickable
-            onPress={() => router.push('/book-coach')}
+            onPress={() => router.push(Routes.BOOK_COACH)}
             style={[styles.secondaryButton, { borderColor: palette.border }]}
           >
             <ThemedText style={[styles.secondaryButtonText, { color: palette.foreground }]}>Find a coach</ThemedText>
@@ -336,14 +334,14 @@ export default function UserBadgesScreen() {
             {shareable.slice(0, 3).map((award) => (
               <SurfaceCard key={award.id} style={styles.shareRow}>
                 <View style={styles.shareLeft}>
-                  <View style={[styles.badgeIcon, { backgroundColor: `${getTierColor(award.badgeTier)}20` }]}>
+                  <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getTierColor(award.badgeTier), 0.12) }]}>
                     <Ionicons name="ribbon" size={16} color={getTierColor(award.badgeTier)} />
                   </View>
-                  <View style={{ flex: 1, gap: 2 }}>
+                  <View style={{ flex: 1, gap: Spacing.micro }}>
                     <View style={styles.badgeTitleRow}>
                       <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
                       {award.badgeTier && (
-                        <View style={[styles.tierPill, { backgroundColor: `${getTierColor(award.badgeTier)}20` }]}>
+                        <View style={[styles.tierPill, { backgroundColor: withAlpha(getTierColor(award.badgeTier), 0.12) }]}>
                           <ThemedText style={[styles.tierText, { color: getTierColor(award.badgeTier) }]}>
                             {TierNames[award.badgeTier]}
                           </ThemedText>
@@ -398,19 +396,19 @@ export default function UserBadgesScreen() {
                 <SurfaceCard
                   style={[
                     styles.timelineItem,
-                    award.sessionId ? { borderColor: `${palette.tint}30` } : undefined,
+                    award.sessionId ? { borderColor: withAlpha(palette.tint, 0.19) } : undefined,
                   ]}
                 >
                   <View style={styles.timelineHeader}>
                     <View style={styles.timelineTitleRow}>
-                      <View style={[styles.badgeIconSmall, { backgroundColor: `${getTierColor(award.badgeTier)}20` }]}>
+                      <View style={[styles.badgeIconSmall, { backgroundColor: withAlpha(getTierColor(award.badgeTier), 0.12) }]}>
                         <Ionicons name="ribbon" size={14} color={getTierColor(award.badgeTier)} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={styles.badgeTitleRow}>
                           <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
                           {award.badgeTier && (
-                            <View style={[styles.tierPillSmall, { backgroundColor: `${getTierColor(award.badgeTier)}20` }]}>
+                            <View style={[styles.tierPillSmall, { backgroundColor: withAlpha(getTierColor(award.badgeTier), 0.12) }]}>
                               <ThemedText style={[styles.tierTextSmall, { color: getTierColor(award.badgeTier) }]}>
                                 {TierNames[award.badgeTier]}
                               </ThemedText>
@@ -442,14 +440,14 @@ export default function UserBadgesScreen() {
                   ) : null}
 
                   <View style={styles.timelineMetaRow}>
-                    <View style={[styles.metaPill, { backgroundColor: `${palette.tint}12` }]}>
+                    <View style={[styles.metaPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                       <Ionicons name="person" size={12} color={palette.tint} />
                       <ThemedText style={[styles.metaText, { color: palette.tint }]}>
                         {award.coachName}
                       </ThemedText>
                     </View>
                     {award.sessionId ? (
-                      <View style={[styles.metaPill, { backgroundColor: `${palette.success}12` }]}>
+                      <View style={[styles.metaPill, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
                         <Ionicons name="link" size={12} color={palette.success} />
                         <ThemedText style={[styles.metaText, { color: palette.success }]}>
                           View session
@@ -458,7 +456,7 @@ export default function UserBadgesScreen() {
                       </View>
                     ) : null}
                     {award.shared ? (
-                      <View style={[styles.metaPill, { backgroundColor: `${palette.icon}10` }]}>
+                      <View style={[styles.metaPill, { backgroundColor: withAlpha(palette.icon, 0.06) }]}>
                         <Ionicons name="send" size={12} color={palette.icon} />
                         <ThemedText style={[styles.metaText, { color: palette.icon }]}>Shared</ThemedText>
                       </View>
@@ -488,20 +486,20 @@ const styles = StyleSheet.create({
   levelBadge: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     backgroundColor: '#0F172A12',
     alignItems: 'center',
     justifyContent: 'center',
   },
   levelInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   levelName: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   levelPoints: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   progressSection: {
     gap: Spacing.xs,
@@ -512,20 +510,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   progressValue: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   progressBar: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   statsRow: {
     flexDirection: 'row',
@@ -535,14 +532,14 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   statLabel: {
-    fontSize: 11,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -554,7 +551,7 @@ const styles = StyleSheet.create({
   toneBadge: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -574,44 +571,42 @@ const styles = StyleSheet.create({
   categoryIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   categoryCount: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   milestoneProgress: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   milestoneText: {
-    fontSize: 10,
+    ...Typography.micro,
   },
   miniProgressBar: {
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   miniProgressFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   milestoneBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
   },
   milestoneBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...Typography.micro,
   },
 
   // Progress Card
@@ -627,13 +622,13 @@ const styles = StyleSheet.create({
   allBadgesIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     backgroundColor: '#0F172A12',
     alignItems: 'center',
     justifyContent: 'center',
   },
   progressHint: {
-    fontSize: 13,
+    ...Typography.small,
   },
   progressActions: {
     flexDirection: 'row',
@@ -646,17 +641,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    paddingVertical: 12,
+    paddingVertical: Spacing.xs + Spacing.xxs,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '700',
   },
   secondaryButton: {
     flex: 1,
     borderRadius: Radii.md,
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderWidth: 1,
   },
   secondaryButtonText: {
@@ -674,7 +669,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionHint: {
-    fontSize: 12,
+    ...Typography.caption,
   },
 
   // Share Row
@@ -701,7 +696,7 @@ const styles = StyleSheet.create({
   badgeIconSmall: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -712,25 +707,24 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   tierPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   tierText: {
-    fontSize: 10,
-    fontWeight: '700',
+    ...Typography.micro,
   },
   tierPillSmall: {
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
     paddingVertical: 1,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   tierTextSmall: {
+    ...Typography.micro,
     fontSize: 9,
-    fontWeight: '700',
   },
   categoryTag: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   pillButton: {
     paddingVertical: 8,
@@ -739,8 +733,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   pillButtonText: {
-    fontWeight: '700',
-    fontSize: 13,
+    ...Typography.smallSemiBold,
   },
 
   // Timeline
@@ -766,11 +759,10 @@ const styles = StyleSheet.create({
   },
   timelineRight: {
     alignItems: 'flex-end',
-    gap: 2,
+    gap: Spacing.micro,
   },
   pointsValue: {
-    fontSize: 14,
-    fontWeight: '700',
+    ...Typography.bodySmallSemiBold,
   },
   timelineMetaRow: {
     flexDirection: 'row',
@@ -781,13 +773,12 @@ const styles = StyleSheet.create({
   metaPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   metaText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
 });

@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ export function GroupChat({
         <View style={[styles.messageLine, isOwn ? styles.messageLineOwn : styles.messageLineOther]}>
           {/* Avatar placeholder for others */}
           {!isOwn ? (
-            <View style={[styles.avatarSmall, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.avatarSmall, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
               <ThemedText style={[styles.avatarInitial, { color: palette.tint }]}>
                 {item.senderName.charAt(0).toUpperCase()}
               </ThemedText>
@@ -88,7 +88,7 @@ export function GroupChat({
             style={[
               styles.bubble,
               isOwn
-                ? [styles.bubbleOwn, { backgroundColor: `${palette.tint}15` }]
+                ? [styles.bubbleOwn, { backgroundColor: withAlpha(palette.tint, 0.15) }]
                 : [styles.bubbleOther, { backgroundColor: palette.surface, borderColor: palette.border }],
             ]}
           >
@@ -198,7 +198,7 @@ export function GroupChat({
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="send" size={Components.icon.md} color="#FFFFFF" />
+          <Ionicons name="send" size={Components.icon.md} color={palette.onPrimary} />
         </Clickable>
       </View>
     </KeyboardAvoidingView>
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   },
   unreadText: {
     ...Typography.caption,
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
   },
   listContent: {
     paddingHorizontal: Spacing.sm,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     maxWidth: '75%',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    gap: 2,
+    gap: Spacing.micro,
   },
   bubbleOwn: {
     borderRadius: Radii.card,

@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AvailabilityTemplate } from '@/constants/types';
 
@@ -88,9 +88,9 @@ export function AvailabilityGrid({
                 styles.dayHeader,
                 {
                   backgroundColor: isSelected
-                    ? `${palette.tint}15`
+                    ? withAlpha(palette.tint, 0.09)
                     : hasSlots
-                    ? `${palette.success}08`
+                    ? withAlpha(palette.success, 0.03)
                     : 'transparent',
                 },
               ]}
@@ -140,9 +140,9 @@ export function AvailabilityGrid({
                       styles.cell,
                       {
                         backgroundColor: available
-                          ? `${palette.success}20`
+                          ? withAlpha(palette.success, 0.12)
                           : isSelected
-                          ? `${palette.tint}08`
+                          ? withAlpha(palette.tint, 0.03)
                           : palette.surface,
                         borderColor: available ? palette.success : palette.border,
                       },
@@ -207,8 +207,8 @@ export function DayScheduleView({
           onPress={onAddTemplate}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={18} color="#fff" />
-          <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>
+          <Ionicons name="add" size={18} color={palette.onPrimary} />
+          <ThemedText style={{ ...Typography.smallSemiBold, color: palette.onPrimary }}>
             Add Slot
           </ThemedText>
         </Clickable>
@@ -230,11 +230,11 @@ export function DayScheduleView({
                 key={template.id}
                 style={[styles.slotCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
               >
-                <View style={[styles.slotTime, { backgroundColor: `${palette.success}15` }]}>
+                <View style={[styles.slotTime, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                   <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
                     {template.startTime}
                   </ThemedText>
-                  <ThemedText style={{ color: palette.muted, fontSize: 12 }}>to</ThemedText>
+                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>to</ThemedText>
                   <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
                     {template.endTime}
                   </ThemedText>
@@ -306,15 +306,12 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     marginHorizontal: 1,
   },
-  dayText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  dayText: { ...Typography.caption },
   dayIndicator: {
     width: 4,
     height: 4,
-    borderRadius: 2,
-    marginTop: 2,
+    borderRadius: Radii.xs,
+    marginTop: Spacing.micro,
   },
   gridScroll: {
     flex: 1,
@@ -326,10 +323,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: 36,
   },
-  timeText: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
+  timeText: { ...Typography.micro },
   cell: {
     flex: 1,
     marginHorizontal: 1,
@@ -342,7 +336,7 @@ const styles = StyleSheet.create({
   slotIndicator: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   legend: {
     flexDirection: 'row',
@@ -360,15 +354,10 @@ const styles = StyleSheet.create({
   legendDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
-  legendText: {
-    fontSize: 12,
-  },
-  legendHint: {
-    fontSize: 11,
-    fontStyle: 'italic',
-  },
+  legendText: { ...Typography.caption },
+  legendHint: { ...Typography.caption, fontStyle: 'italic' },
   daySchedule: {
     gap: Spacing.md,
   },
@@ -409,16 +398,14 @@ const styles = StyleSheet.create({
   },
   slotInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   slotDetail: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  slotDetailText: {
-    fontSize: 13,
-  },
+  slotDetailText: { ...Typography.small },
   slotActions: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -426,7 +413,7 @@ const styles = StyleSheet.create({
   slotActionButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

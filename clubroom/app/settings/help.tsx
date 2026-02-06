@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SettingsRow, SettingsSection } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -95,7 +96,7 @@ export default function HelpSettingsScreen() {
 
   const handleReportProblem = () => {
     logger.press('ReportProblem');
-    router.push('/(tabs)/bookings/report-problem');
+    router.push(Routes.BOOKINGS_REPORT_PROBLEM);
   };
 
   const handleSendFeedback = () => {
@@ -246,7 +247,7 @@ export default function HelpSettingsScreen() {
 
         {/* Contact Info Card */}
         <SurfaceCard style={styles.contactCard}>
-          <View style={[styles.contactIcon, { backgroundColor: `${palette.accent}15` }]}>
+          <View style={[styles.contactIcon, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
             <Ionicons name="mail" size={24} color={palette.accent} />
           </View>
           <View style={styles.contactInfo}>
@@ -283,8 +284,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   content: {
     paddingHorizontal: Spacing.lg,
@@ -295,8 +295,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginLeft: Spacing.xs,
@@ -316,11 +315,10 @@ const styles = StyleSheet.create({
   },
   faqQuestion: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
   },
   faqAnswer: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   contactCard: {
     flexDirection: 'row',
@@ -330,22 +328,22 @@ const styles = StyleSheet.create({
   contactIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   contactInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   contactText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   debugInfo: {
     alignItems: 'center',
     paddingTop: Spacing.md,
   },
   debugText: {
-    fontSize: 11,
+    ...Typography.caption,
   },
 });

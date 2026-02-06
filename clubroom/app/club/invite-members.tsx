@@ -9,7 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { bookings, getUserById, getClubById } from '@/constants/mock-data';
@@ -182,12 +182,12 @@ export default function InviteMembersScreen() {
           <Ionicons
             name="people-outline"
             size={18}
-            color={activeTab === 'past-sessions' ? '#fff' : palette.text}
+            color={activeTab === 'past-sessions' ? Colors.light.onPrimary : palette.text}
           />
           <ThemedText
             style={[
               styles.tabText,
-              { color: activeTab === 'past-sessions' ? '#fff' : palette.text },
+              { color: activeTab === 'past-sessions' ? Colors.light.onPrimary : palette.text },
             ]}
           >
             Past Sessions
@@ -203,12 +203,12 @@ export default function InviteMembersScreen() {
           <Ionicons
             name="mail-outline"
             size={18}
-            color={activeTab === 'manual' ? '#fff' : palette.text}
+            color={activeTab === 'manual' ? Colors.light.onPrimary : palette.text}
           />
           <ThemedText
             style={[
               styles.tabText,
-              { color: activeTab === 'manual' ? '#fff' : palette.text },
+              { color: activeTab === 'manual' ? Colors.light.onPrimary : palette.text },
             ]}
           >
             Manual
@@ -233,7 +233,7 @@ export default function InviteMembersScreen() {
                     borderColor:
                       selectedRole === option.role ? palette.tint : palette.border,
                     backgroundColor:
-                      selectedRole === option.role ? `${palette.tint}10` : 'transparent',
+                      selectedRole === option.role ? withAlpha(palette.tint, 0.06) : 'transparent',
                   },
                 ]}
                 onPress={() => setSelectedRole(option.role)}
@@ -317,7 +317,7 @@ export default function InviteMembersScreen() {
                             ? palette.tint
                             : palette.border,
                           backgroundColor: selectedUsers.has(user.userId)
-                            ? `${palette.tint}08`
+                            ? withAlpha(palette.tint, 0.03)
                             : palette.surface,
                         },
                       ]}
@@ -338,10 +338,10 @@ export default function InviteMembersScreen() {
                           ]}
                         >
                           {selectedUsers.has(user.userId) && (
-                            <Ionicons name="checkmark" size={14} color="#fff" />
+                            <Ionicons name="checkmark" size={14} color={Colors.light.onPrimary} />
                           )}
                         </View>
-                        <View style={[styles.avatar, { backgroundColor: `${palette.tint}20` }]}>
+                        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                           <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
                             {user.userName.charAt(0)}
                           </ThemedText>
@@ -354,7 +354,7 @@ export default function InviteMembersScreen() {
                                 Parent of {user.childName}
                               </ThemedText>
                             )}
-                            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                               {user.sessionCount} session{user.sessionCount !== 1 ? 's' : ''}
                             </ThemedText>
                           </View>
@@ -362,7 +362,7 @@ export default function InviteMembersScreen() {
                       </View>
                       <View style={styles.sessionBadge}>
                         <Ionicons name="calendar-outline" size={14} color={palette.muted} />
-                        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                        <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                           {new Date(user.lastSessionDate).toLocaleDateString('en-GB', {
                             month: 'short',
                             day: 'numeric',
@@ -400,7 +400,7 @@ export default function InviteMembersScreen() {
                 style={[styles.sendButton, { backgroundColor: palette.tint }]}
                 onPress={handleManualInvite}
               >
-                <Ionicons name="send" size={18} color="#fff" />
+                <Ionicons name="send" size={18} color={Colors.light.onPrimary} />
               </Clickable>
             </View>
           </SurfaceCard>
@@ -419,7 +419,7 @@ export default function InviteMembersScreen() {
               <ThemedText style={styles.inviteButtonText}>Sending...</ThemedText>
             ) : (
               <>
-                <Ionicons name="paper-plane" size={18} color="#fff" />
+                <Ionicons name="paper-plane" size={18} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.inviteButtonText}>
                   Invite {selectedUsers.size} User{selectedUsers.size !== 1 ? 's' : ''}
                 </ThemedText>
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   tabs: {
     flexDirection: 'row',
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   radioOuter: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -498,10 +498,10 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   roleDescription: {
-    fontSize: 13,
+    ...Typography.small,
     marginLeft: 32,
   },
   searchContainer: {
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
     padding: 0,
   },
   selectAllRow: {
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -557,13 +557,13 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   userInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   userMeta: {
     flexDirection: 'row',
@@ -571,18 +571,18 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   childBadge: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   sessionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   manualCard: {
     gap: Spacing.sm,
   },
   manualDescription: {
-    fontSize: 13,
+    ...Typography.small,
   },
   manualInputRow: {
     flexDirection: 'row',
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   sendButton: {
     width: 44,
@@ -621,8 +621,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   inviteButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

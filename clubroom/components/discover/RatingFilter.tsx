@@ -9,7 +9,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface RatingDistribution {
@@ -65,7 +65,7 @@ export function RatingFilter({
             key={star}
             name={star <= rating ? 'star' : 'star-outline'}
             size={16}
-            color={star <= rating ? palette.warning : palette.muted}
+            color={star <= rating ? palette.rating : palette.muted}
             style={styles.star}
           />
         ))}
@@ -112,7 +112,7 @@ export function RatingFilter({
                 styles.ratingRow,
                 {
                   backgroundColor: isSelected
-                    ? `${palette.tint}10`
+                    ? withAlpha(palette.tint, 0.1)
                     : 'transparent',
                   borderColor: isSelected ? palette.tint : palette.border,
                   opacity: pressed ? 0.8 : 1,
@@ -220,13 +220,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 8,
     backgroundColor: 'transparent',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     marginHorizontal: Spacing.sm,
     overflow: 'hidden',
   },
   bar: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   countText: {
     ...Typography.sm,

@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -125,7 +126,7 @@ export function MyPackages({
           title="No Packages Yet"
           message="Purchase a session package to save on training sessions"
           actionLabel="Browse Packages"
-          onPressAction={() => router.push('/packages')}
+          onPressAction={() => router.push(Routes.PACKAGES)}
         />
       </View>
     );
@@ -191,7 +192,7 @@ export function MyPackages({
                   <View
                     style={[
                       styles.statusBadge,
-                      { backgroundColor: `${getStatusColor(purchase.status)}15` },
+                      { backgroundColor: withAlpha(getStatusColor(purchase.status), 0.09) },
                     ]}
                   >
                     <ThemedText
@@ -225,21 +226,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
     gap: Spacing.sm,
   },
-  loadingText: {
-    fontSize: 14,
-  },
+  loadingText: { ...Typography.bodySmall },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerTitle: {
-    fontSize: 18,
-  },
-  viewAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  headerTitle: { ...Typography.heading },
+  viewAllText: { ...Typography.bodySmallSemiBold },
   list: {
     gap: Spacing.sm,
   },
@@ -253,55 +247,41 @@ const styles = StyleSheet.create({
   },
   purchaseInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  purchaseName: {
-    fontSize: 15,
-  },
-  coachName: {
-    fontSize: 12,
-  },
+  purchaseName: { ...Typography.body },
+  coachName: { ...Typography.caption },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   progressBar: {
     flex: 1,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  progressText: {
-    fontSize: 11,
-    fontWeight: '500',
-    minWidth: 50,
-    textAlign: 'right',
-  },
+  progressText: { ...Typography.caption, minWidth: 50,
+    textAlign: 'right' },
   purchaseStatus: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: Spacing.xxs,
     marginLeft: Spacing.md,
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  expiryText: {
-    fontSize: 11,
-  },
+  statusText: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
+  expiryText: { ...Typography.caption },
 });
 
 export default MyPackages;

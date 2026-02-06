@@ -12,7 +12,7 @@ import * as Haptics from 'expo-haptics';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { Injury } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { injuryService } from '@/services/injury-service';
@@ -64,7 +64,7 @@ export function InjuryCard({ injury, onPress, compact = false }: InjuryCardProps
       {/* Header with status and severity */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={[styles.statusBadge, { backgroundColor: `${statusInfo.color}15` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
             <Ionicons
               name={statusInfo.icon as keyof typeof Ionicons.glyphMap}
               size={14}
@@ -74,14 +74,14 @@ export function InjuryCard({ injury, onPress, compact = false }: InjuryCardProps
               {statusInfo.label}
             </ThemedText>
           </View>
-          <View style={[styles.severityBadge, { backgroundColor: `${severityInfo.color}15` }]}>
+          <View style={[styles.severityBadge, { backgroundColor: withAlpha(severityInfo.color, 0.09) }]}>
             <ThemedText style={[styles.severityText, { color: severityInfo.color }]}>
               {severityInfo.label}
             </ThemedText>
           </View>
         </View>
         {injury.sharedWithCoach && (
-          <View style={[styles.sharedBadge, { backgroundColor: `${palette.tint}10` }]}>
+          <View style={[styles.sharedBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <Ionicons name="share-social-outline" size={12} color={palette.tint} />
           </View>
         )}
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     marginRight: Spacing.sm,
   },
   compactContent: {
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   },
   compactSubtitle: {
     fontSize: scaleFont(13),
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   header: {
     flexDirection: 'row',
@@ -191,9 +191,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statusText: {
     fontSize: scaleFont(12),
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   severityBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   severityText: {
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   sharedBadge: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   bodyPartText: {
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   description: {
     fontSize: scaleFont(14),
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: Spacing.xxs,
   },
   progressLabel: {
     fontSize: scaleFont(13),
@@ -243,12 +243,12 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   footer: {
     flexDirection: 'row',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   footerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   footerText: {
     fontSize: scaleFont(12),

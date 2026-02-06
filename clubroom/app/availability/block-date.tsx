@@ -25,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
@@ -129,7 +129,7 @@ export default function BlockDateScreen() {
                       styles.dateCard,
                       {
                         borderColor: isSelected ? palette.error : palette.border,
-                        backgroundColor: isSelected ? `${palette.error}15` : palette.surface,
+                        backgroundColor: isSelected ? withAlpha(palette.error, 0.09) : palette.surface,
                       },
                     ]}
                     onPress={() => setSelectedDate(date)}
@@ -169,13 +169,13 @@ export default function BlockDateScreen() {
                     styles.reasonCard,
                     {
                       borderColor: isSelected ? palette.tint : palette.border,
-                      backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                      backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                     },
                   ]}
                   onPress={() => setReason(option.key)}
                 >
                   <Ionicons
-                    name={option.icon as any}
+                    name={option.icon as keyof typeof Ionicons.glyphMap}
                     size={24}
                     color={isSelected ? palette.tint : palette.muted}
                   />
@@ -201,7 +201,7 @@ export default function BlockDateScreen() {
         </SurfaceCard>
 
         {/* Preview */}
-        <SurfaceCard style={[styles.section, { backgroundColor: `${palette.error}08` }]}>
+        <SurfaceCard style={[styles.section, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
           <View style={styles.previewHeader}>
             <Ionicons name="close-circle" size={20} color={palette.error} />
             <ThemedText type="defaultSemiBold">Preview</ThemedText>
@@ -223,10 +223,10 @@ export default function BlockDateScreen() {
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
           ) : (
             <>
-              <Ionicons name="close-circle" size={22} color="#fff" />
+              <Ionicons name="close-circle" size={22} color={Colors.light.onPrimary} />
               <ThemedText style={styles.saveButtonText}>Block This Date</ThemedText>
             </>
           )}
@@ -248,12 +248,12 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
-  dateDay: { fontSize: 11, fontWeight: '500' },
-  dateNum: { fontSize: 20, fontWeight: '700' },
-  dateMonth: { fontSize: 11 },
-  todayDot: { width: 6, height: 6, borderRadius: 3, marginTop: 4 },
+  dateDay: { ...Typography.caption },
+  dateNum: { ...Typography.title },
+  dateMonth: { ...Typography.caption },
+  todayDot: { width: 6, height: 6, borderRadius: Radii.xs, marginTop: Spacing.xxs },
   reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   reasonCard: {
     width: '48%',
@@ -263,12 +263,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  reasonLabel: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  reasonLabel: { ...Typography.smallSemiBold, textAlign: 'center' },
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 16,
+    ...Typography.subheading,
     marginTop: Spacing.sm,
   },
   previewHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
@@ -281,5 +281,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },
-  saveButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  saveButtonText: { color: Colors.light.onPrimary, ...Typography.heading },
 });

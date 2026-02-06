@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
@@ -16,7 +17,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { ProgressBadge } from '@/components/skills/ProgressBadge';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { skillTreeService } from '@/services/skills';
@@ -72,7 +73,7 @@ export default function SkillsScreen() {
 
   const handleTreePress = (tree: TreeSummary) => {
     logger.press('SkillTreeCard', { treeId: tree.treeId, category: tree.category });
-    router.push(`/skills/${tree.category.toLowerCase()}`);
+    router.push(Routes.skillCategory(tree.category.toLowerCase()));
   };
 
   const handleInitializeMock = async () => {
@@ -239,12 +240,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...Typography.display,
   },
   statLabel: {
-    fontSize: 11,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   statDivider: {
     width: 1,
@@ -276,8 +276,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   infoText: {
-    fontSize: 13,
-    lineHeight: 20,
+    ...Typography.small,
   },
   infoList: {
     gap: Spacing.xs,
@@ -291,10 +290,10 @@ const styles = StyleSheet.create({
   levelDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   infoItemText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   demoButton: {
     flexDirection: 'row',
@@ -307,6 +306,6 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   demoButtonText: {
-    fontSize: 13,
+    ...Typography.small,
   },
 });

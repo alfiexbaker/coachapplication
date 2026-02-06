@@ -16,7 +16,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 import type { ClubSquad, TimeSlot } from '@/constants/types';
@@ -343,21 +343,21 @@ export function SquadInviteModal({
                 style={[
                   styles.squadItem,
                   {
-                    backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                     borderColor: isSelected ? palette.tint : palette.border,
                   },
                 ]}
               >
-                <View style={[styles.squadIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.squadIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="people" size={24} color={palette.tint} />
                 </View>
                 <View style={styles.squadInfo}>
                   <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
                   <View style={styles.squadMeta}>
-                    <View style={[styles.metaChip, { backgroundColor: `${palette.tint}10` }]}>
-                      <ThemedText style={{ fontSize: 11, color: palette.tint }}>{ageGroup}</ThemedText>
+                    <View style={[styles.metaChip, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                      <ThemedText style={{ ...Typography.caption, color: palette.tint }}>{ageGroup}</ThemedText>
                     </View>
-                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                    <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                       {squad.memberCount} athletes
                     </ThemedText>
                   </View>
@@ -371,7 +371,7 @@ export function SquadInviteModal({
                     },
                   ]}
                 >
-                  {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
                 </View>
               </Clickable>
             );
@@ -391,15 +391,15 @@ export function SquadInviteModal({
       </ThemedText>
 
       {/* Summary */}
-      <View style={[styles.previewSummary, { backgroundColor: `${palette.tint}10` }]}>
+      <View style={[styles.previewSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
         <View style={styles.summaryItem}>
           <ThemedText type="title" style={{ color: palette.tint }}>{totalMembers}</ThemedText>
-          <ThemedText style={{ color: palette.tint, fontSize: 12 }}>Athletes</ThemedText>
+          <ThemedText style={{ ...Typography.caption, color: palette.tint }}>Athletes</ThemedText>
         </View>
         <View style={[styles.summaryDivider, { backgroundColor: palette.tint }]} />
         <View style={styles.summaryItem}>
           <ThemedText type="title" style={{ color: palette.tint }}>{totalParents}</ThemedText>
-          <ThemedText style={{ color: palette.tint, fontSize: 12 }}>Notifications</ThemedText>
+          <ThemedText style={{ ...Typography.caption, color: palette.tint }}>Notifications</ThemedText>
         </View>
       </View>
 
@@ -411,7 +411,7 @@ export function SquadInviteModal({
             <ThemedText type="defaultSemiBold" style={{ flex: 1 }}>
               {squadPreview.squadName}
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+            <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
               {squadPreview.memberCount} athletes
             </ThemedText>
           </View>
@@ -434,20 +434,18 @@ export function SquadInviteModal({
                   <View style={styles.memberInfo}>
                     <View style={styles.memberNameRow}>
                       <ThemedText
-                        style={[
-                          { fontSize: 14 },
-                          isExcluded ? { textDecorationLine: 'line-through' } : undefined,
-                        ]}
+                        style={[{ ...Typography.bodySmall },
+                          isExcluded ? { textDecorationLine: 'line-through' } : undefined]}
                       >
                         {member.athleteName}
                       </ThemedText>
                       {member.athleteAge && (
-                        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                           Age {member.athleteAge}
                         </ThemedText>
                       )}
                     </View>
-                    <ThemedText style={{ color: palette.muted, fontSize: 11 }}>
+                    <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                       {member.parentName}
                     </ThemedText>
                   </View>
@@ -464,9 +462,9 @@ export function SquadInviteModal({
       ))}
 
       {excludedMemberIds.length > 0 && (
-        <View style={[styles.excludedNote, { backgroundColor: `${palette.warning}10` }]}>
+        <View style={[styles.excludedNote, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
           <Ionicons name="information-circle" size={16} color={palette.warning} />
-          <ThemedText style={{ color: palette.warning, fontSize: 12, flex: 1 }}>
+          <ThemedText style={{ ...Typography.caption, color: palette.warning, flex: 1 }}>
             {excludedMemberIds.length} athlete{excludedMemberIds.length !== 1 ? 's' : ''} excluded from invite
           </ThemedText>
         </View>
@@ -477,7 +475,7 @@ export function SquadInviteModal({
   const renderConfirmStep = () => (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
       <View style={styles.confirmContent}>
-        <View style={[styles.confirmIcon, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.confirmIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="paper-plane" size={48} color={palette.tint} />
         </View>
 
@@ -561,7 +559,7 @@ export function SquadInviteModal({
                 ]}
               >
                 {['squads', 'preview', 'confirm'].indexOf(step) > index && (
-                  <Ionicons name="checkmark" size={12} color="#fff" />
+                  <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
                 )}
               </View>
               {index < 2 && (
@@ -598,8 +596,8 @@ export function SquadInviteModal({
                 { backgroundColor: palette.tint, opacity: sending ? 0.6 : 1 },
               ]}
             >
-              <Ionicons name="paper-plane" size={18} color="#fff" />
-              <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+              <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
                 {sending ? 'Sending...' : `Send ${totalParents} Invite${totalParents !== 1 ? 's' : ''}`}
               </ThemedText>
             </Clickable>
@@ -615,10 +613,10 @@ export function SquadInviteModal({
                 },
               ]}
             >
-              <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
                 {step === 'squads' ? 'Preview Members' : 'Continue'}
               </ThemedText>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+              <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
             </Clickable>
           )}
         </View>
@@ -652,14 +650,14 @@ const styles = StyleSheet.create({
   stepDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepLine: {
     width: 60,
     height: 2,
-    marginHorizontal: 4,
+    marginHorizontal: Spacing.xxs,
   },
   content: {
     padding: Spacing.lg,
@@ -668,13 +666,8 @@ const styles = StyleSheet.create({
   stepContent: {
     gap: Spacing.md,
   },
-  stepTitle: {
-    fontSize: 20,
-  },
-  stepDescription: {
-    fontSize: 14,
-    marginBottom: Spacing.sm,
-  },
+  stepTitle: { ...Typography.title },
+  stepDescription: { ...Typography.bodySmall, marginBottom: Spacing.sm },
   loadingContainer: {
     paddingVertical: Spacing['2xl'],
     alignItems: 'center',
@@ -693,13 +686,13 @@ const styles = StyleSheet.create({
   squadIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   squadInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   squadMeta: {
     flexDirection: 'row',
@@ -707,14 +700,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   metaChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -776,7 +769,7 @@ const styles = StyleSheet.create({
   confirmIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
@@ -799,12 +792,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  disclaimer: {
-    fontSize: 13,
-    textAlign: 'center',
+  disclaimer: { ...Typography.small, textAlign: 'center',
     paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-  },
+    marginTop: Spacing.lg },
   footer: {
     padding: Spacing.lg,
     borderTopWidth: 1,

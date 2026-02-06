@@ -12,7 +12,7 @@ import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StaffRolePicker } from '@/components/academy/staff-role-picker';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
@@ -193,7 +193,7 @@ export default function AcademyStaffScreen() {
             }}
             style={[styles.inviteButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="person-add" size={18} color="#fff" />
+            <Ionicons name="person-add" size={18} color={Colors.light.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -219,14 +219,14 @@ export default function AcademyStaffScreen() {
                   } : undefined}
                 >
                   <View style={styles.staffMain}>
-                    <View style={[styles.avatar, { backgroundColor: `${roleColors[member.role]}20` }]}>
+                    <View style={[styles.avatar, { backgroundColor: withAlpha(roleColors[member.role], 0.12) }]}>
                       <ThemedText style={[styles.avatarText, { color: roleColors[member.role] }]}>
                         {member.userName.slice(0, 2).toUpperCase()}
                       </ThemedText>
                     </View>
                     <View style={styles.staffInfo}>
                       <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-                      <View style={[styles.roleBadge, { backgroundColor: `${roleColors[member.role]}15` }]}>
+                      <View style={[styles.roleBadge, { backgroundColor: withAlpha(roleColors[member.role], 0.09) }]}>
                         <ThemedText style={[styles.roleText, { color: roleColors[member.role] }]}>
                           {academyService.formatRole(member.role)}
                         </ThemedText>
@@ -339,13 +339,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   inviteButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -366,13 +366,12 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   staffInfo: {
     flex: 1,
@@ -380,13 +379,12 @@ const styles = StyleSheet.create({
   roleBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   roleText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   modalOverlay: {
     flex: 1,
@@ -406,12 +404,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   modalLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
     marginTop: Spacing.sm,
   },
   editingName: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     marginTop: -Spacing.xs,
   },
   inviteCodeSection: {
@@ -419,7 +416,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   inviteCodeLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
   },
   inviteCodeBox: {
@@ -428,11 +425,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   inviteCodeText: {
-    fontSize: 28,
+    ...Typography.display,
     letterSpacing: 4,
   },
   inviteCodeHint: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   modalActions: {
     gap: Spacing.sm,

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { GroupRegistration } from '@/constants/types';
 
@@ -25,11 +25,11 @@ export function ParticipantCard({
   const palette = Colors[scheme];
 
   const statusColors: Record<GroupRegistration['status'], { bg: string; text: string }> = {
-    REGISTERED: { bg: `${palette.success}15`, text: palette.success },
-    WAITLISTED: { bg: `${palette.warning}15`, text: palette.warning },
-    CANCELLED: { bg: `${palette.error}15`, text: palette.error },
-    ATTENDED: { bg: `${palette.tint}15`, text: palette.tint },
-    NO_SHOW: { bg: `${palette.muted}15`, text: palette.muted },
+    REGISTERED: { bg: withAlpha(palette.success, 0.09), text: palette.success },
+    WAITLISTED: { bg: withAlpha(palette.warning, 0.09), text: palette.warning },
+    CANCELLED: { bg: withAlpha(palette.error, 0.09), text: palette.error },
+    ATTENDED: { bg: withAlpha(palette.tint, 0.09), text: palette.tint },
+    NO_SHOW: { bg: withAlpha(palette.muted, 0.09), text: palette.muted },
   };
 
   const statusLabels: Record<GroupRegistration['status'], string> = {
@@ -81,7 +81,7 @@ export function ParticipantCard({
             <Ionicons
               name={isAttended ? 'checkmark-circle' : 'checkmark-circle-outline'}
               size={18}
-              color={isAttended ? '#fff' : palette.success}
+              color={isAttended ? palette.onPrimary : palette.success}
             />
           </Clickable>
         )}
@@ -129,34 +129,24 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  avatarText: { ...Typography.subheading },
   info: {
     flex: 1,
   },
-  parentName: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  parentName: { ...Typography.caption, marginTop: Spacing.micro },
   statusBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  statusText: { ...Typography.micro, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   actions: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -164,7 +154,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -177,9 +167,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
   },
-  notesText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  notesText: { ...Typography.caption, flex: 1,
+    lineHeight: 16 },
 });

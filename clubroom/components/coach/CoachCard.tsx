@@ -12,7 +12,7 @@
  *   <CoachCard coach={coach} variant="favourite" onToggleFavourite={handleToggle} />
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ import { Colors, Spacing, Radii, Components, Typography } from '@/constants/them
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { Button } from '@/components/primitives/button';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -99,7 +100,7 @@ function RatingDisplay({
 }) {
   return (
     <View style={subStyles.ratingContainer}>
-      <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
+      <Ionicons name="star" size={Components.icon.sm} color={palette.rating} />
       <ThemedText style={[subStyles.ratingValue, { color: palette.text }]}>
         {rating.toFixed(1)}
       </ThemedText>
@@ -124,7 +125,7 @@ function FavouriteButton({
   loading?: boolean;
 }) {
   return (
-    <Clickable onPress={onPress} accessibilityLabel="Toggle favourite" disabled={loading}>
+    <Clickable onPress={onPress} accessibilityLabel="Toggle favourite" disabled={loading} hitSlop={8}>
       <View style={[subStyles.favouriteButton, { backgroundColor: palette.surfaceSecondary }]}>
         <Ionicons
           name={isFavourite ? 'heart' : 'heart-outline'}
@@ -216,7 +217,7 @@ function CompactCard({
               )}
               {primaryFocus && (
                 <>
-                  <View style={compactStyles.divider} />
+                  <Divider vertical style={{ height: 12, opacity: 0.5 }} />
                   <View style={[compactStyles.focusBadge, { backgroundColor: palette.surfaceSecondary }]}>
                     <ThemedText style={[compactStyles.focusText, { color: palette.muted }]}>
                       {primaryFocus}
@@ -262,55 +263,31 @@ const compactStyles = StyleSheet.create({
     gap: Spacing.xs,
     justifyContent: 'center',
   },
-  name: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    marginBottom: -2,
-  },
+  name: { ...Typography.heading, letterSpacing: -0.2,
+    marginBottom: -2 },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs + 2,
   },
-  infoText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  infoText: { ...Typography.smallSemiBold },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-  },
-  divider: {
-    width: 1,
-    height: 12,
-    backgroundColor: '#E5E7EB',
-    opacity: 0.5,
   },
   focusBadge: {
     paddingHorizontal: Spacing.sm - 2,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
   },
-  focusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  focusText: { ...Typography.caption },
   priceColumn: {
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
-  price: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  priceLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 1,
-  },
+  price: { ...Typography.heading, letterSpacing: -0.3 },
+  priceLabel: { ...Typography.caption, marginTop: 1 },
 });
 
 // -----------------------------------------------------------------------------
@@ -327,10 +304,8 @@ function DiscoveryCard({
 }: DiscoveryVariantProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const [favourited, setFavourited] = useState(isFavourited);
 
   const handleFavourite = () => {
-    setFavourited((prev) => !prev);
     onToggleFavourite?.(coach.id);
   };
 
@@ -350,7 +325,7 @@ function DiscoveryCard({
             />
             {coach.trialAvailable && (
               <View style={[discoveryStyles.trialBadge, { backgroundColor: palette.success }]}>
-                <ThemedText style={discoveryStyles.trialText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+                <ThemedText style={discoveryStyles.trialText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
                   TRIAL
                 </ThemedText>
               </View>
@@ -398,7 +373,7 @@ function DiscoveryCard({
 
           {/* Favourite button */}
           <FavouriteButton
-            isFavourite={favourited}
+            isFavourite={isFavourited}
             onPress={handleFavourite}
             palette={palette}
           />
@@ -448,7 +423,6 @@ function DiscoveryCard({
           )}
 
           <Pressable
-            accessibilityRole="button"
             accessibilityLabel={`Book ${coach.fullName}`}
             onPress={() => onBookNow?.()}
             style={({ pressed }) => [
@@ -459,7 +433,7 @@ function DiscoveryCard({
               },
             ]}
           >
-            <ThemedText style={discoveryStyles.bookButtonText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+            <ThemedText style={discoveryStyles.bookButtonText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
               Book Now
             </ThemedText>
           </Pressable>
@@ -494,7 +468,7 @@ const discoveryStyles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   trialText: {
@@ -582,7 +556,7 @@ const discoveryStyles = StyleSheet.create({
     fontWeight: '600',
   },
   bookButton: {
-    height: Components.buttonCompact.height,
+    minHeight: 44,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.button,
     alignItems: 'center',
@@ -649,6 +623,7 @@ function FavouriteCard({
                 onPress={() => onToggleFavourite?.()}
                 accessibilityLabel="Remove from favourites"
                 disabled={toggleLoading}
+                hitSlop={12}
               >
                 <Ionicons
                   name={isFavourite ? 'heart' : 'heart-outline'}
@@ -670,7 +645,7 @@ function FavouriteCard({
               {coach.city && (
                 <>
                   {coach.rating !== undefined && (
-                    <View style={[favouriteStyles.divider, { backgroundColor: palette.border }]} />
+                    <Divider vertical style={{ height: 12, opacity: 0.5 }} />
                   )}
                   <View style={favouriteStyles.locationContainer}>
                     <Ionicons name="location-outline" size={14} color={palette.muted} />
@@ -728,12 +703,8 @@ const favouriteStyles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.xs,
   },
-  name: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    flex: 1,
-  },
+  name: { ...Typography.heading, letterSpacing: -0.2,
+    flex: 1 },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -742,22 +713,14 @@ const favouriteStyles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  metaText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  divider: {
-    width: 1,
-    height: 12,
-    opacity: 0.5,
-  },
+  metaText: { ...Typography.smallSemiBold },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -767,17 +730,10 @@ const favouriteStyles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 2,
+    gap: Spacing.micro,
   },
-  price: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  priceLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  price: { ...Typography.subheading, letterSpacing: -0.2 },
+  priceLabel: { ...Typography.caption },
   bookButton: {
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.md,

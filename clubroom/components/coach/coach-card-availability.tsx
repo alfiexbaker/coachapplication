@@ -205,19 +205,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs + 2,
   },
-  distanceText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  distanceText: { ...Typography.smallSemiBold },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  locationText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  locationText: { ...Typography.smallSemiBold },
   availabilityContainer: {
     flexDirection: 'row',
     alignItems: 'center',

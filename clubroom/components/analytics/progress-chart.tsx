@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SkillProgress } from '@/constants/types';
 
@@ -95,7 +95,7 @@ export function ProgressChart({ skills, title = 'Progress Over Time', showLegend
                     styles.bar,
                     {
                       height: `${currentLevel}%`,
-                      backgroundColor: `${color}30`,
+                      backgroundColor: withAlpha(color, 0.19),
                       borderColor: color,
                     },
                   ]}
@@ -206,10 +206,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingRight: Spacing.xs,
   },
-  axisLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
+  axisLabel: { ...Typography.micro },
   chartArea: {
     flex: 1,
     position: 'relative',
@@ -242,7 +239,7 @@ const styles = StyleSheet.create({
   },
   barFill: {
     width: '100%',
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   valuesRow: {
     position: 'absolute',
@@ -257,10 +254,7 @@ const styles = StyleSheet.create({
     width: '20%',
     alignItems: 'center',
   },
-  valueText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  valueText: { ...Typography.caption },
   legend: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -275,18 +269,16 @@ const styles = StyleSheet.create({
   legendDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  legendText: {
-    fontSize: 12,
-  },
+  legendText: { ...Typography.caption },
   sparkline: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 2,
+    gap: Spacing.micro,
   },
   sparklineBar: {
     flex: 1,
-    borderRadius: 1,
+    borderRadius: Radii.xs,
   },
 });

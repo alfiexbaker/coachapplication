@@ -2,7 +2,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { User } from '@/constants/app-types';
 
@@ -21,7 +21,7 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
   if (autoSelected && children.length === 1) {
     const child = children[0];
     return (
-      <View style={[styles.banner, { backgroundColor: palette.tint + '10', borderColor: palette.tint + '30' }]}>
+      <View style={[styles.banner, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
         <Ionicons name="person" size={16} color={palette.tint} />
         <ThemedText style={[styles.bannerText, { color: palette.tint }]}>
           Session for {child.name}
@@ -56,14 +56,14 @@ export function ChildSelector({ children, selectedChildId, onSelectChild, autoSe
                 style={[
                   styles.optionText,
                   {
-                    color: isSelected ? '#fff' : palette.text,
+                    color: isSelected ? palette.onPrimary : palette.text,
                     fontWeight: isSelected ? '700' : '600',
                   },
                 ]}>
                 {child.name}
               </ThemedText>
               {isSelected && (
-                <Ionicons name="checkmark" size={18} color="#fff" />
+                <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
               )}
             </Pressable>
           );
@@ -83,20 +83,12 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  bannerText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  bannerText: { ...Typography.bodySmallSemiBold, flex: 1 },
   container: {
     gap: Spacing.xs,
   },
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
+  label: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.8 },
   options: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -111,8 +103,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
-  optionText: {
-    fontSize: 15,
-    letterSpacing: -0.2,
-  },
+  optionText: { ...Typography.body, letterSpacing: -0.2 },
 });

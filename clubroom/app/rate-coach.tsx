@@ -10,10 +10,27 @@ import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { RatingStars } from '@/components/review/rating-stars';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
+import type { Booking } from '@/constants/app-types';
+import type { SessionOffering } from '@/constants/session-types';
 import { createLogger } from '@/utils/logger';
+
+/** Stored review shape (superset of display-only CoachReview from user-types) */
+interface StoredReview {
+  id: string;
+  coachId: string;
+  coachName?: string;
+  userId?: string;
+  userName: string;
+  parentName: string;
+  rating: number;
+  text: string;
+  content: string;
+  createdAt: string;
+  sessionDate: string;
+}
 
 const logger = createLogger('RateCoachScreen');
 
@@ -41,21 +58,21 @@ export default function RateCoachScreen() {
   const loadCoaches = useCallback(async () => {
     try {
       // Load session bookings to find coaches
-      const bookings = await apiClient.get<any[]>('session_bookings', []);
+      const bookings = await apiClient.get<Booking[]>('session_bookings', []);
 
       // Also check session offerings for registrations
-      const offerings = await apiClient.get<any[]>('session_offerings', []);
+      const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
 
       // Load existing reviews
-      const reviews = await apiClient.get<any[]>('coach_reviews', []);
-      const reviewedCoachIds = new Set(reviews.map((r: any) => r.coachId));
+      const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
+      const reviewedCoachIds = new Set(reviews.map((r) => r.coachId));
 
       // Collect unique coaches
       const coachMap = new Map<string, CoachToRate>();
 
       // From bookings
       for (const booking of bookings) {
-        if (booking.status === 'COMPLETED' || booking.status === 'Completed') {
+        if (booking.status === 'COMPLETED') {
           const existing = coachMap.get(booking.coachId);
           if (existing) {
             existing.sessionCount++;
@@ -65,7 +82,7 @@ export default function RateCoachScreen() {
           } else {
             coachMap.set(booking.coachId, {
               id: booking.coachId,
-              name: booking.coachName,
+              name: booking.coachName ?? 'Coach',
               photoUrl: `https://i.pravatar.cc/100?u=${booking.coachId}`,
               sessionCount: 1,
               lastSession: booking.scheduledAt,
@@ -78,7 +95,7 @@ export default function RateCoachScreen() {
       // From offerings where user is registered
       for (const offering of offerings) {
         const userReg = offering.registrations?.find(
-          (r: any) => r.userId === currentUser?.id && r.status === 'confirmed'
+          (r) => r.userId === currentUser?.id && r.status === 'confirmed'
         );
         if (userReg && new Date(offering.scheduledAt) < new Date()) {
           const existing = coachMap.get(offering.coachId);
@@ -139,17 +156,21 @@ export default function RateCoachScreen() {
 
     setSubmitting(true);
     try {
-      const reviews = await apiClient.get<any[]>('coach_reviews', []);
+      const reviews = await apiClient.get<StoredReview[]>('coach_reviews', []);
 
-      const newReview = {
+      const userName = currentUser?.fullName || currentUser?.username || 'Anonymous';
+      const newReview: StoredReview = {
         id: `review_${Date.now()}`,
         coachId: selectedCoach.id,
         coachName: selectedCoach.name,
-        userId: currentUser?.id,
-        userName: currentUser?.fullName || 'Anonymous',
+        userId: currentUser?.id ?? '',
+        userName,
+        parentName: userName,
         rating,
         text: reviewText.trim(),
+        content: reviewText.trim(),
         createdAt: new Date().toISOString(),
+        sessionDate: new Date().toISOString(),
       };
 
       reviews.push(newReview);
@@ -201,7 +222,7 @@ export default function RateCoachScreen() {
           renderItem={({ item }) => (
             <Clickable onPress={() => setSelectedCoach(item)}>
               <SurfaceCard style={styles.coachCard}>
-                <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                   <Ionicons name="person" size={28} color={palette.tint} />
                 </View>
                 <View style={styles.coachInfo}>
@@ -211,7 +232,7 @@ export default function RateCoachScreen() {
                   </ThemedText>
                 </View>
                 {item.hasReview ? (
-                  <View style={[styles.reviewedBadge, { backgroundColor: palette.success + '20' }]}>
+                  <View style={[styles.reviewedBadge, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
                     <Ionicons name="checkmark-circle" size={16} color={palette.success} />
                     <ThemedText style={[styles.reviewedText, { color: palette.success }]}>Reviewed</ThemedText>
                   </View>
@@ -251,7 +272,7 @@ export default function RateCoachScreen() {
       <View style={styles.ratingContent}>
         {/* Coach Info */}
         <View style={styles.selectedCoachHeader}>
-          <View style={[styles.avatarLarge, { backgroundColor: palette.tint + '20' }]}>
+          <View style={[styles.avatarLarge, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
             <Ionicons name="person" size={40} color={palette.tint} />
           </View>
           <ThemedText type="subtitle" style={styles.selectedCoachName}>
@@ -303,7 +324,7 @@ export default function RateCoachScreen() {
                     },
                   ]}
                 >
-                  <ThemedText style={[styles.chipText, { color: isSelected ? '#FFFFFF' : palette.text }]}>
+                  <ThemedText style={[styles.chipText, { color: isSelected ? Colors.light.onPrimary : palette.text }]}>
                     {label}
                   </ThemedText>
                 </Clickable>
@@ -324,7 +345,7 @@ export default function RateCoachScreen() {
             },
           ]}
         >
-          <Ionicons name="star" size={20} color="#FFFFFF" />
+          <Ionicons name="star" size={20} color={Colors.light.onPrimary} />
           <ThemedText style={styles.submitText}>
             {submitting ? 'Submitting...' : 'Submit Rating'}
           </ThemedText>
@@ -351,7 +372,7 @@ const styles = StyleSheet.create({
   subtitle: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   list: {
     padding: Spacing.md,
@@ -366,28 +387,27 @@ const styles = StyleSheet.create({
   avatar: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   coachInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   coachMeta: {
-    fontSize: 13,
+    ...Typography.small,
   },
   reviewedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   reviewedText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   emptyState: {
     alignItems: 'center',
@@ -395,11 +415,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   emptySubtext: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   ratingContent: {
     flex: 1,
@@ -413,34 +432,34 @@ const styles = StyleSheet.create({
   avatarLarge: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectedCoachName: {
-    fontSize: 20,
+    ...Typography.title,
   },
   sessionCountText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   ratingSection: {
     alignItems: 'center',
     gap: Spacing.sm,
   },
   ratingLabel: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   starsContainer: {
     paddingVertical: Spacing.sm,
   },
   ratingHint: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   quickFeedback: {
     gap: Spacing.sm,
   },
   feedbackLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   chipContainer: {
     flexDirection: 'row',
@@ -454,8 +473,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   chipText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   submitButton: {
     flexDirection: 'row',
@@ -467,8 +485,7 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   submitText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

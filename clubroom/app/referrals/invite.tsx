@@ -19,7 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ShareButton } from '@/components/referrals';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { ReferralCode } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -128,8 +128,8 @@ export default function ReferralInviteScreen() {
               entering={FadeInDown.delay(100).springify()}
               style={styles.illustrationContainer}
             >
-              <View style={[styles.illustrationCircle, { backgroundColor: `${palette.tint}10` }]}>
-                <View style={[styles.illustrationInner, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.illustrationCircle, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                <View style={[styles.illustrationInner, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="gift" size={48} color={palette.tint} />
                 </View>
               </View>
@@ -160,7 +160,7 @@ export default function ReferralInviteScreen() {
                     style={[
                       styles.actionButton,
                       {
-                        backgroundColor: copied ? `${palette.success}15` : palette.background,
+                        backgroundColor: copied ? withAlpha(palette.success, 0.09) : palette.background,
                         borderColor: copied ? palette.success : palette.border,
                       },
                     ]}
@@ -184,7 +184,7 @@ export default function ReferralInviteScreen() {
                     style={[
                       styles.actionButton,
                       {
-                        backgroundColor: linkCopied ? `${palette.success}15` : palette.background,
+                        backgroundColor: linkCopied ? withAlpha(palette.success, 0.09) : palette.background,
                         borderColor: linkCopied ? palette.success : palette.border,
                       },
                     ]}
@@ -327,8 +327,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(17),
-    fontWeight: '600',
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
   headerSpacer: {
     width: 28,
@@ -351,26 +350,26 @@ const styles = StyleSheet.create({
   illustrationCircle: {
     width: 140,
     height: 140,
-    borderRadius: 70,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   illustrationInner: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   // Headline
   headline: {
-    fontSize: scaleFont(28),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
   subheadline: {
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     textAlign: 'center',
     lineHeight: scaleFont(22),
     maxWidth: 320,
@@ -384,14 +383,13 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   codeLabel: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
     textTransform: 'uppercase',
     letterSpacing: 1,
     fontWeight: '500',
   },
   codeValue: {
-    fontSize: scaleFont(32),
-    fontWeight: '700',
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
     letterSpacing: 3,
     fontVariant: ['tabular-nums'],
   },
@@ -402,20 +400,19 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
   actionButtonText: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
 
   // Share options
   sectionLabel: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     fontWeight: '500',
@@ -434,13 +431,12 @@ const styles = StyleSheet.create({
   shareIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   shareLabel: {
-    fontSize: scaleFont(12),
-    fontWeight: '500',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
 
   // Terms
@@ -448,7 +444,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   termsText: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
     textAlign: 'center',
     lineHeight: scaleFont(18),
   },
@@ -460,7 +456,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   errorText: {
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     textAlign: 'center',
   },
 });

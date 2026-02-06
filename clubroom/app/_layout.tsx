@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
@@ -32,7 +32,7 @@ export const unstable_settings = {
 function RootNavigation() {
   const colorScheme = useColorScheme();
   const { isAuthenticated, currentUser } = useAuth();
-  const notificationResponseSubscription = useRef<any>(null);
+  const notificationResponseSubscription = useRef<{ remove: () => void } | null>(null);
 
   logger.debug('RootNavigation rendered', {
     isAuthenticated,
@@ -52,7 +52,7 @@ function RootNavigation() {
 
         if (data?.deepLink && typeof data.deepLink === 'string') {
           try {
-            router.push(data.deepLink as any);
+            router.push(data.deepLink as Href);
           } catch (error) {
             logger.error('Deep link navigation failed', error);
           }

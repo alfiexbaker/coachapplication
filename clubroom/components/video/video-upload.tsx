@@ -7,7 +7,7 @@ import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from '
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 
@@ -183,7 +183,7 @@ export function VideoUpload({
             onPress={pickVideo}
             style={[styles.pickerCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
           >
-            <View style={[styles.pickerIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.pickerIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="folder-open" size={32} color={palette.tint} />
             </View>
             <ThemedText type="defaultSemiBold">Choose Video</ThemedText>
@@ -196,8 +196,8 @@ export function VideoUpload({
             onPress={recordVideo}
             style={[styles.pickerCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
           >
-            <View style={[styles.pickerIcon, { backgroundColor: '#E91E6315' }]}>
-              <Ionicons name="videocam" size={32} color="#E91E63" />
+            <View style={[styles.pickerIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+              <Ionicons name="videocam" size={32} color={palette.error} />
             </View>
             <ThemedText type="defaultSemiBold">Record Video</ThemedText>
             <ThemedText style={[styles.pickerHint, { color: palette.muted }]}>
@@ -218,12 +218,12 @@ export function VideoUpload({
                 />
               )}
               <View style={styles.playOverlay}>
-                <Ionicons name="play-circle" size={48} color="#fff" />
+                <Ionicons name="play-circle" size={48} color={palette.onPrimary} />
               </View>
 
               {!uploading && (
                 <Clickable onPress={clearSelection} style={styles.clearButton}>
-                  <Ionicons name="close" size={20} color="#fff" />
+                  <Ionicons name="close" size={20} color={palette.onPrimary} />
                 </Clickable>
               )}
             </View>
@@ -269,8 +269,8 @@ export function VideoUpload({
                 onPress={handleUpload}
                 style={[styles.uploadButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="cloud-upload" size={20} color="#fff" />
-                <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+                <Ionicons name="cloud-upload" size={20} color={palette.onPrimary} />
+                <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
                   Upload Video
                 </ThemedText>
               </Clickable>
@@ -329,14 +329,12 @@ const styles = StyleSheet.create({
   pickerIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
-  pickerHint: {
-    fontSize: 12,
-  },
+  pickerHint: { ...Typography.caption },
   previewCard: {
     padding: 0,
     overflow: 'hidden',
@@ -361,7 +359,7 @@ const styles = StyleSheet.create({
     right: Spacing.sm,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -377,11 +375,9 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  metaText: {
-    fontSize: 12,
-  },
+  metaText: { ...Typography.caption },
   progressSection: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,
@@ -389,17 +385,14 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  progressText: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
+  progressText: { ...Typography.caption, textAlign: 'center' },
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -413,12 +406,8 @@ const styles = StyleSheet.create({
   requirements: {
     gap: Spacing.sm,
   },
-  requirementsTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  requirementsTitle: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   requirementsList: {
     gap: Spacing.xs,
   },
@@ -427,7 +416,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  requirementText: {
-    fontSize: 13,
-  },
+  requirementText: { ...Typography.small },
 });

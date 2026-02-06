@@ -15,7 +15,7 @@ import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot, SessionOffering } from '@/constants/types';
-import type { Booking } from '@/constants/app-types';
+import type { Booking, BookingStatus } from '@/constants/app-types';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { createLogger } from '@/utils/logger';
 
@@ -563,7 +563,7 @@ export const availabilityService = {
         scheduledAt: offering.scheduledAt,
         service: offering.title,
         location: offering.location,
-        status: offering.status === 'active' ? 'CONFIRMED' : offering.status?.toUpperCase(),
+        status: (offering.status === 'active' ? 'CONFIRMED' : offering.status?.toUpperCase()) as BookingStatus,
         isGroupSession: offering.sessionType === 'group',
         maxParticipants: offering.maxParticipants,
         currentParticipants: offering.registrations?.filter(r => r.status === 'confirmed').length || 0,

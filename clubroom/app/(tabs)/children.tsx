@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, StyleSheet, ViewStyle, ScrollView } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -11,7 +12,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getSessionsForAthlete } from '@/constants/mock-data';
@@ -105,10 +106,7 @@ export default function ChildrenHubScreen() {
       loadData(); // Refresh to update counts
     }
     // Navigate to child's badge detail
-    router.push({
-      pathname: '/children/badges/[childId]',
-      params: { childId: badge.athleteId, highlightBadge: badge.id },
-    });
+    router.push(Routes.childBadges(badge.athleteId));
   };
 
   // Calculate aggregate stats
@@ -138,7 +136,7 @@ export default function ChildrenHubScreen() {
       icon: 'ribbon-outline',
       route: '/badges',
       stat: `${totalBadges} earned`,
-      color: '#F59E0B',
+      color: Colors.light.warning,
       unseenCount: totalUnseenBadges,
     },
     {
@@ -172,7 +170,7 @@ export default function ChildrenHubScreen() {
           subtitle="Manage your family"
           action={{
             icon: 'add',
-            onPress: () => router.push('/(modal)/add-child'),
+            onPress: () => router.push(Routes.MODAL_ADD_CHILD),
           }}
         />
       }
@@ -186,14 +184,14 @@ export default function ChildrenHubScreen() {
               key={stat.label}
               style={[
                 styles.statCard,
-                { borderColor: stat.highlight ? '#F59E0B' : palette.border },
-                stat.highlight && { backgroundColor: '#F59E0B10' },
+                { borderColor: stat.highlight ? palette.warning : palette.border },
+                stat.highlight && { backgroundColor: withAlpha(palette.warning, 0.06) },
               ]}
             >
-              <ThemedText type="heading" style={[styles.statValue, stat.highlight && { color: '#F59E0B' }]}>
+              <ThemedText type="heading" style={[styles.statValue, stat.highlight && { color: palette.warning }]}>
                 {stat.value}
               </ThemedText>
-              <ThemedText style={[styles.statLabel, { color: stat.highlight ? '#F59E0B' : palette.muted }]}>
+              <ThemedText style={[styles.statLabel, { color: stat.highlight ? palette.warning : palette.muted }]}>
                 {stat.label}
               </ThemedText>
             </SurfaceCard>
@@ -207,7 +205,7 @@ export default function ChildrenHubScreen() {
           <SurfaceCard style={styles.recentBadgesCard}>
             <View style={styles.recentBadgesHeader}>
               <View style={styles.recentBadgesTitleRow}>
-                <Ionicons name="ribbon" size={18} color="#F59E0B" />
+                <Ionicons name="ribbon" size={18} color={palette.warning} />
                 <ThemedText type="defaultSemiBold">Recent Badges</ThemedText>
               </View>
               <ThemedText style={[styles.recentBadgesHint, { color: palette.muted }]}>
@@ -219,16 +217,16 @@ export default function ChildrenHubScreen() {
                 <Clickable key={badge.id} onPress={() => handleViewBadge(badge)}>
                   <View style={[
                     styles.badgeCard,
-                    { borderColor: badge.seenByParent ? palette.border : '#F59E0B' },
-                    !badge.seenByParent && { backgroundColor: '#F59E0B08' },
+                    { borderColor: badge.seenByParent ? palette.border : palette.warning },
+                    !badge.seenByParent && { backgroundColor: withAlpha(palette.warning, 0.03) },
                   ]}>
                     {!badge.seenByParent && (
                       <View style={styles.newBadgeIndicator}>
                         <ThemedText style={styles.newBadgeText}>NEW</ThemedText>
                       </View>
                     )}
-                    <View style={[styles.badgeIconCircle, { backgroundColor: '#F59E0B15' }]}>
-                      <Ionicons name="ribbon" size={20} color="#F59E0B" />
+                    <View style={[styles.badgeIconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+                      <Ionicons name="ribbon" size={20} color={palette.warning} />
                     </View>
                     <ThemedText type="defaultSemiBold" style={styles.badgeLabel} numberOfLines={1}>
                       {badge.badgeLabel}
@@ -268,13 +266,13 @@ export default function ChildrenHubScreen() {
                 >
                   <SurfaceCard style={styles.childCard}>
                     <View style={styles.childHeader}>
-                      <View style={[styles.childAvatar, { backgroundColor: `${palette.tint}10` }]}>
+                      <View style={[styles.childAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                         <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                           {getInitials(fullName)}
                         </ThemedText>
                         {child.hasSpecialNeeds && (
                           <View style={[styles.specialNeedsBadge, { backgroundColor: palette.warning }]}>
-                            <Ionicons name="heart" size={10} color="#fff" />
+                            <Ionicons name="heart" size={10} color={palette.onPrimary} />
                           </View>
                         )}
                       </View>
@@ -294,10 +292,7 @@ export default function ChildrenHubScreen() {
                         </ThemedText>
                       </View>
                       <Clickable
-                        onPress={() => router.push({
-                          pathname: '/development/child-progress/[childId]',
-                          params: { childId: child.id },
-                        })}
+                        onPress={() => router.push(Routes.developmentChildProgress(child.id))}
                       >
                         <Ionicons name="chevron-forward" size={20} color={palette.muted} />
                       </Clickable>
@@ -307,7 +302,7 @@ export default function ChildrenHubScreen() {
                     {(child.hasSpecialNeeds || child.allergies.length > 0 || child.communicationNotes) && (
                       <View style={[styles.notesSection, { borderTopColor: palette.border }]}>
                         {child.hasSpecialNeeds && child.disabilities.length > 0 && (
-                          <View style={[styles.noteRow, { backgroundColor: `${palette.warning}10` }]}>
+                          <View style={[styles.noteRow, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
                             <Ionicons name="alert-circle" size={14} color={palette.warning} />
                             <ThemedText style={styles.noteText} numberOfLines={1}>
                               {child.disabilities.map(d => d.type).join(', ')}
@@ -315,7 +310,7 @@ export default function ChildrenHubScreen() {
                           </View>
                         )}
                         {child.allergies.length > 0 && (
-                          <View style={[styles.noteRow, { backgroundColor: `${palette.error}10` }]}>
+                          <View style={[styles.noteRow, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                             <Ionicons name="medical" size={14} color={palette.error} />
                             <ThemedText style={styles.noteText} numberOfLines={1}>
                               Allergies: {child.allergies.join(', ')}
@@ -323,7 +318,7 @@ export default function ChildrenHubScreen() {
                           </View>
                         )}
                         {child.communicationNotes && (
-                          <View style={[styles.noteRow, { backgroundColor: `${palette.tint}10` }]}>
+                          <View style={[styles.noteRow, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                             <Ionicons name="chatbubble" size={14} color={palette.tint} />
                             <ThemedText style={styles.noteText} numberOfLines={2}>
                               {child.communicationNotes}
@@ -341,25 +336,22 @@ export default function ChildrenHubScreen() {
                         </ThemedText>
                       </View>
                       <Clickable
-                        onPress={() => router.push({
-                          pathname: '/children/badges/[childId]',
-                          params: { childId: child.id },
-                        })}
+                        onPress={() => router.push(Routes.childBadges(child.id))}
                       >
                         <View style={[
                           styles.childStat,
                           stats.unseenBadges > 0 && styles.childStatHighlight,
-                          stats.unseenBadges > 0 && { backgroundColor: '#F59E0B15' },
+                          stats.unseenBadges > 0 && { backgroundColor: withAlpha(palette.warning, 0.09) },
                         ]}>
-                          <Ionicons name="ribbon" size={14} color="#F59E0B" />
-                          <ThemedText style={[styles.childStatText, { color: stats.unseenBadges > 0 ? '#F59E0B' : palette.muted }]}>
+                          <Ionicons name="ribbon" size={14} color={palette.warning} />
+                          <ThemedText style={[styles.childStatText, { color: stats.unseenBadges > 0 ? palette.warning : palette.muted }]}>
                             {stats.badges} badges
                           </ThemedText>
                         </View>
                       </Clickable>
                       {stats.avgRating > 0 && (
                         <View style={styles.childStat}>
-                          <Ionicons name="star" size={14} color="#F59E0B" />
+                          <Ionicons name="star" size={14} color={palette.warning} />
                           <ThemedText style={[styles.childStatText, { color: palette.muted }]}>
                             {stats.avgRating.toFixed(1)} avg
                           </ThemedText>
@@ -379,7 +371,7 @@ export default function ChildrenHubScreen() {
             title="No Children Added"
             message="Add children to your account to track their development and progress"
             actionLabel="Add Child"
-            onPressAction={() => router.push('/(modal)/add-child')}
+            onPressAction={() => router.push(Routes.MODAL_ADD_CHILD)}
           />
         </Animated.View>
       )}
@@ -394,7 +386,7 @@ export default function ChildrenHubScreen() {
             key={section.id}
             entering={FadeInDown.delay(200 + index * 50).springify()}
           >
-            <Clickable onPress={() => router.push(section.route as any)}>
+            <Clickable onPress={() => router.push(section.route as Href)}>
               <SurfaceCard style={[
                 styles.sectionCard,
                 section.unseenCount && section.unseenCount > 0 && { borderColor: section.color, borderWidth: 1 },
@@ -403,7 +395,7 @@ export default function ChildrenHubScreen() {
                   <View
                     style={[
                       styles.iconContainer,
-                      { backgroundColor: `${section.color || palette.tint}15` },
+                      { backgroundColor: withAlpha(section.color || palette.tint, 0.09) },
                     ]}
                   >
                     <Ionicons
@@ -451,14 +443,14 @@ export default function ChildrenHubScreen() {
         <View style={styles.quickActions}>
           <Clickable
             style={[styles.actionButton, { backgroundColor: palette.tint }]}
-            onPress={() => router.push('/(tabs)/more')}
+            onPress={() => router.push(Routes.MORE)}
           >
-            <Ionicons name="search-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="search-outline" size={20} color={palette.onPrimary} />
             <ThemedText style={styles.actionButtonText}>Find Coaches</ThemedText>
           </Clickable>
           <Clickable
             style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
-            onPress={() => router.push('/(tabs)/bookings')}
+            onPress={() => router.push(Routes.BOOKINGS)}
           >
             <Ionicons name="calendar-outline" size={20} color={palette.tint} />
             <ThemedText style={[styles.actionButtonTextSecondary, { color: palette.tint }]}>
@@ -483,15 +475,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...Typography.display,
   },
   statLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   sectionLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     marginBottom: Spacing.xs,
   },
   childrenContainer: {
@@ -512,23 +502,22 @@ const styles = StyleSheet.create({
   childAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   childInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   childName: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   childMeta: {
-    fontSize: 13,
+    ...Typography.small,
   },
   childStats: {
     flexDirection: 'row',
@@ -539,10 +528,10 @@ const styles = StyleSheet.create({
   childStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   childStatText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   sectionsContainer: {
     gap: Spacing.xs,
@@ -564,7 +553,7 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   sectionTitleRow: {
     flexDirection: 'row',
@@ -572,10 +561,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    ...Typography.small,
   },
   quickActions: {
     flexDirection: 'row',
@@ -591,9 +580,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   actionButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 15,
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
   actionButtonSecondary: {
     flex: 1,
@@ -606,8 +594,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   actionButtonTextSecondary: {
-    fontWeight: '700',
-    fontSize: 15,
+    ...Typography.bodySemiBold,
   },
   // Recent badges section
   recentBadgesCard: {
@@ -625,7 +612,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   recentBadgesHint: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   badgeScroll: {
     gap: Spacing.sm,
@@ -644,38 +631,38 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    backgroundColor: Colors.light.warning,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
   newBadgeText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
+    ...Typography.micro,
     fontSize: 9,
-    fontWeight: '700',
   },
   badgeIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     textAlign: 'center',
   },
   badgeAthlete: {
-    fontSize: 11,
+    ...Typography.caption,
     textAlign: 'center',
   },
   badgeCoachRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: Spacing.micro,
   },
   badgeCoach: {
-    fontSize: 10,
+    ...Typography.micro,
   },
   // Child card enhancements
   childNameRow: {
@@ -684,35 +671,33 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   newPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
   newPillText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.micro,
   },
   unseenBadgeIndicator: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#F59E0B',
+    backgroundColor: Colors.light.warning,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
   },
   unseenBadgeCount: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.micro,
   },
   childStatHighlight: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   // Hub section badges
@@ -722,25 +707,23 @@ const styles = StyleSheet.create({
     right: -4,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
   },
   iconBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.micro,
   },
   newChip: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.rounded,
   },
   newChipText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
   },
   // Special needs & notes
   specialNeedsBadge: {
@@ -749,13 +732,12 @@ const styles = StyleSheet.create({
     right: -2,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   agePill: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   notesSection: {
     gap: Spacing.xs,
@@ -771,7 +753,6 @@ const styles = StyleSheet.create({
   },
   noteText: {
     flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    ...Typography.caption,
   },
 });

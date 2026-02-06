@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii } from '@/constants/theme';
+import { Colors, Radii , Typography, Spacing, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ConsentType } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
@@ -15,9 +15,9 @@ interface ConsentBadgeProps {
 }
 
 const SIZE_CONFIG = {
-  sm: { icon: 14, padding: 4, fontSize: 10, gap: 2 },
-  md: { icon: 18, padding: 6, fontSize: 12, gap: 4 },
-  lg: { icon: 22, padding: 8, fontSize: 14, gap: 6 },
+  sm: { ...Typography.micro, icon: 14, padding: Spacing.xxs, gap: Spacing.micro },
+  md: { ...Typography.caption, icon: 18, padding: Spacing.xxs, gap: Spacing.xxs },
+  lg: { ...Typography.bodySmall, icon: 22, padding: 8, gap: Spacing.xxs },
 } as const;
 
 export function ConsentBadge({
@@ -34,8 +34,8 @@ export function ConsentBadge({
   const label = consentService.getConsentLabel(type);
 
   const backgroundColor = granted
-    ? `${palette.success}15`
-    : `${palette.error}15`;
+    ? withAlpha(palette.success, 0.09)
+    : withAlpha(palette.error, 0.09);
   const iconColor = granted ? palette.success : palette.error;
   const statusIcon = granted ? 'checkmark-circle' : 'close-circle';
 
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -4,
-    borderRadius: 10,
+    borderRadius: Radii.md,
   },
   label: {
     fontWeight: '500',

@@ -314,7 +314,7 @@ export function SubscribeForm({
                   <ThemedText
                     style={[
                       styles.dayLabel,
-                      { color: isSelected ? '#FFFFFF' : palette.foreground },
+                      { color: isSelected ? palette.onPrimary : palette.foreground },
                     ]}
                   >
                     {day.shortLabel}
@@ -420,7 +420,7 @@ export function SubscribeForm({
                   <ThemedText
                     style={[
                       styles.durationText,
-                      { color: isSelected ? '#FFFFFF' : palette.foreground },
+                      { color: isSelected ? palette.onPrimary : palette.foreground },
                     ]}
                   >
                     {d} min
@@ -618,12 +618,12 @@ const styles = StyleSheet.create({
   coachAvatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
   },
   coachAvatarPlaceholder: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   athleteOptions: {
     flexDirection: 'row',
@@ -728,9 +728,9 @@ const styles = StyleSheet.create({
   toggleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   toggleText: {
@@ -750,7 +750,7 @@ const styles = StyleSheet.create({
   summaryTotal: {
     paddingTop: Spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: Colors.light.border,
     marginTop: Spacing.xs,
   },
   footer: {

@@ -146,7 +146,7 @@ export function FormInput({
       >
         {leftIcon && (
           <IconSymbol
-            name={leftIcon as any}
+            name={leftIcon as React.ComponentProps<typeof IconSymbol>['name']}
             size={20}
             color={palette.muted}
             style={styles.leftIcon}
@@ -201,7 +201,7 @@ export function FormInput({
             disabled={!onRightIconPress}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <IconSymbol name={rightIcon as any} size={20} color={palette.muted} />
+            <IconSymbol name={rightIcon as React.ComponentProps<typeof IconSymbol>['name']} size={20} color={palette.muted} />
           </TouchableOpacity>
         )}
       </View>

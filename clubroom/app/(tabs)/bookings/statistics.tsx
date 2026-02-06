@@ -5,13 +5,14 @@ import { useState, useMemo, useEffect } from 'react';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { sessionHistory, athleteSkillLevels, getChildrenForParent, getSessionsForAthlete } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
 import { hasChildren } from '@/utils/user-helpers';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 export default function StatisticsScreen() {
   const scheme = useColorScheme() ?? 'light';
@@ -46,9 +47,19 @@ export default function StatisticsScreen() {
   }, [currentUser, selectedChildId, targetId]);
 
   // Get sessions filtered by selected child for parents
+  // Map to a common shape so both sources share the same fields
   const sessions = useMemo(() => {
     if (hasChildren(currentUser) && selectedChildId) {
-      return getSessionsForAthlete(selectedChildId);
+      return getSessionsForAthlete(selectedChildId).map((s) => ({
+        id: s.id,
+        coachName: s.coachName,
+        athleteName: s.athleteName,
+        focus: s.skillsWorkedOn[0] || 'General Training',
+        durationMinutes: 60,
+        rating: s.performanceRating,
+        coachFeedback: s.notes,
+        completedAt: s.completedAt,
+      }));
     }
     // For USER, show their own sessions
     return sessionHistory;
@@ -56,7 +67,7 @@ export default function StatisticsScreen() {
 
   // Calculate stats
   const totalSessions = sessions.length;
-  const totalHours = sessions.reduce((sum, session) => sum + ((session as any).durationMinutes ?? 60), 0) / 60;
+  const totalHours = sessions.reduce((sum, session) => sum + (session.durationMinutes ?? 60), 0) / 60;
   // Calculate unique coaches (available for future stats display)
   void new Set(sessions.map((s) => s.coachName)).size;
 
@@ -120,14 +131,14 @@ export default function StatisticsScreen() {
                         style={[
                           styles.childTabText,
                           {
-                            color: isSelected ? '#fff' : palette.text,
+                            color: isSelected ? palette.onPrimary : palette.text,
                             fontWeight: isSelected ? '700' : '600',
                           },
                         ]}>
                         {child.name}
                       </ThemedText>
                       {isSelected && (
-                        <Ionicons name="checkmark" size={16} color="#fff" />
+                        <Ionicons name="checkmark" size={16} color={palette.onPrimary} />
                       )}
                     </Pressable>
                   );
@@ -141,7 +152,7 @@ export default function StatisticsScreen() {
         <View style={styles.statsGrid}>
           {stats.map((stat) => (
             <SurfaceCard key={stat.id} style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: stat.color + '20' }]}>
+              <View style={[styles.statIcon, { backgroundColor: withAlpha(stat.color, 0.12) }]}>
                 <Ionicons name={stat.icon} size={24} color={stat.color} />
               </View>
               <ThemedText type="title" style={styles.statValue}>
@@ -165,25 +176,25 @@ export default function StatisticsScreen() {
                     <View style={styles.sessionRow}>
                       <View style={[styles.activityDot, { backgroundColor: palette.tint }]} />
                       <View style={{ flex: 1 }}>
-                        <ThemedText style={styles.activityTitle}>{(session as any).focus ?? 'Training'}</ThemedText>
+                        <ThemedText style={styles.activityTitle}>{session.focus ?? 'Training'}</ThemedText>
                         <ThemedText style={styles.activitySubtext}>
-                          {session.coachName} · {(session as any).durationMinutes ?? 60}m
+                          {session.coachName} · {session.durationMinutes ?? 60}m
                         </ThemedText>
                       </View>
                       <View style={styles.ratingRow}>
                         {[...Array(5)].map((_, i) => (
                           <Ionicons
                             key={i}
-                            name={i < ((session as any).rating || 0) ? 'star' : 'star-outline'}
+                            name={i < (session.rating || 0) ? 'star' : 'star-outline'}
                             size={14}
-                            color="#F59E0B"
+                            color={palette.warning}
                           />
                         ))}
                       </View>
                     </View>
-                    {(session as any).coachFeedback && (
+                    {session.coachFeedback && (
                       <View style={[styles.feedbackBox, { backgroundColor: palette.surface }]}>
-                        <ThemedText style={styles.feedbackText}>{(session as any).coachFeedback}</ThemedText>
+                        <ThemedText style={styles.feedbackText}>{session.coachFeedback}</ThemedText>
                       </View>
                     )}
                   </View>
@@ -230,12 +241,12 @@ export default function StatisticsScreen() {
           </ThemedText>
           <View style={styles.quickLinksGrid}>
             <Pressable
-              style={[styles.quickLink, { backgroundColor: `${palette.tint}10`, borderColor: `${palette.tint}30` }]}
+              style={[styles.quickLink, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}
               onPress={() => {
                 if (hasChildren(currentUser) && selectedChildId) {
-                  router.push({ pathname: '/development/child-progress/[childId]', params: { childId: selectedChildId } });
+                  router.push(Routes.developmentChildProgress(selectedChildId));
                 } else {
-                  router.push('/development/my-progress');
+                  router.push(Routes.DEVELOPMENT_MY_PROGRESS);
                 }
               }}
             >
@@ -246,9 +257,9 @@ export default function StatisticsScreen() {
               style={[styles.quickLink, { backgroundColor: '#8B5CF610', borderColor: '#8B5CF630' }]}
               onPress={() => {
                 if (hasChildren(currentUser) && selectedChildId) {
-                  router.push({ pathname: '/children/badges/[childId]', params: { childId: selectedChildId } });
+                  router.push(Routes.childBadges(selectedChildId));
                 } else {
-                  router.push('/(tabs)/badges');
+                  router.push(Routes.BADGES);
                 }
               }}
             >
@@ -257,14 +268,14 @@ export default function StatisticsScreen() {
             </Pressable>
             <Pressable
               style={[styles.quickLink, { backgroundColor: '#F59E0B10', borderColor: '#F59E0B30' }]}
-              onPress={() => router.push('/(tabs)/bookings')}
+              onPress={() => router.push(Routes.BOOKINGS)}
             >
               <Ionicons name="calendar-outline" size={24} color="#F59E0B" />
               <ThemedText style={[styles.quickLinkText, { color: '#F59E0B' }]}>Book Session</ThemedText>
             </Pressable>
             <Pressable
               style={[styles.quickLink, { backgroundColor: '#10B98110', borderColor: '#10B98130' }]}
-              onPress={() => router.push('/(tabs)/messages')}
+              onPress={() => router.push(Routes.MESSAGES)}
             >
               <Ionicons name="chatbubble-outline" size={24} color="#10B981" />
               <ThemedText style={[styles.quickLinkText, { color: '#10B981' }]}>Messages</ThemedText>
@@ -289,8 +300,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   childLabel: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
@@ -308,14 +318,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   childTabText: {
-    fontSize: 15,
+    ...Typography.body,
     letterSpacing: -0.2,
   },
   header: {
     gap: Spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     opacity: 0.6,
   },
   statsGrid: {
@@ -333,15 +343,15 @@ const styles = StyleSheet.create({
   statIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 28,
+    ...Typography.display,
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.6,
     textAlign: 'center',
   },
@@ -370,22 +380,21 @@ const styles = StyleSheet.create({
   activityDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    marginTop: 6,
+    borderRadius: Radii.xs,
+    marginTop: Spacing.xxs,
   },
   activityTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   activitySubtext: {
-    fontSize: 13,
+    ...Typography.small,
     opacity: 0.6,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
   feedbackBox: {
     paddingHorizontal: Spacing.md,
@@ -394,8 +403,7 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.lg,
   },
   feedbackText: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   divider: {
     height: 1,
@@ -413,12 +421,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   skillName: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   skillLevel: {
-    fontSize: 14,
-    fontWeight: '700',
+    ...Typography.bodySmallSemiBold,
   },
   skillBar: {
     height: 8,
@@ -435,7 +441,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   placeholderText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     opacity: 0.5,
     textAlign: 'center',
   },
@@ -454,7 +460,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   quickLinkText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
 });

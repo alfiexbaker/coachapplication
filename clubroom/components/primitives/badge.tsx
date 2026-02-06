@@ -19,7 +19,7 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -51,26 +51,20 @@ const SIZE_CONFIG: Record<BadgeSize, {
   gap: number;
 }> = {
   sm: {
+    ...Typography.micro,
     paddingH: Spacing.xs + 2,
     paddingV: 2,
-    fontSize: 10,
     iconSize: 10,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  md: {
-    paddingH: Spacing.sm,
+  md: { ...Typography.caption, paddingH: Spacing.sm,
     paddingV: Spacing.xs,
-    fontSize: 12,
     iconSize: 12,
-    gap: 4,
-  },
-  lg: {
-    paddingH: Spacing.sm + 2,
+    gap: Spacing.xxs },
+  lg: { ...Typography.bodySmall, paddingH: Spacing.sm + 2,
     paddingV: Spacing.xs + 2,
-    fontSize: 14,
     iconSize: 14,
-    gap: 6,
-  },
+    gap: Spacing.xxs },
 };
 
 // -----------------------------------------------------------------------------
@@ -122,7 +116,7 @@ export function Badge({
       case 'subtle':
       default:
         return {
-          backgroundColor: `${toneColor}15`,
+          backgroundColor: withAlpha(toneColor, 0.09),
           borderWidth: 0,
           textColor: toneColor,
         };
@@ -160,8 +154,8 @@ export function Badge({
             fontSize: sizeConfig.fontSize,
           },
         ]}
-        lightColor={variant === 'filled' ? '#FFFFFF' : undefined}
-        darkColor={variant === 'filled' ? '#FFFFFF' : undefined}
+        lightColor={variant === 'filled' ? palette.onPrimary : undefined}
+        darkColor={variant === 'filled' ? palette.onPrimary : undefined}
       >
         {label}
       </ThemedText>

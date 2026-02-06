@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { createLogger } from '@/utils/logger';
@@ -9,7 +10,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { MatchCard } from '@/components/match/match-card';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Match } from '@/constants/types';
@@ -121,7 +122,7 @@ export default function MatchesScreen() {
             subtitle={`${matches.length} matches`}
             action={isCoach ? 'Create Match' : undefined}
             actionIcon="add"
-            onActionPress={isCoach ? () => router.push('/matches/create') : undefined}
+            onActionPress={isCoach ? () => router.push(Routes.MATCHES_CREATE) : undefined}
           />
         }
         gap={0}
@@ -183,13 +184,13 @@ export default function MatchesScreen() {
                 key={f.key}
                 style={[
                   styles.filterTab,
-                  filter === f.key ? { backgroundColor: `${palette.tint}15`, borderColor: palette.tint } : undefined,
+                  filter === f.key ? { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint } : undefined,
                   { borderColor: palette.border },
                 ]}
                 onPress={() => setFilter(f.key)}
               >
                 <Ionicons
-                  name={f.icon as any}
+                  name={f.icon as keyof typeof Ionicons.glyphMap}
                   size={16}
                   color={filter === f.key ? palette.tint : palette.muted}
                 />
@@ -233,9 +234,9 @@ export default function MatchesScreen() {
                 {isCoach && filter === 'upcoming' && (
                   <TouchableOpacity
                     style={[styles.createButton, { backgroundColor: palette.tint }]}
-                    onPress={() => router.push('/matches/create')}
+                    onPress={() => router.push(Routes.MATCHES_CREATE)}
                   >
-                    <Ionicons name="add" size={20} color="#fff" />
+                    <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
                     <ThemedText style={styles.createButtonText}>Create Match</ThemedText>
                   </TouchableOpacity>
                 )}
@@ -286,10 +287,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
+    ...Typography.display,
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   statDivider: {
     width: 1,
@@ -312,8 +313,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   matchesList: {
     padding: Spacing.md,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   monthHeader: {
-    fontSize: 13,
+    ...Typography.small,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: Spacing.sm,
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     textAlign: 'center',
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   createButton: {
     flexDirection: 'row',
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   createButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

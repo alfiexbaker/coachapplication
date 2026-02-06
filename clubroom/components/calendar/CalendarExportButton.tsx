@@ -3,7 +3,7 @@ import { StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { calendarService } from '@/services/calendar-service';
 import type { Booking } from '@/constants/app-types';
@@ -75,24 +75,24 @@ export function CalendarExportButton({
     switch (size) {
       case 'small':
         return {
+          ...Typography.small,
           paddingVertical: Spacing.xs,
           paddingHorizontal: Spacing.sm,
           iconSize: 16,
-          fontSize: 13,
         };
       case 'large':
         return {
+          ...Typography.subheading,
           paddingVertical: Spacing.md,
           paddingHorizontal: Spacing.xl,
           iconSize: 24,
-          fontSize: 16,
         };
       default:
         return {
+          ...Typography.bodySmall,
           paddingVertical: Spacing.sm,
           paddingHorizontal: Spacing.md,
           iconSize: 20,
-          fontSize: 14,
         };
     }
   };
@@ -109,7 +109,7 @@ export function CalendarExportButton({
           styles.iconButton,
           {
             opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
-            backgroundColor: `${palette.accent}15`,
+            backgroundColor: withAlpha(palette.accent, 0.09),
           },
         ]}
         hitSlop={8}
@@ -125,8 +125,8 @@ export function CalendarExportButton({
 
   const buttonLabel = label ?? (bookings?.length ? 'Export All' : 'Add to Calendar');
   const backgroundColor =
-    variant === 'primary' ? palette.accent : `${palette.accent}15`;
-  const textColor = variant === 'primary' ? '#FFFFFF' : palette.accent;
+    variant === 'primary' ? palette.accent : withAlpha(palette.accent, 0.09);
+  const textColor = variant === 'primary' ? Colors.light.onPrimary : palette.accent;
 
   return (
     <Pressable

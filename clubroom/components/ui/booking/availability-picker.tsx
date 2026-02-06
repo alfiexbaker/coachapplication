@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { DayAvailability, SlotInstance, ServiceType } from '@/constants/booking-types';
 
@@ -54,9 +54,9 @@ export function AvailabilityPicker({
                 },
               ]}
             >
-              <ThemedText style={[styles.dayName, { color: isSelected ? '#fff' : palette.text }]}>{dayName}</ThemedText>
-              <ThemedText style={[styles.dayNum, { color: isSelected ? '#fff' : palette.text }]}>{dayNum}</ThemedText>
-              <ThemedText style={[styles.monthText, { color: isSelected ? '#fff' : palette.muted }]}>{month}</ThemedText>
+              <ThemedText style={[styles.dayName, { color: isSelected ? palette.onPrimary : palette.text }]}>{dayName}</ThemedText>
+              <ThemedText style={[styles.dayNum, { color: isSelected ? palette.onPrimary : palette.text }]}>{dayNum}</ThemedText>
+              <ThemedText style={[styles.monthText, { color: isSelected ? palette.onPrimary : palette.muted }]}>{month}</ThemedText>
             </Clickable>
           );
         })}
@@ -102,7 +102,7 @@ function SlotRow({ slot, selected, onPress }: { slot: SlotInstance; selected: bo
       style={({ pressed }) => [
         styles.slotCard,
         {
-          backgroundColor: selected ? `${palette.tint}15` : palette.surface,
+          backgroundColor: selected ? withAlpha(palette.tint, 0.09) : palette.surface,
           borderColor: selected ? palette.tint : palette.border,
           opacity: pressed ? 0.7 : 1,
         },
@@ -129,9 +129,9 @@ function SlotRow({ slot, selected, onPress }: { slot: SlotInstance; selected: bo
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
     marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.md
   },
   dateList: {
     paddingHorizontal: Spacing.md,
@@ -145,17 +145,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  dayName: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  dayNum: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  monthText: {
-    fontSize: 12,
-  },
+  dayName: { ...Typography.smallSemiBold },
+  dayNum: { ...Typography.title },
+  monthText: { ...Typography.caption },
   noSlotsContainer: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -179,20 +171,14 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xs,
   },
-  slotTitle: {
-    fontSize: 16,
-  },
-  slotFocus: {
-    fontSize: 13,
-  },
+  slotTitle: { ...Typography.subheading },
+  slotFocus: { ...Typography.small },
   slotMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  slotTime: {
-    fontSize: 13,
-  },
+  slotTime: { ...Typography.small },
 });
 
 export type { DayAvailability, SlotInstance } from '@/constants/booking-types';

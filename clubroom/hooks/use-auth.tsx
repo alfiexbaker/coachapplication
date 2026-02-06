@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { createContext, useContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { CoachSignupData } from '@/components/auth/coach-signup-screen';
 import { getUserById } from '@/constants/mock-data';
@@ -443,7 +444,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Reset navigation back to the login screen
     router.dismissAll();
-    router.replace('/');
+    router.replace(Routes.ROOT);
   }, [currentUser]);
 
   const forgotPassword = async (email: string) => {

@@ -22,7 +22,7 @@ import { ThemedText } from '@/components/themed-text';
 import { FormInput, FormButton } from '@/components/forms';
 import { useForm } from '@/hooks/use-form';
 import { validators } from '@/utils/validation';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
@@ -151,13 +151,13 @@ export default function LoginScreen() {
           style={[styles.signupCard, { backgroundColor: palette.tint }]}
           onPress={() => setScreenMode('signup')}>
           <View style={styles.signupCardContent}>
-            <Ionicons name="person-add" size={24} color="#fff" />
+            <Ionicons name="person-add" size={24} color={palette.onPrimary} />
             <View style={styles.signupCardText}>
               <ThemedText style={styles.signupTitle}>New to Clubroom?</ThemedText>
               <ThemedText style={styles.signupSubtitle}>Create your free account</ThemedText>
             </View>
           </View>
-          <Ionicons name="arrow-forward" size={20} color="#fff" />
+          <Ionicons name="arrow-forward" size={20} color={palette.onPrimary} />
         </Pressable>
 
         {/* Legacy Coach Signup (with invite code) */}
@@ -226,14 +226,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: -Spacing.sm,
   },
-  forgotLink: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  helper: {
-    fontSize: 14,
-    opacity: 0.9,
-  },
+  forgotLink: { ...Typography.bodySmallSemiBold },
+  helper: { ...Typography.bodySmall, opacity: 0.9 },
   signupCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -247,17 +241,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   signupCardText: {
-    gap: 2,
+    gap: Spacing.micro,
   },
-  signupTitle: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  signupSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-  },
+  signupTitle: { ...Typography.subheading, color: Colors.light.onPrimary },
+  signupSubtitle: { ...Typography.bodySmall, color: 'rgba(255,255,255,0.8)' },
   coachSignupCard: {
     padding: Spacing.lg,
     borderRadius: Radii.lg,
@@ -286,15 +273,11 @@ const styles = StyleSheet.create({
   },
   roleBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
     backgroundColor: 'rgba(99,102,241,0.15)',
   },
-  roleBadgeText: {
-    fontWeight: '600',
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
+  roleBadgeText: { ...Typography.caption, textTransform: 'uppercase' },
   credentialValue: {
     fontFamily: 'monospace',
   },

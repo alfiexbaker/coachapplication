@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CoachProfile, User } from '@/constants/app-types';
 
@@ -19,7 +19,7 @@ export function CoachSummaryCard({ coach, coachProfile }: CoachSummaryCardProps)
   return (
     <SurfaceCard style={styles.card}>
       <View style={styles.header}>
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}20` }]}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
             {coach.avatar || coach.name.charAt(0)}
           </ThemedText>
@@ -54,26 +54,20 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 28,
-  },
+  avatarText: { ...Typography.display },
   info: {
     flex: 1,
     gap: Spacing.xs / 2,
   },
-  name: {
-    fontSize: 17,
-  },
+  name: { ...Typography.heading },
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  metaText: {
-    fontSize: 13,
-  },
+  metaText: { ...Typography.small },
 });

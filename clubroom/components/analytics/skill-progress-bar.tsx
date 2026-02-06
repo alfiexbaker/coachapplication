@@ -8,7 +8,7 @@ import Animated, {
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SkillProgress } from '@/constants/types';
 
@@ -77,7 +77,7 @@ export function SkillProgressBar({
                   {skill.skillName}
                 </ThemedText>
                 {!compact && (
-                  <View style={[styles.categoryBadge, { backgroundColor: `${palette.tint}12` }]}>
+                  <View style={[styles.categoryBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                     <ThemedText style={[styles.categoryText, { color: palette.tint }]}>
                       {skill.category}
                     </ThemedText>
@@ -104,7 +104,7 @@ export function SkillProgressBar({
               </View>
 
               {/* Trend Indicator */}
-              <View style={[styles.trendBadge, { backgroundColor: `${trendColor}15` }]}>
+              <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
                 <Ionicons name={trendIcon} size={12} color={trendColor} />
                 <ThemedText style={[styles.trendText, { color: trendColor }]}>
                   {skill.changePercent > 0 ? '+' : ''}{skill.changePercent.toFixed(1)}%
@@ -123,7 +123,7 @@ export function SkillProgressBar({
                     styles.progressBarPrevious,
                     {
                       width: `${skill.previousLevel}%`,
-                      backgroundColor: `${previousLevelInfo.color}30`,
+                      backgroundColor: withAlpha(previousLevelInfo.color, 0.19),
                     }
                   ]}
                 />
@@ -242,7 +242,7 @@ export function SkillCategoryGroup({
       <Pressable onPress={() => setExpanded(!expanded)}>
         <View style={styles.categoryHeader}>
           <View style={styles.categoryLeft}>
-            <View style={[styles.categoryIcon, { backgroundColor: `${levelInfo.color}15` }]}>
+            <View style={[styles.categoryIcon, { backgroundColor: withAlpha(levelInfo.color, 0.09) }]}>
               <Ionicons
                 name={getCategoryIcon(category)}
                 size={20}
@@ -264,7 +264,7 @@ export function SkillCategoryGroup({
               <ThemedText type="defaultSemiBold">{Math.round(avgLevel)}</ThemedText>
               <ThemedText style={[styles.avgLabel, { color: palette.muted }]}>avg</ThemedText>
             </View>
-            <View style={[styles.trendBadgeSmall, { backgroundColor: `${trendColor}15` }]}>
+            <View style={[styles.trendBadgeSmall, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
               <Ionicons
                 name={avgChangeValue > 0 ? 'arrow-up' : avgChangeValue < 0 ? 'arrow-down' : 'remove'}
                 size={10}
@@ -353,7 +353,7 @@ export function SkillsSummary({ skills }: SkillsSummaryProps) {
       {/* Overall Stats */}
       <View style={styles.summaryStats}>
         <View style={styles.summaryStat}>
-          <View style={[styles.summaryStatIcon, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.summaryStatIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText type="heading" style={[styles.summaryStatValue, { color: palette.tint }]}>
               {Math.round(avgLevel)}
             </ThemedText>
@@ -392,7 +392,7 @@ export function SkillsSummary({ skills }: SkillsSummaryProps) {
 
       {/* Highlights */}
       <View style={styles.highlights}>
-        <View style={[styles.highlightCard, { backgroundColor: `${palette.success}08` }]}>
+        <View style={[styles.highlightCard, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
           <Ionicons name="trophy" size={16} color={palette.success} />
           <View style={styles.highlightContent}>
             <ThemedText style={[styles.highlightLabel, { color: palette.muted }]}>Top Skill</ThemedText>
@@ -403,7 +403,7 @@ export function SkillsSummary({ skills }: SkillsSummaryProps) {
           </View>
         </View>
 
-        <View style={[styles.highlightCard, { backgroundColor: `${palette.tint}08` }]}>
+        <View style={[styles.highlightCard, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <Ionicons name="rocket" size={16} color={palette.tint} />
           <View style={styles.highlightContent}>
             <ThemedText style={[styles.highlightLabel, { color: palette.muted }]}>Most Improved</ThemedText>
@@ -434,75 +434,57 @@ const styles = StyleSheet.create({
   },
   skillInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   skillNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  skillName: {
-    fontSize: 15,
-  },
-  skillNameCompact: {
-    fontSize: 14,
-  },
+  skillName: { ...Typography.body },
+  skillNameCompact: { ...Typography.bodySmall },
   categoryBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  categoryText: { ...Typography.micro },
   levelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   levelDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  levelLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  levelLabel: { ...Typography.caption },
   valueSection: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   valueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  valueText: {
-    fontSize: 18,
-    letterSpacing: -0.5,
-  },
-  maxValue: {
-    fontSize: 12,
-  },
+  valueText: { ...Typography.heading, letterSpacing: -0.5 },
+  maxValue: { ...Typography.caption },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  trendText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  trendText: { ...Typography.caption },
   progressBarContainer: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   progressBarBg: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -511,14 +493,14 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   progressBarPrevious: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   levelMarker: {
     position: 'absolute',
@@ -531,9 +513,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  scaleLabel: {
-    fontSize: 9,
-  },
+  scaleLabel: { ...Typography.micro },
   historySection: {
     marginTop: Spacing.sm,
   },
@@ -541,11 +521,7 @@ const styles = StyleSheet.create({
     height: 1,
     marginBottom: Spacing.sm,
   },
-  historyTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: Spacing.xs,
-  },
+  historyTitle: { ...Typography.caption, marginBottom: Spacing.xs },
   historyChart: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -554,16 +530,14 @@ const styles = StyleSheet.create({
   },
   historyBarContainer: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   historyBar: {
     width: 20,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     minHeight: 4,
   },
-  historyDate: {
-    fontSize: 9,
-  },
+  historyDate: { ...Typography.micro },
   expandIndicator: {
     alignItems: 'center',
     marginTop: -4,
@@ -587,16 +561,12 @@ const styles = StyleSheet.create({
   categoryIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  categoryName: {
-    fontSize: 16,
-  },
-  skillCount: {
-    fontSize: 12,
-  },
+  categoryName: { ...Typography.subheading },
+  skillCount: { ...Typography.caption },
   categoryRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -605,13 +575,11 @@ const styles = StyleSheet.create({
   categoryStats: {
     alignItems: 'center',
   },
-  avgLabel: {
-    fontSize: 10,
-  },
+  avgLabel: { ...Typography.micro },
   trendBadgeSmall: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -633,14 +601,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 13,
-    textAlign: 'center',
-    maxWidth: 240,
-  },
-  summaryTitle: {
-    fontSize: 16,
-  },
+  emptyText: { ...Typography.small, textAlign: 'center',
+    maxWidth: 240 },
+  summaryTitle: { ...Typography.subheading },
   summaryStats: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -653,17 +616,12 @@ const styles = StyleSheet.create({
   summaryStatIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  summaryStatValue: {
-    fontSize: 22,
-  },
-  summaryStatLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  summaryStatValue: { ...Typography.title },
+  summaryStatLabel: { ...Typography.caption },
   summaryDivider: {
     width: 1,
     height: 50,
@@ -677,13 +635,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  trendStatValue: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  trendStatLabel: {
-    fontSize: 12,
-  },
+  trendStatValue: { ...Typography.bodySmallSemiBold },
+  trendStatLabel: { ...Typography.caption },
   highlights: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -698,14 +651,8 @@ const styles = StyleSheet.create({
   },
   highlightContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  highlightLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  highlightValue: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  highlightLabel: { ...Typography.micro },
+  highlightValue: { ...Typography.caption },
 });

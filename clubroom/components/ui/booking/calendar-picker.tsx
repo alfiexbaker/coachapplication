@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
 import type { AvailabilitySlot } from '@/constants/types';
@@ -49,7 +49,7 @@ export function CalendarPicker({
             style={[
               styles.day,
               {
-                backgroundColor: active ? `${palette.tint}15` : palette.surface,
+                backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
                 borderColor: active ? palette.tint : palette.border,
                 opacity: isDisabled ? 0.4 : 1,
               },
@@ -91,24 +91,19 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   indicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
   dot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  slotCount: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  noSlots: {
-    fontSize: 10,
-  },
+  slotCount: { ...Typography.micro },
+  noSlots: { ...Typography.micro },
 });

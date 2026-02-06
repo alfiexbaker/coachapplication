@@ -1,10 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
@@ -37,10 +38,7 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
     if (onPress) {
       onPress();
     } else {
-      router.push({
-        pathname: '/matches/[id]',
-        params: { id: match.id },
-      });
+      router.push(Routes.match(match.id));
     }
   };
 
@@ -52,7 +50,7 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
     const resultColor = isWin ? palette.success : isDraw ? palette.warning : palette.error;
 
     return (
-      <View style={[styles.resultBadge, { backgroundColor: `${resultColor}15` }]}>
+      <View style={[styles.resultBadge, { backgroundColor: withAlpha(resultColor, 0.09) }]}>
         <ThemedText style={[styles.resultText, { color: resultColor }]}>
           {match.isHome ? `${home} - ${away}` : `${away} - ${home}`}
         </ThemedText>
@@ -67,11 +65,11 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
     <SurfaceCard
       style={styles.card}
       onPress={handlePress}
-      outlineGradient={isUpcoming ? [typeColor, `${typeColor}60`] : undefined}
+      outlineGradient={isUpcoming ? [typeColor, withAlpha(typeColor, 0.38)] : undefined}
     >
       {/* Header row with type badge */}
       <View style={styles.headerRow}>
-        <View style={[styles.typeBadge, { backgroundColor: `${typeColor}15` }]}>
+        <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}>
           <ThemedText style={[styles.typeText, { color: typeColor }]}>
             {matchService.formatMatchType(match.matchType)}
           </ThemedText>
@@ -140,7 +138,7 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
       {/* Status and availability (coach view) */}
       {isCoach && isUpcoming && (
         <View style={styles.availabilityRow}>
-          <View style={[styles.statusPill, { backgroundColor: `${statusColor}15` }]}>
+          <View style={[styles.statusPill, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
             <ThemedText style={[styles.statusText, { color: statusColor }]}>
               {matchService.formatStatus(match.status)}
             </ThemedText>
@@ -170,7 +168,7 @@ export function MatchCard({ match, isCoach = false, showClub = false, onPress }:
               key={player.athleteId}
               style={[
                 styles.playerBadge,
-                { backgroundColor: `${matchService.getPlayerStatusColor(player.status)}15` }
+                { backgroundColor: withAlpha(matchService.getPlayerStatusColor(player.status), 0.09) }
               ]}
             >
               <ThemedText
@@ -201,60 +199,41 @@ const styles = StyleSheet.create({
   },
   typeBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  typeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
+  typeText: { ...Typography.caption, textTransform: 'uppercase' },
   homeAwayBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
-  homeAwayText: {
-    fontSize: 11,
-  },
+  homeAwayText: { ...Typography.caption },
   resultBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     marginLeft: 'auto',
   },
-  resultText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  resultLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  resultText: { ...Typography.bodySmallSemiBold },
+  resultLabel: { ...Typography.caption },
   titleSection: {
-    gap: 2,
+    gap: Spacing.micro,
   },
-  title: {
-    fontSize: 16,
-  },
+  title: { ...Typography.subheading },
   opponentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  vsText: {
-    fontSize: 12,
-  },
-  opponent: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  vsText: { ...Typography.caption },
+  opponent: { ...Typography.bodySmallSemiBold },
   scheduleRow: {
     flexDirection: 'row',
     gap: Spacing.lg,
@@ -265,29 +244,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  scheduleText: {
-    fontSize: 13,
-  },
-  meetTime: {
-    fontSize: 12,
-  },
+  scheduleText: { ...Typography.small },
+  meetTime: { ...Typography.caption },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  locationText: {
-    fontSize: 13,
-    flex: 1,
-  },
+  locationText: { ...Typography.small, flex: 1 },
   clubRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  clubText: {
-    fontSize: 12,
-  },
+  clubText: { ...Typography.caption },
   availabilityRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,13 +269,10 @@ const styles = StyleSheet.create({
   },
   statusPill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  statusText: { ...Typography.caption },
   availabilityStats: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -314,17 +281,14 @@ const styles = StyleSheet.create({
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  statText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  statText: { ...Typography.smallSemiBold },
   playerStatusRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -333,11 +297,8 @@ const styles = StyleSheet.create({
   },
   playerBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  playerBadgeText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  playerBadgeText: { ...Typography.caption },
 });

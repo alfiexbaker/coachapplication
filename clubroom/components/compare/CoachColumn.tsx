@@ -9,9 +9,10 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CoachComparison, ComparisonCriteria } from '@/constants/types';
 
@@ -35,7 +36,7 @@ function ValueCell({ label, value, isBest, icon, suffix }: ValueCellProps) {
   const palette = Colors[scheme];
 
   return (
-    <View style={[styles.cell, isBest ? { backgroundColor: `${palette.success}10` } : undefined]}>
+    <View style={[styles.cell, isBest ? { backgroundColor: withAlpha(palette.success, 0.06) } : undefined]}>
       <View style={styles.cellHeader}>
         {icon && <Ionicons name={icon} size={14} color={palette.muted} />}
         <ThemedText style={[styles.cellLabel, { color: palette.muted }]}>{label}</ThemedText>
@@ -75,7 +76,7 @@ export function CoachColumn({ coach, bestValues, onRemove, onBook }: CoachColumn
   };
 
   const handleViewProfile = () => {
-    router.push(`/book/${coach.coachId}/session-type`);
+    router.push(Routes.bookSessionType(coach.coachId));
   };
 
   return (
@@ -212,7 +213,7 @@ export function CoachColumn({ coach, bestValues, onRemove, onBook }: CoachColumn
           },
         ]}
       >
-        <Ionicons name="calendar" size={18} color="#fff" />
+        <Ionicons name="calendar" size={18} color={palette.onPrimary} />
         <ThemedText style={styles.bookButtonText}>Book Session</ThemedText>
       </Pressable>
     </View>
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   removeButton: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -251,19 +252,14 @@ const styles = StyleSheet.create({
     borderRadius: Components.avatar.lg / 2,
     marginBottom: Spacing.xs,
   },
-  name: {
-    fontSize: 15,
-    textAlign: 'center',
-  },
+  name: { ...Typography.body, textAlign: 'center' },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
-  location: {
-    fontSize: 12,
-  },
+  location: { ...Typography.caption },
   values: {
     flex: 1,
     padding: Spacing.sm,
@@ -276,50 +272,31 @@ const styles = StyleSheet.create({
   cellHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
+    gap: Spacing.xxs,
+    marginBottom: Spacing.xxs,
   },
-  cellLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    flex: 1,
-  },
-  cellValue: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  cellSuffix: {
-    fontSize: 12,
-    fontWeight: '400',
-  },
+  cellLabel: { ...Typography.caption, flex: 1 },
+  cellValue: { ...Typography.bodySemiBold },
+  cellSuffix: { ...Typography.caption },
   bestBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
-  bestText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#fff',
-    textTransform: 'uppercase',
-  },
+  bestText: { ...Typography.micro, color: Colors.light.onPrimary,
+    textTransform: 'uppercase' },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   tag: {
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  languagesText: {
-    fontSize: 13,
-  },
+  tagText: { ...Typography.caption },
+  languagesText: { ...Typography.small },
   bookButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -329,9 +306,5 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.button,
   },
-  bookButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  bookButtonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onPrimary },
 });

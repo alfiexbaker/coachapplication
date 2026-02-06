@@ -1,7 +1,7 @@
 import { PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface ChipProps extends PressableProps {
@@ -25,7 +25,7 @@ export function Chip({ active, selected, dense, label, children, style, ...props
         styles.base,
         dense ? styles.dense : undefined,
         {
-          backgroundColor: isActive ? `${baseColor.tint}15` : baseColor.surface,
+          backgroundColor: isActive ? withAlpha(baseColor.tint, 0.09) : baseColor.surface,
           borderColor: isActive ? baseColor.tint : baseColor.border,
           opacity: pressed ? 0.8 : 1,
         },
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   dense: {
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     paddingHorizontal: Spacing.sm,
     marginRight: 0,
     marginBottom: 0,

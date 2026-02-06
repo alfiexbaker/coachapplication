@@ -10,7 +10,7 @@ import { SyncSettingsCard } from '@/components/calendar/SyncSettingsCard';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { calendarService } from '@/services/calendar-service';
@@ -267,12 +267,12 @@ export default function CalendarSyncScreen() {
             >
               {isExporting ? (
                 <View style={styles.exportButtonContent}>
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={Colors.light.onPrimary} />
                   <ThemedText style={styles.exportButtonText}>Exporting...</ThemedText>
                 </View>
               ) : (
                 <View style={styles.exportButtonContent}>
-                  <Ionicons name="download-outline" size={20} color="#FFFFFF" />
+                  <Ionicons name="download-outline" size={20} color={Colors.light.onPrimary} />
                   <ThemedText style={styles.exportButtonText}>Export All Sessions</ThemedText>
                 </View>
               )}
@@ -314,8 +314,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   loadingContainer: {
     flex: 1,
@@ -324,7 +323,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   content: {
     paddingHorizontal: Spacing.lg,
@@ -336,8 +335,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   exportDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   exportButton: {
     marginTop: Spacing.xs,
@@ -348,24 +346,22 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   exportButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 16,
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
   lastSyncContainer: {
     alignItems: 'center',
     paddingVertical: Spacing.sm,
   },
   lastSyncText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   infoContainer: {
     paddingHorizontal: Spacing.sm,
     marginTop: Spacing.sm,
   },
   infoText: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
     textAlign: 'center',
   },
 });

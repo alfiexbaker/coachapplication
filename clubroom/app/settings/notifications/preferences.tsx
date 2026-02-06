@@ -25,7 +25,7 @@ import {
   MutedCoachesList,
 } from '@/components/notification';
 import { notificationService } from '@/services/notification-service';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -289,8 +289,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   loadingContainer: {
     flex: 1,
@@ -299,7 +298,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   content: {
     paddingHorizontal: Spacing.lg,
@@ -309,16 +308,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginLeft: Spacing.sm,
     marginBottom: Spacing.sm,
   },
   sectionDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
     marginLeft: Spacing.sm,
     marginBottom: Spacing.sm,
   },
@@ -327,8 +324,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   infoText: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
     textAlign: 'center',
   },
 });

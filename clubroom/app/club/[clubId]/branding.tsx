@@ -127,9 +127,9 @@ export default function BrandingScreen() {
           }}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
           ) : (
-            <ThemedText style={{ color: '#FFFFFF', ...Typography.bodySemiBold }}>
+            <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.bodySemiBold }}>
               Save Changes
             </ThemedText>
           )}

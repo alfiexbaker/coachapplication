@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SessionFeedback } from '@/services/progress-service';
 
@@ -121,7 +121,7 @@ export function SessionFeedbackCard({
           )}
         </View>
         <View style={styles.headerRight}>
-          <View style={[styles.performanceBadge, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.performanceBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[styles.performanceText, { color: palette.tint }]}>
               {getPerformanceLabel(feedback.overallPerformance)}
             </ThemedText>
@@ -190,7 +190,7 @@ export function SessionFeedbackCard({
                       name={sr.rating > sr.previousRating ? 'arrow-up' : 'arrow-down'}
                       size={10}
                       color={sr.rating > sr.previousRating ? palette.success : palette.error}
-                      style={{ marginLeft: 2 }}
+                      style={{ marginLeft: Spacing.micro }}
                     />
                   )}
                 </View>
@@ -217,7 +217,7 @@ export function SessionFeedbackCard({
 
       {/* Homework */}
       {feedback.homework && (
-        <View style={[styles.section, styles.homeworkSection, { backgroundColor: `${palette.tint}08` }]}>
+        <View style={[styles.section, styles.homeworkSection, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <View style={styles.sectionHeader}>
             <Ionicons name="clipboard-outline" size={14} color={palette.tint} />
             <ThemedText style={[styles.sectionLabel, { color: palette.tint }]}>
@@ -242,7 +242,7 @@ export function SessionFeedbackCard({
 
       {/* Badge awarded */}
       {feedback.badgeAwarded && (
-        <View style={[styles.badgeRow, { backgroundColor: `${palette.success}15` }]}>
+        <View style={[styles.badgeRow, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="ribbon" size={16} color={palette.success} />
           <ThemedText style={[styles.badgeText, { color: palette.success }]}>
             Badge awarded: {feedback.badgeAwarded}
@@ -318,71 +318,52 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   headerLeft: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   headerRight: {},
-  date: {
-    fontSize: 15,
-  },
+  date: { ...Typography.body },
   coachRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  coachName: {
-    fontSize: 12,
-  },
+  coachName: { ...Typography.caption },
   performanceBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  performanceText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  performanceText: { ...Typography.caption },
   ratingsRow: {
     flexDirection: 'row',
     gap: Spacing.lg,
   },
   ratingItem: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  ratingLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
+  ratingLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.3 },
   starsRow: {
     flexDirection: 'row',
-    gap: 2,
+    gap: Spacing.micro,
   },
   section: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  sectionLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
+  sectionLabel: { ...Typography.caption, textTransform: 'uppercase',
     letterSpacing: 0.3,
-    fontWeight: '600',
-  },
-  sectionContent: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  summaryText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+    fontWeight: '600' },
+  sectionContent: { ...Typography.bodySmall, lineHeight: 20 },
+  summaryText: { ...Typography.bodySmall, lineHeight: 20 },
   skillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   skillRatingsGrid: {
     flexDirection: 'row',
@@ -392,24 +373,16 @@ const styles = StyleSheet.create({
   skillRatingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     minWidth: '45%',
   },
-  skillRatingName: {
-    fontSize: 13,
-    flex: 1,
-  },
+  skillRatingName: { ...Typography.small, flex: 1 },
   skillRatingValue: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  skillRatingNumber: {
-    fontSize: 15,
-    fontVariant: ['tabular-nums'],
-  },
-  skillRatingMax: {
-    fontSize: 11,
-  },
+  skillRatingNumber: { ...Typography.body, fontVariant: ['tabular-nums'] },
+  skillRatingMax: { ...Typography.caption },
   homeworkSection: {
     padding: Spacing.sm,
     borderRadius: Radii.md,
@@ -418,12 +391,9 @@ const styles = StyleSheet.create({
   mediaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  mediaText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  mediaText: { ...Typography.smallSemiBold },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -431,10 +401,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.md,
   },
-  badgeText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  badgeText: { ...Typography.smallSemiBold },
   chevron: {
     position: 'absolute',
     top: Spacing.md,
@@ -443,7 +410,7 @@ const styles = StyleSheet.create({
   // Compact styles
   compactCard: {
     padding: Spacing.sm,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   compactHeader: {
     flexDirection: 'row',
@@ -451,19 +418,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   compactLeft: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   compactRight: {},
-  compactDate: {
-    fontSize: 14,
-  },
-  compactCoach: {
-    fontSize: 11,
-  },
-  compactSummary: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  compactDate: { ...Typography.bodySmall },
+  compactCoach: { ...Typography.caption },
+  compactSummary: { ...Typography.small, lineHeight: 18 },
   // List styles
   list: {
     gap: Spacing.sm,
@@ -473,8 +433,5 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  emptyText: { ...Typography.bodySmall, textAlign: 'center' },
 });

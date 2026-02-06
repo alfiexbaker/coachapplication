@@ -70,7 +70,7 @@ export type GuardianRole = 'PRIMARY' | 'GUARDIAN' | 'VIEWER';
 export interface FamilyGuardian {
   id: string;
   userId: string;
-  userName: string;
+  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   email: string;
   avatar?: string;
   /** Role in the family */
@@ -120,7 +120,7 @@ export interface GuardianInvite {
   /** ID of the user who sent the invite */
   invitedBy: string;
   /** Name of inviter for display */
-  inviterName: string;
+  inviterName: string; // TODO(T3.4): Remove when connecting to real API — resolve from invitedBy instead
   /** When the invite was created */
   createdAt: string;
   /** When the invite expires */
@@ -158,7 +158,7 @@ export interface FamilySpending {
   /** ID of the child this spending relates to */
   childId: string;
   /** Name of the child for display purposes */
-  childName: string;
+  childName: string; // TODO(T3.4): Remove when connecting to real API — resolve from childId instead
   /** Color code for the child (for charts) */
   colorCode: string;
   /** Total amount spent on this child (in currency units) */
@@ -198,7 +198,7 @@ export interface FamilyCalendarEvent {
   /** ID of the child this event is for */
   childId: string;
   /** Name of the child */
-  childName: string;
+  childName: string; // TODO(T3.4): Remove when connecting to real API — resolve from childId instead
   /** Color code for the event */
   colorCode: string;
   /** Event title */
@@ -212,7 +212,7 @@ export interface FamilyCalendarEvent {
   /** Location of the event */
   location?: string;
   /** Coach name */
-  coachName?: string;
+  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
   /** Coach ID */
   coachId?: string;
   /** Session type */
@@ -262,7 +262,7 @@ export interface ChildProgressSummary {
   /** Child ID */
   childId: string;
   /** Child name */
-  childName: string;
+  childName: string; // TODO(T3.4): Remove when connecting to real API — resolve from childId instead
   /** Number of sessions completed */
   sessionsCompleted: number;
   /** Average session rating (1-5) */
@@ -333,9 +333,9 @@ export interface EmergencyInfo {
  */
 export interface AthleteConsent {
   athleteId: string;
-  athleteName: string;
-  athletePhotoUrl?: string;
-  parentName: string;
+  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
+  athletePhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
+  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from a parentId field instead
   consents: Consent[];
   lastUpdated: string;
 }
@@ -415,7 +415,7 @@ export interface RecoveryNote {
   /** ID of the user who created the note */
   createdBy: string;
   /** Name of the user who created the note */
-  createdByName?: string;
+  createdByName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from createdBy instead
   /** Optional recovery percentage at time of note */
   recoveryPercent?: number;
 }
@@ -429,7 +429,7 @@ export interface Injury {
   /** ID of the user (athlete) who has the injury */
   userId: string;
   /** Name of the athlete (for display) */
-  userName?: string;
+  userName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** The injured body part */
   bodyPart: BodyPart;
   /** Description of the injury */

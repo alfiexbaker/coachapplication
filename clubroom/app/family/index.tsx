@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -13,7 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { FamilyMemberCard } from '@/components/family/FamilyMemberCard';
 import { UpcomingSessionsList } from '@/components/family/UpcomingSessionsList';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -66,25 +67,19 @@ export default function FamilyDashboardScreen() {
   );
 
   const handleMemberPress = (member: FamilyMember) => {
-    router.push({
-      pathname: '/development/child-progress/[childId]',
-      params: { childId: member.id },
-    });
+    router.push(Routes.developmentChildProgress(member.id));
   };
 
   const handleSessionPress = (session: FamilyCalendarEvent) => {
-    router.push({
-      pathname: '/(tabs)/bookings/[id]',
-      params: { id: session.id },
-    });
+    router.push(Routes.booking(session.id));
   };
 
   const navigateToCalendar = () => {
-    router.push('/family/calendar');
+    router.push(Routes.FAMILY_CALENDAR);
   };
 
   const navigateToSpending = () => {
-    router.push('/family/spending');
+    router.push(Routes.FAMILY_SPENDING);
   };
 
   if (loading) {
@@ -145,10 +140,10 @@ export default function FamilyDashboardScreen() {
         <View style={styles.quickActions}>
           <Clickable
             onPress={navigateToCalendar}
-            style={[styles.quickActionCard, { backgroundColor: `${palette.tint}10` }]}
+            style={[styles.quickActionCard, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
           >
             <View style={[styles.quickActionIcon, { backgroundColor: palette.tint }]}>
-              <Ionicons name="calendar" size={24} color="#FFFFFF" />
+              <Ionicons name="calendar" size={24} color={Colors.light.onPrimary} />
             </View>
             <View style={styles.quickActionText}>
               <ThemedText type="defaultSemiBold">Family Calendar</ThemedText>
@@ -161,10 +156,10 @@ export default function FamilyDashboardScreen() {
 
           <Clickable
             onPress={navigateToSpending}
-            style={[styles.quickActionCard, { backgroundColor: `${palette.success}10` }]}
+            style={[styles.quickActionCard, { backgroundColor: withAlpha(palette.success, 0.06) }]}
           >
             <View style={[styles.quickActionIcon, { backgroundColor: palette.success }]}>
-              <Ionicons name="wallet" size={24} color="#FFFFFF" />
+              <Ionicons name="wallet" size={24} color={Colors.light.onPrimary} />
             </View>
             <View style={styles.quickActionText}>
               <ThemedText type="defaultSemiBold">Spending Overview</ThemedText>
@@ -241,7 +236,7 @@ export default function FamilyDashboardScreen() {
                 <View
                   style={[
                     styles.nextSessionBadge,
-                    { backgroundColor: `${overview.nextSession.colorCode}15` },
+                    { backgroundColor: withAlpha(overview.nextSession.colorCode, 0.09) },
                   ]}
                 >
                   <Ionicons
@@ -297,10 +292,10 @@ export default function FamilyDashboardScreen() {
       {/* Book Session CTA */}
       <Animated.View entering={FadeInDown.delay(350).springify()}>
         <Clickable
-          onPress={() => router.push('/(tabs)/more')}
+          onPress={() => router.push(Routes.MORE)}
           style={[styles.ctaButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add-circle" size={20} color="#FFFFFF" />
+          <Ionicons name="add-circle" size={20} color={Colors.light.onPrimary} />
           <ThemedText style={styles.ctaButtonText}>Book New Session</ThemedText>
         </Clickable>
       </Animated.View>
@@ -316,7 +311,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   statsRow: {
     flexDirection: 'row',
@@ -326,15 +321,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     padding: Spacing.md,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
+    ...Typography.display,
   },
   statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   quickActions: {
     gap: Spacing.sm,
@@ -355,10 +348,10 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   quickActionSubtext: {
-    fontSize: 13,
+    ...Typography.small,
   },
   section: {
     gap: Spacing.sm,
@@ -369,10 +362,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   sectionCount: {
-    fontSize: 13,
+    ...Typography.small,
   },
   membersList: {
     gap: Spacing.sm,
@@ -387,17 +380,16 @@ const styles = StyleSheet.create({
   nextSessionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   nextSessionBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   nextSessionTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   nextSessionMeta: {
     flexDirection: 'row',
@@ -407,10 +399,10 @@ const styles = StyleSheet.create({
   nextSessionMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   nextSessionMetaText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   ctaButton: {
     flexDirection: 'row',
@@ -421,8 +413,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   ctaButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

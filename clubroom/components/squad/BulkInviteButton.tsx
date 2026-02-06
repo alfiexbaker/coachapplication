@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface BulkInviteButtonProps {
@@ -62,7 +62,7 @@ export function BulkInviteButton({
     switch (variant) {
       case 'secondary':
         return {
-          backgroundColor: `${palette.tint}15`,
+          backgroundColor: withAlpha(palette.tint, 0.09),
           borderColor: palette.tint,
           textColor: palette.tint,
         };
@@ -76,7 +76,7 @@ export function BulkInviteButton({
         return {
           backgroundColor: palette.tint,
           borderColor: palette.tint,
-          textColor: '#ffffff',
+          textColor: Colors.light.onPrimary,
         };
     }
   };
@@ -86,23 +86,23 @@ export function BulkInviteButton({
     switch (size) {
       case 'small':
         return {
+          ...Typography.small,
           paddingVertical: Spacing.xs,
           paddingHorizontal: Spacing.md,
-          fontSize: 13,
           iconSize: 16,
         };
       case 'medium':
         return {
+          ...Typography.bodySmall,
           paddingVertical: Spacing.sm,
           paddingHorizontal: Spacing.md,
-          fontSize: 14,
           iconSize: 18,
         };
       default:
         return {
+          ...Typography.body,
           paddingVertical: Spacing.md,
           paddingHorizontal: Spacing.lg,
-          fontSize: 15,
           iconSize: 20,
         };
     }
@@ -203,10 +203,10 @@ export function CompactBulkInviteButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator size="small" color="#fff" />
+        <ActivityIndicator size="small" color={palette.onPrimary} />
       ) : (
         <>
-          <Ionicons name="paper-plane" size={16} color="#fff" />
+          <Ionicons name="paper-plane" size={16} color={palette.onPrimary} />
           <ThemedText style={styles.compactButtonText}>
             Invite {selectedCount}
           </ThemedText>
@@ -243,9 +243,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
   },
-  summaryText: {
-    fontSize: 12,
-  },
+  summaryText: { ...Typography.caption },
   compactButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,9 +252,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
   },
-  compactButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
-  },
+  compactButtonText: { ...Typography.smallSemiBold, color: Colors.light.onPrimary },
 });

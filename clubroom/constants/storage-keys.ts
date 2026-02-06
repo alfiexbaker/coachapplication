@@ -382,6 +382,13 @@ export const STORAGE_KEYS = {
 
   /** Trial-to-regular booking conversions */
   TRIAL_CONVERSIONS: 'clubroom.trial_conversions',
+
+  // ============================================================================
+  // ONBOARDING & TUTORIAL DOMAIN
+  // ============================================================================
+
+  /** Whether the availability tutorial has been completed by the coach */
+  AVAILABILITY_TUTORIAL_COMPLETED: 'clubroom.availability_tutorial_completed',
 } as const;
 
 /**

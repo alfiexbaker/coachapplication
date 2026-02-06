@@ -31,7 +31,7 @@ import Slider from '@react-native-community/slider';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
@@ -126,32 +126,34 @@ export default function SessionCompleteScreen() {
       if (booking && (booking.status === 'AWAITING_COMPLETION' || booking.status === 'CONFIRMED')) {
         setSourceType('booking');
         // Create a minimal session offering from the booking
-        const syntheticSession: SessionOffering = {
+        const syntheticSession = {
           id: booking.id,
           coachId: booking.coachId,
+          coachName: booking.coachName || '',
           title: booking.service || 'Session',
           description: booking.notes || '',
-          type: (booking.service as any) || '1:1',
+          sessionType: '1on1' as const,
           scheduledAt: booking.scheduledAt,
           duration: booking.duration || 60,
           location: booking.location,
-          maxCapacity: 1,
-          price: 0,
-          status: 'confirmed',
+          maxParticipants: 1,
+          isRecurring: false,
+          recurrenceType: 'none' as const,
+          status: 'active' as const,
           registrations: [{
             id: `reg-${booking.id}`,
-            sessionId: booking.id,
             userId: booking.athleteId || booking.athleteIds?.[0] || '',
             userName: booking.athleteName || 'Athlete',
-            status: 'confirmed',
-            registeredAt: booking.scheduledAt,
+            userPhotoUrl: undefined,
+            bookedAt: booking.scheduledAt,
+            status: 'confirmed' as const,
           }],
           createdAt: booking.scheduledAt,
-        } as any;
+        } satisfies SessionOffering;
         setSession(syntheticSession);
 
         const initialAttendance: Record<string, AthleteAttendance> = {};
-        syntheticSession.registrations.forEach((reg: any) => {
+        syntheticSession.registrations.forEach((reg) => {
           initialAttendance[reg.id] = {
             registration: reg,
             status: 'present',
@@ -255,7 +257,10 @@ export default function SessionCompleteScreen() {
       // Update session/booking status to completed
       if (sourceType === 'booking') {
         try {
-          await bookingService.updateBooking(session.id, { status: 'COMPLETED' } as any);
+          const updateResult = await bookingService.updateBooking(session.id, { status: 'COMPLETED' as const });
+          if (!updateResult.success) {
+            logger.error('Failed to update booking status', updateResult.error.message);
+          }
         } catch (err) {
           logger.error('Failed to update booking status', err);
         }
@@ -397,7 +402,7 @@ export default function SessionCompleteScreen() {
             return (
               <View key={registration.id} style={[styles.athleteRow, { borderBottomColor: palette.border }]}>
                 <View style={styles.athleteInfo}>
-                  <View style={[styles.avatar, { backgroundColor: `${palette.tint}20` }]}>
+                  <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                     <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                       {registration.userName.charAt(0)}
                     </ThemedText>
@@ -424,12 +429,12 @@ export default function SessionCompleteScreen() {
                         key={s}
                         style={[
                           styles.attendanceBtn,
-                          isSelected ? { backgroundColor: `${btnIcon.color}15` } : undefined,
+                          isSelected ? { backgroundColor: withAlpha(btnIcon.color, 0.09) } : undefined,
                         ]}
                         onPress={() => updateAttendance(registration.id, { status: s })}
                       >
                         <Ionicons
-                          name={btnIcon.name as any}
+                          name={btnIcon.name as keyof typeof Ionicons.glyphMap}
                           size={24}
                           color={isSelected ? btnIcon.color : palette.muted}
                         />
@@ -488,7 +493,7 @@ export default function SessionCompleteScreen() {
                   )
                 }
               >
-                <ThemedText style={[styles.skillChipText, { color: isSelected ? '#fff' : palette.text }]}>
+                <ThemedText style={[styles.skillChipText, { color: isSelected ? Colors.light.onPrimary : palette.text }]}>
                   {skill}
                 </ThemedText>
               </Pressable>
@@ -560,7 +565,7 @@ export default function SessionCompleteScreen() {
             .map(({ registration, badges }) => (
               <View key={registration.id} style={[styles.badgeAthleteRow, { borderBottomColor: palette.border }]}>
                 <View style={styles.athleteInfo}>
-                  <View style={[styles.avatar, { backgroundColor: `${palette.tint}20` }]}>
+                  <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                     <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                       {registration.userName.charAt(0)}
                     </ThemedText>
@@ -569,7 +574,7 @@ export default function SessionCompleteScreen() {
                     {registration.userName}
                   </ThemedText>
                   {badges.length > 0 && (
-                    <View style={[styles.badgeCountPill, { backgroundColor: `${palette.warning}15` }]}>
+                    <View style={[styles.badgeCountPill, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                       <Ionicons name="ribbon" size={12} color={palette.warning} />
                       <ThemedText style={[styles.badgeCount, { color: palette.warning }]}>
                         {badges.length}
@@ -587,7 +592,7 @@ export default function SessionCompleteScreen() {
                         style={[
                           styles.badgeOption,
                           {
-                            backgroundColor: isAwarded ? `${palette.warning}15` : 'transparent',
+                            backgroundColor: isAwarded ? withAlpha(palette.warning, 0.09) : 'transparent',
                             borderColor: isAwarded ? palette.warning : palette.border,
                           },
                         ]}
@@ -694,7 +699,7 @@ export default function SessionCompleteScreen() {
           <Switch
             value={shareNotesWithParents}
             onValueChange={setShareNotesWithParents}
-            trackColor={{ false: palette.border, true: `${palette.success}60` }}
+            trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.38) }}
             thumbColor={shareNotesWithParents ? palette.success : palette.muted}
           />
         </View>
@@ -709,7 +714,7 @@ export default function SessionCompleteScreen() {
           <Switch
             value={shareAttendance}
             onValueChange={setShareAttendance}
-            trackColor={{ false: palette.border, true: `${palette.success}60` }}
+            trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.38) }}
             thumbColor={shareAttendance ? palette.success : palette.muted}
           />
         </View>
@@ -770,7 +775,7 @@ export default function SessionCompleteScreen() {
               <ThemedText style={styles.navButtonPrimaryText}>
                 {currentStep === 'badges' ? 'Review' : 'Next'}
               </ThemedText>
-              <Ionicons name="chevron-forward" size={18} color="#fff" />
+              <Ionicons name="chevron-forward" size={18} color={Colors.light.onPrimary} />
             </Pressable>
           ) : (
             <Pressable
@@ -785,7 +790,7 @@ export default function SessionCompleteScreen() {
                 <ThemedText style={styles.submitText}>Saving...</ThemedText>
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle" size={22} color="#fff" />
+                  <Ionicons name="checkmark-circle" size={22} color={Colors.light.onPrimary} />
                   <ThemedText style={styles.submitText}>Complete Session</ThemedText>
                 </>
               )}
@@ -831,16 +836,15 @@ const styles = StyleSheet.create({
   stepDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   stepLine: {
     flex: 1,
     height: 2,
-    marginHorizontal: 4,
+    marginHorizontal: Spacing.xxs,
   },
   stepLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   section: {
     marginBottom: Spacing.md,
@@ -871,13 +875,12 @@ const styles = StyleSheet.create({
   avatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 14,
-    fontWeight: '700',
+    ...Typography.bodySmallSemiBold,
   },
   athleteName: {
     flex: 1,
@@ -885,12 +888,11 @@ const styles = StyleSheet.create({
   badgePreview: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
   badgeCount: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   attendanceActions: {
     flexDirection: 'row',
@@ -902,8 +904,7 @@ const styles = StyleSheet.create({
   },
   // Badge step styles
   badgeStepHint: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   badgeAthleteRow: {
     paddingVertical: Spacing.sm,
@@ -913,9 +914,9 @@ const styles = StyleSheet.create({
   badgeCountPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
   badgeGrid: {
@@ -925,19 +926,18 @@ const styles = StyleSheet.create({
   },
   badgeOption: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
   badgeOptionText: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   textArea: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
     minHeight: 100,
     textAlignVertical: 'top',
   },
@@ -945,7 +945,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   skillChips: {
     flexDirection: 'row',
@@ -954,13 +954,12 @@ const styles = StyleSheet.create({
   },
   skillChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1.5,
   },
   skillChipText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   effortRow: {
     flexDirection: 'row',
@@ -968,8 +967,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   effortLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   slider: {
     flex: 1,
@@ -977,19 +975,17 @@ const styles = StyleSheet.create({
   },
   effortValue: {
     textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.subheading,
   },
   // Summary step styles
   summaryHint: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
     marginBottom: Spacing.xs,
   },
   summaryRow: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   summaryLabel: {
     flexDirection: 'row',
@@ -1007,12 +1003,11 @@ const styles = StyleSheet.create({
   },
   toggleInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
     marginRight: Spacing.sm,
   },
   toggleHint: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...Typography.caption,
   },
   // Navigation buttons
   navButtonRow: {
@@ -1030,9 +1025,8 @@ const styles = StyleSheet.create({
     borderRadius: Components.button.borderRadius,
   },
   navButtonPrimaryText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
   navButtonSecondary: {
     flexDirection: 'row',
@@ -1045,8 +1039,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   navButtonSecondaryText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   submitButton: {
     flex: 1,
@@ -1058,8 +1051,7 @@ const styles = StyleSheet.create({
     borderRadius: Components.button.borderRadius,
   },
   submitText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.heading,
   },
 });

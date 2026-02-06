@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { Clickable } from '@/components/primitives/clickable';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -229,7 +230,7 @@ export function SearchSuggestions({
 
       {/* Divider */}
       {recents.length > 0 && popular.length > 0 && (
-        <View style={[styles.divider, { backgroundColor: palette.border }]} />
+        <Divider style={{ marginHorizontal: Spacing.sm }} />
       )}
 
       {/* Popular near you */}
@@ -249,7 +250,7 @@ export function SearchSuggestions({
 
       {/* Divider */}
       {popular.length > 0 && areas.length > 0 && (
-        <View style={[styles.divider, { backgroundColor: palette.border }]} />
+        <Divider style={{ marginHorizontal: Spacing.sm }} />
       )}
 
       {/* Browse by area */}
@@ -281,9 +282,5 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingVertical: Spacing.xs,
-  },
-  divider: {
-    height: 1,
-    marginHorizontal: Spacing.sm,
   },
 });

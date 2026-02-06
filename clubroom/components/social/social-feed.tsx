@@ -1,10 +1,11 @@
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
@@ -18,7 +19,7 @@ export function SocialFeed() {
   return (
     <View style={styles.container}>
       <SurfaceCard style={styles.card}>
-        <View style={[styles.iconContainer, { backgroundColor: `${palette.tint}10` }]}>
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="newspaper" size={32} color={palette.tint} />
         </View>
         <ThemedText type="subtitle" style={styles.title}>
@@ -29,10 +30,10 @@ export function SocialFeed() {
         </ThemedText>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: palette.tint }]}
-          onPress={() => router.push('/(tabs)/feed')}
+          onPress={() => router.push(Routes.FEED)}
         >
           <ThemedText style={styles.buttonText}>Go to Feed</ThemedText>
-          <Ionicons name="arrow-forward" size={18} color="#fff" />
+          <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
         </TouchableOpacity>
       </SurfaceCard>
     </View>
@@ -51,7 +52,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -73,7 +74,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   buttonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

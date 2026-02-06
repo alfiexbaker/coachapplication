@@ -1,13 +1,14 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { SessionTypeSelector } from '@/components/ui/booking/session-type-selector';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 
@@ -39,7 +40,7 @@ export default function SessionTypeScreen() {
                   style={[
                     styles.chip,
                     {
-                      backgroundColor: active ? `${palette.tint}15` : palette.surface,
+                      backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
                       borderColor: active ? palette.tint : palette.border,
                     },
                   ]}
@@ -66,11 +67,11 @@ export default function SessionTypeScreen() {
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <Clickable
-          onPress={() => router.push(`/book/${coachId}/schedule`)}
+          onPress={() => router.push(Routes.bookSchedule(coachId))}
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="arrow-forward" size={18} color="#fff" />
-          <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Continue</ThemedText>
+          <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
+          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
         </Clickable>
       </View>
     </SafeAreaView>

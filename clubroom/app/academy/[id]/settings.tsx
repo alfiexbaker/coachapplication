@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -9,7 +10,7 @@ import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
@@ -150,10 +151,10 @@ export default function AcademySettingsScreen() {
           </ThemedText>
 
           <Clickable
-            onPress={() => router.push(`/academy/${id}/branding`)}
+            onPress={() => router.push(Routes.academyBranding(id))}
             style={styles.linkRow}
           >
-            <View style={[styles.linkIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.linkIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="color-palette" size={20} color={palette.tint} />
             </View>
             <View style={styles.linkContent}>
@@ -166,10 +167,10 @@ export default function AcademySettingsScreen() {
           </Clickable>
 
           <Clickable
-            onPress={() => router.push(`/academy/${id}/staff`)}
+            onPress={() => router.push(Routes.academyStaff(id))}
             style={styles.linkRow}
           >
-            <View style={[styles.linkIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.linkIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="people" size={20} color={palette.success} />
             </View>
             <View style={styles.linkContent}>
@@ -279,20 +280,19 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   input: {
     height: 48,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   textArea: {
     minHeight: 100,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     textAlignVertical: 'top',
   },
   linkRow: {
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   linkIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -312,8 +312,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   linkDescription: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -326,11 +326,11 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   toggleDescription: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   dangerText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   dangerButton: {
     paddingVertical: Spacing.md,

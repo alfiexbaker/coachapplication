@@ -5,7 +5,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { ChatMessage } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -44,8 +44,8 @@ function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSender
     : palette.surface;
   const textColor = isOwnMessage
     ? scheme === 'dark'
-      ? '#FFFFFF'
-      : '#FFFFFF'
+      ? palette.onPrimary
+      : palette.onPrimary
     : palette.text;
 
   return (
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   senderLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     fontWeight: '700',
     marginLeft: Spacing.md,
   },
@@ -108,13 +108,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   body: {
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '500',
+    ...Typography.subheading,
   },
   timestamp: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   footerRow: {
     flexDirection: 'row',
@@ -124,11 +121,11 @@ const styles = StyleSheet.create({
   },
   statusPill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusText: {
-    fontSize: 11,
+    ...Typography.caption,
     fontWeight: '700',
   },
   attachment: {
@@ -143,8 +140,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   attachmentSubtitle: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
+    ...Typography.caption,
+    color: Colors.light.muted,
+    marginTop: Spacing.micro,
   },
 });

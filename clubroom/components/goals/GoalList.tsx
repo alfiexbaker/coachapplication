@@ -14,7 +14,7 @@ import { GoalCard } from './GoalCard';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { Goal, GoalStatus, GoalCategory } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
@@ -129,7 +129,7 @@ export function GoalList({
 
     return (
       <Animated.View entering={FadeIn.delay(200)} style={styles.emptyState}>
-        <View style={[styles.emptyIcon, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
           <Ionicons name="flag-outline" size={48} color={palette.tint} />
         </View>
         <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -219,12 +219,12 @@ export function GoalListSkeleton({
           ]}
         >
           <Skeleton width="30%" height={20} />
-          <Skeleton width="80%" height={16} style={{ marginTop: 12 }} />
+          <Skeleton width="80%" height={16} style={{ marginTop: Spacing.xs + Spacing.xxs }} />
           <Skeleton width="60%" height={14} style={{ marginTop: 8 }} />
           {variant === 'featured' && (
             <>
               <Skeleton width="100%" height={12} style={{ marginTop: 16 }} />
-              <Skeleton width="90%" height={12} style={{ marginTop: 6 }} />
+              <Skeleton width="90%" height={12} style={{ marginTop: Spacing.xxs }} />
             </>
           )}
         </View>
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   countText: {

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -9,20 +10,22 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { DateTimeField } from '@/components/ui/primitives';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { academyService } from '@/services/academy-service';
 import { rosterService } from '@/services/roster-service';
-import type { TimeSlot, Academy, SessionInvite, RosterEntry } from '@/constants/types';
+import { groupSessionService } from '@/services/group-session';
+import type { TimeSlot, Academy, SessionInvite, SessionInviteType, RosterEntry, GroupSession } from '@/constants/types';
 
 const logger = createLogger('CreateSessionInviteScreen');
 
 const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Trial'];
 const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
 
-type Step = 'athlete' | 'club' | 'type' | 'slots' | 'details' | 'confirm';
+type Step = 'athlete' | 'club' | 'mode' | 'type' | 'slots' | 'details' | 'confirm' | 'existing';
 
 interface AthleteOption {
   id: string;
@@ -43,11 +46,15 @@ export default function CreateSessionInviteScreen() {
   const [myAcademies, setMyAcademies] = useState<Academy[]>([]);
   const [sessionType, setSessionType] = useState('');
   const [focus, setFocus] = useState('');
+  const [sessionInviteType, setSessionInviteType] = useState<SessionInviteType>('OPEN');
   const [proposedSlots, setProposedSlots] = useState<TimeSlot[]>([]);
   const [notes, setNotes] = useState('');
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);
   const [sentInvites, setSentInvites] = useState<SessionInvite[]>([]);
+  const [inviteMode, setInviteMode] = useState<'new' | 'existing'>('new');
+  const [existingSessions, setExistingSessions] = useState<GroupSession[]>([]);
+  const [selectedExistingSession, setSelectedExistingSession] = useState<GroupSession | null>(null);
 
   // Time slot form
   const [slotDate, setSlotDate] = useState('');
@@ -95,14 +102,31 @@ export default function CreateSessionInviteScreen() {
     }
   }, [currentUser?.id]);
 
-  // Load coach's academies, athletes, and sent invites
+  const loadExistingSessions = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      const sessions = await groupSessionService.getCoachSessions(currentUser.id);
+      const now = new Date();
+      const upcoming = sessions.filter(
+        (s) =>
+          s.status === 'PUBLISHED' &&
+          s.schedule.some((sched) => new Date(sched.date) >= now)
+      );
+      setExistingSessions(upcoming);
+    } catch (error) {
+      logger.error('Failed to load existing sessions', error);
+    }
+  }, [currentUser?.id]);
+
+  // Load coach's academies, athletes, sent invites, and existing sessions
   useEffect(() => {
     if (currentUser?.id) {
       loadAcademies();
       loadAthletes();
       loadSentInvites();
+      loadExistingSessions();
     }
-  }, [currentUser?.id, loadAcademies, loadAthletes, loadSentInvites]);
+  }, [currentUser?.id, loadAcademies, loadAthletes, loadSentInvites, loadExistingSessions]);
 
   const toggleAthlete = (athlete: AthleteOption) => {
     const isSelected = selectedAthletes.some((a) => a.id === athlete.id);
@@ -141,24 +165,43 @@ export default function CreateSessionInviteScreen() {
         return selectedAthletes.length > 0;
       case 'club':
         return true; // Club is optional
+      case 'mode':
+        return true; // Always can proceed - mode is pre-selected
       case 'type':
         return sessionType && focus;
       case 'slots':
         return proposedSlots.length > 0;
       case 'details':
         return true;
+      case 'existing':
+        return selectedExistingSession !== null;
       default:
         return true;
     }
   };
 
   const nextStep = () => {
-    const steps: Step[] = ['athlete', 'club', 'type', 'slots', 'details', 'confirm'];
+    // Handle mode branching
+    if (step === 'mode') {
+      if (inviteMode === 'existing') {
+        setStep('existing');
+      } else {
+        setStep('type');
+      }
+      return;
+    }
+    // Existing session selected -> skip to confirm
+    if (step === 'existing') {
+      setStep('confirm');
+      return;
+    }
+
+    const steps: Step[] = ['athlete', 'club', 'mode', 'type', 'slots', 'details', 'confirm'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       // Skip club step if no academies
       if (step === 'athlete' && myAcademies.length === 0) {
-        setStep('type');
+        setStep('mode');
       } else {
         setStep(steps[currentIndex + 1]);
       }
@@ -166,11 +209,22 @@ export default function CreateSessionInviteScreen() {
   };
 
   const prevStep = () => {
-    const steps: Step[] = ['athlete', 'club', 'type', 'slots', 'details', 'confirm'];
+    // Handle reverse from existing -> mode
+    if (step === 'existing') {
+      setStep('mode');
+      return;
+    }
+    // Handle reverse from confirm when we came from existing
+    if (step === 'confirm' && inviteMode === 'existing' && selectedExistingSession) {
+      setStep('existing');
+      return;
+    }
+
+    const steps: Step[] = ['athlete', 'club', 'mode', 'type', 'slots', 'details', 'confirm'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex > 0) {
       // Skip club step if no academies
-      if (step === 'type' && myAcademies.length === 0) {
+      if (step === 'mode' && myAcademies.length === 0) {
         setStep('athlete');
       } else {
         setStep(steps[currentIndex - 1]);
@@ -184,27 +238,58 @@ export default function CreateSessionInviteScreen() {
     if (!currentUser) return;
     setLoading(true);
     try {
-      // Group by parent
       const parentId = selectedAthletes[0].parentId;
       const parentName = selectedAthletes[0].parentName;
 
-      await sessionInviteService.createInvite(
-        selectedAthletes.map((a) => a.id),
-        {
-          coachId: currentUser.id,
-          coachName: currentUser.name || 'Coach',
-          clubName: selectedClub?.name, // Include club name
-          athleteNames: selectedAthletes.map((a) => a.name),
-          parentId,
-          parentName,
-          proposedSlots,
-          sessionType,
-          focus,
-          notes: notes || undefined,
-          priceUsd: price ? parseFloat(price) : undefined,
-          expiresInDays: 7,
-        }
-      );
+      if (inviteMode === 'existing' && selectedExistingSession) {
+        // Build invite from existing session details
+        const session = selectedExistingSession;
+        const slots: TimeSlot[] = session.schedule.map((sched) => ({
+          date: sched.date,
+          startTime: sched.startTime,
+          endTime: sched.endTime,
+          location: session.location,
+        }));
+
+        await sessionInviteService.createInvite(
+          selectedAthletes.map((a) => a.id),
+          {
+            coachId: currentUser.id,
+            coachName: currentUser.name || 'Coach',
+            clubName: selectedClub?.name || session.clubName,
+            inviteType: sessionInviteType,
+            athleteNames: selectedAthletes.map((a) => a.name),
+            parentId,
+            parentName,
+            proposedSlots: slots,
+            sessionType: session.sessionType,
+            focus: session.focus?.[0] || 'General',
+            notes: notes || `You're invited to join "${session.title}"`,
+            priceUsd: session.pricePerParticipant,
+            expiresInDays: 7,
+            existingSessionId: session.id,
+          }
+        );
+      } else {
+        await sessionInviteService.createInvite(
+          selectedAthletes.map((a) => a.id),
+          {
+            coachId: currentUser.id,
+            coachName: currentUser.name || 'Coach',
+            clubName: selectedClub?.name,
+            inviteType: sessionInviteType,
+            athleteNames: selectedAthletes.map((a) => a.name),
+            parentId,
+            parentName,
+            proposedSlots,
+            sessionType,
+            focus,
+            notes: notes || undefined,
+            priceUsd: price ? parseFloat(price) : undefined,
+            expiresInDays: 7,
+          }
+        );
+      }
 
       Alert.alert('Invite Sent', 'Your session invite has been sent to the parent.', [
         { text: 'OK', onPress: () => router.back() },
@@ -218,8 +303,10 @@ export default function CreateSessionInviteScreen() {
   };
 
   const renderStepIndicator = () => {
-    // Use simplified step display that doesn't include club step in indicator
-    const displaySteps: Step[] = ['athlete', 'type', 'slots', 'details', 'confirm'];
+    // Use simplified step display
+    const displaySteps: Step[] = inviteMode === 'existing'
+      ? ['athlete', 'mode', 'existing', 'confirm']
+      : ['athlete', 'mode', 'type', 'slots', 'details', 'confirm'];
     // Map club step to athlete for indicator purposes
     const currentStep = step === 'club' ? 'athlete' : step;
     const currentIndex = displaySteps.indexOf(currentStep);
@@ -236,7 +323,7 @@ export default function CreateSessionInviteScreen() {
                 },
               ]}
             >
-              {index < currentIndex && <Ionicons name="checkmark" size={12} color="#fff" />}
+              {index < currentIndex && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
             </View>
             {index < displaySteps.length - 1 && (
               <View
@@ -267,7 +354,7 @@ export default function CreateSessionInviteScreen() {
         style={[
           styles.clubItem,
           {
-            backgroundColor: selectedClub === null ? `${palette.tint}10` : palette.surface,
+            backgroundColor: selectedClub === null ? withAlpha(palette.tint, 0.06) : palette.surface,
             borderColor: selectedClub === null ? palette.tint : palette.border,
           },
         ]}
@@ -294,7 +381,7 @@ export default function CreateSessionInviteScreen() {
           style={[
             styles.clubItem,
             {
-              backgroundColor: selectedClub?.id === academy.id ? `${palette.tint}10` : palette.surface,
+              backgroundColor: selectedClub?.id === academy.id ? withAlpha(palette.tint, 0.06) : palette.surface,
               borderColor: selectedClub?.id === academy.id ? palette.tint : palette.border,
             },
           ]}
@@ -318,6 +405,146 @@ export default function CreateSessionInviteScreen() {
     </Animated.View>
   );
 
+  const renderModeStep = () => (
+    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
+      <ThemedText type="subtitle" style={styles.stepTitle}>
+        How would you like to invite?
+      </ThemedText>
+      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
+        Create a brand new session or invite to one you've already published
+      </ThemedText>
+
+      <Clickable
+        onPress={() => {
+          setInviteMode('new');
+          setSelectedExistingSession(null);
+        }}
+        style={[
+          styles.clubItem,
+          {
+            backgroundColor: inviteMode === 'new' ? withAlpha(palette.tint, 0.06) : palette.surface,
+            borderColor: inviteMode === 'new' ? palette.tint : palette.border,
+          },
+        ]}
+      >
+        <View style={[styles.clubIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <Ionicons name="add-circle-outline" size={22} color={palette.tint} />
+        </View>
+        <View style={styles.clubInfo}>
+          <ThemedText type="defaultSemiBold">Create New Session</ThemedText>
+          <ThemedText style={[styles.clubSubtitle, { color: palette.muted }]}>
+            Set up session type, time slots, and details from scratch
+          </ThemedText>
+        </View>
+        {inviteMode === 'new' && (
+          <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
+        )}
+      </Clickable>
+
+      <Clickable
+        onPress={() => setInviteMode('existing')}
+        disabled={existingSessions.length === 0}
+        style={[
+          styles.clubItem,
+          {
+            backgroundColor: inviteMode === 'existing' ? withAlpha(palette.tint, 0.06) : palette.surface,
+            borderColor: inviteMode === 'existing' ? palette.tint : palette.border,
+            opacity: existingSessions.length === 0 ? 0.5 : 1,
+          },
+        ]}
+      >
+        <View style={[styles.clubIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+          <Ionicons name="calendar-outline" size={22} color={palette.success} />
+        </View>
+        <View style={styles.clubInfo}>
+          <ThemedText type="defaultSemiBold">Invite to Existing Session</ThemedText>
+          <ThemedText style={[styles.clubSubtitle, { color: palette.muted }]}>
+            {existingSessions.length > 0
+              ? `${existingSessions.length} upcoming session${existingSessions.length !== 1 ? 's' : ''} available`
+              : 'No upcoming published sessions'}
+          </ThemedText>
+        </View>
+        {inviteMode === 'existing' && (
+          <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
+        )}
+      </Clickable>
+    </Animated.View>
+  );
+
+  const renderExistingSessionStep = () => (
+    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
+      <ThemedText type="subtitle" style={styles.stepTitle}>
+        Select a Session
+      </ThemedText>
+      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
+        Choose an upcoming published session to invite athletes to
+      </ThemedText>
+
+      <View style={styles.athleteList}>
+        {existingSessions.map((session) => {
+          const isSelected = selectedExistingSession?.id === session.id;
+          const nextSchedule = session.schedule[0];
+          const spotsRemaining = session.maxParticipants - session.currentParticipants;
+
+          return (
+            <Clickable
+              key={session.id}
+              onPress={() => setSelectedExistingSession(session)}
+              style={[
+                styles.athleteItem,
+                {
+                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
+                  borderColor: isSelected ? palette.tint : palette.border,
+                },
+              ]}
+            >
+              <View style={[styles.athleteAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                <Ionicons name="football-outline" size={20} color={palette.tint} />
+              </View>
+              <View style={styles.athleteInfo}>
+                <ThemedText type="defaultSemiBold" numberOfLines={1}>{session.title}</ThemedText>
+                {nextSchedule && (
+                  <ThemedText style={[styles.parentName, { color: palette.muted }]}>
+                    {new Date(nextSchedule.date).toLocaleDateString('en-GB', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}{' '}
+                    {nextSchedule.startTime}-{nextSchedule.endTime}
+                  </ThemedText>
+                )}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xxs }}>
+                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+                    {session.location}
+                  </ThemedText>
+                  <ThemedText
+                    style={{
+                      ...Typography.caption,
+                      color: spotsRemaining <= 2 ? palette.error : palette.success,
+                    }}
+                  >
+                    {spotsRemaining} spot{spotsRemaining !== 1 ? 's' : ''} left
+                  </ThemedText>
+                </View>
+              </View>
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    backgroundColor: isSelected ? palette.tint : 'transparent',
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
+              >
+                {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
+              </View>
+            </Clickable>
+          );
+        })}
+      </View>
+    </Animated.View>
+  );
+
   const renderSentInvitesBanner = () => {
     if (sentInvites.length === 0) return null;
 
@@ -335,8 +562,8 @@ export default function CreateSessionInviteScreen() {
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
             Recent Sent Invites
           </ThemedText>
-          <Clickable onPress={() => router.push('/session-invites')}>
-            <ThemedText style={{ color: palette.tint, fontSize: 13 }}>View All</ThemedText>
+          <Clickable onPress={() => router.push(Routes.SESSION_INVITES)}>
+            <ThemedText style={{ color: palette.tint, ...Typography.small }}>View All</ThemedText>
           </Clickable>
         </View>
         {sentInvites.map((invite) => {
@@ -344,7 +571,7 @@ export default function CreateSessionInviteScreen() {
           return (
             <Clickable
               key={invite.id}
-              onPress={() => router.push({ pathname: '/session-invites/[id]', params: { id: invite.id } })}
+              onPress={() => router.push(Routes.sessionInvite(invite.id))}
               style={[styles.sentInviteItem, { backgroundColor: palette.surface, borderColor: palette.border }]}
             >
               <View style={styles.sentInviteInfo}>
@@ -386,12 +613,12 @@ export default function CreateSessionInviteScreen() {
               style={[
                 styles.athleteItem,
                 {
-                  backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                   borderColor: isSelected ? palette.tint : palette.border,
                 },
               ]}
             >
-              <View style={[styles.athleteAvatar, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.athleteAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                   {athlete.name.charAt(0)}
                 </ThemedText>
@@ -411,7 +638,7 @@ export default function CreateSessionInviteScreen() {
                   },
                 ]}
               >
-                {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
               </View>
             </Clickable>
           );
@@ -419,6 +646,16 @@ export default function CreateSessionInviteScreen() {
       </View>
     </Animated.View>
   );
+
+  const INVITE_TYPE_OPTIONS: {
+    key: SessionInviteType;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }[] = [
+    { key: 'OPEN', label: 'Open', icon: 'globe-outline' },
+    { key: 'CLOSED', label: 'Closed', icon: 'lock-closed-outline' },
+    { key: 'SQUAD_ONLY', label: 'Squad Only', icon: 'people-outline' },
+  ];
 
   const renderTypeStep = () => (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -442,7 +679,7 @@ export default function CreateSessionInviteScreen() {
               ]}
             >
               <ThemedText
-                style={{ color: sessionType === type ? '#fff' : palette.text, fontSize: 13 }}
+                style={{ color: sessionType === type ? palette.onPrimary : palette.text, ...Typography.small }}
               >
                 {type}
               </ThemedText>
@@ -466,8 +703,43 @@ export default function CreateSessionInviteScreen() {
                 },
               ]}
             >
-              <ThemedText style={{ color: focus === f ? '#fff' : palette.text, fontSize: 13 }}>
+              <ThemedText style={{ color: focus === f ? palette.onPrimary : palette.text, ...Typography.small }}>
                 {f}
+              </ThemedText>
+            </Clickable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.formSection}>
+        <ThemedText style={styles.formLabel}>Invite Type</ThemedText>
+        <View style={styles.optionsRow}>
+          {INVITE_TYPE_OPTIONS.map((opt) => (
+            <Clickable
+              key={opt.key}
+              onPress={() => setSessionInviteType(opt.key)}
+              style={[
+                styles.optionChip,
+                {
+                  backgroundColor: sessionInviteType === opt.key ? palette.tint : palette.surface,
+                  borderColor: sessionInviteType === opt.key ? palette.tint : palette.border,
+                  flexDirection: 'row',
+                  gap: Spacing.xxs,
+                },
+              ]}
+            >
+              <Ionicons
+                name={opt.icon}
+                size={14}
+                color={sessionInviteType === opt.key ? palette.onPrimary : palette.text}
+              />
+              <ThemedText
+                style={{
+                  color: sessionInviteType === opt.key ? palette.onPrimary : palette.text,
+                  ...Typography.small,
+                }}
+              >
+                {opt.label}
               </ThemedText>
             </Clickable>
           ))}
@@ -487,38 +759,28 @@ export default function CreateSessionInviteScreen() {
 
       <SurfaceCard style={styles.addSlotCard}>
         <View style={styles.slotFormRow}>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>Date</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="2026-01-15"
-              placeholderTextColor={palette.muted}
-              value={slotDate}
-              onChangeText={setSlotDate}
-            />
-          </View>
+          <DateTimeField
+            mode="date"
+            label="Date"
+            value={slotDate}
+            onChange={setSlotDate}
+          />
         </View>
         <View style={styles.slotFormRow}>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>Start</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="16:00"
-              placeholderTextColor={palette.muted}
-              value={slotStartTime}
-              onChangeText={setSlotStartTime}
-            />
-          </View>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>End</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="17:00"
-              placeholderTextColor={palette.muted}
-              value={slotEndTime}
-              onChangeText={setSlotEndTime}
-            />
-          </View>
+          <DateTimeField
+            mode="time"
+            label="Start"
+            value={slotStartTime}
+            onChange={setSlotStartTime}
+            style={{ flex: 1 }}
+          />
+          <DateTimeField
+            mode="time"
+            label="End"
+            value={slotEndTime}
+            onChange={setSlotEndTime}
+            style={{ flex: 1 }}
+          />
         </View>
         <View style={styles.slotFormRow}>
           <View style={[styles.slotInput, { flex: 1 }]}>
@@ -536,8 +798,8 @@ export default function CreateSessionInviteScreen() {
           onPress={addTimeSlot}
           style={[styles.addSlotButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={18} color="#fff" />
-          <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Add Time Slot</ThemedText>
+          <Ionicons name="add" size={18} color={palette.onPrimary} />
+          <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Add Time Slot</ThemedText>
         </Clickable>
       </SurfaceCard>
 
@@ -606,12 +868,13 @@ export default function CreateSessionInviteScreen() {
   );
 
   const renderConfirmStep = () => {
-    // Build invitation message preview
+    const isExisting = inviteMode === 'existing' && selectedExistingSession;
     const athleteDisplay = selectedAthletes.length === 1
       ? selectedAthletes[0].name
       : `${selectedAthletes.length} athletes`;
     const clubDisplay = selectedClub ? ` to ${selectedClub.name}` : '';
-    const invitePreview = `Coach ${currentUser?.name?.split(' ')[0] || 'You'} has invited ${athleteDisplay}${clubDisplay} - ${sessionType}`;
+    const sessionLabel = isExisting ? selectedExistingSession.title : sessionType;
+    const invitePreview = `Coach ${currentUser?.name?.split(' ')[0] || 'You'} has invited ${athleteDisplay}${clubDisplay} - ${sessionLabel}`;
 
     return (
       <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -620,7 +883,7 @@ export default function CreateSessionInviteScreen() {
         </ThemedText>
 
         {/* Invite Preview Banner */}
-        <View style={[styles.invitePreviewBanner, { backgroundColor: `${palette.tint}10` }]}>
+        <View style={[styles.invitePreviewBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="mail-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.invitePreviewText, { color: palette.text }]}>
             {invitePreview}
@@ -632,27 +895,86 @@ export default function CreateSessionInviteScreen() {
             <Ionicons name="people-outline" size={18} color={palette.muted} />
             <ThemedText>{selectedAthletes.map((a) => a.name).join(', ')}</ThemedText>
           </View>
-          {selectedClub && (
+          {(selectedClub || (isExisting && selectedExistingSession.clubName)) && (
             <View style={styles.summaryRow}>
               <Ionicons name="business-outline" size={18} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint }}>Invite to {selectedClub.name}</ThemedText>
+              <ThemedText style={{ color: palette.tint }}>
+                Invite to {selectedClub?.name || selectedExistingSession?.clubName}
+              </ThemedText>
             </View>
           )}
-          <View style={styles.summaryRow}>
-            <Ionicons name="football-outline" size={18} color={palette.muted} />
-            <ThemedText>
-              {sessionType} - {focus}
-            </ThemedText>
-          </View>
-          <View style={styles.summaryRow}>
-            <Ionicons name="calendar-outline" size={18} color={palette.muted} />
-            <ThemedText>{proposedSlots.length} time slot(s) proposed</ThemedText>
-          </View>
-          {price && (
-            <View style={styles.summaryRow}>
-              <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
-              <ThemedText>${price}</ThemedText>
-            </View>
+
+          {isExisting ? (
+            <>
+              <View style={styles.summaryRow}>
+                <Ionicons name="football-outline" size={18} color={palette.muted} />
+                <ThemedText>{selectedExistingSession.title}</ThemedText>
+              </View>
+              {selectedExistingSession.schedule[0] && (
+                <View style={styles.summaryRow}>
+                  <Ionicons name="calendar-outline" size={18} color={palette.muted} />
+                  <ThemedText>
+                    {new Date(selectedExistingSession.schedule[0].date).toLocaleDateString('en-GB', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}{' '}
+                    {selectedExistingSession.schedule[0].startTime}-{selectedExistingSession.schedule[0].endTime}
+                  </ThemedText>
+                </View>
+              )}
+              <View style={styles.summaryRow}>
+                <Ionicons name="location-outline" size={18} color={palette.muted} />
+                <ThemedText>{selectedExistingSession.location}</ThemedText>
+              </View>
+              <View style={styles.summaryRow}>
+                <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
+                <ThemedText>
+                  {selectedExistingSession.pricePerParticipant === 0
+                    ? 'Free'
+                    : `${selectedExistingSession.currency === 'GBP' ? '\u00A3' : '$'}${selectedExistingSession.pricePerParticipant}`}
+                </ThemedText>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.summaryRow}>
+                <Ionicons name="football-outline" size={18} color={palette.muted} />
+                <ThemedText>
+                  {sessionType} - {focus}
+                </ThemedText>
+              </View>
+              <View style={styles.summaryRow}>
+                <Ionicons
+                  name={
+                    sessionInviteType === 'OPEN'
+                      ? 'globe-outline'
+                      : sessionInviteType === 'CLOSED'
+                      ? 'lock-closed-outline'
+                      : 'people-outline'
+                  }
+                  size={18}
+                  color={palette.muted}
+                />
+                <ThemedText>
+                  {sessionInviteType === 'OPEN'
+                    ? 'Open session'
+                    : sessionInviteType === 'CLOSED'
+                    ? 'Invite only (Closed)'
+                    : 'Squad members only'}
+                </ThemedText>
+              </View>
+              <View style={styles.summaryRow}>
+                <Ionicons name="calendar-outline" size={18} color={palette.muted} />
+                <ThemedText>{proposedSlots.length} time slot(s) proposed</ThemedText>
+              </View>
+              {price && (
+                <View style={styles.summaryRow}>
+                  <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
+                  <ThemedText>${price}</ThemedText>
+                </View>
+              )}
+            </>
           )}
           {notes && (
             <View style={styles.summaryRow}>
@@ -688,9 +1010,11 @@ export default function CreateSessionInviteScreen() {
 
         {step === 'athlete' && renderAthleteStep()}
         {step === 'club' && renderClubStep()}
+        {step === 'mode' && renderModeStep()}
         {step === 'type' && renderTypeStep()}
         {step === 'slots' && renderSlotsStep()}
         {step === 'details' && renderDetailsStep()}
+        {step === 'existing' && renderExistingSessionStep()}
         {step === 'confirm' && renderConfirmStep()}
       </ScrollView>
 
@@ -701,8 +1025,8 @@ export default function CreateSessionInviteScreen() {
             disabled={loading}
             style={[styles.nextButton, { backgroundColor: palette.tint, opacity: loading ? 0.6 : 1 }]}
           >
-            <Ionicons name="paper-plane" size={18} color="#fff" />
-            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+            <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
               {loading ? 'Sending...' : 'Send Invite'}
             </ThemedText>
           </Clickable>
@@ -715,8 +1039,8 @@ export default function CreateSessionInviteScreen() {
               { backgroundColor: palette.tint, opacity: canProceed() ? 1 : 0.5 },
             ]}
           >
-            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Continue</ThemedText>
-            <Ionicons name="arrow-forward" size={18} color="#fff" />
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+            <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -749,14 +1073,14 @@ const styles = StyleSheet.create({
   stepDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepLine: {
     width: 40,
     height: 2,
-    marginHorizontal: 4,
+    marginHorizontal: Spacing.xxs,
   },
   content: {
     padding: Spacing.lg,
@@ -766,10 +1090,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   stepTitle: {
-    fontSize: 20,
+    ...Typography.title,
   },
   stepDescription: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     marginBottom: Spacing.sm,
   },
   athleteList: {
@@ -786,24 +1110,23 @@ const styles = StyleSheet.create({
   athleteAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   athleteInfo: {
     flex: 1,
   },
   parentName: {
-    fontSize: 13,
+    ...Typography.small,
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -812,9 +1135,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   formLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...Typography.bodySmallSemiBold,
+    marginBottom: Spacing.xxs,
   },
   optionsRow: {
     flexDirection: 'row',
@@ -837,25 +1159,24 @@ const styles = StyleSheet.create({
   },
   slotInput: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   inputLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   input: {
     height: 44,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   textArea: {
     height: 100,
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     textAlignVertical: 'top',
   },
   addSlotButton: {
@@ -880,7 +1201,7 @@ const styles = StyleSheet.create({
   },
   slotInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   summaryCard: {
     padding: Spacing.md,
@@ -892,7 +1213,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   disclaimer: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
     marginTop: Spacing.md,
   },
@@ -920,21 +1241,20 @@ const styles = StyleSheet.create({
   clubIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clubIconText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
+    ...Typography.heading,
+    color: Colors.light.onPrimary,
   },
   clubInfo: {
     flex: 1,
   },
   clubSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   // Sent invites section
   sentInvitesSection: {
@@ -948,7 +1268,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   sentInviteItem: {
     flexDirection: 'row',
@@ -962,17 +1282,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sentInviteMeta: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   statusText: {
-    fontSize: 10,
-    fontWeight: '700',
+    ...Typography.micro,
     textTransform: 'uppercase',
   },
   // Invite preview banner
@@ -984,8 +1303,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   invitePreviewText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     flex: 1,
     lineHeight: 20,
   },

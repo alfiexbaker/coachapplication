@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   trialText: {
@@ -237,12 +237,8 @@ const styles = StyleSheet.create({
     ...Typography.heading,
     flexShrink: 1,
   },
-  coachNameSubtitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    flex: 1,
-  },
+  coachNameSubtitle: { ...Typography.heading, letterSpacing: -0.2,
+    flex: 1 },
 });
 
 export default CoachCardHeader;

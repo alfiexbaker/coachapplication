@@ -15,7 +15,7 @@ import Animated, { FadeInRight } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography, Components  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CoachCardData } from '@/components/coach';
 
@@ -140,7 +140,7 @@ function FeaturedCard({
           {/* Verified badge overlay */}
           {coach.verified && (
             <View style={[cardStyles.verifiedBadge, { backgroundColor: palette.tint }]}>
-              <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={10} color={palette.onPrimary} />
             </View>
           )}
 
@@ -149,8 +149,9 @@ function FeaturedCard({
             onPress={onToggleFavourite}
             accessibilityLabel="Toggle favourite"
             style={cardStyles.favButton}
+            hitSlop={8}
           >
-            <View style={[cardStyles.favCircle, { backgroundColor: `${palette.surface}E6` }]}>
+            <View style={[cardStyles.favCircle, { backgroundColor: withAlpha(palette.surface, 0.9) }]}>
               <Ionicons
                 name={isFavourited ? 'heart' : 'heart-outline'}
                 size={Components.icon.md}
@@ -162,7 +163,7 @@ function FeaturedCard({
           {/* Trial badge */}
           {coach.trialAvailable && (
             <View style={[cardStyles.trialPill, { backgroundColor: palette.success }]}>
-              <ThemedText style={cardStyles.trialText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+              <ThemedText style={cardStyles.trialText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
                 FREE TRIAL
               </ThemedText>
             </View>
@@ -176,7 +177,7 @@ function FeaturedCard({
           </ThemedText>
 
           <View style={cardStyles.ratingRow}>
-            <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
+            <Ionicons name="star" size={Components.icon.sm} color={palette.rating} />
             <ThemedText style={[cardStyles.ratingText, { color: palette.text }]}>
               {coach.rating?.toFixed(1)}
             </ThemedText>
@@ -195,7 +196,6 @@ function FeaturedCard({
               {'\u00A3'}{coach.pricePerHour}/hr
             </ThemedText>
             <Pressable
-              accessibilityRole="button"
               onPress={onBookNow}
               style={({ pressed }) => [
                 cardStyles.bookBtn,
@@ -205,7 +205,7 @@ function FeaturedCard({
                 },
               ]}
             >
-              <ThemedText style={cardStyles.bookBtnText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+              <ThemedText style={cardStyles.bookBtnText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
                 Book Now
               </ThemedText>
             </Pressable>
@@ -261,7 +261,7 @@ const cardStyles = StyleSheet.create({
     bottom: Spacing.xs,
     left: Spacing.xs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   trialText: {
@@ -307,7 +307,8 @@ const cardStyles = StyleSheet.create({
   },
   bookBtn: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: Radii.button,
   },
   bookBtnText: {

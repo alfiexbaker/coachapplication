@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_USERS } from '@/constants/mock-data';
 import { hasChildren } from '@/utils/user-helpers';
@@ -76,16 +76,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
-  },
+  title: { ...Typography.display, letterSpacing: -0.8 },
+  subtitle: { ...Typography.body, lineHeight: 22,
+    fontWeight: '500' },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -98,14 +91,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     alignItems: 'center',
   },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  statNumber: { ...Typography.display },
+  statLabel: { ...Typography.smallSemiBold, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
 });

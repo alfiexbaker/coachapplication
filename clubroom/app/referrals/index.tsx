@@ -9,6 +9,7 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -23,7 +24,7 @@ import {
   ReferralStats,
   ReferralHistory,
 } from '@/components/referrals';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { ReferralCode, Referral, ReferralStats as ReferralStatsType } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -97,7 +98,7 @@ export default function ReferralsDashboardScreen() {
   // Navigation
   const handleInvitePress = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/referrals/invite');
+    router.push(Routes.REFERRALS_INVITE);
   }, []);
 
   const handleReferralPress = useCallback((referral: Referral) => {
@@ -121,7 +122,7 @@ export default function ReferralsDashboardScreen() {
           onPress={handleInvitePress}
           style={[styles.inviteButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="share-social-outline" size={20} color="#FFFFFF" />
+          <Ionicons name="share-social-outline" size={20} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
 
@@ -140,8 +141,8 @@ export default function ReferralsDashboardScreen() {
           <>
             {/* Hero Section */}
             <Animated.View entering={FadeInDown.delay(100).springify()}>
-              <View style={[styles.heroSection, { backgroundColor: `${palette.tint}08` }]}>
-                <View style={[styles.heroIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.heroSection, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
+                <View style={[styles.heroIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="gift" size={32} color={palette.tint} />
                 </View>
                 <ThemedText type="subtitle" style={styles.heroTitle}>
@@ -232,7 +233,7 @@ export default function ReferralsDashboardScreen() {
             {/* CTA Button */}
             <Animated.View entering={FadeInDown.delay(400).springify()}>
               <Button onPress={handleInvitePress} style={styles.ctaButton}>
-                <Ionicons name="share-social-outline" size={20} color="#FFFFFF" />
+                <Ionicons name="share-social-outline" size={20} color={Colors.light.onPrimary} />
                 Invite Friends
               </Button>
             </Animated.View>
@@ -259,7 +260,7 @@ function StepItem({ number, title, description, palette, isLast }: StepItemProps
   return (
     <View style={styles.stepItem}>
       <View style={styles.stepLeft}>
-        <View style={[styles.stepNumber, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.stepNumber, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <ThemedText style={[styles.stepNumberText, { color: palette.tint }]}>
             {number}
           </ThemedText>
@@ -299,12 +300,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   inviteButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -329,16 +330,16 @@ const styles = StyleSheet.create({
   heroIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroTitle: {
-    fontSize: scaleFont(20),
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
     textAlign: 'center',
   },
   heroText: {
-    fontSize: scaleFont(14),
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
     textAlign: 'center',
     lineHeight: scaleFont(20),
     maxWidth: 300,
@@ -350,7 +351,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   sectionTitle: {
-    fontSize: scaleFont(16),
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
   },
   stepsContainer: {
     gap: 0,
@@ -366,29 +367,28 @@ const styles = StyleSheet.create({
   stepNumber: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepNumberText: {
-    fontSize: scaleFont(14),
-    fontWeight: '700',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   stepLine: {
     width: 2,
     flex: 1,
-    marginVertical: 4,
+    marginVertical: Spacing.xxs,
   },
   stepContent: {
     flex: 1,
     paddingBottom: Spacing.md,
-    gap: 2,
+    gap: Spacing.micro,
   },
   stepTitle: {
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
   },
   stepDescription: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
 
   // View all link
@@ -396,12 +396,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
   },
   viewAllText: {
-    fontSize: scaleFont(15),
-    fontWeight: '600',
+    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize),
   },
 
   // CTA

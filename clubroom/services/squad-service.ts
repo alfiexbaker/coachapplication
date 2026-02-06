@@ -273,7 +273,7 @@ export const squadService = {
       memberCount: 0,
       description: input.description,
       meetLocation: input.meetingLocation ?? 'TBD',
-      primaryCoach: 'coach_1',
+      primaryCoach: 'coach1',
     };
 
     if (USE_MOCK) {

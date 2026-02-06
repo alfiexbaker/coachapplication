@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ScreenHeader } from '@/components/primitives/screen-header';
@@ -9,7 +10,7 @@ import { SectionHeader } from '@/components/primitives/section-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useThemePreferences } from '@/hooks/theme-provider';
@@ -86,7 +87,7 @@ export default function SettingsScreen() {
             logger.press('ConfirmLogout', { userId: currentUser?.id });
             await logout();
             logger.info('Logout complete - returning to login screen');
-            router.replace('/');
+            router.replace(Routes.ROOT);
           },
         },
       ]
@@ -113,8 +114,8 @@ export default function SettingsScreen() {
       disabled={!onPress}
       style={({ pressed }) => [styles.settingRow, { opacity: pressed ? 0.7 : 1 }]}
     >
-      <View style={[styles.iconContainer, { backgroundColor: `${palette.accent}15` }]}>
-        <Ionicons name={icon as any} size={22} color={palette.accent} />
+      <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={22} color={palette.accent} />
       </View>
       <View style={styles.settingContent}>
         <ThemedText type="defaultSemiBold" style={styles.settingTitle}>
@@ -153,7 +154,7 @@ export default function SettingsScreen() {
           value={value}
           onValueChange={onValueChange}
           trackColor={{ false: palette.border, true: palette.accent }}
-          thumbColor="#FFFFFF"
+          thumbColor={Colors.light.surface}
         />
       }
     />
@@ -192,7 +193,7 @@ export default function SettingsScreen() {
             <View
               style={[
                 styles.rolePill,
-                { backgroundColor: `${palette.premium}20`, borderColor: palette.premium },
+                { backgroundColor: withAlpha(palette.premium, 0.12), borderColor: palette.premium },
               ]}
             >
               <ThemedText style={[styles.rolePillLabel, { color: palette.premium }]}>
@@ -211,11 +212,11 @@ export default function SettingsScreen() {
               ]}
               onPress={() => {
                 logger.press('EditProfileButton', { targetRoute: '/(tabs)/edit-profile' });
-                router.push('/(tabs)/edit-profile');
+                router.push(Routes.EDIT_PROFILE);
               }}
             >
-              <Ionicons name="create-outline" size={20} color="#FFFFFF" />
-              <ThemedText style={styles.editButtonLabel} lightColor="#FFFFFF" darkColor="#000000">
+              <Ionicons name="create-outline" size={20} color={Colors.light.onPrimary} />
+              <ThemedText style={styles.editButtonLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.text}>
                 Edit profile
               </ThemedText>
             </Clickable>
@@ -225,10 +226,10 @@ export default function SettingsScreen() {
                   styles.secondaryButton,
                   {
                     borderColor: palette.tint,
-                    backgroundColor: pressed ? `${palette.tint}10` : palette.surface,
+                    backgroundColor: pressed ? withAlpha(palette.tint, 0.06) : palette.surface,
                   },
                 ]}
-                onPress={() => router.push('/(tabs)/athletes')}
+                onPress={() => router.push(Routes.ATHLETES)}
               >
                 <Ionicons name="people" size={20} color={palette.tint} />
                 <ThemedText style={[styles.editButtonLabel, { color: palette.tint }]}>My Athletes</ThemedText>
@@ -243,14 +244,14 @@ export default function SettingsScreen() {
             <SectionHeader title="Navigation hub" subtitle="Jump to the places you need" />
             <View style={styles.navGrid}>
               {navLinks.map((link) => (
-                <SurfaceCard key={link.title} style={styles.navCard} onPress={() => router.push(link.route as any)}>
-                  <View style={[styles.navIcon, { backgroundColor: `${palette.accent}12` }]}>
-                    <Ionicons name={link.icon as any} size={22} color={palette.accent} />
+                <SurfaceCard key={link.title} style={styles.navCard} onPress={() => router.push(link.route as Href)}>
+                  <View style={[styles.navIcon, { backgroundColor: withAlpha(palette.accent, 0.07) }]}>
+                    <Ionicons name={link.icon as keyof typeof Ionicons.glyphMap} size={22} color={palette.accent} />
                   </View>
                   <View style={styles.navText}>
                     <ThemedText type="defaultSemiBold">{link.title}</ThemedText>
                     {link.subtitle && (
-                      <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{link.subtitle}</ThemedText>
+                      <ThemedText style={{ color: palette.muted, ...Typography.small }}>{link.subtitle}</ThemedText>
                     )}
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={palette.muted} />
@@ -282,7 +283,7 @@ export default function SettingsScreen() {
               subtitle="Update your personal information"
               onPress={() => {
                 logger.press('EditProfile');
-                router.push('/(tabs)/edit-profile');
+                router.push(Routes.EDIT_PROFILE);
               }}
             />
             {currentUser?.role === 'COACH' && (
@@ -293,7 +294,7 @@ export default function SettingsScreen() {
                   subtitle="Services, identity, and badges"
                   onPress={() => {
                     logger.press('EditCoachProfile');
-                    router.push('/(tabs)/coach-profile');
+                    router.push(Routes.COACH_PROFILE);
                   }}
                 />
                 <SettingRow
@@ -314,7 +315,7 @@ export default function SettingsScreen() {
                 subtitle="Add a child profile with medical & special needs info"
                 onPress={() => {
                   logger.press('AddChild');
-                  router.push('/(modal)/add-child');
+                  router.push(Routes.MODAL_ADD_CHILD);
                 }}
               />
             )}
@@ -365,7 +366,7 @@ export default function SettingsScreen() {
                 subtitle="Manage your social presence and posts"
                 onPress={() => {
                   logger.press('SocialProfile');
-                  router.push('/(tabs)/feed');
+                  router.push(Routes.FEED);
                 }}
               />
             )}
@@ -472,7 +473,7 @@ export default function SettingsScreen() {
               onPress={handleLogout}
               style={({ pressed }) => [styles.settingRow, { opacity: pressed ? 0.7 : 1 }]}
             >
-              <View style={[styles.iconContainer, { backgroundColor: `${palette.error}15` }]}>
+              <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <Ionicons name="log-out" size={22} color={palette.error} />
               </View>
               <View style={styles.settingContent}>
@@ -525,26 +526,25 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   profileName: {
-    fontSize: 22,
-    fontWeight: '700',
+    ...Typography.title,
   },
   profileEmail: {
-    fontSize: 15,
+    ...Typography.body,
   },
   profilePhone: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   rolePill: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: 999,
+    borderRadius: Radii.pill,
     borderWidth: 1.5,
   },
   rolePillLabel: {
+    ...Typography.caption,
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    fontSize: 11,
   },
   profileActions: {
     flexDirection: 'row',
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    borderRadius: 999,
+    borderRadius: Radii.pill,
     flex: 1,
   },
   secondaryButton: {
@@ -567,13 +567,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    borderRadius: 999,
+    borderRadius: Radii.pill,
     flex: 1,
     borderWidth: 1.5,
   },
   editButtonLabel: {
-    fontWeight: '700',
-    fontSize: 16,
+    ...Typography.subheading,
   },
   section: {
     gap: Spacing.sm,
@@ -599,11 +598,11 @@ const styles = StyleSheet.create({
   },
   navText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   helperText: {
     marginTop: Spacing.sm,
-    fontSize: 13,
+    ...Typography.small,
   },
   settingRow: {
     flexDirection: 'row',
@@ -620,14 +619,13 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   settingTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   settingSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   versionContainer: {
     alignItems: 'center',
@@ -635,6 +633,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   versionText: {
-    fontSize: 13,
+    ...Typography.small,
   },
 });

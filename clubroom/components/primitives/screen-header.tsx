@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /**
@@ -83,7 +83,7 @@ export function ScreenHeader({
                   hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 >
                   {action.icon && (
-                    <Ionicons name={action.icon} size={18} color="#fff" />
+                    <Ionicons name={action.icon} size={18} color={palette.onPrimary} />
                   )}
                   {action.label && (
                     <ThemedText style={styles.actionLabel}>{action.label}</ThemedText>
@@ -116,17 +116,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
   },
   // GLOBAL: Title = 22px, weight 600 (same everywhere)
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-  },
+  title: { ...Typography.title, letterSpacing: -0.3 },
   // GLOBAL: Subtitle = 12px, weight 400
-  subtitle: {
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 18,
-  },
+  subtitle: { ...Typography.caption, lineHeight: 18 },
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -134,29 +126,22 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
   },
-  actionLabel: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  actionLabel: { ...Typography.smallSemiBold, color: Colors.light.onPrimary },
 });
 
 // SIMPLE TYPOGRAPHY - Same everywhere
-export const SCREEN_TYPOGRAPHY = {
-  // ALL headers use this - no exceptions
+export const SCREEN_TYPOGRAPHY = { // ALL headers use this - no exceptions
   title: {
-    fontSize: 22,
-    fontWeight: '600' as const,
+    ...Typography.title,
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 12,
-    fontWeight: '400' as const,
+    ...Typography.caption,
     lineHeight: 18,
   },
 } as const;

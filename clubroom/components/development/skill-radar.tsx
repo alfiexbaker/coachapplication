@@ -311,16 +311,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   ringLabel: {
     position: 'absolute',
     left: CENTER + 4,
   },
-  ringLabelText: {
-    fontSize: 9,
-    fontWeight: '500',
-  },
+  ringLabelText: { ...Typography.micro },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',

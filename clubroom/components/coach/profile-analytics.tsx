@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ interface StatTileProps {
 function StatTile({ icon, iconColor, value, label, palette }: StatTileProps) {
   return (
     <View style={styles.tile}>
-      <View style={[styles.tileIconCircle, { backgroundColor: iconColor + '18' }]}>
+      <View style={[styles.tileIconCircle, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
         <Ionicons name={icon} size={Components.icon.md} color={iconColor} />
       </View>
       <ThemedText style={[Typography.title, { color: palette.text, fontVariant: ['tabular-nums'] }]}>
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   header: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   grid: {
     flexDirection: 'row',

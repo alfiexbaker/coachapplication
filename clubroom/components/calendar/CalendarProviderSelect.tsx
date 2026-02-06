@@ -3,7 +3,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CalendarProvider } from '@/constants/types';
 
@@ -62,7 +62,7 @@ export function CalendarProviderSelect({
             style={({ pressed }) => [
               styles.providerOption,
               {
-                backgroundColor: isSelected ? `${palette.accent}15` : palette.card,
+                backgroundColor: isSelected ? withAlpha(palette.accent, 0.09) : palette.card,
                 borderColor: isSelected ? palette.accent : palette.border,
                 opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
               },
@@ -73,7 +73,7 @@ export function CalendarProviderSelect({
                 styles.iconContainer,
                 {
                   backgroundColor:
-                    scheme === 'dark' ? `${provider.color}30` : `${provider.color}15`,
+                    scheme === 'dark' ? withAlpha(provider.color, 0.19) : withAlpha(provider.color, 0.09),
                 },
               ]}
             >
@@ -123,15 +123,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  providerLabel: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-  },
+  providerLabel: { ...Typography.subheading, flex: 1 },
   checkmark: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
   },

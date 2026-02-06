@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii } from '@/constants/theme';
+import { Colors, Radii , Typography, Spacing, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface WaitlistPositionProps {
@@ -69,7 +69,7 @@ export function WaitlistPosition({
 
   if (compact) {
     return (
-      <View style={[styles.compactContainer, { backgroundColor: `${color}15` }]}>
+      <View style={[styles.compactContainer, { backgroundColor: withAlpha(color, 0.09) }]}>
         <ThemedText style={[styles.compactText, { color }]}>
           #{position}
         </ThemedText>
@@ -78,7 +78,7 @@ export function WaitlistPosition({
   }
 
   return (
-    <View style={[styles.container, currentSize.container, { backgroundColor: `${color}15` }]}>
+    <View style={[styles.container, currentSize.container, { backgroundColor: withAlpha(color, 0.09) }]}>
       <View style={styles.positionRow}>
         <Ionicons name="time" size={currentSize.icon} color={color} />
         <ThemedText style={[currentSize.position, { color }]}>
@@ -105,10 +105,10 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     borderRadius: Radii.md,
-    gap: 2,
+    gap: Spacing.micro,
   },
   containerSmall: {
-    padding: 6,
+    padding: Spacing.xxs,
     minWidth: 40,
   },
   containerMedium: {
@@ -116,55 +116,33 @@ const styles = StyleSheet.create({
     minWidth: 50,
   },
   containerLarge: {
-    padding: 12,
+    padding: Spacing.xs + Spacing.xxs,
     minWidth: 60,
   },
   positionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  positionSmall: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  positionMedium: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  positionLarge: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  labelSmall: {
-    fontSize: 9,
-  },
-  labelMedium: {
-    fontSize: 10,
-  },
-  labelLarge: {
-    fontSize: 12,
-  },
+  positionSmall: { ...Typography.bodySmallSemiBold },
+  positionMedium: { ...Typography.heading },
+  positionLarge: { ...Typography.display },
+  labelSmall: { ...Typography.micro },
+  labelMedium: { ...Typography.micro },
+  labelLarge: { ...Typography.caption },
   nextBadge: {
-    marginTop: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  nextBadgeText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  compactContainer: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    marginTop: Spacing.xxs,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  compactText: {
-    fontSize: 12,
-    fontWeight: '700',
+  nextBadgeText: { ...Typography.micro, color: Colors.light.onPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5 },
+  compactContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
   },
+  compactText: { ...Typography.caption },
 });

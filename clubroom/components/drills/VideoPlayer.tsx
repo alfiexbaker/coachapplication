@@ -172,7 +172,7 @@ export function VideoPlayer({
         {/* Loading indicator */}
         {isLoading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="large" color={Colors.light.onPrimary} />
           </View>
         )}
 
@@ -182,7 +182,7 @@ export function VideoPlayer({
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
               size={32}
-              color="#FFFFFF"
+              color={Colors.light.onPrimary}
             />
           </Clickable>
         )}
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: Radii.md,
     overflow: 'hidden',
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
   },
   video: {
     width: '100%',
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   playButton: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: Radii['3xl'],
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -310,20 +310,20 @@ const styles = StyleSheet.create({
   progressBarBackground: {
     height: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 2,
+    backgroundColor: Colors.light.onPrimary,
+    borderRadius: Radii.xs,
   },
   timeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   timeText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontSize: scaleFont(12),
     fontWeight: '500',
   },
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titleText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontSize: scaleFont(14),
     fontWeight: '600',
     flex: 1,

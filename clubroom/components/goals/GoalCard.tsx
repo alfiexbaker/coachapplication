@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ProgressRing, CompactProgressRing } from './ProgressRing';
 import { CategoryBadge } from './CategoryBadge';
 import { MilestoneList } from './MilestoneList';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
 import type { Goal } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { progressService } from '@/services/progress-service';
@@ -111,7 +111,7 @@ export function GoalCard({
           <View style={styles.headerLeft}>
             <CategoryBadge category={goal.category} />
             {goal.status !== 'ACTIVE' && (
-              <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+              <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
                 <ThemedText style={[styles.statusText, { color: statusColor }]}>
                   {statusLabel}
                 </ThemedText>
@@ -217,7 +217,7 @@ export function GoalCard({
         </View>
 
         {goal.status !== 'ACTIVE' && (
-          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
             <ThemedText style={[styles.statusText, { color: statusColor }]}>
               {statusLabel}
             </ThemedText>
@@ -225,7 +225,7 @@ export function GoalCard({
         )}
 
         {isOverdue && goal.status === 'ACTIVE' && (
-          <View style={[styles.statusBadge, { backgroundColor: `${palette.error}20` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.12) }]}>
             <ThemedText style={[styles.statusText, { color: palette.error }]}>
               Overdue
             </ThemedText>
@@ -238,7 +238,7 @@ export function GoalCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     marginBottom: Spacing.md,
     gap: Spacing.sm,
   },
@@ -275,14 +275,14 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   footerText: {
     fontSize: scaleFont(12),
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   statusText: {
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   },
   compactContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactHeader: {
     flexDirection: 'row',
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
 
   // Featured variant
   featuredCard: {
-    padding: Spacing.lg,
+    padding: Components.card.padding,
     marginBottom: Spacing.md,
     gap: Spacing.sm,
   },

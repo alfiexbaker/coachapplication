@@ -4,8 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 
@@ -20,11 +21,11 @@ interface SessionInviteCardProps {
 }
 
 const statusColors: Record<string, { bg: string; text: string; icon: string }> = {
-  PENDING: { bg: '#FEF3C7', text: '#92400E', icon: 'hourglass-outline' },
-  ACCEPTED: { bg: '#D1FAE5', text: '#065F46', icon: 'checkmark-circle-outline' },
-  DECLINED: { bg: '#FEE2E2', text: '#991B1B', icon: 'close-circle-outline' },
-  EXPIRED: { bg: '#F3F4F6', text: '#6B7280', icon: 'time-outline' },
-  COUNTERED: { bg: '#DBEAFE', text: '#1E40AF', icon: 'swap-horizontal-outline' },
+  PENDING: { bg: withAlpha(Colors.light.warning, 0.12), text: Colors.light.warning, icon: 'hourglass-outline' },
+  ACCEPTED: { bg: withAlpha(Colors.light.success, 0.12), text: Colors.light.success, icon: 'checkmark-circle-outline' },
+  DECLINED: { bg: withAlpha(Colors.light.error, 0.12), text: Colors.light.error, icon: 'close-circle-outline' },
+  EXPIRED: { bg: Colors.light.background, text: Colors.light.muted, icon: 'time-outline' },
+  COUNTERED: { bg: withAlpha(Colors.light.info, 0.12), text: Colors.light.info, icon: 'swap-horizontal-outline' },
 };
 
 export function SessionInviteCard({
@@ -94,7 +95,7 @@ export function SessionInviteCard({
     return (
       <SurfaceCard style={styles.compactCard} onPress={onPress}>
         <View style={styles.compactContent}>
-          <View style={[styles.compactAvatar, { backgroundColor: `${palette.tint}10` }]}>
+          <View style={[styles.compactAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <ThemedText style={[styles.compactAvatarText, { color: palette.tint }]}>
               {initials}
             </ThemedText>
@@ -110,7 +111,7 @@ export function SessionInviteCard({
           </View>
 
           <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.text} />
+            <Ionicons name={statusConfig.icon as keyof typeof Ionicons.glyphMap} size={12} color={statusConfig.text} />
           </View>
         </View>
       </SurfaceCard>
@@ -120,7 +121,7 @@ export function SessionInviteCard({
   return (
     <SurfaceCard style={styles.card} onPress={onPress}>
       {/* Invitation Message Banner */}
-      <View style={[styles.invitationBanner, { backgroundColor: `${palette.tint}08` }]}>
+      <View style={[styles.invitationBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
         <Ionicons name="mail-outline" size={16} color={palette.tint} />
         <ThemedText style={[styles.invitationBannerText, { color: palette.text }]}>
           {invitationMessage}
@@ -129,7 +130,7 @@ export function SessionInviteCard({
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}10` }]}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
             {initials}
           </ThemedText>
@@ -165,7 +166,7 @@ export function SessionInviteCard({
       </View>
 
       {/* Divider */}
-      <View style={[styles.divider, { backgroundColor: palette.border }]} />
+      <Divider />
 
       {/* Time Slots - with optional selector */}
       {showSlotSelector && invite.proposedSlots.length > 1 ? (
@@ -182,7 +183,7 @@ export function SessionInviteCard({
                 style={[
                   styles.slotOption,
                   {
-                    backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                     borderColor: isSelected ? palette.tint : palette.border,
                   },
                 ]}
@@ -208,7 +209,7 @@ export function SessionInviteCard({
                     },
                   ]}
                 >
-                  {isSelected && <Ionicons name="checkmark" size={12} color="#fff" />}
+                  {isSelected && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
                 </View>
               </Clickable>
             );
@@ -284,8 +285,8 @@ export function SessionInviteCard({
               },
             ]}
           >
-            <Ionicons name="checkmark-outline" size={18} color="#fff" />
-            <ThemedText style={[styles.actionText, { color: '#fff' }]}>Accept</ThemedText>
+            <Ionicons name="checkmark-outline" size={18} color={palette.onPrimary} />
+            <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>Accept</ThemedText>
           </Clickable>
         </View>
       )}
@@ -319,24 +320,16 @@ const styles = StyleSheet.create({
   compactAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  compactAvatarText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  compactAvatarText: { ...Typography.bodySmallSemiBold },
   compactInfo: {
     flex: 1,
   },
-  compactMeta: {
-    fontSize: 12,
-  },
-  invitationText: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
+  compactMeta: { ...Typography.caption },
+  invitationText: { ...Typography.bodySmall, lineHeight: 18 },
   invitationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -345,15 +338,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     marginBottom: Spacing.xs,
   },
-  invitationBannerText: {
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  clubName: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  invitationBannerText: { ...Typography.bodySmallSemiBold, flex: 1 },
+  clubName: { ...Typography.smallSemiBold },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -362,60 +348,39 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  avatarText: { ...Typography.heading },
   headerContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  coachName: {
-    fontSize: 16,
-  },
-  sessionType: {
-    fontSize: 13,
-  },
+  coachName: { ...Typography.subheading },
+  sessionType: { ...Typography.small },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
+  statusText: { ...Typography.caption, textTransform: 'uppercase' },
   athleteRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  athletes: {
-    fontSize: 13,
-  },
-  divider: {
-    height: 1,
-  },
+  athletes: { ...Typography.small },
   details: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  detailText: {
-    fontSize: 13,
-  },
-  notes: {
-    fontSize: 13,
-    fontStyle: 'italic',
-  },
+  detailText: { ...Typography.small },
+  notes: { ...Typography.small, fontStyle: 'italic' },
   actionsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -437,10 +402,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   acceptButton: {},
-  actionText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  actionText: { ...Typography.bodySmallSemiBold },
   expiryRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -448,17 +410,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
-  expiryText: {
-    fontSize: 12,
-  },
+  expiryText: { ...Typography.caption },
   // Slot selector styles
   slotSelector: {
     gap: Spacing.sm,
   },
-  slotSelectorLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  slotSelectorLabel: { ...Typography.smallSemiBold },
   slotOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -468,12 +425,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   slotOptionContent: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   slotRadio: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

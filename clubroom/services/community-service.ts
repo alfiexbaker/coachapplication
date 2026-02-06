@@ -20,6 +20,7 @@ export {
 export type {
   CreateGroupParams,
   GroupInvite,
+  ChangeMemberRoleParams,
   CreateCarpoolOfferParams,
   RequestCarpoolSeatParams,
 } from './community';

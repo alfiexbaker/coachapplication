@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Attachment } from '@/constants/types';
 
@@ -177,7 +177,7 @@ export function MessageComposer({
             <Ionicons
               name="send"
               size={18}
-              color={scheme === 'light' ? '#FFFFFF' : '#000000'}
+              color={scheme === 'light' ? palette.onPrimary : palette.text}
             />
           </Clickable>
         ) : onVoicePress ? (
@@ -213,7 +213,7 @@ export function QuickActionsBar({ actions }: QuickActionsBarProps) {
           style={[styles.quickAction, { backgroundColor: palette.surface, borderColor: palette.border }]}
         >
           {action.icon && (
-            <Ionicons name={action.icon as any} size={14} color={palette.tint} />
+            <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={14} color={palette.tint} />
           )}
           <ThemedText style={[styles.quickActionText, { color: palette.text }]}>
             {action.label}
@@ -240,16 +240,9 @@ const styles = StyleSheet.create({
   replyContent: {
     flex: 1,
   },
-  replyLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  replyText: {
-    fontSize: 13,
-    marginTop: 2,
-  },
+  replyLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
+  replyText: { ...Typography.small, marginTop: Spacing.micro },
   attachmentsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -266,10 +259,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     maxWidth: 150,
   },
-  attachmentName: {
-    flex: 1,
-    fontSize: 12,
-  },
+  attachmentName: { ...Typography.caption, flex: 1 },
   composerRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -281,7 +271,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingBottom: 8,
   },
   actionButton: {
@@ -294,23 +284,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  input: {
-    fontSize: 16,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
-    paddingHorizontal: 4,
-    lineHeight: 20,
-  },
+  input: { ...Typography.subheading, paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    paddingHorizontal: Spacing.xxs,
+    lineHeight: 20 },
   sendButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   voiceButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -334,8 +321,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.full,
     borderWidth: 1,
   },
-  quickActionText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  quickActionText: { ...Typography.smallSemiBold },
 });

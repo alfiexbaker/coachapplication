@@ -18,7 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { ModalStyles, ButtonStyles, InputStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { reportService } from '@/services/report-service';
@@ -107,7 +107,7 @@ export function ReportFlow({
               <View
                 style={[
                   styles.successIcon,
-                  { backgroundColor: `${palette.success}15` },
+                  { backgroundColor: withAlpha(palette.success, 0.09) },
                 ]}
               >
                 <Ionicons name="checkmark-circle" size={48} color={palette.success} />
@@ -158,7 +158,7 @@ export function ReportFlow({
                         {
                           borderColor: isSelected ? palette.tint : palette.border,
                           backgroundColor: isSelected
-                            ? `${palette.tint}08`
+                            ? withAlpha(palette.tint, 0.03)
                             : palette.surface,
                         },
                       ]}
@@ -169,8 +169,8 @@ export function ReportFlow({
                           styles.optionIcon,
                           {
                             backgroundColor: isSelected
-                              ? `${palette.tint}15`
-                              : `${palette.muted}10`,
+                              ? withAlpha(palette.tint, 0.09)
+                              : withAlpha(palette.muted, 0.06),
                           },
                         ]}
                       >
@@ -267,9 +267,8 @@ export function ReportFlow({
 
 const styles = StyleSheet.create({
   subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: Spacing.md,
+    ...Typography.bodySmall,
+    marginBottom: Spacing.md
   },
   optionsList: {
     gap: Spacing.xs,
@@ -286,19 +285,15 @@ const styles = StyleSheet.create({
   optionIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  optionLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-  },
+  optionLabel: { ...Typography.bodySemiBold, flex: 1 },
   radio: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
@@ -306,16 +301,13 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
   descriptionSection: {
     gap: Spacing.xs,
     marginBottom: Spacing.md,
   },
-  charCount: {
-    fontSize: 12,
-    textAlign: 'right',
-  },
+  charCount: { ...Typography.caption, textAlign: 'right' },
   submitButton: {
     marginTop: Spacing.xs,
   },
@@ -327,7 +319,7 @@ const styles = StyleSheet.create({
   successIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.xs,
@@ -335,10 +327,7 @@ const styles = StyleSheet.create({
   successTitle: {
     textAlign: 'center',
   },
-  successMessage: {
-    fontSize: 14,
-    lineHeight: 20,
+  successMessage: { ...Typography.bodySmall, lineHeight: 20,
     textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
 });

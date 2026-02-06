@@ -1,10 +1,12 @@
+import { useCallback } from 'react';
 import { FlatList, View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { UnifiedBookingCard } from '@/components/bookings/UnifiedBookingCard';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Colors, Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { BookingSummary, SessionOffering } from '@/constants/types';
 
@@ -35,6 +37,35 @@ export function BookingsList({
   const isCoach = userRole === 'COACH';
   const hasItems = items.length > 0;
 
+  const renderItem = useCallback(
+    ({ item }: { item: SessionOffering | BookingSummary }) => {
+      // SessionOffering (coach's offerings)
+      if ('registrations' in item) {
+        return (
+          <SessionOfferingCard
+            offering={item}
+            showCoach={!isCoach}
+            showCapacity={isCoach}
+            onPress={() => onOfferingPress(item)}
+          />
+        );
+      }
+      // Regular booking - use unified card
+      return (
+        <View style={styles.cardWrapper}>
+          <UnifiedBookingCard
+            booking={item}
+            variant="standard"
+            showActions={timeFilter === 'past'}
+          />
+        </View>
+      );
+    },
+    [isCoach, onOfferingPress, timeFilter]
+  );
+
+  const keyExtractor = useCallback((item: SessionOffering | BookingSummary) => item.id, []);
+
   return (
     <View style={styles.container}>
       {/* Time Filter - Simple pills */}
@@ -44,7 +75,7 @@ export function BookingsList({
           style={[
             styles.filterPill,
             { borderColor: timeFilter === 'upcoming' ? palette.tint : palette.border },
-            timeFilter === 'upcoming' ? { backgroundColor: `${palette.tint}10` } : undefined,
+            timeFilter === 'upcoming' ? { backgroundColor: withAlpha(palette.tint, 0.1) } : undefined,
           ]}
         >
           <ThemedText
@@ -61,7 +92,7 @@ export function BookingsList({
           style={[
             styles.filterPill,
             { borderColor: timeFilter === 'past' ? palette.tint : palette.border },
-            timeFilter === 'past' ? { backgroundColor: `${palette.tint}10` } : undefined,
+            timeFilter === 'past' ? { backgroundColor: withAlpha(palette.tint, 0.1) } : undefined,
           ]}
         >
           <ThemedText
@@ -78,65 +109,37 @@ export function BookingsList({
       {hasItems ? (
         <FlatList
           data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => {
-            // SessionOffering (coach's offerings)
-            if ('registrations' in item) {
-              return (
-                <SessionOfferingCard
-                  offering={item}
-                  showCoach={!isCoach}
-                  showCapacity={isCoach}
-                  onPress={() => onOfferingPress(item)}
-                />
-              );
-            }
-            // Regular booking - use unified card
-            return (
-              <View style={styles.cardWrapper}>
-                <UnifiedBookingCard
-                  booking={item}
-                  variant="standard"
-                  showActions={timeFilter === 'past'}
-                />
-              </View>
-            );
-          }}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={ListSeparator}
         />
       ) : (
         <View style={styles.emptyState}>
-          <View style={[styles.emptyIcon, { backgroundColor: `${palette.muted}10` }]}>
-            <Ionicons name="calendar-outline" size={40} color={palette.muted} />
-          </View>
-          <ThemedText style={styles.emptyTitle}>
-            No {timeFilter} sessions
-          </ThemedText>
-          <ThemedText style={[styles.emptyMessage, { color: palette.muted }]}>
-            {isCoach
-              ? timeFilter === 'upcoming'
-                ? 'Create your first session offering'
-                : 'No past sessions yet'
-              : timeFilter === 'upcoming'
-                ? 'Book your first coaching session'
-                : 'No past sessions yet'}
-          </ThemedText>
-          {timeFilter === 'upcoming' && (
-            <Pressable
-              onPress={isCoach ? onCreateSessionPress : onFindCoachPress}
-              style={[styles.ctaButton, { backgroundColor: palette.tint }]}
-            >
-              <ThemedText style={styles.ctaText}>
-                {isCoach ? 'Create Session' : 'Find a Coach'}
-              </ThemedText>
-            </Pressable>
-          )}
+          <EmptyState
+            icon="calendar-outline"
+            title={`No ${timeFilter} sessions`}
+            message={
+              isCoach
+                ? timeFilter === 'upcoming'
+                  ? 'Create your first session offering'
+                  : 'No past sessions yet'
+                : timeFilter === 'upcoming'
+                  ? 'Book your first coaching session'
+                  : 'No past sessions yet'
+            }
+            actionLabel={timeFilter === 'upcoming' ? (isCoach ? 'Create Session' : 'Find a Coach') : undefined}
+            onPressAction={timeFilter === 'upcoming' ? (isCoach ? onCreateSessionPress : onFindCoachPress) : undefined}
+          />
         </View>
       )}
     </View>
   );
+}
+
+function ListSeparator() {
+  return <View style={styles.separator} />;
 }
 
 const styles = StyleSheet.create({
@@ -155,10 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1.5,
   },
-  filterText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  filterText: { ...Typography.bodySmallSemiBold },
   list: {
     padding: Spacing.sm,
     paddingTop: 0,
@@ -174,34 +174,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.xl,
-    gap: Spacing.sm,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  emptyMessage: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  ctaButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.sm,
-  },
-  ctaText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

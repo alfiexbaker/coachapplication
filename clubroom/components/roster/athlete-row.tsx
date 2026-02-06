@@ -5,7 +5,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
@@ -59,7 +59,7 @@ export function AthleteRow({
           style={[styles.removeButton, { backgroundColor: palette.error }]}
         >
           <Animated.View style={{ transform: [{ scale }] }}>
-            <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+            <Ionicons name="trash-outline" size={22} color={palette.onPrimary} />
             <ThemedText style={styles.removeText}>Remove</ThemedText>
           </Animated.View>
         </Pressable>
@@ -92,6 +92,9 @@ export function AthleteRow({
             <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.name}>
               {entry.athleteName}
             </ThemedText>
+            {entry.senInfo?.hasSen && (
+              <Ionicons name="accessibility-outline" size={14} color={palette.tint} />
+            )}
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           </View>
           <ThemedText style={[styles.parentName, { color: palette.muted }]}>
@@ -105,7 +108,7 @@ export function AthleteRow({
               </ThemedText>
             </View>
             {entry.primaryFocus && (
-              <View style={[styles.focusBadge, { backgroundColor: `${palette.tint}10` }]}>
+              <View style={[styles.focusBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <ThemedText style={[styles.focusText, { color: palette.tint }]}>
                   {entry.primaryFocus}
                 </ThemedText>
@@ -168,19 +171,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
   },
   avatarPlaceholder: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  avatarText: { ...Typography.subheading },
   info: {
     flex: 1,
   },
@@ -195,52 +195,41 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  parentName: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  parentName: { ...Typography.caption, marginTop: Spacing.micro },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: Spacing.micro,
   },
-  metaText: {
-    fontSize: 11,
-  },
+  metaText: { ...Typography.caption },
   focusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  focusText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  focusText: { ...Typography.micro },
   tagsSection: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
+    gap: Spacing.xxs,
     marginTop: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
   },
   tag: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  tagText: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
+  tagText: { ...Typography.micro },
   swipeAction: {
     justifyContent: 'center',
     alignItems: 'flex-end',
@@ -253,10 +242,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: Radii.md,
   },
-  removeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 4,
-  },
+  removeText: { ...Typography.caption, color: Colors.light.onPrimary,
+    marginTop: Spacing.xxs },
 });

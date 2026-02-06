@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
 import { useToast } from '@/components/ui/toast';
@@ -22,17 +24,17 @@ import {
   getClubFeed,
   getClubInvites,
   getClubMembershipForUser,
-  getClubSessions,
   getClubSquads,
   togglePinPost,
 } from '@/constants/mock-data';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
-import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, SessionOffering, Match , GroupSession } from '@/constants/types';
+import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, Match, GroupSession } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { matchService } from '@/services/match-service';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ClubHub');
@@ -60,7 +62,6 @@ export default function ClubHubScreen() {
   );
   const [feed, setFeed] = useState<ClubFeedPost[]>([]);
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
-  const [sessions] = useState<SessionOffering[]>(membership ? getClubSessions(membership.clubId) : []);
   const [squads] = useState<ClubSquad[]>(membership ? getClubSquads(membership.clubId) : []);
   const [invites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
   const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
@@ -136,6 +137,18 @@ export default function ClubHubScreen() {
     loadUpcomingMatches();
   }, [loadFeed, loadMembers, loadTrainingSessions, loadUpcomingMatches]);
 
+  // React to event bus events so the hub updates in real-time when
+  // new group sessions are published (affects training schedule panel).
+  useEffect(() => {
+    const unsubSessionPublished = onTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, () => {
+      loadTrainingSessions();
+      loadFeed();
+    });
+    return () => {
+      unsubSessionPublished();
+    };
+  }, [loadTrainingSessions, loadFeed]);
+
   // Handle member removal
   const handleRemoveMember = (member: ClubMember) => {
     if (!clubService.canBeRemoved(member.role)) {
@@ -177,7 +190,11 @@ export default function ClubHubScreen() {
         `${removalRecord.userName} removed from club`,
         async () => {
           try {
-            await clubService.undoRemoval(membership.clubId, removalRecord.id);
+            const undoResult = await clubService.undoRemoval(membership.clubId, removalRecord.id);
+            if (!undoResult.success) {
+              showToast(undoResult.error.message, 'error');
+              return;
+            }
             await loadMembers();
             showToast('Member restored', 'success');
           } catch (error) {
@@ -224,15 +241,12 @@ export default function ClubHubScreen() {
     // For coaches, redirect to invite acceptance screen for confirmation
     const userIsCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
     if (userIsCoach) {
-      router.push({
-        pathname: '/coach-invites',
-        params: {
-          code: invite.code,
-          clubId: invite.clubId,
-          clubName: invite.clubName,
-          role: invite.role,
-        },
-      });
+      router.push(Routes.coachInvitesWith({
+        code: invite.code,
+        clubId: invite.clubId,
+        clubName: invite.clubName,
+        role: invite.role,
+      }));
       return;
     }
 
@@ -290,10 +304,7 @@ export default function ClubHubScreen() {
           action={canCreatePosts ? {
             icon: 'add',
             label: 'New Post',
-            onPress: () => router.push({
-              pathname: '/(modal)/create-club-post',
-              params: { clubId: membership!.clubId }
-            })
+            onPress: () => router.push(Routes.MODAL_CREATE_CLUB_POST)
           } : undefined}
         />
       }
@@ -311,25 +322,54 @@ export default function ClubHubScreen() {
             <ClubHeader club={club} membership={membership} onLeave={handleLeaveClub} />
           </View>
 
+          {/* Admin Quick Actions */}
+          {isCoach && (
+            <View style={styles.adminActions}>
+              <Clickable
+                onPress={() => router.push(Routes.CLUB_SETTINGS)}
+                accessibilityLabel="Settings"
+                style={[styles.adminActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              >
+                <Ionicons name="settings-outline" size={22} color={palette.tint} />
+                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Settings</ThemedText>
+              </Clickable>
+              <Clickable
+                onPress={() => router.push(Routes.clubDashboard(membership.clubId))}
+                accessibilityLabel="Dashboard"
+                style={[styles.adminActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              >
+                <Ionicons name="bar-chart-outline" size={22} color={palette.tint} />
+                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Dashboard</ThemedText>
+              </Clickable>
+              <Clickable
+                onPress={() => router.push(Routes.clubCalendar(membership.clubId))}
+                accessibilityLabel="Calendar"
+                style={[styles.adminActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              >
+                <Ionicons name="calendar-outline" size={22} color={palette.tint} />
+                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Calendar</ThemedText>
+              </Clickable>
+              <Clickable
+                onPress={() => router.push(Routes.clubBranding(membership.clubId))}
+                accessibilityLabel="Branding"
+                style={[styles.adminActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              >
+                <Ionicons name="color-palette-outline" size={22} color={palette.tint} />
+                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Branding</ThemedText>
+              </Clickable>
+            </View>
+          )}
+
           {/* Quick stats */}
           <ClubStatsRow
             memberCount={members.length || club.memberCount}
-            squads={squads}
-            sessions={sessions}
-            invites={invites}
+            squadCount={squads.length}
+            sessionCount={trainingSessions.length}
+            inviteCount={invites.length}
             canManageMembers={!!canRemoveMembers}
             showMembersSection={showMembersSection}
             onToggleMembersSection={() => setShowMembersSection(!showMembersSection)}
           />
-
-          {/* Members section (expandable) */}
-          {showMembersSection && canRemoveMembers && (
-            <MembersPanel
-              members={members}
-              canRemoveMembers={!!canRemoveMembers}
-              onRemoveMember={handleRemoveMember}
-            />
-          )}
 
           {/* Teams Section */}
           <TeamsPanel
@@ -338,17 +378,27 @@ export default function ClubHubScreen() {
             clubId={membership?.clubId}
           />
 
+          {/* Training Schedule Section */}
+          <SessionsPanel
+            sessions={trainingSessions}
+            isCoach={isCoach}
+          />
+
           {/* Upcoming Matches Section */}
           <MatchesPanel
             matches={upcomingMatches}
             isCoach={isCoach}
           />
 
-          {/* Training Schedule Section */}
-          <SessionsPanel
-            sessions={trainingSessions}
-            isCoach={isCoach}
-          />
+          {/* Members section */}
+          {(showMembersSection || isCoach) && canRemoveMembers && (
+            <MembersPanel
+              members={members}
+              canRemoveMembers={!!canRemoveMembers}
+              onRemoveMember={handleRemoveMember}
+              clubId={membership.clubId}
+            />
+          )}
 
           {/* Feed filter tabs */}
           <ScrollView
@@ -362,13 +412,13 @@ export default function ClubHubScreen() {
                 key={filter.key}
                 style={[
                   styles.filterTab,
-                  feedFilter === filter.key ? { backgroundColor: `${palette.tint}15`, borderColor: palette.tint } : undefined,
+                  feedFilter === filter.key ? { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint } : undefined,
                   { borderColor: palette.border }
                 ]}
                 onPress={() => setFeedFilter(filter.key)}
               >
                 <Ionicons
-                  name={filter.icon as any}
+                  name={filter.icon as keyof typeof Ionicons.glyphMap}
                   size={16}
                   color={feedFilter === filter.key ? palette.tint : palette.muted}
                 />
@@ -496,6 +546,21 @@ const styles = StyleSheet.create({
   section: {
     padding: Spacing.md,
   },
+  adminActions: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  adminActionCard: {
+    flex: 1,
+    height: 72,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+  },
   filterScroll: {
     marginTop: Spacing.sm,
   },
@@ -513,20 +578,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   filterCount: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.md,
     minWidth: 20,
     alignItems: 'center',
   },
   filterCountText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
   },
   feedSection: {
     padding: Spacing.md,

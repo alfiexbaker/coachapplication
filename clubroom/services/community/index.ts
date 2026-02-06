@@ -18,7 +18,7 @@ export { communityMessagingService } from './community-messaging-service';
 export { communityCarpoolService } from './community-carpool-service';
 
 // Re-export types
-export type { CreateGroupParams, GroupInvite } from './community-group-service';
+export type { CreateGroupParams, GroupInvite, ChangeMemberRoleParams } from './community-group-service';
 export type { CreateCarpoolOfferParams, RequestCarpoolSeatParams } from './community-carpool-service';
 
 // Import services for the unified facade
@@ -54,6 +54,10 @@ export const communityService = {
   acceptGroupInvite: communityGroupService.acceptGroupInvite.bind(communityGroupService),
   declineGroupInvite: communityGroupService.declineGroupInvite.bind(communityGroupService),
   promoteMember: communityGroupService.promoteMember.bind(communityGroupService),
+  changeMemberRole: communityGroupService.changeMemberRole.bind(communityGroupService),
+  getRoleWeight: communityGroupService.getRoleWeight.bind(communityGroupService),
+  getAssignableRoles: communityGroupService.getAssignableRoles.bind(communityGroupService),
+  getRoleBreakdown: communityGroupService.getRoleBreakdown.bind(communityGroupService),
 
   // ==========================================================================
   // GROUP MESSAGING (from communityMessagingService)

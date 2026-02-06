@@ -285,48 +285,22 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
   },
-  focusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  focusText: { ...Typography.caption },
   priceColumn: {
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
-  priceLarge: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  priceMedium: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  priceSmall: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: -0.1,
-  },
-  priceLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 1,
-  },
+  priceLarge: { ...Typography.heading, letterSpacing: -0.3 },
+  priceMedium: { ...Typography.subheading, letterSpacing: -0.2 },
+  priceSmall: { ...Typography.bodySmallSemiBold, letterSpacing: -0.1 },
+  priceLabel: { ...Typography.caption, marginTop: 1 },
   inlinePriceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 2,
+    gap: Spacing.micro,
   },
-  inlinePrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  inlinePriceSuffix: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  inlinePrice: { ...Typography.subheading, letterSpacing: -0.2 },
+  inlinePriceSuffix: { ...Typography.caption },
 });
 
 export default CoachCardServices;

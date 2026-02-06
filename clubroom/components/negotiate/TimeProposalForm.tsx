@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { TimeSlot } from '@/constants/types';
 
@@ -148,7 +148,7 @@ export function TimeProposalForm({
                 style={[
                   styles.dateChip,
                   {
-                    backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                     borderColor: isSelected ? palette.tint : palette.border,
                   },
                 ]}
@@ -190,7 +190,7 @@ export function TimeProposalForm({
                 style={[
                   styles.timeChip,
                   {
-                    backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                     borderColor: isSelected ? palette.tint : palette.border,
                   },
                 ]}
@@ -224,7 +224,7 @@ export function TimeProposalForm({
                 style={[
                   styles.durationChip,
                   {
-                    backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                     borderColor: isSelected ? palette.tint : palette.border,
                   },
                 ]}
@@ -292,7 +292,7 @@ export function TimeProposalForm({
       <View
         style={[
           styles.summaryCard,
-          { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20` },
+          { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: withAlpha(palette.tint, 0.12) },
         ]}
       >
         <ThemedText style={[styles.summaryTitle, { color: palette.tint }]}>
@@ -341,7 +341,7 @@ export function TimeProposalForm({
               <ThemedText style={styles.submitButtonText}>Sending...</ThemedText>
             ) : (
               <>
-                <Ionicons name="send" size={16} color="#FFFFFF" />
+                <Ionicons name="send" size={16} color={palette.onPrimary} />
                 <ThemedText style={styles.submitButtonText}>{submitLabel}</ThemedText>
               </>
             )}
@@ -363,12 +363,12 @@ const styles = StyleSheet.create({
   originalTimeCard: {
     padding: Spacing.md,
     borderRadius: Radii.md,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   originalTimeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   originalTimeLabel: {
     ...Typography.sm,
@@ -380,8 +380,8 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
   locationText: {
     ...Typography.sm,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   dateScrollContent: {
     gap: Spacing.sm,
@@ -441,19 +441,13 @@ const styles = StyleSheet.create({
     ...Typography.sm,
     fontWeight: '500',
   },
-  textInput: {
-    borderWidth: 1.5,
+  textInput: { ...Typography.body, borderWidth: 1.5,
+    borderRadius: Radii.md,
+    padding: Spacing.md },
+  textArea: { ...Typography.body, borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
-  },
-  textArea: {
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    fontSize: 15,
-    minHeight: 80,
-  },
+    minHeight: 80 },
   summaryCard: {
     padding: Spacing.md,
     borderRadius: Radii.md,
@@ -463,7 +457,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     ...Typography.sm,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -490,9 +484,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 15,
-  },
+  submitButtonText: { ...Typography.bodySemiBold, color: Colors.light.onPrimary },
 });

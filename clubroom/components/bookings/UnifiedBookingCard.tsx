@@ -12,12 +12,13 @@
 
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { BookingSummary } from '@/constants/types';
@@ -82,7 +83,7 @@ export function UnifiedBookingCard({
       onPress();
     } else {
       logger.press('BookingCard', { bookingId: booking.id, variant });
-      router.push(`/bookings/${booking.id}`);
+      router.push(Routes.booking(booking.id));
     }
   };
 
@@ -90,7 +91,7 @@ export function UnifiedBookingCard({
     const athleteId = extendedBooking.athleteId;
     if (athleteId && isCoach) {
       logger.press('AthleteLink', { athleteId });
-      router.push(`/development/athlete/${athleteId}`);
+      router.push(Routes.developmentAthlete(athleteId));
     }
   };
 
@@ -130,7 +131,7 @@ export function UnifiedBookingCard({
                 with {booking.coachName}
               </ThemedText>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
+            <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
               <ThemedText style={[styles.statusText, { color: statusColor }]}>
                 {booking.status}
               </ThemedText>
@@ -184,7 +185,7 @@ export function UnifiedBookingCard({
             <View style={styles.actionsRow}>
               <Clickable
                 style={[styles.actionButton, { borderColor: palette.tint }]}
-                onPress={() => router.push(`/review/${booking.id}`)}
+                onPress={() => router.push(Routes.review(booking.id))}
               >
                 <Ionicons name="star-outline" size={16} color={palette.tint} />
                 <ThemedText style={[styles.actionText, { color: palette.tint }]}>
@@ -231,7 +232,7 @@ export function UnifiedBookingCard({
           </View>
 
           <View style={styles.standardRight}>
-            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
+            <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
               <ThemedText style={[styles.statusText, { color: statusColor }]}>
                 {booking.status}
               </ThemedText>
@@ -253,31 +254,27 @@ const styles = StyleSheet.create({
   avatarSmall: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
   },
   avatarMedium: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
   },
 
   // Status
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   statusBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
+  statusText: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.3 },
 
   // COMPACT
   compactCard: {
@@ -290,15 +287,10 @@ const styles = StyleSheet.create({
   },
   compactContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  compactTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  compactMeta: {
-    fontSize: 13,
-  },
+  compactTitle: { ...Typography.bodySemiBold },
+  compactMeta: { ...Typography.small },
 
   // STANDARD
   standardCard: {
@@ -311,36 +303,26 @@ const styles = StyleSheet.create({
   },
   standardContent: {
     flex: 1,
-    gap: 3,
+    gap: Spacing.micro,
   },
-  standardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  standardSubtitle: {
-    fontSize: 14,
-  },
+  standardTitle: { ...Typography.subheading },
+  standardSubtitle: { ...Typography.bodySmall },
   standardRight: {
     alignItems: 'flex-end',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   childRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  childText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  childText: { ...Typography.smallSemiBold },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  dateText: {
-    fontSize: 12,
-  },
+  dateText: { ...Typography.caption },
 
   // DETAILED
   detailedCard: {
@@ -354,15 +336,10 @@ const styles = StyleSheet.create({
   },
   detailedHeaderContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  detailedTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  detailedSubtitle: {
-    fontSize: 14,
-  },
+  detailedTitle: { ...Typography.heading },
+  detailedSubtitle: { ...Typography.bodySmall },
   metaSection: {
     gap: Spacing.xs,
     paddingTop: Spacing.xs,
@@ -374,17 +351,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  metaText: {
-    fontSize: 14,
-    flex: 1,
-  },
+  metaText: { ...Typography.bodySmall, flex: 1 },
   priceRow: {
     alignItems: 'flex-end',
   },
-  priceText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  priceText: { ...Typography.heading },
   actionsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -397,13 +368,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  actionText: { ...Typography.bodySmallSemiBold },
 });

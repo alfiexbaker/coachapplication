@@ -8,9 +8,11 @@ import {
   RefreshControl,
   TextInput,
   Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -154,11 +156,11 @@ export default function NegotiateScreen() {
 
   const handleCounterPropose = () => {
     // Navigate to counter-offer screen
-    router.push(`/bookings/${id}/counter`);
+    router.push(Routes.bookingsCounter(id!));
   };
 
   const handleNewProposal = () => {
-    router.push(`/bookings/${id}/counter`);
+    router.push(Routes.bookingsCounter(id!));
   };
 
   if (isLoading) {
@@ -243,7 +245,7 @@ export default function NegotiateScreen() {
           </ThemedText>
           <Button onPress={handleNewProposal} style={styles.proposalButton}>
             <View style={styles.proposalButtonContent}>
-              <Ionicons name="time-outline" size={18} color="#FFFFFF" />
+              <Ionicons name="time-outline" size={18} color={Colors.light.onPrimary} />
               <ThemedText style={styles.proposalButtonText}>
                 Propose New Time
               </ThemedText>
@@ -330,7 +332,7 @@ export default function NegotiateScreen() {
           <View style={styles.actionSection}>
             <Button onPress={handleNewProposal}>
               <View style={styles.proposalButtonContent}>
-                <Ionicons name="swap-horizontal" size={18} color="#FFFFFF" />
+                <Ionicons name="swap-horizontal" size={18} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.proposalButtonText}>
                   Propose Different Time
                 </ThemedText>
@@ -347,8 +349,8 @@ export default function NegotiateScreen() {
         animationType="fade"
         onRequestClose={() => setShowRejectModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: palette.surface }]}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowRejectModal(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: palette.surface }]} onPress={(e) => e.stopPropagation()}>
             <ThemedText type="defaultSemiBold" style={styles.modalTitle}>
               Decline Proposal
             </ThemedText>
@@ -386,8 +388,8 @@ export default function NegotiateScreen() {
                 <ThemedText style={styles.modalConfirmText}>Decline</ThemedText>
               </Clickable>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </SafeAreaView>
   );
@@ -430,10 +432,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   emptyContainer: {
@@ -459,7 +461,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   proposalButtonText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   headerButton: {
@@ -476,7 +478,7 @@ const styles = StyleSheet.create({
   },
   bookingInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   section: {
     gap: Spacing.sm,
@@ -506,7 +508,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   modalTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   modalSubtitle: {
     ...Typography.sm,
@@ -515,7 +517,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     minHeight: 80,
     marginTop: Spacing.xs,
   },
@@ -538,7 +540,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   modalConfirmText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

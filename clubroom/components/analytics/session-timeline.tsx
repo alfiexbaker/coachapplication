@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface SessionEvent {
@@ -99,11 +99,11 @@ export function SessionTimeline({
                     <View
                       style={[
                         styles.iconCircle,
-                        { backgroundColor: `${iconConfig.color}15` },
+                        { backgroundColor: withAlpha(iconConfig.color, 0.09) },
                       ]}
                     >
                       <Ionicons
-                        name={iconConfig.icon as any}
+                        name={iconConfig.icon as keyof typeof Ionicons.glyphMap}
                         size={16}
                         color={iconConfig.color}
                       />
@@ -201,9 +201,9 @@ export function HorizontalTimeline({ events, onEventPress }: HorizontalTimelineP
               style={[styles.horizontalCard, { backgroundColor: palette.surface }]}
             >
               <View
-                style={[styles.horizontalIcon, { backgroundColor: `${iconConfig.color}15` }]}
+                style={[styles.horizontalIcon, { backgroundColor: withAlpha(iconConfig.color, 0.09) }]}
               >
-                <Ionicons name={iconConfig.icon as any} size={18} color={iconConfig.color} />
+                <Ionicons name={iconConfig.icon as keyof typeof Ionicons.glyphMap} size={18} color={iconConfig.color} />
               </View>
               <ThemedText style={styles.horizontalDate}>
                 {new Date(event.date).toLocaleDateString('en-GB', {
@@ -236,12 +236,8 @@ const styles = StyleSheet.create({
   monthGroup: {
     gap: Spacing.sm,
   },
-  monthLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  monthLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   eventsContainer: {
     gap: 0,
   },
@@ -256,7 +252,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -264,43 +260,33 @@ const styles = StyleSheet.create({
     flex: 1,
     width: 2,
     minHeight: 20,
-    marginVertical: 4,
+    marginVertical: Spacing.xxs,
   },
   eventContent: {
     flex: 1,
     paddingBottom: Spacing.md,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   eventHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
-  eventTitle: {
-    flex: 1,
-    fontSize: 14,
-  },
-  eventDate: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  eventSubtitle: {
-    fontSize: 13,
-  },
+  eventTitle: { ...Typography.bodySmall, flex: 1 },
+  eventDate: { ...Typography.caption },
+  eventSubtitle: { ...Typography.small },
   eventMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  metaText: {
-    fontSize: 11,
-  },
+  metaText: { ...Typography.caption },
   horizontalContainer: {
     paddingVertical: Spacing.sm,
     gap: 0,
@@ -323,16 +309,10 @@ const styles = StyleSheet.create({
   horizontalIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  horizontalDate: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  horizontalTitle: {
-    fontSize: 11,
-    textAlign: 'center',
-  },
+  horizontalDate: { ...Typography.caption },
+  horizontalTitle: { ...Typography.caption, textAlign: 'center' },
 });

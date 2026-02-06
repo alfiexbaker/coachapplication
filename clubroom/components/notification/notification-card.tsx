@@ -1,8 +1,8 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 import { NotificationItem } from '@/constants/types';
@@ -59,7 +59,7 @@ export function NotificationCard({
     // Navigate to deep link if available
     if (item.deepLink) {
       try {
-        router.push(item.deepLink as any);
+        router.push(item.deepLink as Href);
       } catch (error) {
         logger.error('Failed to navigate', { deepLink: item.deepLink, error });
       }
@@ -73,7 +73,7 @@ export function NotificationCard({
           styles.card,
           {
             borderColor: item.read ? palette.border : palette.tint,
-            backgroundColor: item.read ? palette.surface : `${palette.tint}08`,
+            backgroundColor: item.read ? palette.surface : withAlpha(palette.tint, 0.03),
             borderLeftWidth: item.read ? 1.5 : 3,
             borderLeftColor: item.read ? palette.border : palette.tint,
           },
@@ -84,12 +84,12 @@ export function NotificationCard({
           style={[
             styles.iconContainer,
             {
-              backgroundColor: scheme === 'dark' ? `${typeColor.icon}20` : typeColor.bg,
+              backgroundColor: scheme === 'dark' ? withAlpha(typeColor.icon, 0.12) : typeColor.bg,
             },
           ]}
         >
           <Ionicons
-            name={icon as any}
+            name={icon as keyof typeof Ionicons.glyphMap}
             size={20}
             color={scheme === 'dark' ? palette.tint : typeColor.icon}
           />
@@ -112,7 +112,7 @@ export function NotificationCard({
           {item.type === 'badge' && item.badgeTitle ? (
             <View style={styles.badgeInfo}>
               <Ionicons name="ribbon" size={14} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint, fontWeight: '600', fontSize: 13, marginLeft: 4 }}>
+              <ThemedText style={{ ...Typography.smallSemiBold, color: palette.tint, marginLeft: Spacing.xxs }}>
                 {item.badgeTitle}
                 {item.athleteName ? ` - ${item.athleteName}` : ''}
               </ThemedText>
@@ -125,8 +125,8 @@ export function NotificationCard({
               {onAddToFeed && (
                 <Clickable onPress={onAddToFeed}>
                   <View style={[styles.actionChip, { backgroundColor: palette.tint, borderColor: palette.tint }]}>
-                    <Ionicons name="add-circle-outline" size={14} color="#fff" />
-                    <ThemedText style={[styles.actionText, { color: '#fff' }]}>
+                    <Ionicons name="add-circle-outline" size={14} color={palette.onPrimary} />
+                    <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>
                       Add to Feed
                     </ThemedText>
                   </View>
@@ -147,14 +147,14 @@ export function NotificationCard({
 
           {/* Time label */}
           <View style={styles.footer}>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+            <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
               {item.timeLabel || 'Just now'}
             </ThemedText>
 
             {/* Type indicator */}
             {showTypeIndicator && (
-              <View style={[styles.typeTag, { backgroundColor: `${palette.muted}15` }]}>
-                <ThemedText style={{ color: palette.muted, fontSize: 10, textTransform: 'capitalize' }}>
+              <View style={[styles.typeTag, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
+                <ThemedText style={{ ...Typography.micro, color: palette.muted, textTransform: 'capitalize' }}>
                   {item.type}
                 </ThemedText>
               </View>
@@ -194,29 +194,24 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 15,
-  },
+  title: { ...Typography.body },
   unreadDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  body: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  body: { ...Typography.bodySmall, lineHeight: 20 },
   badgeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   actionRow: {
     flexDirection: 'row',
@@ -232,22 +227,19 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  actionText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  actionText: { ...Typography.caption },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   typeTag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
   },
   chevron: {
-    marginTop: 12,
+    marginTop: Spacing.xs + Spacing.xxs,
   },
 });

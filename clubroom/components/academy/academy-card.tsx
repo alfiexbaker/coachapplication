@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Academy } from '@/constants/types';
 
@@ -121,7 +121,7 @@ export function AcademyCard({ academy, onPress, compact = false }: AcademyCardPr
             {academy.specialties.slice(0, 3).map((specialty) => (
               <View
                 key={specialty}
-                style={[styles.tag, { backgroundColor: `${primaryColor}15` }]}
+                style={[styles.tag, { backgroundColor: withAlpha(primaryColor, 0.09) }]}
               >
                 <ThemedText style={[styles.tagText, { color: primaryColor }]}>
                   {specialty}
@@ -171,24 +171,20 @@ const styles = StyleSheet.create({
   logo: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     borderWidth: 3,
     borderColor: '#fff',
   },
   logoPlaceholder: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     borderWidth: 3,
     borderColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  logoText: { ...Typography.heading, color: '#fff' },
   titleSection: {
     flex: 1,
     marginTop: 24,
@@ -196,16 +192,11 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    marginTop: 2,
+    gap: Spacing.micro,
+    marginTop: Spacing.micro,
   },
-  location: {
-    fontSize: 12,
-  },
-  description: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  location: { ...Typography.caption },
+  description: { ...Typography.small, lineHeight: 18 },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -213,11 +204,9 @@ const styles = StyleSheet.create({
   stat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  statText: {
-    fontSize: 12,
-  },
+  statText: { ...Typography.caption },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -225,13 +214,10 @@ const styles = StyleSheet.create({
   },
   tag: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  tagText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  tagText: { ...Typography.caption },
   // Compact styles
   compactCard: {
     padding: Spacing.md,
@@ -244,30 +230,24 @@ const styles = StyleSheet.create({
   compactLogo: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
   },
   compactLogoPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  compactLogoText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  compactLogoText: { ...Typography.bodySmallSemiBold, color: '#fff' },
   compactInfo: {
     flex: 1,
   },
   compactMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    marginTop: 2,
+    gap: Spacing.micro,
+    marginTop: Spacing.micro,
   },
-  compactLocation: {
-    fontSize: 12,
-  },
+  compactLocation: { ...Typography.caption },
 });

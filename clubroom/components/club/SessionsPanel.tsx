@@ -1,10 +1,11 @@
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
@@ -24,7 +25,7 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
     if (onCreateSession) {
       onCreateSession();
     } else {
-      router.push('/group-sessions/create');
+      router.push(Routes.GROUP_SESSIONS_CREATE);
     }
   };
 
@@ -32,7 +33,7 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
     if (onInviteSquad) {
       onInviteSquad();
     } else {
-      router.push('/session-invites/group');
+      router.push(Routes.SESSION_INVITES_GROUP);
     }
   };
 
@@ -46,18 +47,25 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
         {isCoach && (
           <View style={styles.trainingHeaderButtons}>
             <TouchableOpacity
+              style={styles.manageAllLink}
+              onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}
+            >
+              <ThemedText style={{ ...Typography.smallSemiBold, color: palette.tint }}>Manage All</ThemedText>
+              <Ionicons name="chevron-forward" size={14} color={palette.tint} />
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.inviteSquadButton, { borderColor: palette.tint }]}
               onPress={handleInviteSquad}
             >
               <Ionicons name="people" size={14} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}>Invite Squad</ThemedText>
+              <ThemedText style={ { color: palette.tint, ...Typography.caption }}>Invite Squad</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.addTrainingButton, { backgroundColor: palette.tint }]}
               onPress={handleCreateSession}
             >
-              <Ionicons name="add" size={16} color="#fff" />
-              <ThemedText style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Add</ThemedText>
+              <Ionicons name="add" size={16} color={palette.onPrimary} />
+              <ThemedText style={ { color: palette.onPrimary, ...Typography.caption }}>Add</ThemedText>
             </TouchableOpacity>
           </View>
         )}
@@ -74,49 +82,46 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
               <TouchableOpacity
                 key={session.id}
                 style={[styles.trainingItem, { borderColor: palette.border }]}
-                onPress={() => router.push({
-                  pathname: '/group-sessions/[id]',
-                  params: { id: session.id },
-                })}
+                onPress={() => router.push(Routes.groupSession(session.id))}
               >
                 <View style={styles.trainingItemLeft}>
-                  <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>
+                  <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
                     {session.title}
                   </ThemedText>
                   <View style={styles.trainingMeta}>
                     {session.isRecurring && (
-                      <View style={[styles.recurringBadge, { backgroundColor: `${palette.tint}15` }]}>
+                      <View style={[styles.recurringBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                         <Ionicons name="repeat" size={10} color={palette.tint} />
-                        <ThemedText style={{ color: palette.tint, fontSize: 10 }}>
+                        <ThemedText style={{ ...Typography.micro, color: palette.tint }}>
                           {dayName}s
                         </ThemedText>
                       </View>
                     )}
-                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                    <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                       {nextDate ? `${nextDate.startTime} - ${nextDate.endTime}` : ''}
                     </ThemedText>
                   </View>
                   <View style={styles.trainingLocation}>
                     <Ionicons name="location-outline" size={12} color={palette.muted} />
-                    <ThemedText style={{ color: palette.muted, fontSize: 11 }} numberOfLines={1}>
+                    <ThemedText style={{ ...Typography.caption, color: palette.muted }} numberOfLines={1}>
                       {session.location}
                     </ThemedText>
                   </View>
                 </View>
                 <View style={styles.trainingItemRight}>
                   {session.squadName && (
-                    <View style={[styles.squadTag, { backgroundColor: `${palette.tint}10` }]}>
-                      <ThemedText style={{ color: palette.tint, fontSize: 10, fontWeight: '600' }}>
+                    <View style={[styles.squadTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                      <ThemedText style={ { color: palette.tint, ...Typography.micro }}>
                         {session.squadName}
                       </ThemedText>
                     </View>
                   )}
-                  {session.pricePerParticipant === 0 ? (
-                    <ThemedText style={{ color: palette.success, fontSize: 12, fontWeight: '600' }}>
+                  { session.pricePerParticipant === 0 ? (
+                    <ThemedText style={{ ...Typography.caption, color: palette.success }}>
                       Free
                     </ThemedText>
                   ) : (
-                    <ThemedText style={{ color: palette.text, fontSize: 12, fontWeight: '600' }}>
+                    <ThemedText style={ { color: palette.text, ...Typography.caption }}>
                       {groupSessionService.formatPrice(session.pricePerParticipant, session.currency)}
                     </ThemedText>
                   )}
@@ -127,9 +132,9 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
           {sessions.length > 3 && (
             <TouchableOpacity
               style={styles.viewAllButton}
-              onPress={() => router.push('/club/training-schedule')}
+              onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}
             >
-              <ThemedText style={{ color: palette.tint, fontSize: 13 }}>
+              <ThemedText style={{ ...Typography.small, color: palette.tint }}>
                 View all {sessions.length} training sessions
               </ThemedText>
               <Ionicons name="chevron-forward" size={16} color={palette.tint} />
@@ -139,7 +144,7 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
       ) : (
         <View style={styles.emptyTraining}>
           <Ionicons name="calendar-outline" size={32} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13, textAlign: 'center' }}>
+          <ThemedText style={{ ...Typography.small, color: palette.muted, textAlign: 'center' }}>
             No training sessions scheduled
           </ThemedText>
           {isCoach && (
@@ -147,7 +152,7 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
               style={[styles.createTrainingButton, { borderColor: palette.tint }]}
               onPress={handleCreateSession}
             >
-              <ThemedText style={{ color: palette.tint, fontSize: 13, fontWeight: '600' }}>
+              <ThemedText style={ { color: palette.tint, ...Typography.smallSemiBold }}>
                 Schedule Training
               </ThemedText>
             </TouchableOpacity>
@@ -179,10 +184,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
+  manageAllLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.micro,
+    paddingVertical: Spacing.xs,
+  },
   inviteSquadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
@@ -191,7 +202,7 @@ const styles = StyleSheet.create({
   addTrainingButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
@@ -208,7 +219,7 @@ const styles = StyleSheet.create({
   },
   trainingItemLeft: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   trainingMeta: {
     flexDirection: 'row',
@@ -218,30 +229,30 @@ const styles = StyleSheet.create({
   recurringBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   trainingLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   trainingItemRight: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   squadTag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
   },
   emptyTraining: {

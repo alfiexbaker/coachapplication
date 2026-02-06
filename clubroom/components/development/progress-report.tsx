@@ -396,12 +396,12 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   noteBox: {
     padding: Spacing.sm,

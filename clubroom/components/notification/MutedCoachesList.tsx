@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { MutedCoach } from '@/constants/types';
 
@@ -103,7 +103,7 @@ function MutedCoachRow({
       {coach.coachAvatar ? (
         <Image source={{ uri: coach.coachAvatar }} style={styles.avatar} />
       ) : (
-        <View style={[styles.avatarPlaceholder, { backgroundColor: `${palette.accent}20` }]}>
+        <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.accent, 0.12) }]}>
           <ThemedText type="defaultSemiBold" style={{ color: palette.accent }}>
             {coach.coachName.charAt(0).toUpperCase()}
           </ThemedText>
@@ -125,7 +125,7 @@ function MutedCoachRow({
       <Clickable
         onPress={handleUnmute}
         disabled={disabled || loading}
-        style={[styles.unmuteButton, { backgroundColor: `${palette.error}15` }]}
+        style={[styles.unmuteButton, { backgroundColor: withAlpha(palette.error, 0.09) }]}
       >
         <Ionicons name="volume-high" size={18} color={palette.error} />
       </Clickable>
@@ -146,7 +146,7 @@ export function MutedCoachesList({
     <View style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.iconContainer, { backgroundColor: `${palette.muted}15` }]}>
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
           <Ionicons name="volume-mute" size={22} color={palette.muted} />
         </View>
         <View style={styles.headerContent}>
@@ -214,28 +214,19 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  title: {
-    fontSize: 16,
-  },
-  subtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  title: { ...Typography.subheading },
+  subtitle: { ...Typography.small, lineHeight: 18 },
   badge: {
     minWidth: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
   },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  badgeText: { ...Typography.caption, color: Colors.light.onPrimary },
   list: {
     borderTopWidth: StyleSheet.hairlineWidth,
   },
@@ -248,29 +239,22 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
   },
   avatarPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  coachName: {
-    fontSize: 15,
-  },
-  mutedDate: {
-    fontSize: 12,
-  },
-  reason: {
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
+  coachName: { ...Typography.body },
+  mutedDate: { ...Typography.caption },
+  reason: { ...Typography.caption, fontStyle: 'italic' },
   unmuteButton: {
     width: 40,
     height: 40,
@@ -283,16 +267,9 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     gap: Spacing.sm,
   },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: Spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+  emptyTitle: { ...Typography.subheading, marginTop: Spacing.xs },
+  emptySubtitle: { ...Typography.small, textAlign: 'center',
+    lineHeight: 18 },
 });
 
 export default MutedCoachesList;

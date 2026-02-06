@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type {
   CounterOfferStatus,
@@ -125,7 +125,7 @@ export function NegotiationTimeline({
       <View style={styles.header}>
         <ThemedText type="defaultSemiBold">Negotiation History</ThemedText>
         {isResolved && (
-          <View style={[styles.statusBadge, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="checkmark-circle" size={14} color={palette.success} />
             <ThemedText style={[styles.statusText, { color: palette.success }]}>
               Resolved
@@ -133,7 +133,7 @@ export function NegotiationTimeline({
           </View>
         )}
         {isCancelled && (
-          <View style={[styles.statusBadge, { backgroundColor: `${palette.error}15` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
             <Ionicons name="close-circle" size={14} color={palette.error} />
             <ThemedText style={[styles.statusText, { color: palette.error }]}>
               Cancelled
@@ -141,7 +141,7 @@ export function NegotiationTimeline({
           </View>
         )}
         {!isResolved && !isCancelled && (
-          <View style={[styles.statusBadge, { backgroundColor: `${palette.warning}15` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
             <Ionicons name="time" size={14} color={palette.warning} />
             <ThemedText style={[styles.statusText, { color: palette.warning }]}>
               In Progress
@@ -184,11 +184,11 @@ export function NegotiationTimeline({
                     styles.timelineDot,
                     {
                       backgroundColor: iconConfig.color,
-                      borderColor: `${iconConfig.color}30`,
+                      borderColor: withAlpha(iconConfig.color, 0.19),
                     },
                   ]}
                 >
-                  <Ionicons name={iconConfig.name} size={12} color="#FFFFFF" />
+                  <Ionicons name={iconConfig.name} size={12} color={palette.onPrimary} />
                 </View>
                 {!isLast && (
                   <View style={[styles.timelineLine, { backgroundColor: palette.border }]} />
@@ -216,15 +216,15 @@ export function NegotiationTimeline({
                     {
                       backgroundColor:
                         event.type === 'accepted'
-                          ? `${palette.success}08`
+                          ? withAlpha(palette.success, 0.03)
                           : event.type === 'rejected'
-                          ? `${palette.error}08`
+                          ? withAlpha(palette.error, 0.03)
                           : palette.background,
                       borderColor:
                         event.type === 'accepted'
-                          ? `${palette.success}20`
+                          ? withAlpha(palette.success, 0.12)
                           : event.type === 'rejected'
-                          ? `${palette.error}20`
+                          ? withAlpha(palette.error, 0.12)
                           : palette.border,
                     },
                   ]}
@@ -265,7 +265,7 @@ export function NegotiationTimeline({
 
                 {/* Rejection reason */}
                 {event.rejectionReason && (
-                  <View style={[styles.rejectionBox, { backgroundColor: `${palette.error}10` }]}>
+                  <View style={[styles.rejectionBox, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                     <Ionicons name="information-circle-outline" size={12} color={palette.error} />
                     <ThemedText style={[styles.rejectionText, { color: palette.error }]}>
                       {event.rejectionReason}
@@ -309,7 +309,7 @@ export function NegotiationTimeline({
         <View
           style={[
             styles.finalTimeCard,
-            { backgroundColor: `${palette.success}10`, borderColor: `${palette.success}30` },
+            { backgroundColor: withAlpha(palette.success, 0.06), borderColor: withAlpha(palette.success, 0.19) },
           ]}
         >
           <Ionicons name="checkmark-circle" size={20} color={palette.success} />
@@ -337,9 +337,9 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusText: {
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   participant: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   participantText: {
     ...Typography.sm,
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
   timelineDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   timelineLine: {
     flex: 1,
     width: 2,
-    marginVertical: 4,
+    marginVertical: Spacing.xxs,
   },
   timelineContent: {
     flex: 1,
@@ -409,17 +409,17 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   messageBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
+    gap: Spacing.xxs,
     padding: Spacing.xs,
     borderRadius: Radii.sm,
   },
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   rejectionBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
+    gap: Spacing.xxs,
     padding: Spacing.xs,
     borderRadius: Radii.sm,
   },
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusRow: {
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   statusLabel: {
     ...Typography.sm,

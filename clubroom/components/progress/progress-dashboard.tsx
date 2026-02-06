@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SkillLevelGrid } from './skill-level-card';
 import { FeedbackList } from './session-feedback-card';
@@ -49,7 +49,7 @@ function OverviewCard({
     <SurfaceCard style={styles.overviewCard}>
       <View style={styles.overviewHeader}>
         <View style={styles.overviewLeft}>
-          <View style={[styles.levelBadge, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.levelBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="trophy" size={16} color={palette.tint} />
             <ThemedText style={[styles.levelText, { color: palette.tint }]}>
               Level {progress.currentLevel.level}
@@ -59,8 +59,8 @@ function OverviewCard({
             {progress.currentLevel.name}
           </ThemedText>
         </View>
-        <View style={[styles.trendBadge, { backgroundColor: `${trend.color}15` }]}>
-          <Ionicons name={trend.name as any} size={14} color={trend.color} />
+        <View style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
+          <Ionicons name={trend.name as keyof typeof Ionicons.glyphMap} size={14} color={trend.color} />
           <ThemedText style={[styles.trendText, { color: trend.color }]}>
             {trend.label}
           </ThemedText>
@@ -77,7 +77,7 @@ function OverviewCard({
             {progress.progressToNextLevel}% to next level
           </ThemedText>
         </View>
-        <View style={[styles.progressBar, { backgroundColor: `${palette.tint}20` }]}>
+        <View style={[styles.progressBar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
           <View
             style={[
               styles.progressFill,
@@ -157,7 +157,7 @@ function GoalsSection({
             </ThemedText>
           </View>
           <View style={styles.goalProgress}>
-            <View style={[styles.goalProgressBar, { backgroundColor: `${palette.tint}20` }]}>
+            <View style={[styles.goalProgressBar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
               <View
                 style={[
                   styles.goalProgressFill,
@@ -210,7 +210,7 @@ function BadgesSection({
       {badges.map((badge) => (
         <View
           key={badge.id}
-          style={[styles.badgeCard, { backgroundColor: `${palette.tint}10` }]}
+          style={[styles.badgeCard, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
         >
           <Ionicons name="ribbon" size={20} color={palette.tint} />
           <ThemedText style={styles.badgeLabel} numberOfLines={1}>
@@ -365,9 +365,9 @@ export function ParentProgressSummary({
           <ThemedText type="defaultSemiBold" style={styles.parentName}>
             {athleteName}
           </ThemedText>
-          <View style={[styles.trendBadge, { backgroundColor: `${trend.color}15` }]}>
-            <Ionicons name={trend.icon as any} size={12} color={trend.color} />
-            <ThemedText style={[styles.trendText, { color: trend.color, fontSize: 11 }]}>
+          <View style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
+            <Ionicons name={trend.icon as keyof typeof Ionicons.glyphMap} size={12} color={trend.color} />
+            <ThemedText style={[{ ...Typography.caption }, styles.trendText, { color: trend.color }]}>
               {trend.label}
             </ThemedText>
           </View>
@@ -439,54 +439,44 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   overviewLeft: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
   },
-  levelText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  levelName: {
-    fontSize: 18,
-  },
+  levelText: { ...Typography.smallSemiBold },
+  levelName: { ...Typography.heading },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  trendText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  trendText: { ...Typography.caption },
   progressSection: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  progressLabel: {
-    fontSize: 12,
-  },
+  progressLabel: { ...Typography.caption },
   progressBar: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -501,14 +491,9 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
   },
-  statValue: {
-    fontSize: 22,
-  },
-  statLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
+  statValue: { ...Typography.title },
+  statLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.3 },
   // Section
   section: {
     gap: Spacing.sm,
@@ -518,34 +503,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 16,
-  },
+  sectionTitle: { ...Typography.subheading },
   viewAllButton: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
   },
-  viewAllButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  viewAllButtonText: { ...Typography.smallSemiBold },
   // Goals
   goalsContainer: {
     gap: Spacing.sm,
   },
   goalCard: {
     padding: Spacing.sm,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   goalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  goalTitle: {
-    fontSize: 14,
-    flex: 1,
-  },
+  goalTitle: { ...Typography.bodySmall, flex: 1 },
   goalProgress: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -554,22 +531,16 @@ const styles = StyleSheet.create({
   goalProgressBar: {
     flex: 1,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   goalProgressFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
-  goalProgressText: {
-    fontSize: 12,
-    fontWeight: '600',
-    minWidth: 32,
-    textAlign: 'right',
-  },
-  goalDueDate: {
-    fontSize: 11,
-  },
+  goalProgressText: { ...Typography.caption, minWidth: 32,
+    textAlign: 'right' },
+  goalDueDate: { ...Typography.caption },
   // Badges
   badgesScroll: {
     gap: Spacing.sm,
@@ -579,37 +550,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.sm,
     borderRadius: Radii.md,
-    gap: 4,
+    gap: Spacing.xxs,
     minWidth: 80,
   },
-  badgeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  badgeDate: {
-    fontSize: 10,
-  },
+  badgeLabel: { ...Typography.caption, textAlign: 'center' },
+  badgeDate: { ...Typography.micro },
   viewAllCard: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.sm,
     minWidth: 70,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  viewAllText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  viewAllText: { ...Typography.caption },
   // Empty state
   emptyCard: {
     alignItems: 'center',
     padding: Spacing.lg,
     gap: Spacing.xs,
   },
-  emptyText: {
-    fontSize: 14,
-  },
+  emptyText: { ...Typography.bodySmall },
   // Parent Summary
   parentSummaryCard: {
     padding: Spacing.md,
@@ -621,22 +581,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  parentName: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
+  parentName: { ...Typography.subheading, marginBottom: Spacing.xxs },
   levelCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  levelCircleText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
+  levelCircleText: { ...Typography.smallSemiBold },
   parentStats: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -644,24 +598,17 @@ const styles = StyleSheet.create({
   parentStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  parentStatText: {
-    fontSize: 12,
-  },
+  parentStatText: { ...Typography.caption },
   latestFeedback: {
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  latestFeedbackLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  latestFeedbackText: {
-    fontSize: 13,
-  },
+  latestFeedbackLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.3 },
+  latestFeedbackText: { ...Typography.small },
   chevron: {
     position: 'absolute',
     top: Spacing.md,

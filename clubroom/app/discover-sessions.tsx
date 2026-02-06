@@ -22,7 +22,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { SessionOffering, FootballObjective } from '@/constants/types';
@@ -156,7 +156,7 @@ export default function DiscoverSessionsScreen() {
       >
         <View style={styles.cardHeader}>
           <View style={styles.coachInfo}>
-            <View style={[styles.avatar, { backgroundColor: `${palette.tint}20` }]}>
+            <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
               <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                 {item.coachName.charAt(0)}
               </ThemedText>
@@ -196,14 +196,14 @@ export default function DiscoverSessionsScreen() {
           </View>
 
           <View style={styles.badges}>
-            <View style={[styles.badge, { backgroundColor: `${palette.accent}15` }]}>
+            <View style={[styles.badge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
               <ThemedText style={[styles.badgeText, { color: palette.accent }]}>
                 {item.sessionType === 'group' ? 'Group' : '1:1'}
               </ThemedText>
             </View>
 
             {item.footballSkill && (
-              <View style={[styles.badge, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
                   {item.footballSkill}
                 </ThemedText>
@@ -214,7 +214,7 @@ export default function DiscoverSessionsScreen() {
               <View
                 style={[
                   styles.badge,
-                  { backgroundColor: isFull ? `${palette.error}15` : `${palette.success}15` },
+                  { backgroundColor: isFull ? withAlpha(palette.error, 0.09) : withAlpha(palette.success, 0.09) },
                 ]}
               >
                 <ThemedText
@@ -283,7 +283,7 @@ export default function DiscoverSessionsScreen() {
               <ThemedText
                 style={[
                   styles.filterText,
-                  { color: typeFilter === item.value ? '#fff' : palette.text },
+                  { color: typeFilter === item.value ? Colors.light.onPrimary : palette.text },
                 ]}
               >
                 {item.label}
@@ -314,7 +314,7 @@ export default function DiscoverSessionsScreen() {
               <ThemedText
                 style={[
                   styles.filterText,
-                  { color: skillFilter === item.value ? '#fff' : palette.text },
+                  { color: skillFilter === item.value ? Colors.light.onPrimary : palette.text },
                 ]}
               >
                 {item.label}
@@ -333,7 +333,7 @@ export default function DiscoverSessionsScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: `${palette.muted}10` }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
               <Ionicons name="search-outline" size={40} color={palette.muted} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
@@ -381,8 +381,8 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
-    paddingVertical: 4,
+    ...Typography.subheading,
+    paddingVertical: Spacing.xxs,
   },
   filters: {
     paddingBottom: Spacing.xs,
@@ -398,8 +398,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   filterText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   list: {
     padding: Spacing.md,
@@ -421,31 +420,27 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.subheading,
   },
   coachName: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   location: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   price: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   sessionTitle: {
-    fontSize: 17,
-    lineHeight: 22,
+    ...Typography.heading,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   meta: {
     gap: Spacing.sm,
@@ -457,7 +452,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   metaText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   badges: {
     flexDirection: 'row',
@@ -466,12 +461,11 @@ const styles = StyleSheet.create({
   },
   badge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   separator: {
     height: Spacing.sm,
@@ -486,16 +480,16 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   emptyTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
     lineHeight: 20,
   },

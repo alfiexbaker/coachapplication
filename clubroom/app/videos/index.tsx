@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,7 +11,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
@@ -52,7 +53,7 @@ function VideoCard({
             </ThemedText>
           </View>
           <View style={[styles.playButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
-            <Ionicons name="play" size={24} color="#fff" />
+            <Ionicons name="play" size={24} color={Colors.light.onPrimary} />
           </View>
         </View>
 
@@ -94,7 +95,7 @@ function VideoCard({
               {video.tags.slice(0, 3).map((tag) => (
                 <View
                   key={tag}
-                  style={[styles.tag, { backgroundColor: `${palette.tint}10` }]}
+                  style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                 >
                   <ThemedText style={[styles.tagText, { color: palette.tint }]}>
                     {tag}
@@ -155,10 +156,10 @@ export default function VideosScreen() {
         </View>
         {isCoach && (
           <Clickable
-            onPress={() => router.push('/videos/upload')}
+            onPress={() => router.push(Routes.VIDEOS_UPLOAD)}
             style={[styles.uploadButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
+            <Ionicons name="cloud-upload-outline" size={20} color={Colors.light.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -215,10 +216,7 @@ export default function VideosScreen() {
                 video={video}
                 index={index}
                 onPress={() =>
-                  router.push({
-                    pathname: '/videos/[id]',
-                    params: { id: video.id },
-                  })
+                  router.push(Routes.video(video.id))
                 }
               />
             ))}
@@ -246,7 +244,7 @@ const styles = StyleSheet.create({
   uploadButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -263,10 +261,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   statValue: {
-    fontSize: 20,
+    ...Typography.title,
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   content: {
     padding: Spacing.lg,
@@ -292,14 +290,13 @@ const styles = StyleSheet.create({
     bottom: Spacing.xs,
     right: Spacing.xs,
     backgroundColor: 'rgba(0,0,0,0.75)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
   },
   durationText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
   },
   playButton: {
     position: 'absolute',
@@ -309,13 +306,13 @@ const styles = StyleSheet.create({
     marginTop: -24,
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   videoInfo: {
     padding: Spacing.md,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   titleRow: {
     flexDirection: 'row',
@@ -324,10 +321,10 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
   },
   athletes: {
-    fontSize: 13,
+    ...Typography.small,
   },
   metaRow: {
     flexDirection: 'row',
@@ -337,23 +334,22 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   metaText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   tagsRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   tag: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   tagText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
 });

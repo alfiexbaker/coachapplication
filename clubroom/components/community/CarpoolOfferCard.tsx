@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
 import type { CarpoolOffer } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
@@ -67,7 +67,7 @@ function CarpoolOfferCardComponent({
   if (compact) {
     return (
       <SurfaceCard style={styles.compactCard} onPress={onPress}>
-        <View style={[styles.iconContainer, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="car-outline" size={20} color={palette.tint} />
         </View>
         <View style={styles.compactContent}>
@@ -75,7 +75,7 @@ function CarpoolOfferCardComponent({
             <ThemedText type="defaultSemiBold" style={styles.compactTitle} numberOfLines={1}>
               {offer.sessionName}
             </ThemedText>
-            <View style={[styles.statusPill, { backgroundColor: `${getStatusColor()}15` }]}>
+            <View style={[styles.statusPill, { backgroundColor: withAlpha(getStatusColor(), 0.09) }]}>
               <ThemedText style={[styles.statusText, { color: getStatusColor() }]}>
                 {getStatusText()}
               </ThemedText>
@@ -105,7 +105,7 @@ function CarpoolOfferCardComponent({
     <SurfaceCard style={styles.card} onPress={onPress}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.avatarLarge, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.avatarLarge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="car" size={24} color={palette.tint} />
         </View>
         <View style={styles.headerInfo}>
@@ -116,7 +116,7 @@ function CarpoolOfferCardComponent({
             Offered by {isOwnOffer ? 'you' : offer.parentName}
           </ThemedText>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor()}15` }]}>
+        <View style={[styles.statusBadge, { backgroundColor: withAlpha(getStatusColor(), 0.09) }]}>
           <ThemedText style={[styles.statusBadgeText, { color: getStatusColor() }]}>
             {getStatusText()}
           </ThemedText>
@@ -170,7 +170,7 @@ function CarpoolOfferCardComponent({
           </ThemedText>
         </View>
         {isOwnOffer && pendingRequests > 0 && (
-          <View style={[styles.pendingBadge, { backgroundColor: `${palette.warning}15` }]}>
+          <View style={[styles.pendingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
             <ThemedText style={[styles.pendingText, { color: palette.warning }]}>
               {pendingRequests} pending
             </ThemedText>
@@ -192,14 +192,14 @@ function CarpoolOfferCardComponent({
             </View>
           </Button>
         ) : userRequestAccepted ? (
-          <View style={[styles.confirmedBanner, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.confirmedBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="checkmark-circle" size={20} color={palette.success} />
             <ThemedText style={[styles.confirmedText, { color: palette.success }]}>
               Your seat is confirmed!
             </ThemedText>
           </View>
         ) : hasUserRequested ? (
-          <View style={[styles.pendingBanner, { backgroundColor: `${palette.warning}15` }]}>
+          <View style={[styles.pendingBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
             <Ionicons name="hourglass-outline" size={20} color={palette.warning} />
             <ThemedText style={[styles.pendingBannerText, { color: palette.warning }]}>
               Request pending
@@ -233,13 +233,13 @@ const styles = StyleSheet.create({
   avatarLarge: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   title: {
     fontSize: scaleFont(17),
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   seatsInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   seatsText: {
     fontSize: scaleFont(14),
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   },
   pendingBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   pendingText: {
@@ -358,13 +358,13 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   compactContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactHeader: {
     flexDirection: 'row',
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   },
   statusPill: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   statusText: {
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   detailText: {
     fontSize: scaleFont(12),

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { FamilySpending } from '@/constants/types';
 
@@ -253,15 +253,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  summaryLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  totalAmount: {
-    fontSize: 42,
-    fontWeight: '700',
-    letterSpacing: -1,
-  },
+  summaryLabel: { ...Typography.bodySmallSemiBold },
+  totalAmount: { ...Typography.display, letterSpacing: -1 },
   summaryStats: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,13 +264,8 @@ const styles = StyleSheet.create({
   summaryStat: {
     alignItems: 'center',
   },
-  summaryStatValue: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  summaryStatLabel: {
-    fontSize: 12,
-  },
+  summaryStatValue: { ...Typography.heading },
+  summaryStatLabel: { ...Typography.caption },
   summaryDivider: {
     width: 1,
     height: 32,
@@ -286,15 +274,13 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.md,
   },
-  sectionTitle: {
-    fontSize: 14,
-  },
+  sectionTitle: { ...Typography.bodySmall },
   progressBarContainer: {
     flexDirection: 'row',
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
-    backgroundColor: '#E5E7EB',
+    backgroundColor: Colors.light.border,
   },
   progressBarSegment: {
     height: '100%',
@@ -315,11 +301,9 @@ const styles = StyleSheet.create({
   childColorDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
-  childName: {
-    fontSize: 14,
-  },
+  childName: { ...Typography.bodySmall },
   childStats: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -328,18 +312,11 @@ const styles = StyleSheet.create({
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
-  trendText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  childAmount: {
-    fontSize: 14,
-  },
-  childSessions: {
-    fontSize: 12,
-  },
+  trendText: { ...Typography.caption },
+  childAmount: { ...Typography.bodySmall },
+  childSessions: { ...Typography.caption },
   chartCard: {
     padding: Spacing.md,
     gap: Spacing.md,
@@ -353,7 +330,7 @@ const styles = StyleSheet.create({
   barColumn: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   barWrapper: {
     flex: 1,
@@ -362,27 +339,16 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     minHeight: 4,
   },
-  barLabel: {
-    fontSize: 11,
-  },
-  barValue: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  barLabel: { ...Typography.caption },
+  barValue: { ...Typography.micro },
   emptyCard: {
     padding: Spacing.xl,
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  emptyText: { ...Typography.subheading },
+  emptySubtext: { ...Typography.bodySmall, textAlign: 'center' },
 });

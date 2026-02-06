@@ -4,10 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography, Components } from '@/constants/theme';
 import { RecurringBooking, RecurringBookingStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -261,6 +262,7 @@ export function RecurringCard({
         )}
 
         {/* Stats Row */}
+        <Divider />
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <ThemedText style={[styles.statValue, { color: palette.foreground }]}>
@@ -452,12 +454,12 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
   },
   avatarPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -470,9 +472,9 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusText: {
@@ -487,7 +489,7 @@ const styles = StyleSheet.create({
   scheduleItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   scheduleText: {
     ...Typography.small,
@@ -495,7 +497,7 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   locationText: {
     ...Typography.small,
@@ -504,9 +506,9 @@ const styles = StyleSheet.create({
   athleteBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     alignSelf: 'flex-start',
   },
@@ -518,8 +520,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingTop: Spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E7EB',
   },
   statItem: {
     alignItems: 'center',
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
@@ -568,9 +568,9 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxWidth: 400,
-    borderRadius: Radii.lg,
-    padding: Spacing.lg,
+    maxWidth: Components.modal.maxWidth,
+    borderRadius: Components.modal.borderRadius,
+    padding: Components.modal.padding,
     gap: Spacing.md,
   },
   modalTitle: {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, FlatList, RefreshControl, Pressable } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -75,7 +75,7 @@ function FilterChip({
       <ThemedText
         style={[
           styles.filterChipText,
-          { color: isActive ? '#FFFFFF' : palette.foreground },
+          { color: isActive ? palette.onPrimary : palette.foreground },
         ]}
       >
         {label}
@@ -90,7 +90,7 @@ function FilterChip({
           <ThemedText
             style={[
               styles.filterChipBadgeText,
-              { color: isActive ? '#FFFFFF' : palette.muted },
+              { color: isActive ? palette.onPrimary : palette.muted },
             ]}
           >
             {count}
@@ -200,6 +200,28 @@ export function RecurringList({
     );
   };
 
+  const FILTER_DATA: { key: FilterOption; label: string }[] = [
+    { key: 'ALL', label: 'All' },
+    { key: 'ACTIVE', label: 'Active' },
+    { key: 'PAUSED', label: 'Paused' },
+    { key: 'CANCELLED', label: 'Cancelled' },
+    { key: 'EXPIRED', label: 'Expired' },
+  ];
+
+  const renderFilterChip = useCallback(
+    ({ item }: { item: { key: FilterOption; label: string } }) => (
+      <FilterChip
+        label={item.label}
+        isActive={activeFilter === item.key}
+        onPress={() => setActiveFilter(item.key)}
+        count={filterCounts[item.key]}
+      />
+    ),
+    [activeFilter, filterCounts]
+  );
+
+  const filterKeyExtractor = useCallback((item: { key: FilterOption; label: string }) => item.key, []);
+
   const renderHeader = () => {
     if (!showFilters || bookings.length === 0) {
       return null;
@@ -209,22 +231,9 @@ export function RecurringList({
       <View style={styles.filtersContainer}>
         <FlatList
           horizontal
-          data={[
-            { key: 'ALL' as FilterOption, label: 'All' },
-            { key: 'ACTIVE' as FilterOption, label: 'Active' },
-            { key: 'PAUSED' as FilterOption, label: 'Paused' },
-            { key: 'CANCELLED' as FilterOption, label: 'Cancelled' },
-            { key: 'EXPIRED' as FilterOption, label: 'Expired' },
-          ]}
-          renderItem={({ item }) => (
-            <FilterChip
-              label={item.label}
-              isActive={activeFilter === item.key}
-              onPress={() => setActiveFilter(item.key)}
-              count={filterCounts[item.key]}
-            />
-          )}
-          keyExtractor={(item) => item.key}
+          data={FILTER_DATA}
+          renderItem={renderFilterChip}
+          keyExtractor={filterKeyExtractor}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filtersContent}
         />
@@ -346,7 +355,7 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
@@ -358,8 +367,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   filterChipBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
     minWidth: 20,
     alignItems: 'center',

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface Athlete {
@@ -250,10 +250,7 @@ export function InviteAthleteModal({
                       ]}
                     >
                       <ThemedText
-                        style={{
-                          fontSize: 12,
-                          color: skillFilter === level ? '#fff' : palette.text,
-                        }}
+                        style={{ ...Typography.caption, color: skillFilter === level ? palette.onPrimary : palette.text }}
                       >
                         {level === 'ALL' ? 'All' : level.charAt(0) + level.slice(1).toLowerCase()}
                       </ThemedText>
@@ -280,10 +277,7 @@ export function InviteAthleteModal({
                       ]}
                     >
                       <ThemedText
-                        style={{
-                          fontSize: 12,
-                          color: ageFilter === age ? '#fff' : palette.text,
-                        }}
+                        style={{ ...Typography.caption, color: ageFilter === age ? palette.onPrimary : palette.text }}
                       >
                         {age === 'ALL' ? 'All' : age}
                       </ThemedText>
@@ -309,10 +303,7 @@ export function InviteAthleteModal({
                       ]}
                     >
                       <ThemedText
-                        style={{
-                          fontSize: 12,
-                          color: squadFilter === 'ALL' ? '#fff' : palette.text,
-                        }}
+                        style={{ ...Typography.caption, color: squadFilter === 'ALL' ? palette.onPrimary : palette.text }}
                       >
                         All
                       </ThemedText>
@@ -330,10 +321,7 @@ export function InviteAthleteModal({
                         ]}
                       >
                         <ThemedText
-                          style={{
-                            fontSize: 12,
-                            color: squadFilter === squad.id ? '#fff' : palette.text,
-                          }}
+                          style={{ ...Typography.caption, color: squadFilter === squad.id ? palette.onPrimary : palette.text }}
                         >
                           {squad.name}
                         </ThemedText>
@@ -347,7 +335,7 @@ export function InviteAthleteModal({
             {hasActiveFilters && (
               <Clickable onPress={resetFilters} style={styles.resetButton}>
                 <Ionicons name="refresh" size={14} color={palette.tint} />
-                <ThemedText style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}>
+                <ThemedText style={ { color: palette.tint, ...Typography.caption }}>
                   Reset Filters
                 </ThemedText>
               </Clickable>
@@ -362,10 +350,10 @@ export function InviteAthleteModal({
               <View style={styles.quickActions}>
                 <Clickable
                   onPress={selectAll}
-                  style={[styles.quickActionButton, { backgroundColor: `${palette.tint}10` }]}
+                  style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                 >
                   <Ionicons name="checkmark-done" size={14} color={palette.tint} />
-                  <ThemedText style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}>
+                  <ThemedText style={ { color: palette.tint, ...Typography.caption }}>
                     Select All ({filteredAthletes.length})
                   </ThemedText>
                 </Clickable>
@@ -373,7 +361,7 @@ export function InviteAthleteModal({
                   onPress={selectNone}
                   style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
                 >
-                  <ThemedText style={{ color: palette.text, fontSize: 12 }}>Select None</ThemedText>
+                  <ThemedText style={{ ...Typography.caption, color: palette.text }}>Select None</ThemedText>
                 </Clickable>
                 {availableSquads.map((squad) => (
                   <Clickable
@@ -382,7 +370,7 @@ export function InviteAthleteModal({
                     style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
                   >
                     <Ionicons name="people" size={14} color={palette.muted} />
-                    <ThemedText style={{ color: palette.text, fontSize: 12 }}>
+                    <ThemedText style={{ ...Typography.caption, color: palette.text }}>
                       All in {squad.name}
                     </ThemedText>
                   </Clickable>
@@ -391,7 +379,7 @@ export function InviteAthleteModal({
                   onPress={() => selectBySkillLevel('BEGINNER')}
                   style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
                 >
-                  <ThemedText style={{ color: palette.text, fontSize: 12 }}>Beginners only</ThemedText>
+                  <ThemedText style={{ ...Typography.caption, color: palette.text }}>Beginners only</ThemedText>
                 </Clickable>
               </View>
             </ScrollView>
@@ -400,7 +388,7 @@ export function InviteAthleteModal({
 
         {/* Selected Count */}
         {selectedAthletes.length > 0 && (
-          <View style={[styles.selectedBanner, { backgroundColor: `${palette.tint}10` }]}>
+          <View style={[styles.selectedBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
               {selectedAthletes.length} athlete{selectedAthletes.length !== 1 ? 's' : ''} selected
             </ThemedText>
@@ -431,12 +419,12 @@ export function InviteAthleteModal({
                     style={[
                       styles.athleteItem,
                       {
-                        backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                        backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                         borderColor: isSelected ? palette.tint : palette.border,
                       },
                     ]}
                   >
-                    <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       {athlete.photoUrl ? (
                         <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                           {athlete.name.charAt(0)}
@@ -457,8 +445,8 @@ export function InviteAthleteModal({
                           </ThemedText>
                         )}
                         {athlete.skillLevel && (
-                          <View style={[styles.skillBadge, { backgroundColor: `${palette.tint}15` }]}>
-                            <ThemedText style={{ fontSize: 10, color: palette.tint }}>
+                          <View style={[styles.skillBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+                            <ThemedText style={{ ...Typography.micro, color: palette.tint }}>
                               {athlete.skillLevel.charAt(0) + athlete.skillLevel.slice(1).toLowerCase()}
                             </ThemedText>
                           </View>
@@ -485,7 +473,7 @@ export function InviteAthleteModal({
                         },
                       ]}
                     >
-                      {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                      {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
                     </View>
                   </Clickable>
                 );
@@ -532,10 +520,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: Spacing.sm,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-  },
+  searchInput: { ...Typography.body, flex: 1 },
   selectedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -560,10 +545,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: Spacing.xs,
   },
-  parentName: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  parentName: { ...Typography.smallSemiBold },
   athleteItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -575,28 +557,21 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  avatarText: { ...Typography.heading },
   athleteInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  athleteAge: {
-    fontSize: 12,
-  },
-  lastSession: {
-    fontSize: 12,
-  },
+  athleteAge: { ...Typography.caption },
+  lastSession: { ...Typography.caption },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -615,17 +590,14 @@ const styles = StyleSheet.create({
   filterRow: {
     gap: Spacing.xs,
   },
-  filterLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  filterLabel: { ...Typography.caption },
   filterChips: {
     flexDirection: 'row',
     gap: Spacing.xs,
   },
   filterChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
@@ -659,11 +631,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   skillBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  squadName: {
-    fontSize: 11,
-  },
+  squadName: { ...Typography.caption },
 });

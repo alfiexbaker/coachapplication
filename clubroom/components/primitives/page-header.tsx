@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Components } from '@/constants/theme';
+import { Colors, Spacing, Components, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface PageHeaderProps {
@@ -189,16 +189,9 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xs / 2,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '400',
-  },
+  title: { ...Typography.title, letterSpacing: -0.3 },
+  subtitle: { ...Typography.caption, lineHeight: 18,
+    fontWeight: '400' },
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -212,18 +205,14 @@ const styles = StyleSheet.create({
     height: Components.buttonCompact.height,
     borderWidth: 1,
   },
-  actionText: {
-    fontSize: 13,
-    fontWeight: '500',
-    letterSpacing: -0.05,
-  },
+  actionText: { ...Typography.smallSemiBold, letterSpacing: -0.05 },
   actionTextOnly: {
     paddingHorizontal: Spacing.xs / 2,
   },
   backButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },

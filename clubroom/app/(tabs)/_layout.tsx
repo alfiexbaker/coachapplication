@@ -3,7 +3,7 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography, Spacing} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
 import { chatThreads } from '@/constants/mock-data';
@@ -99,17 +99,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     ],
     hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
   },
-  // 'Coach' is an alias for COACH (lowercase variant in UserRole)
-  Coach: {
-    primary: [
-      { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
-      { name: 'schedule', title: 'Schedule', icon: 'calendar.badge.clock' },
-      { name: 'athletes', title: 'Athletes', icon: 'person.2.fill' },
-      { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
-      { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
-    ],
-    hidden: [...BASE_HIDDEN_ROUTES, 'more', 'messages', 'children', 'bookings', 'club-hub'],
-  },
+  // Legacy 'Coach' alias removed — use normalizeUserRole() at login boundaries
   // USER: Home, Feed, Bookings, Messages, Profile
   // Users with children can access child management via Profile > Children
   // Booking flow supports "Book for Child" when user has children
@@ -178,7 +168,7 @@ export default function TabLayout() {
   };
 
   // Consolidate bottom navigation to 4-5 role-aware hubs (home, schedule, comms, profile)
-  const tabBarOptions = {
+  const tabBarOptions: Record<string, any> = {
     tabBarActiveTintColor: palette.tint,
     tabBarInactiveTintColor: palette.tabIconDefault,
     headerShown: false,
@@ -197,10 +187,9 @@ export default function TabLayout() {
       elevation: 8, // Subtle shadow instead of border
     },
     tabBarLabelStyle: {
-      fontSize: 11,
-      fontWeight: '600' as const,
+      ...Typography.caption,
       letterSpacing: 0.3,
-      marginTop: 2,
+      marginTop: Spacing.micro,
     },
     tabBarIconStyle: {
       marginTop: 0,

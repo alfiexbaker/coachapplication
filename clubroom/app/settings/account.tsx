@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SettingsRow, SettingsSection } from '@/components/settings';
@@ -9,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -25,7 +26,7 @@ export default function AccountSettingsScreen() {
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPhone, setEditingPhone] = useState(false);
   const [email, setEmail] = useState(currentUser?.email || '');
-  const [phone, setPhone] = useState((currentUser as any)?.phone || '');
+  const [phone, setPhone] = useState((currentUser as unknown as Record<string, string>)?.phone || '');
 
   const handleSaveEmail = () => {
     logger.press('SaveEmail', { email });
@@ -84,7 +85,7 @@ export default function AccountSettingsScreen() {
                   onPress: async () => {
                     logger.info('Account deletion confirmed');
                     await logout();
-                    router.replace('/');
+                    router.replace(Routes.ROOT);
                   },
                 },
               ]
@@ -107,7 +108,7 @@ export default function AccountSettingsScreen() {
           onPress: async () => {
             Alert.alert('Success', 'Your account has been deactivated.');
             await logout();
-            router.replace('/');
+            router.replace(Routes.ROOT);
           },
         },
       ]
@@ -289,8 +290,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   content: {
     paddingHorizontal: Spacing.lg,
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   editActions: {
     flexDirection: 'row',
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   dangerCard: {
     padding: 0,
@@ -345,7 +345,6 @@ const styles = StyleSheet.create({
   },
   warningText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
 });

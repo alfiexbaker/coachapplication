@@ -1,10 +1,11 @@
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ClubFeedPost } from '@/constants/types';
 
@@ -33,15 +34,15 @@ export function EventCard({ event, onPress }: EventCardProps) {
       activeOpacity={0.7}
     >
       <View style={styles.eventCardHeader}>
-        <View style={[styles.eventIcon, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.eventIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="calendar" size={20} color={palette.tint} />
         </View>
         <View style={{ flex: 1 }}>
-          <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>
+          <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
             {event.title}
           </ThemedText>
           {event.eventDate && (
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+            <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
               {formatDate(event.eventDate)}
             </ThemedText>
           )}
@@ -50,7 +51,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
       </View>
 
       {event.body && (
-        <ThemedText style={{ color: palette.text, fontSize: 13 }} numberOfLines={2}>
+        <ThemedText style={{ ...Typography.small, color: palette.text }} numberOfLines={2}>
           {event.body}
         </ThemedText>
       )}
@@ -58,7 +59,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
       {event.eventLocation && (
         <View style={styles.eventLocation}>
           <Ionicons name="location-outline" size={14} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+          <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
             {event.eventLocation}
           </ThemedText>
         </View>
@@ -82,10 +83,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
     if (onCreateEvent) {
       onCreateEvent();
     } else {
-      router.push({
-        pathname: '/(modal)/create-club-post',
-        params: { clubId, postType: 'event' },
-      });
+      router.push(Routes.MODAL_CREATE_CLUB_POST);
     }
   };
 
@@ -108,8 +106,8 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
             style={[styles.addEventButton, { backgroundColor: palette.tint }]}
             onPress={handleCreateEvent}
           >
-            <Ionicons name="add" size={16} color="#fff" />
-            <ThemedText style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Add</ThemedText>
+            <Ionicons name="add" size={16} color={palette.onPrimary} />
+            <ThemedText style={{ ...Typography.caption, color: palette.onPrimary }}>Add</ThemedText>
           </TouchableOpacity>
         )}
       </View>
@@ -120,11 +118,15 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
             <EventCard
               key={event.id}
               event={event}
+              onPress={() => router.push(Routes.EVENTS)}
             />
           ))}
           {eventPosts.length > 3 && (
-            <TouchableOpacity style={styles.viewAllButton}>
-              <ThemedText style={{ color: palette.tint, fontSize: 13 }}>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={() => router.push(Routes.EVENTS)}
+            >
+              <ThemedText style={{ ...Typography.small, color: palette.tint }}>
                 View all {eventPosts.length} events
               </ThemedText>
               <Ionicons name="chevron-forward" size={16} color={palette.tint} />
@@ -134,7 +136,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
       ) : (
         <View style={styles.emptyEvents}>
           <Ionicons name="calendar-outline" size={32} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13, textAlign: 'center' }}>
+          <ThemedText style={{ ...Typography.small, color: palette.muted, textAlign: 'center' }}>
             No upcoming events
           </ThemedText>
           {isCoach && (
@@ -142,7 +144,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
               style={[styles.createEventButton, { borderColor: palette.tint }]}
               onPress={handleCreateEvent}
             >
-              <ThemedText style={{ color: palette.tint, fontSize: 13, fontWeight: '600' }}>
+              <ThemedText style={ { color: palette.tint, ...Typography.smallSemiBold }}>
                 Create Event
               </ThemedText>
             </TouchableOpacity>
@@ -172,7 +174,7 @@ const styles = StyleSheet.create({
   addEventButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
@@ -193,20 +195,20 @@ const styles = StyleSheet.create({
   eventIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   eventLocation: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
   },
   emptyEvents: {

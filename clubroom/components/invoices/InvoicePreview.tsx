@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
@@ -56,7 +56,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
           <ThemedText type="display" style={styles.invoiceNumber}>
             {invoice.invoiceNumber}
           </ThemedText>
-          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
             <ThemedText style={[styles.statusText, { color: statusColor }]}>
               {invoiceService.getStatusLabel(invoice.status)}
@@ -216,7 +216,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
 
       {/* Void Reason */}
       {invoice.status === 'VOID' && invoice.voidReason && (
-        <SurfaceCard style={[styles.card, { backgroundColor: `${palette.error}08` }]}>
+        <SurfaceCard style={[styles.card, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
           <View style={styles.voidHeader}>
             <Ionicons name="close-circle" size={18} color={palette.error} />
             <ThemedText style={[styles.sectionTitle, { color: palette.error, marginBottom: 0 }]}>
@@ -266,38 +266,27 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: Spacing.sm,
   },
-  invoiceNumber: {
-    fontSize: 24,
-    marginBottom: Spacing.xs,
-  },
+  invoiceNumber: { ...Typography.display, marginBottom: Spacing.xs },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
   },
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  statusText: { ...Typography.smallSemiBold },
   amountContainer: {
     alignItems: 'flex-end',
   },
-  amountLabel: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  amount: {
-    fontSize: 28,
-  },
+  amountLabel: { ...Typography.caption, marginBottom: Spacing.micro },
+  amount: { ...Typography.display },
   card: {
     padding: Spacing.md,
   },
@@ -306,13 +295,10 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   dateItem: {
-    gap: 2,
+    gap: Spacing.micro,
   },
-  dateLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  dateLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   partiesContainer: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -320,26 +306,14 @@ const styles = StyleSheet.create({
   partyCard: {
     flex: 1,
   },
-  partyLabel: {
-    fontSize: 10,
-    textTransform: 'uppercase',
+  partyLabel: { ...Typography.micro, textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: Spacing.xs,
-  },
-  partyName: {
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  partyDetail: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    textTransform: 'uppercase',
+    marginBottom: Spacing.xs },
+  partyName: { ...Typography.body, marginBottom: Spacing.xxs },
+  partyDetail: { ...Typography.small, lineHeight: 18 },
+  sectionTitle: { ...Typography.caption, textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   sessionDetails: {
     gap: Spacing.sm,
   },
@@ -350,11 +324,9 @@ const styles = StyleSheet.create({
   },
   detailContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  detailLabel: {
-    fontSize: 12,
-  },
+  detailLabel: { ...Typography.caption },
   pricingRows: {
     gap: Spacing.xs,
   },
@@ -362,30 +334,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
   },
   totalRow: {
     borderTopWidth: 1,
     paddingTop: Spacing.sm,
     marginTop: Spacing.xs,
   },
-  notes: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  notes: { ...Typography.bodySmall, lineHeight: 20 },
   voidHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     marginBottom: Spacing.xs,
   },
-  voidReason: {
-    fontSize: 14,
-  },
-  voidDate: {
-    fontSize: 12,
-    marginTop: Spacing.xs,
-  },
+  voidReason: { ...Typography.bodySmall },
+  voidDate: { ...Typography.caption, marginTop: Spacing.xs },
   sentInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -393,7 +357,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: Spacing.sm,
   },
-  sentText: {
-    fontSize: 13,
-  },
+  sentText: { ...Typography.small },
 });

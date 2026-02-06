@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Components, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Components, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -158,7 +158,7 @@ export function ParentWelcome({
                       ]}
                     >
                       <ThemedText
-                        style={[Typography.bodySemiBold, { color: selected ? '#FFFFFF' : palette.text }]}
+                        style={[Typography.bodySemiBold, { color: selected ? palette.onPrimary : palette.text }]}
                       >
                         {age}
                       </ThemedText>
@@ -189,7 +189,7 @@ export function ParentWelcome({
                       ]}
                     >
                       <ThemedText
-                        style={[Typography.small, { color: selected ? '#FFFFFF' : palette.text }]}
+                        style={[Typography.small, { color: selected ? palette.onPrimary : palette.text }]}
                       >
                         {level}
                       </ThemedText>
@@ -214,7 +214,7 @@ export function ParentWelcome({
                       style={[
                         styles.areaCard,
                         {
-                          backgroundColor: selected ? `${palette.tint}10` : palette.surface,
+                          backgroundColor: selected ? withAlpha(palette.tint, 0.06) : palette.surface,
                           borderColor: selected ? palette.tint : palette.border,
                         },
                       ]}
@@ -234,7 +234,7 @@ export function ParentWelcome({
                       </ThemedText>
                       {selected && (
                         <View style={[styles.checkBadge, { backgroundColor: palette.tint }]}>
-                          <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                          <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
                         </View>
                       )}
                     </Clickable>
@@ -328,11 +328,11 @@ export function ParentWelcome({
             onPress={handleNext}
             style={[styles.nextButton, { backgroundColor: palette.tint }]}
           >
-            <ThemedText style={[Typography.bodySemiBold, { color: '#FFFFFF' }]}>
+            <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>
               {isLastPage ? 'Done' : 'Next'}
             </ThemedText>
             {!isLastPage && (
-              <Ionicons name="arrow-forward" size={Components.icon.md} color="#FFFFFF" />
+              <Ionicons name="arrow-forward" size={Components.icon.md} color={palette.onPrimary} />
             )}
           </Clickable>
         </View>
@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
     right: Spacing.xs,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -432,16 +432,16 @@ const styles = StyleSheet.create({
   },
   coachInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   coachMeta: {
     alignItems: 'flex-end',
-    gap: 2,
+    gap: Spacing.micro,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   bottomBar: {
     paddingHorizontal: Spacing.lg,

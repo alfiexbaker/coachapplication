@@ -13,7 +13,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { InvoiceCard } from './InvoiceCard';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Invoice, InvoiceStatus, InvoiceFilter } from '@/constants/types';
 
@@ -129,6 +129,40 @@ export function InvoiceList({
     </View>
   );
 
+  const renderFilterPill = useCallback(
+    ({ item }: { item: FilterOption }) => (
+      <TouchableOpacity
+        style={[
+          styles.filterPill,
+          {
+            backgroundColor:
+              selectedStatus === item.value ? withAlpha(item.color, 0.15) : palette.surface,
+            borderColor: selectedStatus === item.value ? item.color : palette.border,
+          },
+        ]}
+        onPress={() => handleStatusFilter(item.value)}
+      >
+        <View
+          style={[
+            styles.filterDot,
+            { backgroundColor: item.value === 'ALL' ? 'transparent' : item.color },
+          ]}
+        />
+        <ThemedText
+          style={[
+            styles.filterPillText,
+            { color: selectedStatus === item.value ? item.color : palette.text },
+          ]}
+        >
+          {item.label}
+        </ThemedText>
+      </TouchableOpacity>
+    ),
+    [selectedStatus, palette, handleStatusFilter]
+  );
+
+  const filterKeyExtractor = useCallback((item: FilterOption) => item.value, []);
+
   const renderFilters = () => {
     if (!showFilters) return null;
 
@@ -138,37 +172,10 @@ export function InvoiceList({
         <FlatList
           horizontal
           data={FILTER_OPTIONS}
-          keyExtractor={(item) => item.value}
+          keyExtractor={filterKeyExtractor}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.filterPill,
-                {
-                  backgroundColor:
-                    selectedStatus === item.value ? `${item.color}15` : palette.surface,
-                  borderColor: selectedStatus === item.value ? item.color : palette.border,
-                },
-              ]}
-              onPress={() => handleStatusFilter(item.value)}
-            >
-              <View
-                style={[
-                  styles.filterDot,
-                  { backgroundColor: item.value === 'ALL' ? 'transparent' : item.color },
-                ]}
-              />
-              <ThemedText
-                style={[
-                  styles.filterPillText,
-                  { color: selectedStatus === item.value ? item.color : palette.text },
-                ]}
-              >
-                {item.label}
-              </ThemedText>
-            </TouchableOpacity>
-          )}
+          renderItem={renderFilterPill}
         />
 
         {/* Date Range Filter */}
@@ -176,7 +183,7 @@ export function InvoiceList({
           style={[
             styles.dateFilterButton,
             {
-              backgroundColor: dateRange.from || dateRange.to ? `${palette.tint}15` : palette.surface,
+              backgroundColor: dateRange.from || dateRange.to ? withAlpha(palette.tint, 0.15) : palette.surface,
               borderColor: dateRange.from || dateRange.to ? palette.tint : palette.border,
             },
           ]}
@@ -217,7 +224,7 @@ export function InvoiceList({
           styles.listContent,
           filteredInvoices.length === 0 && styles.emptyContent,
         ]}
-        ItemSeparatorComponent={() => <View style={{ height: compact ? 0 : Spacing.sm }} />}
+        ItemSeparatorComponent={compact ? undefined : InvoiceSeparator}
         refreshControl={
           onRefresh ? (
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.tint} />
@@ -291,6 +298,10 @@ export function InvoiceList({
   );
 }
 
+function InvoiceSeparator() {
+  return <View style={{ height: Spacing.sm }} />;
+}
+
 // ============================================================================
 // STYLES
 // ============================================================================
@@ -319,28 +330,25 @@ const styles = StyleSheet.create({
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   filterDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  filterPillText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  filterPillText: { ...Typography.smallSemiBold },
   dateFilterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   emptyState: {
     flex: 1,
@@ -349,10 +357,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing['2xl'],
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
+  emptyText: { ...Typography.subheading },
   clearFilterButton: {
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.md,
@@ -360,10 +365,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: Spacing.sm,
   },
-  clearFilterText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  clearFilterText: { ...Typography.bodySmallSemiBold },
 
   // Modal styles
   modalContainer: {
@@ -379,7 +381,7 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -387,10 +389,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.sm,
   },
-  dateHint: {
-    fontSize: 14,
-    marginBottom: Spacing.sm,
-  },
+  dateHint: { ...Typography.bodySmall, marginBottom: Spacing.sm },
   dateOption: {
     flexDirection: 'row',
     alignItems: 'center',

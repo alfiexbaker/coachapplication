@@ -6,7 +6,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { RosterNote } from '@/constants/types';
 
@@ -126,13 +126,10 @@ const styles = StyleSheet.create({
   inputSection: {
     gap: Spacing.sm,
   },
-  input: {
-    minHeight: 80,
+  input: { ...Typography.bodySmall, minHeight: 80,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 14,
-    textAlignVertical: 'top',
-  },
+    textAlignVertical: 'top' },
   inputActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -149,11 +146,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+  emptyText: { ...Typography.small, textAlign: 'center',
+    lineHeight: 18 },
   notesList: {
     gap: Spacing.sm,
   },
@@ -167,12 +161,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  noteDate: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  noteContent: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  noteDate: { ...Typography.caption },
+  noteContent: { ...Typography.bodySmall, lineHeight: 20 },
 });

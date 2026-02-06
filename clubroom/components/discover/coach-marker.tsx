@@ -59,7 +59,7 @@ export function CoachMarkerPill({
   }));
 
   const pillBackground = selected ? palette.tint : palette.surface;
-  const pillTextColor = selected ? '#FFFFFF' : palette.text;
+  const pillTextColor = selected ? palette.onPrimary : palette.text;
   const pillBorderColor = selected ? palette.tint : palette.border;
 
   return (
@@ -92,13 +92,13 @@ export function CoachMarkerPill({
           <View
             style={[
               styles.savedBadge,
-              { backgroundColor: selected ? '#FFFFFF' : palette.error },
+              { backgroundColor: selected ? palette.onPrimary : palette.error },
             ]}
           >
             <Ionicons
               name="heart"
               size={8}
-              color={selected ? palette.error : '#FFFFFF'}
+              color={selected ? palette.error : palette.onPrimary}
             />
           </View>
         )}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,11 +11,11 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { PaymentModal } from '@/components/payment/payment-modal';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite';
-import type { SessionInvite, TimeSlot } from '@/constants/types';
+import type { SessionInvite, SessionInviteType, TimeSlot } from '@/constants/types';
 
 const logger = createLogger('SessionInviteDetailScreen');
 
@@ -301,7 +302,7 @@ export default function SessionInviteDetailScreen() {
         {/* Invitation Message */}
         {!isCoach && (
           <Animated.View entering={FadeInDown.delay(50).springify()}>
-            <View style={[styles.invitationBanner, { backgroundColor: `${palette.tint}10` }]}>
+            <View style={[styles.invitationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
               <Ionicons name="mail-outline" size={20} color={palette.tint} />
               <ThemedText style={[styles.invitationText, { color: palette.text }]}>
                 {invitationMessage}
@@ -314,7 +315,7 @@ export default function SessionInviteDetailScreen() {
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <SurfaceCard style={styles.infoCard}>
             <View style={styles.personRow}>
-              <View style={[styles.avatar, { backgroundColor: `${palette.tint}10` }]}>
+              <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                   {isCoach
                     ? invite.athleteNames[0]?.charAt(0) || 'A'
@@ -356,7 +357,7 @@ export default function SessionInviteDetailScreen() {
             <View style={styles.detailRow}>
               <Ionicons name="football-outline" size={18} color={palette.muted} />
               <View style={styles.detailContent}>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Type & Focus</ThemedText>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Type & Focus</ThemedText>
                 <ThemedText>
                   {invite.sessionType} - {invite.focus}
                 </ThemedText>
@@ -367,7 +368,7 @@ export default function SessionInviteDetailScreen() {
               <View style={styles.detailRow}>
                 <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
                 <View style={styles.detailContent}>
-                  <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Price</ThemedText>
+                  <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Price</ThemedText>
                   <ThemedText>${invite.priceUsd}</ThemedText>
                 </View>
               </View>
@@ -377,12 +378,97 @@ export default function SessionInviteDetailScreen() {
               <View style={styles.detailRow}>
                 <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
                 <View style={styles.detailContent}>
-                  <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Notes</ThemedText>
+                  <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Notes</ThemedText>
                   <ThemedText>{invite.notes}</ThemedText>
                 </View>
               </View>
             )}
           </SurfaceCard>
+        </Animated.View>
+
+        {/* Invite Type Info */}
+        <Animated.View entering={FadeInDown.delay(175).springify()}>
+          {(() => {
+            const inviteTypeCfg: Record<
+              SessionInviteType,
+              { label: string; icon: string; bg: string; textColor: string; description: string }
+            > = {
+              OPEN: {
+                label: 'Open Session',
+                icon: 'globe-outline',
+                bg: withAlpha(palette.success, 0.09),
+                textColor: palette.success,
+                description: 'This session is visible to all parents when browsing.',
+              },
+              CLOSED: {
+                label: 'Invite Only',
+                icon: 'lock-closed-outline',
+                bg: withAlpha(palette.warning, 0.09),
+                textColor: palette.warning,
+                description: 'Only explicitly invited parents can view and book.',
+              },
+              SQUAD_ONLY: {
+                label: 'Squad Only',
+                icon: 'people-outline',
+                bg: withAlpha(palette.info, 0.09),
+                textColor: palette.info,
+                description: 'Only squad members can view and book this session.',
+              },
+            };
+            const currentType = invite.inviteType || 'OPEN';
+            const cfg = inviteTypeCfg[currentType];
+
+            return (
+              <SurfaceCard style={styles.detailsCard}>
+                <View style={styles.detailRow}>
+                  <View style={[styles.inviteTypeIconWrap, { backgroundColor: cfg.bg }]}>
+                    <Ionicons name={cfg.icon as keyof typeof Ionicons.glyphMap} size={18} color={cfg.textColor} />
+                  </View>
+                  <View style={styles.detailContent}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Invite Type</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={{ color: cfg.textColor }}>
+                      {cfg.label}
+                    </ThemedText>
+                    <ThemedText style={{ color: palette.muted, ...Typography.small, marginTop: Spacing.micro }}>
+                      {cfg.description}
+                    </ThemedText>
+                  </View>
+                </View>
+
+                {/* Invite Players action for CLOSED type - coach only */}
+                {currentType === 'CLOSED' && isOwner && (
+                  <Clickable
+                    onPress={() =>
+                      router.push(Routes.SESSION_INVITES_CREATE)
+                    }
+                    style={[styles.invitePlayersButton, { backgroundColor: palette.tint }]}
+                  >
+                    <Ionicons name="person-add-outline" size={16} color={palette.onPrimary} />
+                    <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySmallSemiBold }}>
+                      Invite Players
+                    </ThemedText>
+                  </Clickable>
+                )}
+
+                {/* Squad info for SQUAD_ONLY type */}
+                {currentType === 'SQUAD_ONLY' && invite.squadIds && invite.squadIds.length > 0 && (
+                  <View style={styles.squadAccessSection}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.caption, marginBottom: Spacing.xxs }}>
+                      Squad Access
+                    </ThemedText>
+                    {invite.squadIds.map((squadId) => (
+                      <View key={squadId} style={[styles.squadAccessBadge, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
+                        <Ionicons name="people" size={14} color={palette.info} />
+                        <ThemedText style={{ color: palette.info, ...Typography.small }}>
+                          {squadId}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </SurfaceCard>
+            );
+          })()}
         </Animated.View>
 
         {/* Time Slots */}
@@ -404,7 +490,7 @@ export default function SessionInviteDetailScreen() {
                   style={[
                     styles.slotItem,
                     {
-                      backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                      backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                       borderColor: isSelected ? palette.tint : palette.border,
                     },
                   ]}
@@ -414,7 +500,7 @@ export default function SessionInviteDetailScreen() {
                       {slotDate.toLocaleDateString('en-GB', { weekday: 'short' })}
                     </ThemedText>
                     <ThemedText type="heading">{slotDate.getDate()}</ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                       {slotDate.toLocaleDateString('en-GB', { month: 'short' })}
                     </ThemedText>
                   </View>
@@ -426,7 +512,7 @@ export default function SessionInviteDetailScreen() {
                     {slot.location && (
                       <View style={styles.locationRow}>
                         <Ionicons name="location-outline" size={14} color={palette.muted} />
-                        <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                        <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                           {slot.location}
                         </ThemedText>
                       </View>
@@ -443,7 +529,7 @@ export default function SessionInviteDetailScreen() {
                         },
                       ]}
                     >
-                      {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                      {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
                     </View>
                   )}
                 </Clickable>
@@ -472,7 +558,7 @@ export default function SessionInviteDetailScreen() {
               {counterSlots.map((slot, index) => (
                 <View
                   key={index}
-                  style={[styles.counterSlotItem, { backgroundColor: `${palette.tint}10`, borderColor: palette.tint }]}
+                  style={[styles.counterSlotItem, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }]}
                 >
                   <View style={styles.slotDetails}>
                     <ThemedText type="defaultSemiBold">
@@ -542,7 +628,7 @@ export default function SessionInviteDetailScreen() {
                 </View>
                 <Clickable
                   onPress={addCounterSlot}
-                  style={[styles.addSlotButton, { backgroundColor: `${palette.tint}10` }]}
+                  style={[styles.addSlotButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                 >
                   <Ionicons name="add" size={16} color={palette.tint} />
                   <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Time Slot</ThemedText>
@@ -606,7 +692,7 @@ export default function SessionInviteDetailScreen() {
                     </ThemedText>
                   </View>
                   <View style={[styles.acceptCounterButton, { backgroundColor: palette.tint }]}>
-                    <ThemedText style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Accept</ThemedText>
+                    <ThemedText style={{ color: palette.onPrimary, ...Typography.caption }}>Accept</ThemedText>
                   </View>
                 </Clickable>
               ))}
@@ -617,9 +703,9 @@ export default function SessionInviteDetailScreen() {
         {/* Expiry Info */}
         {status === 'PENDING' && (
           <Animated.View entering={FadeInDown.delay(300).springify()}>
-            <View style={[styles.expiryBanner, { backgroundColor: `${palette.warning}10` }]}>
+            <View style={[styles.expiryBanner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
               <Ionicons name="time-outline" size={16} color={palette.warning} />
-              <ThemedText style={{ color: palette.warning, fontSize: 13 }}>
+              <ThemedText style={{ color: palette.warning, ...Typography.small }}>
                 Expires {new Date(invite.expiresAt).toLocaleDateString('en-GB', {
                   weekday: 'short',
                   day: 'numeric',
@@ -660,7 +746,7 @@ export default function SessionInviteDetailScreen() {
               },
             ]}
           >
-            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
               {responding ? 'Accepting...' : 'Accept'}
             </ThemedText>
           </Clickable>
@@ -688,8 +774,8 @@ export default function SessionInviteDetailScreen() {
               },
             ]}
           >
-            <Ionicons name="swap-horizontal" size={18} color="#fff" />
-            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+            <Ionicons name="swap-horizontal" size={18} color={palette.onPrimary} />
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
               {responding ? 'Sending...' : 'Send Counter Proposal'}
             </ThemedText>
           </Clickable>
@@ -743,15 +829,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   invitationText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
     flex: 1,
     lineHeight: 22,
   },
   clubName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 2,
+    ...Typography.bodySmallSemiBold,
+    marginTop: Spacing.micro,
   },
   infoCard: {
     padding: Spacing.md,
@@ -764,20 +848,19 @@ const styles = StyleSheet.create({
   avatar: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title,
   },
   personInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   roleLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   detailsCard: {
     padding: Spacing.md,
@@ -793,7 +876,7 @@ const styles = StyleSheet.create({
   },
   detailContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   slotsCard: {
     padding: Spacing.md,
@@ -812,23 +895,22 @@ const styles = StyleSheet.create({
     width: 50,
   },
   slotDay: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
     textTransform: 'uppercase',
   },
   slotDetails: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   radioButton: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -881,7 +963,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   counterDescription: {
-    fontSize: 13,
+    ...Typography.small,
     marginTop: -Spacing.sm,
   },
   counterSlotItem: {
@@ -909,25 +991,24 @@ const styles = StyleSheet.create({
   },
   counterFormInput: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   inputLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   input: {
     height: 44,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   textArea: {
     height: 80,
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     textAlignVertical: 'top',
   },
   addSlotButton: {
@@ -939,12 +1020,40 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   counterNote: {
-    fontSize: 13,
+    ...Typography.small,
     fontStyle: 'italic',
   },
   acceptCounterButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
+  },
+  inviteTypeIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  invitePlayersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    marginTop: Spacing.xs,
+  },
+  squadAccessSection: {
+    marginTop: Spacing.xs,
+  },
+  squadAccessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+    marginBottom: Spacing.xxs,
   },
 });

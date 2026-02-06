@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -9,7 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { WaitlistCard } from '@/components/waitlist/WaitlistCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { waitlistService } from '@/services/waitlist-service';
@@ -115,7 +116,7 @@ export default function WaitlistScreen() {
             title="No Waitlists"
             message="When you join a waitlist for a full session, it will appear here. You'll be notified when a spot opens up."
             actionLabel="Browse Sessions"
-            onPressAction={() => router.push('/group-sessions')}
+            onPressAction={() => router.push(Routes.GROUP_SESSIONS)}
           />
         ) : (
           <View style={styles.list}>
@@ -132,7 +133,7 @@ export default function WaitlistScreen() {
         )}
 
         {entries.length > 0 && (
-          <View style={[styles.infoCard, { backgroundColor: `${palette.tint}08` }]}>
+          <View style={[styles.infoCard, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
             <View style={styles.infoRow}>
               <Ionicons name="flash" size={16} color={palette.tint} />
               <ThemedText style={[styles.infoText, { color: palette.muted }]}>
@@ -173,8 +174,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   content: {
     padding: Spacing.lg,
@@ -186,7 +187,7 @@ const styles = StyleSheet.create({
   infoCard: {
     marginTop: Spacing.lg,
     padding: Spacing.md,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     gap: Spacing.sm,
   },
   infoRow: {
@@ -196,7 +197,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
 });

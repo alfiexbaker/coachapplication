@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 import {
@@ -163,7 +163,7 @@ export function SquadMemberSelect({
               style={[
                 styles.selectAllButton,
                 {
-                  backgroundColor: allSelected ? `${palette.tint}15` : palette.surface,
+                  backgroundColor: allSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                   borderColor: allSelected ? palette.tint : palette.border,
                   opacity: disabled ? 0.5 : 1,
                 },
@@ -175,11 +175,8 @@ export function SquadMemberSelect({
                 color={allSelected ? palette.tint : palette.muted}
               />
               <ThemedText
-                style={{
-                  fontSize: 12,
-                  color: allSelected ? palette.tint : palette.text,
-                  fontWeight: '600',
-                }}
+                style={{ ...Typography.caption, color: allSelected ? palette.tint : palette.text,
+                  fontWeight: '600' }}
               >
                 {allSelected ? 'Deselect All' : 'Select All'}
               </ThemedText>
@@ -190,7 +187,7 @@ export function SquadMemberSelect({
 
       {/* Notification count banner */}
       {showNotificationCount && selectedCount > 0 && (
-        <View style={[styles.notificationBanner, { backgroundColor: `${palette.tint}10` }]}>
+        <View style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="notifications-outline" size={16} color={palette.tint} />
           <ThemedText style={[styles.notificationText, { color: palette.tint }]}>
             {uniqueParentCount} parent{uniqueParentCount !== 1 ? 's' : ''} will receive notifications
@@ -216,14 +213,14 @@ export function SquadMemberSelect({
               style={[
                 styles.memberItem,
                 {
-                  backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                   borderColor: isSelected ? palette.tint : palette.border,
                   opacity: isDisabled ? 0.5 : 1,
                 },
               ]}
             >
               {/* Avatar */}
-              <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 {member.athletePhotoUrl ? (
                   <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                     {member.athleteName.charAt(0)}
@@ -272,7 +269,7 @@ export function SquadMemberSelect({
 
               {/* Status indicator or checkbox */}
               {member.hasPendingInvite ? (
-                <View style={[styles.pendingBadge, { backgroundColor: `${palette.warning}15` }]}>
+                <View style={[styles.pendingBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                   <ThemedText style={[styles.pendingText, { color: palette.warning }]}>
                     Invited
                   </ThemedText>
@@ -287,7 +284,7 @@ export function SquadMemberSelect({
                     },
                   ]}
                 >
-                  {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
                 </View>
               )}
             </Clickable>
@@ -308,19 +305,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  loadingText: {
-    fontSize: 13,
-  },
+  loadingText: { ...Typography.small },
   errorContainer: {
     paddingVertical: Spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  errorText: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
+  errorText: { ...Typography.small, textAlign: 'center' },
   retryButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
@@ -333,10 +325,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
+  emptyText: { ...Typography.small, textAlign: 'center' },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -363,10 +352,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
   },
-  notificationText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  notificationText: { ...Typography.smallSemiBold },
   memberList: {
     flex: 1,
   },
@@ -385,45 +371,32 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  avatarText: { ...Typography.heading },
   memberInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   memberMeta: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  metaText: {
-    fontSize: 12,
-  },
-  metaDot: {
-    fontSize: 12,
-  },
-  parentText: {
-    fontSize: 11,
-    marginTop: 2,
-  },
+  metaText: { ...Typography.caption },
+  metaDot: { ...Typography.caption },
+  parentText: { ...Typography.caption, marginTop: Spacing.micro },
   pendingBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  pendingText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  pendingText: { ...Typography.caption },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

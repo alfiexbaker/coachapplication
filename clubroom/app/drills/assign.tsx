@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -26,7 +27,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { DifficultyBadge } from '@/components/drills';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Drill, RosterEntry } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -235,7 +236,7 @@ export default function AssignDrillScreen() {
           <ThemedText style={{ color: palette.muted, marginTop: Spacing.xs }}>
             Please select a drill from your library first.
           </ThemedText>
-          <Button onPress={() => router.push('/drills/library')} style={{ marginTop: Spacing.lg }}>
+          <Button onPress={() => router.push(Routes.DRILLS_LIBRARY)} style={{ marginTop: Spacing.lg }}>
             Go to Library
           </Button>
         </View>
@@ -272,7 +273,7 @@ export default function AssignDrillScreen() {
           <Animated.View entering={FadeInDown.delay(100).springify()}>
             <SurfaceCard style={styles.drillPreview}>
               <View style={styles.drillHeader}>
-                <View style={[styles.categoryBadge, { backgroundColor: `${categoryInfo.color}20` }]}>
+                <View style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
                   <Ionicons
                     name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
                     size={14}
@@ -322,7 +323,7 @@ export default function AssignDrillScreen() {
                       style={[
                         styles.athleteCard,
                         {
-                          backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                          backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                           borderColor: isSelected ? palette.tint : palette.border,
                         },
                       ]}
@@ -345,7 +346,7 @@ export default function AssignDrillScreen() {
                       )}
                       {isSelected && (
                         <View style={[styles.selectedCheck, { backgroundColor: palette.tint }]}>
-                          <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                          <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />
                         </View>
                       )}
                     </Clickable>
@@ -384,7 +385,7 @@ export default function AssignDrillScreen() {
                       <ThemedText
                         style={[
                           styles.dueDateOptionText,
-                          { color: isSelected ? '#FFFFFF' : palette.text },
+                          { color: isSelected ? Colors.light.onPrimary : palette.text },
                         ]}
                       >
                         {option.label}
@@ -422,7 +423,7 @@ export default function AssignDrillScreen() {
                       style={[
                         styles.priorityOption,
                         {
-                          backgroundColor: isSelected ? `${option.color}15` : palette.surface,
+                          backgroundColor: isSelected ? withAlpha(option.color, 0.09) : palette.surface,
                           borderColor: isSelected ? option.color : palette.border,
                         },
                       ]}
@@ -469,7 +470,7 @@ export default function AssignDrillScreen() {
                       <ThemedText
                         style={[
                           styles.repsOptionText,
-                          { color: isSelected ? '#FFFFFF' : palette.text },
+                          { color: isSelected ? Colors.light.onPrimary : palette.text },
                         ]}
                       >
                         {reps}
@@ -548,7 +549,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(18),
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
   keyboardView: {
     flex: 1,
@@ -581,17 +582,16 @@ const styles = StyleSheet.create({
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   categoryText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   drillTitle: {
-    fontSize: scaleFont(17),
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
     marginBottom: Spacing.xs,
   },
   drillMeta: {
@@ -602,16 +602,16 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   metaText: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
   section: {
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: scaleFont(14),
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
     marginBottom: Spacing.sm,
   },
   athleteGrid: {
@@ -630,22 +630,20 @@ const styles = StyleSheet.create({
   athleteAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   avatarText: {
-    fontSize: scaleFont(18),
-    fontWeight: '600',
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
   athleteName: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   athleteAge: {
-    fontSize: scaleFont(12),
-    marginTop: 2,
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
+    marginTop: Spacing.micro,
   },
   selectedCheck: {
     position: 'absolute',
@@ -653,7 +651,7 @@ const styles = StyleSheet.create({
     right: 8,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -670,8 +668,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dueDateOptionText: {
-    fontSize: scaleFont(13),
-    fontWeight: '500',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
   selectedDateRow: {
     flexDirection: 'row',
@@ -680,8 +677,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   selectedDateText: {
-    fontSize: scaleFont(15),
-    fontWeight: '600',
+    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize),
   },
   priorityOptions: {
     flexDirection: 'row',
@@ -692,14 +688,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
   priorityOptionText: {
-    fontSize: scaleFont(14),
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   repsOptions: {
     flexDirection: 'row',
@@ -714,8 +709,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   repsOptionText: {
-    fontSize: scaleFont(15),
-    fontWeight: '600',
+    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize),
   },
   customRepsInput: {
     width: 72,
@@ -723,7 +717,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.sm,
     paddingHorizontal: Spacing.sm,
-    fontSize: scaleFont(14),
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
     textAlign: 'center',
   },
   notesInput: {
@@ -731,7 +725,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
   },
   submitSection: {
     marginTop: Spacing.md,

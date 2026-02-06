@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type AchievementBadgeProps = {
@@ -18,8 +18,8 @@ export function AchievementBadge({ icon = 'trophy', label, description }: Achiev
 
   return (
     <View style={[styles.container, { borderColor: palette.border, backgroundColor: palette.surface }]}> 
-      <View style={[styles.iconContainer, { backgroundColor: `${palette.premium}18` }]}> 
-        <Ionicons name={icon as any} size={18} color={palette.premium} />
+      <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.premium, 0.09) }]}> 
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={palette.premium} />
       </View>
       <View style={styles.copy}> 
         <ThemedText type="defaultSemiBold" style={styles.label}> 
@@ -53,14 +53,9 @@ const styles = StyleSheet.create({
   },
   copy: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  label: {
-    fontSize: 14,
-  },
-  description: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
+  label: { ...Typography.bodySmall },
+  description: { ...Typography.caption, lineHeight: 18 },
 });
 

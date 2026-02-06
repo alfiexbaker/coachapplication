@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, TextInput, View, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { RatingStars } from './rating-stars';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
 
@@ -146,7 +146,7 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
           },
         ]}
       >
-        <Ionicons name="send" size={18} color="#FFFFFF" />
+        <Ionicons name="send" size={18} color={palette.onPrimary} />
         <ThemedText style={styles.submitText}>
           {submitting ? 'Submitting...' : 'Submit review'}
         </ThemedText>
@@ -168,46 +168,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  required: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  optional: {
-    fontSize: 12,
-  },
+  required: { ...Typography.caption },
+  optional: { ...Typography.caption },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
   },
-  ratingHint: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  ratingHint: { ...Typography.bodySmallSemiBold },
   categoryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: Spacing.xs,
   },
-  categoryLabel: {
-    flex: 1,
-    fontSize: 14,
-  },
-  textArea: {
-    minHeight: 100,
+  categoryLabel: { ...Typography.bodySmall, flex: 1 },
+  textArea: { ...Typography.body, minHeight: 100,
     borderRadius: Radii.md,
     borderWidth: 1.5,
     padding: Spacing.sm,
-    textAlignVertical: 'top',
-    fontSize: 15,
-  },
+    textAlignVertical: 'top' },
   charCount: {
     alignItems: 'flex-end',
   },
-  charCountText: {
-    fontSize: 12,
-  },
+  charCountText: { ...Typography.caption },
   submit: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -216,9 +200,5 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.button,
   },
-  submitText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  submitText: { ...Typography.subheading, color: Colors.light.onPrimary },
 });

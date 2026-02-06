@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface WaitlistButtonProps {
@@ -87,7 +87,7 @@ export function WaitlistButton({
           style={[
             styles.onWaitlistCard,
             compact ? styles.onWaitlistCardCompact : undefined,
-            { backgroundColor: `${palette.warning}10`, borderColor: palette.warning },
+            { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning },
           ]}
         >
           <View style={styles.waitlistInfo}>
@@ -124,7 +124,7 @@ export function WaitlistButton({
                 <Switch
                   value={localAutoBook}
                   onValueChange={handleToggleAutoBook}
-                  trackColor={{ false: palette.border, true: `${palette.success}50` }}
+                  trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.31) }}
                   thumbColor={localAutoBook ? palette.success : palette.muted}
                   ios_backgroundColor={palette.border}
                   style={styles.switch}
@@ -199,7 +199,7 @@ export function WaitlistButton({
               style={[styles.confirmButton, { backgroundColor: palette.warning }]}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={palette.onPrimary} />
               ) : (
                 <ThemedText style={styles.confirmButtonText}>Join Waitlist</ThemedText>
               )}
@@ -221,10 +221,10 @@ export function WaitlistButton({
       style={joinButtonStyle}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color="#fff" />
+        <ActivityIndicator size="small" color={palette.onPrimary} />
       ) : (
         <>
-          <Ionicons name="add" size={compact ? 16 : 18} color="#fff" />
+          <Ionicons name="add" size={compact ? 16 : 18} color={palette.onPrimary} />
           <ThemedText style={styles.joinButtonText}>
             {compact ? 'Waitlist' : 'Join Waitlist'}
           </ThemedText>
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.md,
@@ -256,22 +256,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
   },
-  joinButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  joinButtonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onPrimary },
   countBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 4,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.md,
+    marginLeft: Spacing.xxs,
   },
-  countText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  countText: { ...Typography.caption, color: Colors.light.onPrimary },
   onWaitlistCard: {
     borderRadius: Radii.md,
     borderWidth: 1,
@@ -284,20 +276,15 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   waitlistInfo: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   positionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  positionText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  waitlistLabel: {
-    fontSize: 12,
-  },
+  positionText: { ...Typography.smallSemiBold },
+  waitlistLabel: { ...Typography.caption },
   waitlistActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -306,12 +293,9 @@ const styles = StyleSheet.create({
   autoBookToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  autoBookLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  autoBookLabel: { ...Typography.caption },
   switch: {
     transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }],
     marginLeft: -4,
@@ -319,25 +303,20 @@ const styles = StyleSheet.create({
   leaveButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: 10,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
-  leaveButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  leaveButtonText: { ...Typography.caption },
   optionsCard: {
     borderRadius: Radii.md,
     borderWidth: 1,
     padding: Spacing.md,
     gap: Spacing.md,
   },
-  optionsTitle: {
-    fontSize: 16,
-  },
+  optionsTitle: { ...Typography.subheading },
   autoBookOption: {
     padding: Spacing.sm,
     borderRadius: Radii.sm,
@@ -349,12 +328,9 @@ const styles = StyleSheet.create({
   },
   autoBookOptionText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  autoBookDescription: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  autoBookDescription: { ...Typography.caption, lineHeight: 16 },
   optionsButtons: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -373,7 +349,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   confirmButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

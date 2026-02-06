@@ -20,6 +20,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -28,7 +29,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
@@ -93,17 +94,11 @@ export default function CoachProfileScreen() {
   };
 
   const handleBook = () => {
-    router.push({
-      pathname: '/book/[coachId]' as any,
-      params: { coachId: id },
-    });
+    router.push(Routes.bookCoach(id!));
   };
 
   const handleMessage = () => {
-    router.push({
-      pathname: '/messages/[conversationId]' as any,
-      params: { conversationId: `coach-${id}` },
-    });
+    router.push(Routes.chat(`coach-${id}`));
   };
 
   if (loading) {
@@ -137,11 +132,11 @@ export default function CoachProfileScreen() {
 
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
-        stars.push(<Ionicons key={i} name="star" size={14} color="#FFB800" />);
+        stars.push(<Ionicons key={i} name="star" size={14} color={palette.warning} />);
       } else if (i === fullStars && hasHalf) {
-        stars.push(<Ionicons key={i} name="star-half" size={14} color="#FFB800" />);
+        stars.push(<Ionicons key={i} name="star-half" size={14} color={palette.warning} />);
       } else {
-        stars.push(<Ionicons key={i} name="star-outline" size={14} color="#FFB800" />);
+        stars.push(<Ionicons key={i} name="star-outline" size={14} color={palette.warning} />);
       }
     }
     return stars;
@@ -165,7 +160,7 @@ export default function CoachProfileScreen() {
             {coach.footballFocuses.map((focus, index) => (
               <View
                 key={index}
-                style={[styles.chip, { backgroundColor: `${palette.tint}15` }]}
+                style={[styles.chip, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
               >
                 <ThemedText style={[styles.chipText, { color: palette.tint }]}>
                   {focus}
@@ -207,7 +202,7 @@ export default function CoachProfileScreen() {
               <Ionicons name="ribbon-outline" size={20} color={palette.tint} />
               <View style={{ flex: 1 }}>
                 <ThemedText type="defaultSemiBold">{cert.name}</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                   {cert.issuer} • {cert.issueDate}
                 </ThemedText>
               </View>
@@ -256,7 +251,7 @@ export default function CoachProfileScreen() {
           <Animated.View key={review.id} entering={FadeInDown.delay(index * 50)}>
             <SurfaceCard style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
-                <View style={[styles.reviewAvatar, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.reviewAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>
                     {review.reviewerName.charAt(0)}
                   </ThemedText>
@@ -265,7 +260,7 @@ export default function CoachProfileScreen() {
                   <ThemedText type="defaultSemiBold">{review.reviewerName}</ThemedText>
                   <View style={styles.starsRow}>{renderStars(review.rating)}</View>
                 </View>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   {new Date(review.createdAt).toLocaleDateString('en-GB', {
                     day: 'numeric',
                     month: 'short',
@@ -277,8 +272,8 @@ export default function CoachProfileScreen() {
                 <ThemedText style={styles.reviewText}>{review.comment}</ThemedText>
               )}
               {review.sessionType && (
-                <View style={[styles.sessionTypeBadge, { backgroundColor: `${palette.tint}10` }]}>
-                  <ThemedText style={{ color: palette.tint, fontSize: 12 }}>
+                <View style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                  <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
                     {review.sessionType}
                   </ThemedText>
                 </View>
@@ -306,7 +301,7 @@ export default function CoachProfileScreen() {
             <ThemedText type="title" style={{ color: palette.tint }}>
               £{coach.minPriceUsd}
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>per session</ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>per session</ThemedText>
           </View>
           {coach.maxPriceUsd && coach.maxPriceUsd !== coach.minPriceUsd && (
             <View style={styles.priceBox}>
@@ -314,7 +309,7 @@ export default function CoachProfileScreen() {
               <ThemedText type="title" style={{ color: palette.tint }}>
                 £{coach.maxPriceUsd}
               </ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>per session</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>per session</ThemedText>
             </View>
           )}
         </View>
@@ -352,27 +347,27 @@ export default function CoachProfileScreen() {
             <ThemedText type="title" style={{ color: palette.tint }}>
               {coach.totalSessions}
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Sessions</ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Sessions</ThemedText>
           </View>
           <View style={styles.statItem}>
             <ThemedText type="title" style={{ color: palette.tint }}>
               {coach.rating.toFixed(1)}
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Rating</ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Rating</ThemedText>
           </View>
           <View style={styles.statItem}>
             <ThemedText type="title" style={{ color: palette.tint }}>
               {new Date().getFullYear() - new Date(coach.joinedAt || Date.now()).getFullYear()}+
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Years</ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Years</ThemedText>
           </View>
         </View>
       </SurfaceCard>
 
       {/* Book Button */}
       <Button onPress={handleBook} style={styles.bookButton}>
-        <Ionicons name="calendar" size={18} color="#fff" />
-        <ThemedText style={{ color: '#fff', fontWeight: '700', marginLeft: 8 }}>
+        <Ionicons name="calendar" size={18} color={palette.onPrimary} />
+        <ThemedText style={{ color: palette.onPrimary, fontWeight: '700', marginLeft: 8 }}>
           Book a Session
         </ThemedText>
       </Button>
@@ -400,7 +395,7 @@ export default function CoachProfileScreen() {
             onPress={() => router.back()}
             style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
           >
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color={palette.onPrimary} />
           </Clickable>
 
           {/* Profile Avatar */}
@@ -436,10 +431,10 @@ export default function CoachProfileScreen() {
               {coach.badges.slice(0, 3).map((badge, index) => (
                 <View
                   key={index}
-                  style={[styles.badge, { backgroundColor: `${palette.success}15` }]}
+                  style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}
                 >
                   <Ionicons name="checkmark-circle" size={12} color={palette.success} />
-                  <ThemedText style={{ color: palette.success, fontSize: 11, fontWeight: '600' }}>
+                  <ThemedText style={{ color: palette.success, ...Typography.caption }}>
                     {badge}
                   </ThemedText>
                 </View>
@@ -456,12 +451,12 @@ export default function CoachProfileScreen() {
             <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
             <View style={styles.statBlock}>
               <ThemedText type="defaultSemiBold">{coach.reviewCount}</ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Reviews</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Reviews</ThemedText>
             </View>
             <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
             <View style={styles.statBlock}>
               <ThemedText type="defaultSemiBold">{coach.totalSessions}</ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Sessions</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Sessions</ThemedText>
             </View>
           </View>
 
@@ -481,11 +476,11 @@ export default function CoachProfileScreen() {
                 <Ionicons
                   name={isFollowing ? 'checkmark' : 'add'}
                   size={18}
-                  color={isFollowing ? palette.text : '#fff'}
+                  color={isFollowing ? palette.text : palette.onPrimary}
                 />
                 <ThemedText
                   style={{
-                    color: isFollowing ? palette.text : '#fff',
+                    color: isFollowing ? palette.text : palette.onPrimary,
                     fontWeight: '600',
                   }}
                 >
@@ -514,7 +509,7 @@ export default function CoachProfileScreen() {
               ].filter(Boolean) as ViewStyle[]}
             >
               <Ionicons
-                name={tab.icon as any}
+                name={tab.icon as keyof typeof Ionicons.glyphMap}
                 size={18}
                 color={activeTab === tab.id ? palette.tint : palette.muted}
               />
@@ -542,7 +537,7 @@ export default function CoachProfileScreen() {
       {!isOwnProfile && (
         <View style={[styles.fixedFooter, { backgroundColor: palette.background, borderTopColor: palette.border }]}>
           <View style={styles.footerPrice}>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>From</ThemedText>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>From</ThemedText>
             <ThemedText type="title" style={{ color: palette.tint }}>£{coach.minPriceUsd}</ThemedText>
           </View>
           <Button onPress={handleBook} style={{ flex: 1 }}>
@@ -571,7 +566,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   errorText: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   coverContainer: {
     height: COVER_HEIGHT + 50,
@@ -592,7 +587,7 @@ const styles = StyleSheet.create({
     left: 12,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -604,23 +599,22 @@ const styles = StyleSheet.create({
   avatar: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     borderWidth: 4,
-    borderColor: '#fff',
+    borderColor: Colors.light.onPrimary,
   },
   avatarPlaceholder: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     borderWidth: 4,
-    borderColor: '#fff',
+    borderColor: Colors.light.onPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.display,
   },
   profileInfo: {
     paddingHorizontal: Spacing.lg,
@@ -628,12 +622,12 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   name: {
-    fontSize: 24,
+    ...Typography.display,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   badgesRow: {
     flexDirection: 'row',
@@ -643,9 +637,9 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statsRow: {
@@ -657,7 +651,7 @@ const styles = StyleSheet.create({
   },
   statBlock: {
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
   statDivider: {
     width: 1,
@@ -665,7 +659,7 @@ const styles = StyleSheet.create({
   },
   starsRow: {
     flexDirection: 'row',
-    gap: 2,
+    gap: Spacing.micro,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -677,7 +671,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1.5,
@@ -700,7 +694,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.md,
   },
   tabContentContainer: {
@@ -726,12 +720,11 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   chipText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   experienceItem: {
     flexDirection: 'row',
@@ -741,19 +734,19 @@ const styles = StyleSheet.create({
   expDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    marginTop: 6,
+    borderRadius: Radii.xs,
+    marginTop: Spacing.xxs,
   },
   expContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   expDates: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   expDesc: {
-    fontSize: 13,
-    marginTop: 4,
+    ...Typography.small,
+    marginTop: Spacing.xxs,
     lineHeight: 18,
   },
   certItem: {
@@ -771,8 +764,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   ratingNumber: {
-    fontSize: 48,
-    fontWeight: '700',
+    ...Typography.display,
   },
   reviewCard: {
     gap: Spacing.sm,
@@ -785,7 +777,7 @@ const styles = StyleSheet.create({
   reviewAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -795,7 +787,7 @@ const styles = StyleSheet.create({
   sessionTypeBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   emptyState: {
@@ -814,7 +806,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   priceLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   availabilityRow: {
     flexDirection: 'row',
@@ -827,7 +819,7 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   bookButton: {
     flexDirection: 'row',

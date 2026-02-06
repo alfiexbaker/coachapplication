@@ -10,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Badge } from '@/components/primitives/badge';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { VerificationStatus, VerificationItem } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
@@ -66,13 +66,13 @@ function CredentialCard({ credential, index }: CredentialCardProps) {
   return (
     <SurfaceCard style={styles.credentialCard}>
       <View style={styles.credentialHeader}>
-        <View style={[styles.credentialIcon, { backgroundColor: `${palette.tint}10` }]}>
+        <View style={[styles.credentialIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="ribbon" size={20} color={palette.tint} />
         </View>
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold">{credential.notes || `Credential ${index + 1}`}</ThemedText>
           {credential.verifiedAt && (
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
               Verified: {new Date(credential.verifiedAt).toLocaleDateString()}
             </ThemedText>
           )}
@@ -82,7 +82,7 @@ function CredentialCard({ credential, index }: CredentialCardProps) {
       {credential.expiresAt && (
         <View style={styles.expiryRow}>
           <Ionicons name="calendar-outline" size={14} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+          <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
             Expires: {new Date(credential.expiresAt).toLocaleDateString()}
           </ThemedText>
         </View>
@@ -183,7 +183,7 @@ export default function CredentialsScreen() {
               onPress={() => setShowForm(true)}
               style={[styles.addButton, { backgroundColor: palette.tint }]}
             >
-              <Ionicons name="add" size={20} color="#fff" />
+              <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
             </Clickable>
           )}
         </View>
@@ -196,11 +196,11 @@ export default function CredentialsScreen() {
           <View style={styles.statsRow}>
             <View style={[styles.statBox, { backgroundColor: palette.card }]}>
               <ThemedText type="title">{credentials.length}</ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Uploaded</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Uploaded</ThemedText>
             </View>
             <View style={[styles.statBox, { backgroundColor: palette.card }]}>
               <ThemedText type="title">{verifiedCount}</ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Verified</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Verified</ThemedText>
             </View>
           </View>
         )}
@@ -227,7 +227,7 @@ export default function CredentialsScreen() {
                         borderColor:
                           selectedType === type.id ? palette.tint : palette.border,
                         backgroundColor:
-                          selectedType === type.id ? `${palette.tint}08` : palette.card,
+                          selectedType === type.id ? withAlpha(palette.tint, 0.03) : palette.card,
                       },
                     ]}
                   >
@@ -240,7 +240,7 @@ export default function CredentialsScreen() {
                       >
                         {type.label}
                       </ThemedText>
-                      <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                         {type.category}
                       </ThemedText>
                     </View>
@@ -277,13 +277,13 @@ export default function CredentialsScreen() {
                   <View
                     style={[
                       styles.uploadedRow,
-                      { borderColor: palette.success, backgroundColor: `${palette.success}08` },
+                      { borderColor: palette.success, backgroundColor: withAlpha(palette.success, 0.03) },
                     ]}
                   >
                     <Ionicons name="document-text" size={24} color={palette.success} />
                     <View style={{ flex: 1 }}>
                       <ThemedText type="defaultSemiBold">Document uploaded</ThemedText>
-                      <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                         credential.pdf
                       </ThemedText>
                     </View>
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -404,8 +404,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   typeList: {
     gap: Spacing.xs,
@@ -421,7 +420,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   uploadArea: {
     alignItems: 'center',
@@ -453,7 +452,7 @@ const styles = StyleSheet.create({
   credentialIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -487,7 +486,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 20,
+    ...Typography.small,
   },
 });

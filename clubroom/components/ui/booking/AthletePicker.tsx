@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface Athlete {
@@ -67,7 +67,7 @@ export function AthletePicker({
         <View style={styles.textContainer}>
           <ThemedText type="defaultSemiBold">{name}</ThemedText>
           {subtitle && (
-            <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+            <ThemedText style={{ ...Typography.small, color: palette.muted }}>
               {subtitle}
             </ThemedText>
           )}
@@ -99,6 +99,6 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
 });

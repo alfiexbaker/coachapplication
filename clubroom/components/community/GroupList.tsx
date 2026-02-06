@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ParentGroupCard } from './ParentGroupCard';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { ParentGroup } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
@@ -60,7 +60,7 @@ function GroupListComponent({
 
     return (
       <View style={styles.emptyState}>
-        <View style={[styles.emptyIcon, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
           <Ionicons name="chatbubbles-outline" size={48} color={palette.tint} />
         </View>
         <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,

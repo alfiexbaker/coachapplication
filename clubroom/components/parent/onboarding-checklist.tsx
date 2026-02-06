@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography, Radii} from '@/constants/theme';
 import { CardStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -150,7 +150,7 @@ export function ParentOnboardingChecklist({
             style={styles.item}
             onPress={() => {
               if (!item.isComplete) {
-                router.push(item.route as any);
+                router.push(item.route as Href);
               }
             }}
             disabled={item.isComplete}
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   headerTextGroup: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   title: {
     ...Typography.heading,
@@ -223,12 +223,12 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   itemsList: {
     gap: 0,
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   checkCircle: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

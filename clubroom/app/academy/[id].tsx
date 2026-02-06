@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -9,7 +10,7 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
@@ -54,7 +55,7 @@ function StaffCard({
           <View style={styles.staffInfo}>
             <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
             <View
-              style={[styles.roleBadge, { backgroundColor: `${roleColors[member.role]}15` }]}
+              style={[styles.roleBadge, { backgroundColor: withAlpha(roleColors[member.role], 0.09) }]}
             >
               <ThemedText style={[styles.roleText, { color: roleColors[member.role] }]}>
                 {academyService.formatRole(member.role)}
@@ -142,14 +143,14 @@ export default function AcademyDetailScreen() {
             onPress={() => router.back()}
             style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
           >
-            <Ionicons name="arrow-back" size={22} color="#fff" />
+            <Ionicons name="arrow-back" size={22} color={palette.onPrimary} />
           </Clickable>
           {canManage && (
             <Clickable
-              onPress={() => router.push(`/academy/${id}/settings`)}
+              onPress={() => router.push(Routes.academySettings(id))}
               style={[styles.settingsButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
             >
-              <Ionicons name="settings-outline" size={20} color="#fff" />
+              <Ionicons name="settings-outline" size={20} color={palette.onPrimary} />
             </Clickable>
           )}
         </View>
@@ -176,7 +177,7 @@ export default function AcademyDetailScreen() {
           </View>
           {academy.rating && (
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color="#FFB800" />
+              <Ionicons name="star" size={14} color={palette.warning} />
               <ThemedText style={styles.ratingText}>
                 {academy.rating.average.toFixed(1)}
               </ThemedText>
@@ -240,7 +241,7 @@ export default function AcademyDetailScreen() {
                 {academy.specialties.map((specialty) => (
                   <View
                     key={specialty}
-                    style={[styles.tag, { backgroundColor: `${primaryColor}15` }]}
+                    style={[styles.tag, { backgroundColor: withAlpha(primaryColor, 0.09) }]}
                   >
                     <ThemedText style={[styles.tagText, { color: primaryColor }]}>
                       {specialty}
@@ -292,10 +293,10 @@ export default function AcademyDetailScreen() {
               <ThemedText type="subtitle">Staff ({staff.length})</ThemedText>
               {canManage && (
                 <Clickable
-                  onPress={() => router.push(`/academy/${id}/invite`)}
+                  onPress={() => router.push(Routes.academyInvite(id))}
                   style={[styles.inviteButton, { backgroundColor: primaryColor }]}
                 >
-                  <Ionicons name="person-add-outline" size={16} color="#fff" />
+                  <Ionicons name="person-add-outline" size={16} color={palette.onPrimary} />
                   <ThemedText style={styles.inviteButtonText}>Invite</ThemedText>
                 </Clickable>
               )}
@@ -307,7 +308,7 @@ export default function AcademyDetailScreen() {
                   member={member}
                   index={index}
                   isOwner={isOwner}
-                  onManage={() => router.push(`/academy/${id}/staff/${member.id}`)}
+                  onManage={() => router.push(Routes.academyStaffMember(id, member.id))}
                 />
               ))}
             </View>
@@ -320,7 +321,7 @@ export default function AcademyDetailScreen() {
                 Have an invite code?
               </ThemedText>
               <Clickable
-                onPress={() => router.push('/academy/join')}
+                onPress={() => router.push(Routes.ACADEMY_JOIN)}
                 style={[styles.joinButton, { backgroundColor: primaryColor }]}
               >
                 <ThemedText style={styles.joinButtonText}>Join Team</ThemedText>
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
     left: Spacing.md,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
     right: Spacing.md,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -390,23 +391,22 @@ const styles = StyleSheet.create({
   logo: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     borderWidth: 4,
-    borderColor: '#fff',
+    borderColor: Colors.light.onPrimary,
   },
   logoPlaceholder: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     borderWidth: 4,
-    borderColor: '#fff',
+    borderColor: Colors.light.onPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoText: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.display,
   },
   academyName: {
     marginTop: Spacing.sm,
@@ -415,24 +415,23 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   location: {
-    fontSize: 13,
+    ...Typography.small,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     marginTop: Spacing.xs,
   },
   ratingText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   reviewCount: {
-    fontSize: 13,
+    ...Typography.small,
   },
   content: {
     padding: Spacing.lg,
@@ -449,11 +448,11 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   statValue: {
-    fontSize: 22,
+    ...Typography.title,
   },
   statLabel: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   descriptionCard: {
     marginBottom: Spacing.lg,
@@ -462,8 +461,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   section: {
     marginBottom: Spacing.lg,
@@ -480,13 +478,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
   tagText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   contactCard: {
     marginBottom: Spacing.lg,
@@ -498,20 +495,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   contactText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   inviteButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
   inviteButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.smallSemiBold,
   },
   staffList: {
     gap: Spacing.sm,
@@ -531,12 +527,12 @@ const styles = StyleSheet.create({
   staffPhoto: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
   },
   staffPhotoPlaceholder: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -546,20 +542,19 @@ const styles = StyleSheet.create({
   roleBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   roleText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   joinSection: {
     alignItems: 'center',
     paddingVertical: Spacing.lg,
   },
   joinText: {
-    fontSize: 13,
+    ...Typography.small,
     marginBottom: Spacing.sm,
   },
   joinButton: {
@@ -568,9 +563,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   joinButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
   bottomSpacer: {
     height: 40,

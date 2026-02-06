@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function TransactionListItem({
@@ -22,9 +22,9 @@ export function TransactionListItem({
         <ThemedText type="defaultSemiBold">{title}</ThemedText>
         <ThemedText style={{ color: palette.muted }}>{subtitle}</ThemedText>
       </View>
-      <View style={{ alignItems: 'flex-end', gap: 4 }}>
+      <View style={{ alignItems: 'flex-end', gap: Spacing.xxs }}>
         <ThemedText type="defaultSemiBold">{amount}</ThemedText>
-        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{status}</ThemedText>
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{status}</ThemedText>
       </View>
     </View>
   );

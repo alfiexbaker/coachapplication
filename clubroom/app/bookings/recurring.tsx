@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -166,7 +167,7 @@ export default function RecurringBookingsScreen() {
    * Navigate to create subscription screen
    */
   const handleCreatePress = useCallback(() => {
-    router.push('/bookings/subscribe');
+    router.push(Routes.BOOKINGS_SUBSCRIBE);
   }, []);
 
   if (loading) {
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
   },
   headerSubtext: {
     ...Typography.small,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   headerButton: {
     padding: Spacing.xs,

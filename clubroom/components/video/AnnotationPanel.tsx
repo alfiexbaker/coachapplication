@@ -12,7 +12,7 @@ import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
@@ -125,7 +125,7 @@ export function AnnotationPanel({
                   style={[
                     styles.filterChip,
                     {
-                      backgroundColor: isSelected ? `${config.color}20` : palette.background,
+                      backgroundColor: isSelected ? withAlpha(config.color, 0.12) : palette.background,
                       borderColor: isSelected ? config.color : palette.border,
                     },
                   ]}
@@ -181,7 +181,7 @@ export function AnnotationPanel({
                   style={[
                     styles.annotationItem,
                     {
-                      backgroundColor: isActive ? `${config.color}10` : 'transparent',
+                      backgroundColor: isActive ? withAlpha(config.color, 0.06) : 'transparent',
                       borderColor: isActive ? config.color : palette.border,
                     },
                   ]}
@@ -198,7 +198,7 @@ export function AnnotationPanel({
                         <View
                           style={[
                             styles.typeBadge,
-                            { backgroundColor: `${config.color}20` },
+                            { backgroundColor: withAlpha(config.color, 0.12) },
                           ]}
                         >
                           <Ionicons
@@ -270,9 +270,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  title: {
-    fontSize: 16,
-  },
+  title: { ...Typography.subheading },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -284,11 +282,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: Spacing.xs,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    paddingVertical: 4,
-  },
+  searchInput: { ...Typography.bodySmall, flex: 1,
+    paddingVertical: Spacing.xxs },
   filtersContainer: {
     paddingHorizontal: Spacing.md,
     marginBottom: Spacing.sm,
@@ -301,15 +296,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  filterLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  filterLabel: { ...Typography.caption },
   listContainer: {
     flex: 1,
   },
@@ -330,7 +322,7 @@ const styles = StyleSheet.create({
   annotationContent: {
     flex: 1,
     padding: Spacing.sm,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   annotationHeader: {
     flexDirection: 'row',
@@ -345,36 +337,25 @@ const styles = StyleSheet.create({
   typeBadge: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  timestamp: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  timestamp: { ...Typography.caption },
   actions: {
     flexDirection: 'row',
     gap: Spacing.xs,
   },
   actionButton: {
-    padding: 4,
+    padding: Spacing.xxs,
   },
-  annotationLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  annotationNote: {
-    fontSize: 13,
-  },
+  annotationLabel: { ...Typography.bodySmallSemiBold },
+  annotationNote: { ...Typography.small },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing.xl,
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
+  emptyText: { ...Typography.bodySmall, textAlign: 'center' },
 });

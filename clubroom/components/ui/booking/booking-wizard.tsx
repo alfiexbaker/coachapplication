@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function BookingWizardHeader({ title, subtitle, step }: { title: string; subtitle: string; step: number }) {
@@ -8,7 +8,7 @@ export function BookingWizardHeader({ title, subtitle, step }: { title: string; 
   const palette = Colors[scheme];
   return (
     <View style={{ gap: Spacing.sm }}>
-      <ThemedText type="title" style={{ fontSize: 30 }}>
+      <ThemedText type="title" style={{ ...Typography.display }}>
         {title}
       </ThemedText>
       <ThemedText style={{ color: palette.muted }}>{subtitle}</ThemedText>
@@ -54,8 +54,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
   },
-  summaryLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  summaryLabel: { ...Typography.bodySmallSemiBold },
 });

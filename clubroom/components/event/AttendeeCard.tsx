@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { EventRSVP, EventAttendance } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { eventService } from '@/services/event-service';
@@ -120,7 +120,7 @@ export function AttendeeCard({
           {/* Check-in indicator */}
           {showCheckInStatus && isCheckedIn && (
             <View style={[styles.checkInBadge, { backgroundColor: palette.success }]}>
-              <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={10} color={palette.onSuccess} />
             </View>
           )}
         </View>
@@ -136,7 +136,7 @@ export function AttendeeCard({
               <View
                 style={[
                   styles.statusBadge,
-                  { backgroundColor: `${eventService.getRSVPStatusColor(rsvp.status)}15` },
+                  { backgroundColor: withAlpha(eventService.getRSVPStatusColor(rsvp.status), 0.09) },
                 ]}
               >
                 <Ionicons
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
   },
   avatarInitial: {
     fontSize: scaleFont(18),
@@ -244,15 +244,15 @@ const styles = StyleSheet.create({
     right: -2,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: Colors.light.surface,
   },
   info: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   nameRow: {
     flexDirection: 'row',
@@ -267,9 +267,9 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   statusBadgeText: {
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   roleTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   roleText: {
     fontSize: scaleFont(12),
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   guestTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   guestText: {
     fontSize: scaleFont(12),
@@ -300,27 +300,27 @@ const styles = StyleSheet.create({
   checkInInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
   checkInTime: {
     fontSize: scaleFont(12),
     fontWeight: '500',
   },
   locationVerified: {
-    marginLeft: 2,
+    marginLeft: Spacing.micro,
   },
   rsvpTime: {
     fontSize: scaleFont(12),
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   noteContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 6,
+    gap: Spacing.xxs,
     padding: Spacing.xs,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   noteText: {
     flex: 1,
@@ -340,14 +340,14 @@ const styles = StyleSheet.create({
   compactAvatar: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   compactAvatarImage: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
   },
   compactAvatarInitial: {
     fontSize: scaleFont(14),
@@ -369,6 +369,6 @@ const styles = StyleSheet.create({
   compactStatusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
 });

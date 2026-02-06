@@ -1,11 +1,17 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
 
-export function CardListItem({ card, onDelete }: { card: any; onDelete?: () => void }) {
+interface PaymentCard {
+  brand?: string;
+  number?: string;
+  default?: boolean;
+}
+
+export function CardListItem({ card, onDelete }: { card: PaymentCard; onDelete?: () => void }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   return (
@@ -17,13 +23,13 @@ export function CardListItem({ card, onDelete }: { card: any; onDelete?: () => v
           <ThemedText style={{ color: palette.muted }}>{card.number || '•••• •••• •••• 4242'}</ThemedText>
         </View>
         {card.default && (
-          <View style={[styles.badge, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Default</ThemedText>
           </View>
         )}
       </View>
       {onDelete ? (
-        <Clickable onPress={onDelete} style={[styles.delete, { backgroundColor: `${palette.error}10` }]}>
+        <Clickable onPress={onDelete} style={[styles.delete, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
           <Ionicons name="trash" size={16} color={palette.error} />
           <ThemedText style={{ color: palette.error, fontWeight: '700' }}>Delete</ThemedText>
         </Clickable>
@@ -41,7 +47,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   delete: {
@@ -50,7 +56,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
 });

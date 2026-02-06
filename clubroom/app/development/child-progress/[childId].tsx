@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getUserById, formatDate } from '@/constants/mock-data';
@@ -27,7 +27,7 @@ export default function ChildProgressScreen() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [child, setChild] = useState<any>(null);
+  const [child, setChild] = useState<ReturnType<typeof getUserById>>(undefined);
   const [progress, setProgress] = useState<AthleteProgress | null>(null);
   const [feedback, setFeedback] = useState<SessionFeedback[]>([]);
   const [badges, setBadges] = useState<BadgeAward[]>([]);
@@ -131,8 +131,8 @@ export default function ChildProgressScreen() {
           <ThemedText type="title" style={styles.headerTitle}>
             {child.name}
           </ThemedText>
-          <View style={[styles.trendBadge, { backgroundColor: `${trend.color}15` }]}>
-            <Ionicons name={trend.icon as any} size={12} color={trend.color} />
+          <View style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
+            <Ionicons name={trend.icon as keyof typeof Ionicons.glyphMap} size={12} color={trend.color} />
             <ThemedText style={[styles.trendText, { color: trend.color }]}>
               {trend.label}
             </ThemedText>
@@ -154,7 +154,7 @@ export default function ChildProgressScreen() {
               ].filter(Boolean) as ViewStyle[]}
             >
               <Ionicons
-                name={tab.icon as any}
+                name={tab.icon as keyof typeof Ionicons.glyphMap}
                 size={18}
                 color={activeTab === tab.id ? palette.tint : palette.muted}
               />
@@ -249,7 +249,7 @@ export default function ChildProgressScreen() {
               <View style={styles.badgesGrid}>
                 {badges.map((badge) => (
                   <SurfaceCard key={badge.id} style={styles.badgeCard}>
-                    <View style={[styles.badgeIcon, { backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.badgeIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <Ionicons name="ribbon" size={24} color={palette.tint} />
                     </View>
                     <ThemedText type="defaultSemiBold" style={styles.badgeLabel}>
@@ -341,23 +341,21 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   trendText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   tabBar: {
     borderBottomWidth: 1,
@@ -370,14 +368,13 @@ const styles = StyleSheet.create({
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     marginBottom: -1,
   },
   tabLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   content: {
     padding: Spacing.md,
@@ -385,14 +382,14 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['2xl'],
   },
   sectionHeader: {
-    gap: 4,
+    gap: Spacing.xxs,
     marginBottom: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    ...Typography.small,
   },
   emptyCard: {
     alignItems: 'center',
@@ -400,11 +397,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   emptySubtext: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
   },
   badgesGrid: {
@@ -417,17 +413,16 @@ const styles = StyleSheet.create({
   badgeIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   badgeLabel: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   badgeReason: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   badgeMeta: {
     flexDirection: 'row',
@@ -435,10 +430,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   badgeDate: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   badgeCoach: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   statsFooter: {
     flexDirection: 'row',
@@ -456,10 +451,10 @@ const styles = StyleSheet.create({
     height: 36,
   },
   statValue: {
-    fontSize: 22,
+    ...Typography.title,
   },
   statLabel: {
-    fontSize: 11,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },

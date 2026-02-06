@@ -1,10 +1,11 @@
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ClubSquad } from '@/constants/types';
 
@@ -28,8 +29,8 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
         <ThemedText type="subtitle">Teams</ThemedText>
         {isCoach && (
           <Pressable
-            style={[styles.addButton, { backgroundColor: `${palette.tint}15` }]}
-            onPress={() => router.push('/academy/create')}
+            style={[styles.addButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+            onPress={() => router.push(Routes.CLUB_SQUAD_CREATE)}
           >
             <Ionicons name="add" size={16} color={palette.tint} />
             <ThemedText style={[styles.addButtonText, { color: palette.tint }]}>
@@ -48,10 +49,10 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
           {squads.map((squad) => (
             <Pressable
               key={squad.id}
-              onPress={() => router.push(`/club/${squad.clubId}/squad/${squad.id}`)}
+              onPress={() => router.push(Routes.clubSquad(squad.id))}
             >
               <SurfaceCard style={styles.teamCard}>
-                <View style={[styles.teamIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.teamIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="people" size={24} color={palette.tint} />
                 </View>
                 <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.teamName}>
@@ -69,7 +70,7 @@ export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
                   </View>
                 )}
                 {squad.nextSession && (
-                  <View style={[styles.nextSessionBadge, { backgroundColor: `${palette.success}15` }]}>
+                  <View style={[styles.nextSessionBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <Ionicons name="calendar" size={10} color={palette.success} />
                     <ThemedText style={[styles.nextSessionText, { color: palette.success }]}>
                       {formatNextSession(squad.nextSession)}
@@ -117,15 +118,12 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  addButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  addButtonText: { ...Typography.smallSemiBold },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
@@ -134,55 +132,41 @@ const styles = StyleSheet.create({
     width: 140,
     padding: Spacing.md,
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   teamIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
-  teamName: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  teamMeta: {
-    fontSize: 12,
-  },
+  teamName: { ...Typography.bodySmall, textAlign: 'center' },
+  teamMeta: { ...Typography.caption },
   coachRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
-  coachName: {
-    fontSize: 11,
-    maxWidth: 100,
-  },
+  coachName: { ...Typography.caption, maxWidth: 100 },
   nextSessionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
-  nextSessionText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  nextSessionText: { ...Typography.micro },
   emptyCard: {
     marginHorizontal: Spacing.lg,
     padding: Spacing.lg,
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
+  emptyText: { ...Typography.small, textAlign: 'center',
+    lineHeight: 18 },
 });

@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -16,7 +17,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { InjuryCard } from '@/components/health';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Injury, InjuryStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -87,7 +88,7 @@ export default function InjuryHistoryScreen() {
   // Navigation
   const handleInjuryPress = useCallback((injury: Injury) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/health/[id]', params: { id: injury.id } });
+    router.push(Routes.healthEntry(injury.id));
   }, []);
 
   const handleFilterChange = useCallback((filter: StatusFilter) => {
@@ -97,7 +98,7 @@ export default function InjuryHistoryScreen() {
 
   const handleLogInjury = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/health/log');
+    router.push(Routes.HEALTH_LOG);
   }, []);
 
   const filters: { value: StatusFilter; label: string; color: string }[] = [
@@ -123,7 +124,7 @@ export default function InjuryHistoryScreen() {
           onPress={handleLogInjury}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
+          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
 
@@ -151,7 +152,7 @@ export default function InjuryHistoryScreen() {
                     <ThemedText
                       style={[
                         styles.filterLabel,
-                        { color: isActive ? '#FFFFFF' : palette.text },
+                        { color: isActive ? Colors.light.onPrimary : palette.text },
                       ]}
                     >
                       {filter.label}
@@ -169,7 +170,7 @@ export default function InjuryHistoryScreen() {
                       <ThemedText
                         style={[
                           styles.filterCountText,
-                          { color: isActive ? '#FFFFFF' : palette.muted },
+                          { color: isActive ? Colors.light.onPrimary : palette.muted },
                         ]}
                       >
                         {count}
@@ -196,7 +197,7 @@ export default function InjuryHistoryScreen() {
           </View>
         ) : filteredInjuries.length === 0 ? (
           <Animated.View entering={FadeInDown.springify()} style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons
                 name={
                   statusFilter === 'HEALED'
@@ -260,12 +261,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -289,19 +290,17 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   filterLabel: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   filterCount: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.md,
     minWidth: 20,
     alignItems: 'center',
   },
   filterCountText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
@@ -321,7 +320,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -331,7 +330,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
     maxWidth: 280,
   },

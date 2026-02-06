@@ -91,10 +91,10 @@ describe('Community Service', () => {
         assert.ok(group.createdAt);
         assert.ok(group.updatedAt);
 
-        // Creator should be added as admin
+        // Creator should be added as owner
         assert.strictEqual(group.members.length, 1);
         assert.strictEqual(group.members[0].parentId, 'test_parent');
-        assert.strictEqual(group.members[0].role, 'ADMIN');
+        assert.strictEqual(group.members[0].role, 'OWNER');
       });
 
       test('should create a group with all optional fields', async () => {

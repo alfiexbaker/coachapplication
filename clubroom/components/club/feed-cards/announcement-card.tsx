@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface AnnouncementData {
@@ -53,7 +53,7 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
       <View style={styles.headerRow}>
         <View style={styles.authorRow}>
           {data.isAdmin ? (
-            <View style={[styles.adminBadge, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.adminBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="shield-checkmark" size={Components.icon.sm} color={palette.tint} />
               <ThemedText style={[styles.adminText, { color: palette.tint }]}>Admin</ThemedText>
             </View>
@@ -73,7 +73,7 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
 
       {/* Pinned indicator */}
       {data.isPinned ? (
-        <View style={[styles.pinnedRow, { backgroundColor: `${palette.tint}08` }]}>
+        <View style={[styles.pinnedRow, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <Ionicons name="pin" size={Components.icon.sm} color={palette.tint} />
           <ThemedText style={[styles.pinnedText, { color: palette.tint }]}>Pinned Announcement</ThemedText>
         </View>
@@ -100,7 +100,6 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
           <Clickable
             onPress={onRsvp}
             accessibilityLabel={data.rsvp.hasRsvped ? 'Going' : 'RSVP'}
-            accessibilityRole="button"
             style={{
               backgroundColor: data.rsvp.hasRsvped ? palette.surfaceSecondary : palette.tint,
               height: Components.buttonCompact.height,
@@ -117,13 +116,13 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
             <Ionicons
               name={data.rsvp.hasRsvped ? 'checkmark' : 'hand-right-outline'}
               size={Components.icon.sm}
-              color={data.rsvp.hasRsvped ? palette.success : '#FFFFFF'}
+              color={data.rsvp.hasRsvped ? palette.success : palette.onPrimary}
             />
             <ThemedText
               style={{
                 ...Typography.caption,
                 fontWeight: '600',
-                color: data.rsvp.hasRsvped ? palette.success : '#FFFFFF',
+                color: data.rsvp.hasRsvped ? palette.success : palette.onPrimary,
               }}
             >
               {data.rsvp.hasRsvped ? 'Going' : 'RSVP'}
@@ -153,9 +152,9 @@ const styles = StyleSheet.create({
   adminBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   adminText: {
@@ -173,7 +172,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
   pinnedText: {

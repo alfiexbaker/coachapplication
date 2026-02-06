@@ -3,7 +3,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface ReminderOption {
@@ -57,7 +57,7 @@ export function SyncSettingsCard({
           },
         ]}
       >
-        <View style={[styles.iconContainer, { backgroundColor: `${palette.accent}15` }]}>
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
           <Ionicons name="alarm" size={22} color={palette.accent} />
         </View>
         <View style={styles.headerContent}>
@@ -86,7 +86,7 @@ export function SyncSettingsCard({
                 style={({ pressed }) => [
                   styles.option,
                   {
-                    backgroundColor: isSelected ? `${palette.accent}10` : 'transparent',
+                    backgroundColor: isSelected ? withAlpha(palette.accent, 0.06) : 'transparent',
                     opacity: pressed ? 0.7 : 1,
                   },
                 ]}
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.sm,
   },
   iconContainer: {
@@ -130,15 +130,10 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  headerValue: {
-    fontSize: 14,
-  },
+  headerTitle: { ...Typography.subheading },
+  headerValue: { ...Typography.bodySmall },
   optionsContainer: {
     borderTopWidth: 1,
     paddingVertical: Spacing.xs,
@@ -150,7 +145,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
   },
-  optionLabel: {
-    fontSize: 15,
-  },
+  optionLabel: { ...Typography.body },
 });

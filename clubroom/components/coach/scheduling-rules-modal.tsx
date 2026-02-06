@@ -5,8 +5,9 @@ import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { createLogger } from '@/utils/logger';
@@ -75,7 +76,7 @@ function OptionChip({ label, isSelected, onPress, compact }: OptionChipProps) {
       <ThemedText
         style={[
           styles.chipText,
-          { color: isSelected ? '#fff' : palette.text, fontSize: compact ? 13 : 14 },
+          { color: isSelected ? palette.onPrimary : palette.text, fontSize: compact ? 13 : 14 },
         ]}
       >
         {label}
@@ -179,7 +180,7 @@ export function SchedulingRulesModal({
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Quick Summary */}
-          <View style={[styles.summaryBanner, { backgroundColor: `${palette.tint}08` }]}>
+          <View style={[styles.summaryBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
             <Ionicons name="information-circle" size={20} color={palette.tint} />
             <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
               These rules control how athletes can book sessions with you
@@ -189,7 +190,7 @@ export function SchedulingRulesModal({
           {/* Minimum Notice */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: `${palette.warning}15` }]}>
+              <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <Ionicons name="time-outline" size={18} color={palette.warning} />
               </View>
               <View style={styles.sectionTitleWrap}>
@@ -215,7 +216,7 @@ export function SchedulingRulesModal({
           {/* Buffer Time */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="pause-outline" size={18} color={palette.tint} />
               </View>
               <View style={styles.sectionTitleWrap}>
@@ -241,7 +242,7 @@ export function SchedulingRulesModal({
           {/* Booking Window */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="calendar-outline" size={18} color={palette.success} />
               </View>
               <View style={styles.sectionTitleWrap}>
@@ -267,11 +268,11 @@ export function SchedulingRulesModal({
           <SurfaceCard style={styles.toggleCard}>
             <View style={styles.toggleRow}>
               <View style={styles.toggleInfo}>
-                <View style={[styles.toggleIcon, { backgroundColor: `${palette.success}15` }]}>
+                <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                   <Ionicons name="today-outline" size={16} color={palette.success} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>Same-Day Bookings</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>Same-Day Bookings</ThemedText>
                   <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
                     Allow booking for today
                   </ThemedText>
@@ -284,19 +285,19 @@ export function SchedulingRulesModal({
                   setAllowSameDayBookings(value);
                 }}
                 trackColor={{ false: palette.border, true: palette.success }}
-                thumbColor="#fff"
+                thumbColor={palette.surface}
               />
             </View>
 
-            <View style={[styles.toggleDivider, { backgroundColor: palette.border }]} />
+            <Divider spacing={Spacing.md} />
 
             <View style={styles.toggleRow}>
               <View style={styles.toggleInfo}>
-                <View style={[styles.toggleIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.toggleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="swap-horizontal-outline" size={16} color={palette.tint} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>Allow Rescheduling</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>Allow Rescheduling</ThemedText>
                   <ThemedText style={[styles.toggleHint, { color: palette.muted }]}>
                     Let athletes change booking time
                   </ThemedText>
@@ -309,13 +310,13 @@ export function SchedulingRulesModal({
                   setAllowRescheduling(value);
                 }}
                 trackColor={{ false: palette.border, true: palette.tint }}
-                thumbColor="#fff"
+                thumbColor={palette.surface}
               />
             </View>
 
             {allowRescheduling && (
               <>
-                <View style={[styles.toggleDivider, { backgroundColor: palette.border }]} />
+                <Divider spacing={Spacing.md} />
                 <View style={styles.rescheduleSection}>
                   <ThemedText style={[styles.rescheduleLabel, { color: palette.muted }]}>
                     Reschedule deadline:
@@ -337,7 +338,7 @@ export function SchedulingRulesModal({
           </SurfaceCard>
 
           {/* Current Settings Summary */}
-          <SurfaceCard style={[styles.currentSettings, { backgroundColor: `${palette.success}08` }]}>
+          <SurfaceCard style={[styles.currentSettings, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
             <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>
               Current Settings
             </ThemedText>
@@ -402,10 +403,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.md,
   },
-  summaryText: {
-    flex: 1,
-    fontSize: 13,
-  },
+  summaryText: { ...Typography.small, flex: 1 },
   section: {
     gap: Spacing.sm,
   },
@@ -417,16 +415,14 @@ const styles = StyleSheet.create({
   sectionIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitleWrap: {
     flex: 1,
   },
-  sectionHint: {
-    fontSize: 12,
-  },
+  sectionHint: { ...Typography.caption },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -467,23 +463,15 @@ const styles = StyleSheet.create({
   toggleIcon: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toggleHint: {
-    fontSize: 11,
-  },
-  toggleDivider: {
-    height: 1,
-    marginVertical: Spacing.md,
-  },
+  toggleHint: { ...Typography.caption },
   rescheduleSection: {
     gap: Spacing.sm,
   },
-  rescheduleLabel: {
-    fontSize: 12,
-  },
+  rescheduleLabel: { ...Typography.caption },
   rescheduleChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -500,7 +488,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  settingText: {
-    fontSize: 13,
-  },
+  settingText: { ...Typography.small },
 });

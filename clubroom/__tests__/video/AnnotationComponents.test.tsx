@@ -5,6 +5,7 @@
  * AnnotationMarker, AnnotationPanel, AnnotationForm, TimelineBar, and AnnotationBadge.
  */
 
+import { withAlpha } from '@/constants/theme';
 import assert from 'node:assert';
 import test, { describe } from 'node:test';
 
@@ -407,7 +408,7 @@ describe('AnnotationBadge Component Logic', () => {
           borderColor: config.color,
         },
         subtle: {
-          backgroundColor: `${config.color}15`,
+          backgroundColor: withAlpha(config.color, 0.09),
         },
       };
 

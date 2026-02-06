@@ -14,13 +14,13 @@ import type { FootballObjective } from './user-types';
 export interface Follow {
   id: string;
   followerId: string;
-  followerName: string;
+  followerName: string; // TODO(T3.4): Remove when connecting to real API — resolve from followerId instead
   followerType: 'USER' | 'COACH';
-  followerAvatar?: string;
+  followerAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from followerId instead
   followingId: string;
-  followingName: string;
+  followingName: string; // TODO(T3.4): Remove when connecting to real API — resolve from followingId instead
   followingType: 'USER' | 'COACH';
-  followingAvatar?: string;
+  followingAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from followingId instead
   createdAt: string;
   // Notification preferences for this follow
   notifyOnPost: boolean;
@@ -31,10 +31,10 @@ export interface Follow {
 export interface FollowRequest {
   id: string;
   requesterId: string;
-  requesterName: string;
-  requesterAvatar?: string;
+  requesterName: string; // TODO(T3.4): Remove when connecting to real API — resolve from requesterId instead
+  requesterAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from requesterId instead
   targetId: string;
-  targetName: string;
+  targetName: string; // TODO(T3.4): Remove when connecting to real API — resolve from targetId instead
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED';
   message?: string; // Optional message with request
   createdAt: string;
@@ -48,8 +48,8 @@ export interface FollowRequest {
 export interface Post {
   id: string;
   authorId: string;
-  authorName?: string;
-  authorAvatar?: string;
+  authorName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
+  authorAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
   content: string;
   images?: string[];
   likes: string[]; // User IDs who liked
@@ -61,8 +61,8 @@ export interface Comment {
   id: string;
   postId: string;
   authorId: string;
-  authorName?: string;
-  authorAvatar?: string;
+  authorName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
+  authorAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
   content: string;
   likes: string[]; // User IDs who liked
   createdAt: string;
@@ -80,15 +80,15 @@ export interface Conversation {
   lastMessageAt: string;
   lastMessage?: string;
   unreadCount?: number;
-  coachName?: string; // Denormalized
-  athleteName?: string; // Denormalized
+  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from participants instead
+  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from relatedAthleteId instead
 }
 
 export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  senderName?: string;
+  senderName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from senderId instead
   content: string;
   sentAt: string;
   read: boolean;
@@ -113,7 +113,7 @@ export interface ChatMessage {
   id: string;
   threadId: string;
   sender: ChatSender;
-  senderName?: string;
+  senderName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from a senderId field instead
   body: string;
   createdAt: string;
   status: 'sent' | 'delivered' | 'seen' | 'pending';
@@ -126,8 +126,8 @@ export interface ChatThreadSummary {
   kind?: 'direct' | 'group';
   groupType?: 'club' | 'squad' | 'class' | 'announcement';
   bookingId: string;
-  coachName: string;
-  childName: string;
+  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from bookingId -> coachId instead
+  childName: string; // TODO(T3.4): Remove when connecting to real API — resolve from bookingId -> athleteId instead
   serviceName: string;
   location: string;
   scheduledFor: string;
@@ -161,12 +161,12 @@ export interface Attachment {
 
 export type GroupType = 'CLUB' | 'SESSION' | 'CARPOOL' | 'GENERAL';
 
-export type GroupMemberRole = 'ADMIN' | 'MEMBER';
+export type GroupMemberRole = 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER';
 
 export interface GroupMember {
   parentId: string;
-  parentName: string;
-  parentAvatar?: string;
+  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
+  parentAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   role: GroupMemberRole;
   joinedAt: string;
 }
@@ -178,7 +178,7 @@ export interface ParentGroup {
   type: GroupType;
   members: GroupMember[];
   createdById: string;
-  createdByName: string;
+  createdByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from createdById instead
   createdAt: string;
   updatedAt: string;
   lastMessageAt?: string;
@@ -202,9 +202,9 @@ export interface CarpoolRequest {
   id: string;
   offerId: string;
   parentId: string;
-  parentName: string;
-  parentAvatar?: string;
-  childNames: string[];
+  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
+  parentAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
+  childNames: string[]; // TODO(T3.4): Remove when connecting to real API — resolve from child IDs instead
   seatsRequested: number;
   message?: string;
   status: CarpoolRequestStatus;
@@ -217,10 +217,10 @@ export type CarpoolOfferStatus = 'ACTIVE' | 'FULL' | 'COMPLETED' | 'CANCELLED';
 export interface CarpoolOffer {
   id: string;
   parentId: string;
-  parentName: string;
-  parentAvatar?: string;
+  parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
+  parentAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   sessionId: string;
-  sessionName: string;
+  sessionName: string; // TODO(T3.4): Remove when connecting to real API — resolve from sessionId instead
   sessionDate: string;
   seatsAvailable: number;
   seatsTaken: number;
@@ -240,8 +240,8 @@ export interface GroupMessage {
   id: string;
   groupId: string;
   senderId: string;
-  senderName: string;
-  senderAvatar?: string;
+  senderName: string; // TODO(T3.4): Remove when connecting to real API — resolve from senderId instead
+  senderAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from senderId instead
   body: string;
   createdAt: string;
   status: 'sent' | 'delivered' | 'seen';

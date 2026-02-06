@@ -2,7 +2,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Consent, ConsentType } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
@@ -28,8 +28,8 @@ function ConsentItem({ type, granted, compact, showLabel }: ConsentItemProps) {
   const label = consentService.getConsentLabel(type);
 
   const backgroundColor = granted
-    ? `${palette.success}12`
-    : `${palette.muted}08`;
+    ? withAlpha(palette.success, 0.07)
+    : withAlpha(palette.muted, 0.03);
   const iconColor = granted ? palette.success : palette.muted;
 
   const iconSize = compact ? 16 : 20;
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: Radii.sm,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   iconContainer: {
     position: 'relative',
@@ -125,11 +125,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -4,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     overflow: 'hidden',
   },
-  label: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  label: { ...Typography.caption },
 });

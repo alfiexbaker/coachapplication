@@ -7,7 +7,7 @@ import Slider from '@react-native-community/slider';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { VideoAnnotation } from '@/constants/types';
 
@@ -124,7 +124,7 @@ export function VideoPlayer({
         {/* Buffering Indicator */}
         {isBuffering && (
           <View style={styles.bufferingOverlay}>
-            <Ionicons name="hourglass" size={40} color="#fff" />
+            <Ionicons name="hourglass" size={40} color={Colors.light.onPrimary} />
           </View>
         )}
 
@@ -138,19 +138,19 @@ export function VideoPlayer({
             {/* Center Controls */}
             <View style={styles.centerControls}>
               <Clickable onPress={skipBackward} style={styles.skipButton}>
-                <Ionicons name="play-back" size={28} color="#fff" />
+                <Ionicons name="play-back" size={28} color={Colors.light.onPrimary} />
               </Clickable>
 
               <Clickable onPress={togglePlayPause} style={styles.playPauseButton}>
                 <Ionicons
                   name={isPlaying ? 'pause' : 'play'}
                   size={40}
-                  color="#fff"
+                  color={Colors.light.onPrimary}
                 />
               </Clickable>
 
               <Clickable onPress={skipForward} style={styles.skipButton}>
-                <Ionicons name="play-forward" size={28} color="#fff" />
+                <Ionicons name="play-forward" size={28} color={Colors.light.onPrimary} />
               </Clickable>
             </View>
 
@@ -172,10 +172,10 @@ export function VideoPlayer({
                         left: `${getAnnotationPosition(annotation.timestamp)}%`,
                         backgroundColor:
                           annotation.type === 'HIGHLIGHT'
-                            ? '#4CAF50'
+                            ? Colors.light.success
                             : annotation.type === 'IMPROVEMENT'
-                            ? '#FF9800'
-                            : '#2196F3',
+                            ? Colors.light.warning
+                            : Colors.light.info,
                       },
                     ]}
                   >
@@ -190,17 +190,17 @@ export function VideoPlayer({
                   maximumValue={videoDuration}
                   onSlidingComplete={handleSliderChange}
                   minimumTrackTintColor={palette.tint}
-                  maximumTrackTintColor="rgba(255,255,255,0.3)"
+                  maximumTrackTintColor={withAlpha(Colors.light.onPrimary, 0.30)}
                   thumbTintColor={palette.tint}
                 />
               </View>
 
               {/* Time Display */}
               <View style={styles.timeRow}>
-                <ThemedText style={styles.timeText} lightColor="#fff" darkColor="#fff">
+                <ThemedText style={styles.timeText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.onPrimary}>
                   {formatTime(currentTime)}
                 </ThemedText>
-                <ThemedText style={styles.timeText} lightColor="#fff" darkColor="#fff">
+                <ThemedText style={styles.timeText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.onPrimary}>
                   {formatTime(videoDuration)}
                 </ThemedText>
               </View>
@@ -270,7 +270,7 @@ export function AnnotationTimeline({
                 style={[
                   styles.annotationItem,
                   {
-                    backgroundColor: isActive ? `${getMarkerColor(annotation.type)}15` : palette.surface,
+                    backgroundColor: isActive ? withAlpha(getMarkerColor(annotation.type), 0.15) : palette.surface,
                     borderColor: isActive ? getMarkerColor(annotation.type) : palette.border,
                   },
                 ]}
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#000',
+    backgroundColor: Colors.light.text,
     borderRadius: Radii.lg,
     overflow: 'hidden',
   },
@@ -316,13 +316,13 @@ const styles = StyleSheet.create({
   },
   bufferingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(15,23,42,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   controlsOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(15,23,42,0.4)',
     justifyContent: 'space-between',
   },
   centerControls: {
@@ -335,16 +335,16 @@ const styles = StyleSheet.create({
   playPauseButton: {
     width: 72,
     height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: Radii['3xl'],
+    backgroundColor: 'rgba(15,23,42,0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   skipButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: Radii.xl,
+    backgroundColor: 'rgba(15,23,42,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     top: 11,
     marginLeft: -4,
     zIndex: 10,
@@ -375,10 +375,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.xs,
   },
-  timeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  timeText: { ...Typography.caption },
   timeline: {
     gap: Spacing.md,
   },
@@ -403,26 +400,19 @@ const styles = StyleSheet.create({
   annotationDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    marginTop: 4,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.xxs,
   },
   annotationContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   annotationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  annotationLabel: {
-    fontSize: 14,
-  },
-  annotationTime: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  annotationNote: {
-    fontSize: 13,
-  },
+  annotationLabel: { ...Typography.bodySmall },
+  annotationTime: { ...Typography.caption },
+  annotationNote: { ...Typography.small },
 });

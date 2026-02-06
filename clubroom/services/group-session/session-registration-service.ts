@@ -18,6 +18,8 @@ import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { emitTyped, ServiceEvents } from '../event-bus';
+import { bookingCrudService } from '../booking';
 import type { GroupSession, GroupRegistration } from '@/constants/types';
 import { loadSessions, saveSessions } from './session-crud-service';
 
@@ -69,7 +71,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
   {
     id: 'reg_4',
     sessionId: 'gs_1',
-    athleteId: 'user4',
+    athleteId: 'user4a',
     athleteName: 'Sophie Taylor',
     parentId: 'user_parent_01',
     parentName: 'Sarah Johnson',
@@ -155,7 +157,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
   {
     id: 'reg_11',
     sessionId: 'gs_4',
-    athleteId: 'user4',
+    athleteId: 'user4a',
     athleteName: 'Sophie Taylor',
     parentId: 'user_parent_01',
     parentName: 'Sarah Johnson',
@@ -211,7 +213,7 @@ const MOCK_REGISTRATIONS: GroupRegistration[] = [
   {
     id: 'reg_16',
     sessionId: 'gs_training_1',
-    athleteId: 'user4',
+    athleteId: 'user4a',
     athleteName: 'Sophie Taylor',
     parentId: 'user_parent_01',
     parentName: 'Sarah Johnson',
@@ -347,6 +349,45 @@ export const sessionRegistrationService = {
         }
       }
       await saveSessions(sessionsCache);
+
+      // Create a linked booking so group sessions appear in the bookings list
+      if (!isFull) {
+        try {
+          const nextDate = session.schedule[0]?.date
+            ? `${session.schedule[0].date}T${session.schedule[0].startTime || '09:00'}:00`
+            : new Date().toISOString();
+          const bookingResult = await bookingCrudService.createBooking({
+            coachId: session.coachId,
+            coachName: session.coachName,
+            athleteIds: [athleteId],
+            athleteNames: [athleteName],
+            bookedById: parentId,
+            bookedByName: parentName,
+            scheduledAt: nextDate,
+            duration: 60,
+            location: session.location,
+            service: session.title,
+            serviceType: 'GROUP_SESSION',
+            price: session.pricePerParticipant,
+          });
+          if (bookingResult.success) {
+            // Stamp group linkage fields onto the booking
+            const booking = bookingResult.data;
+            booking.isGroupSession = true;
+            booking.groupSessionId = session.id;
+            booking.groupRegistrationId = registration.id;
+            booking.status = 'CONFIRMED';
+
+            emitTyped(ServiceEvents.BOOKING_CREATED, {
+              bookingId: booking.id,
+              userId: parentId,
+              coachId: session.coachId,
+            });
+          }
+        } catch (error) {
+          logger.error('Failed to create linked booking for group registration', error);
+        }
+      }
 
       return ok(registration);
     }

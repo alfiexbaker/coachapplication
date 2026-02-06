@@ -23,7 +23,7 @@ import { EmergencyQuickCard } from '@/components/safety/EmergencyQuickCard';
 import { EmergencyContactCard } from '@/components/safety/EmergencyContactCard';
 import { MedicalAlertBadge } from '@/components/safety/MedicalAlertBadge';
 import { SafetyChecklist } from '@/components/safety/SafetyChecklist';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-service';
@@ -187,7 +187,7 @@ export default function EmergencyQuickAccessScreen() {
         <View style={styles.headerCenter}>
           <ThemedText type="title">Emergency Info</ThemedText>
           {emergencyData.isCached && (
-            <View style={[styles.cachedBadge, { backgroundColor: `${palette.warning}15` }]}>
+            <View style={[styles.cachedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
               <Ionicons name="cloud-offline" size={12} color={palette.warning} />
               <ThemedText style={[styles.cachedText, { color: palette.warning }]}>
                 Cached
@@ -244,7 +244,7 @@ export default function EmergencyQuickAccessScreen() {
           <Animated.View entering={FadeInDown.delay(50).springify()}>
             <SurfaceCard style={styles.section}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIcon, { backgroundColor: `${palette.error}10` }]}>
+                <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                   <Ionicons name="alert-circle" size={20} color={palette.error} />
                 </View>
                 <ThemedText type="defaultSemiBold">Medical Alerts</ThemedText>
@@ -275,7 +275,7 @@ export default function EmergencyQuickAccessScreen() {
               </View>
 
               {emergencyData.restrictions.length > 0 && (
-                <View style={[styles.restrictionsBox, { backgroundColor: `${palette.warning}08` }]}>
+                <View style={[styles.restrictionsBox, { backgroundColor: withAlpha(palette.warning, 0.03) }]}>
                   <Ionicons name="ban" size={16} color={palette.warning} />
                   <View style={{ flex: 1 }}>
                     <ThemedText style={[styles.restrictionsLabel, { color: palette.warning }]}>
@@ -304,7 +304,7 @@ export default function EmergencyQuickAccessScreen() {
         <Animated.View entering={FadeInDown.delay(100).springify()}>
           <SurfaceCard style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: `${palette.success}10` }]}>
+              <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="call" size={20} color={palette.success} />
               </View>
               <ThemedText type="defaultSemiBold">Emergency Contacts</ThemedText>
@@ -342,7 +342,7 @@ export default function EmergencyQuickAccessScreen() {
           <Animated.View entering={FadeInDown.delay(150).springify()}>
             <SurfaceCard style={styles.section}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIcon, { backgroundColor: `${palette.tint}10` }]}>
+                <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                   <Ionicons name="medkit" size={20} color={palette.tint} />
                 </View>
                 <ThemedText type="defaultSemiBold">Doctor Information</ThemedText>
@@ -364,7 +364,7 @@ export default function EmergencyQuickAccessScreen() {
                     onPress={handleCallDoctor}
                     style={[styles.callButton, { backgroundColor: palette.tint }]}
                   >
-                    <Ionicons name="call" size={18} color="#fff" />
+                    <Ionicons name="call" size={18} color={Colors.light.onPrimary} />
                   </Clickable>
                 )}
               </View>
@@ -376,7 +376,7 @@ export default function EmergencyQuickAccessScreen() {
         <Animated.View entering={FadeInDown.delay(200).springify()}>
           <SurfaceCard style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIcon, { backgroundColor: `${palette.muted}10` }]}>
+              <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
                 <Ionicons name="shield-checkmark" size={20} color={palette.muted} />
               </View>
               <ThemedText type="defaultSemiBold">Consent Status</ThemedText>
@@ -385,14 +385,14 @@ export default function EmergencyQuickAccessScreen() {
             <View style={styles.consentRow}>
               <ThemedText>Emergency Treatment Consent</ThemedText>
               {emergencyData.emergencyTreatmentConsent ? (
-                <View style={[styles.consentBadge, { backgroundColor: `${palette.success}10` }]}>
+                <View style={[styles.consentBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                   <Ionicons name="checkmark-circle" size={16} color={palette.success} />
                   <ThemedText style={[styles.consentText, { color: palette.success }]}>
                     Granted
                   </ThemedText>
                 </View>
               ) : (
-                <View style={[styles.consentBadge, { backgroundColor: `${palette.error}10` }]}>
+                <View style={[styles.consentBadge, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                   <Ionicons name="close-circle" size={16} color={palette.error} />
                   <ThemedText style={[styles.consentText, { color: palette.error }]}>
                     Not Granted
@@ -450,14 +450,13 @@ const styles = StyleSheet.create({
   cachedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
   cachedText: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...Typography.micro,
   },
   loadingContainer: {
     flex: 1,
@@ -466,7 +465,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   content: {
     padding: Spacing.lg,
@@ -483,14 +482,13 @@ const styles = StyleSheet.create({
   sectionIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   contactCount: {
     marginLeft: 'auto',
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   alertsGrid: {
     flexDirection: 'row',
@@ -506,13 +504,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   restrictionsLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 2,
+    ...Typography.caption,
+    marginBottom: Spacing.micro,
   },
   restrictionsText: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   notesBox: {
     flexDirection: 'row',
@@ -523,8 +519,7 @@ const styles = StyleSheet.create({
   },
   notesText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   contactsList: {
     gap: Spacing.sm,
@@ -535,7 +530,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   noContactsSubtext: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
   },
   doctorInfo: {
@@ -546,7 +541,7 @@ const styles = StyleSheet.create({
   callButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -558,18 +553,17 @@ const styles = StyleSheet.create({
   consentBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   consentText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   lastUpdated: {
     textAlign: 'center',
-    fontSize: 12,
+    ...Typography.caption,
     marginTop: Spacing.sm,
   },
   bottomSpacer: {

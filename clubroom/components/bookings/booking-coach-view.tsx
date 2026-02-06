@@ -1,0 +1,171 @@
+import React from 'react';
+import { View, StyleSheet, ViewStyle } from 'react-native';
+import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
+import { Ionicons } from '@expo/vector-icons';
+
+import { Clickable } from '@/components/primitives/clickable';
+import { ThemedText } from '@/components/themed-text';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import type { BookingSummary } from '@/constants/types';
+
+interface BookingCoachViewProps {
+  booking: BookingSummary;
+  onMessageClient: () => void;
+  onReschedule: () => void;
+  onRefund: () => void;
+  onCancelBooking: () => void;
+}
+
+function BookingCoachViewInner({
+  booking,
+  onMessageClient,
+  onReschedule,
+  onRefund,
+  onCancelBooking,
+}: BookingCoachViewProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
+
+  if (booking.status === 'Completed') {
+    const objectives = (booking as BookingSummary & { objectives?: string[] }).objectives || [];
+
+    return (
+      <View style={styles.actions}>
+        <Clickable
+          onPress={() => {
+            router.push(Routes.sessionFeedback({
+              bookingId: booking.id,
+              athleteId: booking.clientId,
+              athleteName: booking.childName,
+              athleteObjectives: JSON.stringify(objectives),
+            }));
+          }}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            { backgroundColor: palette.tint },
+            pressed && { opacity: 0.8 },
+          ].filter(Boolean) as ViewStyle[]}
+        >
+          <Ionicons name="create" size={20} color={palette.onPrimary} />
+          <ThemedText
+            style={styles.primaryButtonText}
+            lightColor={Colors.light.onPrimary}
+            darkColor={Colors.dark.onPrimary}
+          >
+            Add Session Feedback
+          </ThemedText>
+        </Clickable>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.actions}>
+      <Clickable
+        onPress={onMessageClient}
+        style={({ pressed }) => [
+          styles.primaryButton,
+          { backgroundColor: palette.tint },
+          pressed && { opacity: 0.8 },
+        ].filter(Boolean) as ViewStyle[]}
+      >
+        <Ionicons name="chatbubble" size={20} color={palette.onPrimary} />
+        <ThemedText
+          style={styles.primaryButtonText}
+          lightColor={Colors.light.onPrimary}
+          darkColor={Colors.dark.onPrimary}
+        >
+          Message Client
+        </ThemedText>
+      </Clickable>
+
+      <View style={styles.buttonRow}>
+        <Clickable
+          onPress={onReschedule}
+          style={({ pressed }) => [
+            styles.halfButton,
+            { borderColor: palette.border },
+            pressed && { backgroundColor: palette.border, opacity: 0.7 },
+          ].filter(Boolean) as ViewStyle[]}
+        >
+          <Ionicons name="calendar-outline" size={18} color={palette.foreground} />
+          <ThemedText style={styles.secondaryButtonText}>Reschedule</ThemedText>
+        </Clickable>
+
+        <Clickable
+          onPress={onRefund}
+          style={({ pressed }) => [
+            styles.halfButton,
+            { borderColor: palette.border },
+            pressed && { backgroundColor: palette.border, opacity: 0.7 },
+          ].filter(Boolean) as ViewStyle[]}
+        >
+          <Ionicons name="cash-outline" size={18} color={palette.foreground} />
+          <ThemedText style={styles.secondaryButtonText}>Refund</ThemedText>
+        </Clickable>
+      </View>
+
+      <Clickable
+        onPress={onCancelBooking}
+        style={({ pressed }) => [
+          styles.secondaryButton,
+          { borderColor: palette.error },
+          pressed && { backgroundColor: withAlpha(palette.error, 0.09), opacity: 0.7 },
+        ].filter(Boolean) as ViewStyle[]}
+      >
+        <Ionicons name="close-circle-outline" size={20} color={palette.error} />
+        <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
+          Cancel Booking
+        </ThemedText>
+      </Clickable>
+    </View>
+  );
+}
+
+export const BookingCoachView = React.memo(BookingCoachViewInner);
+
+const styles = StyleSheet.create({
+  actions: {
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  primaryButtonText: {
+    ...Typography.subheading,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  halfButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  secondaryButtonText: {
+    ...Typography.subheading,
+  },
+});

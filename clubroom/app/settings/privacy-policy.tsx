@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function PrivacyPolicyScreen() {
@@ -165,8 +165,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   content: {
     paddingHorizontal: Spacing.lg,
@@ -174,15 +173,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   lastUpdated: {
-    fontSize: 13,
+    ...Typography.small,
     marginBottom: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
     marginTop: Spacing.sm,
   },
   body: {
-    fontSize: 14,
-    lineHeight: 22,
+    ...Typography.bodySmall,
   },
 });

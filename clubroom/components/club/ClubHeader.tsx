@@ -1,21 +1,24 @@
-import { useMemo, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, Modal, Share, Alert } from 'react-native';
+import { useMemo, useState, useCallback } from 'react';
+import { StyleSheet, TouchableOpacity, View, Modal, Share, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
+import * as ImagePicker from 'expo-image-picker';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { Club, ClubMembership, ClubSquad, SessionOffering, ClubInvite } from '@/constants/types';
+import type { Club, ClubMembership } from '@/constants/types';
 
 export interface ClubHeaderProps {
   club: Club;
   membership: ClubMembership;
   onLeave: () => void;
   onManage?: () => void;
+  onUpdatePhotos?: (updates: { profilePhotoUrl?: string; coverPhotoUrl?: string }) => void;
 }
 
-export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderProps) {
+export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos }: ClubHeaderProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [showMenu, setShowMenu] = useState(false);
@@ -36,6 +39,30 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
 
   const badgeText = club.name?.slice(0, 2).toUpperCase() || 'CL';
 
+  const pickImage = useCallback(async (type: 'profile' | 'cover') => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission required', 'Please allow access to your photo library to change the club photo.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: type === 'cover' ? [16, 9] : [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const uri = result.assets[0].uri;
+      if (type === 'profile') {
+        onUpdatePhotos?.({ profilePhotoUrl: uri });
+      } else {
+        onUpdatePhotos?.({ coverPhotoUrl: uri });
+      }
+    }
+  }, [onUpdatePhotos]);
+
   const handleShareInvite = async () => {
     setShowMenu(false);
     try {
@@ -53,11 +80,7 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
     if (onManage) {
       onManage();
     } else {
-      // Navigate to club settings/management
-      router.push({
-        pathname: '/club/settings',
-        params: { clubId: club.id },
-      });
+      router.push(Routes.CLUB_SETTINGS);
     }
   };
 
@@ -83,10 +106,7 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
 
   const handleCreateGroup = () => {
     setShowMenu(false);
-    router.push({
-      pathname: '/club/squad/create',
-      params: { clubId: club.id },
-    });
+    router.push(Routes.CLUB_SQUAD_CREATE);
   };
 
   const menuItems = [
@@ -118,18 +138,77 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
 
   return (
     <>
+      {/* Cover Photo */}
+      <TouchableOpacity
+        activeOpacity={canManage ? 0.8 : 1}
+        onPress={() => canManage && pickImage('cover')}
+        disabled={!canManage}
+        style={styles.coverPhotoContainer}
+      >
+        {club.coverPhotoUrl ? (
+          <Image
+            source={{ uri: club.coverPhotoUrl }}
+            style={styles.coverPhoto}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.coverPhotoPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+            {canManage && (
+              <View style={styles.coverPhotoHint}>
+                <Ionicons name="camera-outline" size={20} color={palette.muted} />
+                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
+                  Add cover photo
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        )}
+        {canManage && club.coverPhotoUrl && (
+          <View style={[styles.coverEditBadge, { backgroundColor: palette.surface }]}>
+            <Ionicons name="camera-outline" size={14} color={palette.tint} />
+          </View>
+        )}
+      </TouchableOpacity>
+
+      {/* Club Info Row */}
       <View style={styles.clubHeader}>
-        <View style={[styles.clubAvatar, { backgroundColor: `${palette.tint}10` }]}>
-          <ThemedText style={styles.clubAvatarText}>{badgeText}</ThemedText>
-        </View>
+        {/* Profile Photo / Avatar */}
+        <TouchableOpacity
+          activeOpacity={canManage ? 0.8 : 1}
+          onPress={() => canManage && pickImage('profile')}
+          disabled={!canManage}
+          style={styles.profilePhotoTouchable}
+        >
+          {club.profilePhotoUrl ? (
+            <Image
+              source={{ uri: club.profilePhotoUrl }}
+              style={[styles.clubAvatar, { borderColor: palette.surface }]}
+            />
+          ) : (
+            <View style={[styles.clubAvatar, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.surface }]}>
+              <ThemedText style={styles.clubAvatarText}>{badgeText}</ThemedText>
+            </View>
+          )}
+          {canManage && (
+            <View style={[styles.profileEditBadge, { backgroundColor: palette.tint }]}>
+              <Ionicons name="camera" size={10} color={palette.surface} />
+            </View>
+          )}
+        </TouchableOpacity>
+
         <View style={{ flex: 1 }}>
-          <ThemedText type="title" style={{ fontSize: 20 }}>{club.name}</ThemedText>
-          <ThemedText style={{ color: palette.muted }}>{roleLabel} · {club.memberCount} members</ThemedText>
+          <ThemedText type="title" style={{ ...Typography.title }}>{club.name}</ThemedText>
+          <ThemedText style={{ color: palette.muted }}>{roleLabel} -- {club.memberCount} members</ThemedText>
+          {club.tagline ? (
+            <ThemedText style={{ ...Typography.small, color: palette.muted, marginTop: Spacing.micro }}>
+              {club.tagline}
+            </ThemedText>
+          ) : null}
         </View>
         <TouchableOpacity
           onPress={() => setShowMenu(true)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={[styles.menuButton, { backgroundColor: `${palette.muted}10` }]}
+          style={[styles.menuButton, { backgroundColor: withAlpha(palette.muted, 0.06) }]}
         >
           <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
         </TouchableOpacity>
@@ -160,10 +239,10 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
 
             {/* Invite Code Display */}
             {canShareInvite && (
-              <View style={[styles.inviteCodeSection, { backgroundColor: `${palette.tint}10`, borderColor: `${palette.tint}30` }]}>
+              <View style={[styles.inviteCodeSection, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
                 <View>
-                  <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Invite Code</ThemedText>
-                  <ThemedText type="defaultSemiBold" style={{ color: palette.tint, fontSize: 18, letterSpacing: 2 }}>
+                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Invite Code</ThemedText>
+                  <ThemedText type="defaultSemiBold" style={{ ...Typography.heading, color: palette.tint, letterSpacing: 2 }}>
                     {club.inviteCode}
                   </ThemedText>
                 </View>
@@ -171,8 +250,8 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
                   style={[styles.copyButton, { backgroundColor: palette.tint }]}
                   onPress={handleShareInvite}
                 >
-                  <Ionicons name="share-outline" size={16} color="#fff" />
-                  <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Share</ThemedText>
+                  <Ionicons name="share-outline" size={16} color={palette.onPrimary} />
+                  <ThemedText style={{ ...Typography.smallSemiBold, color: palette.onPrimary }}>Share</ThemedText>
                 </TouchableOpacity>
               </View>
             )}
@@ -200,9 +279,9 @@ export function ClubHeader({ club, membership, onLeave, onManage }: ClubHeaderPr
 
 export interface ClubStatsRowProps {
   memberCount: number;
-  squads: ClubSquad[];
-  sessions: SessionOffering[];
-  invites: ClubInvite[];
+  squadCount: number;
+  sessionCount: number;
+  inviteCount: number;
   canManageMembers: boolean;
   showMembersSection: boolean;
   onToggleMembersSection: () => void;
@@ -210,9 +289,9 @@ export interface ClubStatsRowProps {
 
 export function ClubStatsRow({
   memberCount,
-  squads,
-  sessions,
-  invites,
+  squadCount,
+  sessionCount,
+  inviteCount,
   canManageMembers,
   showMembersSection,
   onToggleMembersSection,
@@ -226,9 +305,9 @@ export function ClubStatsRow({
         style={styles.statItem}
         onPress={() => canManageMembers && onToggleMembersSection()}
       >
-        <ThemedText type="title" style={{ fontSize: 18 }}>{memberCount}</ThemedText>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Members</ThemedText>
+        <ThemedText type="title" style={{ ...Typography.heading }}>{memberCount}</ThemedText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.micro }}>
+          <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Members</ThemedText>
           {canManageMembers && (
             <Ionicons
               name={showMembersSection ? 'chevron-up' : 'chevron-down'}
@@ -240,44 +319,87 @@ export function ClubStatsRow({
       </TouchableOpacity>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
-        <ThemedText type="title" style={{ fontSize: 18 }}>{squads.length}</ThemedText>
-        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Squads</ThemedText>
+        <ThemedText type="title" style={{ ...Typography.heading }}>{squadCount}</ThemedText>
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Squads</ThemedText>
       </View>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
-        <ThemedText type="title" style={{ fontSize: 18 }}>{sessions.length}</ThemedText>
-        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Sessions</ThemedText>
+        <ThemedText type="title" style={{ ...Typography.heading }}>{sessionCount}</ThemedText>
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Sessions</ThemedText>
       </View>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
-        <ThemedText type="title" style={{ fontSize: 18 }}>{invites.length}</ThemedText>
-        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Invites</ThemedText>
+        <ThemedText type="title" style={{ ...Typography.heading }}>{inviteCount}</ThemedText>
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Invites</ThemedText>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  coverPhotoContainer: {
+    width: '100%',
+    marginBottom: -Spacing.lg,
+  },
+  coverPhoto: {
+    width: '100%',
+    height: 140,
+    borderRadius: Radii.md,
+  },
+  coverPhotoPlaceholder: {
+    width: '100%',
+    height: 140,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverPhotoHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  coverEditBadge: {
+    position: 'absolute',
+    bottom: Spacing.xs,
+    right: Spacing.xs,
+    width: 28,
+    height: 28,
+    borderRadius: Radii.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profilePhotoTouchable: {
+    position: 'relative',
+  },
+  profileEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   clubHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
+    marginTop: Spacing.lg,
   },
   clubAvatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 3,
   },
-  clubAvatarText: {
-    fontSize: 22,
-    fontWeight: '700',
-  },
+  clubAvatarText: { ...Typography.title },
   menuButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -303,10 +425,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   menuContainer: {
-    borderTopLeftRadius: Radii.xl,
-    borderTopRightRadius: Radii.xl,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl + 20, // Extra padding for safe area
+    borderTopLeftRadius: Components.modal.borderRadius,
+    borderTopRightRadius: Components.modal.borderRadius,
+    padding: Components.modal.padding,
+    paddingBottom: Spacing.xl + 20,
   },
   menuHeader: {
     flexDirection: 'row',
@@ -318,7 +440,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.md,
+    padding: Components.modal.padding,
     borderRadius: Radii.md,
     borderWidth: 1,
     marginBottom: Spacing.md,

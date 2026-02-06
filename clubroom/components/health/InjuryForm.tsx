@@ -17,7 +17,7 @@ import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { BodyPartSelector } from './BodyPartSelector';
 import { SeverityPicker } from './SeverityPicker';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii  , withAlpha } from '@/constants/theme';
 import type { BodyPart, InjurySeverity, LogInjuryInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { injuryService } from '@/services/injury-service';
@@ -110,12 +110,12 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
               ]}
             >
               {isCompleted ? (
-                <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
               ) : (
                 <ThemedText
                   style={[
                     styles.stepNumber,
-                    { color: isActive ? '#FFFFFF' : palette.muted },
+                    { color: isActive ? palette.onPrimary : palette.muted },
                   ]}
                 >
                   {index + 1}
@@ -286,7 +286,7 @@ export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormPr
           <Switch
             value={sharedWithCoach}
             onValueChange={setSharedWithCoach}
-            trackColor={{ false: palette.border, true: `${palette.tint}50` }}
+            trackColor={{ false: palette.border, true: withAlpha(palette.tint, 0.31) }}
             thumbColor={sharedWithCoach ? palette.tint : palette.surface}
           />
         </View>
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   stepDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   stepLine: {
     width: 40,
     height: 2,
-    marginHorizontal: 4,
+    marginHorizontal: Spacing.xxs,
   },
   stepContent: {
     flex: 1,
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
   },
   summaryLabel: {
     fontSize: scaleFont(14),

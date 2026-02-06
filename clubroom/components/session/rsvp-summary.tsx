@@ -18,7 +18,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components  , withAlpha } from '@/constants/theme';
 import { CardStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
 import { rsvpService } from '@/services/rsvp-service';
@@ -45,7 +45,7 @@ interface CountBadgeProps {
 
 function CountBadge({ count, label, color, icon }: CountBadgeProps) {
   return (
-    <View style={[styles.countBadge, { backgroundColor: `${color}12` }]}>
+    <View style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.07) }]}>
       <Ionicons name={icon} size={18} color={color} />
       <ThemedText style={[styles.countNumber, { color }]}>{count}</ThemedText>
       <ThemedText style={[styles.countLabel, { color }]}>{label}</ThemedText>
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   nameText: {
     ...Typography.body,
@@ -411,11 +411,7 @@ const styles = StyleSheet.create({
   reminderButtonPressed: {
     opacity: 0.8,
   },
-  reminderButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.light.tint,
-  },
+  reminderButtonText: { ...Typography.bodySemiBold, color: Colors.light.tint },
 });
 
 export default RSVPSummary;

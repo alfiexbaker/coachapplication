@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
@@ -69,7 +69,7 @@ export function SessionNotesForm({
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: active ? `${palette.tint}15` : palette.surface,
+                    backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
                     borderColor: active ? palette.tint : palette.border,
                   },
                 ]}
@@ -122,7 +122,7 @@ export function SessionNotesForm({
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: active ? `${palette.tint}15` : palette.surface,
+                    backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
                     borderColor: active ? palette.tint : palette.border,
                   },
                 ]}
@@ -142,9 +142,9 @@ export function SessionNotesForm({
         {submitting ? (
           <ActivityIndicator color={palette.text} />
         ) : (
-          <Ionicons name="checkmark-circle" size={18} color="#fff" />
+          <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
         )}
-        <ThemedText style={{ color: submitting ? palette.text : '#fff', fontWeight: '700' }}>
+        <ThemedText style={{ color: submitting ? palette.text : palette.onPrimary, fontWeight: '700' }}>
           {submitting ? 'Saving…' : 'Submit Notes'}
         </ThemedText>
       </Clickable>

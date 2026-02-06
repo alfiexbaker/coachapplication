@@ -5,7 +5,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SkillProgress } from '@/constants/types';
 
@@ -129,11 +129,7 @@ export function SkillRadar({
                   size={12}
                   color={avgChange > 0 ? palette.success : palette.error}
                 />
-                <ThemedText style={{
-                  fontSize: 11,
-                  color: avgChange > 0 ? palette.success : palette.error,
-                  fontWeight: '600',
-                }}>
+                <ThemedText style={{ ...Typography.caption, color: avgChange > 0 ? palette.success : palette.error, fontWeight: '600' }}>
                   {avgChange > 0 ? '+' : ''}{avgChange.toFixed(1)}%
                 </ThemedText>
               </View>
@@ -153,7 +149,7 @@ export function SkillRadar({
             <Ionicons
               name="pie-chart"
               size={16}
-              color={viewMode === 'radar' ? '#fff' : palette.icon}
+              color={viewMode === 'radar' ? palette.onPrimary : palette.icon}
             />
           </Pressable>
           <Pressable
@@ -166,7 +162,7 @@ export function SkillRadar({
             <Ionicons
               name="list"
               size={16}
-              color={viewMode === 'list' ? '#fff' : palette.icon}
+              color={viewMode === 'list' ? palette.onPrimary : palette.icon}
             />
           </Pressable>
         </View>
@@ -238,7 +234,7 @@ export function SkillRadar({
                   >
                     <View style={[
                       styles.skillLabelBg,
-                      isSelected ? { backgroundColor: `${skillColor}20`, borderColor: skillColor, borderWidth: 1 } : undefined
+                      isSelected ? { backgroundColor: withAlpha(skillColor, 0.12), borderColor: skillColor, borderWidth: 1 } : undefined
                     ]}>
                       <ThemedText style={[
                         styles.skillLabelText,
@@ -265,7 +261,7 @@ export function SkillRadar({
                         {
                           left: pos.x - 4,
                           top: pos.y - 4,
-                          backgroundColor: `${palette.muted}40`,
+                          backgroundColor: withAlpha(palette.muted, 0.25),
                           borderColor: palette.muted,
                         },
                       ]}
@@ -294,7 +290,7 @@ export function SkillRadar({
                         width: isSelected ? 16 : 12,
                         height: isSelected ? 16 : 12,
                         backgroundColor: skillColor,
-                        borderColor: '#fff',
+                        borderColor: Colors.light.surface,
                         borderWidth: 2,
                       },
                     ]}
@@ -340,18 +336,14 @@ export function SkillRadar({
                     </ThemedText>
                     <View style={[
                       styles.selectedTrend,
-                      { backgroundColor: selectedSkill.changePercent >= 0 ? `${palette.success}15` : `${palette.error}15` }
+                      { backgroundColor: selectedSkill.changePercent >= 0 ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) }
                     ]}>
                       <Ionicons
                         name={selectedSkill.changePercent >= 0 ? 'arrow-up' : 'arrow-down'}
                         size={12}
                         color={selectedSkill.changePercent >= 0 ? palette.success : palette.error}
                       />
-                      <ThemedText style={{
-                        fontSize: 11,
-                        fontWeight: '600',
-                        color: selectedSkill.changePercent >= 0 ? palette.success : palette.error
-                      }}>
+                      <ThemedText style={{ ...Typography.caption, color: selectedSkill.changePercent >= 0 ? palette.success : palette.error }}>
                         {selectedSkill.changePercent >= 0 ? '+' : ''}{selectedSkill.changePercent.toFixed(1)}%
                       </ThemedText>
                     </View>
@@ -423,7 +415,7 @@ export function SkillRadar({
                         <ThemedText style={[styles.skillRowMax, { color: palette.muted }]}>/100</ThemedText>
                       </View>
 
-                      <View style={[styles.skillRowTrend, { backgroundColor: `${changeColor}15` }]}>
+                      <View style={[styles.skillRowTrend, { backgroundColor: withAlpha(changeColor, 0.09) }]}>
                         <Ionicons
                           name={skill.changePercent > 0 ? 'trending-up' : skill.changePercent < 0 ? 'trending-down' : 'remove'}
                           size={12}
@@ -479,27 +471,22 @@ const styles = StyleSheet.create({
   headerLeft: {
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 16,
-  },
+  title: { ...Typography.subheading },
   avgBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  avgText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  avgText: { ...Typography.smallSemiBold },
   avgTrend: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
   viewToggle: {
     flexDirection: 'row',
     borderRadius: Radii.md,
-    padding: 2,
+    padding: Spacing.micro,
   },
   toggleButton: {
     padding: Spacing.xs,
@@ -513,20 +500,14 @@ const styles = StyleSheet.create({
   emptyIconCircle: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyTitle: {
-    fontSize: 16,
-    marginTop: Spacing.xs,
-  },
-  emptyText: {
-    fontSize: 13,
-    textAlign: 'center',
+  emptyTitle: { ...Typography.subheading, marginTop: Spacing.xs },
+  emptyText: { ...Typography.small, textAlign: 'center',
     maxWidth: 240,
-    lineHeight: 19,
-  },
+    lineHeight: 19 },
   radarContainer: {
     alignSelf: 'center',
     position: 'relative',
@@ -536,7 +517,7 @@ const styles = StyleSheet.create({
   ring: {
     position: 'absolute',
     borderWidth: 1,
-    borderRadius: 1000,
+    borderRadius: Radii.pill,
     borderStyle: 'dashed',
   },
   ringLabel: {
@@ -544,10 +525,7 @@ const styles = StyleSheet.create({
     left: '50%',
     marginLeft: -10,
   },
-  ringLabelText: {
-    fontSize: 9,
-    fontWeight: '500',
-  },
+  ringLabelText: { ...Typography.micro },
   axisLine: {
     position: 'absolute',
     height: 1,
@@ -559,15 +537,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   skillLabelBg: {
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  skillLabelText: {
-    fontSize: 10,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  skillLabelText: { ...Typography.micro, textAlign: 'center' },
   polygon: {
     position: 'absolute',
     width: '100%',
@@ -575,8 +549,8 @@ const styles = StyleSheet.create({
   },
   dataPoint: {
     position: 'absolute',
-    borderRadius: 100,
-    shadowColor: '#000',
+    borderRadius: Radii.pill,
+    shadowColor: Colors.light.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -586,14 +560,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     borderWidth: 1,
   },
   centerDot: {
     position: 'absolute',
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   legend: {
     flexDirection: 'row',
@@ -608,11 +582,9 @@ const styles = StyleSheet.create({
   legendDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
-  legendText: {
-    fontSize: 12,
-  },
+  legendText: { ...Typography.caption },
   selectedDetail: {
     marginTop: Spacing.sm,
   },
@@ -627,39 +599,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  selectedCategory: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  selectedCategory: { ...Typography.caption, marginTop: Spacing.micro },
   selectedStats: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   selectedTrend: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   selectedProgressBar: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   selectedProgressBg: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   selectedProgressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  selectedLevel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'right',
-  },
+  selectedLevel: { ...Typography.caption, textAlign: 'right' },
   listView: {
     gap: Spacing.md,
   },
@@ -672,11 +637,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.xs,
   },
-  categorySectionTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
+  categorySectionTitle: { ...Typography.caption, letterSpacing: 0.5 },
   categoryLine: {
     flex: 1,
     height: 1,
@@ -695,18 +656,13 @@ const styles = StyleSheet.create({
   skillColorIndicator: {
     width: 4,
     height: 32,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   skillRowInfo: {
-    gap: 2,
+    gap: Spacing.micro,
   },
-  skillRowName: {
-    fontSize: 14,
-  },
-  skillRowLevel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  skillRowName: { ...Typography.bodySmall },
+  skillRowLevel: { ...Typography.caption },
   skillRowRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -716,35 +672,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  skillRowValueText: {
-    fontSize: 16,
-  },
-  skillRowMax: {
-    fontSize: 11,
-  },
+  skillRowValueText: { ...Typography.subheading },
+  skillRowMax: { ...Typography.caption },
   skillRowTrend: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     minWidth: 58,
   },
-  skillRowTrendText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  skillRowTrendText: { ...Typography.caption },
   levelLegend: {
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    borderTopColor: Colors.light.border,
     gap: Spacing.xs,
   },
-  levelLegendTitle: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  levelLegendTitle: { ...Typography.micro },
   levelLegendItems: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -753,14 +699,12 @@ const styles = StyleSheet.create({
   levelLegendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   levelLegendDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  levelLegendLabel: {
-    fontSize: 10,
-  },
+  levelLegendLabel: { ...Typography.micro },
 });

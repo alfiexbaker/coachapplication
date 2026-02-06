@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { View, StyleSheet, Modal, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 
@@ -86,16 +87,28 @@ export function PaymentModal({
       <View style={[styles.container, { backgroundColor: palette.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: palette.border }]}>
-          <Clickable onPress={handleClose} disabled={processing}>
+          <Pressable
+            onPress={handleClose}
+            disabled={processing}
+            hitSlop={10}
+            accessibilityLabel="Close payment modal"
+            accessibilityRole="button"
+            style={{
+              width: 44,
+              height: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <Ionicons name="close" size={24} color={processing ? palette.muted : palette.text} />
-          </Clickable>
+          </Pressable>
           <ThemedText type="subtitle">Payment</ThemedText>
-          <View style={{ width: 24 }} />
+          <View style={{ width: 44 }} />
         </View>
 
         {paymentStep === 'processing' ? (
           <View style={styles.processingContainer}>
-            <View style={[styles.processingIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.processingIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <ActivityIndicator size="large" color={palette.tint} />
             </View>
             <ThemedText type="subtitle" style={styles.processingTitle}>
@@ -107,7 +120,7 @@ export function PaymentModal({
           </View>
         ) : paymentStep === 'success' ? (
           <View style={styles.processingContainer}>
-            <View style={[styles.successIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.successIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="checkmark-circle" size={64} color={palette.success} />
             </View>
             <ThemedText type="subtitle" style={styles.processingTitle}>
@@ -125,20 +138,20 @@ export function PaymentModal({
                 <ThemedText style={styles.sectionTitle}>Session Details</ThemedText>
                 <SurfaceCard style={styles.sessionCard}>
                   <View style={styles.sessionRow}>
-                    <View style={[styles.coachAvatar, { backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.coachAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <ThemedText style={[styles.coachInitials, { color: palette.tint }]}>
                         {invite.coachName.split(' ').map((n) => n[0]).join('')}
                       </ThemedText>
                     </View>
                     <View style={styles.sessionInfo}>
                       <ThemedText type="defaultSemiBold">{invite.coachName}</ThemedText>
-                      <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                      <ThemedText style={{ ...Typography.small, color: palette.muted }}>
                         {invite.sessionType} - {invite.focus}
                       </ThemedText>
                     </View>
                   </View>
 
-                  <View style={[styles.divider, { backgroundColor: palette.border }]} />
+                  <Divider />
 
                   <View style={styles.detailsList}>
                     <View style={styles.detailRow}>
@@ -182,10 +195,10 @@ export function PaymentModal({
                     </View>
                     <ThemedText style={{ color: palette.muted }}>£{serviceFee.toFixed(2)}</ThemedText>
                   </View>
-                  <View style={[styles.totalDivider, { backgroundColor: palette.border }]} />
+                  <Divider spacing={Spacing.xs} />
                   <View style={styles.priceRow}>
-                    <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>Total</ThemedText>
-                    <ThemedText type="defaultSemiBold" style={{ fontSize: 18, color: palette.tint }}>
+                    <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>Total</ThemedText>
+                    <ThemedText type="defaultSemiBold" style={{ ...Typography.heading, color: palette.tint }}>
                       £{total.toFixed(2)}
                     </ThemedText>
                   </View>
@@ -196,15 +209,15 @@ export function PaymentModal({
               <View style={styles.section}>
                 <ThemedText style={styles.sectionTitle}>Payment Method</ThemedText>
                 <SurfaceCard style={styles.methodCard}>
-                  <View style={[styles.cardIcon, { backgroundColor: `${palette.tint}10` }]}>
+                  <View style={[styles.cardIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                     <Ionicons name="card" size={24} color={palette.tint} />
                   </View>
                   <View style={styles.cardInfo}>
                     <ThemedText type="defaultSemiBold">•••• •••• •••• 4242</ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Expires 12/26</ThemedText>
+                    <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Expires 12/26</ThemedText>
                   </View>
                   <Clickable style={[styles.changeButton, { borderColor: palette.border }]}>
-                    <ThemedText style={{ color: palette.tint, fontSize: 13, fontWeight: '600' }}>
+                    <ThemedText style={ { color: palette.tint, ...Typography.smallSemiBold }}>
                       Change
                     </ThemedText>
                   </Clickable>
@@ -212,7 +225,7 @@ export function PaymentModal({
               </View>
 
               {/* Security Note */}
-              <View style={[styles.securityNote, { backgroundColor: `${palette.success}08` }]}>
+              <View style={[styles.securityNote, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
                 <Ionicons name="shield-checkmark" size={18} color={palette.success} />
                 <ThemedText style={[styles.securityText, { color: palette.success }]}>
                   Your payment is secured with 256-bit encryption
@@ -227,7 +240,7 @@ export function PaymentModal({
                 disabled={processing}
                 style={[styles.payButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="lock-closed" size={18} color="#fff" />
+                <Ionicons name="lock-closed" size={18} color={palette.onPrimary} />
                 <ThemedText style={styles.payButtonText}>
                   Pay £{total.toFixed(2)}
                 </ThemedText>
@@ -251,24 +264,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Components.modal.padding,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
   },
   content: {
-    padding: Spacing.lg,
+    padding: Components.modal.padding,
     gap: Spacing.xl,
     paddingBottom: Spacing['2xl'],
   },
   section: {
     gap: Spacing.sm,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  sectionTitle: { ...Typography.subheading },
   sessionCard: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.md,
   },
   sessionRow: {
@@ -279,20 +289,14 @@ const styles = StyleSheet.create({
   coachAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  coachInitials: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  coachInitials: { ...Typography.heading },
   sessionInfo: {
     flex: 1,
-    gap: 2,
-  },
-  divider: {
-    height: 1,
+    gap: Spacing.micro,
   },
   detailsList: {
     gap: Spacing.sm,
@@ -302,12 +306,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  detailText: {
-    fontSize: 14,
-    flex: 1,
-  },
+  detailText: { ...Typography.bodySmall, flex: 1 },
   paymentCard: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.sm,
   },
   priceRow: {
@@ -318,28 +319,24 @@ const styles = StyleSheet.create({
   feeLabel: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-  },
-  totalDivider: {
-    height: 1,
-    marginVertical: Spacing.xs,
+    gap: Spacing.xxs,
   },
   methodCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.md,
   },
   cardIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   changeButton: {
     paddingHorizontal: Spacing.md,
@@ -354,13 +351,9 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.md,
   },
-  securityText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  securityText: { ...Typography.smallSemiBold, flex: 1 },
   footer: {
-    padding: Spacing.lg,
+    padding: Components.modal.padding,
     gap: Spacing.sm,
     borderTopWidth: 1,
   },
@@ -372,15 +365,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },
-  payButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  termsText: {
-    textAlign: 'center',
-    fontSize: 12,
-  },
+  payButtonText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  termsText: { ...Typography.caption, textAlign: 'center' },
   // Processing states
   processingContainer: {
     flex: 1,
@@ -392,7 +378,7 @@ const styles = StyleSheet.create({
   processingIcon: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
@@ -400,7 +386,7 @@ const styles = StyleSheet.create({
   successIcon: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
@@ -408,8 +394,5 @@ const styles = StyleSheet.create({
   processingTitle: {
     textAlign: 'center',
   },
-  processingText: {
-    textAlign: 'center',
-    fontSize: 14,
-  },
+  processingText: { ...Typography.bodySmall, textAlign: 'center' },
 });

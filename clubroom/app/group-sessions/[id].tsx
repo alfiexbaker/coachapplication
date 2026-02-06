@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -12,7 +13,7 @@ import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { WaitlistBanner } from '@/components/group/waitlist-banner';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
@@ -162,14 +163,14 @@ export default function GroupSessionDetailScreen() {
             onPress={() => router.back()}
             style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
           >
-            <Ionicons name="arrow-back" size={22} color="#fff" />
+            <Ionicons name="arrow-back" size={22} color={Colors.light.onPrimary} />
           </Clickable>
           {isCoach && (
             <Clickable
-              onPress={() => router.push(`/group-sessions/${id}/roster`)}
+              onPress={() => router.push(Routes.groupSessionRoster(id))}
               style={[styles.rosterButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
             >
-              <Ionicons name="people" size={20} color="#fff" />
+              <Ionicons name="people" size={20} color={Colors.light.onPrimary} />
             </Clickable>
           )}
           <View style={[styles.typeBadge, { backgroundColor: typeColors[session.sessionType] }]}>
@@ -212,10 +213,10 @@ export default function GroupSessionDetailScreen() {
               styles.capacityBadge,
               {
                 backgroundColor: isFull
-                  ? `${palette.error}15`
+                  ? withAlpha(palette.error, 0.09)
                   : spotsLeft <= 3
-                  ? `${palette.warning}15`
-                  : `${palette.success}15`,
+                  ? withAlpha(palette.warning, 0.09)
+                  : withAlpha(palette.success, 0.09),
               },
             ]}
           >
@@ -254,7 +255,7 @@ export default function GroupSessionDetailScreen() {
               <ThemedText type="defaultSemiBold">Schedule</ThemedText>
               {session.schedule.map((sched, idx) => (
                 <View key={idx} style={styles.scheduleRow}>
-                  <View style={[styles.scheduleIcon, { backgroundColor: `${palette.tint}15` }]}>
+                  <View style={[styles.scheduleIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                     <Ionicons name="calendar" size={16} color={palette.tint} />
                   </View>
                   <View>
@@ -348,7 +349,7 @@ export default function GroupSessionDetailScreen() {
               </ThemedText>
               <View style={styles.focusRow}>
                 {session.focus.map((f) => (
-                  <View key={f} style={[styles.focusTag, { backgroundColor: `${palette.tint}15` }]}>
+                  <View key={f} style={[styles.focusTag, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                     <ThemedText style={[styles.focusText, { color: palette.tint }]}>{f}</ThemedText>
                   </View>
                 ))}
@@ -360,7 +361,7 @@ export default function GroupSessionDetailScreen() {
           {isCoach && (
             <View style={styles.coachActions}>
               <Clickable
-                onPress={() => router.push(`/group-sessions/${id}/roster`)}
+                onPress={() => router.push(Routes.groupSessionRoster(id))}
                 style={[styles.coachActionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
               >
                 <Ionicons name="people" size={20} color={palette.tint} />
@@ -370,7 +371,7 @@ export default function GroupSessionDetailScreen() {
               </Clickable>
               <Clickable
                 onPress={handleCancel}
-                style={[styles.coachActionButton, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}
+                style={[styles.coachActionButton, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}
               >
                 <Ionicons name="close-circle" size={20} color={palette.error} />
                 <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Cancel Session</ThemedText>
@@ -435,7 +436,7 @@ const styles = StyleSheet.create({
     left: Spacing.md,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -445,7 +446,7 @@ const styles = StyleSheet.create({
     right: Spacing.md,
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -453,14 +454,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: Spacing.md,
     left: Spacing.md,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   typeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -474,17 +474,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   clubName: {
-    fontSize: 13,
-    marginTop: 4,
+    ...Typography.small,
+    marginTop: Spacing.xxs,
   },
   priceSection: {
     alignItems: 'flex-end',
   },
   price: {
-    fontSize: 24,
+    ...Typography.display,
   },
   priceNote: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   capacityBadge: {
     flexDirection: 'row',
@@ -499,8 +499,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   scheduleRow: {
     flexDirection: 'row',
@@ -510,12 +509,12 @@ const styles = StyleSheet.create({
   scheduleIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scheduleTime: {
-    fontSize: 13,
+    ...Typography.small,
   },
   cardRow: {
     flexDirection: 'row',
@@ -525,19 +524,19 @@ const styles = StyleSheet.create({
   coachPhoto: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
   },
   coachPhotoPlaceholder: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   messageButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -559,13 +558,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   focusTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
   focusText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   coachActions: {
     gap: Spacing.sm,
@@ -595,6 +593,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   footerNote: {
-    fontSize: 12,
+    ...Typography.caption,
   },
 });

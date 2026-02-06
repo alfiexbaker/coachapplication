@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { StyleSheet, View, Alert, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
@@ -119,7 +120,7 @@ export default function SubscribeScreen() {
           [
             {
               text: 'View Subscriptions',
-              onPress: () => router.replace('/bookings/recurring'),
+              onPress: () => router.replace(Routes.BOOKINGS_RECURRING),
             },
           ]
         );
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   },
   headerSubtext: {
     ...Typography.small,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   headerButton: {
     padding: Spacing.xs,
@@ -289,16 +290,16 @@ const styles = StyleSheet.create({
   coachAvatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
   },
   coachInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   coachMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   coachMetaText: {
     ...Typography.small,
@@ -316,12 +317,11 @@ const styles = StyleSheet.create({
   },
   specialtyBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   specialtyText: {
     ...Typography.caption,
-    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,

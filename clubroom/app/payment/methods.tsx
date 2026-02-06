@@ -1,6 +1,7 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { CardListItem } from '@/components/payment/card-list-item';
 import { ThemedText } from '@/components/themed-text';
@@ -30,7 +31,7 @@ export default function PaymentMethodsScreen() {
         </View>
 
         <Clickable
-          onPress={() => router.push('/payment/add-card')}
+          onPress={() => router.push(Routes.PAYMENT_ADD_CARD)}
           style={[styles.addButton, { borderColor: palette.border }]}
         >
           <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Add new card</ThemedText>

@@ -1,23 +1,26 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { apiClient } from '@/services/api-client';
-
+import { Routes } from '@/navigation/routes';
 import { ThemedText } from '@/components/themed-text';
 import { PageHeader } from '@/components/primitives/page-header';
-import { Colors } from '@/constants/theme';
+import { Colors, Radii, Typography, Spacing, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   upcomingBookings,
   getChildrenForParent,
 } from '@/constants/mock-data';
-import { BookingSummary, SessionOffering } from '@/constants/types';
+import { BookingSummary, SessionOffering, Booking } from '@/constants/types';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
+import { bookingService } from '@/services/booking';
 import { inviteService as sessionInviteService } from '@/services/invite';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
 import { hasChildren } from '@/utils/user-helpers';
+import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 // Extracted components
 import { QuickActions } from '@/components/bookings/QuickActions';
@@ -44,35 +47,35 @@ export default function BookingsScreen() {
   const loadData = useCallback(async () => {
     setError(null);
     try {
-      // Load session bookings from storage
-      const bookings = await apiClient.get<any[]>('session_bookings', []);
+      // Load session bookings via booking service
+      const bookings = await bookingService.list();
       if (bookings.length > 0) {
         // Convert to BookingSummary format
-        const summaries: BookingSummary[] = bookings.map((booking: any) => ({
+        const summaries: BookingSummary[] = bookings.map((booking) => ({
           id: booking.id,
-          coachName: booking.coachName,
-          childName: booking.athleteName,
-          service: booking.service,
+          coachName: booking.coachName ?? 'Coach',
+          childName: booking.athleteName ?? 'Athlete',
+          service: booking.service ?? 'Session',
           start: booking.scheduledAt,
           status: booking.status === 'CONFIRMED' ? 'Confirmed' : booking.status === 'PENDING' ? 'Pending' : 'Completed',
           locationLabel: booking.location,
           coach: {
-            name: booking.coachName,
+            name: booking.coachName ?? 'Coach',
             photoUrl: 'https://i.pravatar.cc/100?u=' + booking.coachId,
           },
           client: {
-            name: booking.athleteName,
+            name: booking.athleteName ?? 'Athlete',
             photoUrl: 'https://i.pravatar.cc/100?u=' + booking.athleteId,
           },
           coachId: booking.coachId,
-          clientId: booking.athleteId,
+          clientId: booking.athleteId ?? '',
         }));
         setSessionBookings(summaries);
         logger.debug('Loaded session bookings', { count: summaries.length });
       }
 
-      // Load session offerings from storage
-      const offerings = await apiClient.get<SessionOffering[]>('session_offerings', []);
+      // Load session offerings from storage (no dedicated service yet)
+      const offerings = await apiClient.get<SessionOffering[]>(STORAGE_KEYS.SESSION_OFFERINGS, []);
       if (offerings.length > 0) {
         setSessionOfferings(offerings);
         logger.debug('Loaded session offerings', { count: offerings.length });
@@ -102,6 +105,25 @@ export default function BookingsScreen() {
       loadData();
     }, [loadData])
   );
+
+  // React to booking events from the event bus so the list updates
+  // without waiting for the next tab focus or manual pull-to-refresh.
+  useEffect(() => {
+    const unsubCreated = onTyped(ServiceEvents.BOOKING_CREATED, () => {
+      loadData();
+    });
+    const unsubCancelled = onTyped(ServiceEvents.BOOKING_CANCELLED, () => {
+      loadData();
+    });
+    const unsubConfirmed = onTyped(ServiceEvents.BOOKING_CONFIRMED, () => {
+      loadData();
+    });
+    return () => {
+      unsubCreated();
+      unsubCancelled();
+      unsubConfirmed();
+    };
+  }, [loadData]);
 
   // For COACHES: show their session offerings
   // For ATHLETES/PARENTS: show sessions they're registered for
@@ -147,42 +169,42 @@ export default function BookingsScreen() {
   const handleRateCoachPress = () => {
     logger.press('RateCoachButton', { route: '/rate-coach' });
     // Navigate to rate coach selection screen
-    router.push('/rate-coach');
+    router.push(Routes.RATE_COACH);
   };
 
   const handleCalendarPress = () => {
     logger.press('CalendarButton', { route: '/(tabs)/availability' });
-    router.push('/(tabs)/availability');
+    router.push(Routes.AVAILABILITY);
   };
 
   const handleSettingsPress = () => {
     logger.press('SettingsButton', { route: '/(tabs)/settings' });
-    router.push('/(tabs)/settings');
+    router.push(Routes.SETTINGS);
   };
 
   const handleGroupSessionsPress = () => {
     logger.press('GroupSessionsButton', { route: '/group-sessions' });
-    router.push('/group-sessions');
+    router.push(Routes.GROUP_SESSIONS);
   };
 
   const handleDiscoverSessionsPress = () => {
     logger.press('DiscoverSessionsButton', { route: '/discover-sessions' });
-    router.push('/discover-sessions');
+    router.push(Routes.DISCOVER_SESSIONS);
   };
 
   const handleInvitesPress = () => {
     logger.press('InvitesButton', { route: '/invites' });
-    router.push('/invites');
+    router.push(Routes.INVITES);
   };
 
   const handleCreateSessionPress = () => {
     logger.press('CreateSessionButton', { route: '/sessions/create' });
-    router.push('/sessions/create');
+    router.push(Routes.SESSIONS_CREATE);
   };
 
   const handleFindCoachPress = () => {
     logger.press('FindCoachButton', { route: '/(tabs)/index' });
-    router.push('/(tabs)/index' as any);
+    router.push(Routes.HOME_INDEX);
   };
 
   const handleOfferingPress = (offering: SessionOffering) => {
@@ -230,7 +252,7 @@ export default function BookingsScreen() {
 
       {/* Error State */}
       {error && !loading && (
-        <View style={[styles.errorContainer, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}>
+        <View style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
           <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
         </View>
       )}
@@ -271,12 +293,12 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     margin: 16,
-    padding: 12,
-    borderRadius: 8,
+    padding: Spacing.xs + Spacing.xxs,
+    borderRadius: Radii.sm,
     borderWidth: 1,
   },
   errorText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
   },
 });

@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ interface TimeComparisonProps {
 function TimeSlot({ label, dateTime, color, icon, palette }: TimeComparisonProps) {
   return (
     <View style={[styles.timeSlot, { borderColor: palette.border }]}>
-      <View style={[styles.timeSlotIcon, { backgroundColor: `${color}12` }]}>
+      <View style={[styles.timeSlotIcon, { backgroundColor: withAlpha(color, 0.07) }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <View style={styles.timeSlotText}>
@@ -165,7 +165,7 @@ export function RescheduleRequest({
     <SurfaceCard style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.headerIcon, { backgroundColor: `${palette.warning}15` }]}>
+        <View style={[styles.headerIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
           <Ionicons name="swap-horizontal" size={20} color={palette.warning} />
         </View>
         <View style={styles.headerText}>
@@ -179,7 +179,7 @@ export function RescheduleRequest({
       </View>
 
       {/* Session info */}
-      <View style={[styles.sessionInfo, { backgroundColor: `${palette.tint}06` }]}>
+      <View style={[styles.sessionInfo, { backgroundColor: withAlpha(palette.tint, 0.02) }]}>
         <ThemedText type="defaultSemiBold" style={styles.sessionTitle}>
           {proposal.sessionTitle}
         </ThemedText>
@@ -224,7 +224,7 @@ export function RescheduleRequest({
       </View>
 
       {/* Coach's reason */}
-      <View style={[styles.reasonBox, { backgroundColor: `${palette.warning}08`, borderColor: `${palette.warning}20` }]}>
+      <View style={[styles.reasonBox, { backgroundColor: withAlpha(palette.warning, 0.03), borderColor: withAlpha(palette.warning, 0.12) }]}>
         <Ionicons name="chatbubble-outline" size={16} color={palette.warning} />
         <ThemedText style={[styles.reasonText, { color: palette.text }]}>
           &ldquo;{proposal.reason}&rdquo;
@@ -348,20 +348,15 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerText: {
     flex: 1,
   },
-  headerTitle: {
-    fontSize: 16,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
+  headerTitle: { ...Typography.subheading },
+  headerSubtitle: { ...Typography.small, marginTop: Spacing.micro },
 
   // Session info
   sessionInfo: {
@@ -369,20 +364,14 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     gap: Spacing.xs / 2,
   },
-  sessionTitle: {
-    fontSize: 15,
-  },
+  sessionTitle: { ...Typography.body },
   venueRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  venueText: {
-    fontSize: 13,
-  },
-  durationText: {
-    fontSize: 12,
-  },
+  venueText: { ...Typography.small },
+  durationText: { ...Typography.caption },
 
   // Time comparison
   timeComparison: {
@@ -399,28 +388,22 @@ const styles = StyleSheet.create({
   timeSlotIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   timeSlotText: {
     flex: 1,
   },
-  timeSlotLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
+  timeSlotLabel: { ...Typography.caption, textTransform: 'uppercase',
     letterSpacing: 0.5,
-    fontWeight: '600',
-  },
-  timeSlotValue: {
-    fontSize: 15,
-    marginTop: 2,
-  },
+    fontWeight: '600' },
+  timeSlotValue: { ...Typography.body, marginTop: Spacing.micro },
 
   // Arrow between slots
   arrowWrap: {
     alignItems: 'center',
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
   },
   arrowLine: {
     width: 1,
@@ -429,7 +412,7 @@ const styles = StyleSheet.create({
   arrowCircle: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -444,28 +427,20 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
-  reasonText: {
-    flex: 1,
-    fontSize: 14,
+  reasonText: { ...Typography.bodySmall, flex: 1,
     fontStyle: 'italic',
-    lineHeight: 20,
-  },
+    lineHeight: 20 },
 
   // Decline reason
   declineReasonWrap: {
     gap: Spacing.xs,
   },
-  declineReasonLabel: {
-    fontSize: 12,
-  },
-  declineReasonInput: {
-    minHeight: 72,
+  declineReasonLabel: { ...Typography.caption },
+  declineReasonInput: { ...Typography.bodySmall, minHeight: 72,
     borderRadius: Radii.sm,
     borderWidth: 1.5,
     padding: Spacing.sm,
-    textAlignVertical: 'top',
-    fontSize: 14,
-  },
+    textAlignVertical: 'top' },
 
   // Actions
   actions: {
@@ -488,20 +463,10 @@ const styles = StyleSheet.create({
   declineButton: {
     borderWidth: 1.5,
   },
-  actionButtonText: {
-    color: Colors.light.surface,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  actionButtonTextDark: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  actionButtonText: { ...Typography.bodySemiBold, color: Colors.light.surface },
+  actionButtonTextDark: { ...Typography.bodySemiBold },
 
   // Disclaimer
-  disclaimer: {
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
+  disclaimer: { ...Typography.caption, textAlign: 'center',
+    lineHeight: 16 },
 });

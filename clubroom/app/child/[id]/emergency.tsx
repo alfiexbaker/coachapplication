@@ -10,7 +10,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Badge } from '@/components/primitives/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { EmergencyInfo, EmergencyContact } from '@/constants/types';
 import { safetyService } from '@/services/safety-service';
@@ -32,7 +32,7 @@ function ContactCard({ contact, onEdit, onDelete, onSetPrimary }: ContactCardPro
   return (
     <SurfaceCard style={styles.contactCard}>
       <View style={styles.contactHeader}>
-        <View style={[styles.contactAvatar, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.contactAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="person" size={20} color={palette.tint} />
         </View>
         <View style={{ flex: 1 }}>
@@ -40,7 +40,7 @@ function ContactCard({ contact, onEdit, onDelete, onSetPrimary }: ContactCardPro
             <ThemedText type="defaultSemiBold">{contact.name}</ThemedText>
             {contact.isPrimary && <Badge label="Primary" tone="success" />}
           </View>
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+          <ThemedText style={{ color: palette.muted, ...Typography.small }}>
             {contact.relationship}
           </ThemedText>
         </View>
@@ -61,9 +61,9 @@ function ContactCard({ contact, onEdit, onDelete, onSetPrimary }: ContactCardPro
 
       <View style={styles.contactFlags}>
         {contact.canPickup && (
-          <View style={[styles.flagBadge, { backgroundColor: `${palette.success}10` }]}>
+          <View style={[styles.flagBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
             <Ionicons name="checkmark-circle" size={14} color={palette.success} />
-            <ThemedText style={{ fontSize: 12, color: palette.success }}>Can pick up</ThemedText>
+            <ThemedText style={{ ...Typography.caption, color: palette.success }}>Can pick up</ThemedText>
           </View>
         )}
       </View>
@@ -72,16 +72,16 @@ function ContactCard({ contact, onEdit, onDelete, onSetPrimary }: ContactCardPro
         {!contact.isPrimary && (
           <Clickable onPress={onSetPrimary} style={styles.contactActionButton}>
             <Ionicons name="star-outline" size={18} color={palette.tint} />
-            <ThemedText style={{ color: palette.tint, fontSize: 13 }}>Set Primary</ThemedText>
+            <ThemedText style={{ color: palette.tint, ...Typography.small }}>Set Primary</ThemedText>
           </Clickable>
         )}
         <Clickable onPress={onEdit} style={styles.contactActionButton}>
           <Ionicons name="create-outline" size={18} color={palette.tint} />
-          <ThemedText style={{ color: palette.tint, fontSize: 13 }}>Edit</ThemedText>
+          <ThemedText style={{ color: palette.tint, ...Typography.small }}>Edit</ThemedText>
         </Clickable>
         <Clickable onPress={onDelete} style={styles.contactActionButton}>
           <Ionicons name="trash-outline" size={18} color={palette.error} />
-          <ThemedText style={{ color: palette.error, fontSize: 13 }}>Remove</ThemedText>
+          <ThemedText style={{ color: palette.error, ...Typography.small }}>Remove</ThemedText>
         </Clickable>
       </View>
     </SurfaceCard>
@@ -179,7 +179,7 @@ function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
       <View style={styles.toggleRow}>
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold">Can Pick Up Child</ThemedText>
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+          <ThemedText style={{ color: palette.muted, ...Typography.small }}>
             Authorized to collect child after sessions
           </ThemedText>
         </View>
@@ -194,7 +194,7 @@ function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
               style={[
                 styles.toggleKnob,
                 {
-                  backgroundColor: '#fff',
+                  backgroundColor: Colors.light.surface,
                   transform: [{ translateX: canPickup ? 18 : 2 }],
                 },
               ]}
@@ -207,7 +207,7 @@ function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
         <View style={styles.toggleRow}>
           <View style={{ flex: 1 }}>
             <ThemedText type="defaultSemiBold">Set as Primary Contact</ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+            <ThemedText style={{ color: palette.muted, ...Typography.small }}>
               First contact called in emergencies
             </ThemedText>
           </View>
@@ -222,7 +222,7 @@ function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
                 style={[
                   styles.toggleKnob,
                   {
-                    backgroundColor: '#fff',
+                    backgroundColor: Colors.light.surface,
                     transform: [{ translateX: isPrimary ? 18 : 2 }],
                   },
                 ]}
@@ -333,7 +333,7 @@ export default function EmergencyContactsScreen() {
               onPress={() => setShowForm(true)}
               style={[styles.addButton, { backgroundColor: palette.tint }]}
             >
-              <Ionicons name="add" size={20} color="#fff" />
+              <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
             </Clickable>
           )}
         </View>
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   contactAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -456,8 +456,8 @@ const styles = StyleSheet.create({
   flagBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
   },
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   formCard: {
     gap: Spacing.md,
@@ -486,14 +486,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   fieldLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -504,13 +503,13 @@ const styles = StyleSheet.create({
   toggle: {
     width: 48,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
   },
   toggleKnob: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
   },
   infoBox: {
     flexDirection: 'row',
@@ -521,7 +520,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 20,
+    ...Typography.small,
   },
 });

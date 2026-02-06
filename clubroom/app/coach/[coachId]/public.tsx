@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { Routes } from '@/navigation/routes';
 import {
   View,
   StyleSheet,
@@ -31,7 +32,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ShareProfile } from '@/components/coach/share-profile';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
 
@@ -168,17 +169,11 @@ export default function PublicCoachProfileScreen() {
   // -----------------------------------------------------------------------
 
   const handleBook = () => {
-    router.push({
-      pathname: '/book/[coachId]' as any,
-      params: { coachId: coachId! },
-    });
+    router.push(Routes.bookCoach(coachId!));
   };
 
   const handleMessage = () => {
-    router.push({
-      pathname: '/messages/[conversationId]' as any,
-      params: { conversationId: `coach-${coachId}` },
-    });
+    router.push(Routes.chat(`coach-${coachId}`));
   };
 
   // -----------------------------------------------------------------------
@@ -245,7 +240,7 @@ export default function PublicCoachProfileScreen() {
               <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
                 {session.name}
               </ThemedText>
-              <ThemedText style={[Typography.small, { color: palette.muted, marginTop: 2 }]}>
+              <ThemedText style={[Typography.small, { color: palette.muted, marginTop: Spacing.micro }]}>
                 {session.description}
               </ThemedText>
               <ThemedText style={[Typography.caption, { color: palette.muted, marginTop: Spacing.xs / 2 }]}>
@@ -257,7 +252,7 @@ export default function PublicCoachProfileScreen() {
                 {'\u00A3'}{session.price}
               </ThemedText>
               {session.isTrialAvailable && (
-                <View style={[styles.trialBadge, { backgroundColor: `${palette.success}18` }]}>
+                <View style={[styles.trialBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                   <ThemedText style={[Typography.micro, { color: palette.success }]}>
                     TRIAL {'\u00A3'}{session.trialPrice}
                   </ThemedText>
@@ -306,9 +301,9 @@ export default function PublicCoachProfileScreen() {
             {coach.footballFocuses.map((focus, index) => (
               <View
                 key={index}
-                style={[styles.chip, { backgroundColor: `${palette.tint}15` }]}
+                style={[styles.chip, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
               >
-                <ThemedText style={[Typography.small, { color: palette.tint, fontWeight: '500' }]}>
+                <ThemedText style={[Typography.smallSemiBold, { color: palette.tint }]}>
                   {focus}
                 </ThemedText>
               </View>
@@ -324,10 +319,10 @@ export default function PublicCoachProfileScreen() {
             {coach.sports.map((sport, index) => (
               <View
                 key={index}
-                style={[styles.chip, { backgroundColor: `${palette.secondary}15` }]}
+                style={[styles.chip, { backgroundColor: withAlpha(palette.secondary, 0.09) }]}
               >
                 <Ionicons name="football-outline" size={14} color={palette.secondary} />
-                <ThemedText style={[Typography.small, { color: palette.secondary, fontWeight: '500' }]}>
+                <ThemedText style={[Typography.smallSemiBold, { color: palette.secondary }]}>
                   {sport}
                 </ThemedText>
               </View>
@@ -373,7 +368,7 @@ export default function PublicCoachProfileScreen() {
                 <ThemedText style={[Typography.body, { color: palette.muted }]}>
                   {exp.organization}
                 </ThemedText>
-                <ThemedText style={[Typography.caption, { color: palette.muted, marginTop: 2 }]}>
+                <ThemedText style={[Typography.caption, { color: palette.muted, marginTop: Spacing.micro }]}>
                   {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
                 </ThemedText>
                 {exp.description ? (
@@ -395,7 +390,7 @@ export default function PublicCoachProfileScreen() {
           </ThemedText>
           {coach.certifications.map((cert, index) => (
             <View key={index} style={styles.certItem}>
-              <View style={[styles.certIconCircle, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.certIconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="ribbon-outline" size={Components.icon.md} color={palette.tint} />
               </View>
               <View style={{ flex: 1 }}>
@@ -432,7 +427,7 @@ export default function PublicCoachProfileScreen() {
           <Animated.View key={review.id} entering={FadeInDown.delay(index * 50)}>
             <SurfaceCard style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
-                <View style={[styles.reviewAvatar, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.reviewAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
                     {review.reviewerName.charAt(0)}
                   </ThemedText>
@@ -457,7 +452,7 @@ export default function PublicCoachProfileScreen() {
                 </ThemedText>
               ) : null}
               {review.sessionType ? (
-                <View style={[styles.sessionTypeBadge, { backgroundColor: `${palette.tint}10` }]}>
+                <View style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                   <ThemedText style={[Typography.caption, { color: palette.tint }]}>
                     {review.sessionType}
                   </ThemedText>
@@ -495,7 +490,7 @@ export default function PublicCoachProfileScreen() {
             <Image source={{ uri: coach.coverPhotoUrl }} style={styles.coverImage} />
           ) : (
             <View style={[styles.coverPlaceholder, { backgroundColor: palette.tint }]}>
-              <Ionicons name="image-outline" size={Components.icon.xl} color={`${palette.surface}40`} />
+              <Ionicons name="image-outline" size={Components.icon.xl} color={withAlpha(palette.surface, 0.25)} />
             </View>
           )}
 
@@ -505,14 +500,14 @@ export default function PublicCoachProfileScreen() {
               onPress={() => router.back()}
               style={[styles.headerBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
             >
-              <Ionicons name="arrow-back" size={Components.icon.lg} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={Components.icon.lg} color={Colors.light.onPrimary} />
             </Clickable>
 
             <Clickable
               onPress={() => setShowShareSheet(true)}
               style={[styles.headerBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
             >
-              <Ionicons name="share-outline" size={Components.icon.lg} color="#FFFFFF" />
+              <Ionicons name="share-outline" size={Components.icon.lg} color={Colors.light.onPrimary} />
             </Clickable>
           </View>
 
@@ -537,7 +532,7 @@ export default function PublicCoachProfileScreen() {
               {coach.name}
             </ThemedText>
             {coach.badges?.includes('Verified') && (
-              <View style={[styles.verifiedBadge, { backgroundColor: `${palette.success}18` }]}>
+              <View style={[styles.verifiedBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="checkmark-circle" size={Components.icon.sm} color={palette.success} />
                 <ThemedText style={[Typography.caption, { color: palette.success }]}>Verified</ThemedText>
               </View>
@@ -571,7 +566,7 @@ export default function PublicCoachProfileScreen() {
               {coach.badges.map((badge, index) => (
                 <View
                   key={index}
-                  style={[styles.badgePill, { backgroundColor: `${palette.success}15` }]}
+                  style={[styles.badgePill, { backgroundColor: withAlpha(palette.success, 0.09) }]}
                 >
                   <Ionicons name="checkmark-circle" size={12} color={palette.success} />
                   <ThemedText style={[Typography.caption, { color: palette.success }]}>
@@ -714,7 +709,7 @@ const styles = StyleSheet.create({
   headerBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -738,9 +733,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitials: {
-    color: '#FFFFFF',
-    fontSize: 32,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.display,
   },
 
   // Profile Info
@@ -853,7 +847,7 @@ const styles = StyleSheet.create({
   },
   trialBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
 
@@ -893,8 +887,8 @@ const styles = StyleSheet.create({
   expDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    marginTop: 6,
+    borderRadius: Radii.xs,
+    marginTop: Spacing.xxs,
   },
 
   // Certifications
@@ -907,7 +901,7 @@ const styles = StyleSheet.create({
   certIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -915,11 +909,10 @@ const styles = StyleSheet.create({
   // Reviews
   starsRow: {
     flexDirection: 'row',
-    gap: 2,
+    gap: Spacing.micro,
   },
   ratingNumber: {
-    fontSize: 48,
-    fontWeight: '700',
+    ...Typography.display,
   },
   reviewCard: {
     gap: Spacing.sm,
@@ -932,7 +925,7 @@ const styles = StyleSheet.create({
   reviewAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },

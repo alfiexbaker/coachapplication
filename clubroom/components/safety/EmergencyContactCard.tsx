@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Badge } from '@/components/primitives/badge';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { EmergencyContact } from '@/constants/types';
 
@@ -48,7 +48,7 @@ export function EmergencyContactCard({
           onPress={onCall}
           style={[styles.compactCallButton, { backgroundColor: palette.success }]}
         >
-          <Ionicons name="call" size={16} color="#fff" />
+          <Ionicons name="call" size={16} color={palette.onSuccess} />
         </Clickable>
       </View>
     );
@@ -58,7 +58,7 @@ export function EmergencyContactCard({
     <View style={[styles.card, { backgroundColor: palette.surfaceSecondary }]}>
       <View style={styles.mainContent}>
         {/* Avatar */}
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
             {contact.name.slice(0, 2).toUpperCase()}
           </ThemedText>
@@ -89,7 +89,7 @@ export function EmergencyContactCard({
           {contact.email && (
             <View style={styles.emailRow}>
               <Ionicons name="mail" size={14} color={palette.muted} />
-              <ThemedText style={{ color: palette.muted, fontSize: 13 }} numberOfLines={1}>
+              <ThemedText style={{ ...Typography.small, color: palette.muted }} numberOfLines={1}>
                 {contact.email}
               </ThemedText>
             </View>
@@ -98,7 +98,7 @@ export function EmergencyContactCard({
           {/* Permissions */}
           <View style={styles.permissionsRow}>
             {contact.canPickup && (
-              <View style={[styles.permissionBadge, { backgroundColor: `${palette.success}10` }]}>
+              <View style={[styles.permissionBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="checkmark-circle" size={12} color={palette.success} />
                 <ThemedText style={[styles.permissionText, { color: palette.success }]}>
                   Can pickup
@@ -113,7 +113,7 @@ export function EmergencyContactCard({
           onPress={onCall}
           style={[styles.callButton, { backgroundColor: palette.success }]}
         >
-          <Ionicons name="call" size={22} color="#fff" />
+          <Ionicons name="call" size={22} color={palette.onSuccess} />
         </Clickable>
       </View>
     </View>
@@ -135,7 +135,7 @@ export function EmergencyContactInline({
 
   return (
     <Clickable onPress={onCall} style={styles.inlineContainer}>
-      <View style={[styles.inlineIcon, { backgroundColor: `${palette.success}10` }]}>
+      <View style={[styles.inlineIcon, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
         <Ionicons name="call" size={14} color={palette.success} />
       </View>
       <View style={{ flex: 1 }}>
@@ -160,19 +160,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    padding: Spacing.md,
+    padding: Components.card.padding,
   },
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  avatarText: { ...Typography.subheading },
   info: {
     flex: 1,
   },
@@ -181,44 +178,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  relationship: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  relationship: { ...Typography.caption, marginTop: Spacing.micro },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   emailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
   permissionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 6,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   permissionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  permissionText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  permissionText: { ...Typography.micro },
   callButton: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -236,14 +227,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  compactPhone: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  compactPhone: { ...Typography.caption, marginTop: Spacing.micro },
   compactCallButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -257,15 +245,10 @@ const styles = StyleSheet.create({
   inlineIcon: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  inlineName: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  inlinePhone: {
-    fontSize: 12,
-  },
+  inlineName: { ...Typography.smallSemiBold },
+  inlinePhone: { ...Typography.caption },
 });

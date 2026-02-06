@@ -151,9 +151,12 @@ export interface ClubMember {
   userName: string;
   userPhotoUrl?: string;
   role: ClubRole;
-  status: 'active' | 'pending';
+  status: 'active' | 'pending' | 'banned';
   joinedAt: string;
   squadIds?: string[];
+  bannedAt?: string;
+  bannedBy?: string;
+  banReason?: string;
 }
 
 // Mock members data
@@ -293,7 +296,7 @@ export const clubService = {
           clubId,
           userId: member.userId,
           role: member.role,
-          status: member.status,
+          status: member.status === 'banned' ? 'active' : member.status,
           joinSource: 'invite',
           squadIds: member.squadIds,
         },
@@ -395,6 +398,206 @@ export const clubService = {
    */
   canBeRemoved(memberRole: ClubRole): boolean {
     return memberRole !== 'OWNER';
+  },
+
+  /**
+   * Change a member's role
+   */
+  async changeMemberRole(
+    clubId: string,
+    userId: string,
+    newRole: ClubRole,
+    changedBy: { id: string; name: string }
+  ): Promise<Result<ClubMember, ServiceError>> {
+    if (USE_MOCK) {
+      const members = await loadMembers(clubId);
+      const memberIndex = members.findIndex((m) => m.userId === userId);
+
+      if (memberIndex === -1) {
+        return err(notFound('Member', userId));
+      }
+
+      if (members[memberIndex].role === 'OWNER') {
+        return err(validationError('Cannot change the role of the club owner'));
+      }
+
+      members[memberIndex].role = newRole;
+      await saveMembers(clubId, members);
+
+      logger.info('MemberRoleChanged', { clubId, userId, newRole, changedBy: changedBy.id });
+      return ok(members[memberIndex]);
+    }
+
+    const response = await fetch(`/api/clubs/${clubId}/members/${userId}/role`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole, changedBy: changedBy.id }),
+    });
+    return ok(await response.json());
+  },
+
+  /**
+   * Ban a member from the club
+   */
+  async banMember(
+    clubId: string,
+    userId: string,
+    reason: string,
+    bannedBy: { id: string; name: string }
+  ): Promise<Result<ClubMemberRemovalRecord, ServiceError>> {
+    if (USE_MOCK) {
+      const members = await loadMembers(clubId);
+      const memberIndex = members.findIndex((m) => m.userId === userId);
+
+      if (memberIndex === -1) {
+        return err(notFound('Member', userId));
+      }
+
+      const member = members[memberIndex];
+
+      if (member.role === 'OWNER') {
+        return err(validationError('Cannot ban the club owner'));
+      }
+
+      const removalRecord: ClubMemberRemovalRecord = {
+        id: `member_ban_${Date.now()}`,
+        clubId,
+        userId,
+        userName: member.userName,
+        userRole: member.role,
+        reason: 'CONDUCT',
+        customReason: reason,
+        removedBy: bannedBy.id,
+        removedByName: bannedBy.name,
+        removedAt: new Date().toISOString(),
+        originalMembership: {
+          clubId,
+          userId: member.userId,
+          role: member.role,
+          status: member.status === 'banned' ? 'active' : member.status,
+          joinSource: 'invite',
+          squadIds: member.squadIds,
+        },
+      };
+
+      members.splice(memberIndex, 1);
+      await saveMembers(clubId, members);
+
+      removalHistoryCache = await loadRemovalHistory();
+      removalHistoryCache.unshift(removalRecord);
+      await saveRemovalHistory(removalHistoryCache);
+
+      logger.info('MemberBanned', { clubId, userId, reason, bannedBy: bannedBy.id });
+      return ok(removalRecord);
+    }
+
+    const response = await fetch(`/api/clubs/${clubId}/members/${userId}/ban`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason, bannedBy: bannedBy.id }),
+    });
+    return ok(await response.json());
+  },
+
+  /**
+   * Get a single member by userId
+   */
+  async getMember(clubId: string, userId: string): Promise<ClubMember | null> {
+    const members = await this.getMembers(clubId);
+    return members.find((m) => m.userId === userId) || null;
+  },
+
+  /**
+   * Add a member to a squad
+   */
+  async addMemberToSquad(
+    clubId: string,
+    userId: string,
+    squadId: string
+  ): Promise<Result<ClubMember, ServiceError>> {
+    if (USE_MOCK) {
+      const members = await loadMembers(clubId);
+      const memberIndex = members.findIndex((m) => m.userId === userId);
+
+      if (memberIndex === -1) {
+        return err(notFound('Member', userId));
+      }
+
+      const squadIds = members[memberIndex].squadIds || [];
+      if (!squadIds.includes(squadId)) {
+        squadIds.push(squadId);
+        members[memberIndex].squadIds = squadIds;
+        await saveMembers(clubId, members);
+      }
+
+      return ok(members[memberIndex]);
+    }
+
+    const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ squadId }),
+    });
+    return ok(await response.json());
+  },
+
+  /**
+   * Remove a member from a squad
+   */
+  async removeMemberFromSquad(
+    clubId: string,
+    userId: string,
+    squadId: string
+  ): Promise<Result<ClubMember, ServiceError>> {
+    if (USE_MOCK) {
+      const members = await loadMembers(clubId);
+      const memberIndex = members.findIndex((m) => m.userId === userId);
+
+      if (memberIndex === -1) {
+        return err(notFound('Member', userId));
+      }
+
+      const squadIds = members[memberIndex].squadIds || [];
+      members[memberIndex].squadIds = squadIds.filter((id) => id !== squadId);
+      await saveMembers(clubId, members);
+
+      return ok(members[memberIndex]);
+    }
+
+    const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads/${squadId}`, {
+      method: 'DELETE',
+    });
+    return ok(await response.json());
+  },
+
+  /**
+   * Check if a role can manage another role (hierarchy check)
+   */
+  canManageRole(managerRole: ClubRole, targetRole: ClubRole): boolean {
+    const hierarchy: Record<ClubRole, number> = {
+      OWNER: 5,
+      ADMIN: 4,
+      HEAD_COACH: 3,
+      COACH: 2,
+      MEMBER: 1,
+    };
+    return hierarchy[managerRole] > hierarchy[targetRole];
+  },
+
+  /**
+   * Get the list of roles a manager can assign to a target
+   */
+  getAssignableRoles(managerRole: ClubRole): ClubRole[] {
+    const hierarchy: Record<ClubRole, number> = {
+      OWNER: 5,
+      ADMIN: 4,
+      HEAD_COACH: 3,
+      COACH: 2,
+      MEMBER: 1,
+    };
+    const managerLevel = hierarchy[managerRole];
+    const allRoles: ClubRole[] = ['ADMIN', 'HEAD_COACH', 'COACH', 'MEMBER'];
+    return allRoles.filter((role) => hierarchy[role] < managerLevel);
   },
 
   /**

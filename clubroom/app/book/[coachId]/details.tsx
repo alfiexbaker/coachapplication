@@ -1,12 +1,13 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 
@@ -43,7 +44,7 @@ export default function DetailsScreen() {
                 style={[
                   styles.option,
                   {
-                    backgroundColor: active ? `${palette.tint}12` : palette.surface,
+                    backgroundColor: active ? withAlpha(palette.tint, 0.07) : palette.surface,
                     borderColor: active ? palette.tint : palette.border,
                   },
                 ]}
@@ -86,11 +87,11 @@ export default function DetailsScreen() {
       </ScrollView>
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <Clickable
-          onPress={() => router.push(`/book/${coachId}/review`)}
+          onPress={() => router.push(Routes.bookReview(coachId))}
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="arrow-forward" size={18} color="#fff" />
-          <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Continue</ThemedText>
+          <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
+          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
         </Clickable>
       </View>
     </SafeAreaView>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, Share, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 
@@ -9,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { analyticsService, type AnalyticsPeriod } from '@/services/analytics-service';
 import type { AthleteAnalytics, Goal, SkillProgress } from '@/constants/types';
@@ -41,7 +42,7 @@ function StatCard({
       entering={FadeInDown.delay(index * 50).springify()}
       style={[styles.statCard, { backgroundColor: palette.surface }]}
     >
-      <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
+      <View style={[styles.statIcon, { backgroundColor: withAlpha(color, 0.09) }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <ThemedText type="heading" style={styles.statValue}>
@@ -189,7 +190,7 @@ function GoalCard({
                   },
                 ]}
               >
-                {milestone.isCompleted && <Ionicons name="checkmark" size={12} color="#fff" />}
+                {milestone.isCompleted && <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />}
               </View>
               <ThemedText
                 style={[
@@ -210,7 +211,7 @@ function GoalCard({
           <View
             style={[
               styles.creatorBadge,
-              { backgroundColor: goal.createdBy === 'COACH' ? `${palette.tint}15` : `${palette.success}15` },
+              { backgroundColor: goal.createdBy === 'COACH' ? withAlpha(palette.tint, 0.09) : withAlpha(palette.success, 0.09) },
             ]}
           >
             <ThemedText
@@ -325,7 +326,7 @@ export default function AthleteAnalyticsScreen() {
             ]}
           >
             <ThemedText
-              style={[styles.periodText, { color: period === p.key ? '#fff' : palette.text }]}
+              style={[styles.periodText, { color: period === p.key ? Colors.light.onPrimary : palette.text }]}
             >
               {p.label}
             </ThemedText>
@@ -424,7 +425,7 @@ export default function AthleteAnalyticsScreen() {
             <View style={styles.sectionHeader}>
               <ThemedText type="subtitle">Active Goals</ThemedText>
               <Clickable
-                onPress={() => router.push(`/analytics/${athleteId}/goals`)}
+                onPress={() => router.push(Routes.analyticsAthleteGoals(athleteId))}
                 style={styles.seeAllButton}
               >
                 <ThemedText style={[styles.seeAllText, { color: palette.tint }]}>See all</ThemedText>
@@ -448,7 +449,7 @@ export default function AthleteAnalyticsScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <ThemedText type="subtitle">Completed Goals</ThemedText>
-              <View style={[styles.completedBadge, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.completedBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="checkmark-circle" size={14} color={palette.success} />
                 <ThemedText style={[styles.completedText, { color: palette.success }]}>
                   {analytics.completedGoals.length}
@@ -495,8 +496,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   periodsScroll: {
     flexGrow: 0,
@@ -512,8 +513,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.full,
   },
   periodText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   content: {
     padding: Spacing.lg,
@@ -534,21 +534,20 @@ const styles = StyleSheet.create({
   statIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   statValue: {
-    fontSize: 24,
+    ...Typography.display,
   },
   statSuffix: {
-    fontSize: 14,
-    fontWeight: '400',
+    ...Typography.bodySmall,
   },
   statLabel: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   summaryCard: {
     marginBottom: Spacing.lg,
@@ -563,11 +562,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryValue: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   summaryLabel: {
-    fontSize: 11,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   summaryDivider: {
     width: 1,
@@ -583,21 +582,20 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sectionMeta: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   seeAllButton: {
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: 8,
   },
   seeAllText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   skillsList: {
     gap: Spacing.md,
   },
   skillItem: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   skillHeader: {
     flexDirection: 'row',
@@ -605,36 +603,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   skillName: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   skillChange: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
   changeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   skillBarBg: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   skillBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   skillMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   skillCategory: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   skillLevel: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   goalsList: {
     gap: Spacing.md,
@@ -653,37 +649,36 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   goalTitle: {
-    fontSize: 15,
+    ...Typography.body,
   },
   goalDate: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   progressCircle: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
   progressText: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...Typography.caption,
   },
   goalDescription: {
-    fontSize: 13,
+    ...Typography.small,
     marginBottom: Spacing.sm,
   },
   progressBarBg: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
     marginBottom: Spacing.sm,
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   milestones: {
     gap: Spacing.xs,
@@ -692,18 +687,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
   },
   milestoneCheck: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   milestoneText: {
-    fontSize: 13,
+    ...Typography.small,
     flex: 1,
   },
   goalFooter: {
@@ -714,28 +709,26 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   milestoneCount: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   creatorBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   creatorText: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...Typography.micro,
   },
   completedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   completedText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   completedGoalCard: {
     padding: Spacing.md,
@@ -749,8 +742,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   completedDate: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   bottomSpacer: {
     height: 40,

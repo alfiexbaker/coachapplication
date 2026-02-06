@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { RetentionMetrics } from '@/constants/types';
 
@@ -162,7 +162,7 @@ export function RetentionCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
   },
   header: {
     marginBottom: Spacing.md,
@@ -172,10 +172,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  title: { ...Typography.subheading },
   mainMetric: {
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -191,14 +188,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     borderWidth: 8,
   },
   progressFill: {
     position: 'absolute',
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     borderWidth: 8,
     borderLeftColor: 'transparent',
     borderBottomColor: 'transparent',
@@ -206,15 +203,8 @@ const styles = StyleSheet.create({
   progressCenter: {
     alignItems: 'center',
   },
-  retentionValue: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  retentionLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 2,
-  },
+  retentionValue: { ...Typography.display },
+  retentionLabel: { ...Typography.caption, marginTop: Spacing.micro },
   clientBreakdown: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -228,19 +218,13 @@ const styles = StyleSheet.create({
   clientDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   clientInfo: {
     alignItems: 'flex-start',
   },
-  clientValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  clientLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  clientValue: { ...Typography.subheading },
+  clientLabel: { ...Typography.caption },
   metricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -251,14 +235,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  metricValue: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  metricLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: 2,
-  },
+  metricValue: { ...Typography.heading },
+  metricLabel: { ...Typography.caption, textAlign: 'center',
+    marginTop: Spacing.micro },
 });

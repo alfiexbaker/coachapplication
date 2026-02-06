@@ -121,6 +121,9 @@ export const ServiceEvents = {
   SESSION_COMPLETED: 'session:completed',
   SESSION_CANCELLED: 'session:cancelled',
 
+  // Group session events
+  OPEN_SESSION_PUBLISHED: 'group_session:open_published',
+
   // User events
   USER_CREATED: 'user:created',
   USER_UPDATED: 'user:updated',
@@ -147,6 +150,10 @@ export const ServiceEvents = {
   CLUB_MEMBER_JOINED: 'club:member:joined',
   CLUB_MEMBER_LEFT: 'club:member:left',
   CLUB_POST_CREATED: 'club:post:created',
+
+  // Community group events
+  GROUP_MEMBER_JOINED: 'community:group:member_joined',
+  GROUP_MEMBER_ROLE_CHANGED: 'community:group:member_role_changed',
 
   // Achievement events
   BADGE_EARNED: 'achievement:badge_earned',
@@ -226,6 +233,26 @@ export interface EventPayloads {
     sessionId: string;
     coachId: string;
     reason?: string;
+  };
+
+  // Group session events
+  [ServiceEvents.OPEN_SESSION_PUBLISHED]: {
+    sessionId: string;
+    coachId: string;
+    coachName: string;
+    title: string;
+    description: string;
+    sessionType: string;
+    location: string;
+    price: number;
+    currency: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    maxParticipants: number;
+    clubId?: string;
+    clubName?: string;
+    imageUrl?: string;
   };
 
   // User events
@@ -316,6 +343,25 @@ export interface EventPayloads {
     clubId: string;
     postId: string;
     authorId: string;
+  };
+
+  // Community group events
+  [ServiceEvents.GROUP_MEMBER_JOINED]: {
+    groupId: string;
+    groupName: string;
+    memberId: string;
+    memberName: string;
+    role: string;
+    isCoach: boolean;
+  };
+  [ServiceEvents.GROUP_MEMBER_ROLE_CHANGED]: {
+    groupId: string;
+    groupName: string;
+    memberId: string;
+    memberName: string;
+    previousRole: string;
+    newRole: string;
+    changedById: string;
   };
 
   // Achievement events

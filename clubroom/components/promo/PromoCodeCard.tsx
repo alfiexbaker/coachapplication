@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCode } from '@/constants/types';
@@ -70,14 +70,14 @@ export function PromoCodeCard({
       {/* Header with code and status */}
       <View style={styles.header}>
         <Pressable onPress={handleCopyCode} style={styles.codeContainer}>
-          <View style={[styles.codeBadge, { backgroundColor: `${statusInfo.color}15` }]}>
+          <View style={[styles.codeBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
             <ThemedText style={[styles.codeText, { color: statusInfo.color }]}>
               {promoCode.code}
             </ThemedText>
             <Ionicons name="copy-outline" size={14} color={statusInfo.color} />
           </View>
         </Pressable>
-        <View style={[styles.statusBadge, { backgroundColor: `${statusInfo.color}20` }]}>
+        <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.12) }]}>
           <ThemedText style={[styles.statusText, { color: statusInfo.color }]}>
             {statusInfo.label}
           </ThemedText>
@@ -174,7 +174,7 @@ export function PromoCodeCard({
               style={[
                 styles.actionButton,
                 {
-                  backgroundColor: promoCode.isActive ? `${palette.error}15` : `${palette.success}15`,
+                  backgroundColor: promoCode.isActive ? withAlpha(palette.error, 0.09) : withAlpha(palette.success, 0.09),
                   borderColor: promoCode.isActive ? palette.error : palette.success,
                 },
               ]}
@@ -222,34 +222,21 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
   },
-  codeText: {
-    fontFamily: 'monospace',
-    fontWeight: '700',
-    fontSize: 16,
-    letterSpacing: 1,
-  },
+  codeText: { ...Typography.subheading, fontFamily: 'monospace',
+    letterSpacing: 1 },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
+  statusText: { ...Typography.caption, textTransform: 'uppercase' },
   amountRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.sm,
   },
-  amount: {
-    fontSize: 22,
-  },
-  description: {
-    flex: 1,
-    fontSize: 13,
-  },
+  amount: { ...Typography.title },
+  description: { ...Typography.small, flex: 1 },
   usageSection: {
     gap: Spacing.xs,
   },
@@ -258,26 +245,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  usageLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  usageValue: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  usageRemaining: {
-    fontSize: 12,
-    fontWeight: '400',
-  },
+  usageLabel: { ...Typography.caption },
+  usageValue: { ...Typography.smallSemiBold },
+  usageRemaining: { ...Typography.caption },
   progressBar: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   statsRow: {
     flexDirection: 'row',
@@ -287,11 +265,9 @@ const styles = StyleSheet.create({
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  statText: {
-    fontSize: 12,
-  },
+  statText: { ...Typography.caption },
   actions: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -307,8 +283,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  actionButtonText: { ...Typography.smallSemiBold },
 });

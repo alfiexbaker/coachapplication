@@ -4,7 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 
@@ -50,7 +50,7 @@ export function MiniSparkline({
                 height: Math.max(barHeight, 3),
                 backgroundColor: lineColor,
                 opacity: 0.25 + (index / data.length) * 0.75,
-                borderRadius: 2,
+                borderRadius: Radii.xs,
               },
             ]}
           >
@@ -132,7 +132,7 @@ export function EnhancedStatCard({
           <View
             style={[
               styles.iconContainer,
-              { backgroundColor: `${iconColor || palette.tint}12` },
+              { backgroundColor: withAlpha(iconColor || palette.tint, 0.07) },
               isLarge && styles.iconContainerLarge,
             ]}
           >
@@ -152,7 +152,7 @@ export function EnhancedStatCard({
                 name={icon}
                 size={14}
                 color={iconColor || palette.tint}
-                style={{ marginRight: 4 }}
+                style={{ marginRight: Spacing.xxs }}
               />
             )}
             <ThemedText
@@ -167,7 +167,7 @@ export function EnhancedStatCard({
 
             {/* Trend badge */}
             {trend && (
-              <View style={[styles.trendBadge, { backgroundColor: `${trendColor}15` }]}>
+              <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
                 <Ionicons
                   name={trend.value > 0 ? 'arrow-up' : trend.value < 0 ? 'arrow-down' : 'remove'}
                   size={10}
@@ -261,7 +261,7 @@ export function StatsRow({ stats }: StatsRowProps) {
                 <View
                   style={[
                     styles.statsRowIcon,
-                    { backgroundColor: `${stat.iconColor || palette.tint}12` },
+                    { backgroundColor: withAlpha(stat.iconColor || palette.tint, 0.07) },
                   ]}
                 >
                   <Ionicons
@@ -323,7 +323,7 @@ export function ProgressMetric({
     <View style={styles.progressMetric}>
       <View style={styles.progressMetricHeader}>
         {icon && (
-          <View style={[styles.progressMetricIcon, { backgroundColor: `${accentColor}12` }]}>
+          <View style={[styles.progressMetricIcon, { backgroundColor: withAlpha(accentColor, 0.07) }]}>
             <Ionicons name={icon} size={16} color={accentColor} />
           </View>
         )}
@@ -389,7 +389,7 @@ export function MetricsSummary({ title, metrics, highlight }: MetricsSummaryProp
         <View
           style={[
             styles.metricsSummaryHighlight,
-            { backgroundColor: `${highlight.color || palette.tint}08` },
+            { backgroundColor: withAlpha(highlight.color || palette.tint, 0.03) },
           ]}
         >
           {highlight.icon && (
@@ -438,7 +438,7 @@ export function MetricsSummary({ title, metrics, highlight }: MetricsSummaryProp
                 {metric.label}
               </ThemedText>
               {metric.trend && trendColor && (
-                <View style={[styles.metricsSummaryTrend, { backgroundColor: `${trendColor}12` }]}>
+                <View style={[styles.metricsSummaryTrend, { backgroundColor: withAlpha(trendColor, 0.07) }]}>
                   <Ionicons
                     name={metric.trend.value > 0 ? 'arrow-up' : 'arrow-down'}
                     size={10}
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   sparklineContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 2,
+    gap: Spacing.micro,
   },
   sparklineBar: {
     flex: 1,
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     right: -2,
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
 
   // Stat card
@@ -536,17 +536,17 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconContainerLarge: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
   },
   valueContainer: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   valueContainerCompact: {
     flexDirection: 'row',
@@ -558,40 +558,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  value: {
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  valueLarge: {
-    fontSize: 28,
-  },
-  valueCompact: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  labelLarge: {
-    fontSize: 13,
-  },
-  labelCompact: {
-    fontSize: 11,
-  },
+  value: { ...Typography.title, letterSpacing: -0.5 },
+  valueLarge: { ...Typography.display },
+  valueCompact: { ...Typography.subheading },
+  label: { ...Typography.caption },
+  labelLarge: { ...Typography.small },
+  labelCompact: { ...Typography.caption },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
     paddingHorizontal: 5,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  trendText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  trendText: { ...Typography.micro },
   comparisonContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -601,11 +582,9 @@ const styles = StyleSheet.create({
   comparisonDot: {
     width: 4,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
-  comparisonText: {
-    fontSize: 11,
-  },
+  comparisonText: { ...Typography.caption },
 
   // Stats row
   statsRowCard: {
@@ -625,30 +604,22 @@ const styles = StyleSheet.create({
   statsRowIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   statsRowValueContainer: {
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
   statsRowValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
-  statsRowValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  statsRowLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
+  statsRowValue: { ...Typography.heading, letterSpacing: -0.3 },
+  statsRowLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.3 },
 
   // Progress metric
   progressMetric: {
@@ -662,45 +633,35 @@ const styles = StyleSheet.create({
   progressMetricIcon: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressMetricTitle: {
-    flex: 1,
-    fontSize: 14,
-  },
-  progressMetricPercentage: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  progressMetricTitle: { ...Typography.bodySmall, flex: 1 },
+  progressMetricPercentage: { ...Typography.bodySmallSemiBold },
   progressMetricBarContainer: {
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   progressMetricBarBg: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressMetricBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   progressMetricFooter: {
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
-  progressMetricValue: {
-    fontSize: 12,
-  },
+  progressMetricValue: { ...Typography.caption },
 
   // Metrics summary
   metricsSummaryCard: {
     padding: Spacing.md,
     gap: Spacing.md,
   },
-  metricsSummaryTitle: {
-    fontSize: 16,
-  },
+  metricsSummaryTitle: { ...Typography.subheading },
   metricsSummaryHighlight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -709,14 +670,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   metricsSummaryHighlightContent: {
-    gap: 2,
+    gap: Spacing.micro,
   },
-  metricsSummaryHighlightValue: {
-    fontSize: 24,
-  },
-  metricsSummaryHighlightLabel: {
-    fontSize: 12,
-  },
+  metricsSummaryHighlightValue: { ...Typography.display },
+  metricsSummaryHighlightLabel: { ...Typography.caption },
   metricsSummaryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -728,29 +685,20 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderWidth: 1,
     borderRadius: Radii.md,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  metricsSummaryItemValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  metricsSummaryItemLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  metricsSummaryItemValue: { ...Typography.heading },
+  metricsSummaryItemLabel: { ...Typography.caption },
   metricsSummaryTrend: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
   },
-  metricsSummaryTrendText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  metricsSummaryTrendText: { ...Typography.micro },
 
   // Empty metrics
   emptyMetrics: {
@@ -761,20 +709,14 @@ const styles = StyleSheet.create({
   emptyMetricsIcon: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyMetricsTitle: {
-    fontSize: 16,
-    marginTop: Spacing.xs,
-  },
-  emptyMetricsDescription: {
-    fontSize: 13,
-    textAlign: 'center',
+  emptyMetricsTitle: { ...Typography.subheading, marginTop: Spacing.xs },
+  emptyMetricsDescription: { ...Typography.small, textAlign: 'center',
     maxWidth: 260,
-    lineHeight: 19,
-  },
+    lineHeight: 19 },
   emptyMetricsAction: {
     marginTop: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -782,8 +724,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
   },
-  emptyMetricsActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  emptyMetricsActionText: { ...Typography.smallSemiBold },
 });

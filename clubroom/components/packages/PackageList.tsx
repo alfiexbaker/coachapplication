@@ -4,7 +4,7 @@ import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PackageCard } from './PackageCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SessionPackage } from '@/constants/types';
 
@@ -125,18 +125,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xl,
     gap: Spacing.sm,
   },
-  loadingText: {
-    fontSize: 14,
-  },
+  loadingText: { ...Typography.bodySmall },
   header: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  title: {
-    fontSize: 18,
-  },
-  subtitle: {
-    fontSize: 13,
-  },
+  title: { ...Typography.heading },
+  subtitle: { ...Typography.small },
   list: {
     gap: Spacing.md,
   },

@@ -9,7 +9,7 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { VerificationStatus } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
@@ -112,7 +112,7 @@ export default function BackgroundCheckScreen() {
 
         {isVerified ? (
           <SurfaceCard style={styles.statusCard}>
-            <View style={[styles.statusIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="shield-checkmark" size={48} color={palette.success} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
@@ -125,9 +125,9 @@ export default function BackgroundCheckScreen() {
                 : 'N/A'}
             </ThemedText>
             {status?.backgroundCheck.expiresAt && (
-              <View style={[styles.expiryBadge, { backgroundColor: `${palette.success}10` }]}>
+              <View style={[styles.expiryBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="calendar" size={16} color={palette.success} />
-                <ThemedText style={{ color: palette.success, fontSize: 13 }}>
+                <ThemedText style={{ color: palette.success, ...Typography.small }}>
                   Valid until {new Date(status.backgroundCheck.expiresAt).toLocaleDateString()}
                 </ThemedText>
               </View>
@@ -135,7 +135,7 @@ export default function BackgroundCheckScreen() {
           </SurfaceCard>
         ) : isPending ? (
           <SurfaceCard style={styles.statusCard}>
-            <View style={[styles.statusIcon, { backgroundColor: `${palette.warning}15` }]}>
+            <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
               <Ionicons name="hourglass" size={48} color={palette.warning} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
@@ -165,7 +165,7 @@ export default function BackgroundCheckScreen() {
                 <Ionicons name="shield" size={24} color={palette.tint} />
                 <View style={{ flex: 1 }}>
                   <ThemedText type="defaultSemiBold">Enhanced DBS Check</ThemedText>
-                  <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                  <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                     Required for working with children
                   </ThemedText>
                 </View>
@@ -174,7 +174,7 @@ export default function BackgroundCheckScreen() {
                 <Ionicons name="time" size={24} color={palette.tint} />
                 <View style={{ flex: 1 }}>
                   <ThemedText type="defaultSemiBold">Processing Time</ThemedText>
-                  <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                  <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                     2-5 business days on average
                   </ThemedText>
                 </View>
@@ -183,7 +183,7 @@ export default function BackgroundCheckScreen() {
                 <Ionicons name="card" size={24} color={palette.tint} />
                 <View style={{ flex: 1 }}>
                   <ThemedText type="defaultSemiBold">Cost</ThemedText>
-                  <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                  <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                     Free for Clubroom coaches (Mock)
                   </ThemedText>
                 </View>
@@ -205,7 +205,7 @@ export default function BackgroundCheckScreen() {
                     </View>
                     <View style={styles.stepContent}>
                       <ThemedText type="defaultSemiBold">{step.title}</ThemedText>
-                      <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                      <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                         {step.description}
                       </ThemedText>
                     </View>
@@ -225,7 +225,7 @@ export default function BackgroundCheckScreen() {
                 ].map((req, index) => (
                   <View key={index} style={styles.requirementRow}>
                     <Ionicons name="checkmark-circle" size={18} color={palette.success} />
-                    <ThemedText style={{ color: palette.muted, fontSize: 14, flex: 1 }}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.bodySmall, flex: 1 }}>
                       {req}
                     </ThemedText>
                   </View>
@@ -273,16 +273,16 @@ const styles = StyleSheet.create({
   statusIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     justifyContent: 'center',
     alignItems: 'center',
   },
   statusTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   statusText: {
     textAlign: 'center',
-    fontSize: 14,
+    ...Typography.bodySmall,
     paddingHorizontal: Spacing.md,
   },
   expiryBadge: {
@@ -326,25 +326,24 @@ const styles = StyleSheet.create({
   stepNumber: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepNumberText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySmallSemiBold,
   },
   stepLine: {
     width: 2,
     flex: 1,
     minHeight: 24,
-    marginVertical: 4,
+    marginVertical: Spacing.xxs,
   },
   stepContent: {
     flex: 1,
     paddingBottom: Spacing.md,
-    gap: 2,
+    gap: Spacing.micro,
   },
   requirements: {
     gap: Spacing.sm,

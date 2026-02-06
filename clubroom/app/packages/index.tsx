@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -11,7 +12,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PackageList } from '@/components/packages/PackageList';
 import { MyPackages } from '@/components/packages/MyPackages';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { packageService } from '@/services/package-service';
@@ -61,10 +62,7 @@ export default function PackagesScreen() {
   };
 
   const handlePackagePress = (pkg: SessionPackage) => {
-    router.push({
-      pathname: '/packages/[id]',
-      params: { id: pkg.id },
-    });
+    router.push(Routes.package(pkg.id));
   };
 
   return (
@@ -82,10 +80,10 @@ export default function PackagesScreen() {
         </View>
         {isCoach && (
           <Clickable
-            onPress={() => router.push('/packages/manage')}
+            onPress={() => router.push(Routes.PACKAGES_MANAGE)}
             style={[styles.manageButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="settings-outline" size={18} color="#fff" />
+            <Ionicons name="settings-outline" size={18} color={Colors.light.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -150,8 +148,8 @@ export default function PackagesScreen() {
           <>
             {/* Info Banner */}
             <Animated.View entering={FadeInDown.delay(50).springify()}>
-              <SurfaceCard style={[styles.infoBanner, { backgroundColor: `${palette.success}08` }]}>
-                <View style={[styles.infoIcon, { backgroundColor: `${palette.success}15` }]}>
+              <SurfaceCard style={[styles.infoBanner, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
+                <View style={[styles.infoIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                   <Ionicons name="gift-outline" size={20} color={palette.success} />
                 </View>
                 <View style={styles.infoContent}>
@@ -182,10 +180,7 @@ export default function PackagesScreen() {
             showHeader={false}
             onPackagePress={(purchase) => {
               // Could navigate to a purchase detail screen
-              router.push({
-                pathname: '/packages/[id]',
-                params: { id: purchase.packageId },
-              });
+              router.push(Routes.package(purchase.packageId));
             }}
           />
         )}
@@ -209,13 +204,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   manageButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -230,7 +225,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
@@ -240,8 +235,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.02)',
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   content: {
     padding: Spacing.lg,
@@ -257,19 +251,18 @@ const styles = StyleSheet.create({
   infoIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   infoContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   infoTitle: {
-    fontSize: 15,
+    ...Typography.body,
   },
   infoText: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
 });

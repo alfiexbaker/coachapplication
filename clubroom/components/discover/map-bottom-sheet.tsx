@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography, Components  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { MapCoach } from './map-view-placeholder';
 
@@ -98,7 +98,6 @@ function MiniCoachCard({
 
         {/* Book Now */}
         <Pressable
-          accessibilityRole="button"
           accessibilityLabel={`Book ${coach.fullName}`}
           onPress={onBookNow}
           style={({ pressed }) => [
@@ -109,7 +108,7 @@ function MiniCoachCard({
             },
           ]}
         >
-          <ThemedText style={miniStyles.bookText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+          <ThemedText style={miniStyles.bookText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
             Book
           </ThemedText>
         </Pressable>
@@ -195,7 +194,7 @@ function CoachListRow({
         style={[
           listStyles.row,
           { borderBottomColor: palette.border },
-          isSelected && { backgroundColor: `${palette.tint}08` },
+          isSelected && { backgroundColor: withAlpha(palette.tint, 0.03) },
         ]}
       >
         <View
@@ -230,7 +229,7 @@ function CoachListRow({
               },
             ]}
           >
-            <ThemedText style={listStyles.bookBtnText} lightColor="#FFFFFF" darkColor="#FFFFFF">
+            <ThemedText style={listStyles.bookBtnText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
               Book Now
             </ThemedText>
           </Pressable>

@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getSessionsForCoach, formatDate } from '@/constants/mock-data';
@@ -194,7 +194,7 @@ export default function BadgesScreen() {
             <Clickable
               key={tab.key}
               onPress={() => setActiveTab(tab.key)}
-              style={[styles.tabButton, isActive ? { backgroundColor: `${palette.tint}12`, borderColor: palette.tint } : undefined].filter(Boolean) as ViewStyle[]}
+              style={[styles.tabButton, isActive ? { backgroundColor: withAlpha(palette.tint, 0.07), borderColor: palette.tint } : undefined].filter(Boolean) as ViewStyle[]}
             >
               <View style={styles.tabLabelRow}>
                 <Ionicons
@@ -221,7 +221,7 @@ export default function BadgesScreen() {
             <ThemedText type="defaultSemiBold">Link to session</ThemedText>
           </View>
           {selectedSession ? (
-            <View style={[styles.sessionPill, { backgroundColor: `${palette.tint}15` }]}> 
+            <View style={[styles.sessionPill, { backgroundColor: withAlpha(palette.tint, 0.09) }]}> 
               <Ionicons name="checkmark-circle" size={14} color={palette.tint} />
               <ThemedText style={[styles.sessionPillLabel, { color: palette.tint }]}>
                 {linkedAthlete} · {formatDate(selectedSession.completedAt)}
@@ -257,11 +257,11 @@ export default function BadgesScreen() {
                   onPress={() => setSelectedSessionId(session.id)}
                   style={[styles.sessionRow, {
                     borderColor: isSelected ? palette.tint : palette.border,
-                    backgroundColor: isSelected ? `${palette.tint}08` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.03) : palette.surface,
                   }]}
                 >
                   <View style={styles.sessionRowLeft}>
-                    <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                         {athleteName.charAt(0)}
                       </ThemedText>
@@ -306,7 +306,7 @@ export default function BadgesScreen() {
             {visibleBadges.map((badge) => (
               <SurfaceCard key={badge.id} style={styles.badgeCard}>
                 <View style={styles.badgeHeader}>
-                  <View style={[styles.badgeIcon, { backgroundColor: `${palette.tint}15` }]}>
+                  <View style={[styles.badgeIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                     <Ionicons name="ribbon" size={18} color={palette.tint} />
                   </View>
                   <View style={styles.badgeTitleGroup}>
@@ -321,7 +321,7 @@ export default function BadgesScreen() {
                 <ThemedText style={[styles.badgeDetail, { color: palette.foreground }]}>{badge.detail}</ThemedText>
 
                 {badge.sharedWith ? (
-                  <View style={[styles.infoPill, { backgroundColor: `${palette.icon}10` }]}>
+                  <View style={[styles.infoPill, { backgroundColor: withAlpha(palette.icon, 0.06) }]}>
                     <Ionicons name="share-social" size={14} color={palette.icon} />
                     <ThemedText style={[styles.pillText, { color: palette.icon }]}>{badge.sharedWith}</ThemedText>
                   </View>
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   tabLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   sessionSelector: {
     gap: Spacing.sm,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   sessionList: {
     maxHeight: 200,
@@ -438,24 +438,23 @@ const styles = StyleSheet.create({
   },
   sessionMeta: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   sessionPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   sessionPillLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   avatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -463,14 +462,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyHint: {
-    fontSize: 13,
+    ...Typography.small,
   },
   badgeList: {
     gap: Spacing.sm,
     padding: Spacing.sm,
   },
   sectionHint: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   emptyState: {
     alignItems: 'center',
@@ -488,7 +487,7 @@ const styles = StyleSheet.create({
   },
   badgeTitleGroup: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   badgeIcon: {
     width: Components.avatar.sm,
@@ -506,12 +505,11 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   pillText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -531,7 +529,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   awardButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '700',
   },
 });

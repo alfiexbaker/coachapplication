@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,9 +6,11 @@ import {
   RefreshControl,
   Modal,
   ViewStyle,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ParentGroupCard } from '@/components/community/ParentGroupCard';
@@ -18,13 +20,15 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography, Radii , withAlpha } from '@/constants/theme';
 import type { ParentGroup, CarpoolOffer } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 import { scaleFont } from '@/utils/scale';
 import { createLogger } from '@/utils/logger';
+import type { GroupMemberRole } from '@/constants/types';
 
 const logger = createLogger('CommunityHubScreen');
 
@@ -75,6 +79,21 @@ export default function CommunityHubScreen() {
     }, [loadData])
   );
 
+  // React to community group events so the list updates when a member
+  // joins a group or a role changes (e.g. promoted to moderator).
+  useEffect(() => {
+    const unsubMemberJoined = onTyped(ServiceEvents.GROUP_MEMBER_JOINED, () => {
+      loadData();
+    });
+    const unsubRoleChanged = onTyped(ServiceEvents.GROUP_MEMBER_ROLE_CHANGED, () => {
+      loadData();
+    });
+    return () => {
+      unsubMemberJoined();
+      unsubRoleChanged();
+    };
+  }, [loadData]);
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
@@ -102,24 +121,28 @@ export default function CommunityHubScreen() {
     }
   };
 
+  const isCoachUser = currentUser?.role === 'COACH';
+
   const handleJoinGroup = async (group: ParentGroup) => {
     try {
-      await communityService.joinGroup(group.id, parentId, parentName);
-      loadData();
+      const result = await communityService.joinGroup(group.id, parentId, parentName, { isCoach: isCoachUser });
+      if (!result.success) {
+        Alert.alert('Could not join', result.error.message);
+        return;
+      }
+      await loadData();
     } catch (error) {
       logger.error('Failed to join group:', error);
+      Alert.alert('Error', 'Failed to join group. Please try again.');
     }
   };
 
   const handleGroupPress = (group: ParentGroup) => {
-    router.push({
-      pathname: '/community/[groupId]',
-      params: { groupId: group.id },
-    });
+    router.push(Routes.communityGroup(group.id));
   };
 
   const handleCarpoolPress = () => {
-    router.push('/carpool');
+    router.push(Routes.CARPOOL);
   };
 
   const tabs: { key: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -135,7 +158,7 @@ export default function CommunityHubScreen() {
     action?: { label: string; onPress: () => void }
   ) => (
     <View style={styles.emptyState}>
-      <View style={[styles.emptyIcon, { backgroundColor: `${palette.tint}15` }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <Ionicons name={icon} size={48} color={palette.tint} />
       </View>
       <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -188,7 +211,7 @@ export default function CommunityHubScreen() {
           <View style={styles.listContainer}>
             {/* Quick action card */}
             <SurfaceCard style={styles.quickActionCard} onPress={handleCarpoolPress}>
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="add-circle-outline" size={28} color={palette.tint} />
               </View>
               <View style={styles.quickActionContent}>
@@ -284,7 +307,7 @@ export default function CommunityHubScreen() {
           onPress={() => setShowCreateModal(true)}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
+          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
 
@@ -375,12 +398,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -394,13 +417,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     marginBottom: -1,
   },
   tabLabel: {
-    fontSize: scaleFont(13),
-    fontWeight: '600',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
   scrollView: {
     flex: 1,
@@ -429,7 +451,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -439,8 +461,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    fontSize: scaleFont(15),
-    lineHeight: scaleFont(22),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
   },
   emptyButton: {
     marginTop: Spacing.sm,
@@ -454,16 +475,16 @@ const styles = StyleSheet.create({
   quickActionIcon: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   quickActionContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   quickActionSubtext: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -473,11 +494,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: scaleFont(16),
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
   },
   seeAllLink: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   noCarpoolsMessage: {
     alignItems: 'center',
@@ -485,11 +505,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   noCarpoolsText: {
-    fontSize: scaleFont(14),
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
     textAlign: 'center',
   },
   discoverHint: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
     marginBottom: Spacing.sm,
   },
   discoverCard: {
@@ -502,11 +522,10 @@ const styles = StyleSheet.create({
   joinButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   joinButtonText: {
-    fontWeight: '600',
-    fontSize: scaleFont(14),
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
 
   // Modal styles
@@ -522,6 +541,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: scaleFont(20),
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
   },
 });

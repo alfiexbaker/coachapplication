@@ -13,7 +13,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { BodyPart, BodyPartCategory } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { injuryService } from '@/services/injury-service';
@@ -104,7 +104,7 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
                   style={[
                     styles.categoryHeader,
                     {
-                      backgroundColor: hasSelectedPart ? `${palette.tint}10` : palette.surface,
+                      backgroundColor: hasSelectedPart ? withAlpha(palette.tint, 0.06) : palette.surface,
                       borderColor: hasSelectedPart ? palette.tint : palette.border,
                     },
                   ]}
@@ -153,13 +153,13 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
                           <ThemedText
                             style={[
                               styles.partLabel,
-                              { color: isSelected ? '#FFFFFF' : palette.text },
+                              { color: isSelected ? palette.onPrimary : palette.text },
                             ]}
                           >
                             {injuryService.getBodyPartLabel(part)}
                           </ThemedText>
                           {isSelected && (
-                            <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                            <Ionicons name="checkmark" size={16} color={palette.onPrimary} />
                           )}
                         </View>
                       </Clickable>
@@ -195,7 +195,7 @@ function getPartStyle(
 
   if (isRelated) {
     return {
-      backgroundColor: `${palette.tint}30`,
+      backgroundColor: withAlpha(palette.tint, 0.19),
       borderColor: palette.border,
       borderWidth: 1,
     };
@@ -225,8 +225,8 @@ const styles = StyleSheet.create({
   head: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    marginBottom: 4,
+    borderRadius: Radii.xl,
+    marginBottom: Spacing.xxs,
   },
   torsoContainer: {
     flexDirection: 'row',
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   shoulder: {
     width: 20,
     height: 16,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
   },
   leftShoulder: {
     marginRight: -4,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   torso: {
     width: 48,
     height: 16,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   armsContainer: {
     flexDirection: 'row',
@@ -259,46 +259,46 @@ const styles = StyleSheet.create({
   arm: {
     width: 16,
     height: 50,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
   },
   core: {
     width: 44,
     height: 50,
-    borderRadius: 4,
-    marginHorizontal: 2,
+    borderRadius: Radii.xs,
+    marginHorizontal: Spacing.micro,
   },
   legsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   thigh: {
     width: 22,
     height: 45,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
   },
   lowerLegsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
   calf: {
     width: 18,
     height: 40,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
   feetContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   foot: {
     width: 24,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
   selectedLabel: {
     marginTop: Spacing.md,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   selectedLabelText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontSize: scaleFont(14),
     fontWeight: '600',
   },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     padding: Spacing.sm,
     gap: Spacing.xs,
-    marginTop: 2,
+    marginTop: Spacing.micro,
     borderBottomLeftRadius: Radii.md,
     borderBottomRightRadius: Radii.md,
   },
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   partLabel: {
     fontSize: scaleFont(13),

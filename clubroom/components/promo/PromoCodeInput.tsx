@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCodeValidationResult } from '@/constants/types';
@@ -204,13 +204,13 @@ export function PromoCodeInput({
         disabled={!code.trim() || isLoading || disabled}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
+          <ActivityIndicator size="small" color={palette.onPrimary} />
         ) : (
           <>
             <Ionicons
               name={isValid ? 'gift-outline' : 'checkmark-circle-outline'}
               size={20}
-              color="#FFFFFF"
+              color={palette.onPrimary}
             />
             <ThemedText style={styles.buttonText}>
               {isValid ? 'Redeem Code' : 'Apply Code'}
@@ -254,12 +254,8 @@ const styles = StyleSheet.create({
   inputIcon: {
     marginRight: Spacing.sm,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
+  input: { ...Typography.subheading, flex: 1,
+    letterSpacing: 1 },
   clearButton: {
     marginLeft: Spacing.sm,
     padding: Spacing.xs,
@@ -270,14 +266,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingHorizontal: Spacing.xs,
   },
-  validText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  errorText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  validText: { ...Typography.smallSemiBold },
+  errorText: { ...Typography.smallSemiBold },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -287,16 +277,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     marginTop: Spacing.xs,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  buttonText: { ...Typography.subheading, color: Colors.light.onPrimary },
   loadingMessage: {
     alignItems: 'center',
     paddingVertical: Spacing.xs,
   },
-  loadingText: {
-    fontSize: 13,
-  },
+  loadingText: { ...Typography.small },
 });

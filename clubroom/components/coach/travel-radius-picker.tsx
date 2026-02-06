@@ -248,11 +248,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: Colors.light.background,
     borderRadius: Radii.pill,
-    padding: 2,
+    padding: Spacing.micro,
   },
   unitButton: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   unitButtonActive: {
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     color: Colors.light.muted,
   },
   unitButtonTextActive: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
   },
 
   // Display area
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   radiusCircle: {
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: Radii.pill,
     backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   postcodeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   locationLabel: {
     ...Typography.body,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   sliderLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
   },
   sliderLabel: {
     ...Typography.caption,
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     backgroundColor: Colors.light.surface,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,

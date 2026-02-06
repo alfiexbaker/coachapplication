@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -11,7 +12,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { FamilyCalendar } from '@/components/family/FamilyCalendar';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -106,16 +108,10 @@ export default function FamilyCalendarScreen() {
 
   const handleEventPress = (event: FamilyCalendarEvent) => {
     // Check if it's a club event or a booking
-    if ((event as any).type === 'EVENT') {
-      router.push({
-        pathname: '/events/[id]',
-        params: { id: event.id },
-      });
+    if ((event as FamilyCalendarEvent & { type?: string }).type === 'EVENT') {
+      router.push(Routes.event(event.id));
     } else {
-      router.push({
-        pathname: '/(tabs)/bookings/[id]',
-        params: { id: event.id },
-      });
+      router.push(Routes.booking(event.id));
     }
   };
 
@@ -173,7 +169,7 @@ export default function FamilyCalendarScreen() {
       <Animated.View entering={FadeInDown.delay(50).springify()}>
         <View style={styles.statsRow}>
           <SurfaceCard style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.15) }]}>
               <Ionicons name="calendar" size={20} color={palette.tint} />
             </View>
             <View style={styles.statText}>
@@ -184,7 +180,7 @@ export default function FamilyCalendarScreen() {
             </View>
           </SurfaceCard>
           <SurfaceCard style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.15) }]}>
               <Ionicons name="checkmark-circle" size={20} color={palette.success} />
             </View>
             <View style={styles.statText}>
@@ -222,29 +218,31 @@ export default function FamilyCalendarScreen() {
 
       {/* Calendar */}
       <Animated.View entering={FadeInDown.delay(150).springify()}>
-        <FamilyCalendar
-          events={events}
-          members={members}
-          selectedDate={selectedDate}
-          onDateSelect={handleDateSelect}
-          onEventPress={handleEventPress}
-          selectedChildId={selectedChildId}
-          onChildFilterChange={handleChildFilterChange}
-        />
+        <ErrorBoundary>
+          <FamilyCalendar
+            events={events}
+            members={members}
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            onEventPress={handleEventPress}
+            selectedChildId={selectedChildId}
+            onChildFilterChange={handleChildFilterChange}
+          />
+        </ErrorBoundary>
       </Animated.View>
 
       {/* Quick Actions */}
       <Animated.View entering={FadeInDown.delay(200).springify()}>
         <View style={styles.quickActions}>
           <Clickable
-            onPress={() => router.push('/(tabs)/more')}
+            onPress={() => router.push(Routes.MORE)}
             style={[styles.actionButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
             <ThemedText style={styles.actionButtonText}>Book Session</ThemedText>
           </Clickable>
           <Clickable
-            onPress={() => router.push('/family/spending')}
+            onPress={() => router.push(Routes.FAMILY_SPENDING)}
             style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
           >
             <Ionicons name="wallet-outline" size={20} color={palette.tint} />
@@ -266,7 +264,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   statsRow: {
     flexDirection: 'row',
@@ -287,22 +285,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statText: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title,
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   legendCard: {
     padding: Spacing.sm,
     gap: Spacing.xs,
   },
   legendTitle: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   legendItems: {
     flexDirection: 'row',
@@ -312,15 +308,15 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   legendDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   legendName: {
-    fontSize: 13,
+    ...Typography.small,
   },
   quickActions: {
     flexDirection: 'row',
@@ -336,9 +332,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
   actionButtonSecondary: {
     flex: 1,
@@ -351,7 +346,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   actionButtonTextSecondary: {
-    fontSize: 15,
-    fontWeight: '700',
+    ...Typography.bodySemiBold,
   },
 });

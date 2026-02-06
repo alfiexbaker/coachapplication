@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, ActivityIndicator, TextInput, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BookingWizardHeader, SummaryRow } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { coachService } from '@/services/coach-service';
@@ -138,9 +139,9 @@ export default function ReviewScreen() {
         <View style={[styles.card, { borderColor: palette.border }]}>
           <ThemedText type="defaultSemiBold">Payment method</ThemedText>
           <ThemedText style={{ color: palette.muted }}>
-            {(draft as any).paymentMethod || 'Wallet balance'}
+            {(draft as unknown as Record<string, string>).paymentMethod || 'Wallet balance'}
           </ThemedText>
-          <Clickable onPress={() => router.push('/payment/methods')}>
+          <Clickable onPress={() => router.push(Routes.PAYMENT_METHODS)}>
             <ThemedText style={{ color: palette.tint, fontWeight: '700' }}>Change</ThemedText>
           </Clickable>
         </View>
@@ -150,7 +151,7 @@ export default function ReviewScreen() {
           <ThemedText type="defaultSemiBold">Promo code</ThemedText>
           {promoApplied ? (
             <View style={styles.promoApplied}>
-              <View style={[styles.promoTag, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.promoTag, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="checkmark-circle" size={16} color={palette.success} />
                 <ThemedText style={[styles.promoTagText, { color: palette.success }]}>
                   {promoCode.toUpperCase()} applied
@@ -179,13 +180,13 @@ export default function ReviewScreen() {
                     { backgroundColor: promoCode.trim() ? palette.tint : palette.border }
                   ]}
                 >
-                  <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Apply</ThemedText>
+                  <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Apply</ThemedText>
                 </Pressable>
               </View>
               {promoError && (
-                <ThemedText style={{ color: palette.error, fontSize: 13 }}>{promoError}</ThemedText>
+                <ThemedText style={{ color: palette.error, ...Typography.small }}>{promoError}</ThemedText>
               )}
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                 Try: FIRST10, WELCOME20, VIP50
               </ThemedText>
             </>
@@ -213,12 +214,12 @@ export default function ReviewScreen() {
           onPress={() => {
             // Store final price in draft
             updateDraft({ totalPrice: total, price: sessionPrice });
-            router.push(`/book/${coachId}/confirmation`);
+            router.push(Routes.bookConfirmation(coachId));
           }}
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="checkmark-circle" size={18} color="#fff" />
-          <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Pay £{total.toFixed(2)}</ThemedText>
+          <Ionicons name="checkmark-circle" size={18} color={Colors.light.onPrimary} />
+          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Pay £{total.toFixed(2)}</ThemedText>
         </Clickable>
       </View>
     </SafeAreaView>
@@ -231,14 +232,14 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: { padding: Spacing.lg, borderRadius: Radii.lg, borderWidth: 1.5, gap: Spacing.xs },
   divider: { height: 1, marginVertical: Spacing.xs },
-  rateNote: { fontSize: 12, textAlign: 'center' },
+  rateNote: { ...Typography.caption, textAlign: 'center' },
   footer: { padding: Spacing.lg, borderTopWidth: 1 },
   cta: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: Spacing.sm, padding: Spacing.md, borderRadius: Radii.button },
   // Promo code styles
   promoInputRow: { flexDirection: 'row', gap: Spacing.sm },
-  promoInput: { flex: 1, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, fontSize: 14 },
+  promoInput: { flex: 1, borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.bodySmall },
   promoApplyButton: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radii.md, justifyContent: 'center' },
   promoApplied: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  promoTag: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radii.pill },
-  promoTagText: { fontWeight: '600', fontSize: 13 },
+  promoTag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xxs, borderRadius: Radii.pill },
+  promoTagText: { ...Typography.smallSemiBold },
 });

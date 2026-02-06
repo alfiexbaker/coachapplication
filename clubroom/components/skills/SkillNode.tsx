@@ -21,7 +21,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SkillNode as SkillNodeType } from '@/constants/types';
 
@@ -135,10 +135,10 @@ export function SkillNode({
       return themeColor;
     }
     if (canUnlock) {
-      return `${themeColor}40`;
+      return withAlpha(themeColor, 0.25);
     }
     if (isInProgress) {
-      return `${themeColor}20`;
+      return withAlpha(themeColor, 0.12);
     }
     return palette.surface;
   };
@@ -148,14 +148,14 @@ export function SkillNode({
       return themeColor;
     }
     if (canUnlock || isInProgress) {
-      return `${themeColor}60`;
+      return withAlpha(themeColor, 0.38);
     }
     return palette.border;
   };
 
   const getIconColor = () => {
     if (node.isUnlocked) {
-      return '#FFFFFF';
+      return palette.onPrimary;
     }
     if (canUnlock || isInProgress) {
       return themeColor;
@@ -234,7 +234,7 @@ export function SkillNode({
             styles.levelBadge,
             {
               backgroundColor: node.isUnlocked
-                ? '#FFFFFF'
+                ? palette.surface
                 : palette.surfaceSecondary,
               borderColor: node.isUnlocked ? themeColor : palette.border,
             },
@@ -301,27 +301,17 @@ const styles = StyleSheet.create({
     right: -4,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
   },
-  levelText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
+  levelText: { ...Typography.micro },
   labelContainer: {
     alignItems: 'center',
     maxWidth: 80,
   },
-  label: {
-    fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  progressText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  label: { ...Typography.caption, textAlign: 'center',
+    lineHeight: 14 },
+  progressText: { ...Typography.micro },
 });

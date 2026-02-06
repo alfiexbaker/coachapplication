@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { SocialLinks as SocialLinksType, SocialPlatform } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SOCIAL_PLATFORMS } from './social-links';
@@ -67,8 +67,8 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
 
           return (
             <View key={platform} style={styles.fieldRow}>
-              <View style={[styles.iconContainer, { backgroundColor: `${config.color}15` }]}>
-                <Ionicons name={config.icon as any} size={20} color={config.color} />
+              <View style={[styles.iconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}>
+                <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={20} color={config.color} />
               </View>
 
               <View style={styles.inputContainer}>
@@ -108,7 +108,7 @@ export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorPr
         })}
       </View>
 
-      <View style={[styles.infoBox, { backgroundColor: `${palette.tint}10`, borderColor: `${palette.tint}30` }]}>
+      <View style={[styles.infoBox, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: withAlpha(palette.tint, 0.19) }]}>
         <Ionicons name="information-circle" size={18} color={palette.tint} />
         <ThemedText style={[styles.infoText, { color: palette.muted }]}>
           You can enter either your username/handle or the full URL to your profile. Links will be shown on your public profile.
@@ -125,10 +125,7 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.xs / 2,
   },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  subtitle: { ...Typography.bodySmall, lineHeight: 20 },
   fieldsContainer: {
     gap: Spacing.sm,
   },
@@ -149,10 +146,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xs / 2,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  label: { ...Typography.smallSemiBold },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -160,13 +154,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.sm,
   },
-  input: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    fontSize: 15,
-  },
+  input: { ...Typography.body, flex: 1,
+    paddingVertical: Spacing.sm },
   clearButton: {
-    padding: 4,
+    padding: Spacing.xxs,
   },
   infoBox: {
     flexDirection: 'row',
@@ -176,9 +167,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  infoText: { ...Typography.small, flex: 1,
+    lineHeight: 18 },
 });

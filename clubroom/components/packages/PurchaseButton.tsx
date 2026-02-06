@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -94,7 +95,7 @@ export function PurchaseButton({
   };
 
   const handleTopUp = () => {
-    router.push('/(tabs)/wallet');
+    router.push(Routes.WALLET);
   };
 
   if (loading) {
@@ -112,7 +113,7 @@ export function PurchaseButton({
     return (
       <View style={styles.container}>
         {/* Insufficient Balance Warning */}
-        <View style={[styles.warningBanner, { backgroundColor: `${palette.warning}15` }]}>
+        <View style={[styles.warningBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
           <Ionicons name="wallet-outline" size={16} color={palette.warning} />
           <View style={styles.warningTextContainer}>
             <ThemedText style={[styles.warningText, { color: palette.warning }]}>
@@ -129,7 +130,7 @@ export function PurchaseButton({
           style={[styles.button, { backgroundColor: palette.tint }]}
           onPress={handleTopUp}
         >
-          <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
+          <Ionicons name="add-circle-outline" size={20} color={Colors.light.onPrimary} />
           <ThemedText style={styles.buttonTextWhite}>
             Top Up Wallet
           </ThemedText>
@@ -160,12 +161,12 @@ export function PurchaseButton({
       >
         {purchasing ? (
           <>
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
             <ThemedText style={styles.buttonTextWhite}>Processing...</ThemedText>
           </>
         ) : (
           <>
-            <Ionicons name="cart-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="cart-outline" size={20} color={Colors.light.onPrimary} />
             <ThemedText style={styles.buttonTextWhite}>
               {label || `Buy for ${packageService.formatPrice(pkg.price, pkg.currency || 'GBP')}`}
             </ThemedText>
@@ -196,15 +197,8 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  buttonTextWhite: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  buttonText: { ...Typography.subheading },
+  buttonTextWhite: { ...Typography.subheading, color: Colors.light.onPrimary },
   warningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -216,23 +210,15 @@ const styles = StyleSheet.create({
   warningTextContainer: {
     flex: 1,
   },
-  warningText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  warningSubtext: {
-    fontSize: 12,
-  },
+  warningText: { ...Typography.bodySmallSemiBold },
+  warningSubtext: { ...Typography.caption },
   balanceInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
   },
-  balanceText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  balanceText: { ...Typography.smallSemiBold },
 });
 
 export default PurchaseButton;

@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { RevenueDataPoint, TrendDirection } from '@/constants/types';
 
@@ -103,7 +103,7 @@ export function RevenueChart({
               {formatCurrency(totalRevenue)}
             </ThemedText>
             {trend && changePercent !== undefined && (
-              <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
+              <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
                 <Ionicons name={getTrendIcon()} size={12} color={trendColor} />
                 <ThemedText style={[styles.trendText, { color: trendColor }]}>
                   {changePercent >= 0 ? '+' : ''}{changePercent.toFixed(1)}%
@@ -129,7 +129,7 @@ export function RevenueChart({
                         {
                           height: `${Math.max(barHeight, 5)}%`,
                           width: Math.min(barWidth, 40),
-                          backgroundColor: isLast ? palette.tint : palette.tint + '60',
+                          backgroundColor: isLast ? palette.tint : withAlpha(palette.tint, 0.38),
                         },
                       ]}
                     />
@@ -167,32 +167,22 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: Spacing.xs,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  title: { ...Typography.subheading },
   totalContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  totalValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
+  totalValue: { ...Typography.display, letterSpacing: -0.5 },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
   },
-  trendText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  trendText: { ...Typography.caption },
   chartContainer: {
     height: 150,
   },
@@ -217,19 +207,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     minHeight: 4,
   },
-  barLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    marginTop: 6,
-    textAlign: 'center',
-  },
+  barLabel: { ...Typography.micro, marginTop: Spacing.xxs,
+    textAlign: 'center' },
   emptyState: {
     height: 120,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 14,
-  },
+  emptyText: { ...Typography.bodySmall },
 });

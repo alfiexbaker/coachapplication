@@ -83,6 +83,12 @@ export const inviteService = {
   acceptCounterProposal: sessionInviteService.acceptCounterProposal.bind(sessionInviteService),
   getInvitesForParent: sessionInviteService.getInvitesForParent.bind(sessionInviteService),
 
+  // INVITE TYPE FILTERING
+  getOpenInvites: sessionInviteService.getOpenInvites.bind(sessionInviteService),
+  getClosedInvitesForParent: sessionInviteService.getClosedInvitesForParent.bind(sessionInviteService),
+  getSquadOnlyInvitesForParent: sessionInviteService.getSquadOnlyInvitesForParent.bind(sessionInviteService),
+  getAvailableInvitesForParent: sessionInviteService.getAvailableInvitesForParent.bind(sessionInviteService),
+
   // ==========================================================================
   // BULK INVITE OPERATIONS (from bulk-invite-service)
   // ==========================================================================

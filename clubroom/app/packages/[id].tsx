@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,7 +11,7 @@ import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PurchaseButton } from '@/components/packages/PurchaseButton';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
@@ -115,7 +116,7 @@ export default function PackageDetailScreen() {
         <ThemedText type="title" style={styles.headerTitleText}>Package Details</ThemedText>
         {isOwnPackage && (
           <Clickable
-            onPress={() => router.push('/packages/manage')}
+            onPress={() => router.push(Routes.PACKAGES_MANAGE)}
             hitSlop={8}
           >
             <Ionicons name="create-outline" size={24} color={palette.tint} />
@@ -187,7 +188,7 @@ export default function PackageDetailScreen() {
 
             <View style={styles.detailsGrid}>
               <View style={styles.detailItem}>
-                <View style={[styles.detailIcon, { backgroundColor: `${palette.tint}10` }]}>
+                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                   <Ionicons name="calendar-outline" size={20} color={palette.tint} />
                 </View>
                 <View style={styles.detailContent}>
@@ -201,7 +202,7 @@ export default function PackageDetailScreen() {
               </View>
 
               <View style={styles.detailItem}>
-                <View style={[styles.detailIcon, { backgroundColor: `${palette.success}10` }]}>
+                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                   <Ionicons name="pricetag-outline" size={20} color={palette.success} />
                 </View>
                 <View style={styles.detailContent}>
@@ -215,7 +216,7 @@ export default function PackageDetailScreen() {
               </View>
 
               <View style={styles.detailItem}>
-                <View style={[styles.detailIcon, { backgroundColor: `${palette.warning}10` }]}>
+                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
                   <Ionicons name="time-outline" size={20} color={palette.warning} />
                 </View>
                 <View style={styles.detailContent}>
@@ -240,7 +241,7 @@ export default function PackageDetailScreen() {
               </ThemedText>
               <View style={styles.focusRow}>
                 {pkg.focus.map((f) => (
-                  <View key={f} style={[styles.focusTag, { backgroundColor: `${palette.tint}10` }]}>
+                  <View key={f} style={[styles.focusTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                     <Ionicons name="checkmark-circle" size={14} color={palette.tint} />
                     <ThemedText style={[styles.focusText, { color: palette.tint }]}>{f}</ThemedText>
                   </View>
@@ -306,7 +307,7 @@ export default function PackageDetailScreen() {
       {/* Inactive Package Warning */}
       {!pkg.isActive && (
         <View style={[styles.footer, { backgroundColor: palette.background }]}>
-          <View style={[styles.inactiveBanner, { backgroundColor: `${palette.error}15` }]}>
+          <View style={[styles.inactiveBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
             <Ionicons name="alert-circle-outline" size={20} color={palette.error} />
             <ThemedText style={[styles.inactiveText, { color: palette.error }]}>
               This package is currently unavailable for purchase
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitleText: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   loadingContainer: {
     flex: 1,
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   content: {
     padding: Spacing.lg,
@@ -361,9 +362,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   discountText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -372,39 +372,37 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   packageName: {
-    fontSize: 24,
-    lineHeight: 30,
+    ...Typography.display,
     paddingRight: Spacing.xl,
   },
   coachRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   coachName: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   priceSection: {
     marginTop: Spacing.sm,
   },
   priceLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   price: {
-    fontSize: 32,
+    ...Typography.display,
   },
   sectionCard: {
     padding: Spacing.md,
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 22,
+    ...Typography.bodySmall,
   },
   detailsGrid: {
     flexDirection: 'row',
@@ -420,18 +418,18 @@ const styles = StyleSheet.create({
   detailIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   detailContent: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   detailValue: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   detailLabel: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   focusRow: {
     flexDirection: 'row',
@@ -441,14 +439,13 @@ const styles = StyleSheet.create({
   focusTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
   focusText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   howItWorks: {
     gap: Spacing.md,
@@ -461,18 +458,17 @@ const styles = StyleSheet.create({
   stepNumber: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepNumberText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySmallSemiBold,
   },
   stepText: {
     flex: 1,
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   footer: {
     position: 'absolute',
@@ -495,7 +491,6 @@ const styles = StyleSheet.create({
   },
   inactiveText: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
 });

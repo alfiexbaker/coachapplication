@@ -9,11 +9,12 @@ import { useCallback, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 
@@ -33,7 +34,7 @@ export default function DynamicCompareScreen() {
       if (remainingIds.length === 0) {
         router.back();
       } else {
-        router.replace(`/compare/${remainingIds.join(',')}`);
+        router.replace(Routes.compareCoaches(remainingIds.join(',')));
       }
     },
     [coachIds]
@@ -90,7 +91,7 @@ export default function DynamicCompareScreen() {
                 },
               ]}
             >
-              <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={18} color={Colors.light.onPrimary} />
               <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
             </Pressable>
           </View>
@@ -135,7 +136,7 @@ export default function DynamicCompareScreen() {
                 },
               ]}
             >
-              <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={18} color={Colors.light.onPrimary} />
               <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
             </Pressable>
           </View>
@@ -177,7 +178,7 @@ export default function DynamicCompareScreen() {
               Comparing {coachIds.length} {coachIds.length === 1 ? 'coach' : 'coaches'}
             </ThemedText>
           </View>
-          <View style={[styles.badge, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.badge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <ThemedText style={[styles.badgeText, { color: palette.success }]}>
               Shared Comparison
             </ThemedText>
@@ -213,17 +214,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statusText: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   badge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   errorState: {
     flex: 1,
@@ -234,7 +233,7 @@ const styles = StyleSheet.create({
   errorIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
@@ -244,7 +243,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
     marginBottom: Spacing.lg,
     maxWidth: 280,
@@ -258,8 +257,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.button,
   },
   backButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
 });

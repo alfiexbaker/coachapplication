@@ -18,7 +18,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { earningsService, type TransactionFilter } from '@/services/earnings';
@@ -211,11 +211,11 @@ export default function EarningsScreen() {
         {/* Balance Card */}
         <SurfaceCard style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <View style={[styles.balanceIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.balanceIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="wallet" size={24} color={palette.success} />
             </View>
             <View style={styles.balanceInfo}>
-              <ThemedText style={{ color: palette.muted, fontSize: 13 }}>Available Balance</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.small }}>Available Balance</ThemedText>
               <ThemedText type="title" style={styles.balanceAmount}>
                 {formatCurrency(earnings?.availableBalance || 0).replace(/^[+-]/, '')}
               </ThemedText>
@@ -226,7 +226,7 @@ export default function EarningsScreen() {
             <View style={styles.balanceRow}>
               <View style={styles.balanceItem}>
                 <Ionicons name="time-outline" size={16} color={palette.warning} />
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>Pending</ThemedText>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>Pending</ThemedText>
               </View>
               <ThemedText type="defaultSemiBold">
                 {formatCurrency(earnings?.pendingBalance || 0).replace(/^[+-]/, '')}
@@ -235,7 +235,7 @@ export default function EarningsScreen() {
             <View style={styles.balanceRow}>
               <View style={styles.balanceItem}>
                 <Ionicons name="trending-up" size={16} color={palette.success} />
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>Total Earned</ThemedText>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>Total Earned</ThemedText>
               </View>
               <ThemedText type="defaultSemiBold">
                 {formatCurrency(earnings?.totalEarned || 0).replace(/^[+-]/, '')}
@@ -244,7 +244,7 @@ export default function EarningsScreen() {
             <View style={styles.balanceRow}>
               <View style={styles.balanceItem}>
                 <Ionicons name="arrow-down-circle-outline" size={16} color={palette.tint} />
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>Total Withdrawn</ThemedText>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>Total Withdrawn</ThemedText>
               </View>
               <ThemedText type="defaultSemiBold">
                 {formatCurrency(earnings?.totalWithdrawn || 0).replace(/^[+-]/, '')}
@@ -309,15 +309,15 @@ export default function EarningsScreen() {
                       <ThemedText type="defaultSemiBold">
                         {formatCurrency(withdrawal.amount).replace(/^[+-]/, '')}
                       </ThemedText>
-                      <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                         {withdrawal.payoutMethod === 'BANK_ACCOUNT' ? 'Bank Transfer' : withdrawal.payoutMethod}
                       </ThemedText>
                     </View>
                     <View style={[
                       styles.statusBadge,
-                      { backgroundColor: `${palette.warning}15` }
+                      { backgroundColor: withAlpha(palette.warning, 0.09) }
                     ]}>
-                      <ThemedText style={{ color: palette.warning, fontSize: 11, fontWeight: '600' }}>
+                      <ThemedText style={{ color: palette.warning, ...Typography.caption }}>
                         {getWithdrawalStatusLabel(withdrawal.status)}
                       </ThemedText>
                     </View>
@@ -345,7 +345,7 @@ export default function EarningsScreen() {
               <View key={method.id}>
                 {index > 0 && <View style={[styles.listDivider, { backgroundColor: palette.border }]} />}
                 <View style={styles.payoutMethodItem}>
-                  <View style={[styles.payoutMethodIcon, { backgroundColor: `${palette.tint}10` }]}>
+                  <View style={[styles.payoutMethodIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                     <Ionicons
                       name={method.type === 'BANK_ACCOUNT' ? 'business' : method.type === 'PAYPAL' ? 'logo-paypal' : 'card'}
                       size={20}
@@ -358,14 +358,14 @@ export default function EarningsScreen() {
                         {method.nickname || method.type}
                       </ThemedText>
                       {method.isDefault && (
-                        <View style={[styles.defaultBadge, { backgroundColor: `${palette.success}15` }]}>
-                          <ThemedText style={{ color: palette.success, fontSize: 10, fontWeight: '600' }}>
+                        <View style={[styles.defaultBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
+                          <ThemedText style={{ color: palette.success, ...Typography.micro }}>
                             DEFAULT
                           </ThemedText>
                         </View>
                       )}
                     </View>
-                    <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                    <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                       {method.type === 'BANK_ACCOUNT'
                         ? `${method.bankName} ****${method.accountLastFour}`
                         : method.type === 'PAYPAL'
@@ -376,8 +376,8 @@ export default function EarningsScreen() {
                   {method.isVerified ? (
                     <Ionicons name="checkmark-circle" size={20} color={palette.success} />
                   ) : (
-                    <View style={[styles.unverifiedBadge, { backgroundColor: `${palette.warning}15` }]}>
-                      <ThemedText style={{ color: palette.warning, fontSize: 10, fontWeight: '600' }}>
+                    <View style={[styles.unverifiedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+                      <ThemedText style={{ color: palette.warning, ...Typography.micro }}>
                         UNVERIFIED
                       </ThemedText>
                     </View>
@@ -419,7 +419,7 @@ export default function EarningsScreen() {
                 style={[
                   styles.filterChip,
                   {
-                    backgroundColor: transactionFilter === option.value ? `${palette.tint}15` : 'transparent',
+                    backgroundColor: transactionFilter === option.value ? withAlpha(palette.tint, 0.09) : 'transparent',
                     borderColor: transactionFilter === option.value ? palette.tint : palette.border,
                   },
                 ]}
@@ -427,7 +427,7 @@ export default function EarningsScreen() {
                 <ThemedText
                   style={{
                     color: transactionFilter === option.value ? palette.tint : palette.muted,
-                    fontSize: 13,
+                    ...Typography.small,
                     fontWeight: transactionFilter === option.value ? '600' : '500',
                   }}
                 >
@@ -469,7 +469,7 @@ export default function EarningsScreen() {
 
       {/* Withdrawal Modal */}
       <Modal visible={showWithdrawModal} transparent animationType="fade" onRequestClose={() => setShowWithdrawModal(false)}>
-        <View style={[styles.modalBackdrop, { backgroundColor: `${palette.text}80` }]}>
+        <View style={[styles.modalBackdrop, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
           <SurfaceCard style={[styles.modalCard, { paddingBottom: insets.bottom + Spacing.md }]}>
             <View style={styles.modalHeader}>
               <ThemedText type="subtitle">Withdraw Funds</ThemedText>
@@ -480,8 +480,8 @@ export default function EarningsScreen() {
 
             <View style={styles.modalContent}>
               {/* Available Balance */}
-              <View style={[styles.availableBalanceCard, { backgroundColor: `${palette.success}10` }]}>
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>Available to withdraw</ThemedText>
+              <View style={[styles.availableBalanceCard, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>Available to withdraw</ThemedText>
                 <ThemedText type="title" style={{ color: palette.success }}>
                   {formatCurrency(earnings?.availableBalance || 0).replace(/^[+-]/, '')}
                 </ThemedText>
@@ -523,7 +523,7 @@ export default function EarningsScreen() {
                             styles.methodOption,
                             {
                               borderColor: selectedPayoutMethod === method.id ? palette.tint : palette.border,
-                              backgroundColor: selectedPayoutMethod === method.id ? `${palette.tint}10` : 'transparent',
+                              backgroundColor: selectedPayoutMethod === method.id ? withAlpha(palette.tint, 0.06) : 'transparent',
                             },
                           ]}
                         >
@@ -537,7 +537,7 @@ export default function EarningsScreen() {
                               <ThemedText style={{ fontWeight: '500' }}>
                                 {method.nickname || method.type}
                               </ThemedText>
-                              <ThemedText style={{ color: palette.muted, fontSize: 11 }}>
+                              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                                 {method.type === 'BANK_ACCOUNT'
                                   ? `****${method.accountLastFour}`
                                   : method.paypalEmail}
@@ -593,7 +593,7 @@ export default function EarningsScreen() {
 
               {/* Error Message */}
               {withdrawError && (
-                <View style={[styles.errorCard, { backgroundColor: `${palette.error}10` }]}>
+                <View style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                   <Ionicons name="alert-circle" size={16} color={palette.error} />
                   <ThemedText style={{ color: palette.error, flex: 1 }}>{withdrawError}</ThemedText>
                 </View>
@@ -670,16 +670,16 @@ const styles = StyleSheet.create({
   balanceIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   balanceInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   balanceAmount: {
-    fontSize: 28,
+    ...Typography.display,
     letterSpacing: -0.5,
   },
   balanceDivider: {
@@ -727,11 +727,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   withdrawalInfo: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   payoutMethodItem: {
@@ -743,13 +743,13 @@ const styles = StyleSheet.create({
   payoutMethodIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   payoutMethodInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   payoutMethodHeader: {
     flexDirection: 'row',
@@ -757,13 +757,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   defaultBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   unverifiedBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   addMethodButton: {
@@ -814,7 +814,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.md,
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   inputGroup: {
     gap: Spacing.xs,
@@ -828,14 +828,12 @@ const styles = StyleSheet.create({
     height: 52,
   },
   currencySymbol: {
-    fontSize: 20,
-    fontWeight: '600',
+    ...Typography.title,
     marginRight: Spacing.xs,
   },
   amountInput: {
     flex: 1,
-    fontSize: 24,
-    fontWeight: '600',
+    ...Typography.display,
     height: '100%',
   },
   noMethodsCard: {
@@ -863,7 +861,7 @@ const styles = StyleSheet.create({
   radioCircle: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -871,7 +869,7 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   feeCard: {
     padding: Spacing.md,

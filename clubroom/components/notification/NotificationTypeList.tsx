@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type {
   NotificationType,
@@ -133,8 +133,8 @@ function CategorySection({
             styles.iconContainer,
             {
               backgroundColor: allEnabled || someEnabled
-                ? `${palette.accent}15`
-                : `${palette.muted}15`,
+                ? withAlpha(palette.accent, 0.09)
+                : withAlpha(palette.muted, 0.09),
             },
           ]}
         >
@@ -195,7 +195,7 @@ function CategorySection({
                   value={isEnabled}
                   onValueChange={(newValue) => onToggle(type, newValue)}
                   trackColor={{ false: palette.border, true: palette.accent }}
-                  thumbColor="#FFFFFF"
+                  thumbColor={palette.surface}
                   disabled={disabled || loading}
                 />
               </View>
@@ -262,23 +262,16 @@ const styles = StyleSheet.create({
   },
   categoryContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  categoryTitle: {
-    fontSize: 16,
-  },
-  categorySubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  categoryTitle: { ...Typography.subheading },
+  categorySubtitle: { ...Typography.small, lineHeight: 18 },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  statusText: {
-    fontSize: 13,
-  },
+  statusText: { ...Typography.small },
   typeList: {
     borderTopWidth: StyleSheet.hairlineWidth,
   },
@@ -290,10 +283,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     marginLeft: 52, // Align with category content
   },
-  typeLabel: {
-    fontSize: 14,
-    flex: 1,
-  },
+  typeLabel: { ...Typography.bodySmall, flex: 1 },
 });
 
 export default NotificationTypeList;

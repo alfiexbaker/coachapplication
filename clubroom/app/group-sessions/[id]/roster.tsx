@@ -12,7 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ParticipantCard } from '@/components/group/participant-card';
 import { Button } from '@/components/primitives/button';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { groupSessionService } from '@/services/group-session-service';
 import { injuryService } from '@/services/injury-service';
@@ -308,8 +308,8 @@ export default function SessionRosterScreen() {
             style={[styles.rollCallButton, { backgroundColor: palette.success }]}
             onPress={startRollCall}
           >
-            <Ionicons name="clipboard-outline" size={18} color="#fff" />
-            <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>Roll Call</ThemedText>
+            <Ionicons name="clipboard-outline" size={18} color={palette.onPrimary} />
+            <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySmallSemiBold }}>Roll Call</ThemedText>
           </TouchableOpacity>
         )}
       </View>
@@ -358,7 +358,7 @@ export default function SessionRosterScreen() {
             <ThemedText
               style={[
                 styles.filterText,
-                { color: filter === f.key ? '#fff' : palette.text },
+                { color: filter === f.key ? palette.onPrimary : palette.text },
               ]}
             >
               {f.label}
@@ -409,8 +409,8 @@ export default function SessionRosterScreen() {
               <Ionicons name="close" size={24} color={palette.text} />
             </TouchableOpacity>
             <View style={{ flex: 1, alignItems: 'center' }}>
-              <ThemedText type="defaultSemiBold" style={{ fontSize: 17 }}>Roll Call</ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{session?.title}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>Roll Call</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.small }}>{session?.title}</ThemedText>
             </View>
             <TouchableOpacity
               style={[
@@ -420,7 +420,7 @@ export default function SessionRosterScreen() {
               onPress={saveRollCall}
               disabled={rollCallStats.unmarked > 0}
             >
-              <ThemedText style={{ color: rollCallStats.unmarked === 0 ? '#fff' : palette.muted, fontWeight: '600' }}>
+              <ThemedText style={{ color: rollCallStats.unmarked === 0 ? palette.onPrimary : palette.muted, fontWeight: '600' }}>
                 Save
               </ThemedText>
             </TouchableOpacity>
@@ -430,28 +430,28 @@ export default function SessionRosterScreen() {
           <Animated.View entering={FadeIn.delay(100)} style={[styles.rollCallStats, { backgroundColor: palette.surface }]}>
             <View style={styles.rollCallStatItem}>
               <View style={[styles.rollCallStatDot, { backgroundColor: palette.success }]} />
-              <ThemedText style={{ fontSize: 13 }}>Present</ThemedText>
+              <ThemedText style={{ ...Typography.small }}>Present</ThemedText>
               <ThemedText type="defaultSemiBold" style={{ color: palette.success }}>
                 {rollCallStats.present}
               </ThemedText>
             </View>
             <View style={styles.rollCallStatItem}>
               <View style={[styles.rollCallStatDot, { backgroundColor: palette.warning }]} />
-              <ThemedText style={{ fontSize: 13 }}>Late</ThemedText>
+              <ThemedText style={{ ...Typography.small }}>Late</ThemedText>
               <ThemedText type="defaultSemiBold" style={{ color: palette.warning }}>
                 {rollCallStats.late}
               </ThemedText>
             </View>
             <View style={styles.rollCallStatItem}>
               <View style={[styles.rollCallStatDot, { backgroundColor: palette.error }]} />
-              <ThemedText style={{ fontSize: 13 }}>Absent</ThemedText>
+              <ThemedText style={{ ...Typography.small }}>Absent</ThemedText>
               <ThemedText type="defaultSemiBold" style={{ color: palette.error }}>
                 {rollCallStats.absent}
               </ThemedText>
             </View>
             <View style={styles.rollCallStatItem}>
               <View style={[styles.rollCallStatDot, { backgroundColor: palette.muted }]} />
-              <ThemedText style={{ fontSize: 13 }}>Remaining</ThemedText>
+              <ThemedText style={{ ...Typography.small }}>Remaining</ThemedText>
               <ThemedText type="defaultSemiBold" style={{ color: palette.muted }}>
                 {rollCallStats.unmarked}
               </ThemedText>
@@ -469,15 +469,15 @@ export default function SessionRosterScreen() {
                   style={[styles.rollCallItem, { backgroundColor: palette.surface }]}
                 >
                   <View style={styles.rollCallItemInfo}>
-                    <View style={[styles.rollCallAvatar, { backgroundColor: `${palette.tint}20` }]}>
-                      <ThemedText style={{ color: palette.tint, fontWeight: '700', fontSize: 14 }}>
+                    <View style={[styles.rollCallAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
+                      <ThemedText style={{ color: palette.tint, ...Typography.bodySmallSemiBold }}>
                         {registration.athleteName.split(' ').map(n => n[0]).join('')}
                       </ThemedText>
                     </View>
                     <View style={{ flex: 1 }}>
                       <ThemedText type="defaultSemiBold">{registration.athleteName}</ThemedText>
                       {registration.parentName && (
-                        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                        <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                           Parent: {registration.parentName}
                         </ThemedText>
                       )}
@@ -497,7 +497,7 @@ export default function SessionRosterScreen() {
                       <Ionicons
                         name="checkmark"
                         size={20}
-                        color={status === 'present' ? '#fff' : palette.success}
+                        color={status === 'present' ? palette.onPrimary : palette.success}
                       />
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -513,7 +513,7 @@ export default function SessionRosterScreen() {
                       <Ionicons
                         name="time"
                         size={18}
-                        color={status === 'late' ? '#fff' : palette.warning}
+                        color={status === 'late' ? palette.onPrimary : palette.warning}
                       />
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -529,13 +529,13 @@ export default function SessionRosterScreen() {
                       <Ionicons
                         name="close"
                         size={20}
-                        color={status === 'absent' ? '#fff' : palette.error}
+                        color={status === 'absent' ? palette.onPrimary : palette.error}
                       />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
                         styles.injuryButton,
-                        { backgroundColor: `${palette.error}15`, borderColor: `${palette.error}30` },
+                        { backgroundColor: withAlpha(palette.error, 0.09), borderColor: withAlpha(palette.error, 0.19) },
                       ]}
                       onPress={() => openInjuryReport(registration)}
                     >
@@ -551,7 +551,7 @@ export default function SessionRosterScreen() {
           {/* Quick Actions */}
           <View style={[styles.rollCallQuickActions, { borderTopColor: palette.border, backgroundColor: palette.background }]}>
             <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: `${palette.success}15` }]}
+              style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.success, 0.09) }]}
               onPress={() => {
                 const updated = { ...rollCallAttendance };
                 rollCallParticipants.forEach(r => { updated[r.id] = 'present'; });
@@ -559,10 +559,10 @@ export default function SessionRosterScreen() {
               }}
             >
               <Ionicons name="checkmark-done" size={18} color={palette.success} />
-              <ThemedText style={{ color: palette.success, fontWeight: '600', fontSize: 13 }}>All Present</ThemedText>
+              <ThemedText style={{ color: palette.success, ...Typography.smallSemiBold }}>All Present</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: `${palette.muted}15` }]}
+              style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.muted, 0.09) }]}
               onPress={() => {
                 const updated = { ...rollCallAttendance };
                 rollCallParticipants.forEach(r => { updated[r.id] = 'unmarked'; });
@@ -570,7 +570,7 @@ export default function SessionRosterScreen() {
               }}
             >
               <Ionicons name="refresh" size={18} color={palette.muted} />
-              <ThemedText style={{ color: palette.muted, fontWeight: '600', fontSize: 13 }}>Reset</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.smallSemiBold }}>Reset</ThemedText>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -590,9 +590,9 @@ export default function SessionRosterScreen() {
               <Ionicons name="close" size={24} color={palette.text} />
             </TouchableOpacity>
             <View style={{ flex: 1, alignItems: 'center' }}>
-              <ThemedText type="defaultSemiBold" style={{ fontSize: 17 }}>Report Injury</ThemedText>
+              <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>Report Injury</ThemedText>
               {selectedParticipant && (
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                   {selectedParticipant.athleteName}
                 </ThemedText>
               )}
@@ -611,13 +611,13 @@ export default function SessionRosterScreen() {
                     style={[
                       styles.severityOption,
                       {
-                        backgroundColor: injurySeverity === option.value ? option.color : `${option.color}15`,
+                        backgroundColor: injurySeverity === option.value ? option.color : withAlpha(option.color, 0.09),
                         borderColor: option.color,
                       },
                     ]}
                     onPress={() => setInjurySeverity(option.value)}
                   >
-                    <ThemedText style={{ color: injurySeverity === option.value ? '#fff' : option.color, fontWeight: '600', fontSize: 13 }}>
+                    <ThemedText style={{ color: injurySeverity === option.value ? palette.onPrimary : option.color, ...Typography.smallSemiBold }}>
                       {option.label}
                     </ThemedText>
                   </TouchableOpacity>
@@ -644,7 +644,7 @@ export default function SessionRosterScreen() {
                         ]}
                         onPress={() => setInjuryBodyPart(part)}
                       >
-                        <ThemedText style={{ color: injuryBodyPart === part ? '#fff' : palette.text, fontSize: 12, fontWeight: '500' }}>
+                        <ThemedText style={{ color: injuryBodyPart === part ? palette.onPrimary : palette.text, ...Typography.caption }}>
                           {label}
                         </ThemedText>
                       </TouchableOpacity>
@@ -677,9 +677,9 @@ export default function SessionRosterScreen() {
             </View>
 
             {/* Info Note */}
-            <View style={[styles.injuryInfoNote, { backgroundColor: `${palette.tint}10` }]}>
+            <View style={[styles.injuryInfoNote, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
               <Ionicons name="information-circle" size={20} color={palette.tint} />
-              <ThemedText style={{ color: palette.muted, fontSize: 13, flex: 1 }}>
+              <ThemedText style={{ color: palette.muted, ...Typography.small, flex: 1 }}>
                 This injury will be logged to the athlete&apos;s health records and automatically shared with their parent/guardian.
               </ThemedText>
             </View>
@@ -718,8 +718,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   statsRow: {
     flexDirection: 'row',
@@ -734,8 +734,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   statLabel: {
-    fontSize: 11,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   filtersScroll: {
     flexGrow: 0,
@@ -752,8 +752,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   content: {
     padding: Spacing.lg,
@@ -797,12 +796,12 @@ const styles = StyleSheet.create({
   },
   rollCallStatItem: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   rollCallStatDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   rollCallList: {
     flex: 1,
@@ -822,7 +821,7 @@ const styles = StyleSheet.create({
   rollCallAvatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -834,7 +833,7 @@ const styles = StyleSheet.create({
   rollCallActionButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -858,11 +857,11 @@ const styles = StyleSheet.create({
   injuryButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 4,
+    marginLeft: Spacing.xxs,
   },
   // Injury Modal Styles
   injuryModalContainer: {
@@ -901,8 +900,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   categoryLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: Spacing.xs,
@@ -922,7 +920,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     minHeight: 100,
   },
   injuryInfoNote: {

@@ -111,7 +111,7 @@ export function FrequencyPicker({
               <ThemedText
                 style={[
                   styles.pillText,
-                  { color: isSelected ? '#FFFFFF' : palette.foreground },
+                  { color: isSelected ? palette.onPrimary : palette.foreground },
                 ]}
               >
                 {option.label}
@@ -265,7 +265,7 @@ export function FrequencyPickerCompact({
               <ThemedText
                 style={[
                   styles.compactOptionText,
-                  { color: isSelected ? '#FFFFFF' : palette.foreground },
+                  { color: isSelected ? palette.onPrimary : palette.foreground },
                 ]}
               >
                 {option.label.charAt(0)}
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   radioOuter: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -323,11 +323,11 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   cardContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -340,8 +340,8 @@ const styles = StyleSheet.create({
   estimateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   estimateLabel: {
     ...Typography.caption,
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   sessionsBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   sessionsText: {
@@ -371,12 +371,12 @@ const styles = StyleSheet.create({
   },
   compactOptions: {
     flexDirection: 'row',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactOption: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

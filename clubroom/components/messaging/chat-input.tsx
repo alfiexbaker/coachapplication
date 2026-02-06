@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type ChatInputProps = {
@@ -15,7 +15,7 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [value, setValue] = useState('');
-  const placeholderColor = useMemo(() => (scheme === 'dark' ? '#94A3B8' : '#94A3B8'), [scheme]);
+  const placeholderColor = useMemo(() => (scheme === 'dark' ? palette.muted : palette.muted), [scheme]);
 
   return (
     <View style={[styles.container, { borderColor: palette.border, backgroundColor: palette.card }]}
@@ -49,7 +49,7 @@ export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
           setValue('');
         }}>
         {value ? (
-          <IconSymbol name="paperplane.fill" size={18} color={scheme === 'light' ? '#FFFFFF' : '#000000'} />
+          <IconSymbol name="paperplane.fill" size={18} color={scheme === 'light' ? palette.onPrimary : palette.text} />
         ) : (
           <IconSymbol name="mic.fill" size={20} color={palette.icon} />
         )}
@@ -74,11 +74,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: Spacing.xs,
-  },
+  input: { ...Typography.subheading, flex: 1,
+    paddingVertical: Spacing.xs },
   sendButton: {
     height: 40,
     width: 40,

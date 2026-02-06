@@ -9,7 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService, AthleteProgress, SessionFeedback } from '@/services/progress-service';
@@ -160,8 +160,8 @@ export default function MyProgressScreen() {
           <ThemedText type="title" style={styles.headerTitle}>
             My Progress
           </ThemedText>
-          <View style={[styles.trendBadge, { backgroundColor: `${trend.color}15` }]}>
-            <Ionicons name={trend.icon as any} size={12} color={trend.color} />
+          <View style={[styles.trendBadge, { backgroundColor: withAlpha(trend.color, 0.09) }]}>
+            <Ionicons name={trend.icon as keyof typeof Ionicons.glyphMap} size={12} color={trend.color} />
             <ThemedText style={[styles.trendText, { color: trend.color }]}>
               {trend.label}
             </ThemedText>
@@ -171,7 +171,7 @@ export default function MyProgressScreen() {
       </View>
 
       {/* Level Badge */}
-      <View style={[styles.levelBanner, { backgroundColor: `${palette.tint}10` }]}>
+      <View style={[styles.levelBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
         <View style={[styles.levelCircle, { borderColor: palette.tint }]}>
           <ThemedText style={[styles.levelNumber, { color: palette.tint }]}>
             {progress.currentLevel.level}
@@ -182,7 +182,7 @@ export default function MyProgressScreen() {
             Level {progress.currentLevel.level}: {progress.currentLevel.name}
           </ThemedText>
           <View style={styles.levelProgressRow}>
-            <View style={[styles.levelProgressBar, { backgroundColor: `${palette.tint}30` }]}>
+            <View style={[styles.levelProgressBar, { backgroundColor: withAlpha(palette.tint, 0.19) }]}>
               <View
                 style={[
                   styles.levelProgressFill,
@@ -219,10 +219,10 @@ export default function MyProgressScreen() {
             >
               <View style={[
                 styles.tabIconContainer,
-                activeTab === tab.id ? { backgroundColor: `${palette.tint}15` } : undefined,
+                activeTab === tab.id ? { backgroundColor: withAlpha(palette.tint, 0.09) } : undefined,
               ]}>
                 <Ionicons
-                  name={tab.icon as any}
+                  name={tab.icon as keyof typeof Ionicons.glyphMap}
                   size={20}
                   color={activeTab === tab.id ? palette.tint : palette.muted}
                 />
@@ -293,7 +293,7 @@ export default function MyProgressScreen() {
               </ThemedText>
               <Clickable
                 onPress={() => setShowGoalForm(!showGoalForm)}
-                style={[styles.addGoalBtn, { backgroundColor: `${palette.tint}15` }]}
+                style={[styles.addGoalBtn, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
               >
                 <Ionicons name="add" size={18} color={palette.tint} />
                 <ThemedText style={[styles.addGoalBtnText, { color: palette.tint }]}>
@@ -323,7 +323,7 @@ export default function MyProgressScreen() {
                     onPress={handleCreateGoal}
                     style={[styles.goalFormBtn, { backgroundColor: palette.tint }]}
                   >
-                    <ThemedText style={{ color: '#FFFFFF', fontWeight: '600' }}>Create</ThemedText>
+                    <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Create</ThemedText>
                   </Clickable>
                 </View>
               </SurfaceCard>
@@ -341,7 +341,7 @@ export default function MyProgressScreen() {
                       </ThemedText>
                     </View>
                     <View style={styles.goalProgress}>
-                      <View style={[styles.goalProgressBar, { backgroundColor: `${palette.tint}20` }]}>
+                      <View style={[styles.goalProgressBar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                         <View
                           style={[
                             styles.goalProgressFill,
@@ -429,7 +429,7 @@ export default function MyProgressScreen() {
               <View style={styles.badgesGrid}>
                 {badges.map((badge) => (
                   <SurfaceCard key={badge.id} style={styles.badgeCard}>
-                    <View style={[styles.badgeIcon, { backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.badgeIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <Ionicons name="ribbon" size={28} color={palette.tint} />
                     </View>
                     <ThemedText type="defaultSemiBold" style={styles.badgeLabel}>
@@ -486,23 +486,21 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   trendText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   levelBanner: {
     flexDirection: 'row',
@@ -516,21 +514,20 @@ const styles = StyleSheet.create({
   levelCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   levelNumber: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title,
   },
   levelInfo: {
     flex: 1,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   levelName: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   levelProgressRow: {
     flexDirection: 'row',
@@ -540,26 +537,25 @@ const styles = StyleSheet.create({
   levelProgressBar: {
     flex: 1,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   levelProgressFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   levelProgressText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
     minWidth: 32,
   },
   levelStats: {
     alignItems: 'center',
   },
   pointsValue: {
-    fontSize: 22,
+    ...Typography.title,
   },
   pointsLabel: {
-    fontSize: 10,
+    ...Typography.micro,
     textTransform: 'uppercase',
   },
   tabBar: {
@@ -573,7 +569,7 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     marginBottom: -1,
     borderBottomWidth: 2,
@@ -585,13 +581,12 @@ const styles = StyleSheet.create({
   tabIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tabLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   content: {
     padding: Spacing.md,
@@ -607,10 +602,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    ...Typography.small,
   },
   emptyCard: {
     alignItems: 'center',
@@ -618,24 +613,22 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   emptySubtext: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
   },
   addGoalBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   addGoalBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   goalForm: {
     padding: Spacing.md,
@@ -645,7 +638,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   goalFormActions: {
     flexDirection: 'row',
@@ -673,7 +666,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   goalTitle: {
-    fontSize: 15,
+    ...Typography.body,
     flex: 1,
   },
   goalProgress: {
@@ -684,25 +677,23 @@ const styles = StyleSheet.create({
   goalProgressBar: {
     flex: 1,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   goalProgressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   goalProgressText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
     minWidth: 32,
     textAlign: 'right',
   },
   goalDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   completedLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     marginTop: Spacing.md,
   },
   badgesGrid: {
@@ -716,17 +707,17 @@ const styles = StyleSheet.create({
   badgeIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   badgeLabel: {
-    fontSize: 16,
+    ...Typography.subheading,
     textAlign: 'center',
   },
   badgeReason: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
     lineHeight: 18,
   },

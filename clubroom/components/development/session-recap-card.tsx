@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 /* ---------- Types ---------- */
@@ -50,7 +50,7 @@ function StarRow({
 }
 
 const starStyles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 2 },
+  row: { flexDirection: 'row', gap: Spacing.micro },
 });
 
 type Palette = (typeof Colors)['light'];
@@ -87,7 +87,7 @@ export function SessionRecapCard({
         <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>
           FOCUS AREA
         </ThemedText>
-        <View style={[styles.focusPill, { backgroundColor: `${palette.tint}10`, borderColor: palette.border }]}>
+        <View style={[styles.focusPill, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border }]}>
           <Ionicons name="flash-outline" size={14} color={palette.tint} />
           <ThemedText type="defaultSemiBold" style={[styles.focusText, { color: palette.tint }]}>
             {recap.focusArea}
@@ -135,7 +135,7 @@ export function SessionRecapCard({
 
       {/* Badge earned */}
       {recap.badgeEarned ? (
-        <View style={[styles.badgeBanner, { backgroundColor: `${palette.warning}15`, borderColor: `${palette.warning}40` }]}>
+        <View style={[styles.badgeBanner, { backgroundColor: withAlpha(palette.warning, 0.09), borderColor: withAlpha(palette.warning, 0.25) }]}>
           <Ionicons name="ribbon" size={20} color={palette.warning} />
           <View style={styles.badgeText}>
             <ThemedText style={[styles.badgeLabel, { color: palette.warning }]}>
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   athleteName: {
     ...Typography.heading,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   badgeLabel: {
     ...Typography.caption,

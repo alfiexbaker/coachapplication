@@ -1,9 +1,9 @@
-import { ScrollView, View, StyleSheet, TextInput, Platform, Pressable } from 'react-native';
+import { ScrollView, View, StyleSheet, TextInput, Platform, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
+import { Colors, Radii, Spacing} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FootballObjective } from '@/constants/types';
 import { scale, scaleFont } from '@/utils/scale';
@@ -11,7 +11,7 @@ import { scale, scaleFont } from '@/utils/scale';
 // Web-compatible clickable wrapper using Pressable
 type ClickableProps = {
   onPress: () => void;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 };
 
@@ -114,13 +114,13 @@ export function CreateSessionForm({
           <Ionicons
             name="person-outline"
             size={24}
-            color={sessionType === '1on1' ? (scheme === 'light' ? '#FFFFFF' : '#000000') : palette.icon}
+            color={sessionType === '1on1' ? palette.onPrimary : palette.icon}
           />
           <ThemedText
             style={[
               styles.sessionTypeText,
               sessionType === '1on1' ? {
-                color: scheme === 'light' ? '#FFFFFF' : '#000000',
+                color: palette.onPrimary,
                 fontWeight: '700',
               } : undefined,
             ]}>
@@ -140,13 +140,13 @@ export function CreateSessionForm({
           <Ionicons
             name="people-outline"
             size={24}
-            color={sessionType === 'group' ? (scheme === 'light' ? '#FFFFFF' : '#000000') : palette.icon}
+            color={sessionType === 'group' ? palette.onPrimary : palette.icon}
           />
           <ThemedText
             style={[
               styles.sessionTypeText,
               sessionType === 'group' ? {
-                color: scheme === 'light' ? '#FFFFFF' : '#000000',
+                color: palette.onPrimary,
                 fontWeight: '700',
               } : undefined,
             ]}>
@@ -172,13 +172,13 @@ export function CreateSessionForm({
           <Ionicons
             name="calendar-outline"
             size={24}
-            color={recurrenceType === 'none' ? (scheme === 'light' ? '#FFFFFF' : '#000000') : palette.icon}
+            color={recurrenceType === 'none' ? palette.onPrimary : palette.icon}
           />
           <ThemedText
             style={[
               styles.sessionTypeText,
               recurrenceType === 'none' ? {
-                color: scheme === 'light' ? '#FFFFFF' : '#000000',
+                color: palette.onPrimary,
                 fontWeight: '700',
               } : undefined,
             ]}>
@@ -198,13 +198,13 @@ export function CreateSessionForm({
           <Ionicons
             name="repeat-outline"
             size={24}
-            color={recurrenceType === 'weekly' ? (scheme === 'light' ? '#FFFFFF' : '#000000') : palette.icon}
+            color={recurrenceType === 'weekly' ? palette.onPrimary : palette.icon}
           />
           <ThemedText
             style={[
               styles.sessionTypeText,
               recurrenceType === 'weekly' ? {
-                color: scheme === 'light' ? '#FFFFFF' : '#000000',
+                color: palette.onPrimary,
                 fontWeight: '700',
               } : undefined,
             ]}>
@@ -468,7 +468,7 @@ export function CreateSessionForm({
                   style={[
                     styles.skillButtonText,
                     footballSkill === skill ? {
-                      color: scheme === 'light' ? '#FFFFFF' : '#000000',
+                      color: palette.onPrimary,
                       fontWeight: '700',
                     } : undefined,
                   ]}>
@@ -487,12 +487,12 @@ export function CreateSessionForm({
         <Ionicons
           name="checkmark-circle-outline"
           size={24}
-          color={scheme === 'light' ? '#FFFFFF' : '#000000'}
+          color={palette.onPrimary}
         />
         <ThemedText
           style={styles.createButtonText}
-          lightColor="#FFFFFF"
-          darkColor="#000000">
+          lightColor={Colors.light.onPrimary}
+          darkColor={Colors.dark.onPrimary}>
           Create Session Offering
         </ThemedText>
       </Clickable>
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   },
   sessionTypeContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Spacing.xs + Spacing.xxs,
     marginBottom: 14,
   },
   sessionTypeButton: {
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     padding: scale(18),
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
   },
   sessionTypeText: {
@@ -544,12 +544,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: scaleFont(15),
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: Spacing.xxs,
     letterSpacing: -0.2,
   },
   input: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: scaleFont(16),
@@ -563,9 +563,9 @@ const styles = StyleSheet.create({
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: Spacing.xs + Spacing.xxs,
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
@@ -578,10 +578,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     paddingVertical: 18,
-    borderRadius: 12,
-    marginTop: 12,
+    borderRadius: Radii.md,
+    marginTop: Spacing.xs + Spacing.xxs,
     marginBottom: 32,
-    shadowColor: '#000',
+    shadowColor: Colors.light.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -599,8 +599,8 @@ const styles = StyleSheet.create({
   currencyPrefix: {
     paddingHorizontal: 16,
     justifyContent: 'center',
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    borderTopLeftRadius: Radii.md,
+    borderBottomLeftRadius: Radii.md,
   },
   currencyText: {
     fontSize: scaleFont(18),
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
   ageRangeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: Spacing.xs + Spacing.xxs,
   },
   ageInput: {
     flex: 1,
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   skillButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 2,
   },
   skillButtonText: {

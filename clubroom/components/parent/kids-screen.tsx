@@ -1,11 +1,12 @@
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getBookingsForAthlete, getUserProfile, formatDate } from '@/constants/mock-data';
@@ -72,7 +73,7 @@ export function ParentKidsScreen() {
                       childName: child.name,
                       hasUpcomingSession: !!nextSession
                     });
-                    router.push(`/child-progress/${child.id}` as any);
+                    router.push(Routes.developmentChildProgress(child.id));
                   }}
                   style={({ pressed }) => [
                     styles.kidCard,
@@ -81,7 +82,7 @@ export function ParentKidsScreen() {
                 >
                   <SurfaceCard style={styles.cardContent}>
                     <View style={styles.kidInfo}>
-                      <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                      <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                         <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                           {child.avatar || child.name.charAt(0)}
                         </ThemedText>
@@ -146,16 +147,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
-  },
+  title: { ...Typography.display, letterSpacing: -0.8 },
+  subtitle: { ...Typography.body, lineHeight: 22,
+    fontWeight: '500' },
   kidsList: {
     gap: Spacing.md,
   },
@@ -177,24 +171,17 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 24,
-  },
+  avatarText: { ...Typography.display },
   kidDetails: {
     flex: 1,
     gap: Spacing.xs / 2,
   },
-  kidName: {
-    fontSize: 16,
-  },
-  kidMetadata: {
-    fontSize: 13,
-    textTransform: 'capitalize',
-  },
+  kidName: { ...Typography.subheading },
+  kidMetadata: { ...Typography.small, textTransform: 'capitalize' },
   nextSession: {
     alignItems: 'flex-end',
     gap: Spacing.xs / 2,
@@ -204,19 +191,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  sessionBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  sessionInfo: {
-    fontSize: 13,
-  },
-  sessionCoach: {
-    fontSize: 12,
-  },
-  noSessions: {
-    fontSize: 13,
-  },
+  sessionBadgeText: { ...Typography.caption },
+  sessionInfo: { ...Typography.small },
+  sessionCoach: { ...Typography.caption },
+  noSessions: { ...Typography.small },
   emptyState: {
     alignItems: 'center',
     gap: Spacing.md,
@@ -231,15 +209,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  emptyText: {
-    fontSize: 14,
-    lineHeight: 20,
+  emptyTitle: { ...Typography.heading, letterSpacing: -0.3 },
+  emptyText: { ...Typography.bodySmall, lineHeight: 20,
     textAlign: 'center',
-    maxWidth: 260,
-  },
+    maxWidth: 260 },
 });

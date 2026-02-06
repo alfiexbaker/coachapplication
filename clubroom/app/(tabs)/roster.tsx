@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, StyleSheet, TextInput, ScrollView, ActionSheetIOS, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -15,10 +16,11 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { AthleteRow } from '@/components/roster/athlete-row';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService, type RemovalReason, type AthleteRemovalRecord } from '@/services/roster-service';
+import { onTyped, ServiceEvents } from '@/services/event-bus';
 import type { RosterEntry } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
@@ -51,7 +53,7 @@ function AthleteCard({
     <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
       <SurfaceCard style={styles.athleteCard} onPress={onPress}>
         <View style={styles.cardRow}>
-          <View style={[styles.avatar, { backgroundColor: `${palette.tint}10` }]}>
+          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             {entry.athletePhotoUrl ? (
               <View style={styles.avatarPlaceholder}>
                 <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
@@ -115,7 +117,7 @@ function AthleteCard({
                 {entry.tags.slice(0, 3).map((tag) => (
                   <View
                     key={tag}
-                    style={[styles.tag, { backgroundColor: `${palette.tint}10` }]}
+                    style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                   >
                     <ThemedText style={[styles.tagText, { color: palette.tint }]}>
                       {tag}
@@ -213,10 +215,7 @@ export default function RosterScreen() {
     }
     // Navigate to group invite screen with pre-selected athletes
     const selectedIds = Array.from(selectedAthletes);
-    router.push({
-      pathname: '/session-invites/group',
-      params: { preselectedAthletes: selectedIds.join(',') },
-    });
+    router.push(Routes.SESSION_INVITES_GROUP);
     // Reset selection
     setSelectionMode('none');
     setSelectedAthletes(new Set());
@@ -238,10 +237,7 @@ export default function RosterScreen() {
           text: 'Continue',
           onPress: () => {
             const activeIds = activeAthletes.map((a) => a.athleteId);
-            router.push({
-              pathname: '/session-invites/group',
-              params: { preselectedAthletes: activeIds.join(',') },
-            });
+            router.push(Routes.SESSION_INVITES_GROUP);
           },
         },
       ]
@@ -265,6 +261,25 @@ export default function RosterScreen() {
     loadRoster();
   }, [loadRoster]);
 
+  // Refresh roster when relevant events fire — new bookings can add athletes,
+  // completed sessions update stats, and confirmed bookings change status.
+  useEffect(() => {
+    const unsubBookingCreated = onTyped(ServiceEvents.BOOKING_CREATED, () => {
+      loadRoster();
+    });
+    const unsubSessionCompleted = onTyped(ServiceEvents.SESSION_COMPLETED, () => {
+      loadRoster();
+    });
+    const unsubBookingConfirmed = onTyped(ServiceEvents.BOOKING_CONFIRMED, () => {
+      loadRoster();
+    });
+    return () => {
+      unsubBookingCreated();
+      unsubSessionCompleted();
+      unsubBookingConfirmed();
+    };
+  }, [loadRoster]);
+
   const handleRemoveAthlete = (entry: RosterEntry) => {
     setSelectedAthleteForRemoval(entry);
     setShowRemovalModal(true);
@@ -282,10 +297,7 @@ export default function RosterScreen() {
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
-            router.push({
-              pathname: '/roster/[athleteId]',
-              params: { athleteId: entry.athleteId },
-            });
+            router.push(Routes.rosterAthlete(entry.athleteId));
           } else if (buttonIndex === 2) {
             handleRemoveAthlete(entry);
           }
@@ -300,10 +312,7 @@ export default function RosterScreen() {
           {
             text: 'View Details',
             onPress: () => {
-              router.push({
-                pathname: '/roster/[athleteId]',
-                params: { athleteId: entry.athleteId },
-              });
+              router.push(Routes.rosterAthlete(entry.athleteId));
             },
           },
           {
@@ -400,10 +409,7 @@ export default function RosterScreen() {
   ];
 
   const handleAthletePress = (entry: RosterEntry) => {
-    router.push({
-      pathname: '/roster/[athleteId]',
-      params: { athleteId: entry.athleteId },
-    });
+    router.push(Routes.rosterAthlete(entry.athleteId));
   };
 
   if (!currentUser) return null;
@@ -423,7 +429,7 @@ export default function RosterScreen() {
                   color={selectionMode === 'selecting' ? palette.error : palette.text}
                 />
               </Clickable>
-              <Clickable onPress={() => router.push('/session-invites/group')} hitSlop={8}>
+              <Clickable onPress={() => router.push(Routes.SESSION_INVITES_GROUP)} hitSlop={8}>
                 <Ionicons name="mail-outline" size={24} color={palette.text} />
               </Clickable>
             </View>
@@ -436,7 +442,7 @@ export default function RosterScreen() {
       {selectionMode === 'selecting' && (
         <Animated.View
           entering={FadeInUp.springify()}
-          style={[styles.selectionBar, { backgroundColor: `${palette.tint}10` }]}
+          style={[styles.selectionBar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
         >
           <View style={styles.selectionInfo}>
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
@@ -445,10 +451,10 @@ export default function RosterScreen() {
           </View>
           <View style={styles.selectionActions}>
             <Clickable onPress={selectAllVisible} style={styles.selectionButton}>
-              <ThemedText style={{ color: palette.tint, fontSize: 13 }}>Select All</ThemedText>
+              <ThemedText style={{ color: palette.tint, ...Typography.small }}>Select All</ThemedText>
             </Clickable>
             <Clickable onPress={clearSelection} style={styles.selectionButton}>
-              <ThemedText style={{ color: palette.tint, fontSize: 13 }}>Clear</ThemedText>
+              <ThemedText style={{ color: palette.tint, ...Typography.small }}>Clear</ThemedText>
             </Clickable>
           </View>
         </Animated.View>
@@ -459,11 +465,11 @@ export default function RosterScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.quickActions}>
             <Clickable
-              onPress={() => router.push('/session-invites/group')}
+              onPress={() => router.push(Routes.SESSION_INVITES_GROUP)}
               style={[styles.quickActionButton, { backgroundColor: palette.tint }]}
             >
-              <Ionicons name="people" size={16} color="#fff" />
-              <ThemedText style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
+              <Ionicons name="people" size={16} color={Colors.light.onPrimary} />
+              <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.smallSemiBold }}>
                 Group Invite
               </ThemedText>
             </Clickable>
@@ -472,7 +478,7 @@ export default function RosterScreen() {
               style={[styles.quickActionButton, { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }]}
             >
               <Ionicons name="mail" size={16} color={palette.tint} />
-              <ThemedText style={{ color: palette.text, fontSize: 13 }}>
+              <ThemedText style={{ color: palette.text, ...Typography.small }}>
                 Invite All Active ({stats.active})
               </ThemedText>
             </Clickable>
@@ -548,7 +554,7 @@ export default function RosterScreen() {
                       ]}
                     >
                       {selectedAthletes.has(entry.athleteId) && (
-                        <Ionicons name="checkmark" size={14} color="#fff" />
+                        <Ionicons name="checkmark" size={14} color={Colors.light.onPrimary} />
                       )}
                     </View>
                   </Clickable>
@@ -581,8 +587,8 @@ export default function RosterScreen() {
           style={[styles.floatingAction, { backgroundColor: palette.tint }]}
         >
           <Clickable onPress={handleInviteSelected} style={styles.floatingActionButton}>
-            <Ionicons name="mail" size={20} color="#fff" />
-            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+            <Ionicons name="mail" size={20} color={Colors.light.onPrimary} />
+            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>
               Invite {selectedAthletes.size} Athlete{selectedAthletes.size !== 1 ? 's' : ''}
             </ThemedText>
           </Clickable>
@@ -616,7 +622,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
   },
   filtersRow: {
     gap: Spacing.xs,
@@ -636,7 +642,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -647,12 +653,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   cardContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   nameRow: {
     flexDirection: 'row',
@@ -660,52 +665,49 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   athleteName: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   metaText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.lg,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   stat: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statValue: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   tag: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   tagText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   moreTag: {
-    fontSize: 11,
-    fontWeight: '500',
-    paddingVertical: 2,
+    ...Typography.caption,
+    paddingVertical: Spacing.micro,
   },
   headerActions: {
     flexDirection: 'row',
@@ -758,7 +760,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

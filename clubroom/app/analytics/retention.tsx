@@ -15,7 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { AnalyticsStatCard, RetentionCard, CancellationChart } from '@/components/analytics';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
@@ -126,7 +126,7 @@ export default function RetentionScreen() {
             {/* Status badge */}
             <SurfaceCard style={styles.statusCard}>
               <View style={styles.statusContent}>
-                <View style={[styles.statusIcon, { backgroundColor: status.color + '20' }]}>
+                <View style={[styles.statusIcon, { backgroundColor: withAlpha(status.color, 0.12) }]}>
                   <Ionicons name={status.icon} size={28} color={status.color} />
                 </View>
                 <View style={styles.statusInfo}>
@@ -197,7 +197,7 @@ export default function RetentionScreen() {
               </View>
               <View style={styles.funnelSteps}>
                 <View style={styles.funnelStep}>
-                  <View style={[styles.funnelBar, { width: '100%', backgroundColor: palette.tint + '60' }]}>
+                  <View style={[styles.funnelBar, { width: '100%', backgroundColor: withAlpha(palette.tint, 0.38) }]}>
                     <ThemedText style={styles.funnelBarText}>
                       {retention.totalActiveClients + retention.clientsLost} Total
                     </ThemedText>
@@ -209,7 +209,7 @@ export default function RetentionScreen() {
                       styles.funnelBar,
                       {
                         width: `${(retention.totalActiveClients / (retention.totalActiveClients + retention.clientsLost)) * 100}%`,
-                        backgroundColor: palette.tint + '80',
+                        backgroundColor: withAlpha(palette.tint, 0.5),
                       },
                     ]}
                   >
@@ -224,7 +224,7 @@ export default function RetentionScreen() {
                       styles.funnelBar,
                       {
                         width: `${(retention.returningClients / (retention.totalActiveClients + retention.clientsLost)) * 100}%`,
-                        backgroundColor: palette.success + '80',
+                        backgroundColor: withAlpha(palette.success, 0.5),
                       },
                     ]}
                   >
@@ -253,7 +253,7 @@ export default function RetentionScreen() {
           </View>
           <View style={styles.recommendationsList}>
             <View style={styles.recommendationItem}>
-              <View style={[styles.recommendationIcon, { backgroundColor: palette.success + '20' }]}>
+              <View style={[styles.recommendationIcon, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
                 <Ionicons name="chatbubble" size={16} color={palette.success} />
               </View>
               <View style={styles.recommendationContent}>
@@ -266,7 +266,7 @@ export default function RetentionScreen() {
               </View>
             </View>
             <View style={styles.recommendationItem}>
-              <View style={[styles.recommendationIcon, { backgroundColor: palette.tint + '20' }]}>
+              <View style={[styles.recommendationIcon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <Ionicons name="gift" size={16} color={palette.tint} />
               </View>
               <View style={styles.recommendationContent}>
@@ -279,7 +279,7 @@ export default function RetentionScreen() {
               </View>
             </View>
             <View style={styles.recommendationItem}>
-              <View style={[styles.recommendationIcon, { backgroundColor: palette.warning + '20' }]}>
+              <View style={[styles.recommendationIcon, { backgroundColor: withAlpha(palette.warning, 0.12) }]}>
                 <Ionicons name="trophy" size={16} color={palette.warning} />
               </View>
               <View style={styles.recommendationContent}>
@@ -292,7 +292,7 @@ export default function RetentionScreen() {
               </View>
             </View>
             <View style={styles.recommendationItem}>
-              <View style={[styles.recommendationIcon, { backgroundColor: palette.error + '20' }]}>
+              <View style={[styles.recommendationIcon, { backgroundColor: withAlpha(palette.error, 0.12) }]}>
                 <Ionicons name="calendar-outline" size={16} color={palette.error} />
               </View>
               <View style={styles.recommendationContent}>
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 15,
+    ...Typography.body,
   },
   header: {
     marginBottom: Spacing.sm,
@@ -340,17 +340,16 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   backButton: {
-    padding: 4,
+    padding: Spacing.xxs,
     marginLeft: -4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    ...Typography.display,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 15,
-    marginTop: 4,
+    ...Typography.body,
+    marginTop: Spacing.xxs,
     marginLeft: 32,
   },
   statusCard: {
@@ -364,7 +363,7 @@ const styles = StyleSheet.create({
   statusIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -372,15 +371,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   statusValue: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -396,8 +393,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   funnelTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   funnelSteps: {
     gap: Spacing.sm,
@@ -413,9 +409,8 @@ const styles = StyleSheet.create({
     minWidth: 80,
   },
   funnelBarText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#fff',
+    ...Typography.smallSemiBold,
+    color: Colors.light.onPrimary,
   },
   recommendationsCard: {
     padding: Spacing.md,
@@ -427,8 +422,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   recommendationsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   recommendationsList: {
     gap: Spacing.md,
@@ -440,7 +434,7 @@ const styles = StyleSheet.create({
   recommendationIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -448,12 +442,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   recommendationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 2,
+    ...Typography.bodySmallSemiBold,
+    marginBottom: Spacing.micro,
   },
   recommendationSub: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
 });

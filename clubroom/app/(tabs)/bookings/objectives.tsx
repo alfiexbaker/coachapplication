@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { activeObjectives, getChildrenForParent } from '@/constants/mock-data';
@@ -153,14 +153,14 @@ export default function ObjectivesScreen() {
                             style={[
                               styles.childTabText,
                               {
-                                color: isSelected ? '#fff' : palette.text,
+                                color: isSelected ? Colors.light.onPrimary : palette.text,
                                 fontWeight: isSelected ? '700' : '600',
                               },
                             ]}>
                             {child.name}
                           </ThemedText>
                           {isSelected && (
-                            <Ionicons name="checkmark" size={16} color="#fff" />
+                            <Ionicons name="checkmark" size={16} color={Colors.light.onPrimary} />
                           )}
                         </Pressable>
                       );
@@ -177,7 +177,7 @@ export default function ObjectivesScreen() {
         renderItem={({ item }) => (
           <SurfaceCard style={styles.objectiveCard}>
             <View style={styles.objectiveHeader}>
-              <View style={[styles.iconCircle, { backgroundColor: palette.tint + '20' }]}>
+              <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <Ionicons name="football" size={24} color={palette.tint} />
               </View>
               <View style={styles.objectiveInfo}>
@@ -252,8 +252,8 @@ export default function ObjectivesScreen() {
             { backgroundColor: palette.tint },
             pressed && { opacity: 0.8 },
           ]}>
-          <Ionicons name="add" size={24} color="#FFFFFF" />
-          <ThemedText style={styles.addButtonText} lightColor="#FFFFFF" darkColor="#000000">
+          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
+          <ThemedText style={styles.addButtonText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.text}>
             Add Goal
           </ThemedText>
         </Pressable>
@@ -289,8 +289,8 @@ export default function ObjectivesScreen() {
                     ]}>
                     <ThemedText
                       style={styles.skillText}
-                      lightColor={selectedSkill === skill ? '#FFFFFF' : undefined}
-                      darkColor={selectedSkill === skill ? '#000000' : undefined}>
+                      lightColor={selectedSkill === skill ? Colors.light.onPrimary : undefined}
+                      darkColor={selectedSkill === skill ? Colors.dark.text : undefined}>
                       {skill}
                     </ThemedText>
                   </Pressable>
@@ -351,8 +351,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   childLabel: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
@@ -370,11 +369,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   childTabText: {
-    fontSize: 15,
+    ...Typography.body,
     letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     opacity: 0.6,
   },
   list: {
@@ -393,16 +392,16 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   objectiveInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   noteText: {
-    fontSize: 13,
+    ...Typography.small,
     opacity: 0.6,
   },
   actions: {
@@ -419,15 +418,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     opacity: 0.6,
     fontWeight: '600',
   },
   progressPercent: {
-    fontSize: 14,
-    fontWeight: '700',
+    ...Typography.bodySmallSemiBold,
   },
   progressBar: {
     height: 8,
@@ -448,7 +446,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statText: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.6,
   },
   emptyState: {
@@ -459,7 +457,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.md,
@@ -470,7 +468,7 @@ const styles = StyleSheet.create({
   emptyDescription: {
     textAlign: 'center',
     opacity: 0.6,
-    fontSize: 14,
+    ...Typography.bodySmall,
     paddingHorizontal: Spacing.xl,
   },
   footer: {
@@ -486,8 +484,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   addButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.subheading,
   },
   modalContainer: {
     flex: 1,
@@ -501,8 +498,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   saveButton: {
-    fontWeight: '700',
-    fontSize: 16,
+    ...Typography.subheading,
   },
   modalContent: {
     padding: Spacing.lg,
@@ -523,15 +519,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   skillText: {
-    fontWeight: '600',
-    fontSize: 14,
+    ...Typography.bodySmallSemiBold,
   },
   textInput: {
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   textArea: {
     minHeight: 80,

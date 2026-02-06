@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert, Share, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -10,11 +11,11 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubService, type ClubMember } from '@/services/club-service';
-import { getClubById, getClubSquads, getClubInvites } from '@/constants/mock-data';
+import { getClubById, getClubSquads, getClubInvites, getClubMembershipForUser } from '@/constants/mock-data';
 import type { Club, ClubSquad, ClubRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
@@ -30,17 +31,23 @@ interface InviteCodeItem {
 }
 
 export default function ClubSettingsScreen() {
-  const { clubId } = useLocalSearchParams<{ clubId: string }>();
+  const { clubId: paramClubId, section: paramSection } = useLocalSearchParams<{ clubId?: string; section?: string }>();
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  useAuth();
+  const { currentUser } = useAuth();
   const { showToast } = useToast();
+
+  // Derive clubId from param or user's membership (settings is a static route)
+  const membership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
+  const clubId = paramClubId || membership?.clubId;
 
   const [club, setClub] = useState<Club | null>(null);
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [members, setMembers] = useState<ClubMember[]>([]);
   const [inviteCodes, setInviteCodes] = useState<InviteCodeItem[]>([]);
-  const [activeSection, setActiveSection] = useState<SettingsSection>('details');
+  const [activeSection, setActiveSection] = useState<SettingsSection>(
+    (paramSection as SettingsSection) || 'details'
+  );
   const [loading, setLoading] = useState(true);
 
   // Editable fields
@@ -49,7 +56,10 @@ export default function ClubSettingsScreen() {
   const [editCity, setEditCity] = useState('');
 
   const loadData = useCallback(async () => {
-    if (!clubId) return;
+    if (!clubId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const clubData = getClubById(clubId);
@@ -127,10 +137,7 @@ export default function ClubSettingsScreen() {
   };
 
   const handleCreateSquad = () => {
-    router.push({
-      pathname: '/club/squad/create',
-      params: { clubId },
-    });
+    router.push(Routes.CLUB_SQUAD_CREATE);
   };
 
   const handleDeleteClub = () => {
@@ -145,7 +152,7 @@ export default function ClubSettingsScreen() {
           onPress: () => {
             logger.action('DeleteClub', { clubId });
             showToast('Club deleted', 'success');
-            router.replace('/(tabs)/club-hub');
+            router.replace(Routes.CLUB_HUB);
           },
         },
       ]
@@ -160,11 +167,31 @@ export default function ClubSettingsScreen() {
     { key: 'danger', icon: 'warning-outline', label: 'Danger' },
   ];
 
-  if (loading || !club) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ThemedText>Loading...</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!club) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={palette.muted} />
+          <ThemedText type="subtitle" style={{ textAlign: 'center' }}>No club found</ThemedText>
+          <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
+            Join or create a club to manage settings.
+          </ThemedText>
+          <Clickable
+            onPress={() => router.back()}
+            style={{ backgroundColor: palette.tint, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.button }}
+          >
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Go Back</ThemedText>
+          </Clickable>
         </View>
       </SafeAreaView>
     );
@@ -197,13 +224,13 @@ export default function ClubSettingsScreen() {
             key={section.key}
             style={[
               styles.tab,
-              activeSection === section.key && { backgroundColor: `${palette.tint}15` },
+              activeSection === section.key && { backgroundColor: withAlpha(palette.tint, 0.09) },
               { borderColor: activeSection === section.key ? palette.tint : palette.border },
             ].filter(Boolean) as ViewStyle[]}
             onPress={() => setActiveSection(section.key)}
           >
             <Ionicons
-              name={section.icon as any}
+              name={section.icon as keyof typeof Ionicons.glyphMap}
               size={18}
               color={activeSection === section.key ? palette.tint : palette.muted}
             />
@@ -297,7 +324,7 @@ export default function ClubSettingsScreen() {
                       {invite.code}
                     </ThemedText>
                     <View style={styles.inviteMeta}>
-                      <View style={[styles.roleBadge, { backgroundColor: `${clubService.getRoleColor(invite.role)}20` }]}>
+                      <View style={[styles.roleBadge, { backgroundColor: withAlpha(clubService.getRoleColor(invite.role), 0.12) }]}>
                         <ThemedText style={[styles.roleText, { color: clubService.getRoleColor(invite.role) }]}>
                           {clubService.formatRole(invite.role)}
                         </ThemedText>
@@ -309,13 +336,13 @@ export default function ClubSettingsScreen() {
                   </View>
                   <View style={styles.inviteActions}>
                     <Clickable
-                      style={[styles.iconButton, { backgroundColor: `${palette.tint}10` }]}
+                      style={[styles.iconButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                       onPress={() => handleCopyCode(invite.code)}
                     >
                       <Ionicons name="copy-outline" size={18} color={palette.tint} />
                     </Clickable>
                     <Clickable
-                      style={[styles.iconButton, { backgroundColor: `${palette.tint}10` }]}
+                      style={[styles.iconButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                       onPress={() => handleShareCode(invite.code, invite.role)}
                     >
                       <Ionicons name="share-outline" size={18} color={palette.tint} />
@@ -365,7 +392,7 @@ export default function ClubSettingsScreen() {
                   style={[styles.addButton, { backgroundColor: palette.tint }]}
                   onPress={handleCreateSquad}
                 >
-                  <Ionicons name="add" size={20} color="#fff" />
+                  <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
                 </Clickable>
               </View>
 
@@ -381,10 +408,7 @@ export default function ClubSettingsScreen() {
                   <Clickable
                     key={squad.id}
                     style={[styles.squadRow, { borderColor: palette.border }]}
-                    onPress={() => router.push({
-                      pathname: '/club/squad/[id]' as any,
-                      params: { id: squad.id, clubId },
-                    })}
+                    onPress={() => router.push(Routes.clubSquad(squad.id))}
                   >
                     <View style={styles.squadInfo}>
                       <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
@@ -415,10 +439,7 @@ export default function ClubSettingsScreen() {
                 </View>
                 <Clickable
                   style={[styles.inviteButton, { borderColor: palette.tint }]}
-                  onPress={() => router.push({
-                    pathname: '/club/invite-members',
-                    params: { clubId },
-                  })}
+                  onPress={() => router.push(Routes.CLUB_INVITE_MEMBERS)}
                 >
                   <Ionicons name="person-add-outline" size={18} color={palette.tint} />
                   <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
@@ -428,42 +449,28 @@ export default function ClubSettingsScreen() {
               </View>
 
               {members.map((member) => (
-                <View
+                <Clickable
                   key={member.userId}
                   style={[styles.memberRow, { borderColor: palette.border }]}
+                  onPress={() => {
+                    if (clubId) router.push(Routes.clubMember(clubId, member.userId));
+                  }}
                 >
-                  <View style={[styles.memberAvatar, { backgroundColor: `${palette.tint}20` }]}>
+                  <View style={[styles.memberAvatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                     <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
                       {member.userName.charAt(0)}
                     </ThemedText>
                   </View>
                   <View style={styles.memberInfo}>
                     <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-                    <View style={[styles.roleBadge, { backgroundColor: `${clubService.getRoleColor(member.role)}20` }]}>
+                    <View style={[styles.roleBadge, { backgroundColor: withAlpha(clubService.getRoleColor(member.role), 0.12) }]}>
                       <ThemedText style={[styles.roleText, { color: clubService.getRoleColor(member.role) }]}>
                         {clubService.formatRole(member.role)}
                       </ThemedText>
                     </View>
                   </View>
-                  {member.role !== 'OWNER' && (
-                    <Clickable
-                      style={styles.memberAction}
-                      onPress={() => {
-                        Alert.alert(
-                          'Member Options',
-                          `What would you like to do with ${member.userName}?`,
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'Change Role', onPress: () => {} },
-                            { text: 'Remove', style: 'destructive', onPress: () => {} },
-                          ]
-                        );
-                      }}
-                    >
-                      <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
-                    </Clickable>
-                  )}
-                </View>
+                  <Ionicons name="chevron-forward" size={20} color={palette.muted} />
+                </Clickable>
               ))}
             </SurfaceCard>
           </Animated.View>
@@ -517,8 +524,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   tabsScroll: {
     flexGrow: 0,
@@ -538,8 +545,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tabLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   content: {
     padding: Spacing.lg,
@@ -555,25 +561,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    fontSize: 17,
+    ...Typography.heading,
   },
   sectionSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   inputGroup: {
     gap: Spacing.xs,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   saveButton: {
     alignItems: 'center',
@@ -582,7 +587,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   saveButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   inviteRow: {
@@ -598,7 +603,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   inviteCode: {
-    fontSize: 16,
+    ...Typography.subheading,
     fontFamily: 'monospace',
   },
   inviteMeta: {
@@ -608,15 +613,14 @@ const styles = StyleSheet.create({
   },
   roleBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   roleText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   inviteUses: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   inviteActions: {
     flexDirection: 'row',
@@ -625,7 +629,7 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -646,7 +650,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -674,10 +678,10 @@ const styles = StyleSheet.create({
   },
   squadInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   squadMeta: {
-    fontSize: 13,
+    ...Typography.small,
   },
   memberRow: {
     flexDirection: 'row',
@@ -690,16 +694,13 @@ const styles = StyleSheet.create({
   memberAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   memberInfo: {
     flex: 1,
     gap: Spacing.xs,
-  },
-  memberAction: {
-    padding: Spacing.xs,
   },
   dangerButton: {
     flexDirection: 'row',

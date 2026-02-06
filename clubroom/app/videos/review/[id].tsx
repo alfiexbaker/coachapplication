@@ -26,7 +26,7 @@ import { TimelineBar } from '@/components/video/TimelineBar';
 import { AnnotationPanel } from '@/components/video/AnnotationPanel';
 import { AnnotationBadge, AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
@@ -379,7 +379,7 @@ export default function AthleteReviewScreen() {
                   {video.tags.map((tag) => (
                     <View
                       key={tag}
-                      style={[styles.tag, { backgroundColor: `${palette.tint}10` }]}
+                      style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                     >
                       <ThemedText style={[styles.tagText, { color: palette.tint }]}>
                         {tag}
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSubtitle: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   loadingContainer: {
     flex: 1,
@@ -443,14 +443,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   navButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   navCenter: {
     alignItems: 'center',
   },
   annotationCount: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   activeAnnotationCard: {
     padding: Spacing.md,
@@ -463,31 +462,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   activeTimestamp: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   activeLabel: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   activeNote: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   activeFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     marginTop: Spacing.xs,
   },
   activeCreator: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   filterCard: {
     padding: Spacing.md,
     gap: Spacing.sm,
   },
   filterTitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   listCard: {
     padding: 0,
@@ -501,7 +498,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
   },
   infoCard: {
@@ -517,8 +514,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   descriptionText: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   tagsSection: {
     gap: Spacing.xs,
@@ -530,12 +526,11 @@ const styles = StyleSheet.create({
   },
   tag: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   tagText: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   bottomSpacer: {
     height: 40,

@@ -5,7 +5,7 @@ import Animated, { FadeInRight } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Goal, GoalMilestone } from '@/constants/types';
 
@@ -59,7 +59,7 @@ export function GoalProgress({
 
           <View style={styles.metaRow}>
             {goal.createdBy === 'COACH' && (
-              <View style={[styles.badge, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
                   Coach goal
                 </ThemedText>
@@ -72,10 +72,10 @@ export function GoalProgress({
                   {
                     backgroundColor:
                       daysRemaining < 7
-                        ? `${palette.error}15`
+                        ? withAlpha(palette.error, 0.09)
                         : daysRemaining < 14
-                        ? `${palette.warning}15`
-                        : `${palette.muted}15`,
+                        ? withAlpha(palette.warning, 0.09)
+                        : withAlpha(palette.muted, 0.09),
                   },
                 ]}
               >
@@ -255,7 +255,7 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
 
       <View style={styles.summaryStats}>
         <View style={styles.summaryItem}>
-          <View style={[styles.summaryIcon, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="flag" size={20} color={palette.tint} />
           </View>
           <ThemedText type="heading">{activeGoals}</ThemedText>
@@ -267,7 +267,7 @@ export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSu
         <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
 
         <View style={styles.summaryItem}>
-          <View style={[styles.summaryIcon, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="trophy" size={20} color={palette.success} />
           </View>
           <ThemedText type="heading">{completedGoals}</ThemedText>
@@ -300,10 +300,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  title: {
-    flex: 1,
-    fontSize: 15,
-  },
+  title: { ...Typography.body, flex: 1 },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -311,45 +308,33 @@ const styles = StyleSheet.create({
   },
   badge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  badgeText: { ...Typography.micro },
   progressCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  description: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  progressText: { ...Typography.caption },
+  description: { ...Typography.small, lineHeight: 18 },
   progressBarContainer: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   progressBarBg: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  milestoneCount: {
-    fontSize: 11,
-    textAlign: 'right',
-  },
+  milestoneCount: { ...Typography.caption, textAlign: 'right' },
   milestonesList: {
     gap: Spacing.xs,
     paddingTop: Spacing.xs,
@@ -363,29 +348,23 @@ const styles = StyleSheet.create({
   milestoneCheck: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   milestoneContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  milestoneTitle: {
-    fontSize: 13,
-  },
-  milestoneDate: {
-    fontSize: 11,
-  },
+  milestoneTitle: { ...Typography.small },
+  milestoneDate: { ...Typography.caption },
   targetRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  targetText: {
-    fontSize: 12,
-  },
+  targetText: { ...Typography.caption },
   summaryCard: {
     padding: Spacing.md,
     gap: Spacing.md,
@@ -395,10 +374,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  viewAllText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  viewAllText: { ...Typography.smallSemiBold },
   summaryStats: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -412,13 +388,11 @@ const styles = StyleSheet.create({
   summaryIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  summaryLabel: {
-    fontSize: 11,
-  },
+  summaryLabel: { ...Typography.caption },
   summaryDivider: {
     width: 1,
     height: 48,

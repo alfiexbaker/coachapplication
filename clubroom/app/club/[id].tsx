@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { createLogger } from '@/utils/logger';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -29,7 +30,7 @@ import {
   togglePinPost,
   getAllClubMembershipsForUser,
 } from '@/constants/mock-data';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Club, ClubFeedPost, ClubMembership, ClubSquad, SessionOffering, ClubInvite, ClubEvent } from '@/constants/types';
@@ -81,7 +82,7 @@ function FeedPost({
     >
       {/* Pinned indicator */}
       {post.isPinned && (
-        <View style={[styles.pinnedBadge, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.pinnedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="pin" size={12} color={palette.tint} />
           <ThemedText style={[styles.pinnedText, { color: palette.tint }]}>Pinned</ThemedText>
         </View>
@@ -92,7 +93,7 @@ function FeedPost({
         <View
           style={[
             styles.avatar,
-            { backgroundColor: `${palette.tint}10`, borderColor: palette.border, borderWidth: 1 },
+            { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border, borderWidth: 1 },
           ]}
         >
           <ThemedText style={styles.avatarText}>{initials}</ThemedText>
@@ -101,12 +102,12 @@ function FeedPost({
           <View style={styles.authorRow}>
             <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
             {post.postAs === 'club' && (
-              <View style={[styles.clubBadge, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>Club</ThemedText>
               </View>
             )}
           </View>
-          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+          <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
             {formatDate(post.createdAt)} · {post.audienceLabel || post.audience}
           </ThemedText>
         </View>
@@ -126,7 +127,7 @@ function FeedPost({
 
       {/* Post content */}
       <View style={styles.postContent}>
-        <ThemedText type="defaultSemiBold" style={{ fontSize: 15 }}>
+        <ThemedText type="defaultSemiBold" style={{ ...Typography.body }}>
           {post.title}
         </ThemedText>
         <ThemedText style={{ lineHeight: 20, color: palette.text }}>{post.body}</ThemedText>
@@ -140,7 +141,7 @@ function FeedPost({
       {/* Event details */}
       {post.postType === 'event' && post.eventDate && (
         <View
-          style={[styles.eventDetails, { backgroundColor: `${palette.tint}08`, borderColor: palette.border }]}
+          style={[styles.eventDetails, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: palette.border }]}
         >
           <View style={styles.eventRow}>
             <Ionicons name="calendar" size={16} color={palette.tint} />
@@ -173,7 +174,7 @@ function FeedPost({
               style={[styles.attachmentChip, { backgroundColor: palette.surface, borderColor: palette.border }]}
             >
               <Ionicons name="attach" size={14} color={palette.muted} />
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{attachment}</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>{attachment}</ThemedText>
             </View>
           ))}
         </View>
@@ -183,11 +184,11 @@ function FeedPost({
       <View style={styles.feedFooter}>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{post.reactionCount ?? 0}</ThemedText>
+          <ThemedText style={{ color: palette.muted, ...Typography.small }}>{post.reactionCount ?? 0}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>{post.commentCount ?? 0}</ThemedText>
+          <ThemedText style={{ color: palette.muted, ...Typography.small }}>{post.commentCount ?? 0}</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
@@ -201,10 +202,12 @@ function MemberRow({
   member,
   canRemove,
   onRemove,
+  onPress,
 }: {
   member: ClubMember;
   canRemove: boolean;
   onRemove?: () => void;
+  onPress?: () => void;
 }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -244,25 +247,23 @@ function MemberRow({
 
   return (
     <TouchableOpacity
+      onPress={onPress}
       onLongPress={handleLongPress}
       delayLongPress={500}
-      disabled={!canRemove}
-      activeOpacity={canRemove ? 0.7 : 1}
+      activeOpacity={0.7}
     >
       <View style={[styles.memberRow, { borderColor: palette.border }]}>
-        <View style={[styles.memberAvatar, { backgroundColor: `${roleColor}15` }]}>
+        <View style={[styles.memberAvatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
           <ThemedText style={[styles.memberAvatarText, { color: roleColor }]}>{initials}</ThemedText>
         </View>
         <View style={{ flex: 1 }}>
           <ThemedText type="defaultSemiBold">{member.userName}</ThemedText>
-          <ThemedText style={{ color: roleColor, fontSize: 12 }}>
+          <ThemedText style={{ color: roleColor, ...Typography.caption }}>
             {clubService.formatRole(member.role)}
           </ThemedText>
         </View>
         {member.status === 'pending' && <Chip>Pending</Chip>}
-        {canRemove && member.role !== 'OWNER' && (
-          <Ionicons name="ellipsis-horizontal" size={18} color={palette.muted} />
-        )}
+        <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </View>
     </TouchableOpacity>
   );
@@ -472,7 +473,7 @@ export default function ClubDetailScreen() {
               style={[styles.backButton, { backgroundColor: palette.tint }]}
               onPress={() => router.back()}
             >
-              <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Go Back</ThemedText>
+              <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Go Back</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -505,7 +506,14 @@ export default function ClubDetailScreen() {
           {/* Club header */}
           <View style={styles.section}>
 {membership && (
-              <ClubHeader club={club} membership={membership} onLeave={handleLeaveClub} />
+              <ClubHeader
+                club={club}
+                membership={membership}
+                onLeave={handleLeaveClub}
+                onUpdatePhotos={(updates) => {
+                  setClub((prev) => prev ? { ...prev, ...updates } : prev);
+                }}
+              />
             )}
           </View>
 
@@ -515,11 +523,11 @@ export default function ClubDetailScreen() {
               style={styles.statItem}
               onPress={() => canRemoveMembers && setShowMembersSection(!showMembersSection)}
             >
-              <ThemedText type="title" style={{ fontSize: 18 }}>
+              <ThemedText type="title" style={{ ...Typography.heading }}>
                 {members.length || club.memberCount}
               </ThemedText>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Members</ThemedText>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.micro }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Members</ThemedText>
                 {canRemoveMembers && (
                   <Ionicons
                     name={showMembersSection ? 'chevron-up' : 'chevron-down'}
@@ -531,24 +539,24 @@ export default function ClubDetailScreen() {
             </TouchableOpacity>
             <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
             <View style={styles.statItem}>
-              <ThemedText type="title" style={{ fontSize: 18 }}>
+              <ThemedText type="title" style={{ ...Typography.heading }}>
                 {squads.length}
               </ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Squads</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Squads</ThemedText>
             </View>
             <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
             <View style={styles.statItem}>
-              <ThemedText type="title" style={{ fontSize: 18 }}>
+              <ThemedText type="title" style={{ ...Typography.heading }}>
                 {sessions.length}
               </ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Sessions</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Sessions</ThemedText>
             </View>
             <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
             <View style={styles.statItem}>
-              <ThemedText type="title" style={{ fontSize: 18 }}>
+              <ThemedText type="title" style={{ ...Typography.heading }}>
                 {invites.length}
               </ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 12 }}>Invites</ThemedText>
+              <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Invites</ThemedText>
             </View>
           </View>
 
@@ -557,7 +565,7 @@ export default function ClubDetailScreen() {
             <SurfaceCard style={styles.membersCard}>
               <View style={styles.membersSectionHeader}>
                 <ThemedText type="defaultSemiBold">Club Members</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                   Long press to manage
                 </ThemedText>
               </View>
@@ -568,6 +576,9 @@ export default function ClubDetailScreen() {
                     member={member}
                     canRemove={canRemoveMembers && clubService.canBeRemoved(member.role)}
                     onRemove={() => handleRemoveMember(member)}
+                    onPress={() =>
+                      router.push(Routes.clubMember(id!, member.userId))
+                    }
                   />
                 ))}
                 {members.length === 0 && (
@@ -587,15 +598,15 @@ export default function ClubDetailScreen() {
               <View style={styles.eventsSectionHeader}>
                 <View style={styles.eventsTitleRow}>
                   <Ionicons name="calendar" size={20} color={palette.tint} />
-                  <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>
+                  <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
                     Upcoming Events
                   </ThemedText>
                 </View>
                 <TouchableOpacity
-                  onPress={() => router.push('/events')}
+                  onPress={() => router.push(Routes.EVENTS)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <ThemedText style={{ color: palette.tint, fontSize: 14, fontWeight: '600' }}>
+                  <ThemedText style={{ color: palette.tint, ...Typography.bodySmallSemiBold }}>
                     See All
                   </ThemedText>
                 </TouchableOpacity>
@@ -606,7 +617,7 @@ export default function ClubDetailScreen() {
                   event={event}
                   compact
                   onPress={() =>
-                    router.push({ pathname: '/events/[id]', params: { id: event.id } })
+                    router.push(Routes.event(event.id))
                   }
                 />
               ))}
@@ -620,22 +631,19 @@ export default function ClubDetailScreen() {
                 <TouchableOpacity
                   style={[styles.actionButtonSplit, { backgroundColor: palette.tint }]}
                   onPress={() =>
-                    router.push({
-                      pathname: '/(modal)/create-club-post',
-                      params: { clubId: id },
-                    })
+                    router.push(Routes.MODAL_CREATE_CLUB_POST)
                   }
                 >
-                  <Ionicons name="create-outline" size={18} color="#fff" />
-                  <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>New Post</ThemedText>
+                  <Ionicons name="create-outline" size={18} color={Colors.light.onPrimary} />
+                  <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.smallSemiBold }}>New Post</ThemedText>
                 </TouchableOpacity>
                 {canManagePosts && (
                   <TouchableOpacity
                     style={[styles.actionButtonSplit, { backgroundColor: palette.success }]}
-                    onPress={() => router.push('/events/create')}
+                    onPress={() => router.push(Routes.EVENTS_CREATE)}
                   >
-                    <Ionicons name="calendar-outline" size={18} color="#fff" />
-                    <ThemedText style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>Create Event</ThemedText>
+                    <Ionicons name="calendar-outline" size={18} color={Colors.light.onPrimary} />
+                    <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.smallSemiBold }}>Create Event</ThemedText>
                   </TouchableOpacity>
                 )}
               </View>
@@ -655,7 +663,7 @@ export default function ClubDetailScreen() {
                 style={[
                   styles.filterTab,
                   feedFilter === filter.key ? {
-                    backgroundColor: `${palette.tint}15`,
+                    backgroundColor: withAlpha(palette.tint, 0.09),
                     borderColor: palette.tint,
                   } : undefined,
                   { borderColor: palette.border },
@@ -663,7 +671,7 @@ export default function ClubDetailScreen() {
                 onPress={() => setFeedFilter(filter.key)}
               >
                 <Ionicons
-                  name={filter.icon as any}
+                  name={filter.icon as keyof typeof Ionicons.glyphMap}
                   size={16}
                   color={feedFilter === filter.key ? palette.tint : palette.muted}
                 />
@@ -823,20 +831,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   filterCount: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.md,
     minWidth: 20,
     alignItems: 'center',
   },
   filterCountText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
   },
   feedSection: {
     padding: Spacing.md,
@@ -849,15 +855,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     marginBottom: Spacing.xs,
   },
   pinnedText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   feedHeader: {
     flexDirection: 'row',
@@ -867,13 +872,12 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   authorRow: {
     flexDirection: 'row',
@@ -881,16 +885,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   clubBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
   },
   clubBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...Typography.micro,
   },
   postContent: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   postImage: {
     width: '100%',
@@ -916,9 +919,9 @@ const styles = StyleSheet.create({
   attachmentChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
@@ -930,7 +933,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   emptyFeed: {
     alignItems: 'center',
@@ -960,12 +963,11 @@ const styles = StyleSheet.create({
   memberAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   memberAvatarText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
 });

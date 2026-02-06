@@ -7,12 +7,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -122,10 +123,7 @@ export function UserFindCoachScreen() {
                 key={coach.id}
                 onPress={() => {
                   logger.press('CoachCard', { coachId: coach.id });
-                  router.push({
-                    pathname: '/book-coach',
-                    params: { coachId: coach.id },
-                  });
+                  router.push(Routes.BOOK_COACH);
                 }}
                 style={({ pressed }) => [
                   styles.coachCard,
@@ -134,7 +132,7 @@ export function UserFindCoachScreen() {
               >
                 <SurfaceCard style={styles.cardContent} tactile={false}>
                   <View style={styles.coachHeader}>
-                    <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                    <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                       <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                         {coach.avatar || coach.name.charAt(0)}
                       </ThemedText>
@@ -169,7 +167,7 @@ export function UserFindCoachScreen() {
 
                   <View style={styles.specialties}>
                     {coach.profile.specialties.slice(0, 3).map((specialty) => (
-                      <View key={specialty} style={[styles.specialtyBadge, { backgroundColor: palette.tint + '15' }]}>
+                      <View key={specialty} style={[styles.specialtyBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                         <ThemedText style={[styles.specialtyText, { color: palette.tint }]}>
                           {specialty}
                         </ThemedText>
@@ -186,10 +184,7 @@ export function UserFindCoachScreen() {
                     <Clickable
                       onPress={() => {
                         logger.press('BookCoach', { coachId: coach.id });
-                        router.push({
-                          pathname: '/book-coach',
-                          params: { coachId: coach.id },
-                        });
+                        router.push(Routes.BOOK_COACH);
                       }}
                       style={({ pressed }) => [
                         styles.bookButton,
@@ -227,16 +222,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
-  },
+  title: { ...Typography.display, letterSpacing: -0.8 },
+  subtitle: { ...Typography.body, lineHeight: 22,
+    fontWeight: '500' },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -246,12 +234,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md + 4,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    paddingVertical: 0,
-  },
+  searchInput: { ...Typography.subheading, flex: 1,
+    paddingVertical: 0 },
   emptyState: {
     alignItems: 'center',
     gap: Spacing.md,
@@ -266,28 +250,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  emptyText: {
-    fontSize: 14,
-    lineHeight: 20,
+  emptyTitle: { ...Typography.heading, letterSpacing: -0.3 },
+  emptyText: { ...Typography.bodySmall, lineHeight: 20,
     textAlign: 'center',
-    maxWidth: 260,
-  },
+    maxWidth: 260 },
   coachList: {
     gap: Spacing.md,
   },
-  resultsText: {
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+  resultsText: { ...Typography.smallSemiBold, letterSpacing: 0.3,
     textTransform: 'uppercase',
     opacity: 0.6,
-    paddingHorizontal: Spacing.xs,
-  },
+    paddingHorizontal: Spacing.xs },
   coachCard: {
     borderRadius: Radii.lg,
   },
@@ -303,20 +276,16 @@ const styles = StyleSheet.create({
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 28,
-  },
+  avatarText: { ...Typography.display },
   coachInfo: {
     flex: 1,
     gap: Spacing.xs / 2,
   },
-  coachName: {
-    fontSize: 17,
-  },
+  coachName: { ...Typography.heading },
   coachMeta: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -326,16 +295,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  metaText: {
-    fontSize: 13,
-  },
-  price: {
-    fontSize: 18,
-  },
-  bio: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  metaText: { ...Typography.small },
+  price: { ...Typography.heading },
+  bio: { ...Typography.bodySmall, lineHeight: 20 },
   specialties: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -352,7 +314,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   bookButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '700',
   },
   specialtyBadge: {
@@ -360,11 +322,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs / 2,
     borderRadius: Radii.sm,
   },
-  specialtyText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  moreText: {
-    fontSize: 12,
-  },
+  specialtyText: { ...Typography.caption },
+  moreText: { ...Typography.caption },
 });

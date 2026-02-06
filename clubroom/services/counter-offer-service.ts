@@ -74,7 +74,7 @@ const MOCK_NEGOTIATIONS: NegotiationHistory[] = [
   {
     id: 'neg_1',
     bookingId: 'booking_1',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     coachName: 'Marcus Thompson',
     parentId: 'parent_1',
     parentName: 'Sarah Baker',
@@ -197,7 +197,7 @@ export const counterOfferService = {
         const newNegotiation: NegotiationHistory = {
           id: `neg_${Date.now()}`,
           bookingId: input.bookingId,
-          coachId: input.proposedBy === 'COACH' ? input.proposerId : 'coach_1',
+          coachId: input.proposedBy === 'COACH' ? input.proposerId : 'coach1',
           coachName: input.proposedBy === 'COACH' ? input.proposerName : 'Coach',
           parentId: input.proposedBy === 'PARENT' ? input.proposerId : 'parent_1',
           parentName: input.proposedBy === 'PARENT' ? input.proposerName : 'Parent',
@@ -313,9 +313,9 @@ export const counterOfferService = {
           });
 
           if (bookingResult.success) {
-            logger.info('Booking created from counter-offer', { bookingId: bookingResult.booking?.id });
+            logger.info('Booking created from counter-offer', { bookingId: bookingResult.data?.id });
           } else {
-            logger.error('Failed to create booking from counter-offer', { error: bookingResult.error });
+            logger.error('Failed to create booking from counter-offer', { error: bookingResult.error?.message });
           }
         }
       }

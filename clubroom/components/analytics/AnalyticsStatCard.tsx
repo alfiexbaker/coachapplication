@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { TrendDirection } from '@/constants/types';
 
@@ -110,7 +110,7 @@ export function AnalyticsStatCard({
     >
       <View style={styles.header}>
         {icon && (
-          <View style={[styles.iconContainer, { backgroundColor: (iconColor || palette.tint) + '15' }]}>
+          <View style={[styles.iconContainer, { backgroundColor: withAlpha(iconColor || palette.tint, 0.09) }]}>
             <Ionicons name={icon} size={20} color={iconColor || palette.tint} />
           </View>
         )}
@@ -125,7 +125,7 @@ export function AnalyticsStatCard({
       </ThemedText>
 
       {(trend || change !== undefined || changePercent !== undefined) && (
-        <View style={[styles.trendContainer, { backgroundColor: trendColor + '15' }]}>
+        <View style={[styles.trendContainer, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
           <Ionicons name={trendIcon} size={14} color={trendColor} />
           {changeText && (
             <ThemedText style={[styles.trendText, { color: trendColor }]}>
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     minWidth: 150,
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.xs,
   },
   header: {
@@ -153,33 +153,22 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  value: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  value: { ...Typography.display, letterSpacing: -0.5 },
+  label: { ...Typography.smallSemiBold, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   trendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
     marginTop: Spacing.xs,
   },
-  trendText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  trendText: { ...Typography.caption },
 });

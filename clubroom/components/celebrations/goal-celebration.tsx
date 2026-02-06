@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Components, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Components, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { Confetti } from './confetti';
@@ -71,7 +71,7 @@ export function GoalCelebration({
           ]}
         >
           {/* Target icon */}
-          <View style={[styles.iconCircle, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="flag" size={48} color={palette.success} />
           </View>
 
@@ -88,7 +88,7 @@ export function GoalCelebration({
           {/* Progress bar at 100% */}
           <View style={styles.progressContainer}>
             <View
-              style={[styles.progressTrack, { backgroundColor: `${palette.success}20` }]}
+              style={[styles.progressTrack, { backgroundColor: withAlpha(palette.success, 0.12) }]}
             >
               <Animated.View
                 style={[
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,

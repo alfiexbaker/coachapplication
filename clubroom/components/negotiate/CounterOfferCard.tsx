@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CounterOffer, CounterOfferStatus } from '@/constants/types';
 import { AcceptRejectButtons } from './AcceptRejectButtons';
@@ -117,7 +117,7 @@ export function CounterOfferCard({
       style={styles.card}
       outlineGradient={
         isPending
-          ? [palette.warning, `${palette.warning}40`]
+          ? [palette.warning, withAlpha(palette.warning, 0.25)]
           : [palette.border, palette.border]
       }
     >
@@ -127,7 +127,7 @@ export function CounterOfferCard({
           <View
             style={[
               styles.avatarPlaceholder,
-              { backgroundColor: `${palette.tint}15` },
+              { backgroundColor: withAlpha(palette.tint, 0.09) },
             ]}
           >
             <Ionicons
@@ -147,7 +147,7 @@ export function CounterOfferCard({
         <View
           style={[
             styles.statusBadge,
-            { backgroundColor: `${statusConfig.color}15` },
+            { backgroundColor: withAlpha(statusConfig.color, 0.09) },
           ]}
         >
           <Ionicons name={statusConfig.icon} size={14} color={statusConfig.color} />
@@ -189,7 +189,7 @@ export function CounterOfferCard({
           style={[
             styles.timeBlock,
             styles.proposedTimeBlock,
-            { backgroundColor: `${palette.tint}08` },
+            { backgroundColor: withAlpha(palette.tint, 0.03) },
           ]}
         >
           <ThemedText style={[styles.timeLabel, { color: palette.tint }]}>
@@ -223,7 +223,7 @@ export function CounterOfferCard({
 
       {/* Rejection reason if rejected */}
       {offer.status === 'REJECTED' && offer.rejectionReason && (
-        <View style={[styles.rejectionContainer, { backgroundColor: `${palette.error}10` }]}>
+        <View style={[styles.rejectionContainer, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
           <Ionicons name="information-circle-outline" size={14} color={palette.error} />
           <ThemedText style={[styles.rejectionText, { color: palette.error }]}>
             {offer.rejectionReason}
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -282,9 +282,9 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusText: {
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   },
   timeBlock: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   proposedTimeBlock: {
     padding: Spacing.sm,
@@ -307,12 +307,12 @@ const styles = StyleSheet.create({
   timeLabel: {
     ...Typography.sm,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: Spacing.micro,
   },
   timeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   timeValue: {
     ...Typography.sm,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   expiryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   expiryText: {
     ...Typography.sm,

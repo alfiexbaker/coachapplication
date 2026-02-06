@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
@@ -10,7 +11,7 @@ import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
 import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { availabilityService } from '@/services/availability-service';
@@ -160,7 +161,7 @@ export default function ScheduleScreen() {
             <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.md }}>
               This coach has no available slots{'\n'}in the next 2 weeks.
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.sm, fontSize: 13 }}>
+            <ThemedText style={{ color: palette.muted, textAlign: 'center', marginTop: Spacing.sm, ...Typography.small }}>
               Try contacting the coach directly{'\n'}to arrange a custom time.
             </ThemedText>
           </View>
@@ -189,7 +190,7 @@ export default function ScheduleScreen() {
 
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         <Clickable
-          onPress={() => router.push(`/book/${coachId}/details`)}
+          onPress={() => router.push(Routes.bookDetails(coachId))}
           style={[
             styles.cta,
             {
@@ -198,8 +199,8 @@ export default function ScheduleScreen() {
           ]}
           disabled={!draft.date || !draft.slot}
         >
-          <Ionicons name="arrow-forward" size={18} color="#fff" />
-          <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Continue</ThemedText>
+          <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
+          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
         </Clickable>
       </View>
     </SafeAreaView>

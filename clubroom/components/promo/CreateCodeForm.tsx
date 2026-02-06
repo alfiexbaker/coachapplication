@@ -15,7 +15,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Divider } from '@/components/ui/primitives/Divider';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCode, CreatePromoCodeParams } from '@/constants/types';
@@ -232,7 +233,7 @@ export function CreateCodeForm({
               style={[styles.generateButton, { backgroundColor: palette.tint }]}
               onPress={generateRandomCode}
             >
-              <Ionicons name="shuffle" size={20} color="#FFFFFF" />
+              <Ionicons name="shuffle" size={20} color={palette.onPrimary} />
             </TouchableOpacity>
           </View>
           {codeError && (
@@ -264,7 +265,7 @@ export function CreateCodeForm({
                 <ThemedText
                   style={[
                     styles.presetText,
-                    { color: creditAmount === String(amount) ? '#FFFFFF' : palette.text },
+                    { color: creditAmount === String(amount) ? palette.onPrimary : palette.text },
                   ]}
                 >
                   {'\u00A3'}{amount}
@@ -309,7 +310,7 @@ export function CreateCodeForm({
                 <ThemedText
                   style={[
                     styles.presetText,
-                    { color: maxUses === String(uses) ? '#FFFFFF' : palette.text },
+                    { color: maxUses === String(uses) ? palette.onPrimary : palette.text },
                   ]}
                 >
                   {uses}
@@ -370,7 +371,7 @@ export function CreateCodeForm({
               value={onePerUser}
               onValueChange={setOnePerUser}
               trackColor={{ false: palette.border, true: palette.tint }}
-              thumbColor="#FFFFFF"
+              thumbColor={palette.surface}
             />
           </View>
         </SurfaceCard>
@@ -388,12 +389,12 @@ export function CreateCodeForm({
               value={hasExpiry}
               onValueChange={setHasExpiry}
               trackColor={{ false: palette.border, true: palette.tint }}
-              thumbColor="#FFFFFF"
+              thumbColor={palette.surface}
             />
           </View>
           {hasExpiry && (
             <>
-              <View style={[styles.divider, { backgroundColor: palette.border }]} />
+              <Divider spacing={Spacing.xs} />
               <TouchableOpacity
                 style={styles.datePickerButton}
                 onPress={() => setShowDatePicker(true)}
@@ -424,7 +425,7 @@ export function CreateCodeForm({
 
         {/* Error message */}
         {error && (
-          <View style={[styles.errorBanner, { backgroundColor: `${palette.error}15` }]}>
+          <View style={[styles.errorBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
             <Ionicons name="alert-circle" size={18} color={palette.error} />
             <ThemedText style={[styles.errorBannerText, { color: palette.error }]}>
               {error}
@@ -454,10 +455,10 @@ export function CreateCodeForm({
           disabled={submitting}
         >
           {submitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
             <>
-              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="add-circle-outline" size={20} color={palette.onPrimary} />
               <ThemedText style={styles.submitButtonText}>Create Code</ThemedText>
             </>
           )}
@@ -482,18 +483,9 @@ const styles = StyleSheet.create({
   fieldGroup: {
     gap: Spacing.sm,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  helpText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  errorText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  label: { ...Typography.bodySmallSemiBold },
+  helpText: { ...Typography.caption, marginTop: Spacing.micro },
+  errorText: { ...Typography.caption, marginTop: Spacing.micro },
   codeInputRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -511,10 +503,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: Spacing.sm,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-  },
+  input: { ...Typography.subheading, flex: 1 },
   codeInput: {
     fontWeight: '600',
     letterSpacing: 1,
@@ -522,11 +511,7 @@ const styles = StyleSheet.create({
   textArea: {
     textAlignVertical: 'top',
   },
-  currencySymbol: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginRight: Spacing.xs,
-  },
+  currencySymbol: { ...Typography.heading, marginRight: Spacing.xs },
   generateButton: {
     width: 52,
     height: 52,
@@ -545,10 +530,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  presetText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  presetText: { ...Typography.bodySmallSemiBold },
   toggleCard: {
     padding: Spacing.md,
     gap: Spacing.sm,
@@ -562,29 +544,15 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.md,
   },
-  toggleLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  toggleDescription: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    marginVertical: Spacing.xs,
-  },
+  toggleLabel: { ...Typography.bodySemiBold },
+  toggleDescription: { ...Typography.small, marginTop: Spacing.micro },
   datePickerButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.xs,
   },
-  dateText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-  },
+  dateText: { ...Typography.bodySemiBold, flex: 1 },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -592,11 +560,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.md,
   },
-  errorBannerText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  errorBannerText: { ...Typography.bodySmallSemiBold, flex: 1 },
   footer: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -611,10 +575,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1,
   },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  cancelButtonText: { ...Typography.subheading },
   submitButton: {
     flex: 1,
     flexDirection: 'row',
@@ -627,9 +588,5 @@ const styles = StyleSheet.create({
   submitButtonFull: {
     flex: 1,
   },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  submitButtonText: { ...Typography.subheading, color: Colors.light.onPrimary },
 });

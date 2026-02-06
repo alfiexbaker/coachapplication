@@ -21,7 +21,7 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SkillNode } from './SkillNode';
 import { SkillConnection } from './SkillConnection';
@@ -137,7 +137,7 @@ export function SkillTreeView({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={[styles.iconContainer, { backgroundColor: `${tree.themeColor}15` }]}>
+            <View style={[styles.iconContainer, { backgroundColor: withAlpha(tree.themeColor, 0.09) }]}>
               <Ionicons
                 name={tree.icon as keyof typeof Ionicons.glyphMap}
                 size={24}
@@ -154,7 +154,7 @@ export function SkillTreeView({
             </View>
           </View>
           <View style={styles.statsContainer}>
-            <View style={[styles.statBadge, { backgroundColor: `${tree.themeColor}15` }]}>
+            <View style={[styles.statBadge, { backgroundColor: withAlpha(tree.themeColor, 0.09) }]}>
               <ThemedText style={[styles.statValue, { color: tree.themeColor }]}>
                 {unlockedCount}/{tree.totalNodes}
               </ThemedText>
@@ -186,7 +186,7 @@ export function SkillTreeView({
         {/* Tree visualization */}
         <GestureDetector gesture={composedGesture}>
           <View
-            style={[styles.treeContainer, { backgroundColor: `${palette.background}80` }]}
+            style={[styles.treeContainer, { backgroundColor: withAlpha(palette.background, 0.5) }]}
             onLayout={handleLayout}
           >
             {containerSize.width > 0 && (
@@ -246,7 +246,7 @@ export function SkillTreeView({
             </View>
 
             {/* Zoom indicator */}
-            <View style={[styles.zoomHint, { backgroundColor: `${palette.surface}90` }]}>
+            <View style={[styles.zoomHint, { backgroundColor: withAlpha(palette.surface, 0.56) }]}>
               <Ionicons name="expand-outline" size={14} color={palette.muted} />
               <ThemedText style={[styles.zoomText, { color: palette.muted }]}>
                 Pinch to zoom
@@ -275,7 +275,7 @@ export function SkillTreeView({
                 {
                   backgroundColor: 'transparent',
                   borderWidth: 2,
-                  borderColor: `${tree.themeColor}60`,
+                  borderColor: withAlpha(tree.themeColor, 0.38),
                 },
               ]}
             />
@@ -322,49 +322,36 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  treeName: {
-    fontSize: 16,
-  },
-  treeDesc: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  treeName: { ...Typography.subheading },
+  treeDesc: { ...Typography.caption, lineHeight: 16 },
   statsContainer: {
     alignItems: 'flex-end',
   },
   statBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: 10,
-  },
+  statValue: { ...Typography.bodySmallSemiBold },
+  statLabel: { ...Typography.micro },
   progressContainer: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   progressBg: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  progressLabel: {
-    fontSize: 11,
-    textAlign: 'right',
-  },
+  progressLabel: { ...Typography.caption, textAlign: 'right' },
   treeContainer: {
     height: 380,
     borderRadius: Radii.md,
@@ -399,14 +386,12 @@ const styles = StyleSheet.create({
     left: Spacing.xs,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  zoomText: {
-    fontSize: 10,
-  },
+  zoomText: { ...Typography.micro },
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -416,14 +401,12 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   legendDot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
-  legendText: {
-    fontSize: 11,
-  },
+  legendText: { ...Typography.caption },
 });

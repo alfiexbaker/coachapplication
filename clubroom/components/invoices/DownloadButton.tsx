@@ -91,11 +91,11 @@ export function DownloadButton({
   const getButtonSize = () => {
     switch (size) {
       case 'small':
-        return { paddingVertical: 8, paddingHorizontal: 12 };
+        return { paddingVertical: 8, paddingHorizontal: Spacing.xs + Spacing.xxs };
       case 'large':
         return { paddingVertical: 16, paddingHorizontal: 24 };
       default:
-        return { paddingVertical: 12, paddingHorizontal: 16 };
+        return { paddingVertical: Spacing.xs + Spacing.xxs, paddingHorizontal: 16 };
     }
   };
 
@@ -182,20 +182,20 @@ export function DownloadButton({
         {downloading ? (
           <ActivityIndicator
             size="small"
-            color={isPrimary ? '#FFFFFF' : palette.tint}
+            color={isPrimary ? palette.onPrimary : palette.tint}
           />
         ) : (
           <>
             <Ionicons
               name="download-outline"
               size={getIconSize()}
-              color={isPrimary ? '#FFFFFF' : palette.text}
+              color={isPrimary ? palette.onPrimary : palette.text}
             />
             <ThemedText
               style={[
                 styles.buttonText,
                 {
-                  color: isPrimary ? '#FFFFFF' : palette.text,
+                  color: isPrimary ? palette.onPrimary : palette.text,
                   fontSize: getFontSize(),
                 },
               ]}
@@ -288,9 +288,9 @@ export function DownloadOnlyButton({ invoice, size = 'medium' }: SingleButtonPro
       disabled={downloading}
     >
       {downloading ? (
-        <ActivityIndicator size="small" color="#FFFFFF" />
+        <ActivityIndicator size="small" color={palette.onPrimary} />
       ) : (
-        <Ionicons name="download-outline" size={iconSize} color="#FFFFFF" />
+        <Ionicons name="download-outline" size={iconSize} color={palette.onPrimary} />
       )}
     </TouchableOpacity>
   );

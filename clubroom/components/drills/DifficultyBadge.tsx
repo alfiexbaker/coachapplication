@@ -8,7 +8,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii } from '@/constants/theme';
+import { Radii, Spacing} from '@/constants/theme';
 import type { DrillDifficulty } from '@/constants/types';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
@@ -52,13 +52,13 @@ export function DifficultyBadge({ difficulty, size = 'medium' }: DifficultyBadge
 const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
   },
   badgeSmall: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
   },
   text: {
     fontSize: scaleFont(12),

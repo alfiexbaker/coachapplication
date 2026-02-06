@@ -1,5 +1,7 @@
 export * from './analytics-screen';
 export * from './availability-grid';
+export * from './availability-tutorial';
+export * from './availability-week-grid';
 export * from './block-date-modal';
 // CoachCard - refactored into focused subcomponents
 export * from './coach-card';
@@ -18,3 +20,8 @@ export * from './scheduling-rules-editor';
 export * from './scheduling-rules-modal';
 export * from './share-profile';
 export { default as TrialSessionEditor } from './trial-session-editor';
+// Coach profile sub-components
+export * from './profile-header';
+export * from './profile-tabs';
+export * from './profile-quick-actions';
+export * from './profile-post-card';

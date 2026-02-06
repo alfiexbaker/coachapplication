@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -19,7 +20,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { PromoCodeCard, CodeUsageList, CodeUsageSummary } from '@/components/promo';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { promoService } from '@/services/promo-service';
@@ -105,7 +106,7 @@ export default function AdminPromoCodesScreen() {
   };
 
   const handleCreateCode = () => {
-    router.push('/admin/promo-codes/create');
+    router.push(Routes.ADMIN_PROMO_CODES_CREATE);
   };
 
   const getFilteredCodes = (): PromoCode[] => {
@@ -185,7 +186,7 @@ export default function AdminPromoCodesScreen() {
             <ThemedText
               style={[
                 styles.filterText,
-                { color: filter === f ? '#FFFFFF' : palette.text },
+                { color: filter === f ? Colors.light.onPrimary : palette.text },
               ]}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -208,7 +209,7 @@ export default function AdminPromoCodesScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIcon, { backgroundColor: `${palette.muted}15` }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
         <Ionicons name="pricetag-outline" size={40} color={palette.muted} />
       </View>
       <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
@@ -224,7 +225,7 @@ export default function AdminPromoCodesScreen() {
           style={[styles.createButtonSmall, { backgroundColor: palette.tint }]}
           onPress={handleCreateCode}
         >
-          <Ionicons name="add" size={18} color="#FFFFFF" />
+          <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
           <ThemedText style={styles.createButtonSmallText}>Create Code</ThemedText>
         </TouchableOpacity>
       )}
@@ -272,7 +273,7 @@ export default function AdminPromoCodesScreen() {
               style={[styles.createButton, { backgroundColor: palette.tint }]}
               onPress={handleCreateCode}
             >
-              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
               <ThemedText style={styles.createButtonText}>New</ThemedText>
             </TouchableOpacity>
           }
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   listContent: {
     paddingBottom: Spacing.xl,
@@ -381,11 +382,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 20,
+    ...Typography.title,
   },
   statLabel: {
-    fontSize: 11,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   statDivider: {
     width: 1,
@@ -403,14 +404,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   listHeader: {
     marginTop: Spacing.xs,
   },
   listTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   createButton: {
     flexDirection: 'row',
@@ -421,9 +421,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   createButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+    color: Colors.light.onPrimary,
+    ...Typography.bodySmallSemiBold,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -434,17 +433,16 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   emptyDescription: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
     paddingHorizontal: Spacing.lg,
   },
@@ -458,9 +456,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   createButtonSmallText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+    color: Colors.light.onPrimary,
+    ...Typography.bodySmallSemiBold,
   },
   modalContainer: {
     flex: 1,
@@ -473,17 +470,16 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
   },
   modalTitle: {
-    fontSize: 22,
+    ...Typography.title,
   },
   modalSubtitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 2,
+    ...Typography.bodySmallSemiBold,
+    marginTop: Spacing.micro,
   },
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -497,6 +493,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   usageListTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
 });

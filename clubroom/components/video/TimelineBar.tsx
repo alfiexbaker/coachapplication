@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { AnnotationMarker, CompactAnnotationMarker } from './AnnotationMarker';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation } from '@/constants/types';
@@ -141,7 +141,7 @@ export function TimelineBar({
         style={styles.timelineWrapper}
       >
         <View
-          style={[styles.track, { backgroundColor: `${palette.muted}30` }]}
+          style={[styles.track, { backgroundColor: withAlpha(palette.muted, 0.19) }]}
           onLayout={handleLayout}
         >
           {/* Progress bar */}
@@ -223,7 +223,7 @@ export function TimelineBar({
           <Ionicons
             name={ANNOTATION_TYPE_CONFIG[activeAnnotation.type].icon as keyof typeof Ionicons.glyphMap}
             size={12}
-            color="#fff"
+            color={palette.onPrimary}
           />
           <ThemedText style={styles.activeLabel} numberOfLines={1}>
             {activeAnnotation.label}
@@ -257,7 +257,7 @@ export function CompactTimeline({
 
   return (
     <View style={styles.compactContainer}>
-      <View style={[styles.compactTrack, { backgroundColor: `${palette.muted}30` }]}>
+      <View style={[styles.compactTrack, { backgroundColor: withAlpha(palette.muted, 0.19) }]}>
         <View
           style={[
             styles.compactProgress,
@@ -288,19 +288,16 @@ const styles = StyleSheet.create({
   labelsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 2,
+    paddingHorizontal: Spacing.micro,
   },
-  timeLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  timeLabel: { ...Typography.caption },
   timelineWrapper: {
     flex: 1,
     justifyContent: 'center',
   },
   track: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'visible',
     position: 'relative',
   },
@@ -309,13 +306,13 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   playhead: {
     position: 'absolute',
     width: 4,
     height: 16,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     top: -5,
     marginLeft: -2,
     shadowColor: '#000',
@@ -332,16 +329,12 @@ const styles = StyleSheet.create({
   groupBadge: {
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginBottom: Spacing.micro,
   },
-  groupCount: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  groupCount: { ...Typography.micro, color: Colors.light.onPrimary },
   groupStack: {
     flexDirection: 'row',
     gap: -6,
@@ -351,22 +344,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  activeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-    maxWidth: 150,
-  },
+  activeLabel: { ...Typography.caption, color: Colors.light.onPrimary,
+    maxWidth: 150 },
   compactContainer: {
     height: 4,
   },
   compactTrack: {
     flex: 1,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -380,7 +369,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 4,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     top: 0,
     marginLeft: -2,
   },

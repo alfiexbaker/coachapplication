@@ -13,7 +13,7 @@ import { AssignmentCard } from './AssignmentCard';
 import { DrillCard } from './DrillCard';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { Drill, AssignedDrill, DrillCategory } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
@@ -87,7 +87,7 @@ export function DrillList({
         entering={FadeInDown.delay(100).springify()}
         style={styles.emptyContainer}
       >
-        <View style={[styles.emptyIcon, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons
             name={isAssignmentMode ? 'clipboard-outline' : 'football-outline'}
             size={48}
@@ -173,7 +173,7 @@ export function DrillSectionHeader({ category, count }: DrillSectionHeaderProps)
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionHeaderLeft}>
-        <View style={[styles.sectionIcon, { backgroundColor: `${info.color}20` }]}>
+        <View style={[styles.sectionIcon, { backgroundColor: withAlpha(info.color, 0.12) }]}>
           <Ionicons
             name={info.icon as keyof typeof Ionicons.glyphMap}
             size={16}
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   sectionIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },

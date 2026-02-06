@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -18,7 +19,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { InjuryCard } from '@/components/health';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Injury, InjuryStats } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -77,17 +78,17 @@ export default function HealthDashboardScreen() {
   // Navigation
   const handleLogInjury = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/health/log');
+    router.push(Routes.HEALTH_LOG);
   }, []);
 
   const handleViewHistory = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push('/health/injuries');
+    router.push(Routes.HEALTH_INJURIES);
   }, []);
 
   const handleInjuryPress = useCallback((injury: Injury) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/health/[id]', params: { id: injury.id } });
+    router.push(Routes.healthEntry(injury.id));
   }, []);
 
   // Calculate summary stats
@@ -118,7 +119,7 @@ export default function HealthDashboardScreen() {
           onPress={handleLogInjury}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
+          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
 
@@ -134,7 +135,7 @@ export default function HealthDashboardScreen() {
           <SurfaceCard style={styles.statusCard}>
             {activeCount === 0 ? (
               <View style={styles.healthyState}>
-                <View style={[styles.healthyIcon, { backgroundColor: `${palette.success}15` }]}>
+                <View style={[styles.healthyIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                   <Ionicons name="checkmark-circle" size={48} color={palette.success} />
                 </View>
                 <ThemedText type="subtitle" style={styles.healthyTitle}>
@@ -148,7 +149,7 @@ export default function HealthDashboardScreen() {
               <View style={styles.statusContent}>
                 <View style={styles.statusRow}>
                   <View style={styles.statusItem}>
-                    <View style={[styles.statusIcon, { backgroundColor: `${palette.error}15` }]}>
+                    <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                       <Ionicons name="pulse" size={24} color={palette.error} />
                     </View>
                     <ThemedText type="title" style={[styles.statusValue, { color: palette.error }]}>
@@ -160,7 +161,7 @@ export default function HealthDashboardScreen() {
                   </View>
                   <View style={[styles.statusDivider, { backgroundColor: palette.border }]} />
                   <View style={styles.statusItem}>
-                    <View style={[styles.statusIcon, { backgroundColor: `${palette.warning}15` }]}>
+                    <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                       <Ionicons name="trending-up" size={24} color={palette.warning} />
                     </View>
                     <ThemedText type="title" style={[styles.statusValue, { color: palette.warning }]}>
@@ -172,7 +173,7 @@ export default function HealthDashboardScreen() {
                   </View>
                   <View style={[styles.statusDivider, { backgroundColor: palette.border }]} />
                   <View style={styles.statusItem}>
-                    <View style={[styles.statusIcon, { backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.statusIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <Ionicons name="fitness" size={24} color={palette.tint} />
                     </View>
                     <ThemedText type="title" style={[styles.statusValue, { color: palette.tint }]}>
@@ -192,7 +193,7 @@ export default function HealthDashboardScreen() {
         <Animated.View entering={FadeInDown.delay(150).springify()} style={styles.actionsRow}>
           <Clickable onPress={handleLogInjury} style={{ flex: 1 }}>
             <View style={[styles.actionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <View style={[styles.actionIcon, { backgroundColor: `${palette.error}15` }]}>
+              <View style={[styles.actionIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <Ionicons name="add-circle-outline" size={24} color={palette.error} />
               </View>
               <ThemedText style={styles.actionLabel}>Log Injury</ThemedText>
@@ -200,7 +201,7 @@ export default function HealthDashboardScreen() {
           </Clickable>
           <Clickable onPress={handleViewHistory} style={{ flex: 1 }}>
             <View style={[styles.actionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <View style={[styles.actionIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.actionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="time-outline" size={24} color={palette.tint} />
               </View>
               <ThemedText style={styles.actionLabel}>View History</ThemedText>
@@ -271,7 +272,7 @@ export default function HealthDashboardScreen() {
                     {stats.commonBodyParts.slice(0, 3).map((item) => (
                       <View
                         key={item.bodyPart}
-                        style={[styles.commonPartBadge, { backgroundColor: `${palette.tint}10` }]}
+                        style={[styles.commonPartBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                       >
                         <ThemedText style={[styles.commonPartText, { color: palette.tint }]}>
                           {injuryService.getBodyPartLabel(item.bodyPart)} ({item.count})
@@ -288,7 +289,7 @@ export default function HealthDashboardScreen() {
         {/* Empty state for first-time users */}
         {!loading && injuries.length === 0 && stats?.totalInjuries === 0 && (
           <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="fitness-outline" size={48} color={palette.success} />
             </View>
             <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -324,12 +325,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -347,17 +348,17 @@ const styles = StyleSheet.create({
   healthyIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
   healthyTitle: {
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   healthyText: {
     textAlign: 'center',
-    fontSize: scaleFont(14),
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
   },
   statusContent: {
     padding: Spacing.sm,
@@ -374,17 +375,16 @@ const styles = StyleSheet.create({
   statusIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   statusValue: {
-    fontSize: scaleFont(24),
-    fontWeight: '700',
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   statusLabel: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   statusDivider: {
     width: 1,
@@ -405,13 +405,12 @@ const styles = StyleSheet.create({
   actionIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionLabel: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   injuriesSection: {
     marginBottom: Spacing.lg,
@@ -423,8 +422,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   seeAllText: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   statsCard: {
     marginBottom: Spacing.md,
@@ -441,11 +439,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statsValue: {
-    fontSize: scaleFont(24),
-    fontWeight: '700',
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   statsLabel: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   commonParts: {
     borderTopWidth: 1,
@@ -453,7 +450,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
   },
   commonPartsLabel: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
     marginBottom: Spacing.xs,
   },
   commonPartsList: {
@@ -463,12 +460,11 @@ const styles = StyleSheet.create({
   },
   commonPartBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   commonPartText: {
-    fontSize: scaleFont(12),
-    fontWeight: '500',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   emptyState: {
     alignItems: 'center',
@@ -479,7 +475,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -489,7 +485,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
     maxWidth: 280,
   },

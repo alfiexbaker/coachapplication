@@ -1,10 +1,11 @@
+import { useCallback } from 'react';
 import { FlatList, View, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------
@@ -50,56 +51,61 @@ export function SimilarCoaches({
 
   const displayCoaches = coaches.slice(0, MAX_COACHES);
 
-  if (displayCoaches.length === 0) return null;
-
-  const renderCoachCard = ({ item }: { item: SimilarCoach }) => (
-    <SurfaceCard
-      style={styles.coachCard}
-      onPress={() => onCoachPress(item.id)}
-      accessibilityLabel={`View ${item.name}'s profile`}
-    >
-      {/* Avatar */}
-      {item.avatarUrl ? (
-        <Image source={{ uri: item.avatarUrl }} style={styles.avatar} contentFit="cover" />
-      ) : (
-        <View style={[styles.avatarFallback, { backgroundColor: palette.tint + '18' }]}>
-          <Ionicons name="person" size={Components.icon.lg} color={palette.tint} />
-        </View>
-      )}
-
-      {/* Name */}
-      <ThemedText
-        style={[Typography.bodySemiBold, { color: palette.text }]}
-        numberOfLines={1}
+  const renderCoachCard = useCallback(
+    ({ item }: { item: SimilarCoach }) => (
+      <SurfaceCard
+        style={styles.coachCard}
+        onPress={() => onCoachPress(item.id)}
+        accessibilityLabel={`View ${item.name}'s profile`}
       >
-        {item.name}
-      </ThemedText>
+        {/* Avatar */}
+        {item.avatarUrl ? (
+          <Image source={{ uri: item.avatarUrl }} style={styles.avatar} contentFit="cover" />
+        ) : (
+          <View style={[styles.avatarFallback, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
+            <Ionicons name="person" size={Components.icon.lg} color={palette.tint} />
+          </View>
+        )}
 
-      {/* Rating */}
-      <View style={styles.ratingRow}>
-        <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
-        <ThemedText style={[Typography.small, { color: palette.text }]}>
-          {item.rating.toFixed(1)}
-        </ThemedText>
-      </View>
-
-      {/* Specialties */}
-      {item.specialties.length > 0 ? (
+        {/* Name */}
         <ThemedText
-          style={[Typography.small, { color: palette.muted }]}
+          style={[Typography.bodySemiBold, { color: palette.text }]}
           numberOfLines={1}
         >
-          {item.specialties.join(', ')}
+          {item.name}
         </ThemedText>
-      ) : null}
 
-      {/* Price */}
-      <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
-        {currencySymbol}{item.pricePerSession}
-        <ThemedText style={[Typography.small, { color: palette.muted }]}> /session</ThemedText>
-      </ThemedText>
-    </SurfaceCard>
+        {/* Rating */}
+        <View style={styles.ratingRow}>
+          <Ionicons name="star" size={Components.icon.sm} color={palette.rating} />
+          <ThemedText style={[Typography.small, { color: palette.text }]}>
+            {item.rating.toFixed(1)}
+          </ThemedText>
+        </View>
+
+        {/* Specialties */}
+        {item.specialties.length > 0 ? (
+          <ThemedText
+            style={[Typography.small, { color: palette.muted }]}
+            numberOfLines={1}
+          >
+            {item.specialties.join(', ')}
+          </ThemedText>
+        ) : null}
+
+        {/* Price */}
+        <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
+          {currencySymbol}{item.pricePerSession}
+          <ThemedText style={[Typography.small, { color: palette.muted }]}> /session</ThemedText>
+        </ThemedText>
+      </SurfaceCard>
+    ),
+    [onCoachPress, palette, currencySymbol]
   );
+
+  const keyExtractor = useCallback((item: SimilarCoach) => item.id, []);
+
+  if (displayCoaches.length === 0) return null;
 
   return (
     <View style={styles.container}>
@@ -112,15 +118,19 @@ export function SimilarCoaches({
 
       <FlatList
         data={displayCoaches}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         renderItem={renderCoachCard}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={CoachCardSeparator}
       />
     </View>
   );
+}
+
+function CoachCardSeparator() {
+  return <View style={styles.separator} />;
 }
 
 // ---------------------------------------------------------------------------

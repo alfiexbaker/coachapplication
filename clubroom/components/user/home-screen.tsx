@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -9,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ChildSwitcher } from '@/components/ChildSwitcher';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -150,16 +151,16 @@ export function UserHomeScreen() {
 
         {/* Error State */}
         {error && !loading && (
-          <View style={[styles.errorContainer, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}>
+          <View style={[styles.errorContainer, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}>
             <Ionicons name="alert-circle" size={20} color={palette.error} />
             <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
           </View>
         )}
 
         {/* Stats Row */}
-        <View style={[styles.statsRow, { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20` }]}>
+        <View style={[styles.statsRow, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: withAlpha(palette.tint, 0.12) }]}>
           <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="calendar" size={18} color={palette.tint} />
             </View>
             <View>
@@ -169,7 +170,7 @@ export function UserHomeScreen() {
           </View>
           <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
           <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: `${palette.warning}15` }]}>
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
               <Ionicons name="ribbon" size={18} color={palette.warning} />
             </View>
             <View>
@@ -179,7 +180,7 @@ export function UserHomeScreen() {
           </View>
           <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
           <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="trophy" size={18} color={palette.success} />
             </View>
             <View>
@@ -192,11 +193,11 @@ export function UserHomeScreen() {
         {/* Streak Card - WOW Factor */}
         {streakInfo && (
           <Clickable
-            style={[styles.streakCard, { backgroundColor: `${palette.warning}20`, borderColor: `${palette.warning}40` }]}
-            onPress={() => router.push('/badges')}
+            style={[styles.streakCard, { backgroundColor: withAlpha(palette.warning, 0.12), borderColor: withAlpha(palette.warning, 0.25) }]}
+            onPress={() => router.push(Routes.BADGES_INDEX)}
           >
             <View style={styles.streakContent}>
-              <View style={[styles.streakIconContainer, { backgroundColor: `${palette.warning}30` }]}>
+              <View style={[styles.streakIconContainer, { backgroundColor: withAlpha(palette.warning, 0.19) }]}>
                 <Ionicons name="flame" size={28} color={palette.warning} />
               </View>
               <View style={styles.streakInfo}>
@@ -225,11 +226,11 @@ export function UserHomeScreen() {
           {quickActions.map((action, index) => (
             <Clickable
               key={index}
-              style={[styles.quickAction, { backgroundColor: `${action.color}10`, borderColor: `${action.color}25` }]}
-              onPress={() => router.push(action.route as any)}
+              style={[styles.quickAction, { backgroundColor: withAlpha(action.color, 0.06), borderColor: withAlpha(action.color, 0.15) }]}
+              onPress={() => router.push(action.route as Href)}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${action.color}20` }]}>
-                <Ionicons name={action.icon as any} size={20} color={action.color} />
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(action.color, 0.12) }]}>
+                <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={20} color={action.color} />
               </View>
               <ThemedText style={[styles.quickActionLabel, { color: action.color }]} numberOfLines={1}>{action.label}</ThemedText>
             </Clickable>
@@ -240,14 +241,14 @@ export function UserHomeScreen() {
         {nextSession ? (
           <SurfaceCard
             style={styles.nextSession}
-            onPress={() => router.push({ pathname: '/(tabs)/bookings/[id]', params: { id: nextSession.id } })}
+            onPress={() => router.push(Routes.booking(nextSession.id))}
           >
             <View style={styles.sessionHeader}>
-              <View style={[styles.sessionIconCircle, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.sessionIconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="time" size={20} color={palette.tint} />
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText type="defaultSemiBold" style={{ color: palette.tint, fontSize: 12, textTransform: 'uppercase' }}>
+                <ThemedText type="defaultSemiBold" style={{ ...Typography.caption, color: palette.tint, textTransform: 'uppercase' }}>
                   Next Session
                 </ThemedText>
                 <ThemedText type="subtitle" style={styles.coachName} numberOfLines={1}>
@@ -273,20 +274,20 @@ export function UserHomeScreen() {
           </SurfaceCard>
         ) : (
           <SurfaceCard style={styles.noSessionCard}>
-            <View style={[styles.noSessionIcon, { backgroundColor: `${palette.tint}10` }]}>
+            <View style={[styles.noSessionIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
               <Ionicons name="calendar-outline" size={28} color={palette.tint} />
             </View>
             <View style={{ flex: 1 }}>
               <ThemedText type="defaultSemiBold">No Upcoming Sessions</ThemedText>
-              <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+              <ThemedText style={{ ...Typography.small, color: palette.muted }}>
                 Book a session to start training
               </ThemedText>
             </View>
             <Clickable
               style={[styles.bookButton, { backgroundColor: palette.tint }]}
-              onPress={() => router.push('/(tabs)/more')}
+              onPress={() => router.push(Routes.MORE)}
             >
-              <ThemedText style={{ color: palette.surface, fontWeight: '600', fontSize: 13 }}>Find Coach</ThemedText>
+              <ThemedText style={{ ...Typography.smallSemiBold, color: palette.surface }}>Find Coach</ThemedText>
             </Clickable>
           </SurfaceCard>
         )}
@@ -296,8 +297,8 @@ export function UserHomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Recent Badges</ThemedText>
-              <Clickable onPress={() => router.push('/badges')}>
-                <ThemedText style={{ color: palette.tint, fontSize: 13 }}>View All</ThemedText>
+              <Clickable onPress={() => router.push(Routes.BADGES_INDEX)}>
+                <ThemedText style={{ ...Typography.small, color: palette.tint }}>View All</ThemedText>
               </Clickable>
             </View>
             <ScrollView
@@ -306,22 +307,22 @@ export function UserHomeScreen() {
               contentContainerStyle={styles.badgesScroll}
             >
               {recentBadges.map((badge) => (
-                <View key={badge.id} style={[styles.badgeCard, { backgroundColor: `${palette.tint}10` }]}>
+                <View key={badge.id} style={[styles.badgeCard, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                   <View style={[styles.badgeIconCircle, { backgroundColor: palette.tint }]}>
                     <Ionicons name="ribbon" size={18} color={palette.surface} />
                   </View>
                   <ThemedText style={styles.badgeLabel} numberOfLines={1}>{badge.badgeLabel}</ThemedText>
                   {badge.badgeCategory && (
-                    <Chip dense style={{ marginTop: 4 }}>{badge.badgeCategory}</Chip>
+                    <Chip dense style={{ marginTop: Spacing.xxs }}>{badge.badgeCategory}</Chip>
                   )}
                 </View>
               ))}
               <Clickable
                 style={[styles.viewAllBadges, { borderColor: palette.border }]}
-                onPress={() => router.push('/badges')}
+                onPress={() => router.push(Routes.BADGES_INDEX)}
               >
                 <Ionicons name="arrow-forward" size={18} color={palette.tint} />
-                <ThemedText style={{ color: palette.tint, fontSize: 12, fontWeight: '600' }}>See All</ThemedText>
+                <ThemedText style={ { color: palette.tint, ...Typography.caption }}>See All</ThemedText>
               </Clickable>
             </ScrollView>
           </View>
@@ -332,24 +333,24 @@ export function UserHomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>My Clubs</ThemedText>
-              <Clickable onPress={() => router.push('/(tabs)/club-hub')}>
-                <ThemedText style={{ color: palette.tint, fontSize: 13 }}>View All</ThemedText>
+              <Clickable onPress={() => router.push(Routes.CLUB_HUB)}>
+                <ThemedText style={{ ...Typography.small, color: palette.tint }}>View All</ThemedText>
               </Clickable>
             </View>
             {clubs.slice(0, 2).map((club) => (
               <SurfaceCard
                 key={club.id}
                 style={styles.clubCard}
-                onPress={() => router.push({ pathname: '/club/[id]', params: { id: club.id } })}
+                onPress={() => router.push(Routes.club(club.id))}
               >
-                <View style={[styles.clubBadge, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>
                     {club.badge || club.name.slice(0, 2).toUpperCase()}
                   </ThemedText>
                 </View>
                 <View style={{ flex: 1 }}>
                   <ThemedText type="defaultSemiBold">{club.name}</ThemedText>
-                  <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                     {club.memberCount} members
                   </ThemedText>
                 </View>
@@ -379,16 +380,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: Spacing.xs,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-  },
+  title: { ...Typography.display, letterSpacing: -0.6 },
+  subtitle: { ...Typography.bodySmall, lineHeight: 20,
+    fontWeight: '500' },
   loadingContainer: {
     padding: Spacing['2xl'],
     alignItems: 'center',
@@ -402,10 +396,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-  },
+  errorText: { ...Typography.bodySmall, flex: 1 },
   // Stats row
   statsRow: {
     flexDirection: 'row',
@@ -423,16 +414,12 @@ const styles = StyleSheet.create({
   statIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statValue: {
-    fontSize: 16,
-  },
-  statLabel: {
-    fontSize: 11,
-  },
+  statValue: { ...Typography.subheading },
+  statLabel: { ...Typography.caption },
   statDivider: {
     width: 1,
     height: 32,
@@ -451,40 +438,28 @@ const styles = StyleSheet.create({
   streakIconContainer: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   streakInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   streakHeader: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.xs,
   },
-  streakNumber: {
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  streakWeeks: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  streakLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  streakNumber: { ...Typography.display },
+  streakWeeks: { ...Typography.bodySmallSemiBold },
+  streakLabel: { ...Typography.smallSemiBold },
   streakProgress: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  streakProgressText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  streakProgressText: { ...Typography.caption },
   // Quick actions
   quickActionsGrid: {
     flexDirection: 'row',
@@ -503,14 +478,11 @@ const styles = StyleSheet.create({
   quickActionIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickActionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  quickActionLabel: { ...Typography.smallSemiBold },
   // Session card
   nextSession: {
     padding: Spacing.md,
@@ -524,14 +496,11 @@ const styles = StyleSheet.create({
   sessionIconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  coachName: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  coachName: { ...Typography.subheading },
   sessionDetails: {
     gap: Spacing.xs,
     marginLeft: 44 + Spacing.sm, // Align with content after icon (avatar + gap)
@@ -551,7 +520,7 @@ const styles = StyleSheet.create({
   noSessionIcon: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -569,9 +538,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 16,
-  },
+  sectionTitle: { ...Typography.subheading },
   // Badges
   badgesScroll: {
     gap: Spacing.sm,
@@ -586,16 +553,12 @@ const styles = StyleSheet.create({
   badgeIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    maxWidth: 80,
-  },
+  badgeLabel: { ...Typography.caption, textAlign: 'center',
+    maxWidth: 80 },
   viewAllBadges: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -616,12 +579,9 @@ const styles = StyleSheet.create({
   clubBadge: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clubBadgeText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  clubBadgeText: { ...Typography.subheading },
 });

@@ -17,7 +17,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { BulkInviteResult, SquadInvitedMember } from '@/constants/types';
 
@@ -57,8 +57,8 @@ export function InviteResultCard({
     if (isFullSuccess) {
       return {
         icon: 'checkmark-circle' as const,
-        color: palette.success || '#10B981',
-        bgColor: '#D1FAE5',
+        color: palette.success,
+        bgColor: withAlpha(palette.success, 0.12),
         title: 'All Invites Sent!',
         subtitle: `${sent} invite${sent !== 1 ? 's' : ''} sent successfully`,
       };
@@ -67,7 +67,7 @@ export function InviteResultCard({
       return {
         icon: 'close-circle' as const,
         color: palette.error,
-        bgColor: '#FEE2E2',
+        bgColor: withAlpha(palette.error, 0.12),
         title: 'Invites Failed',
         subtitle: 'Unable to send invites. Please try again.',
       };
@@ -75,7 +75,7 @@ export function InviteResultCard({
     return {
       icon: 'warning' as const,
       color: palette.warning,
-      bgColor: '#FEF3C7',
+      bgColor: withAlpha(palette.warning, 0.12),
       title: 'Partially Sent',
       subtitle: `${sent} sent, ${failed} failed${skipped > 0 ? `, ${skipped} skipped` : ''}`,
     };
@@ -129,7 +129,7 @@ export function InviteResultCard({
         {showDetails && (
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <View style={[styles.statDot, { backgroundColor: palette.success || '#10B981' }]} />
+              <View style={[styles.statDot, { backgroundColor: palette.success }]} />
               <ThemedText style={styles.statValue}>{sent}</ThemedText>
               <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Sent</ThemedText>
             </View>
@@ -172,9 +172,9 @@ export function InviteResultCard({
                 {errors.map((error, index) => (
                   <View
                     key={`${error.memberId}-${index}`}
-                    style={[styles.errorItem, { backgroundColor: `${palette.error}08` }]}
+                    style={[styles.errorItem, { backgroundColor: withAlpha(palette.error, 0.03) }]}
                   >
-                    <ThemedText type="defaultSemiBold" style={{ fontSize: 13 }}>
+                    <ThemedText type="defaultSemiBold" style={{ ...Typography.small }}>
                       {error.athleteName}
                     </ThemedText>
                     <ThemedText style={[styles.errorMessage, { color: palette.muted }]}>
@@ -247,19 +247,19 @@ export function CompactInviteResult({ result, onDismiss }: CompactInviteResultPr
       style={[
         styles.compactContainer,
         {
-          backgroundColor: isSuccess ? '#D1FAE5' : '#FEF3C7',
+          backgroundColor: isSuccess ? withAlpha(palette.success, 0.12) : withAlpha(palette.warning, 0.12),
         },
       ]}
     >
       <Ionicons
         name={isSuccess ? 'checkmark-circle' : 'warning'}
         size={18}
-        color={isSuccess ? '#10B981' : palette.warning}
+        color={isSuccess ? palette.success : palette.warning}
       />
       <ThemedText
         style={[
           styles.compactText,
-          { color: isSuccess ? '#065F46' : '#92400E' },
+          { color: isSuccess ? palette.success : palette.warning },
         ]}
       >
         {result.sent} invite{result.sent !== 1 ? 's' : ''} sent
@@ -270,7 +270,7 @@ export function CompactInviteResult({ result, onDismiss }: CompactInviteResultPr
           <Ionicons
             name="close"
             size={16}
-            color={isSuccess ? '#065F46' : '#92400E'}
+            color={isSuccess ? palette.success : palette.warning}
           />
         </Clickable>
       )}
@@ -290,17 +290,15 @@ const styles = StyleSheet.create({
   statusIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   statusText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  subtitleText: {
-    fontSize: 13,
-  },
+  subtitleText: { ...Typography.small },
   contextRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -313,9 +311,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  contextText: {
-    fontSize: 12,
-  },
+  contextText: { ...Typography.caption },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
@@ -329,15 +325,10 @@ const styles = StyleSheet.create({
   statDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: 12,
-  },
+  statValue: { ...Typography.subheading },
+  statLabel: { ...Typography.caption },
   errorSection: {
     gap: Spacing.xs,
   },
@@ -346,10 +337,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  errorToggleText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  errorToggleText: { ...Typography.smallSemiBold },
   errorList: {
     gap: Spacing.xs,
     marginTop: Spacing.xs,
@@ -357,11 +345,9 @@ const styles = StyleSheet.create({
   errorItem: {
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  errorMessage: {
-    fontSize: 12,
-  },
+  errorMessage: { ...Typography.caption },
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -377,10 +363,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  actionButtonText: { ...Typography.smallSemiBold },
   primaryButton: {
     flex: 1,
     alignItems: 'center',
@@ -389,11 +372,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     minWidth: 100,
   },
-  primaryButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
+  primaryButtonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onPrimary },
   // Compact styles
   compactContainer: {
     flexDirection: 'row',
@@ -403,9 +382,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
   },
-  compactText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  compactText: { ...Typography.smallSemiBold, flex: 1 },
 });

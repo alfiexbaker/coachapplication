@@ -18,8 +18,9 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , Typography } from '@/constants/theme';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -129,7 +130,7 @@ function CompactCard({
               )}
               {primaryFocus && (
                 <>
-                  <View style={[compactStyles.divider, { backgroundColor: palette.border }]} />
+                  <Divider vertical style={{ height: 12, opacity: 0.5 }} />
                   <FocusBadge focus={primaryFocus} />
                 </>
               )}
@@ -166,36 +167,19 @@ const compactStyles = StyleSheet.create({
     gap: Spacing.xs,
     justifyContent: 'center',
   },
-  name: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    marginBottom: -2,
-  },
+  name: { ...Typography.heading, letterSpacing: -0.2,
+    marginBottom: -2 },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  divider: {
-    width: 1,
-    height: 12,
-    opacity: 0.5,
-  },
   priceColumn: {
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
-  price: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  priceLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 1,
-  },
+  price: { ...Typography.heading, letterSpacing: -0.3 },
+  priceLabel: { ...Typography.caption, marginTop: 1 },
 });
 
 // -----------------------------------------------------------------------------
@@ -356,7 +340,7 @@ function FavouriteCard({
               {coach.city && (
                 <>
                   {coach.rating !== undefined && (
-                    <View style={[favouriteStyles.divider, { backgroundColor: palette.border }]} />
+                    <Divider vertical style={{ height: 12, opacity: 0.5 }} />
                   )}
                   <LocationDisplay city={coach.city} />
                 </>
@@ -403,21 +387,12 @@ const favouriteStyles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.xs,
   },
-  name: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    flex: 1,
-  },
+  name: { ...Typography.heading, letterSpacing: -0.2,
+    flex: 1 },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-  },
-  divider: {
-    width: 1,
-    height: 12,
-    opacity: 0.5,
   },
   actionRow: {
     flexDirection: 'row',

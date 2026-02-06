@@ -23,7 +23,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Shadows, Components  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -149,7 +149,7 @@ function TierTable({ tiers }: { tiers: RefundTier[] }) {
             style={[styles.tierRow, !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.border }]}
           >
             <ThemedText style={[styles.tierCell, { flex: 2, color: palette.text }]} numberOfLines={2}>{tier.description}</ThemedText>
-            <View style={[styles.tierBadge, { backgroundColor: refundColor + '18' }]}>
+            <View style={[styles.tierBadge, { backgroundColor: withAlpha(refundColor, 0.09) }]}>
               <ThemedText style={[styles.tierBadgeText, { color: refundColor }]}>
                 {tier.refundPercentage}%
               </ThemedText>
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   presetIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.sm,
@@ -453,12 +453,12 @@ const styles = StyleSheet.create({
   },
   presetDescription: {
     ...Typography.small,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   radioOuter: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
 
   // Section

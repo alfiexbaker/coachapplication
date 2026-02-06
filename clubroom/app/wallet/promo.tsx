@@ -16,7 +16,7 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { PromoCodeInput } from '@/components/promo';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography, Radii , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { promoService } from '@/services/promo-service';
@@ -98,7 +98,7 @@ export default function PromoCodeScreen() {
   const renderUsageItem = ({ item, index }: { item: PromoCodeUsage; index: number }) => (
     <Animated.View entering={FadeInDown.delay(100 + index * 50).springify()}>
       <View style={styles.usageItem}>
-        <View style={[styles.usageIcon, { backgroundColor: `${palette.success}15` }]}>
+        <View style={[styles.usageIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="gift" size={18} color={palette.success} />
         </View>
         <View style={styles.usageContent}>
@@ -126,7 +126,7 @@ export default function PromoCodeScreen() {
           <SurfaceCard
             style={[styles.successCard, { borderColor: palette.success }]}
           >
-            <View style={[styles.successIcon, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.successIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="checkmark-circle" size={32} color={palette.success} />
             </View>
             <ThemedText type="subtitle" style={styles.successTitle}>
@@ -201,7 +201,7 @@ export default function PromoCodeScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIcon, { backgroundColor: `${palette.muted}15` }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
         <Ionicons name="gift-outline" size={40} color={palette.muted} />
       </View>
       <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   listContent: {
     paddingBottom: Spacing.xl,
@@ -277,16 +277,16 @@ const styles = StyleSheet.create({
   successIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   successTitle: {
-    fontSize: 20,
+    ...Typography.title,
     textAlign: 'center',
   },
   successMessage: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
   },
   successBalance: {
@@ -296,10 +296,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   balanceLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   balanceValue: {
-    fontSize: 24,
+    ...Typography.display,
   },
   balanceCard: {
     alignItems: 'center',
@@ -312,11 +312,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   balanceHeaderText: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   balanceAmount: {
-    fontSize: 32,
+    ...Typography.display,
   },
   inputCard: {
     gap: Spacing.md,
@@ -327,10 +326,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   inputTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   inputDescription: {
-    fontSize: 13,
+    ...Typography.small,
     marginTop: -Spacing.xs,
   },
   sectionHeader: {
@@ -340,10 +339,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   sectionCount: {
-    fontSize: 13,
+    ...Typography.small,
   },
   usageItem: {
     flexDirection: 'row',
@@ -354,7 +353,7 @@ const styles = StyleSheet.create({
   usageIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -365,18 +364,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   usageRow: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   codeLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   usageTime: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   creditAmount: {
-    fontSize: 15,
-    fontWeight: '700',
+    ...Typography.bodySemiBold,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -387,17 +384,16 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   emptyDescription: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
   },
 });

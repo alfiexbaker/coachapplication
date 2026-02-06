@@ -394,12 +394,12 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   sliderRow: {
     flexDirection: 'row',
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   stepDot: {
     width: 16,
     height: 16,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
   },
   milestoneRow: {
     flexDirection: 'row',

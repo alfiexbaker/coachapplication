@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -181,10 +181,10 @@ export default function EditTemplateScreen() {
                     backgroundColor: dayOfWeek === index ? palette.tint : 'transparent',
                   },
                 ]}
-                onPress={() => setDayOfWeek(index as any)}
+                onPress={() => setDayOfWeek(index as 0 | 1 | 2 | 3 | 4 | 5 | 6)}
               >
                 <ThemedText
-                  style={[styles.dayButtonText, { color: dayOfWeek === index ? '#fff' : palette.text }]}
+                  style={[styles.dayButtonText, { color: dayOfWeek === index ? Colors.light.onPrimary : palette.text }]}
                 >
                   {day.slice(0, 3)}
                 </ThemedText>
@@ -208,7 +208,7 @@ export default function EditTemplateScreen() {
                       styles.timeOption,
                       {
                         borderColor: startTime === time ? palette.tint : palette.border,
-                        backgroundColor: startTime === time ? `${palette.tint}15` : 'transparent',
+                        backgroundColor: startTime === time ? withAlpha(palette.tint, 0.09) : 'transparent',
                       },
                     ]}
                     onPress={() => setStartTime(time)}
@@ -233,7 +233,7 @@ export default function EditTemplateScreen() {
                       styles.timeOption,
                       {
                         borderColor: endTime === time ? palette.tint : palette.border,
-                        backgroundColor: endTime === time ? `${palette.tint}15` : 'transparent',
+                        backgroundColor: endTime === time ? withAlpha(palette.tint, 0.09) : 'transparent',
                       },
                     ]}
                     onPress={() => setEndTime(time)}
@@ -267,7 +267,7 @@ export default function EditTemplateScreen() {
                   ]}
                   onPress={() => setMaxSlots(num)}
                 >
-                  <ThemedText style={{ color: maxSlots === num ? '#fff' : palette.text }}>
+                  <ThemedText style={{ color: maxSlots === num ? Colors.light.onPrimary : palette.text }}>
                     {num}
                   </ThemedText>
                 </Pressable>
@@ -290,7 +290,7 @@ export default function EditTemplateScreen() {
                   ]}
                   onPress={() => setBufferMinutes(mins)}
                 >
-                  <ThemedText style={{ color: bufferMinutes === mins ? '#fff' : palette.text }}>
+                  <ThemedText style={{ color: bufferMinutes === mins ? Colors.light.onPrimary : palette.text }}>
                     {mins === 0 ? 'None' : `${mins}m`}
                   </ThemedText>
                 </Pressable>
@@ -319,10 +319,10 @@ export default function EditTemplateScreen() {
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={22} color="#fff" />
+              <Ionicons name="checkmark-circle" size={22} color={Colors.light.onPrimary} />
               <ThemedText style={styles.saveButtonText}>Save Changes</ThemedText>
             </>
           )}
@@ -345,9 +345,9 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
-  dayButtonText: { fontSize: 14, fontWeight: '600' },
+  dayButtonText: { ...Typography.bodySmallSemiBold },
   timeRow: { marginTop: Spacing.sm, gap: 8 },
-  label: { fontSize: 13, fontWeight: '500' },
+  label: { ...Typography.smallSemiBold },
   timeOptions: { flexDirection: 'row', gap: Spacing.xs },
   timeOption: {
     paddingHorizontal: Spacing.md,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
-  deleteButtonText: { fontSize: 15, fontWeight: '600' },
+  deleteButtonText: { ...Typography.bodySemiBold },
   footer: { padding: Spacing.md, borderTopWidth: 1 },
   saveButton: {
     flexDirection: 'row',
@@ -384,5 +384,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },
-  saveButtonText: { color: '#fff', fontSize: 17, fontWeight: '700' },
+  saveButtonText: { color: Colors.light.onPrimary, ...Typography.heading },
 });

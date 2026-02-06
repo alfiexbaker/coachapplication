@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { VerificationStatus } from '@/constants/types';
 
@@ -51,26 +51,20 @@ const LEVEL_CONFIG: Record<
 
 const SIZE_CONFIG = {
   small: {
+    ...Typography.caption,
     iconSize: 14,
-    fontSize: 11,
     paddingH: Spacing.xs,
     paddingV: 3,
-    gap: 3,
+    gap: Spacing.micro,
   },
-  medium: {
-    iconSize: 16,
-    fontSize: 12,
+  medium: { ...Typography.caption, iconSize: 16,
     paddingH: Spacing.sm,
     paddingV: Spacing.xs / 2,
-    gap: Spacing.xs / 2,
-  },
-  large: {
-    iconSize: 20,
-    fontSize: 14,
+    gap: Spacing.xs / 2 },
+  large: { ...Typography.bodySmall, iconSize: 20,
     paddingH: Spacing.sm,
     paddingV: Spacing.xs,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
 };
 
 export function VerificationBadge({
@@ -89,14 +83,14 @@ export function VerificationBadge({
       style={[
         styles.container,
         {
-          backgroundColor: `${color}15`,
+          backgroundColor: withAlpha(color, 0.09),
           paddingHorizontal: sizeConfig.paddingH,
           paddingVertical: sizeConfig.paddingV,
           gap: sizeConfig.gap,
         },
       ]}
     >
-      <Ionicons name={config.icon as any} size={sizeConfig.iconSize} color={color} />
+      <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={sizeConfig.iconSize} color={color} />
       {showLabel && (
         <ThemedText
           style={[
@@ -133,7 +127,7 @@ export function VerificationIcon({
     return null;
   }
 
-  return <Ionicons name={config.icon as any} size={size} color={color} />;
+  return <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={size} color={color} />;
 }
 
 /**
@@ -207,10 +201,8 @@ const styles = StyleSheet.create({
   statusItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     minWidth: 90,
   },
-  statusItemLabel: {
-    fontSize: 13,
-  },
+  statusItemLabel: { ...Typography.small },
 });

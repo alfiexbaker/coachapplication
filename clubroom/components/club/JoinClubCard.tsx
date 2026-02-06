@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface JoinClubCardProps {
@@ -20,17 +22,17 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
   const [joinCode, setJoinCode] = useState('');
 
   const handleCreateClub = () => {
-    router.push('/club/create');
+    router.push(Routes.CLUB_CREATE);
   };
 
   return (
     <SurfaceCard style={styles.joinCard}>
       <View style={styles.joinHeader}>
-        <View style={[styles.clubAvatar, { backgroundColor: `${palette.tint}10` }]}>
+        <View style={[styles.clubAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <Ionicons name="people" size={24} color={palette.tint} />
         </View>
         <View style={{ flex: 1 }}>
-          <ThemedText type="title" style={{ fontSize: 20 }}>
+          <ThemedText type="title" style={{ ...Typography.title }}>
             {isCoach ? 'Join or Create a Club' : 'Join a Club'}
           </ThemedText>
           <ThemedText style={{ color: palette.muted }}>
@@ -60,11 +62,12 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
 
       {isCoach && (
         <>
-          <View style={[styles.divider, { backgroundColor: palette.border }]}>
+          <View style={styles.dividerWrapper}>
+            <Divider />
             <ThemedText style={[styles.dividerText, { backgroundColor: palette.surface, color: palette.muted }]}>or</ThemedText>
           </View>
           <TouchableOpacity
-            style={[styles.createButton, { backgroundColor: `${palette.tint}10`, borderColor: palette.tint }]}
+            style={[styles.createButton, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }]}
             onPress={handleCreateClub}
           >
             <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
@@ -88,7 +91,7 @@ const styles = StyleSheet.create({
   clubAvatar: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -97,14 +100,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     alignItems: 'center',
   },
-  input: {
-    flex: 1,
+  input: { ...Typography.body, flex: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 15,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   primaryButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.light.onPrimary,
   },
   secondaryButton: {
     paddingVertical: Spacing.sm,
@@ -129,16 +129,16 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
-  divider: {
-    height: 1,
+  dividerWrapper: {
     position: 'relative',
+    justifyContent: 'center',
   },
   dividerText: {
+    ...Typography.caption,
     position: 'absolute',
     top: -8,
     left: '50%',
     transform: [{ translateX: -10 }],
-    paddingHorizontal: Spacing.sm,
-    fontSize: 12,
+    paddingHorizontal: Spacing.sm
   },
 });

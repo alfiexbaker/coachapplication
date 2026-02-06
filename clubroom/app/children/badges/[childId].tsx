@@ -8,7 +8,7 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, formatDate } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
@@ -122,7 +122,7 @@ export default function ChildBadgesScreen() {
         <Animated.View entering={FadeInDown.delay(50).springify()}>
           <SurfaceCard style={styles.levelCard}>
             <View style={styles.levelHeader}>
-              <View style={[styles.levelBadge, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.levelBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="trophy" size={24} color={palette.tint} />
               </View>
               <View style={styles.levelInfo}>
@@ -145,7 +145,7 @@ export default function ChildBadgesScreen() {
                     {progressionData.pointsToNext} pts to go
                   </ThemedText>
                 </View>
-                <View style={[styles.progressBar, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.progressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <View
                     style={[
                       styles.progressFill,
@@ -187,13 +187,13 @@ export default function ChildBadgesScreen() {
               <SurfaceCard
                 style={[
                   styles.badgeCard,
-                  highlightBadge === award.id ? { borderColor: '#F59E0B', borderWidth: 2 } : undefined,
-                  isRecent(award.awardedAt) && !award.seenByParent ? { backgroundColor: '#F59E0B08' } : undefined,
+                  highlightBadge === award.id ? { borderColor: palette.warning, borderWidth: 2 } : undefined,
+                  isRecent(award.awardedAt) && !award.seenByParent ? { backgroundColor: withAlpha(palette.warning, 0.03) } : undefined,
                 ]}
               >
                 {/* Badge Header */}
                 <View style={styles.badgeHeader}>
-                  <View style={[styles.badgeIcon, { backgroundColor: `${getTierColor(award.badgeTier)}20` }]}>
+                  <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getTierColor(award.badgeTier), 0.12) }]}>
                     <Ionicons name="ribbon" size={24} color={getTierColor(award.badgeTier)} />
                   </View>
                   <View style={styles.badgeInfo}>
@@ -202,21 +202,21 @@ export default function ChildBadgesScreen() {
                         {award.badgeLabel}
                       </ThemedText>
                       {isRecent(award.awardedAt) && (
-                        <View style={[styles.recentPill, { backgroundColor: '#F59E0B' }]}>
+                        <View style={[styles.recentPill, { backgroundColor: palette.warning }]}>
                           <ThemedText style={styles.recentPillText}>Recent</ThemedText>
                         </View>
                       )}
                     </View>
                     <View style={styles.badgeMeta}>
                       {award.badgeTier && (
-                        <View style={[styles.tierPill, { backgroundColor: `${getTierColor(award.badgeTier)}20` }]}>
+                        <View style={[styles.tierPill, { backgroundColor: withAlpha(getTierColor(award.badgeTier), 0.12) }]}>
                           <ThemedText style={[styles.tierText, { color: getTierColor(award.badgeTier) }]}>
                             {TierNames[award.badgeTier]}
                           </ThemedText>
                         </View>
                       )}
                       {award.badgeCategory && (
-                        <View style={[styles.categoryPill, { backgroundColor: `${palette.tint}12` }]}>
+                        <View style={[styles.categoryPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                           <Ionicons name={getCategoryIcon(award.badgeCategory)} size={12} color={palette.tint} />
                           <ThemedText style={[styles.categoryText, { color: palette.tint }]}>
                             {CategoryInfo[award.badgeCategory].label}
@@ -242,7 +242,7 @@ export default function ChildBadgesScreen() {
 
                 {/* Coach Note */}
                 {award.note && (
-                  <View style={[styles.noteSection, { backgroundColor: `${palette.tint}08`, borderColor: `${palette.tint}20` }]}>
+                  <View style={[styles.noteSection, { backgroundColor: withAlpha(palette.tint, 0.03), borderColor: withAlpha(palette.tint, 0.12) }]}>
                     <View style={styles.noteLabelRow}>
                       <Ionicons name="chatbubble" size={14} color={palette.tint} />
                       <ThemedText type="defaultSemiBold" style={[styles.noteLabel, { color: palette.tint }]}>
@@ -277,12 +277,12 @@ export default function ChildBadgesScreen() {
                     }}
                     style={[styles.shareButton, { backgroundColor: palette.tint }]}
                   >
-                    <Ionicons name="share-social" size={16} color="#FFFFFF" />
+                    <Ionicons name="share-social" size={16} color={palette.onPrimary} />
                     <ThemedText style={styles.shareButtonText}>Share to Feed</ThemedText>
                   </Clickable>
                 )}
                 {award.shared && (
-                  <View style={[styles.sharedIndicator, { backgroundColor: `${palette.success}15` }]}>
+                  <View style={[styles.sharedIndicator, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <Ionicons name="checkmark-circle" size={14} color={palette.success} />
                     <ThemedText style={[styles.sharedText, { color: palette.success }]}>
                       Shared to feed
@@ -309,13 +309,13 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   headerTitle: {
-    fontSize: 20,
+    ...Typography.title,
   },
   headerSubtitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   levelCard: {
     padding: Spacing.md,
@@ -329,19 +329,19 @@ const styles = StyleSheet.create({
   levelBadge: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   levelInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   levelName: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   levelPoints: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   progressSection: {
     gap: Spacing.xs,
@@ -352,20 +352,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   progressValue: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   progressBar: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   emptyCard: {
     padding: Spacing.xl,
@@ -375,10 +374,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   emptyTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
     maxWidth: 280,
   },
@@ -397,7 +396,7 @@ const styles = StyleSheet.create({
   badgeIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -412,17 +411,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   badgeLabel: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   recentPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
   recentPillText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.micro,
   },
   badgeMeta: {
     flexDirection: 'row',
@@ -431,41 +429,37 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   tierPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
   tierText: {
-    fontSize: 10,
-    fontWeight: '700',
+    ...Typography.micro,
   },
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
   categoryText: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...Typography.micro,
   },
   pointsText: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...Typography.caption,
   },
   reasonSection: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   reasonLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   reasonText: {
-    fontSize: 15,
-    lineHeight: 22,
+    ...Typography.body,
   },
   noteSection: {
     padding: Spacing.sm,
@@ -479,11 +473,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   noteLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   noteText: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
     fontStyle: 'italic',
   },
   badgeFooter: {
@@ -499,10 +492,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   coachText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   dateText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   shareButton: {
     flexDirection: 'row',
@@ -513,9 +506,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   shareButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
+    color: Colors.light.onPrimary,
+    ...Typography.bodySmallSemiBold,
   },
   sharedIndicator: {
     flexDirection: 'row',
@@ -526,7 +518,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   sharedText: {
-    fontWeight: '600',
-    fontSize: 13,
+    ...Typography.smallSemiBold,
   },
 });

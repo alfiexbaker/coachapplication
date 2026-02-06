@@ -10,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { ClubEvent, RSVPStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -144,31 +144,31 @@ export default function EventDetailScreen() {
             onPress={() => router.back()}
             style={[styles.backButton, { backgroundColor: event.imageUrl ? 'rgba(0,0,0,0.4)' : palette.surface }]}
           >
-            <Ionicons name="arrow-back" size={24} color={event.imageUrl ? '#FFFFFF' : palette.text} />
+            <Ionicons name="arrow-back" size={24} color={event.imageUrl ? Colors.light.onPrimary : palette.text} />
           </Clickable>
         </View>
 
         <View style={styles.content}>
           {/* Type badge and status */}
           <View style={styles.badgeRow}>
-            <View style={[styles.typeBadge, { backgroundColor: `${typeColor}20` }]}>
-              <Ionicons name={typeIcon as any} size={16} color={typeColor} />
+            <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
+              <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={16} color={typeColor} />
               <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
                 {eventService.formatEventType(event.eventType)}
               </ThemedText>
             </View>
             {event.status === 'DRAFT' && (
-              <View style={[styles.statusBadge, { backgroundColor: `${palette.warning}15` }]}>
+              <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <ThemedText style={[styles.statusText, { color: palette.warning }]}>DRAFT</ThemedText>
               </View>
             )}
             {event.status === 'CANCELLED' && (
-              <View style={[styles.statusBadge, { backgroundColor: `${palette.error}15` }]}>
+              <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <ThemedText style={[styles.statusText, { color: palette.error }]}>CANCELLED</ThemedText>
               </View>
             )}
             {event.isVirtual && (
-              <View style={[styles.virtualBadge, { backgroundColor: `${palette.accent}15` }]}>
+              <View style={[styles.virtualBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
                 <Ionicons name="videocam" size={14} color={palette.accent} />
                 <ThemedText style={[styles.virtualText, { color: palette.accent }]}>Virtual</ThemedText>
               </View>
@@ -189,7 +189,7 @@ export default function EventDetailScreen() {
           <View style={styles.detailsSection}>
             <SurfaceCard style={styles.detailCard}>
               <View style={styles.detailRow}>
-                <View style={[styles.detailIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="calendar" size={20} color={palette.tint} />
                 </View>
                 <View style={styles.detailContent}>
@@ -205,7 +205,7 @@ export default function EventDetailScreen() {
 
             <SurfaceCard style={styles.detailCard}>
               <View style={styles.detailRow}>
-                <View style={[styles.detailIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="location" size={20} color={palette.tint} />
                 </View>
                 <View style={styles.detailContent}>
@@ -230,7 +230,7 @@ export default function EventDetailScreen() {
             {event.price > 0 && (
               <SurfaceCard style={styles.detailCard}>
                 <View style={styles.detailRow}>
-                  <View style={[styles.detailIcon, { backgroundColor: `${palette.success}15` }]}>
+                  <View style={[styles.detailIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <Ionicons name="cash" size={20} color={palette.success} />
                   </View>
                   <View style={styles.detailContent}>
@@ -301,19 +301,19 @@ export default function EventDetailScreen() {
             </Clickable>
 
             <View style={styles.attendanceStats}>
-              <View style={[styles.statBox, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.statBox, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <ThemedText style={[styles.statNumber, { color: palette.success }]}>
                   {going}
                 </ThemedText>
                 <ThemedText style={[styles.statLabel, { color: palette.success }]}>Going</ThemedText>
               </View>
-              <View style={[styles.statBox, { backgroundColor: `${palette.warning}15` }]}>
+              <View style={[styles.statBox, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <ThemedText style={[styles.statNumber, { color: palette.warning }]}>
                   {maybe}
                 </ThemedText>
                 <ThemedText style={[styles.statLabel, { color: palette.warning }]}>Maybe</ThemedText>
               </View>
-              <View style={[styles.statBox, { backgroundColor: `${palette.error}15` }]}>
+              <View style={[styles.statBox, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <ThemedText style={[styles.statNumber, { color: palette.error }]}>
                   {notGoing}
                 </ThemedText>
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -423,14 +423,13 @@ const styles = StyleSheet.create({
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   typeBadgeText: {
-    fontSize: scaleFont(13),
-    fontWeight: '600',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -438,28 +437,26 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   statusText: {
-    fontSize: scaleFont(11),
-    fontWeight: '700',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
     letterSpacing: 0.5,
   },
   virtualBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radii.sm,
   },
   virtualText: {
-    fontSize: scaleFont(12),
-    fontWeight: '600',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   title: {
-    fontSize: scaleFont(26),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
     lineHeight: scaleFont(32),
   },
   clubName: {
-    fontSize: scaleFont(14),
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
     marginTop: -Spacing.sm,
   },
   detailsSection: {
@@ -477,7 +474,7 @@ const styles = StyleSheet.create({
   detailIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -485,31 +482,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   detailSubtext: {
-    fontSize: scaleFont(13),
-    marginTop: 2,
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
+    marginTop: Spacing.micro,
   },
   linkButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1,
     marginTop: Spacing.xs,
   },
   linkText: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   section: {
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: scaleFont(16),
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
   },
   description: {
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(23),
   },
   audienceBadge: {
@@ -522,7 +518,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   rsvpDeadline: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
     marginTop: -Spacing.xs,
   },
   attendanceHeader: {
@@ -541,12 +537,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   statNumber: {
-    fontSize: scaleFont(20),
-    fontWeight: '700',
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
   },
   statLabel: {
-    fontSize: scaleFont(12),
-    fontWeight: '500',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   attendeeList: {
     marginTop: Spacing.sm,
@@ -561,24 +555,23 @@ const styles = StyleSheet.create({
   attendeeAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   attendeeInitial: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   attendeeInfo: {
     flex: 1,
   },
   guestCount: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   actionSection: {
     marginTop: Spacing.md,

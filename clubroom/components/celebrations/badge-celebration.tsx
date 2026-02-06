@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Components, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Components, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { Confetti } from './confetti';
@@ -80,7 +80,7 @@ export function BadgeCelebration({
           ]}
         >
           {/* Trophy icon */}
-          <View style={[styles.iconCircle, { backgroundColor: `${palette.warning}15` }]}>
+          <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
             <Ionicons name="trophy" size={48} color={palette.warning} />
           </View>
 
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,

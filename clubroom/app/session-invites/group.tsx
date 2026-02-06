@@ -9,8 +9,9 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { DateTimeField } from '@/components/ui/primitives';
 import { InviteAthleteModal, type Athlete, type Squad } from '@/components/coach/invite-athlete-modal';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite';
@@ -71,7 +72,7 @@ export default function GroupInviteScreen() {
     if (!currentUser?.id) return;
     try {
       // Get coach's club ID - default to 'club_premier' for now
-      const clubId = (currentUser as any).clubId || 'club_premier';
+      const clubId = (currentUser as unknown as Record<string, string>).clubId || 'club_premier';
       const clubSquads = await squadService.getCoachSquads(currentUser.id, clubId);
       // Map to Squad format expected by InviteAthleteModal
       setSquads(clubSquads.map((s) => ({ id: s.id, name: s.name })));
@@ -245,7 +246,7 @@ export default function GroupInviteScreen() {
                 },
               ]}
             >
-              {index < currentIndex && <Ionicons name="checkmark" size={12} color="#fff" />}
+              {index < currentIndex && <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />}
             </View>
             {index < steps.length - 1 && (
               <View
@@ -276,12 +277,12 @@ export default function GroupInviteScreen() {
           style={[
             styles.targetCard,
             {
-              backgroundColor: targetType === 'individual' ? `${palette.tint}10` : palette.surface,
+              backgroundColor: targetType === 'individual' ? withAlpha(palette.tint, 0.06) : palette.surface,
               borderColor: targetType === 'individual' ? palette.tint : palette.border,
             },
           ]}
         >
-          <View style={[styles.targetIcon, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.targetIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="person" size={24} color={palette.tint} />
           </View>
           <View style={styles.targetInfo}>
@@ -300,12 +301,12 @@ export default function GroupInviteScreen() {
           style={[
             styles.targetCard,
             {
-              backgroundColor: targetType === 'squad' ? `${palette.tint}10` : palette.surface,
+              backgroundColor: targetType === 'squad' ? withAlpha(palette.tint, 0.06) : palette.surface,
               borderColor: targetType === 'squad' ? palette.tint : palette.border,
             },
           ]}
         >
-          <View style={[styles.targetIcon, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.targetIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="people" size={24} color={palette.tint} />
           </View>
           <View style={styles.targetInfo}>
@@ -322,12 +323,12 @@ export default function GroupInviteScreen() {
           style={[
             styles.targetCard,
             {
-              backgroundColor: targetType === 'custom' ? `${palette.tint}10` : palette.surface,
+              backgroundColor: targetType === 'custom' ? withAlpha(palette.tint, 0.06) : palette.surface,
               borderColor: targetType === 'custom' ? palette.tint : palette.border,
             },
           ]}
         >
-          <View style={[styles.targetIcon, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.targetIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="filter" size={24} color={palette.tint} />
           </View>
           <View style={styles.targetInfo}>
@@ -352,7 +353,7 @@ export default function GroupInviteScreen() {
                 style={[
                   styles.squadItem,
                   {
-                    backgroundColor: selectedSquadId === squad.id ? `${palette.tint}10` : palette.surface,
+                    backgroundColor: selectedSquadId === squad.id ? withAlpha(palette.tint, 0.06) : palette.surface,
                     borderColor: selectedSquadId === squad.id ? palette.tint : palette.border,
                   },
                 ]}
@@ -377,7 +378,7 @@ export default function GroupInviteScreen() {
       </ThemedText>
 
       {/* Selected athletes summary */}
-      <View style={[styles.athletesSummary, { backgroundColor: `${palette.tint}10` }]}>
+      <View style={[styles.athletesSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
         <Ionicons name="people" size={18} color={palette.tint} />
         <ThemedText style={{ color: palette.tint, flex: 1 }}>
           {selectedAthletes.length} athlete{selectedAthletes.length !== 1 ? 's' : ''} selected
@@ -403,7 +404,7 @@ export default function GroupInviteScreen() {
               ]}
             >
               <ThemedText
-                style={{ color: sessionType === type ? '#fff' : palette.text, fontSize: 13 }}
+                style={{ color: sessionType === type ? Colors.light.onPrimary : palette.text, ...Typography.small }}
               >
                 {type}
               </ThemedText>
@@ -427,7 +428,7 @@ export default function GroupInviteScreen() {
                 },
               ]}
             >
-              <ThemedText style={{ color: focus === f ? '#fff' : palette.text, fontSize: 13 }}>
+              <ThemedText style={{ color: focus === f ? Colors.light.onPrimary : palette.text, ...Typography.small }}>
                 {f}
               </ThemedText>
             </Clickable>
@@ -473,38 +474,28 @@ export default function GroupInviteScreen() {
 
       <SurfaceCard style={styles.addSlotCard}>
         <View style={styles.slotFormRow}>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>Date</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="2026-01-15"
-              placeholderTextColor={palette.muted}
-              value={slotDate}
-              onChangeText={setSlotDate}
-            />
-          </View>
+          <DateTimeField
+            mode="date"
+            label="Date"
+            value={slotDate}
+            onChange={setSlotDate}
+          />
         </View>
         <View style={styles.slotFormRow}>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>Start</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="16:00"
-              placeholderTextColor={palette.muted}
-              value={slotStartTime}
-              onChangeText={setSlotStartTime}
-            />
-          </View>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>End</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="17:00"
-              placeholderTextColor={palette.muted}
-              value={slotEndTime}
-              onChangeText={setSlotEndTime}
-            />
-          </View>
+          <DateTimeField
+            mode="time"
+            label="Start"
+            value={slotStartTime}
+            onChange={setSlotStartTime}
+            style={{ flex: 1 }}
+          />
+          <DateTimeField
+            mode="time"
+            label="End"
+            value={slotEndTime}
+            onChange={setSlotEndTime}
+            style={{ flex: 1 }}
+          />
         </View>
         <View style={styles.slotFormRow}>
           <View style={[styles.slotInput, { flex: 1 }]}>
@@ -522,8 +513,8 @@ export default function GroupInviteScreen() {
           onPress={addTimeSlot}
           style={[styles.addSlotButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={18} color="#fff" />
-          <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Add Time Slot</ThemedText>
+          <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
+          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Add Time Slot</ThemedText>
         </Clickable>
       </SurfaceCard>
 
@@ -580,7 +571,7 @@ export default function GroupInviteScreen() {
             <ThemedText type="title" style={{ color: palette.tint }}>
               {parentMap.size}
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
               Invite{parentMap.size !== 1 ? 's' : ''}
             </ThemedText>
           </View>
@@ -588,7 +579,7 @@ export default function GroupInviteScreen() {
             <ThemedText type="title" style={{ color: palette.tint }}>
               {selectedAthletes.length}
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
               Athlete{selectedAthletes.length !== 1 ? 's' : ''}
             </ThemedText>
           </View>
@@ -610,9 +601,9 @@ export default function GroupInviteScreen() {
                 {athletes.map((athlete) => (
                   <View key={athlete.id} style={styles.previewAthlete}>
                     <View style={[styles.previewDot, { backgroundColor: palette.tint }]} />
-                    <ThemedText style={{ fontSize: 13 }}>{athlete.name}</ThemedText>
+                    <ThemedText style={{ ...Typography.small }}>{athlete.name}</ThemedText>
                     {athlete.age && (
-                      <ThemedText style={{ fontSize: 12, color: palette.muted }}>
+                      <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
                         (Age {athlete.age})
                       </ThemedText>
                     )}
@@ -648,7 +639,7 @@ export default function GroupInviteScreen() {
   const renderConfirmStep = () => (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
       <View style={styles.confirmContent}>
-        <View style={[styles.confirmIcon, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.confirmIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="paper-plane" size={48} color={palette.tint} />
         </View>
         <ThemedText type="subtitle" style={styles.confirmTitle}>
@@ -694,8 +685,8 @@ export default function GroupInviteScreen() {
             disabled={loading}
             style={[styles.nextButton, { backgroundColor: palette.tint, opacity: loading ? 0.6 : 1 }]}
           >
-            <Ionicons name="paper-plane" size={18} color="#fff" />
-            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>
+            <Ionicons name="paper-plane" size={18} color={Colors.light.onPrimary} />
+            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>
               {loading ? 'Sending...' : `Send ${Array.from(new Set(selectedAthletes.map((a) => a.parentId))).length} Invite${Array.from(new Set(selectedAthletes.map((a) => a.parentId))).length !== 1 ? 's' : ''}`}
             </ThemedText>
           </Clickable>
@@ -708,8 +699,8 @@ export default function GroupInviteScreen() {
               { backgroundColor: palette.tint, opacity: canProceed() ? 1 : 0.5 },
             ]}
           >
-            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Continue</ThemedText>
-            <Ionicons name="arrow-forward" size={18} color="#fff" />
+            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+            <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -752,14 +743,14 @@ const styles = StyleSheet.create({
   stepDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepLine: {
     width: 40,
     height: 2,
-    marginHorizontal: 4,
+    marginHorizontal: Spacing.xxs,
   },
   content: {
     padding: Spacing.lg,
@@ -770,10 +761,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   stepTitle: {
-    fontSize: 20,
+    ...Typography.title,
   },
   stepDescription: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     marginBottom: Spacing.sm,
   },
   targetOptions: {
@@ -790,7 +781,7 @@ const styles = StyleSheet.create({
   targetIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -798,8 +789,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   targetDescription: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   squadSelector: {
     marginTop: Spacing.md,
@@ -828,9 +819,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   formLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...Typography.bodySmallSemiBold,
+    marginBottom: Spacing.xxs,
   },
   optionsRow: {
     flexDirection: 'row',
@@ -848,14 +838,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   textArea: {
     height: 80,
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     textAlignVertical: 'top',
   },
   addSlotCard: {
@@ -868,11 +858,10 @@ const styles = StyleSheet.create({
   },
   slotInput: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   inputLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   addSlotButton: {
     flexDirection: 'row',
@@ -896,7 +885,7 @@ const styles = StyleSheet.create({
   },
   slotInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   previewStats: {
     flexDirection: 'row',
@@ -924,7 +913,7 @@ const styles = StyleSheet.create({
   },
   previewAthletes: {
     paddingLeft: Spacing.lg,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   previewAthlete: {
     flexDirection: 'row',
@@ -934,7 +923,7 @@ const styles = StyleSheet.create({
   previewDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   summaryCard: {
     padding: Spacing.md,
@@ -952,7 +941,7 @@ const styles = StyleSheet.create({
   confirmIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
@@ -966,7 +955,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   disclaimer: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
     paddingHorizontal: Spacing.lg,
   },

@@ -16,12 +16,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubFeedService } from '@/services/social-feed-service';
 import { getClubById, getClubMembershipForUser, clubSquads } from '@/constants/mock-data';
-import type { ClubPostType } from '@/constants/types';
+import type { ClubPostType, FeedType } from '@/constants/types';
 
 type PostTypeOption = {
   key: ClubPostType;
@@ -47,6 +47,9 @@ export default function CreateClubPostScreen() {
   const membership = currentUser ? getClubMembershipForUser(currentUser.id) : undefined;
   const canPostAsClub = membership?.canPostAsClub || ['OWNER', 'ADMIN', 'HEAD_COACH'].includes(membership?.role || '');
 
+  // Check if current user is a coach
+  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
+
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [postType, setPostType] = useState<ClubPostType>('general');
@@ -55,6 +58,10 @@ export default function CreateClubPostScreen() {
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [eventLocation, setEventLocation] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Feed type: where the post is published (personal / club / both)
+  // Default to PERSONAL for coaches, CLUB for everyone else
+  const [feedType, setFeedType] = useState<FeedType>(isCoach ? 'PERSONAL' : 'CLUB');
 
   // Audience targeting state
   const [audienceType, setAudienceType] = useState<'club' | 'squad'>('club');
@@ -105,6 +112,7 @@ export default function CreateClubPostScreen() {
       body: body.trim(),
       postType,
       postAs,
+      feedType,
       audience,
       audienceLabel: finalAudienceLabel,
       squadId: audienceType === 'squad' ? selectedSquadId || undefined : undefined,
@@ -152,15 +160,82 @@ export default function CreateClubPostScreen() {
         >
           {/* Club indicator */}
           {club && (
-            <View style={[styles.clubIndicator, { backgroundColor: `${palette.tint}10` }]}>
+            <View style={[styles.clubIndicator, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
               <View style={[styles.clubBadge, { backgroundColor: palette.tint }]}>
                 <ThemedText style={styles.clubBadgeText}>{club.name.slice(0, 2).toUpperCase()}</ThemedText>
               </View>
               <View style={{ flex: 1 }}>
                 <ThemedText type="defaultSemiBold">{club.name}</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
-                  Posting to {audienceLabel}
+                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
+                  Posting to {feedType === 'PERSONAL' ? 'Personal Feed' : feedType === 'BOTH' ? `Personal + ${club.name}` : audienceLabel}
                 </ThemedText>
+              </View>
+            </View>
+          )}
+
+          {/* Feed type selector (coaches only) */}
+          {isCoach && (
+            <View style={styles.section}>
+              <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
+              <View style={styles.feedTypeSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.feedTypeOption,
+                    { borderColor: feedType === 'PERSONAL' ? palette.success : palette.border },
+                    feedType === 'PERSONAL' ? { backgroundColor: withAlpha(palette.success, 0.06) } : undefined,
+                  ]}
+                  onPress={() => setFeedType('PERSONAL')}
+                >
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={18}
+                    color={feedType === 'PERSONAL' ? palette.success : palette.muted}
+                  />
+                  <ThemedText style={{ color: feedType === 'PERSONAL' ? palette.success : palette.text, ...Typography.smallSemiBold }}>
+                    My Personal Feed
+                  </ThemedText>
+                </TouchableOpacity>
+                {club && (
+                  <TouchableOpacity
+                    style={[
+                      styles.feedTypeOption,
+                      { borderColor: feedType === 'CLUB' ? palette.tint : palette.border },
+                      feedType === 'CLUB' ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined,
+                    ]}
+                    onPress={() => setFeedType('CLUB')}
+                  >
+                    <Ionicons
+                      name="shield-outline"
+                      size={18}
+                      color={feedType === 'CLUB' ? palette.tint : palette.muted}
+                    />
+                    <ThemedText
+                      style={{ color: feedType === 'CLUB' ? palette.tint : palette.text, ...Typography.smallSemiBold }}
+                      numberOfLines={1}
+                    >
+                      {club.name}
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
+                {club && (
+                  <TouchableOpacity
+                    style={[
+                      styles.feedTypeOption,
+                      { borderColor: feedType === 'BOTH' ? palette.warning : palette.border },
+                      feedType === 'BOTH' ? { backgroundColor: withAlpha(palette.warning, 0.06) } : undefined,
+                    ]}
+                    onPress={() => setFeedType('BOTH')}
+                  >
+                    <Ionicons
+                      name="globe-outline"
+                      size={18}
+                      color={feedType === 'BOTH' ? palette.warning : palette.muted}
+                    />
+                    <ThemedText style={{ color: feedType === 'BOTH' ? palette.warning : palette.text, ...Typography.smallSemiBold }}>
+                      Both
+                    </ThemedText>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
@@ -175,12 +250,12 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.typeOption,
                     { borderColor: postType === type.key ? palette.tint : palette.border },
-                    postType === type.key ? { backgroundColor: `${palette.tint}10` } : undefined
+                    postType === type.key ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined
                   ]}
                   onPress={() => setPostType(type.key)}
                 >
                   <Ionicons
-                    name={type.icon as any}
+                    name={type.icon as keyof typeof Ionicons.glyphMap}
                     size={20}
                     color={postType === type.key ? palette.tint : palette.muted}
                   />
@@ -206,7 +281,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.postAsOption,
                     { borderColor: postAs === 'self' ? palette.tint : palette.border },
-                    postAs === 'self' ? { backgroundColor: `${palette.tint}10` } : undefined
+                    postAs === 'self' ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined
                   ]}
                   onPress={() => setPostAs('self')}
                 >
@@ -223,7 +298,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.postAsOption,
                     { borderColor: postAs === 'club' ? palette.tint : palette.border },
-                    postAs === 'club' ? { backgroundColor: `${palette.tint}10` } : undefined
+                    postAs === 'club' ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined
                   ]}
                   onPress={() => setPostAs('club')}
                 >
@@ -249,7 +324,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.audienceOption,
                     { borderColor: audienceType === 'club' ? palette.tint : palette.border },
-                    audienceType === 'club' ? { backgroundColor: `${palette.tint}10` } : undefined
+                    audienceType === 'club' ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined
                   ]}
                   onPress={() => {
                     setAudienceType('club');
@@ -269,7 +344,7 @@ export default function CreateClubPostScreen() {
                   style={[
                     styles.audienceOption,
                     { borderColor: audienceType === 'squad' ? palette.tint : palette.border },
-                    audienceType === 'squad' ? { backgroundColor: `${palette.tint}10` } : undefined
+                    audienceType === 'squad' ? { backgroundColor: withAlpha(palette.tint, 0.06) } : undefined
                   ]}
                   onPress={() => setAudienceType('squad')}
                 >
@@ -295,19 +370,19 @@ export default function CreateClubPostScreen() {
                           styles.squadOption,
                           {
                             borderColor: selectedSquadId === squad.id ? palette.success : palette.border,
-                            backgroundColor: selectedSquadId === squad.id ? `${palette.success}10` : palette.surface,
+                            backgroundColor: selectedSquadId === squad.id ? withAlpha(palette.success, 0.06) : palette.surface,
                           }
                         ]}
                         onPress={() => setSelectedSquadId(squad.id)}
                       >
                         <View style={[styles.squadBadge, { backgroundColor: selectedSquadId === squad.id ? palette.success : palette.muted }]}>
-                          <ThemedText style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                          <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.micro }}>
                             {squad.name.slice(0, 2).toUpperCase()}
                           </ThemedText>
                         </View>
                         <View style={{ flex: 1 }}>
-                          <ThemedText style={{ fontWeight: '600', fontSize: 13 }}>{squad.name}</ThemedText>
-                          <ThemedText style={{ color: palette.muted, fontSize: 11 }}>{squad.memberCount} members</ThemedText>
+                          <ThemedText style={{ ...Typography.smallSemiBold }}>{squad.name}</ThemedText>
+                          <ThemedText style={{ color: palette.muted, ...Typography.caption }}>{squad.memberCount} members</ThemedText>
                         </View>
                         {selectedSquadId === squad.id && (
                           <Ionicons name="checkmark-circle" size={18} color={palette.success} />
@@ -457,9 +532,8 @@ const styles = StyleSheet.create({
     minWidth: 64,
   },
   postButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
+    ...Typography.bodySmallSemiBold,
+    color: Colors.light.onPrimary,
     textAlign: 'center',
   },
   scrollView: {
@@ -480,22 +554,20 @@ const styles = StyleSheet.create({
   clubBadge: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clubBadgeText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
+    color: Colors.light.onPrimary,
+    ...Typography.bodySmallSemiBold,
   },
   section: {
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
     marginBottom: Spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -514,8 +586,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   typeLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
+  },
+  feedTypeSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  feedTypeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
   },
   postAsSelector: {
     flexDirection: 'row',
@@ -532,14 +617,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   titleInput: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
   },
   bodyInput: {
-    fontSize: 16,
-    lineHeight: 24,
+    ...Typography.subheading,
     minHeight: 120,
     textAlignVertical: 'top',
   },
@@ -559,7 +642,7 @@ const styles = StyleSheet.create({
     right: Spacing.xs,
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -586,7 +669,7 @@ const styles = StyleSheet.create({
   },
   eventInput: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
   },
   charCountContainer: {
     paddingHorizontal: Spacing.md,
@@ -594,8 +677,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   charCount: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   toolbar: {
     flexDirection: 'row',
@@ -607,7 +689,7 @@ const styles = StyleSheet.create({
   toolbarButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -649,7 +731,7 @@ const styles = StyleSheet.create({
   squadBadge: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -3,6 +3,7 @@ import { Alert, ScrollView, StyleSheet, View, ActivityIndicator } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { AthletePicker } from '@/components/ui/booking/AthletePicker';
 import { createLogger } from '@/utils/logger';
@@ -19,7 +20,7 @@ import {
   formatServicePrice,
   resolveCoachAndProfile,
 } from '@/constants/booking-types';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useBookingPersona } from '@/hooks/use-booking-persona';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -227,22 +228,19 @@ export default function BookCoachScreen() {
       ? selectedAthleteIds
       : userId ? [userId] : [];
 
-    router.push({
-      pathname: '/confirm-booking',
-      params: {
-        coachId: coach.id,
-        coachName: coach.name,
-        slotId: selectedSlot.id,
-        slotTitle: selectedSlot.title,
-        slotFocus: selectedSlot.focus,
-        slotStart: selectedSlot.start.toISOString(),
-        slotDuration: selectedSlot.durationMinutes.toString(),
-        price: selectedService.price.toString(),
-        serviceType: selectedService.title,
-        objectives: JSON.stringify(selectedObjectives),
-        athleteIds: JSON.stringify(athleteIds),
-      },
-    });
+    router.push(Routes.confirmBookingWith({
+      coachId: coach.id,
+      coachName: coach.name,
+      slotId: selectedSlot.id,
+      slotTitle: selectedSlot.title,
+      slotFocus: selectedSlot.focus,
+      slotStart: selectedSlot.start.toISOString(),
+      slotDuration: selectedSlot.durationMinutes.toString(),
+      price: selectedService.price.toString(),
+      serviceType: selectedService.title,
+      objectives: JSON.stringify(selectedObjectives),
+      athleteIds: JSON.stringify(athleteIds),
+    }));
   };
 
   if (!coach || !coachProfile) {
@@ -409,9 +407,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
   loadingContainer: {
     flex: 1,

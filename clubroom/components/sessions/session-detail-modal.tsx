@@ -3,10 +3,12 @@ import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors } from '@/constants/theme';
+import { Divider } from '@/components/ui/primitives/Divider';
+import { Colors, Radii, Typography, Spacing, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -340,14 +342,14 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
 
             {offering.description && (
               <>
-                <View style={styles.divider} />
+                <Divider spacing={14} />
                 <ThemedText style={styles.description}>{offering.description}</ThemedText>
               </>
             )}
 
             <View style={styles.metaRow}>
               {offering.sessionType === 'group' && (
-                <View style={[styles.badge, { backgroundColor: `${palette.accent}15` }]}>
+                <View style={[styles.badge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
                   <ThemedText style={[styles.badgeText, { color: palette.accent }]}>
                     Group ({registeredCount}/{offering.maxParticipants})
                   </ThemedText>
@@ -361,7 +363,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                 </View>
               )}
             {offering.footballSkill && (
-              <View style={[styles.badge, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.badge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.badgeText, { color: palette.tint }]}>
                   {offering.footballSkill}
                 </ThemedText>
@@ -395,12 +397,11 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
               </View>
               <Pressable
                 onPress={() =>
-                  router.push({ pathname: '/development/badges', params: { sessionId: offering.id } })
+                  router.push(Routes.DEVELOPMENT_BADGES)
                 }
                 style={styles.manageBadgesLink}
                 accessibilityLabel="Open badges workspace"
                 accessibilityHint="Link badges to this session"
-                accessibilityRole="button"
               >
                 <View style={styles.manageLinkRow}>
                   <Ionicons name="link-outline" size={14} color={palette.tint} />
@@ -494,7 +495,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
 
                   {/* End Series Button */}
                   <Pressable
-                    style={[styles.endSeriesButton, { backgroundColor: `${palette.error}10`, borderColor: palette.error }]}
+                    style={[styles.endSeriesButton, { backgroundColor: withAlpha(palette.error, 0.06), borderColor: palette.error }]}
                     onPress={handleEndSeries}
                   >
                     <Ionicons name="stop-circle-outline" size={20} color={palette.error} />
@@ -520,7 +521,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                       style={[
                         styles.childOption,
                         {
-                          backgroundColor: selectedChildId === child.id ? `${palette.tint}15` : palette.card,
+                          backgroundColor: selectedChildId === child.id ? withAlpha(palette.tint, 0.09) : palette.card,
                           borderColor: selectedChildId === child.id ? palette.tint : palette.border,
                         },
                       ]}>
@@ -553,7 +554,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                         <ThemedText
                           style={[
                             styles.weekButtonText,
-                            weeksToBook === weeks && { color: scheme === 'light' ? '#FFFFFF' : '#000000' },
+                            weeksToBook === weeks && { color: palette.onPrimary },
                           ]}>
                           {weeks} week{weeks > 1 ? 's' : ''}
                         </ThemedText>
@@ -566,7 +567,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
           )}
 
           {!isCoach && isRegistered && (
-            <SurfaceCard style={[styles.card, { backgroundColor: `${palette.success}15` }]}>
+            <SurfaceCard style={[styles.card, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <View style={styles.registeredBanner}>
                 <Ionicons name="checkmark-circle" size={24} color={palette.success} />
                 <View style={styles.registeredInfo}>
@@ -600,7 +601,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                 },
               ]}>
               <ThemedText
-                style={[styles.bookButtonText, { color: scheme === 'light' ? '#FFFFFF' : '#000000' }]}>
+                style={[styles.bookButtonText, { color: palette.onPrimary }]}>
                 {isFull ? 'Session Full' : 'Book Now'}
               </ThemedText>
             </Pressable>
@@ -613,13 +614,13 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
             <Pressable
               onPress={() => {
                 onClose();
-                router.push(`/session/${offering.id}/complete`);
+                router.push(Routes.sessionComplete(offering.id));
               }}
               style={[
                 styles.completeButton,
                 { backgroundColor: palette.success },
               ]}>
-              <Ionicons name="checkmark-circle" size={22} color="#fff" />
+              <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
               <ThemedText style={styles.completeButtonText}>
                 Complete Session
               </ThemedText>
@@ -661,7 +662,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 20,
     gap: 14,
-    shadowColor: '#000',
+    shadowColor: Colors.light.text,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 4,
@@ -677,18 +678,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(8),
-    marginTop: 6,
+    marginTop: Spacing.xxs,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 6,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#00000008',
-    marginVertical: 14,
+    marginTop: Spacing.xxs,
   },
   description: {
     fontSize: scaleFont(15),
@@ -699,11 +695,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginTop: 12,
+    marginTop: Spacing.xs + Spacing.xxs,
   },
   awardsBlock: {
     gap: 8,
-    marginTop: 12,
+    marginTop: Spacing.xs + Spacing.xxs,
   },
   awardsRow: {
     flexDirection: 'row',
@@ -712,16 +708,13 @@ const styles = StyleSheet.create({
   },
   awardChip: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 4,
+    paddingVertical: Spacing.xxs,
+    gap: Spacing.xxs,
   },
-  awardMeta: {
-    color: '#6B7280',
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  awardMeta: { ...Typography.caption, color: Colors.light.muted,
+    lineHeight: 16 },
   manageBadgesLink: {
     marginTop: 8,
     alignSelf: 'flex-start',
@@ -729,12 +722,12 @@ const styles = StyleSheet.create({
   manageLinkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
   },
   badgeText: {
     fontSize: scaleFont(13),
@@ -757,8 +750,8 @@ const styles = StyleSheet.create({
   registration: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
+    gap: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderBottomWidth: 1,
   },
   regName: {
@@ -774,9 +767,9 @@ const styles = StyleSheet.create({
   childOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: Spacing.xs + Spacing.xxs,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
     marginTop: 10,
   },
@@ -788,7 +781,7 @@ const styles = StyleSheet.create({
   weekButton: {
     flex: 1,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
   },
@@ -800,11 +793,11 @@ const styles = StyleSheet.create({
   registeredBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: Spacing.xs + Spacing.xxs,
   },
   registeredInfo: {
     flex: 1,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   registeredText: {
     fontSize: scaleFont(17),
@@ -822,7 +815,7 @@ const styles = StyleSheet.create({
   footer: {
     padding: 20,
     borderTopWidth: 0,
-    shadowColor: '#000',
+    shadowColor: Colors.light.text,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -830,9 +823,9 @@ const styles = StyleSheet.create({
   },
   bookButton: {
     paddingVertical: 18,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: Colors.light.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -859,7 +852,7 @@ const styles = StyleSheet.create({
   },
   instanceContent: {
     marginTop: 16,
-    gap: 12,
+    gap: Spacing.xs + Spacing.xxs,
   },
   instanceSubtitle: {
     fontSize: scaleFont(13),
@@ -869,7 +862,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderBottomWidth: 1,
   },
   instanceInfo: {
@@ -887,7 +880,7 @@ const styles = StyleSheet.create({
   cancelInstanceButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -898,7 +891,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 1,
     marginTop: 8,
   },
@@ -912,15 +905,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     paddingVertical: 18,
-    borderRadius: 12,
-    shadowColor: '#000',
+    borderRadius: Radii.md,
+    shadowColor: Colors.light.text,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
   },
   completeButtonText: {
-    color: '#fff',
+    color: Colors.light.onSuccess,
     fontSize: scaleFont(18),
     fontWeight: '700',
     letterSpacing: -0.4,

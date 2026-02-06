@@ -23,7 +23,8 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Shadows } from '@/constants/theme';
+import { Divider } from '@/components/ui/primitives/Divider';
+import { Colors, Spacing, Radii, Typography, Shadows , withAlpha } from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -206,10 +207,10 @@ const MOCK_STATS = {
 
 function getHeatColor(rate: number): string {
   if (rate === 0) return Colors.light.background;
-  if (rate < 0.3) return Colors.light.success + '20';
-  if (rate < 0.6) return Colors.light.success + '50';
-  if (rate < 0.8) return Colors.light.success + '80';
-  return Colors.light.success + 'CC';
+  if (rate < 0.3) return withAlpha(Colors.light.success, 0.12);
+  if (rate < 0.6) return withAlpha(Colors.light.success, 0.31);
+  if (rate < 0.8) return withAlpha(Colors.light.success, 0.5);
+  return withAlpha(Colors.light.success, 0.8);
 }
 
 function getHeatTextColor(rate: number): string {
@@ -283,7 +284,7 @@ const heatStyles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   dayLabelCell: {
     width: 36,
@@ -300,7 +301,7 @@ const heatStyles = StyleSheet.create({
   },
   dayRow: {
     flexDirection: 'row',
-    marginBottom: 3,
+    marginBottom: Spacing.micro,
   },
   dayLabel: {
     ...Typography.caption,
@@ -309,20 +310,17 @@ const heatStyles = StyleSheet.create({
   heatCell: {
     flex: 1,
     aspectRatio: 1.4,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 1,
   },
-  heatText: {
-    fontSize: 9,
-    fontWeight: '600',
-  },
+  heatText: { ...Typography.micro },
   legend: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     marginTop: Spacing.xs,
   },
   legendLabel: {
@@ -333,7 +331,7 @@ const heatStyles = StyleSheet.create({
   legendSwatch: {
     width: 16,
     height: 10,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
 });
 
@@ -355,14 +353,14 @@ function SuggestionCard({
   return (
     <View style={suggStyles.card}>
       <View style={suggStyles.cardHeader}>
-        <View style={[suggStyles.iconCircle, { backgroundColor: iconColor + '18' }]}>
+        <View style={[suggStyles.iconCircle, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
           <Ionicons name={iconName} size={18} color={iconColor} />
         </View>
         <View style={suggStyles.cardHeaderText}>
           <Text style={suggStyles.cardTitle}>
             {suggestion.day} {suggestion.time}
           </Text>
-          <View style={[suggStyles.metricBadge, { backgroundColor: iconColor + '18' }]}>
+          <View style={[suggStyles.metricBadge, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
             <Text style={[suggStyles.metricText, { color: iconColor }]}>{suggestion.metric}</Text>
           </View>
         </View>
@@ -379,9 +377,9 @@ function SuggestionCard({
         <Ionicons
           name={isAdd ? 'add' : 'remove'}
           size={16}
-          color={isAdd ? '#FFFFFF' : Colors.light.muted}
+          color={isAdd ? Colors.light.onPrimary : Colors.light.muted}
         />
-        <Text style={[suggStyles.actionButtonText, { color: isAdd ? '#FFFFFF' : Colors.light.muted }]}>
+        <Text style={[suggStyles.actionButtonText, { color: isAdd ? Colors.light.onPrimary : Colors.light.muted }]}>
           {isAdd ? 'Add slot' : 'Remove slot'}
         </Text>
       </Pressable>
@@ -404,7 +402,7 @@ const suggStyles = StyleSheet.create({
   iconCircle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.xs,
@@ -421,7 +419,7 @@ const suggStyles = StyleSheet.create({
   },
   metricBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
   metricText: {
@@ -437,7 +435,7 @@ const suggStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     height: 36,
     borderRadius: Radii.sm,
     paddingHorizontal: Spacing.sm,
@@ -460,12 +458,12 @@ function StatsSummary() {
         <Text style={statStyles.statValue}>{MOCK_STATS.totalSessionsLastMonth}</Text>
         <Text style={statStyles.statLabel}>Sessions (30d)</Text>
       </View>
-      <View style={statStyles.divider} />
+      <Divider vertical />
       <View style={statStyles.stat}>
         <Text style={statStyles.statValue}>{Math.round(MOCK_STATS.averageBookingRate * 100)}%</Text>
         <Text style={statStyles.statLabel}>Fill rate</Text>
       </View>
-      <View style={statStyles.divider} />
+      <Divider vertical />
       <View style={statStyles.stat}>
         <Text style={statStyles.statValue}>{MOCK_STATS.waitlistCount}</Text>
         <Text style={statStyles.statLabel}>On waitlist</Text>
@@ -493,11 +491,7 @@ const statStyles = StyleSheet.create({
   statLabel: {
     ...Typography.caption,
     color: Colors.light.muted,
-    marginTop: 2,
-  },
-  divider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.light.border,
+    marginTop: Spacing.micro,
   },
 });
 
@@ -643,7 +637,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     ...Typography.title,
     color: Colors.light.text,
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   headerSubtitle: {
     ...Typography.body,
@@ -661,7 +655,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     marginTop: Spacing.md,
     marginBottom: Spacing.xs,
     paddingHorizontal: Spacing.xs,

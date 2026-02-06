@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MedicalInfo, EmergencyContact } from '@/constants/types';
 
@@ -53,11 +53,11 @@ export function EmergencyBanner({
 
   if (compact) {
     return (
-      <View style={[styles.compactBanner, { backgroundColor: `${severityColor}10` }]}>
+      <View style={[styles.compactBanner, { backgroundColor: withAlpha(severityColor, 0.06) }]}>
         {hasAlerts && (
           <Clickable
             onPress={onPressMedical}
-            style={[styles.compactItem, { borderColor: `${severityColor}30` }]}
+            style={[styles.compactItem, { borderColor: withAlpha(severityColor, 0.19) }]}
           >
             <Ionicons name="medical" size={16} color={severityColor} />
             <ThemedText style={[styles.compactText, { color: severityColor }]}>
@@ -72,7 +72,7 @@ export function EmergencyBanner({
         {primaryContact && (
           <Clickable
             onPress={onPressContact}
-            style={[styles.compactItem, { borderColor: `${palette.tint}30` }]}
+            style={[styles.compactItem, { borderColor: withAlpha(palette.tint, 0.19) }]}
           >
             <Ionicons name="call" size={16} color={palette.tint} />
             <ThemedText style={[styles.compactText, { color: palette.tint }]}>
@@ -85,9 +85,9 @@ export function EmergencyBanner({
   }
 
   return (
-    <View style={[styles.banner, { borderColor: `${severityColor}40` }]}>
+    <View style={[styles.banner, { borderColor: withAlpha(severityColor, 0.25) }]}>
       <View style={styles.bannerHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: `${severityColor}15` }]}>
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(severityColor, 0.09) }]}>
           <Ionicons name="warning" size={20} color={severityColor} />
         </View>
         <ThemedText type="defaultSemiBold" style={{ color: severityColor }}>
@@ -181,7 +181,7 @@ export function MedicalAlertPill({
   return (
     <Clickable
       onPress={onPress}
-      style={[styles.alertPill, { backgroundColor: `${color}10` }]}
+      style={[styles.alertPill, { backgroundColor: withAlpha(color, 0.06) }]}
     >
       <Ionicons name="medical" size={12} color={color} />
       <ThemedText style={[styles.alertPillText, { color }]}>{label}</ThemedText>
@@ -223,7 +223,7 @@ export function EmergencyCallButton({
         },
       ]}
     >
-      <Ionicons name="call" size={config.icon} color="#fff" />
+      <Ionicons name="call" size={config.icon} color={palette.onSuccess} />
       {size !== 'small' && (
         <ThemedText style={styles.callButtonText}>
           Call {contact.name.split(' ')[0]}
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -263,12 +263,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: Spacing.sm,
   },
-  alertLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
-    marginBottom: 2,
-  },
+  alertLabel: { ...Typography.caption, color: Colors.light.muted,
+    marginBottom: Spacing.micro },
   contactSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -285,37 +281,27 @@ const styles = StyleSheet.create({
   compactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  compactText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  compactText: { ...Typography.caption },
   alertPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 3,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
   },
-  alertPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  alertPillText: { ...Typography.caption },
   callButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     borderRadius: Radii.pill,
   },
-  callButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
+  callButtonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onSuccess },
 });

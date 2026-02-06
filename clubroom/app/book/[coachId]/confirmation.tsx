@@ -2,13 +2,14 @@ import { useState, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
@@ -34,7 +35,7 @@ export default function ConfirmationScreen() {
     if (bookingId) {
       // Booking already created, just navigate
       reset();
-      router.replace(`/booking/${bookingId}` as any);
+      router.replace(Routes.bookingCancel(bookingId));
       return;
     }
 
@@ -61,8 +62,8 @@ export default function ConfirmationScreen() {
         notes: draft.notes,
       });
 
-      if (result.success && result.booking) {
-        setBookingId(result.booking.id);
+      if (result.success && result.data) {
+        setBookingId(result.data.id);
 
         // Trigger celebration with haptics
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -77,10 +78,10 @@ export default function ConfirmationScreen() {
         // Navigate after celebration
         setTimeout(() => {
           reset();
-          router.replace(`/booking/${result.booking!.id}` as any);
+          router.replace(Routes.bookingCancel(result.data!.id));
         }, 2600);
       } else {
-        setError(result.error || 'Failed to create booking. The slot may no longer be available.');
+        setError(result.success ? 'Failed to create booking.' : (result.error?.message || 'Failed to create booking. The slot may no longer be available.'));
       }
     } catch (err) {
       logger.error('Error creating booking', err);
@@ -99,7 +100,7 @@ export default function ConfirmationScreen() {
           step={5}
         />
 
-        <View style={[styles.checkCircle, { borderColor: palette.tint, backgroundColor: `${palette.tint}12` }]}>
+        <View style={[styles.checkCircle, { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.07) }]}>
           <Ionicons name="checkmark" size={48} color={palette.tint} />
         </View>
 
@@ -147,13 +148,13 @@ export default function ConfirmationScreen() {
           disabled={isCreating}
         >
           {isCreating ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
           ) : (
-            <ThemedText style={{ color: '#fff', fontWeight: '700' }}>View booking</ThemedText>
+            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>View booking</ThemedText>
           )}
         </Clickable>
         <Clickable
-          onPress={() => router.push(`/chat/${coachId || 'new'}`)}
+          onPress={() => router.push(Routes.chat(coachId || 'new'))}
           style={[styles.secondary, { borderColor: palette.tint }]}
           disabled={isCreating}
         >
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   checkCircle: {
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,

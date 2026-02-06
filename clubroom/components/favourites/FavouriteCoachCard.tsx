@@ -14,11 +14,13 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Colors, Radii, Spacing, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components , Typography } from '@/constants/theme';
 import type { FavouriteCoach } from '@/constants/types';
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -50,7 +52,7 @@ export function FavouriteCoachCard({
 
   const handlePress = useCallback(() => {
     // Navigate to coach profile
-    router.push(`/book-coach?coachId=${favourite.coachId}`);
+    router.push(Routes.bookCoachWith(favourite.coachId));
   }, [router, favourite.coachId]);
 
   const handleBook = useCallback(() => {
@@ -58,7 +60,7 @@ export function FavouriteCoachCard({
       onBook(favourite.coachId);
     } else {
       // Default: navigate to booking flow
-      router.push(`/book/${favourite.coachId}/session-type`);
+      router.push(Routes.bookSessionType(favourite.coachId));
     }
   }, [onBook, favourite.coachId, router]);
 
@@ -121,7 +123,7 @@ export function FavouriteCoachCard({
               )}
               {favourite.coachCity && (
                 <>
-                  {favourite.coachRating && <View style={[styles.divider, { backgroundColor: palette.border }]} />}
+                  {favourite.coachRating && <Divider vertical style={{ height: 12, opacity: 0.5 }} />}
                   <View style={styles.locationContainer}>
                     <Ionicons name="location-outline" size={14} color={palette.muted} />
                     <ThemedText style={[styles.metaText, { color: palette.muted }]}>
@@ -183,12 +185,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.xs,
   },
-  name: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    flex: 1,
-  },
+  name: { ...Typography.heading, letterSpacing: -0.2,
+    flex: 1 },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -197,22 +195,14 @@ const styles = StyleSheet.create({
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  metaText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  divider: {
-    width: 1,
-    height: 12,
-    opacity: 0.5,
-  },
+  metaText: { ...Typography.smallSemiBold },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -222,17 +212,10 @@ const styles = StyleSheet.create({
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 2,
+    gap: Spacing.micro,
   },
-  price: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  priceLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  price: { ...Typography.subheading, letterSpacing: -0.2 },
+  priceLabel: { ...Typography.caption },
   bookButton: {
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.md,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,7 +10,7 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { VerificationBadge } from '@/components/verification/verification-badge';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { VerificationStatus, VerificationItem } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
@@ -50,8 +51,8 @@ function VerificationItemRow({ icon, title, description, item, onPress }: Verifi
   return (
     <Clickable onPress={onPress}>
       <View style={styles.itemRow}>
-        <View style={[styles.iconContainer, { backgroundColor: `${palette.tint}10` }]}>
-          <Ionicons name={icon as any} size={20} color={palette.tint} />
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
         </View>
         <View style={styles.itemContent}>
           <ThemedText type="defaultSemiBold">{title}</ThemedText>
@@ -60,7 +61,7 @@ function VerificationItemRow({ icon, title, description, item, onPress }: Verifi
           </ThemedText>
         </View>
         <View style={styles.itemStatus}>
-          <Ionicons name={statusIcon.name as any} size={22} color={statusIcon.color} />
+          <Ionicons name={statusIcon.name as keyof typeof Ionicons.glyphMap} size={22} color={statusIcon.color} />
           <Ionicons name="chevron-forward" size={18} color={palette.muted} />
         </View>
       </View>
@@ -114,7 +115,7 @@ export default function VerificationHubScreen() {
             onPress={loadStatus}
             style={[styles.retryButton, { backgroundColor: palette.tint }]}
           >
-            <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Retry</ThemedText>
+            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Retry</ThemedText>
           </Clickable>
         </View>
       </SafeAreaView>
@@ -223,7 +224,7 @@ export default function VerificationHubScreen() {
               title="Photo ID"
               description="Upload a government-issued ID"
               item={status.identity}
-              onPress={() => router.push('/verification/id')}
+              onPress={() => router.push(Routes.VERIFICATION_ID)}
             />
           </SurfaceCard>
         </View>
@@ -238,7 +239,7 @@ export default function VerificationHubScreen() {
               title="Background Check"
               description="Complete DBS or equivalent check"
               item={status.backgroundCheck}
-              onPress={() => router.push('/verification/background')}
+              onPress={() => router.push(Routes.VERIFICATION_BACKGROUND)}
             />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
             <VerificationItemRow
@@ -250,7 +251,7 @@ export default function VerificationHubScreen() {
                   : 'Upload coaching certifications'
               }
               item={credentialStatus}
-              onPress={() => router.push('/verification/credentials')}
+              onPress={() => router.push(Routes.VERIFICATION_CREDENTIALS)}
             />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
             <VerificationItemRow
@@ -267,7 +268,7 @@ export default function VerificationHubScreen() {
                     'Upload your public liability insurance certificate to get verified.',
                     [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Upload', onPress: () => router.push('/verification/insurance' as any) },
+                      { text: 'Upload', onPress: () => router.push(Routes.VERIFICATION_INSURANCE) },
                     ]
                   );
                 }
@@ -319,15 +320,15 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   levelLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   section: {
     gap: Spacing.sm,
@@ -344,16 +345,16 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   itemContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   itemDescription: {
-    fontSize: 13,
+    ...Typography.small,
   },
   itemStatus: {
     flexDirection: 'row',
@@ -373,7 +374,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 20,
+    ...Typography.small,
   },
 });

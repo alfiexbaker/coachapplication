@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { ClubEvent, EventAttendance, CheckInInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
@@ -137,7 +137,7 @@ export function CheckInButton({
     const isFuture = eventDate > today;
 
     return (
-      <View style={[styles.statusContainer, { backgroundColor: `${palette.muted}15` }]}>
+      <View style={[styles.statusContainer, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
         <Ionicons
           name={isPast ? 'time-outline' : 'calendar-outline'}
           size={20}
@@ -158,9 +158,9 @@ export function CheckInButton({
   if (isCheckedIn && currentAttendance) {
     return (
       <View style={styles.checkedInContainer}>
-        <View style={[styles.checkedInBadge, { backgroundColor: `${palette.success}15` }]}>
+        <View style={[styles.checkedInBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <View style={[styles.checkedInIcon, { backgroundColor: palette.success }]}>
-            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={20} color={palette.onSuccess} />
           </View>
           <View style={styles.checkedInInfo}>
             <ThemedText style={[styles.checkedInTitle, { color: palette.success }]}>
@@ -173,7 +173,7 @@ export function CheckInButton({
           </View>
           {currentAttendance.guestsCheckedIn > 0 && (
             <View style={[styles.guestsBadge, { backgroundColor: palette.success }]}>
-              <Ionicons name="people" size={14} color="#FFFFFF" />
+              <Ionicons name="people" size={14} color={palette.onSuccess} />
               <ThemedText style={styles.guestsBadgeText}>
                 +{currentAttendance.guestsCheckedIn}
               </ThemedText>
@@ -210,10 +210,10 @@ export function CheckInButton({
       >
         <View style={styles.buttonContent}>
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={palette.onSuccess} />
           ) : (
             <>
-              <Ionicons name="log-in" size={20} color="#FFFFFF" />
+              <Ionicons name="log-in" size={20} color={palette.onSuccess} />
               <ThemedText style={styles.buttonText}>Check In</ThemedText>
             </>
           )}
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   checkedInIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -287,19 +287,19 @@ const styles = StyleSheet.create({
   guestsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   guestsBadgeText: {
     fontSize: scaleFont(12),
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.light.onSuccess,
   },
   undoButton: {
     alignSelf: 'flex-start',
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: 8,
   },
   undoButtonText: {
@@ -318,13 +318,13 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: scaleFont(16),
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.light.onSuccess,
   },
   locationWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 4,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xxs,
   },
   locationWarningText: {
     fontSize: scaleFont(12),
@@ -333,8 +333,8 @@ const styles = StyleSheet.create({
   locationInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 4,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xxs,
   },
   locationInfoText: {
     fontSize: scaleFont(12),

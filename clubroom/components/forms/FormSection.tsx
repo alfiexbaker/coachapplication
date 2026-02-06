@@ -6,7 +6,8 @@
 import React from 'react';
 import { View, StyleSheet, type ViewStyle } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Borders, Typography } from '@/constants/theme';
+import { Divider } from '@/components/ui/primitives/Divider';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface FormSectionProps {
@@ -45,14 +46,7 @@ export function FormSection({
         </ThemedText>
       )}
       <View style={styles.content}>{children}</View>
-      {divider && (
-        <View
-          style={[
-            styles.divider,
-            { backgroundColor: palette.border, height: Borders.width.thin },
-          ]}
-        />
-      )}
+      {divider && <Divider style={{ marginTop: Spacing.md }} />}
     </View>
   );
 }
@@ -71,9 +65,6 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: Spacing.xs,
-  },
-  divider: {
-    marginTop: Spacing.md,
   },
 });
 

@@ -165,14 +165,14 @@ class MockBookingService {
     return { valid: true };
   }
 
-  async createBooking(params: CreateBookingParams): Promise<{ success: boolean; booking?: Booking; error?: string }> {
+  async createBooking(params: CreateBookingParams): Promise<{ success: true; data: Booking } | { success: false; error: { code: string; message: string } }> {
     const date = params.scheduledAt.split('T')[0];
     const time = params.scheduledAt.split('T')[1]?.substring(0, 5) || '10:00';
 
     // Validate availability
     const validation = await this.validateBooking(params.coachId, date, time, params.duration);
     if (!validation.valid) {
-      return { success: false, error: validation.reason };
+      return { success: false, error: { code: 'VALIDATION', message: validation.reason || 'Validation failed' } };
     }
 
     const totalPrice = (params.price || 0) * params.athleteIds.length;
@@ -209,7 +209,7 @@ class MockBookingService {
       coachId: params.coachId,
     });
 
-    return { success: true, booking: newBooking };
+    return { success: true, data: newBooking };
   }
 
   async getBookingsForUser(userId: string, role: 'coach' | 'parent' | 'athlete'): Promise<Booking[]> {
@@ -443,11 +443,11 @@ describe('BookingService - Create Booking', () => {
     const result = await bookingService.createBooking(params);
 
     assert.ok(result.success);
-    assert.ok(result.booking);
-    assert.strictEqual(result.booking.coachName, 'Sarah Mitchell');
-    assert.strictEqual(result.booking.athleteName, 'Jake Smith');
-    assert.strictEqual(result.booking.status, 'CONFIRMED');
-    assert.strictEqual(result.booking.price, 45);
+    assert.ok(result.data);
+    assert.strictEqual(result.data.coachName, 'Sarah Mitchell');
+    assert.strictEqual(result.data.athleteName, 'Jake Smith');
+    assert.strictEqual(result.data.status, 'CONFIRMED');
+    assert.strictEqual(result.data.price, 45);
   });
 
   test('createBooking() fails for unavailable slot', async () => {
@@ -468,7 +468,7 @@ describe('BookingService - Create Booking', () => {
     const result = await bookingService.createBooking(params);
 
     assert.strictEqual(result.success, false);
-    assert.ok(result.error?.includes('fully booked'));
+    assert.ok(!result.success && result.error?.message?.includes('fully booked'));
   });
 
   test('createBooking() fails for slot outside coach hours', async () => {
@@ -489,7 +489,7 @@ describe('BookingService - Create Booking', () => {
     const result = await bookingService.createBooking(params);
 
     assert.strictEqual(result.success, false);
-    assert.ok(result.error?.includes('available hours'));
+    assert.ok(!result.success && result.error?.message?.includes('available hours'));
   });
 
   test('createBooking() calculates total price for multiple athletes', async () => {
@@ -511,9 +511,9 @@ describe('BookingService - Create Booking', () => {
     const result = await bookingService.createBooking(params);
 
     assert.ok(result.success);
-    assert.strictEqual(result.booking?.price, 60); // 30 * 2 athletes
-    assert.strictEqual(result.booking?.isSharedSession, true);
-    assert.strictEqual(result.booking?.athleteName, 'Jake Smith, Amy Johnson');
+    assert.strictEqual(result.data?.price, 60); // 30 * 2 athletes
+    assert.strictEqual(result.data?.isSharedSession, true);
+    assert.strictEqual(result.data?.athleteName, 'Jake Smith, Amy Johnson');
   });
 
   test('createBooking() creates notification for coach', async () => {
@@ -819,7 +819,7 @@ describe('BookingService - Edge Cases', () => {
     const result = await bookingService.createBooking(params);
 
     assert.ok(result.success);
-    assert.strictEqual(result.booking?.sessionInviteId, 'invite_123');
+    assert.strictEqual(result.data?.sessionInviteId, 'invite_123');
   });
 
   test('createBooking() with objectives', async () => {
@@ -841,6 +841,6 @@ describe('BookingService - Edge Cases', () => {
     const result = await bookingService.createBooking(params);
 
     assert.ok(result.success);
-    assert.deepStrictEqual(result.booking?.objectives, ['Improve passing', 'Work on stamina']);
+    assert.deepStrictEqual(result.data?.objectives, ['Improve passing', 'Work on stamina']);
   });
 });

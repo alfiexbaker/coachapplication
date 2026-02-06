@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ export function ReviewResponse({
       {/* Review header */}
       <View style={styles.reviewHeader}>
         <View style={styles.reviewerInfo}>
-          <View style={[styles.avatarPlaceholder, { backgroundColor: palette.tint + '18' }]}>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[Typography.bodySemiBold, { color: palette.tint }]}>
               {reviewerName.charAt(0).toUpperCase()}
             </ThemedText>
@@ -173,7 +173,7 @@ export function ReviewResponse({
               <ThemedText
                 style={[
                   Typography.bodySemiBold,
-                  { color: canSubmit ? '#FFFFFF' : palette.muted },
+                  { color: canSubmit ? palette.onPrimary : palette.muted },
                 ]}
               >
                 Post Reply
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   starsRow: {
     flexDirection: 'row',
-    gap: 2,
+    gap: Spacing.micro,
   },
   existingReply: {
     padding: Spacing.sm,

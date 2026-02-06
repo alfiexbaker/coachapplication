@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SkillLevel } from '@/services/progress-service';
 
@@ -111,10 +111,10 @@ export function SkillLevelCard({ skill, showHistory = false, compact = false, sh
               {skill.level}
             </ThemedText>
             <ThemedText style={[styles.compactLevelMax, { color: palette.muted }]}>/10</ThemedText>
-            <Ionicons name={trendInfo.name as any} size={14} color={trendInfo.color} />
+            <Ionicons name={trendInfo.name as keyof typeof Ionicons.glyphMap} size={14} color={trendInfo.color} />
           </View>
         </View>
-        <View style={[styles.compactBar, { backgroundColor: `${skillColor}20` }]}>
+        <View style={[styles.compactBar, { backgroundColor: withAlpha(skillColor, 0.12) }]}>
           <View
             style={[
               styles.compactBarFill,
@@ -129,7 +129,7 @@ export function SkillLevelCard({ skill, showHistory = false, compact = false, sh
   return (
     <SurfaceCard style={styles.card}>
       {/* Category badge */}
-      <View style={[styles.categoryBadge, { backgroundColor: `${palette.tint}10` }]}>
+      <View style={[styles.categoryBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
         <ThemedText style={[styles.categoryText, { color: palette.tint }]}>
           {category}
         </ThemedText>
@@ -142,14 +142,14 @@ export function SkillLevelCard({ skill, showHistory = false, compact = false, sh
           </ThemedText>
           <View style={styles.labelsRow}>
             {/* Skill level label */}
-            <View style={[styles.levelLabelBadge, { backgroundColor: `${skillColor}15` }]}>
+            <View style={[styles.levelLabelBadge, { backgroundColor: withAlpha(skillColor, 0.09) }]}>
               <ThemedText style={[styles.levelLabelText, { color: skillColor }]}>
                 {levelInfo.label}
               </ThemedText>
             </View>
             {/* Trend badge */}
-            <View style={[styles.trendBadge, { backgroundColor: `${trendInfo.color}15` }]}>
-              <Ionicons name={trendInfo.name as any} size={12} color={trendInfo.color} />
+            <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendInfo.color, 0.09) }]}>
+              <Ionicons name={trendInfo.name as keyof typeof Ionicons.glyphMap} size={12} color={trendInfo.color} />
               <ThemedText style={[styles.trendText, { color: trendInfo.color }]}>
                 {getTrendLabel()}
               </ThemedText>
@@ -165,7 +165,7 @@ export function SkillLevelCard({ skill, showHistory = false, compact = false, sh
       </View>
 
       {/* Progress Bar */}
-      <View style={[styles.progressBar, { backgroundColor: `${skillColor}20` }]}>
+      <View style={[styles.progressBar, { backgroundColor: withAlpha(skillColor, 0.12) }]}>
         <View
           style={[
             styles.progressFill,
@@ -269,7 +269,7 @@ export function SkillLevelGrid({ skills, compact = false, groupByCategory = fals
               <ThemedText type="defaultSemiBold" style={styles.categoryTitle}>
                 {category}
               </ThemedText>
-              <View style={[styles.categoryCount, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.categoryCount, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <ThemedText style={[styles.categoryCountText, { color: palette.tint }]}>
                   {grouped[category].length}
                 </ThemedText>
@@ -324,78 +324,60 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xs,
   },
-  skillName: {
-    fontSize: 16,
-  },
+  skillName: { ...Typography.subheading },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     alignSelf: 'flex-start',
   },
-  trendText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  trendText: { ...Typography.caption },
   levelContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  level: {
-    fontSize: 28,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
-  levelMax: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  level: { ...Typography.display, fontVariant: ['tabular-nums'] },
+  levelMax: { ...Typography.bodySmallSemiBold },
   progressBar: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   changeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  changeText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  changeText: { ...Typography.caption },
   historySection: {
     gap: Spacing.xs,
     paddingTop: Spacing.xs,
   },
-  historyLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  historyLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   historyDots: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 6,
+    gap: Spacing.xxs,
     height: 24,
   },
   historyDot: {
     width: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   grid: {
     gap: Spacing.sm,
   },
   // Compact styles
   compactContainer: {
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.xs,
   },
   compactHeader: {
@@ -403,54 +385,38 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  compactSkillName: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  compactSkillName: { ...Typography.smallSemiBold },
   compactRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  compactLevel: {
-    fontSize: 14,
-    fontVariant: ['tabular-nums'],
-  },
+  compactLevel: { ...Typography.bodySmall, fontVariant: ['tabular-nums'] },
   compactBar: {
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   compactBarFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   compactGrid: {
     gap: Spacing.sm,
   },
-  compactLevelLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  compactLevelMax: {
-    fontSize: 11,
-  },
+  compactLevelLabel: { ...Typography.micro, textTransform: 'uppercase',
+    letterSpacing: 0.3 },
+  compactLevelMax: { ...Typography.caption },
   // Category and level label styles
   categoryBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     marginBottom: Spacing.xs,
   },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  categoryText: { ...Typography.micro, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   labelsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -459,24 +425,19 @@ const styles = StyleSheet.create({
   },
   levelLabelBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  levelLabelText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  levelLabelText: { ...Typography.caption },
   updatedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingTop: Spacing.xs,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  updatedText: {
-    fontSize: 11,
-  },
+  updatedText: { ...Typography.caption },
   // Grouped view styles
   groupedContainer: {
     gap: Spacing.lg,
@@ -489,18 +450,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  categoryTitle: {
-    fontSize: 15,
-  },
+  categoryTitle: { ...Typography.body },
   categoryCount: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     minWidth: 20,
     alignItems: 'center',
   },
-  categoryCountText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  categoryCountText: { ...Typography.caption },
 });

@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { PeakHoursData } from '@/constants/types';
 
@@ -52,9 +52,9 @@ export function PeakHoursHeatmap({
 
   const getIntensityColor = (intensity: number): string => {
     if (intensity === 0) return palette.border;
-    if (intensity < 0.25) return palette.tint + '30';
-    if (intensity < 0.5) return palette.tint + '50';
-    if (intensity < 0.75) return palette.tint + '80';
+    if (intensity < 0.25) return withAlpha(palette.tint, 0.19);
+    if (intensity < 0.5) return withAlpha(palette.tint, 0.31);
+    if (intensity < 0.75) return withAlpha(palette.tint, 0.5);
     return palette.tint;
   };
 
@@ -157,7 +157,7 @@ export function PeakHoursHeatmap({
                       <ThemedText
                         style={[
                           styles.cellText,
-                          { color: intensity > 0.5 ? '#fff' : palette.text },
+                          { color: intensity > 0.5 ? palette.onPrimary : palette.text },
                         ]}
                       >
                         {sessionCount}
@@ -207,14 +207,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 13,
-    marginTop: 4,
-  },
+  title: { ...Typography.subheading },
+  subtitle: { ...Typography.small, marginTop: Spacing.xxs },
   summaryRow: {
     flexDirection: 'row',
     marginBottom: Spacing.md,
@@ -223,66 +217,47 @@ const styles = StyleSheet.create({
   summaryItem: {
     flex: 1,
   },
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    textTransform: 'uppercase',
+  summaryLabel: { ...Typography.caption, textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  summaryDetail: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+    marginBottom: Spacing.micro },
+  summaryValue: { ...Typography.heading },
+  summaryDetail: { ...Typography.caption, marginTop: Spacing.micro },
   gridContainer: {
     paddingVertical: Spacing.sm,
   },
   headerRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   cornerCell: {
     width: 36,
-    marginRight: 4,
+    marginRight: Spacing.xxs,
   },
   hourLabel: {
     width: 28,
-    marginHorizontal: 2,
+    marginHorizontal: Spacing.micro,
     alignItems: 'center',
   },
-  hourText: {
-    fontSize: 9,
-    fontWeight: '500',
-  },
+  hourText: { ...Typography.micro },
   dayRow: {
     flexDirection: 'row',
-    marginVertical: 2,
+    marginVertical: Spacing.micro,
   },
   dayLabel: {
     width: 36,
-    marginRight: 4,
+    marginRight: Spacing.xxs,
     justifyContent: 'center',
   },
-  dayText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  dayText: { ...Typography.caption },
   cell: {
     width: 28,
     height: 24,
-    marginHorizontal: 2,
-    borderRadius: 4,
+    marginHorizontal: Spacing.micro,
+    borderRadius: Radii.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cellText: {
-    fontSize: 9,
-    fontWeight: '600',
-  },
+  cellText: { ...Typography.micro },
   legend: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -290,17 +265,14 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     gap: Spacing.xs,
   },
-  legendLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
+  legendLabel: { ...Typography.micro },
   legendScale: {
     flexDirection: 'row',
-    gap: 2,
+    gap: Spacing.micro,
   },
   legendCell: {
     width: 16,
     height: 12,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
 });

@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TierNames } from '@/constants/progression';
 import type { AllBadgeWithProgress, BadgeType } from '@/services/badge-service';
@@ -69,7 +69,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
         style={[
           styles.compactCard,
           isLocked ? styles.lockedCard : undefined,
-          { borderColor: isLocked ? palette.border : `${tierColor}40` },
+          { borderColor: isLocked ? palette.border : withAlpha(tierColor, 0.25) },
         ]}
         onPress={onPress}
         tactile={!!onPress}
@@ -78,7 +78,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
           style={[
             styles.compactIconContainer,
             {
-              backgroundColor: isLocked ? `${palette.muted}15` : `${tierColor}20`,
+              backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12),
             },
           ]}
         >
@@ -106,7 +106,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
             <View
               style={[
                 styles.tierPillSmall,
-                { backgroundColor: isLocked ? `${palette.muted}15` : `${tierColor}20` },
+                { backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12) },
               ]}
             >
               <ThemedText
@@ -129,7 +129,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
       style={[
         styles.card,
         isLocked ? styles.lockedCard : undefined,
-        { borderColor: isLocked ? palette.border : `${tierColor}40` },
+        { borderColor: isLocked ? palette.border : withAlpha(tierColor, 0.25) },
       ]}
       onPress={onPress}
       tactile={!!onPress}
@@ -140,7 +140,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
           style={[
             styles.iconContainer,
             {
-              backgroundColor: isLocked ? `${palette.muted}15` : `${tierColor}20`,
+              backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12),
             },
           ]}
         >
@@ -160,7 +160,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
           <View
             style={[
               styles.tierPill,
-              { backgroundColor: isLocked ? `${palette.muted}15` : `${tierColor}20` },
+              { backgroundColor: isLocked ? withAlpha(palette.muted, 0.09) : withAlpha(tierColor, 0.12) },
             ]}
           >
             <ThemedText
@@ -194,7 +194,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
       {/* Progress Bar (for locked badges with progress) */}
       {isLocked && badge.progress > 0 && badge.progress < 100 && (
         <View style={styles.progressSection}>
-          <View style={[styles.progressBar, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.progressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <View
               style={[
                 styles.progressFill,
@@ -241,7 +241,7 @@ export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
       {/* Points value */}
       <View style={styles.pointsSection}>
         {categoryIcon && (
-          <View style={[styles.categoryPill, { backgroundColor: `${palette.tint}10` }]}>
+          <View style={[styles.categoryPill, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <Ionicons name={categoryIcon} size={12} color={palette.tint} />
           </View>
         )}
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   compactIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -296,72 +296,52 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -2,
-    borderRadius: 8,
-    padding: 2,
+    borderRadius: Radii.sm,
+    padding: Spacing.micro,
   },
   tierPill: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   tierPillSmall: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
   },
-  tierText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  tierTextSmall: {
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
+  tierText: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
+  tierTextSmall: { ...Typography.micro, textTransform: 'uppercase' },
   infoSection: {
-    gap: 4,
+    gap: Spacing.xxs,
     flex: 1,
   },
-  label: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  compactLabel: {
-    fontSize: 14,
-  },
+  label: { ...Typography.body, lineHeight: 20 },
+  compactLabel: { ...Typography.bodySmall },
   compactContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  description: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  description: { ...Typography.caption, lineHeight: 16 },
   progressSection: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
   progressBar: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  progressLabel: {
-    fontSize: 11,
-  },
+  progressLabel: { ...Typography.caption },
   requirementSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  requirementText: {
-    fontSize: 11,
-  },
+  requirementText: { ...Typography.caption },
   earnedSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -370,30 +350,22 @@ const styles = StyleSheet.create({
   earnedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  earnedText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  dateText: {
-    fontSize: 11,
-  },
+  earnedText: { ...Typography.caption },
+  dateText: { ...Typography.caption },
   pointsSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     marginTop: 'auto',
   },
   categoryPill: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pointsText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  pointsText: { ...Typography.caption },
 });

@@ -15,7 +15,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { ShareButton } from './ShareButton';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
@@ -109,7 +109,7 @@ export function ReferralCodeCard({
     <SurfaceCard style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.iconCircle, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="gift-outline" size={24} color={palette.tint} />
         </View>
         <View style={styles.headerText}>
@@ -135,7 +135,7 @@ export function ReferralCodeCard({
             onPress={handleCopy}
             style={[
               styles.copyButton,
-              { backgroundColor: copied ? `${palette.success}15` : palette.surface },
+              { backgroundColor: copied ? withAlpha(palette.success, 0.09) : palette.surface },
             ]}
           >
             <Ionicons
@@ -173,7 +173,7 @@ export function ReferralCodeCard({
 
 const styles = StyleSheet.create({
   card: {
-    padding: Spacing.lg,
+    padding: Components.card.padding,
     gap: Spacing.md,
   },
   header: {
@@ -184,13 +184,13 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   title: {
     fontSize: scaleFont(18),
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(14),
   },
   codeContainer: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     borderRadius: Radii.md,
     gap: Spacing.xs,
   },
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   copyText: {
     fontSize: scaleFont(14),
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
 
   // Compact variant
   compactCard: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
   },
   compactContent: {
     flexDirection: 'row',
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   compactLeft: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   compactLabel: {
     fontSize: scaleFont(11),
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },

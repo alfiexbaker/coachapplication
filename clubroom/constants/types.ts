@@ -133,6 +133,7 @@ export type {
   SquadInviteHistoryEntry,
   ClubInvite,
   ClubPostType,
+  FeedType,
   ClubFeedPost,
   AcademyPermission,
   Academy,
@@ -146,6 +147,7 @@ export type {
 // SESSION TYPES
 // ============================================================================
 export type {
+  SessionInviteType,
   SessionType,
   SessionTemplate,
   SessionState,
@@ -374,4 +376,4 @@ export type {
 // These types exist in app-types.ts with slightly different (simpler) definitions.
 // They are re-exported here so that `import { User, Session } from '@/constants/types'`
 // continues to work.
-export { type User, type Session } from './app-types';
+export { type User, type Session, type Booking, type BookingStatus } from './app-types';

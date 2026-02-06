@@ -8,7 +8,8 @@
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography, Borders } from '@/constants/theme';
+import { Divider } from '@/components/ui/primitives/Divider';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface FilterSectionProps {
@@ -45,14 +46,7 @@ export function FilterSection({
 
       <View style={styles.content}>{children}</View>
 
-      {divider && (
-        <View
-          style={[
-            styles.divider,
-            { backgroundColor: palette.border, height: Borders.width.thin },
-          ]}
-        />
-      )}
+      {divider && <Divider style={{ marginTop: Spacing.lg }} />}
     </View>
   );
 }
@@ -71,8 +65,5 @@ const styles = StyleSheet.create({
   },
   content: {
     // Children handle their own layout
-  },
-  divider: {
-    marginTop: Spacing.lg,
   },
 });

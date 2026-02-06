@@ -13,7 +13,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
 import type { GroupType } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
@@ -204,7 +204,7 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
                     styles.typeIconContainer,
                     {
                       backgroundColor:
-                        type === option.value ? `${palette.tint}15` : palette.surfaceSecondary,
+                        type === option.value ? withAlpha(palette.tint, 0.09) : palette.surfaceSecondary,
                     },
                   ]}
                 >
@@ -244,7 +244,7 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
               style={[
                 styles.privacyOption,
                 {
-                  backgroundColor: isPublic ? `${palette.tint}15` : palette.surface,
+                  backgroundColor: isPublic ? withAlpha(palette.tint, 0.09) : palette.surface,
                   borderColor: isPublic ? palette.tint : palette.border,
                 },
               ]}
@@ -279,7 +279,7 @@ export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateG
               style={[
                 styles.privacyOption,
                 {
-                  backgroundColor: !isPublic ? `${palette.tint}15` : palette.surface,
+                  backgroundColor: !isPublic ? withAlpha(palette.tint, 0.09) : palette.surface,
                   borderColor: !isPublic ? palette.tint : palette.border,
                 },
               ]}
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: scaleFont(15),
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   input: {
     height: 48,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: scaleFont(12),
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   charCount: {
     fontSize: scaleFont(11),
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   typeIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
   },
   privacyTextContainer: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   privacyLabel: {
     fontSize: scaleFont(15),

@@ -29,6 +29,7 @@ import {
   Switch,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -36,11 +37,11 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { bookingService } from '@/services/booking-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
-import type { CancellationPolicy, RefundCalculation, RefundTier } from '@/constants/types';
+import type { CancellationPolicy, RefundCalculation, RefundTier, Booking } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CancelBookingScreen');
@@ -155,13 +156,13 @@ export default function CancelBookingScreen() {
       const booking = await bookingService.getBooking(id);
       if (booking) {
         // Use type assertion for properties that may exist at runtime but not in type definition
-        const bookingAny = booking as any;
-        const bookingPrice = bookingAny.price ?? 35;
+        const bookingExt = booking as Booking & Record<string, unknown>;
+        const bookingPrice = (bookingExt.price as number) ?? 35;
         setBookingAmount(bookingPrice);
         setSessionTime(new Date(booking.scheduledAt));
         setCoachName(booking.coachName || 'Coach');
         setAthleteName(booking.athleteName || 'Athlete');
-        setSessionTitle(bookingAny.sessionTitle || booking.service || 'Session');
+        setSessionTitle((bookingExt.sessionTitle as string) || booking.service || 'Session');
 
         const coachPolicy = await schedulingRulesService.getCancellationPolicy(booking.coachId);
         setPolicy(coachPolicy);
@@ -256,7 +257,7 @@ export default function CancelBookingScreen() {
 
   const handleOpenCounterOffer = () => {
     // Navigate to reschedule counter-offer flow
-    router.push(`/booking/${id}/reschedule` as any);
+    router.push(Routes.bookingCancel(id));
   };
 
   const handleGoBack = () => {
@@ -300,8 +301,8 @@ export default function CancelBookingScreen() {
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Illustration */}
-          <View style={[styles.rescheduleHero, { backgroundColor: `${palette.success}08` }]}>
-            <View style={[styles.rescheduleIconCircle, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.rescheduleHero, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
+            <View style={[styles.rescheduleIconCircle, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="swap-horizontal" size={32} color={palette.success} />
             </View>
             <ThemedText type="subtitle" style={styles.rescheduleHeroTitle}>
@@ -334,7 +335,7 @@ export default function CancelBookingScreen() {
             onPress={handleOpenCounterOffer}
             style={[styles.primaryButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="calendar" size={20} color="#fff" />
+            <Ionicons name="calendar" size={20} color={Colors.light.onPrimary} />
             <ThemedText style={styles.primaryButtonText}>
               Propose a New Time
             </ThemedText>
@@ -367,10 +368,10 @@ export default function CancelBookingScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Coach mode banner */}
         {isCoach && (
-          <View style={[styles.coachBanner, { backgroundColor: `${palette.warning}10`, borderColor: `${palette.warning}30` }]}>
+          <View style={[styles.coachBanner, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: withAlpha(palette.warning, 0.19) }]}>
             <Ionicons name="shield-outline" size={20} color={palette.warning} />
             <View style={styles.coachBannerText}>
-              <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>
+              <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
                 Coach Cancellation
               </ThemedText>
               <ThemedText style={[styles.coachBannerDesc, { color: palette.muted }]}>
@@ -400,8 +401,8 @@ export default function CancelBookingScreen() {
                   styles.refundAmountBox,
                   {
                     backgroundColor: refundCalc.isEligible
-                      ? `${palette.success}10`
-                      : `${palette.error}10`,
+                      ? withAlpha(palette.success, 0.06)
+                      : withAlpha(palette.error, 0.06),
                   },
                 ]}
               >
@@ -455,7 +456,7 @@ export default function CancelBookingScreen() {
               </View>
 
               {/* Time until session */}
-              <View style={[styles.timeNotice, { backgroundColor: `${palette.warning}10` }]}>
+              <View style={[styles.timeNotice, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
                 <Ionicons name="time-outline" size={18} color={palette.warning} />
                 <ThemedText style={[styles.timeText, { color: palette.warning }]}>
                   {formatTimeUntil(refundCalc.hoursUntilSession)} until session
@@ -470,7 +471,7 @@ export default function CancelBookingScreen() {
           <View style={styles.policyHeader}>
             <Ionicons name="document-text-outline" size={20} color={palette.tint} />
             <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
-            <View style={[styles.policyBadge, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.policyBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <ThemedText style={[styles.policyBadgeText, { color: palette.tint }]}>
                 {effectivePolicy.name}
               </ThemedText>
@@ -493,7 +494,7 @@ export default function CancelBookingScreen() {
                     style={[
                       styles.tierRow,
                       isActive && {
-                        backgroundColor: `${tierColor}10`,
+                        backgroundColor: withAlpha(tierColor, 0.06),
                         borderRadius: Radii.sm,
                         marginHorizontal: -Spacing.xs,
                         paddingHorizontal: Spacing.xs,
@@ -554,14 +555,14 @@ export default function CancelBookingScreen() {
                     styles.reasonOption,
                     {
                       borderColor: active ? palette.tint : palette.border,
-                      backgroundColor: active ? `${palette.tint}10` : palette.surface,
+                      backgroundColor: active ? withAlpha(palette.tint, 0.06) : palette.surface,
                     },
                   ]}
                 >
                   <View
                     style={[
                       styles.reasonIconCircle,
-                      { backgroundColor: active ? `${palette.tint}15` : `${palette.muted}10` },
+                      { backgroundColor: active ? withAlpha(palette.tint, 0.09) : withAlpha(palette.muted, 0.06) },
                     ]}
                   >
                     <Ionicons
@@ -582,7 +583,7 @@ export default function CancelBookingScreen() {
           </View>
 
           {isCoach && !reason && (
-            <View style={[styles.requiredNotice, { backgroundColor: `${palette.error}08` }]}>
+            <View style={[styles.requiredNotice, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
               <Ionicons name="alert-circle-outline" size={14} color={palette.error} />
               <ThemedText style={[styles.requiredNoticeText, { color: palette.error }]}>
                 A reason is required for coach cancellations
@@ -620,11 +621,11 @@ export default function CancelBookingScreen() {
         <SurfaceCard style={styles.waitlistCard}>
           <View style={styles.waitlistRow}>
             <View style={styles.waitlistInfo}>
-              <View style={[styles.waitlistIcon, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.waitlistIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="people-outline" size={16} color={palette.success} />
               </View>
               <View style={styles.waitlistTextWrap}>
-                <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>
+                <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
                   Notify Waitlist
                 </ThemedText>
                 <ThemedText style={[styles.waitlistHelper, { color: palette.muted }]}>
@@ -639,7 +640,7 @@ export default function CancelBookingScreen() {
                 setNotifyWaitlist(v);
               }}
               trackColor={{ false: palette.border, true: palette.success }}
-              thumbColor="#fff"
+              thumbColor={Colors.light.surface}
             />
           </View>
         </SurfaceCard>
@@ -647,13 +648,13 @@ export default function CancelBookingScreen() {
         {/* Reschedule suggestion CTA */}
         <Clickable
           onPress={handleRescheduleSuggest}
-          style={[styles.rescheduleCta, { borderColor: palette.tint, backgroundColor: `${palette.tint}06` }]}
+          style={[styles.rescheduleCta, { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.02) }]}
         >
-          <View style={[styles.rescheduleCtaIcon, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.rescheduleCtaIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="swap-horizontal" size={20} color={palette.tint} />
           </View>
           <View style={styles.rescheduleCtaText}>
-            <ThemedText type="defaultSemiBold" style={{ color: palette.tint, fontSize: 14 }}>
+            <ThemedText type="defaultSemiBold" style={{ color: palette.tint, ...Typography.bodySmall }}>
               Reschedule instead?
             </ThemedText>
             <ThemedText style={[styles.rescheduleCtaDesc, { color: palette.muted }]}>
@@ -684,10 +685,10 @@ export default function CancelBookingScreen() {
             ]}
           >
             {processing ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={Colors.light.onPrimary} />
             ) : (
               <>
-                <Ionicons name="close-circle" size={20} color="#fff" />
+                <Ionicons name="close-circle" size={20} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.cancelButtonText}>
                   {isCoach ? 'Cancel Session' : 'Confirm Cancellation'}
                 </ThemedText>
@@ -732,8 +733,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   coachBannerDesc: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
     lineHeight: 16,
   },
 
@@ -754,18 +755,17 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     borderRadius: Radii.md,
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   refundLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   refundAmount: {
-    fontSize: 36,
-    fontWeight: '800',
+    ...Typography.display,
     letterSpacing: -1,
   },
   refundPercent: {
-    fontSize: 13,
+    ...Typography.small,
   },
   refundBreakdown: {
     gap: Spacing.xs,
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
   breakdownRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
   },
   breakdownTotal: {
     borderTopWidth: 1,
@@ -788,8 +788,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   timeText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
 
   // Policy card
@@ -805,12 +804,11 @@ const styles = StyleSheet.create({
   policyBadge: {
     marginLeft: 'auto',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   policyBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   policyTiers: {
     marginTop: Spacing.xs,
@@ -836,14 +834,14 @@ const styles = StyleSheet.create({
   tierDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
     marginTop: 5,
   },
   tierDotActive: {
     width: 14,
     height: 14,
-    borderRadius: 7,
-    marginTop: 3,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.micro,
     marginLeft: -2,
     marginRight: -2,
   },
@@ -856,23 +854,22 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   tierPercentage: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   tierActiveBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
   },
   tierActiveText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.micro,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   tierDescription: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
     lineHeight: 16,
   },
 
@@ -882,7 +879,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   reasonOptions: {
     gap: Spacing.xs,
@@ -898,20 +895,19 @@ const styles = StyleSheet.create({
   reasonIconCircle: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   requiredNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     padding: Spacing.xs,
     borderRadius: Radii.sm,
   },
   requiredNoticeText: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
 
   // Message card
@@ -925,7 +921,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     padding: Spacing.md,
     textAlignVertical: 'top',
-    fontSize: 15,
+    ...Typography.body,
   },
 
   // Waitlist
@@ -947,7 +943,7 @@ const styles = StyleSheet.create({
   waitlistIcon: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -955,8 +951,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   waitlistHelper: {
-    fontSize: 11,
-    lineHeight: 15,
+    ...Typography.caption,
     marginTop: 1,
   },
 
@@ -972,7 +967,7 @@ const styles = StyleSheet.create({
   rescheduleCtaIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -980,7 +975,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rescheduleCtaDesc: {
-    fontSize: 12,
+    ...Typography.caption,
     marginTop: 1,
   },
 
@@ -994,7 +989,7 @@ const styles = StyleSheet.create({
   rescheduleIconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1003,15 +998,14 @@ const styles = StyleSheet.create({
   },
   rescheduleHeroDesc: {
     textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   currentSessionCard: {
     padding: Spacing.md,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   currentSessionLabel: {
-    fontSize: 11,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     fontWeight: '600',
@@ -1019,8 +1013,8 @@ const styles = StyleSheet.create({
   currentSessionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
+    gap: Spacing.xxs,
+    marginTop: Spacing.micro,
   },
   primaryButton: {
     flexDirection: 'row',
@@ -1031,9 +1025,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
   },
   primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
   outlineButton: {
     flexDirection: 'row',
@@ -1044,8 +1037,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   outlineButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
 
   // Footer
@@ -1062,7 +1054,7 @@ const styles = StyleSheet.create({
   },
   footerRefund: {
     textAlign: 'center',
-    fontSize: 13,
+    ...Typography.small,
   },
   cancelButton: {
     flexDirection: 'row',
@@ -1073,8 +1065,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
   },
   cancelButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

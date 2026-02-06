@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -16,7 +17,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { DrillList } from '@/components/drills';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Drill, DrillCategory } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -117,7 +118,7 @@ export default function DrillLibraryScreen() {
    */
   const handleDrillPress = useCallback((drill: Drill) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/drills/assign', params: { drillId: drill.id } });
+    router.push(Routes.drillsAssignWith(drill.id));
   }, []);
 
   /**
@@ -125,7 +126,7 @@ export default function DrillLibraryScreen() {
    */
   const handleCreateDrill = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/drills/create');
+    router.push(Routes.DRILLS_CREATE);
   }, []);
 
   /**
@@ -152,7 +153,7 @@ export default function DrillLibraryScreen() {
           onPress={handleCreateDrill}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
+          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
 
@@ -193,7 +194,7 @@ export default function DrillLibraryScreen() {
                     <ThemedText
                       style={[
                         styles.categoryChipText,
-                        { color: isSelected ? '#FFFFFF' : palette.text },
+                        { color: isSelected ? Colors.light.onPrimary : palette.text },
                       ]}
                     >
                       All
@@ -207,7 +208,7 @@ export default function DrillLibraryScreen() {
                       <ThemedText
                         style={[
                           styles.categoryCountText,
-                          { color: isSelected ? '#FFFFFF' : palette.muted },
+                          { color: isSelected ? Colors.light.onPrimary : palette.muted },
                         ]}
                       >
                         {count}
@@ -226,7 +227,7 @@ export default function DrillLibraryScreen() {
                   style={[
                     styles.categoryChip,
                     {
-                      backgroundColor: isSelected ? `${info.color}20` : palette.surface,
+                      backgroundColor: isSelected ? withAlpha(info.color, 0.12) : palette.surface,
                       borderColor: isSelected ? info.color : palette.border,
                     },
                   ]}
@@ -248,7 +249,7 @@ export default function DrillLibraryScreen() {
                     <View
                       style={[
                         styles.categoryCount,
-                        { backgroundColor: isSelected ? `${info.color}30` : palette.surfaceSecondary },
+                        { backgroundColor: isSelected ? withAlpha(info.color, 0.19) : palette.surfaceSecondary },
                       ]}
                     >
                       <ThemedText
@@ -350,12 +351,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -374,7 +375,7 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: {
     flex: 1,
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
   },
   categoryContainer: {
     marginBottom: Spacing.sm,
@@ -387,27 +388,25 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: 8,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
   categoryChipText: {
-    fontSize: scaleFont(13),
-    fontWeight: '500',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
   categoryCount: {
     minWidth: 20,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: Spacing.xxs,
   },
   categoryCountText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   statsRow: {
     flexDirection: 'row',
@@ -423,11 +422,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: scaleFont(20),
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
   },
   statLabel: {
-    fontSize: scaleFont(11),
-    marginTop: 2,
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
+    marginTop: Spacing.micro,
   },
   statDivider: {
     width: 1,

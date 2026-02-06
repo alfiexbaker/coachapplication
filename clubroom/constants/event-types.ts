@@ -26,8 +26,8 @@ export type RSVPStatus = 'GOING' | 'MAYBE' | 'NOT_GOING';
 
 export interface EventAttendee {
   userId: string;
-  userName: string;
-  userPhotoUrl?: string;
+  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
+  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   userRole: 'COACH' | 'PARENT' | 'ATHLETE';
   status: RSVPStatus;
   guestCount: number;
@@ -37,9 +37,9 @@ export interface EventAttendee {
 export interface ClubEvent {
   id: string;
   clubId: string;
-  clubName: string;
+  clubName: string; // TODO(T3.4): Remove when connecting to real API — resolve from clubId instead
   createdBy: string;
-  createdByName: string;
+  createdByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from createdBy instead
 
   // Event details
   title: string;
@@ -101,9 +101,9 @@ export interface EventRSVP {
   /** ID of the user who submitted the RSVP */
   userId: string;
   /** Name of the user for display purposes */
-  userName: string;
+  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** User's avatar URL */
-  userPhotoUrl?: string;
+  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** User's role (for display and filtering) */
   userRole: 'COACH' | 'PARENT' | 'ATHLETE';
   /** Current RSVP status */
@@ -129,9 +129,9 @@ export interface EventAttendance {
   /** ID of the user who checked in */
   userId: string;
   /** Name of the user for display purposes */
-  userName: string;
+  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** User's avatar URL */
-  userPhotoUrl?: string;
+  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   /** User's role */
   userRole: 'COACH' | 'PARENT' | 'ATHLETE';
   /** When the user checked in (ISO string) */
@@ -139,7 +139,7 @@ export interface EventAttendance {
   /** ID of the user who performed the check-in (for coach check-ins) */
   checkedInBy: string;
   /** Name of the person who performed the check-in */
-  checkedInByName: string;
+  checkedInByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from checkedInBy instead
   /** Check-in method */
   checkInMethod: 'SELF' | 'COACH' | 'QR_CODE' | 'LOCATION';
   /** Location coordinates at check-in (for location validation) */
@@ -197,8 +197,8 @@ export interface EventAttendanceStats {
 export interface SubmitRSVPInput {
   eventId: string;
   userId: string;
-  userName: string;
-  userPhotoUrl?: string;
+  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
+  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   userRole: 'COACH' | 'PARENT' | 'ATHLETE';
   status: RSVPStatus;
   guestCount?: number;
@@ -211,11 +211,11 @@ export interface SubmitRSVPInput {
 export interface CheckInInput {
   eventId: string;
   userId: string;
-  userName: string;
-  userPhotoUrl?: string;
+  userName: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
+  userPhotoUrl?: string; // TODO(T3.4): Remove when connecting to real API — resolve from userId instead
   userRole: 'COACH' | 'PARENT' | 'ATHLETE';
   checkedInBy: string;
-  checkedInByName: string;
+  checkedInByName: string; // TODO(T3.4): Remove when connecting to real API — resolve from checkedInBy instead
   checkInMethod: 'SELF' | 'COACH' | 'QR_CODE' | 'LOCATION';
   location?: {
     latitude: number;
@@ -238,9 +238,9 @@ export type MatchPlayerStatus = 'INVITED' | 'AVAILABLE' | 'UNAVAILABLE' | 'SELEC
 
 export interface MatchPlayer {
   athleteId: string;
-  athleteName: string;
+  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
   parentId: string;
-  parentName?: string;
+  parentName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   status: MatchPlayerStatus;
   responseAt?: string;
   parentNote?: string;
@@ -256,11 +256,11 @@ export interface MatchResult {
 export interface Match {
   id: string;
   clubId: string;
-  clubName: string;
+  clubName: string; // TODO(T3.4): Remove when connecting to real API — resolve from clubId instead
   squadId?: string;
-  squadName?: string;
+  squadName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from squadId instead
   coachId: string;
-  coachName?: string;
+  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
 
   // Match details
   title: string; // "Under 11's vs Hackney FC"
@@ -295,14 +295,14 @@ export interface Match {
 
 export interface MatchInviteNotification {
   matchId: string;
-  matchTitle: string;
+  matchTitle: string; // TODO(T3.4): Remove when connecting to real API — resolve from matchId instead
   opponent: string;
   date: string;
   kickoffTime: string;
   venue: string;
-  clubName: string;
-  coachName: string;
-  athleteName: string;
+  clubName: string; // TODO(T3.4): Remove when connecting to real API — resolve from matchId -> clubId instead
+  coachName: string; // TODO(T3.4): Remove when connecting to real API — resolve from matchId -> coachId instead
+  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
 }
 
 export interface MatchSelectionNotification {
@@ -313,5 +313,5 @@ export interface MatchSelectionNotification {
   kickoffTime: string;
   venue: string;
   isSelected: boolean; // true = selected, false = reserve
-  athleteName: string;
+  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
 }

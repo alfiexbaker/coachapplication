@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface SettingsRowProps {
@@ -40,7 +40,7 @@ export function SettingsRow({
   const palette = Colors[scheme];
 
   const textColor = destructive ? palette.error : palette.text;
-  const iconBgColor = destructive ? `${palette.error}15` : `${iconColor || palette.accent}15`;
+  const iconBgColor = destructive ? withAlpha(palette.error, 0.09) : withAlpha(iconColor || palette.accent, 0.09);
   const iconTintColor = destructive ? palette.error : (iconColor || palette.accent);
 
   return (
@@ -53,7 +53,7 @@ export function SettingsRow({
       ]}
     >
       <View style={[styles.iconContainer, { backgroundColor: iconBgColor }]}>
-        <Ionicons name={icon as any} size={22} color={iconTintColor} />
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={22} color={iconTintColor} />
       </View>
       <View style={styles.settingContent}>
         <ThemedText type="defaultSemiBold" style={[styles.settingTitle, { color: textColor }]}>
@@ -116,7 +116,7 @@ export function SettingsToggleRow({
           value={value}
           onValueChange={onValueChange}
           trackColor={{ false: palette.border, true: palette.accent }}
-          thumbColor="#FFFFFF"
+          thumbColor={palette.surface}
           disabled={disabled}
         />
       }
@@ -167,30 +167,18 @@ const styles = StyleSheet.create({
   },
   settingContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  settingTitle: {
-    fontSize: 16,
-  },
-  settingSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  valueText: {
-    fontSize: 15,
-    marginRight: Spacing.xs,
-  },
+  settingTitle: { ...Typography.subheading },
+  settingSubtitle: { ...Typography.small, lineHeight: 18 },
+  valueText: { ...Typography.body, marginRight: Spacing.xs },
   section: {
     gap: Spacing.xs,
   },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+  sectionTitle: { ...Typography.smallSemiBold, textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginLeft: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   sectionCard: {
     borderRadius: Radii.lg,
     borderWidth: 0.75,

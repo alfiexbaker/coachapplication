@@ -1,0 +1,514 @@
+import { type Href } from 'expo-router';
+
+/**
+ * Type-safe route builders for all Clubroom navigation.
+ *
+ * Static routes are typed Href constants.
+ * Dynamic routes are functions that return typed Href objects.
+ *
+ * Usage:
+ *   import { Routes } from '@/navigation/routes';
+ *   router.push(Routes.FEED);
+ *   router.push(Routes.event('abc123'));
+ */
+export const Routes = {
+  // ─── Root ──────────────────────────────────────────────────────
+  ROOT: '/' as Href,
+
+  // ─── Tabs ──────────────────────────────────────────────────────
+  HOME: '/(tabs)' as Href,
+  HOME_INDEX: '/(tabs)/index' as Href,
+  FEED: '/(tabs)/feed' as Href,
+  BOOKINGS: '/(tabs)/bookings' as Href,
+  ATHLETES: '/(tabs)/athletes' as Href,
+  SETTINGS: '/(tabs)/settings' as Href,
+  COACH_PROFILE: '/(tabs)/coach-profile' as Href,
+  EDIT_PROFILE: '/(tabs)/edit-profile' as Href,
+  AVAILABILITY: '/(tabs)/availability' as Href,
+  BADGES: '/(tabs)/badges' as Href,
+  CHILDREN: '/(tabs)/children' as Href,
+  CLUB_HUB: '/(tabs)/club-hub' as Href,
+  EARNINGS: '/(tabs)/earnings' as Href,
+  MESSAGES: '/(tabs)/messages' as Href,
+  MORE: '/(tabs)/more' as Href,
+  NOTIFICATIONS: '/(tabs)/notifications' as Href,
+  ROSTER: '/(tabs)/roster' as Href,
+  SCHEDULE: '/(tabs)/schedule' as Href,
+  WALLET: '/(tabs)/wallet' as Href,
+
+  // ─── Tab sub-routes (dynamic) ─────────────────────────────────
+  booking: (id: string) => ({
+    pathname: '/(tabs)/bookings/[id]',
+    params: { id },
+  }) as Href,
+  BOOKINGS_OBJECTIVES: '/(tabs)/bookings/objectives' as Href,
+  BOOKINGS_REPORT_PROBLEM: '/(tabs)/bookings/report-problem' as Href,
+  BOOKINGS_STATISTICS: '/(tabs)/bookings/statistics' as Href,
+  ADMIN_INVITE_CODES: '/(tabs)/admin/invite-codes' as Href,
+
+  // ─── Modals ────────────────────────────────────────────────────
+  MODAL_ADD_CHILD: '/(modal)/add-child' as Href,
+  MODAL_CREATE_POST: '/(modal)/create-post' as Href,
+  MODAL_CREATE_CLUB_POST: '/(modal)/create-club-post' as Href,
+  MODAL_CREATE_SQUAD: '/(modal)/create-squad' as Href,
+  modalPostDetail: (postId: string) => ({
+    pathname: '/(modal)/post-detail',
+    params: { postId },
+  }) as Href,
+
+  // ─── Academy ───────────────────────────────────────────────────
+  ACADEMY_CREATE: '/academy/create' as Href,
+  ACADEMY_JOIN: '/academy/join' as Href,
+  academy: (id: string) => ({
+    pathname: '/academy/[id]',
+    params: { id },
+  }) as Href,
+  academyBranding: (id: string) => ({
+    pathname: '/academy/[id]/branding',
+    params: { id },
+  }) as Href,
+  academySettings: (id: string) => ({
+    pathname: '/academy/[id]/settings',
+    params: { id },
+  }) as Href,
+  academyStaff: (id: string) => ({
+    pathname: '/academy/[id]/staff',
+    params: { id },
+  }) as Href,
+  academyInvite: (id: string) => ({
+    pathname: '/academy/[id]/invite',
+    params: { id },
+  }) as unknown as Href,
+  academyStaffMember: (id: string, staffId: string) => ({
+    pathname: '/academy/[id]/staff/[staffId]',
+    params: { id, staffId },
+  }) as unknown as Href,
+
+  // ─── Admin ─────────────────────────────────────────────────────
+  ADMIN_PROMO_CODES: '/admin/promo-codes' as Href,
+  ADMIN_PROMO_CODES_CREATE: '/admin/promo-codes/create' as Href,
+
+  // ─── Analytics ─────────────────────────────────────────────────
+  ANALYTICS_DASHBOARD: '/analytics/dashboard' as Href,
+  ANALYTICS_REVENUE: '/analytics/revenue' as Href,
+  ANALYTICS_RETENTION: '/analytics/retention' as Href,
+  analyticsAthlete: (athleteId: string) => ({
+    pathname: '/analytics/[athleteId]',
+    params: { athleteId },
+  }) as Href,
+  analyticsAthleteGoals: (athleteId: string) => ({
+    pathname: '/analytics/[athleteId]/goals',
+    params: { athleteId },
+  }) as unknown as Href,
+
+  // ─── Availability ──────────────────────────────────────────────
+  AVAILABILITY_ADD_TEMPLATE: '/availability/add-template' as Href,
+  AVAILABILITY_BLOCK_DATE: '/availability/block-date' as Href,
+  AVAILABILITY_CALENDAR: '/availability/calendar' as Href,
+  AVAILABILITY_SCHEDULING_RULES: '/availability/scheduling-rules' as Href,
+
+  // ─── Badges ────────────────────────────────────────────────────
+  BADGES_INDEX: '/badges' as Href,
+
+  // ─── Book ──────────────────────────────────────────────────────
+  BOOK_COACH: '/book-coach' as Href,
+  bookCoachWith: (coachId: string) => ({
+    pathname: '/book-coach',
+    params: { coachId },
+  }) as Href,
+  CONFIRM_BOOKING: '/confirm-booking' as Href,
+  confirmBookingWith: (params: {
+    coachId: string;
+    coachName: string;
+    slotId: string;
+    slotTitle: string;
+    slotFocus: string;
+    slotStart: string;
+    slotDuration: string;
+    price: string;
+    serviceType: string;
+    objectives: string;
+    athleteIds: string;
+  }) => ({
+    pathname: '/confirm-booking',
+    params,
+  }) as Href,
+  bookSessionType: (coachId: string) => ({
+    pathname: '/book/[coachId]/session-type',
+    params: { coachId },
+  }) as Href,
+  bookSchedule: (coachId: string) => ({
+    pathname: '/book/[coachId]/schedule',
+    params: { coachId },
+  }) as Href,
+  bookDetails: (coachId: string) => ({
+    pathname: '/book/[coachId]/details',
+    params: { coachId },
+  }) as Href,
+  bookReview: (coachId: string) => ({
+    pathname: '/book/[coachId]/review',
+    params: { coachId },
+  }) as Href,
+  bookConfirmation: (coachId: string) => ({
+    pathname: '/book/[coachId]/confirmation',
+    params: { coachId },
+  }) as Href,
+  bookCoach: (coachId: string) => ({
+    pathname: '/book/[coachId]',
+    params: { coachId },
+  }) as unknown as Href,
+
+  // ─── Booking (non-tab) ────────────────────────────────────────
+  bookingCancel: (id: string) => ({
+    pathname: '/booking/[id]/cancel',
+    params: { id },
+  }) as Href,
+  bookingsNegotiate: (id: string) => ({
+    pathname: '/bookings/[id]/negotiate',
+    params: { id },
+  }) as Href,
+  bookingsCounter: (id: string) => ({
+    pathname: '/bookings/[id]/counter',
+    params: { id },
+  }) as Href,
+  BOOKINGS_RECURRING: '/bookings/recurring' as Href,
+  BOOKINGS_SUBSCRIBE: '/bookings/subscribe' as Href,
+  sessionFeedback: (params: {
+    bookingId: string;
+    athleteId?: string;
+    athleteName?: string;
+    athleteObjectives?: string;
+  }) => ({
+    pathname: '/bookings/session-feedback',
+    params,
+  }) as Href,
+
+  // ─── Carpool ───────────────────────────────────────────────────
+  CARPOOL: '/carpool' as Href,
+
+  // ─── Chat ──────────────────────────────────────────────────────
+  chat: (threadId: string) => ({
+    pathname: '/chat/[threadId]',
+    params: { threadId },
+  }) as Href,
+  messagesWith: (params: { coachId?: string; athleteId?: string }) => ({
+    pathname: '/(tabs)/messages',
+    params,
+  }) as Href,
+
+  // ─── Child ─────────────────────────────────────────────────────
+  childEmergency: (id: string) => ({
+    pathname: '/child/[id]/emergency',
+    params: { id },
+  }) as Href,
+  childMedical: (id: string) => ({
+    pathname: '/child/[id]/medical',
+    params: { id },
+  }) as Href,
+  childBadges: (childId: string) => ({
+    pathname: '/children/badges/[childId]',
+    params: { childId },
+  }) as Href,
+
+  // ─── Club ──────────────────────────────────────────────────────
+  CLUB_CREATE: '/club/create' as Href,
+  CLUB_INVITE_MEMBERS: '/club/invite-members' as Href,
+  CLUB_SETTINGS: '/club/settings' as Href,
+  CLUB_TRAINING_SCHEDULE: '/club/training-schedule' as Href,
+  club: (id: string) => ({
+    pathname: '/club/[id]',
+    params: { id },
+  }) as Href,
+  clubDashboard: (clubId: string) => ({
+    pathname: '/club/[clubId]/dashboard',
+    params: { clubId },
+  }) as Href,
+  clubBranding: (clubId: string) => ({
+    pathname: '/club/[clubId]/branding',
+    params: { clubId },
+  }) as Href,
+  clubCalendar: (clubId: string) => ({
+    pathname: '/club/[clubId]/calendar',
+    params: { clubId },
+  }) as Href,
+  clubMember: (clubId: string, memberId: string) => ({
+    pathname: '/club/[clubId]/member/[memberId]',
+    params: { clubId, memberId },
+  }) as Href,
+  clubSquad: (id: string) => ({
+    pathname: '/club/squad/[id]',
+    params: { id },
+  }) as Href,
+  CLUB_SQUAD_CREATE: '/club/squad/create' as Href,
+
+  // ─── Coach ─────────────────────────────────────────────────────
+  COACH_INVITES: '/coach-invites' as Href,
+  coachInvitesWith: (params: { code: string; clubId: string; clubName: string; role: string }) => ({
+    pathname: '/coach-invites',
+    params,
+  }) as Href,
+  coachInviteAthlete: (athleteId: string) => ({
+    pathname: '/coach/invite',
+    params: { athleteId },
+  }) as unknown as Href,
+  chatWithAthlete: (athleteId: string) => ({
+    pathname: '/chat',
+    params: { athleteId },
+  }) as unknown as Href,
+  coachPublic: (coachId: string) => ({
+    pathname: '/coach/[coachId]/public',
+    params: { coachId },
+  }) as Href,
+  coach: (id: string) => ({
+    pathname: '/coach/[id]',
+    params: { id },
+  }) as Href,
+
+  // ─── Community ─────────────────────────────────────────────────
+  COMMUNITY: '/community' as Href,
+  communityGroup: (groupId: string) => ({
+    pathname: '/community/[groupId]',
+    params: { groupId },
+  }) as Href,
+
+  // ─── Compare ───────────────────────────────────────────────────
+  COMPARE: '/compare' as Href,
+  compareCoaches: (ids: string) => ({
+    pathname: '/compare/[ids]',
+    params: { ids },
+  }) as Href,
+
+  // ─── Development ───────────────────────────────────────────────
+  DEVELOPMENT_BADGES: '/development/badges' as Href,
+  developmentBadgesHighlight: (badgeAwardId: string) => ({
+    pathname: '/development/badges',
+    params: { highlightBadge: badgeAwardId },
+  }) as Href,
+  DEVELOPMENT_MY_PROGRESS: '/development/my-progress' as Href,
+  developmentAthlete: (athleteId: string) => ({
+    pathname: '/development/athlete/[athleteId]',
+    params: { athleteId },
+  }) as Href,
+  developmentAthleteSpecialNeeds: (athleteId: string) => ({
+    pathname: '/development/athlete/[athleteId]/special-needs',
+    params: { athleteId },
+  }) as Href,
+  developmentSession: (sessionId: string) => ({
+    pathname: '/development/session/[sessionId]',
+    params: { sessionId },
+  }) as Href,
+  developmentChildProgress: (childId: string) => ({
+    pathname: '/development/child-progress/[childId]',
+    params: { childId },
+  }) as Href,
+
+  // ─── Discover ──────────────────────────────────────────────────
+  DISCOVER_SESSIONS: '/discover-sessions' as Href,
+  DISCOVER_MAP: '/discover/map' as Href,
+  DISCOVER_FILTERS: '/discover/filters' as Href,
+
+  // ─── Drills ────────────────────────────────────────────────────
+  DRILLS: '/drills' as Href,
+  DRILLS_CREATE: '/drills/create' as Href,
+  DRILLS_LIBRARY: '/drills/library' as Href,
+  DRILLS_ASSIGN: '/drills/assign' as Href,
+  drill: (id: string) => ({
+    pathname: '/drills/[id]',
+    params: { id },
+  }) as Href,
+  drillsAssignWith: (drillId: string) => ({
+    pathname: '/drills/assign',
+    params: { drillId },
+  }) as Href,
+
+  // ─── Events ────────────────────────────────────────────────────
+  EVENTS: '/events' as Href,
+  EVENTS_CREATE: '/events/create' as Href,
+  event: (id: string) => ({
+    pathname: '/events/[id]',
+    params: { id },
+  }) as Href,
+  eventRsvp: (id: string) => ({
+    pathname: '/events/[id]/rsvp',
+    params: { id },
+  }) as Href,
+
+  // ─── Family ────────────────────────────────────────────────────
+  FAMILY: '/family' as Href,
+  FAMILY_CALENDAR: '/family/calendar' as Href,
+  FAMILY_SHARING: '/family/sharing' as Href,
+  FAMILY_SPENDING: '/family/spending' as Href,
+
+  // ─── Goals ─────────────────────────────────────────────────────
+  GOALS: '/goals' as Href,
+  GOALS_CREATE: '/goals/create' as Href,
+  goal: (id: string) => ({
+    pathname: '/goals/[id]',
+    params: { id },
+  }) as Href,
+
+  // ─── Group Sessions ────────────────────────────────────────────
+  GROUP_SESSIONS: '/group-sessions' as Href,
+  GROUP_SESSIONS_CREATE: '/group-sessions/create' as Href,
+  groupSession: (id: string) => ({
+    pathname: '/group-sessions/[id]',
+    params: { id },
+  }) as Href,
+  groupSessionRoster: (id: string) => ({
+    pathname: '/group-sessions/[id]/roster',
+    params: { id },
+  }) as Href,
+
+  // ─── Health ────────────────────────────────────────────────────
+  HEALTH: '/health' as Href,
+  HEALTH_INJURIES: '/health/injuries' as Href,
+  HEALTH_LOG: '/health/log' as Href,
+  healthEntry: (id: string) => ({
+    pathname: '/health/[id]',
+    params: { id },
+  }) as Href,
+
+  // ─── Invites ───────────────────────────────────────────────────
+  INVITES: '/invites' as Href,
+
+  // ─── Invoices ──────────────────────────────────────────────────
+  INVOICES: '/invoices' as Href,
+  invoice: (id: string) => ({
+    pathname: '/invoices/[id]',
+    params: { id },
+  }) as Href,
+
+  // ─── Matches ───────────────────────────────────────────────────
+  MATCHES: '/matches' as Href,
+  MATCHES_CREATE: '/matches/create' as Href,
+  match: (id: string) => ({
+    pathname: '/matches/[id]',
+    params: { id },
+  }) as Href,
+
+  // ─── Packages ──────────────────────────────────────────────────
+  PACKAGES: '/packages' as Href,
+  PACKAGES_MANAGE: '/packages/manage' as Href,
+  package: (id: string) => ({
+    pathname: '/packages/[id]',
+    params: { id },
+  }) as Href,
+
+  // ─── Payment ───────────────────────────────────────────────────
+  PAYMENT_METHODS: '/payment/methods' as Href,
+  PAYMENT_ADD_CARD: '/payment/add-card' as Href,
+
+  // ─── Profile ──────────────────────────────────────────────────
+  profile: (userId: string) => ({
+    pathname: '/profile/[userId]',
+    params: { userId },
+  }) as unknown as Href,
+
+  // ─── Rate / Review ─────────────────────────────────────────────
+  RATE_COACH: '/rate-coach' as Href,
+  review: (bookingId: string) => ({
+    pathname: '/review/[bookingId]',
+    params: { bookingId },
+  }) as Href,
+  reviewCreate: (bookingId: string, coachId: string) => ({
+    pathname: '/review/create',
+    params: { bookingId, coachId },
+  }) as unknown as Href,
+
+  // ─── Referrals ─────────────────────────────────────────────────
+  REFERRALS: '/referrals' as Href,
+  REFERRALS_INVITE: '/referrals/invite' as Href,
+
+  // ─── Roster ────────────────────────────────────────────────────
+  ROSTER_INDEX: '/roster' as Href,
+  ROSTER_CONSENTS: '/roster/consents' as Href,
+  rosterAthlete: (athleteId: string) => ({
+    pathname: '/roster/[athleteId]',
+    params: { athleteId },
+  }) as Href,
+  rosterAthleteEmergency: (athleteId: string) => ({
+    pathname: '/roster/[athleteId]/emergency',
+    params: { athleteId },
+  }) as Href,
+  rosterAthleteAddToSession: (athleteId: string) => ({
+    pathname: '/roster/[athleteId]/add-to-session',
+    params: { athleteId },
+  }) as Href,
+
+  // ─── Sessions ──────────────────────────────────────────────────
+  SESSIONS_CREATE: '/sessions/create' as Href,
+  sessionsCreateWith: (params: { athleteIds: string; athleteNames: string }) => ({
+    pathname: '/sessions/create',
+    params,
+  }) as Href,
+  sessionComplete: (id: string) => ({
+    pathname: '/session/[id]/complete',
+    params: { id },
+  }) as Href,
+  sessionNotes: (bookingId: string) => ({
+    pathname: '/session-notes/[bookingId]',
+    params: { bookingId },
+  }) as Href,
+
+  // ─── Session Invites ───────────────────────────────────────────
+  SESSION_INVITES: '/session-invites' as Href,
+  SESSION_INVITES_CREATE: '/session-invites/create' as Href,
+  SESSION_INVITES_GROUP: '/session-invites/group' as Href,
+  SESSION_INVITES_SQUAD: '/session-invites/squad' as Href,
+  sessionInvite: (id: string) => ({
+    pathname: '/session-invites/[id]',
+    params: { id },
+  }) as Href,
+
+  // ─── Settings ──────────────────────────────────────────────────
+  SETTINGS_INDEX: '/settings' as Href,
+  SETTINGS_ACCOUNT: '/settings/account' as Href,
+  SETTINGS_APPEARANCE: '/settings/appearance' as Href,
+  SETTINGS_CALENDAR_SYNC: '/settings/calendar-sync' as Href,
+  SETTINGS_CANCELLATION_POLICY: '/settings/cancellation-policy' as Href,
+  SETTINGS_COACHING: '/settings/coaching' as Href,
+  SETTINGS_BLOCKED_DATES: '/settings/blocked-dates' as Href,
+  SETTINGS_HELP: '/settings/help' as Href,
+  SETTINGS_SMART_SLOTS: '/settings/smart-slots' as Href,
+  SETTINGS_TRAVEL_RADIUS: '/settings/travel-radius' as Href,
+  SETTINGS_NOTIFICATIONS: '/settings/notifications' as Href,
+  SETTINGS_PRIVACY: '/settings/privacy' as Href,
+
+  // ─── Skills ────────────────────────────────────────────────────
+  SKILLS: '/skills' as Href,
+  skillCategory: (category: string) => ({
+    pathname: '/skills/[category]',
+    params: { category },
+  }) as Href,
+
+  // ─── Squads ────────────────────────────────────────────────────
+  squadInvite: (id: string) => ({
+    pathname: '/squads/[id]/invite',
+    params: { id },
+  }) as Href,
+
+  // ─── Verification ──────────────────────────────────────────────
+  VERIFICATION: '/verification' as Href,
+  VERIFICATION_BACKGROUND: '/verification/background' as Href,
+  VERIFICATION_CREDENTIALS: '/verification/credentials' as Href,
+  VERIFICATION_ID: '/verification/id' as Href,
+  VERIFICATION_INSURANCE: '/verification/insurance' as Href,
+
+  // ─── Videos ────────────────────────────────────────────────────
+  VIDEOS: '/videos' as Href,
+  VIDEOS_UPLOAD: '/videos/upload' as Href,
+  video: (id: string) => ({
+    pathname: '/videos/[id]',
+    params: { id },
+  }) as Href,
+  videoAnnotate: (id: string) => ({
+    pathname: '/videos/annotate/[id]',
+    params: { id },
+  }) as Href,
+
+  // ─── Waitlist ──────────────────────────────────────────────────
+  WAITLIST: '/waitlist' as Href,
+
+  // ─── Favourites ────────────────────────────────────────────────
+  FAVOURITES: '/favourites' as Href,
+} as const;

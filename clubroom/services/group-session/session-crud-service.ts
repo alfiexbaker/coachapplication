@@ -16,6 +16,7 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { socialFeedService } from '../social-feed-service';
+import { emitTyped, ServiceEvents } from '../event-bus';
 import { createLogger } from '@/utils/logger';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import type {
@@ -23,6 +24,7 @@ import type {
   GroupSessionSchedule,
   FootballObjective,
   RecurringPattern,
+  SessionInviteType,
 } from '@/constants/types';
 
 const USE_MOCK = api.useMock;
@@ -338,6 +340,7 @@ export interface CreateGroupSessionInput {
   squadId?: string;
   squadName?: string;
   isFree?: boolean;
+  inviteType?: SessionInviteType;
 }
 
 // ============================================================================
@@ -363,6 +366,15 @@ function generateRecurringDates(pattern: RecurringPattern, weeksAhead: number = 
   }
 
   return dates;
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/** Session types considered "open" that should auto-post to the coach feed */
+function isOpenSessionType(sessionType: string): boolean {
+  return ['OPEN_SESSION', 'CAMP', 'CLINIC', 'TRIAL'].includes(sessionType);
 }
 
 // ============================================================================
@@ -488,6 +500,7 @@ export const sessionCrudService = {
       squadId: input.squadId,
       squadName: input.squadName,
       isFree: input.isFree ?? (input.pricePerParticipant === 0),
+      inviteType: input.inviteType,
     };
 
     if (USE_MOCK) {
@@ -536,6 +549,29 @@ export const sessionCrudService = {
           coachId: session.coachId,
           coachName: session.coachName,
           squadName: session.squadName,
+        });
+      }
+
+      // Emit event for open sessions so service-subscribers can auto-create a feed post
+      if (isOpenSessionType(session.sessionType) && session.schedule.length > 0) {
+        const firstSchedule = session.schedule[0];
+        emitTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, {
+          sessionId: session.id,
+          coachId: session.coachId,
+          coachName: session.coachName,
+          title: session.title,
+          description: session.description,
+          sessionType: session.sessionType,
+          location: session.location,
+          price: session.pricePerParticipant,
+          currency: session.currency,
+          date: firstSchedule.date,
+          startTime: firstSchedule.startTime,
+          endTime: firstSchedule.endTime,
+          maxParticipants: session.maxParticipants,
+          clubId: session.clubId,
+          clubName: session.clubName,
+          imageUrl: session.imageUrl,
         });
       }
 

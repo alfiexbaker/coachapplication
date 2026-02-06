@@ -9,8 +9,9 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
@@ -54,7 +55,7 @@ export function ReferralStats({
             label="Total Earned"
             palette={palette}
           />
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider vertical style={{ height: 40 }} />
           <StatItem
             icon="people-outline"
             iconColor={palette.tint}
@@ -62,7 +63,7 @@ export function ReferralStats({
             label="Referred"
             palette={palette}
           />
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider vertical style={{ height: 40 }} />
           <StatItem
             icon="time-outline"
             iconColor={palette.warning}
@@ -103,7 +104,7 @@ export function ReferralStats({
             <StatCard
               icon="wallet-outline"
               iconColor={palette.success}
-              iconBgColor={`${palette.success}15`}
+              iconBgColor={withAlpha(palette.success, 0.09)}
               value={referralService.formatCredit(stats.totalEarned)}
               label="Total Earned"
               description="From successful referrals"
@@ -114,7 +115,7 @@ export function ReferralStats({
             <StatCard
               icon="people-outline"
               iconColor={palette.tint}
-              iconBgColor={`${palette.tint}15`}
+              iconBgColor={withAlpha(palette.tint, 0.09)}
               value={stats.referredCount.toString()}
               label="Friends Referred"
               description="Completed sign-ups"
@@ -125,7 +126,7 @@ export function ReferralStats({
               <StatCard
                 icon="time-outline"
                 iconColor={palette.warning}
-                iconBgColor={`${palette.warning}15`}
+                iconBgColor={withAlpha(palette.warning, 0.09)}
                 value={stats.pendingCount.toString()}
                 label="Pending"
                 description="Awaiting first booking"
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     flex: 1,
   },
   statValue: {
@@ -264,11 +265,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  divider: {
-    width: 1,
-    height: 40,
-  },
-
   // Compact variant
   compactRow: {
     flexDirection: 'row',
@@ -277,7 +273,7 @@ const styles = StyleSheet.create({
   compactStatItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactValue: {
     fontSize: scaleFont(15),
@@ -305,12 +301,12 @@ const styles = StyleSheet.create({
   statCardIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   statCardContent: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   statCardValue: {
     fontSize: scaleFont(28),

@@ -17,7 +17,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { ClubEvent, EventRSVP, RSVPStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -221,7 +221,7 @@ export default function EventRSVPScreen() {
 
           {/* RSVP closed or full warning */}
           {rsvpClosed && (
-            <View style={[styles.warningBanner, { backgroundColor: `${palette.warning}15` }]}>
+            <View style={[styles.warningBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
               <Ionicons name="time" size={20} color={palette.warning} />
               <ThemedText style={[styles.warningText, { color: palette.warning }]}>
                 RSVP deadline has passed
@@ -230,7 +230,7 @@ export default function EventRSVPScreen() {
           )}
 
           {isFull && !currentRSVP && !rsvpClosed && (
-            <View style={[styles.warningBanner, { backgroundColor: `${palette.error}15` }]}>
+            <View style={[styles.warningBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
               <Ionicons name="alert-circle" size={20} color={palette.error} />
               <ThemedText style={[styles.warningText, { color: palette.error }]}>
                 This event is at full capacity
@@ -240,7 +240,7 @@ export default function EventRSVPScreen() {
 
           {/* Current RSVP indicator */}
           {currentRSVP && (
-            <View style={[styles.currentRSVPBanner, { backgroundColor: `${eventService.getRSVPStatusColor(currentRSVP.status)}15` }]}>
+            <View style={[styles.currentRSVPBanner, { backgroundColor: withAlpha(eventService.getRSVPStatusColor(currentRSVP.status), 0.09) }]}>
               <Ionicons
                 name={eventService.getRSVPStatusIcon(currentRSVP.status) as keyof typeof Ionicons.glyphMap}
                 size={20}
@@ -294,12 +294,12 @@ export default function EventRSVPScreen() {
                         <Ionicons
                           name={eventService.getRSVPStatusIcon(status) as keyof typeof Ionicons.glyphMap}
                           size={24}
-                          color={isSelected ? '#FFFFFF' : color}
+                          color={isSelected ? Colors.light.onPrimary : color}
                         />
                         <ThemedText
                           style={[
                             styles.statusOptionText,
-                            { color: isSelected ? '#FFFFFF' : palette.text },
+                            { color: isSelected ? Colors.light.onPrimary : palette.text },
                           ]}
                         >
                           {eventService.formatRSVPStatus(status)}
@@ -379,7 +379,7 @@ export default function EventRSVPScreen() {
               style={styles.submitButton}
             >
               {submitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={Colors.light.onPrimary} />
               ) : currentRSVP ? (
                 'Update Response'
               ) : (
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   errorText: {
-    fontSize: scaleFont(16),
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
     textAlign: 'center',
   },
   header: {
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: scaleFont(17),
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
   headerSpacer: {
     width: 40,
@@ -449,45 +449,44 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   eventTitle: {
-    fontSize: scaleFont(17),
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
   eventDetails: {
-    gap: 4,
-    marginTop: 4,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   eventDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   eventDetailText: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
   capacitySection: {
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: Colors.light.border,
   },
   capacityHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    marginBottom: Spacing.xxs,
   },
   capacityLabel: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   capacityValue: {
-    fontSize: scaleFont(12),
-    fontWeight: '600',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   capacityBar: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   capacityFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   warningBanner: {
     flexDirection: 'row',
@@ -497,8 +496,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   warningText: {
-    fontSize: scaleFont(14),
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
     flex: 1,
   },
   currentRSVPBanner: {
@@ -512,20 +510,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   currentRSVPLabel: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   currentRSVPStatus: {
-    fontSize: scaleFont(15),
-    fontWeight: '600',
+    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize),
   },
   section: {
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
   },
   sectionSubtitle: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
     marginTop: -4,
   },
   statusOptions: {
@@ -540,8 +537,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   statusOptionText: {
-    fontSize: scaleFont(16),
-    fontWeight: '600',
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
   },
   guestCounter: {
     flexDirection: 'row',
@@ -566,14 +562,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   counterValueText: {
-    fontSize: scaleFont(24),
-    fontWeight: '700',
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   noteInput: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     minHeight: 100,
   },
   footer: {

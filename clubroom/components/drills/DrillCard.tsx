@@ -11,7 +11,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import { DifficultyBadge } from './DifficultyBadge';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
 import type { Drill } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { drillService } from '@/services/drill-service';
@@ -80,7 +80,7 @@ export function DrillCard({
           {hasVideo && (
             <View style={styles.playOverlay}>
               <View style={styles.playButton}>
-                <Ionicons name="play" size={24} color="#FFFFFF" />
+                <Ionicons name="play" size={24} color={Colors.light.onPrimary} />
               </View>
             </View>
           )}
@@ -95,7 +95,7 @@ export function DrillCard({
       <View style={styles.content}>
         {/* Header with category and video indicator */}
         <View style={styles.header}>
-          <View style={[styles.categoryBadge, { backgroundColor: `${categoryInfo.color}20` }]}>
+          <View style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
             <Ionicons
               name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
               size={14}
@@ -106,7 +106,7 @@ export function DrillCard({
             </ThemedText>
           </View>
           {hasVideo && !drill.thumbnailUrl && (
-            <View style={[styles.videoBadge, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.videoBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="videocam" size={12} color={palette.tint} />
               <ThemedText style={[styles.videoBadgeText, { color: palette.tint }]}>
                 Video
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   playButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -197,16 +197,16 @@ const styles = StyleSheet.create({
     right: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.xs,
   },
   durationText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontSize: scaleFont(12),
     fontWeight: '600',
   },
   content: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.xs,
   },
   header: {
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radii.sm,
@@ -230,9 +230,9 @@ const styles = StyleSheet.create({
   videoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   videoBadgeText: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: Colors.light.border,
   },
   metaRow: {
     flexDirection: 'row',
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   metaText: {
     fontSize: scaleFont(13),
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   assignmentCount: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   assignmentCountText: {
     fontSize: scaleFont(12),
@@ -298,11 +298,11 @@ const styles = StyleSheet.create({
     width: 4,
     height: '100%',
     minHeight: 48,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   compactContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactHeader: {
     flexDirection: 'row',

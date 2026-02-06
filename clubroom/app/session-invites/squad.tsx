@@ -14,17 +14,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { DateTimeField } from '@/components/ui/primitives';
 import { InlineSquadSelector } from '@/components/squad/squad-picker';
 import { SquadMemberSelect } from '@/components/squad/SquadMemberSelect';
 import { BulkInviteButton } from '@/components/squad/BulkInviteButton';
 import { InviteResultCard } from '@/components/squad/InviteResultCard';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as squadBulkInviteService } from '@/services/invite';
@@ -72,7 +74,7 @@ export default function SquadBulkInviteScreen() {
   const [slotLocation, setSlotLocation] = useState('');
 
   // Get club ID from current user's club membership
-  const clubId = (currentUser as any)?.clubId || (currentUser as any)?.primaryClubId || 'default_club';
+  const clubId = (currentUser as unknown as Record<string, string>)?.clubId || (currentUser as unknown as Record<string, string>)?.primaryClubId || 'default_club';
 
   // Load squad when ID changes
   useEffect(() => {
@@ -197,7 +199,7 @@ export default function SquadBulkInviteScreen() {
   };
 
   const handleViewInvites = () => {
-    router.push('/session-invites');
+    router.push(Routes.SESSION_INVITES);
   };
 
   const handleDone = () => {
@@ -224,7 +226,7 @@ export default function SquadBulkInviteScreen() {
       {selectedSquad && (
         <SurfaceCard style={styles.squadPreview}>
           <View style={styles.squadPreviewHeader}>
-            <View style={[styles.squadIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.squadIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="people" size={24} color={palette.tint} />
             </View>
             <View style={styles.squadPreviewInfo}>
@@ -272,7 +274,7 @@ export default function SquadBulkInviteScreen() {
               ]}
             >
               <ThemedText
-                style={{ color: sessionType === type ? '#fff' : palette.text, fontSize: 13 }}
+                style={{ color: sessionType === type ? Colors.light.onPrimary : palette.text, ...Typography.small }}
               >
                 {type}
               </ThemedText>
@@ -296,7 +298,7 @@ export default function SquadBulkInviteScreen() {
                 },
               ]}
             >
-              <ThemedText style={{ color: focus === f ? '#fff' : palette.text, fontSize: 13 }}>
+              <ThemedText style={{ color: focus === f ? Colors.light.onPrimary : palette.text, ...Typography.small }}>
                 {f}
               </ThemedText>
             </Clickable>
@@ -366,38 +368,28 @@ export default function SquadBulkInviteScreen() {
 
       <SurfaceCard style={styles.addSlotCard}>
         <View style={styles.slotFormRow}>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>Date</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="2026-01-15"
-              placeholderTextColor={palette.muted}
-              value={slotDate}
-              onChangeText={setSlotDate}
-            />
-          </View>
+          <DateTimeField
+            mode="date"
+            label="Date"
+            value={slotDate}
+            onChange={setSlotDate}
+          />
         </View>
         <View style={styles.slotFormRow}>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>Start</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="16:00"
-              placeholderTextColor={palette.muted}
-              value={slotStartTime}
-              onChangeText={setSlotStartTime}
-            />
-          </View>
-          <View style={styles.slotInput}>
-            <ThemedText style={styles.inputLabel}>End</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="17:00"
-              placeholderTextColor={palette.muted}
-              value={slotEndTime}
-              onChangeText={setSlotEndTime}
-            />
-          </View>
+          <DateTimeField
+            mode="time"
+            label="Start"
+            value={slotStartTime}
+            onChange={setSlotStartTime}
+            style={{ flex: 1 }}
+          />
+          <DateTimeField
+            mode="time"
+            label="End"
+            value={slotEndTime}
+            onChange={setSlotEndTime}
+            style={{ flex: 1 }}
+          />
         </View>
         <View style={styles.slotFormRow}>
           <View style={[styles.slotInput, { flex: 1 }]}>
@@ -415,8 +407,8 @@ export default function SquadBulkInviteScreen() {
           onPress={addTimeSlot}
           style={[styles.addSlotButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={18} color="#fff" />
-          <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Add Time Slot</ThemedText>
+          <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
+          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Add Time Slot</ThemedText>
         </Clickable>
       </SurfaceCard>
 
@@ -457,13 +449,13 @@ export default function SquadBulkInviteScreen() {
         Confirm & Send
       </ThemedText>
 
-      <View style={[styles.summaryBanner, { backgroundColor: `${palette.tint}10` }]}>
+      <View style={[styles.summaryBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
         <Ionicons name="paper-plane" size={24} color={palette.tint} />
         <View style={styles.summaryBannerText}>
           <ThemedText type="defaultSemiBold" style={{ color: palette.tint }}>
             Ready to send {uniqueParentCount} invite{uniqueParentCount !== 1 ? 's' : ''}
           </ThemedText>
-          <ThemedText style={{ color: palette.tint, fontSize: 12 }}>
+          <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
             to {selectedMemberIds.length} athlete{selectedMemberIds.length !== 1 ? 's' : ''} in {selectedSquad?.name}
           </ThemedText>
         </View>
@@ -549,7 +541,7 @@ export default function SquadBulkInviteScreen() {
                 },
               ]}
             >
-              {index < currentIndex && <Ionicons name="checkmark" size={12} color="#fff" />}
+              {index < currentIndex && <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />}
             </View>
             {index < steps.length - 1 && (
               <View
@@ -611,8 +603,8 @@ export default function SquadBulkInviteScreen() {
                 { backgroundColor: palette.tint, opacity: canProceed ? 1 : 0.5 },
               ]}
             >
-              <ThemedText style={{ color: '#fff', fontWeight: '700' }}>Continue</ThemedText>
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
+              <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+              <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
             </Clickable>
           )}
         </View>
@@ -646,14 +638,14 @@ const styles = StyleSheet.create({
   stepDot: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepLine: {
     width: 32,
     height: 2,
-    marginHorizontal: 4,
+    marginHorizontal: Spacing.xxs,
   },
   content: {
     padding: Spacing.lg,
@@ -664,10 +656,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   stepTitle: {
-    fontSize: 20,
+    ...Typography.title,
   },
   stepDescription: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     marginBottom: Spacing.sm,
   },
   squadPreview: {
@@ -681,38 +673,37 @@ const styles = StyleSheet.create({
   squadIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   squadPreviewInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   squadMeta: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   formSection: {
     gap: Spacing.xs,
   },
   formLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...Typography.bodySmallSemiBold,
+    marginBottom: Spacing.xxs,
   },
   input: {
     height: 44,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   textArea: {
     height: 80,
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     textAlignVertical: 'top',
   },
   optionsRow: {
@@ -736,11 +727,10 @@ const styles = StyleSheet.create({
   },
   slotInput: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   inputLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   addSlotButton: {
     flexDirection: 'row',
@@ -764,7 +754,7 @@ const styles = StyleSheet.create({
   },
   slotInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   summaryBanner: {
     flexDirection: 'row',
@@ -775,7 +765,7 @@ const styles = StyleSheet.create({
   },
   summaryBannerText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   confirmCard: {
     gap: Spacing.md,
@@ -786,7 +776,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   disclaimer: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
     marginTop: Spacing.md,
   },

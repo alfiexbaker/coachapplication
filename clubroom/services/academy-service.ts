@@ -46,7 +46,7 @@ const MOCK_ACADEMIES: Academy[] = [
     sessionCount: 120,
     isPublic: true,
     requiresApproval: false,
-    ownerId: 'coach_1',
+    ownerId: 'coach1',
     ownerName: 'Marcus Thompson',
     createdAt: '2024-06-15T10:00:00Z',
     rating: {
@@ -87,7 +87,7 @@ const MOCK_MEMBERSHIPS: AcademyMembership[] = [
   {
     id: 'mem_1',
     academyId: 'academy_1',
-    userId: 'coach_1',
+    userId: 'coach1',
     userName: 'Marcus Thompson',
     userPhotoUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
     role: 'OWNER',
@@ -105,7 +105,7 @@ const MOCK_MEMBERSHIPS: AcademyMembership[] = [
     permissions: ['CREATE_SESSIONS', 'POST_AS_ACADEMY'],
     status: 'ACTIVE',
     joinedAt: '2024-08-20T09:00:00Z',
-    invitedBy: 'coach_1',
+    invitedBy: 'coach1',
   },
   {
     id: 'mem_3',
@@ -117,7 +117,7 @@ const MOCK_MEMBERSHIPS: AcademyMembership[] = [
     permissions: [],
     status: 'ACTIVE',
     joinedAt: '2025-01-05T11:00:00Z',
-    invitedBy: 'coach_1',
+    invitedBy: 'coach1',
   },
 ];
 
@@ -129,7 +129,7 @@ const MOCK_INVITES: AcademyInvite[] = [
     code: 'ELFC2026',
     role: 'COACH',
     permissions: ['CREATE_SESSIONS', 'POST_AS_ACADEMY'],
-    createdBy: 'coach_1',
+    createdBy: 'coach1',
     createdByName: 'Marcus Thompson',
     expiresAt: '2026-02-10T23:59:59Z',
     maxUses: 5,

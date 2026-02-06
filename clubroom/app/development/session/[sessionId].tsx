@@ -9,7 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { MOCK_SESSIONS, getUserById, formatDate } from '@/constants/mock-data';
@@ -47,7 +47,7 @@ export default function SessionDetailScreen() {
   const { currentUser } = useAuth();
 
   const [session, setSession] = useState<Session | null>(null);
-  const [athlete, setAthlete] = useState<any>(null);
+  const [athlete, setAthlete] = useState<ReturnType<typeof getUserById>>(undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -75,11 +75,11 @@ export default function SessionDetailScreen() {
     const loadSession = async () => {
       try {
         // Try AsyncStorage first
-        const sessions = await apiClient.get<any[]>('coach_sessions', []);
+        const sessions = await apiClient.get<(Session & Record<string, unknown>)[]>('coach_sessions', []);
         let foundSession: Session | undefined;
 
         if (sessions.length > 0) {
-          foundSession = sessions.find((s: any) => s.id === sessionId);
+          foundSession = sessions.find((s) => s.id === sessionId);
         }
 
         // Fallback to mock data if not in AsyncStorage
@@ -93,7 +93,7 @@ export default function SessionDetailScreen() {
           setRating(foundSession.performanceRating || 3);
           setSelectedSkills(foundSession.skillsWorkedOn || []);
           setVideoUrls(foundSession.videoUrls || []);
-          setImageUrls((foundSession as any).imageUrls || []);
+          setImageUrls((foundSession as Session & Record<string, unknown>).imageUrls as string[] | undefined || []);
 
           const athleteData = getUserById(foundSession.athleteId);
           setAthlete(athleteData);
@@ -150,10 +150,10 @@ export default function SessionDetailScreen() {
     setSaving(true);
     try {
       // Load existing sessions
-      const sessions = await apiClient.get<any[]>('coach_sessions', []);
+      const sessions = await apiClient.get<(Session & Record<string, unknown>)[]>('coach_sessions', []);
 
       // Find and update the session
-      const sessionIndex = sessions.findIndex((s: any) => s.id === sessionId);
+      const sessionIndex = sessions.findIndex((s) => s.id === sessionId);
       if (sessionIndex !== -1) {
         sessions[sessionIndex] = {
           ...sessions[sessionIndex],
@@ -298,7 +298,7 @@ export default function SessionDetailScreen() {
           {/* Session Info */}
           <SurfaceCard style={styles.infoCard}>
             <View style={styles.athleteRow}>
-              <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+              <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                   {athlete.avatar || athlete.name.charAt(0)}
                 </ThemedText>
@@ -313,7 +313,7 @@ export default function SessionDetailScreen() {
               </View>
               <Clickable
                 onPress={() => setShowBadgeModal(true)}
-                style={[styles.awardBadgeBtn, { backgroundColor: `${palette.tint}15` }]}
+                style={[styles.awardBadgeBtn, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
               >
                 <Ionicons name="ribbon" size={18} color={palette.tint} />
                 <ThemedText style={[styles.awardBadgeBtnText, { color: palette.tint }]}>
@@ -326,7 +326,7 @@ export default function SessionDetailScreen() {
             {sessionBadges.length > 0 && (
               <View style={styles.badgesRow}>
                 {sessionBadges.map((badge) => (
-                  <View key={badge.id} style={[styles.badgeChip, { backgroundColor: `${palette.success}15` }]}>
+                  <View key={badge.id} style={[styles.badgeChip, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <Ionicons name="ribbon" size={14} color={palette.success} />
                     <ThemedText style={[styles.badgeChipText, { color: palette.success }]}>
                       {badge.badgeLabel}
@@ -415,7 +415,7 @@ export default function SessionDetailScreen() {
                       <ThemedText
                         style={[
                           styles.skillButtonText,
-                          { color: isSelected ? '#FFFFFF' : palette.foreground },
+                          { color: isSelected ? Colors.light.onPrimary : palette.foreground },
                         ]}
                       >
                         {skill}
@@ -445,7 +445,7 @@ export default function SessionDetailScreen() {
                           style={[
                             styles.skillRatingDot,
                             {
-                              backgroundColor: num <= sr.rating ? palette.tint : `${palette.muted}30`,
+                              backgroundColor: num <= sr.rating ? palette.tint : withAlpha(palette.muted, 0.19),
                             },
                           ]}
                         >
@@ -467,7 +467,7 @@ export default function SessionDetailScreen() {
               <ThemedText type="subtitle" style={styles.sectionTitle}>
                 Session Summary
               </ThemedText>
-              <View style={[styles.visibilityBadge, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.visibilityBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="eye" size={12} color={palette.success} />
                 <ThemedText style={[styles.visibilityText, { color: palette.success }]}>
                   Parents can see
@@ -544,7 +544,7 @@ export default function SessionDetailScreen() {
               <ThemedText type="subtitle" style={styles.sectionTitle}>
                 Private Notes
               </ThemedText>
-              <View style={[styles.visibilityBadge, { backgroundColor: `${palette.muted}15` }]}>
+              <View style={[styles.visibilityBadge, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
                 <Ionicons name="lock-closed" size={12} color={palette.muted} />
                 <ThemedText style={[styles.visibilityText, { color: palette.muted }]}>
                   Coach only
@@ -658,13 +658,13 @@ export default function SessionDetailScreen() {
                   style={[
                     styles.visibilityOption,
                     {
-                      backgroundColor: visibility === option.value ? `${palette.tint}15` : palette.surface,
+                      backgroundColor: visibility === option.value ? withAlpha(palette.tint, 0.09) : palette.surface,
                       borderColor: visibility === option.value ? palette.tint : palette.border,
                     },
                   ]}
                 >
                   <Ionicons
-                    name={option.icon as any}
+                    name={option.icon as keyof typeof Ionicons.glyphMap}
                     size={18}
                     color={visibility === option.value ? palette.tint : palette.muted}
                   />
@@ -697,7 +697,7 @@ export default function SessionDetailScreen() {
               <ThemedText style={styles.saveButtonText}>Saving...</ThemedText>
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                <Ionicons name="checkmark-circle" size={20} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.saveButtonText}>Save & Submit</ThemedText>
               </>
             )}
@@ -741,8 +741,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title,
     letterSpacing: -0.5,
   },
   infoCard: {
@@ -757,34 +756,33 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 20,
+    ...Typography.title,
   },
   athleteInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   athleteName: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   sessionDate: {
-    fontSize: 13,
+    ...Typography.small,
   },
   awardBadgeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   awardBadgeBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   badgesRow: {
     flexDirection: 'row',
@@ -794,14 +792,13 @@ const styles = StyleSheet.create({
   badgeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   badgeChipText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   section: {
     gap: Spacing.sm,
@@ -813,22 +810,20 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
     letterSpacing: -0.2,
     flex: 1,
   },
   visibilityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   visibilityText: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...Typography.micro,
   },
   addButton: {
     padding: Spacing.xs,
@@ -843,11 +838,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   starButton: {
-    padding: 4,
+    padding: Spacing.xxs,
   },
   ratingLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   skillsCard: {
     padding: Spacing.md,
@@ -859,23 +853,21 @@ const styles = StyleSheet.create({
   },
   skillButton: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   skillButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   skillRatingsCard: {
     padding: Spacing.md,
     gap: Spacing.md,
   },
   skillRatingRow: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
   skillRatingName: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   skillRatingSlider: {
     flexDirection: 'row',
@@ -885,27 +877,24 @@ const styles = StyleSheet.create({
   skillRatingDot: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   skillRatingValue: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    ...Typography.caption,
+    color: Colors.light.onPrimary,
   },
   notesCard: {
     padding: Spacing.md,
   },
   notesInput: {
-    fontSize: 15,
-    lineHeight: 22,
+    ...Typography.body,
     minHeight: 100,
     padding: 0,
   },
   notesInputSmall: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
     minHeight: 60,
     padding: 0,
   },
@@ -925,7 +914,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mediaName: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     flex: 1,
   },
   emptyMedia: {
@@ -934,7 +923,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   emptyText: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
   },
   visibilityOptions: {
@@ -946,14 +935,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
   visibilityOptionText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   loadingContainer: {
     flex: 1,
@@ -970,8 +958,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    ...Typography.subheading,
+    color: Colors.light.onPrimary,
   },
 });

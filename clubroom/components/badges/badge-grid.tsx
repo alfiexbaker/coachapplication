@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { BadgeCard } from './badge-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AllBadgeWithProgress } from '@/services/badge-service';
 
@@ -85,7 +85,7 @@ export function BadgeGrid({
             )}
           </View>
           {showCounts && (
-            <View style={[styles.countPill, { backgroundColor: `${palette.tint}12` }]}>
+            <View style={[styles.countPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
               <ThemedText style={[styles.countText, { color: palette.tint }]}>
                 {unlockedCount}/{totalCount}
               </ThemedText>
@@ -147,7 +147,7 @@ export function BadgeSectionGrid({
     <SurfaceCard style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionHeaderLeft}>
-          <View style={[styles.sectionIcon, { backgroundColor: `${palette.tint}12` }]}>
+          <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
             <Ionicons name={sectionIcon} size={18} color={palette.tint} />
           </View>
           <View style={styles.sectionTitleGroup}>
@@ -167,7 +167,7 @@ export function BadgeSectionGrid({
       </View>
 
       {/* Progress bar for section */}
-      <View style={[styles.sectionProgressBar, { backgroundColor: `${palette.tint}15` }]}>
+      <View style={[styles.sectionProgressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <View
           style={[
             styles.sectionProgressFill,
@@ -209,7 +209,7 @@ export function BadgeStats({ totalBadges, unlockedBadges, totalPoints }: BadgeSt
     <SurfaceCard style={styles.statsContainer}>
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <View style={[styles.statIcon, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="checkmark-circle" size={20} color={palette.success} />
           </View>
           <ThemedText type="heading" style={styles.statValue}>
@@ -221,7 +221,7 @@ export function BadgeStats({ totalBadges, unlockedBadges, totalPoints }: BadgeSt
         <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
 
         <View style={styles.statItem}>
-          <View style={[styles.statIcon, { backgroundColor: `${palette.muted}15` }]}>
+          <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
             <Ionicons name="lock-closed" size={20} color={palette.muted} />
           </View>
           <ThemedText type="heading" style={styles.statValue}>
@@ -233,7 +233,7 @@ export function BadgeStats({ totalBadges, unlockedBadges, totalPoints }: BadgeSt
         <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
 
         <View style={styles.statItem}>
-          <View style={[styles.statIcon, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="star" size={20} color={palette.tint} />
           </View>
           <ThemedText type="heading" style={styles.statValue}>
@@ -252,7 +252,7 @@ export function BadgeStats({ totalBadges, unlockedBadges, totalPoints }: BadgeSt
             {progressPercent}%
           </ThemedText>
         </View>
-        <View style={[styles.progressBarLarge, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.progressBarLarge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <View
             style={[
               styles.progressFillLarge,
@@ -280,23 +280,16 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  title: {
-    fontSize: 16,
-  },
-  subtitle: {
-    fontSize: 12,
-  },
+  title: { ...Typography.subheading },
+  subtitle: { ...Typography.caption },
   countPill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  countText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  countText: { ...Typography.caption },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -319,35 +312,28 @@ const styles = StyleSheet.create({
   sectionIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitleGroup: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  sectionTitle: {
-    fontSize: 15,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-  },
+  sectionTitle: { ...Typography.body },
+  sectionSubtitle: { ...Typography.caption },
   sectionProgress: {
     alignItems: 'flex-end',
   },
-  progressPercent: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  progressPercent: { ...Typography.bodySmallSemiBold },
   sectionProgressBar: {
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   sectionProgressFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   statsContainer: {
     padding: Spacing.md,
@@ -360,24 +346,19 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     flex: 1,
   },
   statIcon: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statValue: {
-    fontSize: 24,
-  },
-  statLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  statValue: { ...Typography.display },
+  statLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   statDivider: {
     width: 1,
     height: 50,
@@ -390,21 +371,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  progressTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  progressValue: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  progressTitle: { ...Typography.bodySmallSemiBold },
+  progressValue: { ...Typography.bodySmallSemiBold },
   progressBarLarge: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFillLarge: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
 });

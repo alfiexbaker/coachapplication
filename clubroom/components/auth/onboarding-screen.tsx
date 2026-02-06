@@ -24,7 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { AccountType, SkillLevel, OnboardingData } from '@/services/auth-service';
@@ -45,10 +45,10 @@ const getPasswordStrength = (password: string): { level: number; label: string; 
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 1) return { level: 1, label: 'Weak', color: '#EF4444' };
-  if (score === 2) return { level: 2, label: 'Fair', color: '#F59E0B' };
-  if (score === 3) return { level: 3, label: 'Good', color: '#10B981' };
-  return { level: 4, label: 'Strong', color: '#059669' };
+  if (score <= 1) return { level: 1, label: 'Weak', color: Colors.light.error };
+  if (score === 2) return { level: 2, label: 'Fair', color: Colors.light.warning };
+  if (score === 3) return { level: 3, label: 'Good', color: Colors.light.success };
+  return { level: 4, label: 'Strong', color: Colors.light.success };
 };
 
 // ============================================================================
@@ -398,19 +398,19 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
             style={[
               styles.accountTypeCard,
               {
-                backgroundColor: accountType === type.type ? `${palette.tint}10` : palette.card,
+                backgroundColor: accountType === type.type ? withAlpha(palette.tint, 0.06) : palette.card,
                 borderColor: accountType === type.type ? palette.tint : palette.border,
               },
             ]}
           >
             <View style={[
               styles.accountTypeIcon,
-              { backgroundColor: accountType === type.type ? palette.tint : `${palette.muted}20` }
+              { backgroundColor: accountType === type.type ? palette.tint : withAlpha(palette.muted, 0.12) }
             ]}>
               <Ionicons
                 name={type.icon}
                 size={Components.icon.lg}
-                color={accountType === type.type ? '#fff' : palette.muted}
+                color={accountType === type.type ? palette.onPrimary : palette.muted}
               />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.accountTypeTitle}>
@@ -421,7 +421,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
             </ThemedText>
             {accountType === type.type && (
               <View style={[styles.checkBadge, { backgroundColor: palette.tint }]}>
-                <Ionicons name="checkmark" size={14} color="#fff" />
+                <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
               </View>
             )}
           </Pressable>
@@ -623,7 +623,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
                   },
                 ]}
               >
-                <ThemedText style={[styles.chipText, { color: sport === s ? '#fff' : palette.foreground }]}>
+                <ThemedText style={[styles.chipText, { color: sport === s ? palette.onPrimary : palette.foreground }]}>
                   {s}
                 </ThemedText>
               </Pressable>
@@ -642,7 +642,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
               style={[
                 styles.skillCard,
                 {
-                  backgroundColor: skillLevel === level.value ? `${palette.tint}10` : palette.card,
+                  backgroundColor: skillLevel === level.value ? withAlpha(palette.tint, 0.06) : palette.card,
                   borderColor: skillLevel === level.value ? palette.tint : palette.border,
                 },
               ]}
@@ -674,7 +674,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           style={[
             styles.toggleCard,
             {
-              backgroundColor: hasChildren ? `${palette.tint}10` : palette.card,
+              backgroundColor: hasChildren ? withAlpha(palette.tint, 0.06) : palette.card,
               borderColor: hasChildren ? palette.tint : palette.border,
             },
           ]}
@@ -714,7 +714,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           style={[
             styles.toggleCard,
             {
-              backgroundColor: isOrganization ? `${palette.tint}10` : palette.card,
+              backgroundColor: isOrganization ? withAlpha(palette.tint, 0.06) : palette.card,
               borderColor: isOrganization ? palette.tint : palette.border,
             },
           ]}
@@ -791,7 +791,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
             >
               <ThemedText style={[
                 styles.specChipText,
-                { color: specializations.includes(spec) ? '#fff' : palette.foreground }
+                { color: specializations.includes(spec) ? palette.onPrimary : palette.foreground }
               ]}>
                 {spec}
               </ThemedText>
@@ -817,7 +817,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
 
   const renderCompleteStep = () => (
     <View style={[styles.stepContent, styles.completeContent]}>
-      <View style={[styles.completeIcon, { backgroundColor: `${palette.success}15` }]}>
+      <View style={[styles.completeIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
         <Ionicons name="checkmark-circle" size={64} color={palette.success} />
       </View>
       <ThemedText type="title" style={styles.completeTitle}>
@@ -883,7 +883,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
 
           {/* Error */}
           {error && (
-            <View style={[styles.errorCard, { backgroundColor: `${palette.error}10` }]}>
+            <View style={[styles.errorCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
               <Ionicons name="alert-circle" size={20} color={palette.error} />
               <ThemedText style={[styles.errorText, { color: palette.error }]}>{error}</ThemedText>
             </View>
@@ -909,7 +909,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
                   ? 'Create Account'
                   : 'Continue'}
               </ThemedText>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
+              <Ionicons name="arrow-forward" size={20} color={palette.onPrimary} />
             </Pressable>
           </View>
         )}
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
     right: Spacing.sm,
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1033,18 +1033,15 @@ const styles = StyleSheet.create({
   },
   strengthBars: {
     flexDirection: 'row',
-    gap: 4,
+    gap: Spacing.xxs,
     flex: 1,
   },
   strengthBar: {
     height: 4,
     flex: 1,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
-  strengthLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  strengthLabel: { ...Typography.caption },
   textArea: {
     borderWidth: 1,
     borderRadius: Radii.md,
@@ -1110,14 +1107,14 @@ const styles = StyleSheet.create({
   toggleSwitch: {
     width: 48,
     height: 28,
-    borderRadius: 14,
-    padding: 4,
+    borderRadius: Radii.lg,
+    padding: Spacing.xxs,
   },
   toggleKnob: {
     width: 20,
     height: 20,
-    borderRadius: 10,
-    backgroundColor: '#fff',
+    borderRadius: Radii.md,
+    backgroundColor: Colors.light.surface,
   },
 
   // Specializations
@@ -1167,7 +1164,7 @@ const styles = StyleSheet.create({
   completeIcon: {
     width: 120,
     height: 120,
-    borderRadius: 60,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
@@ -1198,7 +1195,7 @@ const styles = StyleSheet.create({
   footer: {
     padding: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    borderTopColor: Colors.light.border,
   },
   nextButton: {
     flexDirection: 'row',
@@ -1211,6 +1208,6 @@ const styles = StyleSheet.create({
   nextButtonText: {
     ...Typography.body,
     fontWeight: '600',
-    color: '#fff',
+    color: Colors.light.onPrimary,
   },
 });

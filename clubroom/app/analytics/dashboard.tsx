@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
@@ -21,7 +22,7 @@ import {
   RetentionCard,
   CancellationChart,
 } from '@/components/analytics';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
@@ -148,7 +149,7 @@ export default function AnalyticsDashboardScreen() {
                 style={[
                   styles.periodButtonText,
                   {
-                    color: period === option.value ? '#fff' : palette.text,
+                    color: period === option.value ? Colors.light.onPrimary : palette.text,
                   },
                 ]}
               >
@@ -170,7 +171,7 @@ export default function AnalyticsDashboardScreen() {
                 icon="cash"
                 iconColor={palette.success}
                 isCurrency
-                onPress={() => router.push('/analytics/revenue')}
+                onPress={() => router.push(Routes.ANALYTICS_REVENUE)}
               />
               <AnalyticsStatCard
                 label="Sessions"
@@ -194,7 +195,7 @@ export default function AnalyticsDashboardScreen() {
                 value={analytics.retention.totalActiveClients}
                 icon="people"
                 iconColor={palette.tint}
-                onPress={() => router.push('/analytics/retention')}
+                onPress={() => router.push(Routes.ANALYTICS_RETENTION)}
               />
               <AnalyticsStatCard
                 label="Avg Rating"
@@ -219,7 +220,7 @@ export default function AnalyticsDashboardScreen() {
               totalRevenue={analytics.totalRevenue}
               trend={analytics.revenueTrend}
               changePercent={analytics.revenueChangePercent}
-              onPress={() => router.push('/analytics/revenue')}
+              onPress={() => router.push(Routes.ANALYTICS_REVENUE)}
             />
 
             {/* Peak hours heatmap */}
@@ -235,7 +236,7 @@ export default function AnalyticsDashboardScreen() {
             <RetentionCard
               metrics={analytics.retention}
               title="Client Retention"
-              onPress={() => router.push('/analytics/retention')}
+              onPress={() => router.push(Routes.ANALYTICS_RETENTION)}
             />
 
             {/* Cancellation chart */}
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 15,
+    ...Typography.body,
   },
   header: {
     marginBottom: Spacing.sm,
@@ -359,17 +360,16 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   backButton: {
-    padding: 4,
+    padding: Spacing.xxs,
     marginLeft: -4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    ...Typography.display,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 15,
-    marginTop: 4,
+    ...Typography.body,
+    marginTop: Spacing.xxs,
     marginLeft: 32,
   },
   periodSelector: {
@@ -385,8 +385,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   periodButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -402,8 +401,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   skillsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   skillsList: {
     gap: Spacing.md,
@@ -419,30 +417,26 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   skillRank: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     width: 24,
   },
   skillName: {
-    fontSize: 15,
-    fontWeight: '500',
+    ...Typography.bodySemiBold,
   },
   skillStats: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 4,
+    gap: Spacing.xxs,
     marginRight: Spacing.md,
   },
   skillSessions: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   skillLabel: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   skillRevenue: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     width: 60,
     textAlign: 'right',
   },
@@ -456,8 +450,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sessionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   sessionList: {
     gap: Spacing.md,
@@ -471,34 +464,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sessionName: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   sessionPercent: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   sessionBarContainer: {
     height: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
+    backgroundColor: Colors.light.background,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   sessionBar: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   sessionMetrics: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   sessionCount: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   sessionRevenue: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
 });

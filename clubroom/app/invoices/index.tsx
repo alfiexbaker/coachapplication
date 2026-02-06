@@ -10,7 +10,7 @@ import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoiceList } from '@/components/invoices';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { invoiceService } from '@/services/invoice-service';
@@ -109,7 +109,7 @@ export default function InvoicesScreen() {
           <View style={styles.summaryStats}>
             {/* Total Paid */}
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="checkmark-circle" size={18} color={palette.success} />
               </View>
               <View>
@@ -125,7 +125,7 @@ export default function InvoicesScreen() {
 
             {/* Pending */}
             <View style={styles.statItem}>
-              <View style={[styles.statIcon, { backgroundColor: `${palette.warning}15` }]}>
+              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <Ionicons name="time" size={18} color={palette.warning} />
               </View>
               <View>
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   summaryCard: {
     marginBottom: Spacing.md,
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryTotal: {
-    fontSize: 13,
+    ...Typography.small,
   },
   summaryStats: {
     flexDirection: 'row',
@@ -217,11 +217,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   statCount: {
-    fontSize: 11,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   draftBanner: {
     flexDirection: 'row',
@@ -232,6 +232,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   draftText: {
-    fontSize: 13,
+    ...Typography.small,
   },
 });

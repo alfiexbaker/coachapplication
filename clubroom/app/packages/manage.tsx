@@ -19,7 +19,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CreatePackageForm } from '@/components/packages/CreatePackageForm';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
@@ -155,7 +155,7 @@ export default function ManagePackagesScreen() {
           }}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={20} color="#fff" />
+          <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
 
@@ -252,7 +252,7 @@ export default function ManagePackagesScreen() {
                         style={[
                           styles.statusBadge,
                           {
-                            backgroundColor: pkg.isActive ? `${palette.success}15` : `${palette.error}15`,
+                            backgroundColor: pkg.isActive ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09),
                           },
                         ]}
                       >
@@ -369,13 +369,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   addButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   statsTitle: {
-    fontSize: 15,
+    ...Typography.body,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -397,19 +397,19 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statValue: {
-    fontSize: 22,
+    ...Typography.title,
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   section: {
     gap: Spacing.md,
   },
   sectionTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   packageList: {
     gap: Spacing.sm,
@@ -425,18 +425,18 @@ const styles = StyleSheet.create({
   },
   packageInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   packageName: {
-    fontSize: 15,
+    ...Typography.body,
   },
   packageMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   packageMetaText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   dot: {
     width: 3,
@@ -445,12 +445,11 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -462,15 +461,14 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
   actionText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   modalContainer: {
     flex: 1,
@@ -483,12 +481,12 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
   },
   modalTitle: {
-    fontSize: 22,
+    ...Typography.title,
   },
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },

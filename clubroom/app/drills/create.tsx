@@ -9,13 +9,14 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { DrillForm } from '@/components/drills';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import type { CreateDrillInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -55,13 +56,13 @@ export default function CreateDrillScreen() {
             text: 'Create Another',
             onPress: () => {
               // Reset form by navigating to same page
-              router.replace('/drills/create');
+              router.replace(Routes.DRILLS_CREATE);
             },
           },
           {
             text: 'Assign Now',
             onPress: () => {
-              router.replace({ pathname: '/drills/assign', params: { drillId: newDrill.id } });
+              router.replace(Routes.drillsAssignWith(newDrill.id));
             },
           },
           {
@@ -130,9 +131,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.light.border,
   },
   headerTitle: {
-    fontSize: scaleFont(18),
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
 });

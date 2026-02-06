@@ -18,7 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { QuietHours } from '@/constants/types';
 
@@ -158,7 +158,7 @@ export function QuietHoursSelector({
         disabled={disabled || loading}
         style={styles.header}
       >
-        <View style={[styles.iconContainer, { backgroundColor: `${palette.accent}15` }]}>
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
           <Ionicons name="moon" size={22} color={palette.accent} />
         </View>
         <View style={styles.headerContent}>
@@ -232,7 +232,7 @@ export function QuietHoursSelector({
           </View>
 
           {/* Info text */}
-          <View style={[styles.infoContainer, { backgroundColor: `${palette.accent}10` }]}>
+          <View style={[styles.infoContainer, { backgroundColor: withAlpha(palette.accent, 0.06) }]}>
             <Ionicons name="information-circle" size={16} color={palette.accent} />
             <ThemedText style={[styles.infoText, { color: palette.accent }]}>
               {isOvernight
@@ -321,26 +321,21 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  title: {
-    fontSize: 16,
-  },
-  subtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  title: { ...Typography.subheading },
+  subtitle: { ...Typography.small, lineHeight: 18 },
   toggle: {
     width: 50,
     height: 30,
-    borderRadius: 15,
+    borderRadius: Radii.lg,
     padding: 5,
   },
   toggleThumb: {
     width: 20,
     height: 20,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    borderRadius: Radii.md,
+    backgroundColor: Colors.light.surface,
   },
   timeSection: {
     paddingHorizontal: Spacing.md,
@@ -357,9 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  timeLabel: {
-    fontSize: 14,
-  },
+  timeLabel: { ...Typography.bodySmall },
   timeButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -368,9 +361,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     gap: Spacing.xs,
   },
-  timeValue: {
-    fontSize: 16,
-  },
+  timeValue: { ...Typography.subheading },
   infoContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -379,11 +370,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginTop: Spacing.xs,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  infoText: { ...Typography.caption, flex: 1,
+    lineHeight: 16 },
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -400,12 +388,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5E5',
+    borderBottomColor: Colors.light.border,
   },
-  pickerButton: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  pickerButton: { ...Typography.subheading },
 });
 
 export default QuietHoursSelector;

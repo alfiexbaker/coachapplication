@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { AnalyticsStatCard, RevenueChart } from '@/components/analytics';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
@@ -161,7 +161,7 @@ export default function RevenueScreen() {
                 style={[
                   styles.periodButtonText,
                   {
-                    color: period === option.value ? '#fff' : palette.text,
+                    color: period === option.value ? Colors.light.onPrimary : palette.text,
                   },
                 ]}
               >
@@ -191,10 +191,10 @@ export default function RevenueScreen() {
                     {
                       backgroundColor:
                         analytics.revenueTrend === 'UP'
-                          ? palette.success + '20'
+                          ? withAlpha(palette.success, 0.12)
                           : analytics.revenueTrend === 'DOWN'
-                          ? palette.error + '20'
-                          : palette.muted + '20',
+                          ? withAlpha(palette.error, 0.12)
+                          : withAlpha(palette.muted, 0.12),
                     },
                   ]}
                 >
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 15,
+    ...Typography.body,
   },
   header: {
     marginBottom: Spacing.sm,
@@ -393,17 +393,16 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   backButton: {
-    padding: 4,
+    padding: Spacing.xxs,
     marginLeft: -4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    ...Typography.display,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 15,
-    marginTop: 4,
+    ...Typography.body,
+    marginTop: Spacing.xxs,
     marginLeft: 32,
   },
   periodSelector: {
@@ -419,8 +418,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   periodButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   mainCard: {
     padding: Spacing.lg,
@@ -431,34 +429,31 @@ const styles = StyleSheet.create({
   mainCardIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     backgroundColor: '#10b98120',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
   },
   mainCardLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
     marginBottom: Spacing.xs,
   },
   mainCardValue: {
-    fontSize: 40,
-    fontWeight: '700',
+    ...Typography.display,
     letterSpacing: -1,
     marginBottom: Spacing.sm,
   },
   mainCardTrend: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
   },
   mainCardTrendText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -474,8 +469,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   breakdownTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   breakdownList: {
     gap: Spacing.md,
@@ -491,26 +485,24 @@ const styles = StyleSheet.create({
   breakdownDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   breakdownName: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
     flex: 1,
   },
   breakdownBarContainer: {
     height: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
+    backgroundColor: Colors.light.background,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   breakdownBar: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   breakdownRevenue: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     textAlign: 'right',
   },
   insightsCard: {
@@ -523,8 +515,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   insightsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   insightsList: {
     gap: Spacing.md,
@@ -535,8 +526,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   insightText: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
     flex: 1,
   },
   insightBold: {

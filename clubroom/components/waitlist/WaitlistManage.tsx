@@ -5,7 +5,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { WaitlistPosition } from './WaitlistPosition';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { waitlistService } from '@/services/waitlist-service';
 import type { WaitlistEntry, WaitlistSummary } from '@/constants/types';
@@ -61,7 +61,7 @@ export function WaitlistManage({
                 </ThemedText>
               </View>
               {hasAutoBookers && (
-                <View style={[styles.statBadge, { backgroundColor: `${palette.success}10` }]}>
+                <View style={[styles.statBadge, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                   <Ionicons name="flash" size={12} color={palette.success} />
                   <ThemedText style={[styles.statText, { color: palette.success }]}>
                     {summary.autoBookCount} auto
@@ -90,7 +90,7 @@ export function WaitlistManage({
           <Clickable
             onPress={onNotifyNext}
             disabled={isLoading}
-            style={[styles.actionButton, { backgroundColor: `${palette.tint}10` }]}
+            style={[styles.actionButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color={palette.tint} />
@@ -107,7 +107,7 @@ export function WaitlistManage({
           <Clickable
             onPress={onPromote}
             disabled={isLoading}
-            style={[styles.actionButton, { backgroundColor: `${palette.success}10` }]}
+            style={[styles.actionButton, { backgroundColor: withAlpha(palette.success, 0.06) }]}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color={palette.success} />
@@ -139,7 +139,7 @@ export function WaitlistManage({
               ]}
             >
               <View style={styles.entryInfo}>
-                <View style={[styles.positionCircle, { backgroundColor: `${palette.warning}15` }]}>
+                <View style={[styles.positionCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                   <ThemedText style={[styles.positionNumber, { color: palette.warning }]}>
                     {entry.position}
                   </ThemedText>
@@ -162,7 +162,7 @@ export function WaitlistManage({
                         {waitlistService.formatTimeAgo(entry.joinedAt)}
                       </ThemedText>
                       {entry.autoBook && (
-                        <View style={[styles.autoBookBadge, { backgroundColor: `${palette.success}15` }]}>
+                        <View style={[styles.autoBookBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                           <Ionicons name="flash" size={10} color={palette.success} />
                           <ThemedText style={[styles.autoBookText, { color: palette.success }]}>
                             Auto
@@ -170,7 +170,7 @@ export function WaitlistManage({
                         </View>
                       )}
                       {entry.status === 'NOTIFIED' && (
-                        <View style={[styles.notifiedBadge, { backgroundColor: `${palette.tint}15` }]}>
+                        <View style={[styles.notifiedBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                           <Ionicons name="notifications" size={10} color={palette.tint} />
                           <ThemedText style={[styles.notifiedText, { color: palette.tint }]}>
                             Notified
@@ -221,11 +221,9 @@ const styles = StyleSheet.create({
   sessionInfo: {
     flex: 1,
     marginRight: Spacing.md,
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  sessionTitle: {
-    fontSize: 15,
-  },
+  sessionTitle: { ...Typography.body },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -233,16 +231,13 @@ const styles = StyleSheet.create({
   statBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.md,
     backgroundColor: 'rgba(199, 128, 0, 0.1)',
   },
-  statText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  statText: { ...Typography.caption },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -260,28 +255,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.sm,
   },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  actionButtonText: { ...Typography.smallSemiBold },
   entriesList: {
     borderTopWidth: 1,
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  entriesHeader: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+  entriesHeader: { ...Typography.caption, textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   entryRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -297,14 +285,11 @@ const styles = StyleSheet.create({
   positionCircle: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  positionNumber: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  positionNumber: { ...Typography.caption },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -314,63 +299,51 @@ const styles = StyleSheet.create({
   userPhoto: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
   },
   userPhotoPlaceholder: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   userDetails: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  userName: {
-    fontSize: 14,
-  },
+  userName: { ...Typography.bodySmall },
   entryMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  joinedTime: {
-    fontSize: 11,
-  },
+  joinedTime: { ...Typography.caption },
   autoBookBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
-  autoBookText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  autoBookText: { ...Typography.micro },
   notifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
   },
-  notifiedText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  notifiedText: { ...Typography.micro },
   removeButton: {
-    padding: 4,
+    padding: Spacing.xxs,
   },
   emptyState: {
     borderTopWidth: 1,
     padding: Spacing.md,
     alignItems: 'center',
   },
-  emptyText: {
-    fontSize: 13,
-  },
+  emptyText: { ...Typography.small },
 });

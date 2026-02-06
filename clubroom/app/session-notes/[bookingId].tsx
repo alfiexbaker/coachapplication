@@ -6,7 +6,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { SessionNotesForm } from '@/components/session/session-notes-form';
 import { SessionNotesView } from '@/components/session/session-notes-view';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
 import { useSessionNote } from '@/hooks/use-session-note';
@@ -71,7 +71,7 @@ export default function SessionNotesScreen() {
             <SessionNotesView {...note} />
             <Clickable
               onPress={() => setMode('edit')}
-              style={{ padding: Spacing.md, borderRadius: 12, borderWidth: 1, borderColor: palette.border }}
+              style={{ padding: Spacing.md, borderRadius: Radii.md, borderWidth: 1, borderColor: palette.border }}
             >
               <ThemedText style={{ textAlign: 'center', color: palette.tint, fontWeight: '700' }}>
                 Edit notes

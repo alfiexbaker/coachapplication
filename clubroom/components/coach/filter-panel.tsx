@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Modal, StyleSheet, View, ScrollView } from 'react-native';
+import { Modal, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,8 +52,8 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]}> 
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <Pressable style={[styles.sheet, { backgroundColor: palette.surface, borderColor: palette.border }]} onPress={(e) => e.stopPropagation()}> 
           <View style={styles.header}> 
             <ThemedText type="subtitle">Filters</ThemedText>
             <Clickable onPress={reset}>
@@ -133,15 +133,15 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
                 },
               ]}
             >
-              <Ionicons name="options" color="#fff" size={18} />
-              <ThemedText style={styles.applyLabel} lightColor="#fff" darkColor="#000">Apply filters</ThemedText>
+              <Ionicons name="options" color={palette.onPrimary} size={18} />
+              <ThemedText style={styles.applyLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.text}>Apply filters</ThemedText>
             </Clickable>
             <Clickable onPress={onClose} style={styles.dismiss}>
               <ThemedText style={{ color: palette.muted }}>Close</ThemedText>
             </Clickable>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
@@ -182,7 +182,7 @@ function PillRow({
             style={({ pressed }) => [
               styles.pill,
               {
-                backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                 borderColor: isSelected ? palette.tint : palette.border,
                 opacity: pressed ? 0.8 : 1,
               },
@@ -226,13 +226,8 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.xs,
   },
-  sectionLabel: {
-    fontSize: 15,
-  },
-  helper: {
-    fontSize: 13,
-    marginTop: 2,
-  },
+  sectionLabel: { ...Typography.body },
+  helper: { ...Typography.small, marginTop: Spacing.micro },
   pillRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -257,10 +252,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.button,
   },
-  applyLabel: {
-    fontWeight: '700',
-    fontSize: 15,
-  },
+  applyLabel: { ...Typography.bodySemiBold },
   dismiss: {
     alignItems: 'center',
     paddingVertical: Spacing.sm,

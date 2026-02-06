@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
@@ -78,7 +78,7 @@ export function ReferralHistory({
       ) : displayReferrals.length === 0 ? (
         showEmptyState && (
           <View style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: `${palette.muted}15` }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
               <Ionicons name="people-outline" size={32} color={palette.muted} />
             </View>
             <ThemedText style={[styles.emptyTitle, { color: palette.text }]}>
@@ -152,7 +152,7 @@ export function ReferralHistoryItem({ referral, onPress, isLast }: ReferralHisto
     >
       <View style={styles.itemContent}>
         {/* Avatar */}
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
             {initials}
           </ThemedText>
@@ -164,7 +164,7 @@ export function ReferralHistoryItem({ referral, onPress, isLast }: ReferralHisto
             <ThemedText type="defaultSemiBold" style={styles.itemName} numberOfLines={1}>
               {referral.refereeName}
             </ThemedText>
-            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+            <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.12) }]}>
               <ThemedText style={[styles.statusText, { color: statusColor }]}>
                 {statusLabel}
               </ThemedText>
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   itemWithBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.light.border,
   },
   itemContent: {
     flexDirection: 'row',
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   },
   itemDetails: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   itemHeader: {
     flexDirection: 'row',
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   statusText: {
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   metaText: {
     fontSize: scaleFont(12),
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
@@ -384,6 +384,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 12,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
 });

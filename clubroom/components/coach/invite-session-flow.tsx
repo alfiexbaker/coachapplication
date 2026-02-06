@@ -3,11 +3,13 @@ import { View, StyleSheet, ScrollView, Modal, TouchableOpacity, Alert } from 're
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { InviteAthleteModal, Athlete } from './invite-athlete-modal';
 import { createLogger } from '@/utils/logger';
@@ -25,6 +27,7 @@ interface UpcomingSession {
   maxAthletes?: number;
   currentAthletes?: number;
   athleteIds?: string[];
+  coachId?: string;
 }
 
 interface InviteSessionFlowProps {
@@ -56,16 +59,16 @@ export function InviteSessionFlow({
     setLoading(true);
     try {
       // Load from storage (bookings/sessions)
-      const bookings = await apiClient.get<any[]>('coach_bookings', []);
+      const bookings = await apiClient.get<UpcomingSession[]>('coach_bookings', []);
 
       // Filter to upcoming sessions only
       const now = new Date();
       const upcoming = bookings
-        .filter((b: any) => {
+        .filter((b) => {
           const sessionDate = new Date(b.scheduledAt);
           return sessionDate > now && b.coachId === coachId;
         })
-        .sort((a: any, b: any) => {
+        .sort((a, b) => {
           return new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime();
         })
         .slice(0, 10);
@@ -128,13 +131,10 @@ export function InviteSessionFlow({
     if (isNewSession) {
       // Navigate to create session flow with preselected athletes
       onClose();
-      router.push({
-        pathname: '/sessions/create',
-        params: {
-          athleteIds: selected.map((a) => a.id).join(','),
-          athleteNames: selected.map((a) => a.name).join(','),
-        },
-      } as any);
+      router.push(Routes.sessionsCreateWith({
+        athleteIds: selected.map((a) => a.id).join(','),
+        athleteNames: selected.map((a) => a.name).join(','),
+      }));
 
       logger.action('NavigateToCreateSession', { athleteCount: selected.length });
     } else if (selectedSession) {
@@ -153,9 +153,9 @@ export function InviteSessionFlow({
 
     try {
       // Update the session with new athletes
-      const bookings = await apiClient.get<any[]>('coach_bookings', []);
+      const bookings = await apiClient.get<UpcomingSession[]>('coach_bookings', []);
 
-      const updatedBookings = bookings.map((b: any) => {
+      const updatedBookings = bookings.map((b) => {
         if (b.id === selectedSession.id) {
           const existingAthleteIds = b.athleteIds || [];
           const newAthleteIds = selectedAthletes.map((a) => a.id);
@@ -272,7 +272,7 @@ export function InviteSessionFlow({
                   style={[styles.choiceCard, { backgroundColor: palette.background, borderColor: palette.tint }]}
                   onPress={() => handleChoiceSelect('existing')}
                 >
-                  <View style={[styles.choiceIcon, { backgroundColor: `${palette.tint}15` }]}>
+                  <View style={[styles.choiceIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                     <Ionicons name="calendar" size={28} color={palette.tint} />
                   </View>
                   <View style={styles.choiceInfo}>
@@ -290,7 +290,7 @@ export function InviteSessionFlow({
                   style={[styles.choiceCard, { backgroundColor: palette.background, borderColor: palette.success }]}
                   onPress={() => handleChoiceSelect('new')}
                 >
-                  <View style={[styles.choiceIcon, { backgroundColor: `${palette.success}15` }]}>
+                  <View style={[styles.choiceIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <Ionicons name="add-circle" size={28} color={palette.success} />
                   </View>
                   <View style={styles.choiceInfo}>
@@ -326,7 +326,7 @@ export function InviteSessionFlow({
                         setStep('select-athletes');
                       }}
                     >
-                      <Ionicons name="add" size={18} color="#fff" />
+                      <Ionicons name="add" size={18} color={palette.onPrimary} />
                       <ThemedText style={styles.createButtonText}>Create New Session</ThemedText>
                     </TouchableOpacity>
                   </View>
@@ -343,7 +343,7 @@ export function InviteSessionFlow({
                         style={[styles.sessionCard, { backgroundColor: palette.background, borderColor: palette.border }]}
                         onPress={() => handleSessionSelect(session)}
                       >
-                        <View style={[styles.sessionDate, { backgroundColor: `${palette.tint}10` }]}>
+                        <View style={[styles.sessionDate, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                           <ThemedText style={[styles.sessionDayName, { color: palette.tint }]}>
                             {dayName}
                           </ThemedText>
@@ -371,8 +371,8 @@ export function InviteSessionFlow({
                             )}
                           </View>
                           {spotsLeft !== null && (
-                            <View style={[styles.spotsBadge, { backgroundColor: spotsLeft > 0 ? `${palette.success}15` : `${palette.error}15` }]}>
-                              <ThemedText style={{ fontSize: 11, color: spotsLeft > 0 ? palette.success : palette.error, fontWeight: '600' }}>
+                            <View style={[styles.spotsBadge, { backgroundColor: spotsLeft > 0 ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) }]}>
+                              <ThemedText style={{ ...Typography.caption, color: spotsLeft > 0 ? palette.success : palette.error, fontWeight: '600' }}>
                                 {spotsLeft > 0 ? `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} available` : 'Full'}
                               </ThemedText>
                             </View>
@@ -398,12 +398,12 @@ export function InviteSessionFlow({
                     </ThemedText>
                   </View>
 
-                  <View style={[styles.confirmDivider, { backgroundColor: palette.border }]} />
+                  <Divider spacing={Spacing.sm} />
 
                   <View style={styles.confirmDetail}>
                     <ThemedText style={[styles.confirmLabel, { color: palette.muted }]}>Session</ThemedText>
                     <ThemedText type="defaultSemiBold">{selectedSession.title || 'Coaching Session'}</ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                    <ThemedText style={{ ...Typography.small, color: palette.muted }}>
                       {formatDateTime(selectedSession.scheduledAt).date} at {formatDateTime(selectedSession.scheduledAt).time}
                     </ThemedText>
                   </View>
@@ -413,7 +413,7 @@ export function InviteSessionFlow({
                     <ThemedText type="defaultSemiBold">
                       {selectedAthletes.length} athlete{selectedAthletes.length !== 1 ? 's' : ''}
                     </ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 13 }} numberOfLines={2}>
+                    <ThemedText style={{ ...Typography.small, color: palette.muted }} numberOfLines={2}>
                       {selectedAthletes.map((a) => a.name).join(', ')}
                     </ThemedText>
                   </View>
@@ -423,7 +423,7 @@ export function InviteSessionFlow({
                   style={[styles.confirmButton, { backgroundColor: palette.success }]}
                   onPress={handleConfirm}
                 >
-                  <Ionicons name="paper-plane" size={18} color="#fff" />
+                  <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
                   <ThemedText style={styles.confirmButtonText}>Send Invitations</ThemedText>
                 </TouchableOpacity>
 
@@ -477,10 +477,7 @@ const styles = StyleSheet.create({
   choiceContainer: {
     gap: Spacing.md,
   },
-  choiceSubtitle: {
-    fontSize: 15,
-    marginBottom: Spacing.sm,
-  },
+  choiceSubtitle: { ...Typography.body, marginBottom: Spacing.sm },
   choiceCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -492,30 +489,22 @@ const styles = StyleSheet.create({
   choiceIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   choiceInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  choiceTitle: {
-    fontSize: 16,
-  },
-  choiceDesc: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  choiceTitle: { ...Typography.subheading },
+  choiceDesc: { ...Typography.small, lineHeight: 18 },
 
   // Session List
   sessionList: {
     gap: Spacing.sm,
   },
-  sectionSubtitle: {
-    fontSize: 14,
-    marginBottom: Spacing.sm,
-  },
+  sectionSubtitle: { ...Typography.bodySmall, marginBottom: Spacing.sm },
   sessionCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -531,53 +520,42 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     minWidth: 50,
   },
-  sessionDayName: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  sessionDateStr: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  sessionDayName: { ...Typography.micro, textTransform: 'uppercase' },
+  sessionDateStr: { ...Typography.caption },
   sessionInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   sessionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  sessionMetaText: {
-    fontSize: 12,
-  },
+  sessionMetaText: { ...Typography.caption },
   spotsBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing['2xl'],
     gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 15,
-  },
+  emptyText: { ...Typography.body },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     marginTop: Spacing.md,
   },
   createButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 
@@ -592,18 +570,11 @@ const styles = StyleSheet.create({
   confirmHeader: {
     alignItems: 'center',
   },
-  confirmDivider: {
-    height: 1,
-    marginVertical: Spacing.sm,
-  },
   confirmDetail: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  confirmLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-  },
+  confirmLabel: { ...Typography.caption, textTransform: 'uppercase',
+    fontWeight: '600' },
   confirmButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -612,11 +583,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },
-  confirmButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  confirmButtonText: { ...Typography.subheading, color: Colors.light.onPrimary },
   changeButton: {
     alignItems: 'center',
     paddingVertical: Spacing.md,

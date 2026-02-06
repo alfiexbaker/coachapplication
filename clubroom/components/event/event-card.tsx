@@ -3,7 +3,7 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { ClubEvent } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { eventService } from '@/services/event-service';
@@ -81,14 +81,14 @@ export function EventCard({ event, onPress, compact = false }: EventCardProps) {
       <View style={styles.content}>
         {/* Type badge */}
         <View style={styles.header}>
-          <View style={[styles.typeBadge, { backgroundColor: `${typeColor}20` }]}>
+          <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.12) }]}>
             <Ionicons name={typeIcon as keyof typeof Ionicons.glyphMap} size={14} color={typeColor} />
             <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
               {eventService.formatEventType(event.eventType)}
             </ThemedText>
           </View>
           {event.isVirtual && (
-            <View style={[styles.virtualBadge, { backgroundColor: `${palette.accent}15` }]}>
+            <View style={[styles.virtualBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
               <Ionicons name="videocam" size={12} color={palette.accent} />
               <ThemedText style={[styles.virtualBadgeText, { color: palette.accent }]}>
                 Virtual
@@ -138,14 +138,14 @@ export function EventCard({ event, onPress, compact = false }: EventCardProps) {
           {/* Price or status */}
           <View style={styles.footerRight}>
             {isFull && (
-              <View style={[styles.statusBadge, { backgroundColor: `${palette.error}15` }]}>
+              <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <ThemedText style={[styles.statusText, { color: palette.error }]}>
                   FULL
                 </ThemedText>
               </View>
             )}
             {rsvpClosed && !isFull && (
-              <View style={[styles.statusBadge, { backgroundColor: `${palette.warning}15` }]}>
+              <View style={[styles.statusBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <ThemedText style={[styles.statusText, { color: palette.warning }]}>
                   RSVP CLOSED
                 </ThemedText>
@@ -157,7 +157,7 @@ export function EventCard({ event, onPress, compact = false }: EventCardProps) {
               </ThemedText>
             )}
             {event.price === 0 && !isFull && !rsvpClosed && (
-              <View style={[styles.freeBadge, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.freeBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <ThemedText style={[styles.freeText, { color: palette.success }]}>
                   FREE
                 </ThemedText>
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radii.sm,
@@ -204,9 +204,9 @@ const styles = StyleSheet.create({
   virtualBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   virtualBadgeText: {
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   attendanceInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   attendanceText: {
     fontSize: scaleFont(13),
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   statusText: {
@@ -296,11 +296,11 @@ const styles = StyleSheet.create({
     width: 4,
     height: '100%',
     minHeight: 48,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   compactContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactHeader: {
     flexDirection: 'row',
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   compactDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactDetailText: {
     fontSize: scaleFont(12),

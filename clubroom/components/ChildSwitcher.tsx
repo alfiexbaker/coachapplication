@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Pressable, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface Child {
@@ -40,7 +40,7 @@ export function ChildSwitcher({ childrenList, selectedId, onSelect, showAll = tr
           style={[
             styles.pillText,
             {
-              color: isActive ? '#FFFFFF' : palette.text,
+              color: isActive ? palette.onPrimary : palette.text,
               fontWeight: isActive ? '600' : '500',
             },
           ]}
@@ -79,8 +79,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  pillText: {
-    fontSize: 14,
-    letterSpacing: -0.1,
-  },
+  pillText: { ...Typography.bodySmall, letterSpacing: -0.1 },
 });

@@ -3,9 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { WaitlistPosition } from './WaitlistPosition';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { waitlistService } from '@/services/waitlist-service';
 import type { WaitlistEntry } from '@/constants/types';
@@ -57,7 +58,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
       ]}
     >
       {isNotified && (
-        <View style={[styles.notificationBanner, { backgroundColor: `${palette.success}15` }]}>
+        <View style={[styles.notificationBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="checkmark-circle" size={16} color={palette.success} />
           <ThemedText style={[styles.notificationText, { color: palette.success }]}>
             A spot is available! Book now before it expires.
@@ -99,7 +100,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
         </View>
       </View>
 
-      <View style={[styles.divider, { backgroundColor: palette.border }]} />
+      <Divider style={{ marginHorizontal: Components.card.padding }} />
 
       <View style={styles.footer}>
         <Clickable onPress={onToggleAutoBook} style={styles.autoBookRow}>
@@ -126,7 +127,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
           <Switch
             value={entry.autoBook}
             onValueChange={onToggleAutoBook}
-            trackColor={{ false: palette.border, true: `${palette.success}50` }}
+            trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.31) }}
             thumbColor={entry.autoBook ? palette.success : palette.muted}
             ios_backgroundColor={palette.border}
           />
@@ -144,7 +145,7 @@ export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardP
       </View>
 
       {entry.expiresAt && isNotified && (
-        <View style={[styles.expiryBanner, { backgroundColor: `${palette.warning}10` }]}>
+        <View style={[styles.expiryBanner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
           <Ionicons name="alarm-outline" size={14} color={palette.warning} />
           <ThemedText style={[styles.expiryText, { color: palette.warning }]}>
             Expires {new Date(entry.expiresAt).toLocaleString('en-GB', {
@@ -170,53 +171,39 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     padding: Spacing.sm,
   },
-  notificationText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  notificationText: { ...Typography.smallSemiBold, flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: Spacing.md,
+    padding: Components.card.padding,
     paddingBottom: 0,
   },
   sessionInfo: {
     flex: 1,
-    marginRight: Spacing.md,
-    gap: 4,
+    marginRight: Components.card.padding,
+    gap: Spacing.xxs,
   },
-  sessionTitle: {
-    fontSize: 16,
-  },
+  sessionTitle: { ...Typography.subheading },
   coachRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  coachName: {
-    fontSize: 12,
-  },
+  coachName: { ...Typography.caption },
   details: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     paddingTop: Spacing.sm,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  detailText: {
-    fontSize: 13,
-  },
-  divider: {
-    height: 1,
-    marginHorizontal: Spacing.md,
-  },
+  detailText: { ...Typography.small },
   footer: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.sm,
   },
   autoBookRow: {
@@ -232,25 +219,19 @@ const styles = StyleSheet.create({
   },
   autoBookText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  autoBookDescription: {
-    fontSize: 11,
-    lineHeight: 14,
-  },
+  autoBookDescription: { ...Typography.caption, lineHeight: 14 },
   leaveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  leaveButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  leaveButtonText: { ...Typography.bodySmallSemiBold },
   expiryBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -258,8 +239,5 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     marginTop: 0,
   },
-  expiryText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  expiryText: { ...Typography.caption },
 });

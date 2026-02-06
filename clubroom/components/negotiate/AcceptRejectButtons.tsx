@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface AcceptRejectButtonsProps {
@@ -62,7 +62,7 @@ export function AcceptRejectButtons({
         <Ionicons
           name="checkmark"
           size={isCompact ? 16 : 18}
-          color="#FFFFFF"
+          color={palette.onPrimary}
         />
         <ThemedText
           style={[
@@ -81,7 +81,7 @@ export function AcceptRejectButtons({
         style={[
           styles.button,
           styles.rejectButton,
-          { backgroundColor: `${palette.error}15`, borderColor: palette.error },
+          { backgroundColor: withAlpha(palette.error, 0.09), borderColor: palette.error },
           isCompact ? styles.buttonCompact : undefined,
         ].filter(Boolean) as ViewStyle[]}
         accessibilityLabel={rejectLabel}
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.md,
@@ -169,11 +169,9 @@ const styles = StyleSheet.create({
     ...Typography.sm,
     fontWeight: '600',
   },
-  buttonTextCompact: {
-    fontSize: 12,
-  },
+  buttonTextCompact: { ...Typography.caption },
   acceptText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
   },
   loadingContainer: {
     flexDirection: 'row',

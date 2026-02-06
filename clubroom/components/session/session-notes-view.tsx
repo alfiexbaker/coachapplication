@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 function formatValue(value?: string, fallback: string = 'Not captured yet') {
@@ -41,11 +41,11 @@ export function SessionNotesView({
       <NoteBlock label="Effort" value={`${effort || '—'}/5`} />
       <NoteBlock label="Attendance" value={formatValue(attendance, 'Not captured yet')} />
       {updatedAt ? (
-        <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+        <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
           Updated {new Date(updatedAt).toLocaleString()}
         </ThemedText>
       ) : null}
-      <View style={{ padding: Spacing.sm, backgroundColor: `${palette.premium}12`, borderRadius: 12 }}>
+      <View style={{ padding: Spacing.sm, backgroundColor: withAlpha(palette.premium, 0.07), borderRadius: Radii.md }}>
         <ThemedText type="defaultSemiBold">Parent view</ThemedText>
         <ThemedText style={{ color: palette.muted }}>
           Parents will see this inside booking details along with progression charts.
@@ -68,6 +68,6 @@ function NoteBlock({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   block: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
 });

@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SelectionTile } from '@/components/primitives/selection-tile';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { User } from '@/constants/app-types';
 
@@ -55,14 +55,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.lg,
   },
-  title: {
-    fontSize: 16,
-    paddingHorizontal: Spacing.lg,
-  },
-  helper: {
-    fontSize: 13,
-    paddingHorizontal: Spacing.lg,
-  },
+  title: { ...Typography.subheading, paddingHorizontal: Spacing.lg },
+  helper: { ...Typography.small, paddingHorizontal: Spacing.lg },
   grid: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.md,

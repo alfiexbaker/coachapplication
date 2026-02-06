@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, Pressable } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // Tab bar height constant for proper positioning
@@ -133,7 +133,7 @@ function Toast({
       <View
         style={[
           styles.toast,
-          { backgroundColor: scheme === 'dark' ? palette.surface : '#FFFFFF', borderColor: `${toneColor}55` },
+          { backgroundColor: scheme === 'dark' ? palette.surface : palette.onPrimary, borderColor: withAlpha(toneColor, 0.33) },
         ]}
       >
         <Text style={[styles.message, { color: toneColor }]}>{message}</Text>
@@ -176,19 +176,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  message: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  message: { ...Typography.bodySemiBold, flex: 1 },
   actionButton: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
   },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  actionText: { ...Typography.bodySmallSemiBold },
 });
 

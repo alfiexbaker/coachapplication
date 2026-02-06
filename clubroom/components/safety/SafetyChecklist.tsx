@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface SafetyChecklistProps {
@@ -70,8 +70,8 @@ export function SafetyChecklist({
             styles.headerIcon,
             {
               backgroundColor: isAllComplete
-                ? `${palette.success}15`
-                : `${palette.warning}15`,
+                ? withAlpha(palette.success, 0.09)
+                : withAlpha(palette.warning, 0.09),
             },
           ]}
         >
@@ -94,8 +94,8 @@ export function SafetyChecklist({
             styles.progressBadge,
             {
               backgroundColor: isAllComplete
-                ? `${palette.success}15`
-                : `${palette.warning}15`,
+                ? withAlpha(palette.success, 0.09)
+                : withAlpha(palette.warning, 0.09),
             },
           ]}
         >
@@ -124,8 +124,8 @@ export function SafetyChecklist({
                 styles.itemIcon,
                 {
                   backgroundColor: item.isComplete
-                    ? `${palette.success}10`
-                    : `${palette.muted}10`,
+                    ? withAlpha(palette.success, 0.06)
+                    : withAlpha(palette.muted, 0.06),
                 },
               ]}
             >
@@ -195,8 +195,8 @@ export function SafetyStatusIndicator({
         styles.statusIndicator,
         {
           backgroundColor: isComplete
-            ? `${palette.success}10`
-            : `${palette.warning}10`,
+            ? withAlpha(palette.success, 0.06)
+            : withAlpha(palette.warning, 0.06),
         },
       ]}
     >
@@ -287,7 +287,7 @@ export function SessionSafetySummary({
       </View>
 
       {hasMissingInfo && (
-        <View style={[styles.summaryWarning, { backgroundColor: `${palette.error}08` }]}>
+        <View style={[styles.summaryWarning, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
           <Ionicons name="warning" size={14} color={palette.error} />
           <ThemedText style={[styles.summaryWarningText, { color: palette.error }]}>
             {missingInfoCount} athlete{missingInfoCount !== 1 ? 's' : ''} missing emergency contact
@@ -316,23 +316,17 @@ const styles = StyleSheet.create({
   headerIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerSubtext: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  headerSubtext: { ...Typography.caption, marginTop: Spacing.micro },
   progressBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  progressText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  progressText: { ...Typography.caption },
   itemsList: {
     gap: 0,
   },
@@ -347,21 +341,15 @@ const styles = StyleSheet.create({
   itemIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   itemContent: {
     flex: 1,
   },
-  itemLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  itemDescription: {
-    fontSize: 12,
-    marginTop: 1,
-  },
+  itemLabel: { ...Typography.bodySmallSemiBold },
+  itemDescription: { ...Typography.caption, marginTop: 1 },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -372,23 +360,17 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     marginTop: Spacing.xs,
   },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  actionText: { ...Typography.bodySmallSemiBold },
   // Status indicator
   statusIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  statusText: { ...Typography.caption },
   // Summary card
   summaryCard: {
     borderWidth: 1,
@@ -409,14 +391,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  summaryStatValue: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  summaryStatLabel: {
-    fontSize: 11,
-    marginTop: 2,
-  },
+  summaryStatValue: { ...Typography.title },
+  summaryStatLabel: { ...Typography.caption, marginTop: Spacing.micro },
   summaryDivider: {
     width: 1,
     height: 32,
@@ -428,8 +404,5 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.sm,
   },
-  summaryWarningText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  summaryWarningText: { ...Typography.caption },
 });

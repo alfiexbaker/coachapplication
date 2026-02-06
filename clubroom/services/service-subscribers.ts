@@ -58,6 +58,11 @@ function getNotificationService() {
   return require('@/services/notification-service').notificationService;
 }
 
+function getSocialFeedService() {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  return require('@/services/social-feed-service').socialFeedService;
+}
+
 function getBookingService() {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   return require('@/services/booking-service').bookingService;
@@ -162,6 +167,43 @@ export function initializeSubscribers(): void {
       sessionId: data.sessionId,
       coachId: data.coachId,
       athleteCount: data.athleteIds.length,
+    });
+  });
+
+  // ---------- Group session events -------------------------------------------
+
+  subscribe(ServiceEvents.OPEN_SESSION_PUBLISHED, (data) => {
+    logger.debug('Handling OPEN_SESSION_PUBLISHED', data);
+
+    // Auto-create a session announcement feed post attributed to the coach
+    try {
+      const feedService = getSocialFeedService();
+      feedService.createSessionAnnouncementPost({
+        sessionId: data.sessionId,
+        coachId: data.coachId,
+        coachName: data.coachName,
+        title: data.title,
+        description: data.description,
+        sessionType: data.sessionType,
+        location: data.location,
+        price: data.price,
+        currency: data.currency,
+        date: data.date,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        maxParticipants: data.maxParticipants,
+        clubId: data.clubId,
+        clubName: data.clubName,
+        imageUrl: data.imageUrl,
+      });
+    } catch (error) {
+      logger.error('Feed post creation failed for OPEN_SESSION_PUBLISHED', error);
+    }
+
+    logger.info('Open session published event processed', {
+      sessionId: data.sessionId,
+      coachId: data.coachId,
+      title: data.title,
     });
   });
 

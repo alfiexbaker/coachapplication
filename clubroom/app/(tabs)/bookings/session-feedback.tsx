@@ -7,11 +7,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
-import { FootballObjective } from '@/constants/types';
+import { Colors, Spacing, Typography } from '@/constants/theme';
+import { FootballObjective, Booking } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -60,7 +61,7 @@ export default function SessionFeedbackScreen() {
         };
 
         // Save to storage
-        const sessions = await apiClient.get<any[]>('coach_sessions', []);
+        const sessions = await apiClient.get<Record<string, unknown>[]>('coach_sessions', []);
         sessions.push(sessionRecord);
         await apiClient.set('coach_sessions', sessions);
 
@@ -71,9 +72,9 @@ export default function SessionFeedbackScreen() {
         });
 
         // Update booking status
-        const bookings = await apiClient.get<any[]>('session_bookings', []);
+        const bookings = await apiClient.get<Booking[]>('session_bookings', []);
         if (bookings.length > 0) {
-          const updatedBookings = bookings.map((booking: any) =>
+          const updatedBookings = bookings.map((booking) =>
             booking.id === bookingId
               ? { ...booking, status: 'COMPLETED', sessionId }
               : booking
@@ -82,7 +83,7 @@ export default function SessionFeedbackScreen() {
         }
 
         // Navigate to session detail screen to add notes/media
-        router.replace(`/development/session/${sessionId}` as any);
+        router.replace(Routes.developmentSession(sessionId));
       } catch (error) {
         logger.error('Failed to create session', error);
         Alert.alert('Error', 'Failed to create session. Please try again.');
@@ -114,7 +115,6 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 16,
-    fontWeight: '500',
+    ...Typography.subheading,
   },
 });

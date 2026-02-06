@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ export function EarningsProjection({
     <SurfaceCard style={styles.card}>
       {/* Header */}
       <View style={styles.headerRow}>
-        <View style={[styles.iconCircle, { backgroundColor: palette.success + '18' }]}>
+        <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
           <Ionicons name="trending-up" size={Components.icon.md} color={palette.success} />
         </View>
         <View style={styles.headerText}>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   barSection: {
     gap: Spacing.xs,
@@ -213,6 +213,6 @@ const styles = StyleSheet.create({
   },
   statItem: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
 });

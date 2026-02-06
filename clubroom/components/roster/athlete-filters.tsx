@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { RosterFilters } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
@@ -94,7 +94,7 @@ export function AthleteFilters({
                 styles.chip,
                 {
                   backgroundColor:
-                    filters.status === status.key ? `${status.color}15` : palette.surfaceSecondary,
+                    filters.status === status.key ? withAlpha(status.color, 0.09) : palette.surfaceSecondary,
                   borderColor: filters.status === status.key ? status.color : 'transparent',
                 },
               ]}
@@ -194,31 +194,25 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.xs,
   },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  sectionLabel: { ...Typography.caption },
   chipRow: {
     gap: Spacing.xs,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: 8,
     borderRadius: Radii.pill,
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  chipText: { ...Typography.smallSemiBold },
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   tagsGrid: {
     flexDirection: 'row',
@@ -228,13 +222,10 @@ const styles = StyleSheet.create({
   tagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  tagText: { ...Typography.caption },
 });

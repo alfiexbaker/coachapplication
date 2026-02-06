@@ -2,7 +2,7 @@ import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ConsentType } from '@/constants/types';
 import { consentService, type ConsentFilters } from '@/services/consent-service';
@@ -38,19 +38,19 @@ function FilterChip({ label, icon, isActive, onPress }: FilterChipProps) {
         <Ionicons
           name={icon as keyof typeof Ionicons.glyphMap}
           size={14}
-          color={isActive ? '#FFFFFF' : palette.muted}
+          color={isActive ? palette.onPrimary : palette.muted}
         />
       )}
       <ThemedText
         style={[
           styles.chipText,
-          { color: isActive ? '#FFFFFF' : palette.text },
+          { color: isActive ? palette.onPrimary : palette.text },
         ]}
       >
         {label}
       </ThemedText>
       {isActive && (
-        <Ionicons name="close" size={14} color="#FFFFFF" />
+        <Ionicons name="close" size={14} color={palette.onPrimary} />
       )}
     </Pressable>
   );
@@ -157,12 +157,8 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.xs,
   },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  sectionLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   chipRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -170,25 +166,19 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  chipText: { ...Typography.smallSemiBold },
   clearButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.xs,
   },
-  clearText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  clearText: { ...Typography.smallSemiBold },
 });

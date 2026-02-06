@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { safetyService } from '@/services/safety-service';
 import type { EmergencyContact } from '@/constants/types';
@@ -55,12 +55,12 @@ export function EmergencyQuickCard({
 
   return (
     <SurfaceCard
-      style={[styles.card, { borderColor: `${alertColor}30` }]}
+      style={[styles.card, { borderColor: withAlpha(alertColor, 0.19) }]}
       onPress={onPress}
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.iconContainer, { backgroundColor: `${alertColor}15` }]}>
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(alertColor, 0.09) }]}>
           <Ionicons
             name={hasAlerts ? 'warning' : 'shield-checkmark'}
             size={24}
@@ -71,7 +71,7 @@ export function EmergencyQuickCard({
           <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.athleteName}>
             {athleteName}
           </ThemedText>
-          <View style={[styles.alertBadge, { backgroundColor: `${alertColor}15` }]}>
+          <View style={[styles.alertBadge, { backgroundColor: withAlpha(alertColor, 0.09) }]}>
             <View style={[styles.alertDot, { backgroundColor: alertColor }]} />
             <ThemedText style={[styles.alertText, { color: alertColor }]}>
               {alertLabel}
@@ -92,10 +92,10 @@ export function EmergencyQuickCard({
                   {
                     backgroundColor:
                       item.type === 'allergy'
-                        ? `${palette.error}10`
+                        ? withAlpha(palette.error, 0.06)
                         : item.type === 'condition'
-                          ? `${palette.warning}10`
-                          : `${palette.tint}10`,
+                          ? withAlpha(palette.warning, 0.06)
+                          : withAlpha(palette.tint, 0.06),
                   },
                 ]}
               >
@@ -155,7 +155,7 @@ export function EmergencyQuickCard({
             <ThemedText type="defaultSemiBold" numberOfLines={1}>
               {primaryContact.name}
             </ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+            <ThemedText style={{ ...Typography.small, color: palette.muted }}>
               {primaryContact.relationship} - {primaryContact.phone}
             </ThemedText>
           </View>
@@ -163,14 +163,14 @@ export function EmergencyQuickCard({
             onPress={onCallPrimary}
             style={[styles.callButton, { backgroundColor: palette.success }]}
           >
-            <Ionicons name="call" size={22} color="#fff" />
+            <Ionicons name="call" size={22} color={palette.onSuccess} />
           </Clickable>
         </View>
       )}
 
       {/* No Contact Warning */}
       {!primaryContact && (
-        <View style={[styles.warningSection, { backgroundColor: `${palette.warning}08` }]}>
+        <View style={[styles.warningSection, { backgroundColor: withAlpha(palette.warning, 0.03) }]}>
           <Ionicons name="warning" size={16} color={palette.warning} />
           <ThemedText style={[styles.warningText, { color: palette.warning }]}>
             No emergency contact on file
@@ -191,43 +191,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    padding: Spacing.md,
+    padding: Components.card.padding,
   },
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerInfo: {
     flex: 1,
   },
-  athleteName: {
-    fontSize: 18,
-  },
+  athleteName: { ...Typography.heading },
   alertBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   alertDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  alertText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  alertText: { ...Typography.caption },
   summarySection: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
+    paddingHorizontal: Components.card.padding,
+    paddingBottom: Components.card.padding,
   },
   itemsRow: {
     flexDirection: 'row',
@@ -237,44 +232,33 @@ const styles = StyleSheet.create({
   itemChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
-  itemText: {
-    fontSize: 12,
-    fontWeight: '600',
-    maxWidth: 100,
-  },
+  itemText: { ...Typography.caption, maxWidth: 100 },
   moreChip: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
-  moreText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  moreText: { ...Typography.caption },
   callSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    padding: Spacing.md,
+    padding: Components.card.padding,
     borderTopWidth: 1,
   },
   contactInfo: {
     flex: 1,
   },
-  contactLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
+  contactLabel: { ...Typography.caption, marginBottom: Spacing.micro },
   callButton: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -282,13 +266,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.md,
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: Components.card.padding,
+    marginHorizontal: Components.card.padding,
+    marginBottom: Components.card.padding,
     borderRadius: Radii.md,
   },
-  warningText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  warningText: { ...Typography.smallSemiBold },
 });

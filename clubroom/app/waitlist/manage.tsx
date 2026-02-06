@@ -9,7 +9,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { WaitlistManage } from '@/components/waitlist/WaitlistManage';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { waitlistService } from '@/services/waitlist-service';
@@ -228,7 +228,7 @@ export default function ManageWaitlistScreen() {
             <View style={styles.actionButtons}>
               <Clickable
                 onPress={() => summaries.forEach((s) => handleNotifyNext(s.sessionId))}
-                style={[styles.actionButton, { backgroundColor: `${palette.tint}10` }]}
+                style={[styles.actionButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
               >
                 <Ionicons name="notifications-outline" size={18} color={palette.tint} />
                 <ThemedText style={[styles.actionButtonText, { color: palette.tint }]}>
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   content: {
     padding: Spacing.lg,
@@ -295,7 +295,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
 });

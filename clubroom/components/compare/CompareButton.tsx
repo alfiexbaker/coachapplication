@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { comparisonService } from '@/services/comparison-service';
 
@@ -97,7 +97,7 @@ export function CompareButton({
           styles.iconButton,
           {
             backgroundColor: isInComparison
-              ? `${palette.success}15`
+              ? withAlpha(palette.success, 0.09)
               : pressed
               ? palette.surfaceSecondary
               : 'transparent',
@@ -130,7 +130,7 @@ export function CompareButton({
           styles.compactButton,
           {
             backgroundColor: isInComparison
-              ? `${palette.success}15`
+              ? withAlpha(palette.success, 0.09)
               : pressed
               ? palette.surfaceSecondary
               : palette.surface,
@@ -173,7 +173,7 @@ export function CompareButton({
         styles.fullButton,
         {
           backgroundColor: isInComparison
-            ? `${palette.success}15`
+            ? withAlpha(palette.success, 0.09)
             : pressed
             ? palette.surfaceSecondary
             : palette.surface,
@@ -232,10 +232,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  compactText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  compactText: { ...Typography.smallSemiBold },
   fullButton: {
     padding: Spacing.sm,
     borderRadius: Radii.md,
@@ -249,12 +246,6 @@ const styles = StyleSheet.create({
   fullTextContainer: {
     flex: 1,
   },
-  fullLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  fullHint: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  fullLabel: { ...Typography.bodySemiBold },
+  fullHint: { ...Typography.caption, marginTop: Spacing.micro },
 });

@@ -23,6 +23,7 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import type {
   SessionInvite,
+  SessionInviteType,
   TimeSlot,
   NotificationItem,
 } from '@/constants/types';
@@ -45,6 +46,8 @@ export interface CreateInviteInput {
   coachName: string;
   coachPhotoUrl?: string;
   clubName?: string;
+  inviteType?: SessionInviteType; // OPEN = browsable, CLOSED = invite-only, SQUAD_ONLY = squad members
+  squadIds?: string[]; // Relevant squad IDs when inviteType is SQUAD_ONLY
   athleteIds: string[];
   athleteNames: string[];
   parentId: string;
@@ -56,6 +59,7 @@ export interface CreateInviteInput {
   priceUsd?: number;
   expiresInDays?: number;
   groupId?: string; // Links invites that were sent as part of a group/bulk send
+  existingSessionId?: string; // When inviting to an existing group session
 }
 
 export interface RespondToInviteInput {
@@ -73,7 +77,7 @@ export interface RespondToInviteInput {
 const MOCK_INVITES: SessionInvite[] = [
   {
     id: 'inv_1',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     coachName: 'Marcus Thompson',
     coachPhotoUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
     clubName: 'Bradwell Boys Academy',
@@ -116,7 +120,7 @@ const MOCK_INVITES: SessionInvite[] = [
   },
   {
     id: 'inv_3',
-    coachId: 'coach_1',
+    coachId: 'coach1',
     coachName: 'Marcus Thompson',
     clubName: 'Bradwell Boys Academy',
     athleteIds: ['athlete_3'],
@@ -220,6 +224,8 @@ export const sessionInviteService = {
       coachName: input.coachName,
       coachPhotoUrl: input.coachPhotoUrl,
       clubName: input.clubName,
+      inviteType: input.inviteType || 'OPEN',
+      squadIds: input.squadIds,
       athleteIds: input.athleteIds,
       athleteNames: input.athleteNames,
       parentId: input.parentId,
@@ -368,13 +374,13 @@ export const sessionInviteService = {
             sessionInviteId: invite.id, // Link booking to invite
           });
 
-          if (bookingResult.success && bookingResult.booking) {
+          if (bookingResult.success && bookingResult.data) {
             // Link booking back to invite (bidirectional)
-            invitesCache[index].bookingId = bookingResult.booking.id;
+            invitesCache[index].bookingId = bookingResult.data.id;
             await saveToStorage(invitesCache);
-            logger.info('Booking created successfully', { bookingId: bookingResult.booking.id });
-          } else {
-            logger.error('Failed to create booking', { error: bookingResult.error });
+            logger.info('Booking created successfully', { bookingId: bookingResult.data.id });
+          } else if (!bookingResult.success) {
+            logger.error('Failed to create booking', { error: bookingResult.error?.message });
           }
         }
       } else if (input.response === 'DECLINED') {
@@ -587,13 +593,13 @@ export const sessionInviteService = {
         sessionInviteId: invite.id, // Link booking to invite
       });
 
-      if (bookingResult.success && bookingResult.booking) {
+      if (bookingResult.success && bookingResult.data) {
         // Link booking back to invite (bidirectional)
-        invitesCache[index].bookingId = bookingResult.booking.id;
+        invitesCache[index].bookingId = bookingResult.data.id;
         await saveToStorage(invitesCache);
-        logger.info('Booking created from counter-proposal', { bookingId: bookingResult.booking.id });
-      } else {
-        logger.error('Failed to create booking from counter-proposal', { error: bookingResult.error });
+        logger.info('Booking created from counter-proposal', { bookingId: bookingResult.data.id });
+      } else if (!bookingResult.success) {
+        logger.error('Failed to create booking from counter-proposal', { error: bookingResult.error?.message });
       }
 
       return ok(invitesCache[index]);
@@ -612,6 +618,93 @@ export const sessionInviteService = {
    */
   async getInvitesForParent(parentId: string): Promise<SessionInvite[]> {
     return this.getParentInvites(parentId);
+  },
+
+  // ==========================================================================
+  // INVITE TYPE FILTERING
+  // ==========================================================================
+
+  /**
+   * Get open invites visible to any parent browsing sessions
+   */
+  async getOpenInvites(): Promise<SessionInvite[]> {
+    if (USE_MOCK) {
+      invitesCache = await loadFromStorage();
+      return invitesCache.filter(
+        (inv) => (!inv.inviteType || inv.inviteType === 'OPEN') && !inv.dismissed
+      );
+    }
+    const response = await fetch('/api/session-invites?inviteType=OPEN');
+    return response.json();
+  },
+
+  /**
+   * Get closed invites for a specific parent (invite-only sessions)
+   */
+  async getClosedInvitesForParent(parentId: string): Promise<SessionInvite[]> {
+    if (USE_MOCK) {
+      invitesCache = await loadFromStorage();
+      return invitesCache.filter(
+        (inv) => inv.inviteType === 'CLOSED' && inv.parentId === parentId && !inv.dismissed
+      );
+    }
+    const response = await fetch(`/api/session-invites?inviteType=CLOSED&parentId=${parentId}`);
+    return response.json();
+  },
+
+  /**
+   * Get squad-only invites for a parent who belongs to the relevant squads
+   */
+  async getSquadOnlyInvitesForParent(
+    parentId: string,
+    memberSquadIds: string[]
+  ): Promise<SessionInvite[]> {
+    if (USE_MOCK) {
+      invitesCache = await loadFromStorage();
+      return invitesCache.filter((inv) => {
+        if (inv.inviteType !== 'SQUAD_ONLY') return false;
+        if (inv.dismissed) return false;
+        // The parent must be the target OR their squad must match
+        if (inv.parentId === parentId) return true;
+        if (inv.squadIds && inv.squadIds.some((sid) => memberSquadIds.includes(sid))) return true;
+        return false;
+      });
+    }
+    const response = await fetch(
+      `/api/session-invites?inviteType=SQUAD_ONLY&parentId=${parentId}&squadIds=${memberSquadIds.join(',')}`
+    );
+    return response.json();
+  },
+
+  /**
+   * Get all available invites for a parent, filtered by invite type rules.
+   * OPEN: visible to all
+   * CLOSED: only if explicitly invited
+   * SQUAD_ONLY: only if parent's squad matches
+   */
+  async getAvailableInvitesForParent(
+    parentId: string,
+    memberSquadIds: string[] = []
+  ): Promise<SessionInvite[]> {
+    if (USE_MOCK) {
+      invitesCache = await loadFromStorage();
+      return invitesCache.filter((inv) => {
+        if (inv.dismissed) return false;
+        const type = inv.inviteType || 'OPEN';
+        if (type === 'OPEN') return true;
+        if (type === 'CLOSED') return inv.parentId === parentId;
+        if (type === 'SQUAD_ONLY') {
+          if (inv.parentId === parentId) return true;
+          if (inv.squadIds && inv.squadIds.some((sid) => memberSquadIds.includes(sid))) return true;
+          return false;
+        }
+        return false;
+      });
+    }
+    const response = await fetch(
+      `/api/session-invites/available?parentId=${parentId}&squadIds=${memberSquadIds.join(',')}`
+    );
+    return response.json();
   },
 
   /**

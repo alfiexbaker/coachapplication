@@ -57,7 +57,7 @@ export class MessagingService {
       if (sender === 'parent') {
         // Parent sent message, notify coach
         await notificationService.notifyCoachNewMessage({
-          coachId: 'coach_1', // In production, get from thread
+          coachId: 'coach1', // In production, get from thread
           parentName: senderName || thread.coachName || 'Parent',
           threadId,
         });

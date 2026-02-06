@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -180,7 +180,7 @@ export default function DashboardScreen() {
 
   const navigateTo = useCallback(
     (path: string) => {
-      router.push(path as any);
+      router.push(path as Href);
     },
     [router]
   );
@@ -266,7 +266,7 @@ export default function DashboardScreen() {
           <QuickAction
             icon="football-outline"
             label="Match"
-            onPress={() => navigateTo(`/club/${clubId}/dashboard`)}
+            onPress={() => navigateTo('/matches/create')}
             palette={palette}
           />
           <QuickAction
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   },
   resultInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   outcomeBadge: {
     width: 32,
@@ -325,9 +325,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outcomeBadgeText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     ...Typography.caption,
-    fontWeight: '700',
   },
   quickActionsSection: {
     gap: Spacing.sm,

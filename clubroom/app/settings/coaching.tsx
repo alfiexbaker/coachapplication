@@ -20,6 +20,7 @@ import {
   Animated,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Typography, Shadows } from '@/constants/theme';
@@ -93,7 +94,7 @@ function ToggleRow({ label, value, onValueChange, helperText }: ToggleRowProps) 
         value={value}
         onValueChange={onValueChange}
         trackColor={{ false: Colors.light.border, true: Colors.light.success }}
-        thumbColor="#FFFFFF"
+        thumbColor={Colors.light.surface}
       />
     </View>
   );
@@ -312,7 +313,7 @@ export default function CoachingSettingsScreen() {
           <NavigationRow
             label="Cancellation policy"
             value="Standard"
-            onPress={() => router.push('/settings/cancellation-policy' as any)}
+            onPress={() => router.push(Routes.SETTINGS_CANCELLATION_POLICY)}
             icon="shield-checkmark-outline"
           />
         </View>
@@ -323,19 +324,19 @@ export default function CoachingSettingsScreen() {
           <NavigationRow
             label="Travel radius"
             value={`${currentUser?.postcode ?? 'Set postcode'}`}
-            onPress={() => router.push('/settings/travel-radius' as any)}
+            onPress={() => router.push(Routes.SETTINGS_TRAVEL_RADIUS)}
             icon="location-outline"
           />
           <View style={styles.separator} />
           <NavigationRow
             label="Blocked dates"
-            onPress={() => router.push('/settings/blocked-dates' as any)}
+            onPress={() => router.push(Routes.SETTINGS_BLOCKED_DATES)}
             icon="calendar-outline"
           />
           <View style={styles.separator} />
           <NavigationRow
             label="Smart slot suggestions"
-            onPress={() => router.push('/settings/smart-slots' as any)}
+            onPress={() => router.push(Routes.SETTINGS_SMART_SLOTS)}
             icon="sparkles-outline"
           />
         </View>
@@ -421,7 +422,7 @@ const styles = StyleSheet.create({
   rowHelper: {
     ...Typography.small,
     color: Colors.light.muted,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
@@ -455,7 +456,7 @@ const styles = StyleSheet.create({
 
   // Navigation row
   navIconContainer: {
-    marginBottom: 2,
+    marginBottom: Spacing.micro,
   },
   navRight: {
     flexDirection: 'row',

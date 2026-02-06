@@ -3,21 +3,24 @@ import { ScrollView, StyleSheet, View, Alert, Modal, TouchableOpacity } from 're
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { SectionHeader } from '@/components/primitives/section-header';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { Clickable } from '@/components/primitives/clickable';
 import { RecurringTemplateModal } from '@/components/coach/recurring-template-modal';
 import { BlockDateModal } from '@/components/coach/block-date-modal';
 import { SchedulingRulesModal } from '@/components/coach/scheduling-rules-modal';
+import { AvailabilityTutorial, useAvailabilityTutorial } from '@/components/coach/availability-tutorial';
+import { AvailabilityWeekGrid } from '@/components/coach/availability-week-grid';
 import { availabilityService } from '@/services/availability-service';
-import type { AvailabilityTemplate } from '@/constants/types';
+import type { AvailabilityTemplate, Booking } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('AvailabilityScreen');
@@ -25,13 +28,45 @@ const logger = createLogger('AvailabilityScreen');
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Quick presets for common schedules
+// Quick-add template presets shown at top of screen
+const QUICK_TEMPLATES = [
+  {
+    id: 'weekday-mornings',
+    name: 'Weekday Mornings',
+    timeLabel: '9am - 12pm',
+    icon: 'sunny-outline' as const,
+    slots: [{ days: [1, 2, 3, 4, 5], start: '09:00', end: '12:00' }],
+  },
+  {
+    id: 'weekday-evenings',
+    name: 'Weekday Evenings',
+    timeLabel: '5pm - 8pm',
+    icon: 'moon-outline' as const,
+    slots: [{ days: [1, 2, 3, 4, 5], start: '17:00', end: '20:00' }],
+  },
+  {
+    id: 'weekend-mornings',
+    name: 'Weekend Mornings',
+    timeLabel: '8am - 12pm',
+    icon: 'partly-sunny-outline' as const,
+    slots: [{ days: [0, 6], start: '08:00', end: '12:00' }],
+  },
+  {
+    id: 'weekend-fullday',
+    name: 'Weekend Full Day',
+    timeLabel: '8am - 5pm',
+    icon: 'calendar-outline' as const,
+    slots: [{ days: [0, 6], start: '08:00', end: '17:00' }],
+  },
+];
+
+// Quick presets for the quick-setup modal (kept for backward compat)
 const QUICK_PRESETS = [
   {
     id: 'weekday-mornings',
     name: 'Weekday Mornings',
     icon: 'sunny-outline' as const,
-    slots: [{ days: [1, 2, 3, 4, 5], start: '08:00', end: '12:00' }],
+    slots: [{ days: [1, 2, 3, 4, 5], start: '09:00', end: '12:00' }],
   },
   {
     id: 'weekday-afternoons',
@@ -57,9 +92,10 @@ export default function AvailabilityScreen() {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const { showTutorial, completeTutorial } = useAvailabilityTutorial();
 
   const [templates, setTemplates] = useState<AvailabilityTemplate[]>([]);
-  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
+  const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -69,6 +105,7 @@ export default function AvailabilityScreen() {
   const [showQuickSetup, setShowQuickSetup] = useState(false);
   const [showBlockDateModal, setShowBlockDateModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [showWeekGrid, setShowWeekGrid] = useState(false);
 
   const coachId = currentUser?.id || 'coach_1';
 
@@ -188,7 +225,8 @@ export default function AvailabilityScreen() {
   };
 
   const handleApplyPreset = async (presetId: string) => {
-    const preset = QUICK_PRESETS.find(p => p.id === presetId);
+    const preset = QUICK_PRESETS.find(p => p.id === presetId) ||
+                   QUICK_TEMPLATES.find(p => p.id === presetId);
     if (!preset) return;
 
     try {
@@ -211,6 +249,32 @@ export default function AvailabilityScreen() {
     } catch (error) {
       logger.error('Failed to apply preset:', error);
       Alert.alert('Error', 'Failed to apply preset. Please try again.');
+    }
+  };
+
+  const handleApplyQuickTemplate = async (templateId: string) => {
+    const template = QUICK_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+
+    try {
+      for (const slotDef of template.slots) {
+        for (const day of slotDef.days) {
+          await availabilityService.saveTemplate({
+            coachId,
+            dayOfWeek: day as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+            startTime: slotDef.start,
+            endTime: slotDef.end,
+            isRecurring: true,
+            maxConcurrent: 1,
+            bufferMinutes: 15,
+          });
+        }
+      }
+      await loadTemplates();
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      logger.error('Failed to apply quick template:', error);
+      Alert.alert('Error', 'Failed to apply template. Please try again.');
     }
   };
 
@@ -261,10 +325,37 @@ export default function AvailabilityScreen() {
     );
   };
 
+  const handleWeekGridSlotPress = (dayOfWeek: number, hour: number) => {
+    // Check if slot already exists at this position
+    const existing = templates.find(t => {
+      if (t.dayOfWeek !== dayOfWeek) return false;
+      const [startH] = t.startTime.split(':').map(Number);
+      const [endH] = t.endTime.split(':').map(Number);
+      return hour >= startH && hour < endH;
+    });
+
+    if (existing) {
+      handleEditSlot(existing);
+    } else {
+      setEditingTemplate(null);
+      setPreselectedDay(dayOfWeek);
+      setPreselectedHour(hour);
+      setShowTemplateModal(true);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  };
+
+  const handleWeekGridSlotLongPress = (template: AvailabilityTemplate) => {
+    handleDeleteSlot(template);
+  };
+
   const selectedDaySlots = getDayTemplates(selectedDay);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
+      {/* Tutorial Overlay */}
+      <AvailabilityTutorial visible={showTutorial} onComplete={completeTutorial} />
+
       {/* Header - OUTSIDE ScrollView for consistent positioning */}
       <ScreenHeader
         title="Availability"
@@ -273,17 +364,65 @@ export default function AvailabilityScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
+        {/* Quick Setup Templates - shown at top for easy access */}
+        <View style={styles.section}>
+          <View style={styles.quickSetupHeader}>
+            <SectionHeader title="Quick Setup" subtitle="One-tap schedule templates" />
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickTemplateScroll}
+          >
+            {QUICK_TEMPLATES.map((template) => (
+              <TouchableOpacity
+                key={template.id}
+                style={[
+                  styles.quickTemplateCard,
+                  { backgroundColor: palette.surface, borderColor: palette.border },
+                ]}
+                onPress={() => handleApplyQuickTemplate(template.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.quickTemplateIcon, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
+                  <Ionicons name={template.icon} size={22} color={palette.tint} />
+                </View>
+                <ThemedText style={styles.quickTemplateName} numberOfLines={1}>
+                  {template.name}
+                </ThemedText>
+                <ThemedText style={[styles.quickTemplateTime, { color: palette.muted }]}>
+                  {template.timeLabel}
+                </ThemedText>
+                <View style={[styles.quickTemplateApply, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
+                  <Ionicons name="add" size={14} color={palette.success} />
+                  <ThemedText style={[styles.quickTemplateApplyText, { color: palette.success }]}>
+                    Apply
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Week Overview - Interactive Day Selector */}
         <SurfaceCard style={styles.weekCard}>
           <View style={styles.weekHeader}>
             <ThemedText type="defaultSemiBold">Your Weekly Schedule</ThemedText>
-            <TouchableOpacity
-              style={[styles.addButton, { backgroundColor: palette.tint }]}
-              onPress={() => handleAddSlot()}
-            >
-              <Ionicons name="add" size={18} color="#fff" />
-              <ThemedText style={styles.addButtonText}>Add</ThemedText>
-            </TouchableOpacity>
+            <View style={styles.weekHeaderActions}>
+              <TouchableOpacity
+                style={[styles.gridToggle, { borderColor: palette.border, backgroundColor: showWeekGrid ? withAlpha(palette.tint, 0.07) : 'transparent' }]}
+                onPress={() => setShowWeekGrid(!showWeekGrid)}
+              >
+                <Ionicons name="grid-outline" size={16} color={showWeekGrid ? palette.tint : palette.muted} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: palette.tint }]}
+                onPress={() => handleAddSlot()}
+              >
+                <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
+                <ThemedText style={styles.addButtonText}>Add</ThemedText>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Day Pills */}
@@ -307,7 +446,7 @@ export default function AvailabilityScreen() {
                       backgroundColor: isSelected
                         ? palette.tint
                         : hasSlots
-                        ? `${palette.success}15`
+                        ? withAlpha(palette.success, 0.09)
                         : palette.background,
                       borderColor: isToday ? palette.tint : palette.border,
                       borderWidth: isToday ? 2 : 1,
@@ -319,7 +458,7 @@ export default function AvailabilityScreen() {
                       styles.dayPillText,
                       {
                         color: isSelected
-                          ? '#fff'
+                          ? Colors.light.onPrimary
                           : hasSlots
                           ? palette.success
                           : palette.muted,
@@ -373,6 +512,15 @@ export default function AvailabilityScreen() {
           </View>
         </SurfaceCard>
 
+        {/* Visual Weekly Grid (togglable) */}
+        {showWeekGrid && (
+          <AvailabilityWeekGrid
+            templates={templates}
+            onSlotPress={handleWeekGridSlotPress}
+            onSlotLongPress={handleWeekGridSlotLongPress}
+          />
+        )}
+
         {/* Selected Day Details */}
         <SurfaceCard style={styles.dayDetailCard}>
           <View style={styles.dayDetailHeader}>
@@ -409,7 +557,7 @@ export default function AvailabilityScreen() {
                 style={[styles.emptyAddButton, { backgroundColor: palette.tint }]}
                 onPress={() => handleAddSlot(selectedDay)}
               >
-                <Ionicons name="add" size={18} color="#fff" />
+                <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.emptyAddButtonText}>Add Slot</ThemedText>
               </TouchableOpacity>
             </View>
@@ -425,7 +573,7 @@ export default function AvailabilityScreen() {
                     key={template.id}
                     style={[styles.slotCard, { backgroundColor: palette.background, borderColor: palette.border }]}
                   >
-                    <View style={[styles.slotTime, { backgroundColor: `${palette.success}12` }]}>
+                    <View style={[styles.slotTime, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
                       <Ionicons name="time-outline" size={16} color={palette.success} />
                       <ThemedText style={[styles.slotTimeText, { color: palette.success }]}>
                         {formatTimeRange(template.startTime, template.endTime)}
@@ -433,9 +581,26 @@ export default function AvailabilityScreen() {
                     </View>
 
                     <View style={styles.slotInfo}>
-                      <ThemedText style={styles.slotDuration}>
-                        {duration} hour{duration !== 1 ? 's' : ''}
-                      </ThemedText>
+                      <View style={styles.slotInfoRow}>
+                        <ThemedText style={styles.slotDuration}>
+                          {duration} hour{duration !== 1 ? 's' : ''}
+                        </ThemedText>
+                        {template.maxConcurrent > 1 ? (
+                          <View style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.info, 0.07) }]}>
+                            <Ionicons name="people-outline" size={10} color={palette.info} />
+                            <ThemedText style={[styles.sessionTypeBadgeText, { color: palette.info }]}>
+                              Group
+                            </ThemedText>
+                          </View>
+                        ) : (
+                          <View style={[styles.sessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                            <Ionicons name="person-outline" size={10} color={palette.tint} />
+                            <ThemedText style={[styles.sessionTypeBadgeText, { color: palette.tint }]}>
+                              1v1
+                            </ThemedText>
+                          </View>
+                        )}
+                      </View>
                       {template.location && (
                         <View style={styles.slotMeta}>
                           <Ionicons name="location-outline" size={12} color={palette.muted} />
@@ -485,10 +650,10 @@ export default function AvailabilityScreen() {
                   <View key={booking.id}>
                     {index > 0 && <View style={[styles.bookingDivider, { backgroundColor: palette.border }]} />}
                     <Clickable
-                      onPress={() => router.push(`/booking/${booking.id}` as any)}
+                      onPress={() => router.push(Routes.bookingCancel(booking.id))}
                       style={styles.bookingItem}
                     >
-                      <View style={[styles.bookingDate, { backgroundColor: `${palette.tint}10` }]}>
+                      <View style={[styles.bookingDate, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                         <ThemedText style={[styles.bookingDayName, { color: palette.tint }]}>{dayName}</ThemedText>
                         <ThemedText style={[styles.bookingDateStr, { color: palette.tint }]}>{dateStr}</ThemedText>
                       </View>
@@ -517,7 +682,7 @@ export default function AvailabilityScreen() {
               style={[styles.quickActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
               onPress={() => handleAddSlot()}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="add-circle-outline" size={22} color={palette.success} />
               </View>
               <ThemedText style={styles.quickActionTitle}>Add Availability</ThemedText>
@@ -533,7 +698,7 @@ export default function AvailabilityScreen() {
                 setShowBlockDateModal(true);
               }}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.error}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <Ionicons name="calendar-outline" size={22} color={palette.error} />
               </View>
               <ThemedText style={styles.quickActionTitle}>Block Time Off</ThemedText>
@@ -549,7 +714,7 @@ export default function AvailabilityScreen() {
                 setShowRulesModal(true);
               }}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.warning}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <Ionicons name="settings-outline" size={22} color={palette.warning} />
               </View>
               <ThemedText style={styles.quickActionTitle}>Booking Rules</ThemedText>
@@ -562,7 +727,7 @@ export default function AvailabilityScreen() {
               style={[styles.quickActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
               onPress={() => setShowQuickSetup(true)}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="flash-outline" size={22} color={palette.tint} />
               </View>
               <ThemedText style={styles.quickActionTitle}>Quick Setup</ThemedText>
@@ -597,7 +762,7 @@ export default function AvailabilityScreen() {
             <View style={styles.setupHeader}>
               <View>
                 <ThemedText type="subtitle">Quick Setup</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 13, marginTop: 2 }}>
+                <ThemedText style={[styles.setupSubtitle, { color: palette.muted }]}>
                   Choose a preset to get started
                 </ThemedText>
               </View>
@@ -613,13 +778,13 @@ export default function AvailabilityScreen() {
                   style={[styles.presetCard, { backgroundColor: palette.background, borderColor: palette.border }]}
                   onPress={() => handleApplyPreset(preset.id)}
                 >
-                  <View style={[styles.presetIcon, { backgroundColor: `${palette.tint}15` }]}>
+                  <View style={[styles.presetIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                     <Ionicons name={preset.icon} size={24} color={palette.tint} />
                   </View>
                   <View style={styles.presetInfo}>
                     <ThemedText type="defaultSemiBold">{preset.name}</ThemedText>
-                    <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
-                      {preset.slots[0].days.map(d => DAYS_SHORT[d]).join(', ')} • {formatTimeRange(preset.slots[0].start, preset.slots[0].end)}
+                    <ThemedText style={[styles.presetDetail, { color: palette.muted }]}>
+                      {preset.slots[0].days.map(d => DAYS_SHORT[d]).join(', ')} {formatTimeRange(preset.slots[0].start, preset.slots[0].end)}
                     </ThemedText>
                   </View>
                   <Ionicons name="add-circle" size={24} color={palette.tint} />
@@ -635,7 +800,7 @@ export default function AvailabilityScreen() {
               }}
             >
               <Ionicons name="create-outline" size={18} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+              <ThemedText style={[styles.customButtonText, { color: palette.tint }]}>
                 Create Custom Schedule
               </ThemedText>
             </TouchableOpacity>
@@ -674,6 +839,50 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
 
+  // Quick Setup Templates
+  quickSetupHeader: {
+    paddingBottom: Spacing.xs,
+  },
+  quickTemplateScroll: {
+    gap: Spacing.sm,
+    paddingRight: Spacing.sm,
+  },
+  quickTemplateCard: {
+    width: 140,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    gap: Spacing.xs,
+    alignItems: 'center',
+  },
+  quickTemplateIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickTemplateName: {
+    ...Typography.smallSemiBold,
+    textAlign: 'center',
+  },
+  quickTemplateTime: {
+    ...Typography.caption,
+    textAlign: 'center',
+  },
+  quickTemplateApply: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.pill,
+    marginTop: Spacing.xs,
+  },
+  quickTemplateApplyText: {
+    ...Typography.caption,
+  },
+
   // Week Card
   weekCard: {
     padding: Spacing.md,
@@ -684,42 +893,54 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  weekHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  gridToggle: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
   addButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.smallSemiBold,
   },
   dayPills: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   dayPill: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   dayPillText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   dayDot: {
     width: 4,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   slotCount: {
-    fontSize: 10,
-    color: '#fff',
+    ...Typography.micro,
+    color: Colors.light.onPrimary,
     fontWeight: '700',
   },
   summaryRow: {
@@ -733,12 +954,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryValue: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title,
   },
   summaryLabel: {
-    fontSize: 11,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   summaryDivider: {
     width: 1,
@@ -756,16 +976,16 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   dayDetailTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   dayDetailSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   miniAddButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -777,26 +997,25 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
     marginTop: Spacing.sm,
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
     maxWidth: 240,
   },
   emptyAddButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     marginTop: Spacing.md,
   },
   emptyAddButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   slotsList: {
@@ -813,38 +1032,53 @@ const styles = StyleSheet.create({
   slotTime: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   slotTimeText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   slotInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.xxs,
+  },
+  slotInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   slotDuration: {
     fontWeight: '500',
   },
+  sessionTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+  },
+  sessionTypeBadgeText: {
+    ...Typography.micro,
+  },
   slotMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   slotMetaText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   slotActions: {
     flexDirection: 'row',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   slotActionBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -867,26 +1101,24 @@ const styles = StyleSheet.create({
   },
   bookingDate: {
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.sm,
     minWidth: 50,
   },
   bookingDayName: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...Typography.micro,
     textTransform: 'uppercase',
   },
   bookingDateStr: {
-    fontSize: 12,
-    fontWeight: '700',
+    ...Typography.caption,
   },
   bookingInfo: {
     flex: 1,
   },
   bookingTime: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
 
   // Quick Actions
@@ -905,18 +1137,16 @@ const styles = StyleSheet.create({
   quickActionIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   quickActionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   quickActionDesc: {
-    fontSize: 12,
-    lineHeight: 16,
+    ...Typography.caption,
   },
 
   // Modal
@@ -937,6 +1167,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: Spacing.lg,
   },
+  setupSubtitle: {
+    ...Typography.small,
+    marginTop: Spacing.micro,
+  },
   presetList: {
     gap: Spacing.sm,
   },
@@ -951,13 +1185,16 @@ const styles = StyleSheet.create({
   presetIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   presetInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
+  },
+  presetDetail: {
+    ...Typography.small,
   },
   customButton: {
     flexDirection: 'row',
@@ -968,5 +1205,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
     marginTop: Spacing.lg,
+  },
+  customButtonText: {
+    fontWeight: '600',
   },
 });

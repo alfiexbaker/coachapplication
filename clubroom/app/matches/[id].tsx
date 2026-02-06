@@ -10,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { LineupSelector } from '@/components/match/lineup-selector';
 import { AvailabilityResponse } from '@/components/match/availability-response';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Match } from '@/constants/types';
@@ -259,16 +259,16 @@ export default function MatchDetailScreen() {
           {/* Match header card */}
           <SurfaceCard
             style={styles.headerCard}
-            outlineGradient={isUpcoming ? [typeColor, `${typeColor}60`] : undefined}
+            outlineGradient={isUpcoming ? [typeColor, withAlpha(typeColor, 0.38)] : undefined}
           >
             {/* Status badges */}
             <View style={styles.badgeRow}>
-              <View style={[styles.typeBadge, { backgroundColor: `${typeColor}15` }]}>
+              <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}>
                 <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
                   {matchService.formatMatchType(match.matchType)}
                 </ThemedText>
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}>
+              <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
                 <ThemedText style={[styles.statusBadgeText, { color: statusColor }]}>
                   {matchService.formatStatus(match.status)}
                 </ThemedText>
@@ -420,7 +420,7 @@ export default function MatchDetailScreen() {
                     style={[styles.actionButton, { backgroundColor: palette.tint }]}
                     onPress={() => setShowLineupSelector(true)}
                   >
-                    <Ionicons name="people" size={20} color="#fff" />
+                    <Ionicons name="people" size={20} color={Colors.light.onPrimary} />
                     <ThemedText style={styles.actionButtonText}>Set Lineup</ThemedText>
                   </TouchableOpacity>
                 )}
@@ -444,7 +444,7 @@ export default function MatchDetailScreen() {
                         style={[styles.playerRow, { borderBottomColor: palette.border }]}
                       >
                         <View
-                          style={[styles.playerAvatar, { backgroundColor: `${statusColor}15` }]}
+                          style={[styles.playerAvatar, { backgroundColor: withAlpha(statusColor, 0.09) }]}
                         >
                           <ThemedText style={[styles.avatarText, { color: statusColor }]}>
                             {player.athleteName.slice(0, 2).toUpperCase()}
@@ -460,7 +460,7 @@ export default function MatchDetailScreen() {
                           )}
                         </View>
                         <View
-                          style={[styles.statusPill, { backgroundColor: `${statusColor}15` }]}
+                          style={[styles.statusPill, { backgroundColor: withAlpha(statusColor, 0.09) }]}
                         >
                           <ThemedText style={[styles.statusPillText, { color: statusColor }]}>
                             {matchService.formatPlayerStatus(player.status)}
@@ -532,36 +532,34 @@ const styles = StyleSheet.create({
   },
   typeBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   typeBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
     textTransform: 'uppercase',
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   homeAwayBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   homeAwayText: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   title: {
-    fontSize: 22,
+    ...Typography.title,
     marginTop: Spacing.xs,
   },
   opponentRow: {
@@ -570,10 +568,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   vsText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   opponent: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   resultContainer: {
     alignItems: 'center',
@@ -586,12 +584,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resultScore: {
-    fontSize: 32,
-    fontWeight: '700',
+    ...Typography.display,
   },
   resultLabel: {
-    fontSize: 12,
-    marginTop: 4,
+    ...Typography.caption,
+    marginTop: Spacing.xxs,
   },
   detailsSection: {
     gap: Spacing.sm,
@@ -603,12 +600,12 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   detailText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     flex: 1,
   },
   addressText: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   notesBox: {
     flexDirection: 'row',
@@ -618,7 +615,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   notesText: {
-    fontSize: 13,
+    ...Typography.small,
     flex: 1,
     fontStyle: 'italic',
   },
@@ -627,7 +624,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sectionTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
     marginBottom: Spacing.sm,
   },
   statsCard: {
@@ -639,15 +636,15 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   statLabel: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   actionButton: {
     flexDirection: 'row',
@@ -659,9 +656,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   actionButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
   playersCard: {
     gap: Spacing.sm,
@@ -679,28 +675,26 @@ const styles = StyleSheet.create({
   playerAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   playerInfo: {
     flex: 1,
   },
   playerPosition: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   statusPill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusPillText: {
-    fontSize: 11,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   coachActions: {
     gap: Spacing.sm,
@@ -715,7 +709,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   secondaryButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
 });

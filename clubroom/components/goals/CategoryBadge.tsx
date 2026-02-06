@@ -9,7 +9,7 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Radii, Spacing } from '@/constants/theme';
+import { Radii, Spacing , withAlpha } from '@/constants/theme';
 import type { GoalCategory } from '@/constants/types';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
@@ -46,24 +46,24 @@ export function CategoryBadge({
   const sizeStyles = {
     small: {
       paddingHorizontal: Spacing.xs,
-      paddingVertical: 2,
+      paddingVertical: Spacing.micro,
       iconSize: 12,
       fontSize: scaleFont(10),
-      gap: 3,
+      gap: Spacing.micro,
     },
     medium: {
       paddingHorizontal: Spacing.sm,
-      paddingVertical: 4,
+      paddingVertical: Spacing.xxs,
       iconSize: 14,
       fontSize: scaleFont(12),
-      gap: 4,
+      gap: Spacing.xxs,
     },
     large: {
       paddingHorizontal: Spacing.md,
-      paddingVertical: 6,
+      paddingVertical: Spacing.xxs,
       iconSize: 16,
       fontSize: scaleFont(14),
-      gap: 6,
+      gap: Spacing.xxs,
     },
   };
 
@@ -87,7 +87,7 @@ export function CategoryBadge({
       style={[
         styles.badge,
         {
-          backgroundColor: `${color}15`,
+          backgroundColor: withAlpha(color, 0.09),
           paddingHorizontal: iconOnly ? currentSize.paddingVertical + 2 : currentSize.paddingHorizontal,
           paddingVertical: currentSize.paddingVertical,
           gap: currentSize.gap,
@@ -128,7 +128,7 @@ export function CategoryBadgeRow({
             style={[
               styles.selectableBadge,
               {
-                backgroundColor: isSelected ? color : `${color}15`,
+                backgroundColor: isSelected ? color : withAlpha(color, 0.09),
                 borderColor: color,
               },
             ]}

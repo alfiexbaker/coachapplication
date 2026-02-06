@@ -1,15 +1,15 @@
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
+import { Colors, Radii, Typography, Spacing} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
 
 // Web-compatible clickable wrapper using Pressable
 type ClickableProps = {
   onPress: () => void;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
 };
 
@@ -123,14 +123,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: Spacing.xs + Spacing.xxs,
   },
   actionCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    padding: 12,
+    padding: Spacing.xs + Spacing.xxs,
   },
   actionText: {
     fontSize: scaleFont(14),
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 1,
   },
   iconWithBadge: {
@@ -156,14 +156,10 @@ const styles = StyleSheet.create({
     right: -8,
     minWidth: 16,
     height: 16,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
   },
-  badgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
-  },
+  badgeText: { ...Typography.micro, color: Colors.light.onPrimary },
 });

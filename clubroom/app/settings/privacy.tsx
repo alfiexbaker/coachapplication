@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/settings';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -222,8 +222,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   content: {
     paddingHorizontal: Spacing.lg,
@@ -235,8 +234,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   infoText: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
     textAlign: 'center',
   },
 });

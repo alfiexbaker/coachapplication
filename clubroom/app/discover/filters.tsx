@@ -77,9 +77,9 @@ export default function FiltersScreen() {
       const filtersParam = encodeURIComponent(JSON.stringify(newFilters));
 
       router.replace({
-        pathname: returnTo as any,
+        pathname: returnTo,
         params: { appliedFilters: filtersParam },
-      });
+      } as any);
     },
     [router, params.returnTo]
   );

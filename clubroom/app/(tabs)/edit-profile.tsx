@@ -19,7 +19,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { SocialLinksEditor } from '@/components/profile/social-links-editor';
-import { Colors, Radii, Spacing, Components } from '@/constants/theme';
+import { Colors, Radii, Spacing, Components, Typography , withAlpha } from '@/constants/theme';
 import { FOOTBALL_OBJECTIVES } from '@/constants/booking-types';
 import { coachProfiles, mockUserProfile } from '@/constants/mock-data';
 import { CoachCertification, CoachExperience, CoachLanguage, FootballObjective, SocialLinks } from '@/constants/types';
@@ -71,7 +71,7 @@ export default function EditProfileScreen() {
   // Fall back to mock data for development if not logged in
   const currentUser = authUser || mockUserProfile;
   // Check if user is a coach based on role/type property
-  const userIsCoach = currentUser?.role === 'COACH' || currentUser?.role === 'Coach';
+  const userIsCoach = currentUser?.role === 'COACH';
 
   // Get initial data based on role
   const coach = userIsCoach ? coachProfiles[0] : null;
@@ -279,8 +279,8 @@ export default function EditProfileScreen() {
                   <View style={[styles.coverPhoto, { backgroundColor: palette.border }]} />
                 )}
                 <View style={[styles.photoOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                  <Ionicons name="camera" size={32} color="#FFFFFF" />
-                  <ThemedText style={styles.overlayText} lightColor="#FFFFFF">
+                  <Ionicons name="camera" size={32} color={palette.onPrimary} />
+                  <ThemedText style={styles.overlayText} lightColor={Colors.light.onPrimary}>
                     Change Cover
                   </ThemedText>
                 </View>
@@ -302,7 +302,7 @@ export default function EditProfileScreen() {
                 </View>
               )}
               <View style={[styles.avatarOverlay, { backgroundColor: palette.tint }]}>
-                <Ionicons name="camera" size={20} color="#FFFFFF" />
+                <Ionicons name="camera" size={20} color={palette.onPrimary} />
               </View>
             </Pressable>
           </SurfaceCard>
@@ -480,8 +480,8 @@ export default function EditProfileScreen() {
                       ]}>
                       <ThemedText
                         style={styles.focusText}
-                        lightColor={isSelected ? '#FFFFFF' : undefined}
-                        darkColor={isSelected ? '#000000' : undefined}>
+                        lightColor={isSelected ? Colors.light.onPrimary : undefined}
+                        darkColor={isSelected ? Colors.dark.onPrimary : undefined}>
                         {focus}
                       </ThemedText>
                     </Pressable>
@@ -524,7 +524,7 @@ export default function EditProfileScreen() {
                             style={[
                               styles.experiencePill,
                               {
-                                backgroundColor: exp.current ? `${palette.success}15` : `${palette.tint}15`,
+                                backgroundColor: exp.current ? withAlpha(palette.success, 0.09) : withAlpha(palette.tint, 0.09),
                               },
                             ]}>
                             <Ionicons
@@ -652,7 +652,7 @@ export default function EditProfileScreen() {
                           {
                             opacity: isAdded ? 0.35 : 1,
                             borderColor: isAdded ? palette.border : palette.tint,
-                            backgroundColor: isAdded ? palette.card : `${palette.tint}15`,
+                            backgroundColor: isAdded ? palette.card : withAlpha(palette.tint, 0.09),
                           },
                         ]}>
                         <ThemedText
@@ -711,7 +711,7 @@ export default function EditProfileScreen() {
                             style={[
                               styles.certificationPill,
                               {
-                                backgroundColor: isExpired ? `${palette.warning}15` : `${palette.success}15`,
+                                backgroundColor: isExpired ? withAlpha(palette.warning, 0.09) : withAlpha(palette.success, 0.09),
                               },
                             ]}>
                             <Ionicons
@@ -883,7 +883,7 @@ export default function EditProfileScreen() {
                 <Pressable
                   onPress={saveExperience}
                   style={[styles.primaryButton, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
+                  <ThemedText style={styles.primaryButtonText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.onPrimary}>
                     Save experience
                   </ThemedText>
                 </Pressable>
@@ -934,7 +934,7 @@ export default function EditProfileScreen() {
                             styles.focusChip,
                             {
                               borderColor: isActive ? palette.tint : palette.border,
-                              backgroundColor: isActive ? `${palette.tint}15` : palette.card,
+                              backgroundColor: isActive ? withAlpha(palette.tint, 0.09) : palette.card,
                             },
                           ]}>
                           <ThemedText
@@ -952,7 +952,7 @@ export default function EditProfileScreen() {
                 <Pressable
                   onPress={saveLanguage}
                   style={[styles.primaryButton, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
+                  <ThemedText style={styles.primaryButtonText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.onPrimary}>
                     Save language
                   </ThemedText>
                 </Pressable>
@@ -1044,7 +1044,7 @@ export default function EditProfileScreen() {
                 <Pressable
                   onPress={saveCertification}
                   style={[styles.primaryButton, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={styles.primaryButtonText} lightColor="#FFFFFF" darkColor="#000000">
+                  <ThemedText style={styles.primaryButtonText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.onPrimary}>
                     Save certification
                   </ThemedText>
                 </Pressable>
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     opacity: 0.6,
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   coverPhotoContainer: {
     position: 'relative',
@@ -1105,7 +1105,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1119,7 +1119,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: Colors.light.onPrimary,
   },
   fieldGroup: {
     gap: Spacing.xs,
@@ -1132,14 +1132,14 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   textArea: {
     minHeight: 100,
     paddingTop: Spacing.sm,
   },
   helper: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.6,
   },
   childRow: {
@@ -1208,12 +1208,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   experiencePillText: {
-    fontWeight: '700',
-    fontSize: 12,
+    ...Typography.caption,
   },
   experienceActions: {
     flexDirection: 'row',
@@ -1222,20 +1221,20 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   experienceBody: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   experienceOrg: {
     fontWeight: '600',
     opacity: 0.8,
   },
   experienceDate: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.6,
   },
   experienceDescription: {
@@ -1268,17 +1267,17 @@ const styles = StyleSheet.create({
   languageDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   languageCopy: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   languageName: {
     fontWeight: '700',
   },
   languageProficiency: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.7,
   },
   languageActions: {
@@ -1334,8 +1333,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButtonText: {
-    fontWeight: '700',
-    fontSize: 16,
+    ...Typography.subheading,
   },
   comingSoon: {
     opacity: 0.5,
@@ -1360,36 +1358,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   certificationPillText: {
-    fontWeight: '700',
-    fontSize: 12,
+    ...Typography.caption,
   },
   certificationActions: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
   certificationBody: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   certificationIssuer: {
     fontWeight: '600',
     opacity: 0.8,
   },
   certificationDate: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.6,
   },
   certificationLinkRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   certificationLink: {
-    fontSize: 12,
+    ...Typography.caption,
     flex: 1,
   },
 });

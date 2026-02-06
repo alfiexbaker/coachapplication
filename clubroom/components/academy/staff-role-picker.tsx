@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AcademyMembership } from '@/constants/types';
 
@@ -79,13 +79,13 @@ export function StaffRolePicker({
             style={[
               styles.roleCard,
               {
-                backgroundColor: isSelected ? `${color}10` : palette.surface,
+                backgroundColor: isSelected ? withAlpha(color, 0.06) : palette.surface,
                 borderColor: isSelected ? color : palette.border,
               },
             ]}
           >
-            <View style={[styles.iconContainer, { backgroundColor: `${color}20` }]}>
-              <Ionicons name={role.icon as any} size={20} color={color} />
+            <View style={[styles.iconContainer, { backgroundColor: withAlpha(color, 0.12) }]}>
+              <Ionicons name={role.icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
             </View>
             <View style={styles.roleInfo}>
               <ThemedText
@@ -131,21 +131,18 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   roleInfo: {
     flex: 1,
   },
-  roleDescription: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  roleDescription: { ...Typography.caption, marginTop: Spacing.micro },
   radio: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

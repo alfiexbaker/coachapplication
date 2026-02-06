@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -9,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
@@ -150,10 +151,10 @@ function SessionCard({
                 styles.spotsBadge,
                 {
                   backgroundColor: isFull
-                    ? `${palette.error}15`
+                    ? withAlpha(palette.error, 0.09)
                     : spotsLeft <= 3
-                    ? `${palette.warning}15`
-                    : `${palette.success}15`,
+                    ? withAlpha(palette.warning, 0.09)
+                    : withAlpha(palette.success, 0.09),
                 },
               ]}
             >
@@ -181,7 +182,7 @@ function SessionCard({
           {session.focus && session.focus.length > 0 && (
             <View style={styles.focusRow}>
               {session.focus.slice(0, 3).map((f) => (
-                <View key={f} style={[styles.focusTag, { backgroundColor: `${palette.tint}10` }]}>
+                <View key={f} style={[styles.focusTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                   <ThemedText style={[styles.focusText, { color: palette.tint }]}>{f}</ThemedText>
                 </View>
               ))}
@@ -245,10 +246,10 @@ export default function GroupSessionsScreen() {
         </View>
         {isCoach && (
           <Clickable
-            onPress={() => router.push('/group-sessions/create')}
+            onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
             style={[styles.createButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="add" size={20} color="#fff" />
+            <Ionicons name="add" size={20} color={palette.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -273,7 +274,7 @@ export default function GroupSessionsScreen() {
             <ThemedText
               style={[
                 styles.filterText,
-                { color: filter === f.key ? '#fff' : palette.text },
+                { color: filter === f.key ? palette.onPrimary : palette.text },
               ]}
             >
               {f.label}
@@ -301,10 +302,7 @@ export default function GroupSessionsScreen() {
                 session={session}
                 index={index}
                 onPress={() =>
-                  router.push({
-                    pathname: '/group-sessions/[id]',
-                    params: { id: session.id },
-                  })
+                  router.push(Routes.groupSession(session.id))
                 }
               />
             ))}
@@ -330,13 +328,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   createButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -354,8 +352,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.full,
   },
   filterText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   content: {
     padding: Spacing.lg,
@@ -381,13 +378,12 @@ const styles = StyleSheet.create({
     top: Spacing.sm,
     left: Spacing.sm,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   typeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -396,13 +392,12 @@ const styles = StyleSheet.create({
     top: Spacing.sm,
     right: Spacing.sm,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   freeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.caption,
   },
   cardContent: {
     padding: Spacing.md,
@@ -418,81 +413,78 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   title: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   clubName: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   priceSection: {
     alignItems: 'flex-end',
   },
   price: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   description: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   details: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   detailText: {
-    fontSize: 12,
+    ...Typography.caption,
     flex: 1,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   coachInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   coachPhoto: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
   },
   coachPhotoPlaceholder: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   coachName: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   spotsBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   spotsText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   focusRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   focusTag: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   focusText: {
-    fontSize: 10,
-    fontWeight: '600',
+    ...Typography.micro,
   },
 });

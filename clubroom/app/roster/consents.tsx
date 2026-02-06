@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -12,7 +13,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConsentCard } from '@/components/consent/ConsentCard';
 import { ConsentFilter } from '@/components/consent/ConsentFilter';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -64,7 +65,7 @@ function StatCard({ label, granted, denied, icon, isActive, onPress }: StatCardP
       style={[
         styles.statCard,
         {
-          backgroundColor: isActive ? `${palette.tint}10` : palette.surface,
+          backgroundColor: isActive ? withAlpha(palette.tint, 0.06) : palette.surface,
           borderColor: isActive ? palette.tint : palette.border,
         },
       ]}
@@ -164,10 +165,7 @@ export default function ConsentsScreen() {
       <ConsentCard
         athleteConsent={item}
         onPress={() =>
-          router.push({
-            pathname: '/roster/[athleteId]',
-            params: { athleteId: item.athleteId },
-          })
+          router.push(Routes.rosterAthlete(item.athleteId))
         }
       />
     </Animated.View>
@@ -264,7 +262,7 @@ export default function ConsentsScreen() {
           <Ionicons
             name="options-outline"
             size={20}
-            color={activeFiltersCount > 0 ? '#fff' : palette.text}
+            color={activeFiltersCount > 0 ? Colors.light.onPrimary : palette.text}
           />
           {activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
@@ -345,8 +343,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   statsContainer: {
     paddingHorizontal: Spacing.lg,
@@ -367,11 +365,10 @@ const styles = StyleSheet.create({
   statHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statLabel: {
-    fontSize: 11,
-    fontWeight: '500',
+    ...Typography.caption,
     flex: 1,
   },
   statNumbers: {
@@ -380,11 +377,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statPercentage: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   statDetail: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   searchSection: {
     flexDirection: 'row',
@@ -403,7 +399,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
   },
   filterButton: {
     width: 44,
@@ -419,15 +415,14 @@ const styles = StyleSheet.create({
     right: 4,
     width: 16,
     height: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
+    borderRadius: Radii.sm,
+    backgroundColor: Colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#000',
+    ...Typography.micro,
+    color: Colors.light.text,
   },
   filtersContainer: {
     paddingHorizontal: Spacing.lg,

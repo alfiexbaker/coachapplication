@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCodeUsage } from '@/constants/types';
@@ -53,7 +53,7 @@ function UsageItem({
 
   return (
     <View style={styles.usageItem}>
-      <View style={[styles.usageIcon, { backgroundColor: `${palette.success}15` }]}>
+      <View style={[styles.usageIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
         <Ionicons name="checkmark-circle" size={20} color={palette.success} />
       </View>
       <View style={styles.usageContent}>
@@ -165,7 +165,7 @@ export function CodeUsageSummary({
     <SurfaceCard style={styles.summaryCard}>
       <View style={styles.summaryRow}>
         <View style={styles.summaryItem}>
-          <View style={[styles.summaryIcon, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <Ionicons name="people-outline" size={20} color={palette.tint} />
           </View>
           <View>
@@ -179,7 +179,7 @@ export function CodeUsageSummary({
         </View>
         <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
         <View style={styles.summaryItem}>
-          <View style={[styles.summaryIcon, { backgroundColor: `${palette.success}15` }]}>
+          <View style={[styles.summaryIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
             <Ionicons name="cash-outline" size={20} color={palette.success} />
           </View>
           <View>
@@ -207,18 +207,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.lg,
   },
-  loadingText: {
-    fontSize: 14,
-  },
+  loadingText: { ...Typography.bodySmall },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.xl,
   },
-  emptyText: {
-    fontSize: 14,
-  },
+  emptyText: { ...Typography.bodySmall },
   usageItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -228,7 +224,7 @@ const styles = StyleSheet.create({
   usageIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -240,31 +236,17 @@ const styles = StyleSheet.create({
   },
   usageRow: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  userName: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  codeLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  usageTime: {
-    fontSize: 12,
-  },
-  creditAmount: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  userName: { ...Typography.bodySmallSemiBold },
+  codeLabel: { ...Typography.caption },
+  usageTime: { ...Typography.caption },
+  creditAmount: { ...Typography.bodySmallSemiBold },
   moreIndicator: {
     alignItems: 'center',
     paddingVertical: Spacing.sm,
   },
-  moreText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  moreText: { ...Typography.smallSemiBold },
   summaryCard: {
     padding: Spacing.md,
   },
@@ -285,12 +267,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  summaryValue: {
-    fontSize: 18,
-  },
-  summaryLabel: {
-    fontSize: 12,
-  },
+  summaryValue: { ...Typography.heading },
+  summaryLabel: { ...Typography.caption },
   summaryDivider: {
     width: 1,
     height: 40,

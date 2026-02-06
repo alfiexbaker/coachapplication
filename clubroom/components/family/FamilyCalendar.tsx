@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { FamilyCalendarEvent, FamilyMember } from '@/constants/types';
 
@@ -139,7 +139,7 @@ export function FamilyCalendar({
             <ThemedText
               style={[
                 styles.filterChipText,
-                selectedChildId === null ? { color: '#FFFFFF' } : undefined,
+                selectedChildId === null ? { color: palette.onPrimary } : undefined,
               ]}
             >
               All Children
@@ -159,13 +159,13 @@ export function FamilyCalendar({
                 style={[
                   styles.filterDot,
                   { backgroundColor: member.colorCode },
-                  selectedChildId === member.id ? { backgroundColor: '#FFFFFF' } : undefined,
+                  selectedChildId === member.id ? { backgroundColor: palette.surface } : undefined,
                 ]}
               />
               <ThemedText
                 style={[
                   styles.filterChipText,
-                  selectedChildId === member.id ? { color: '#FFFFFF' } : undefined,
+                  selectedChildId === member.id ? { color: palette.onPrimary } : undefined,
                 ]}
               >
                 {member.name.split(' ')[0]}
@@ -226,7 +226,7 @@ export function FamilyCalendar({
                     <ThemedText
                       style={[
                         styles.dayText,
-                        selected ? { color: '#FFFFFF' } : undefined,
+                        selected ? { color: palette.onPrimary } : undefined,
                         !item.isCurrentMonth ? { color: palette.muted } : undefined,
                       ]}
                     >
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
@@ -335,12 +335,9 @@ const styles = StyleSheet.create({
   filterDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  filterChipText: { ...Typography.smallSemiBold },
   calendarCard: {
     padding: Spacing.sm,
   },
@@ -353,9 +350,7 @@ const styles = StyleSheet.create({
   navButton: {
     padding: Spacing.xs,
   },
-  monthTitle: {
-    fontSize: 16,
-  },
+  monthTitle: { ...Typography.subheading },
   dayHeaders: {
     flexDirection: 'row',
     marginBottom: Spacing.xs,
@@ -365,10 +360,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.xs,
   },
-  dayHeaderText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  dayHeaderText: { ...Typography.caption },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -378,37 +370,32 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 2,
+    padding: Spacing.micro,
   },
   dayContent: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  dayText: { ...Typography.bodySmallSemiBold },
   eventDots: {
     flexDirection: 'row',
-    gap: 2,
-    marginTop: 2,
+    gap: Spacing.micro,
+    marginTop: Spacing.micro,
     position: 'absolute',
     bottom: 4,
   },
   eventDot: {
     width: 4,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   eventsSection: {
     gap: Spacing.sm,
   },
-  eventsSectionTitle: {
-    fontSize: 14,
-  },
+  eventsSectionTitle: { ...Typography.bodySmall },
   eventCard: {
     flexDirection: 'row',
     overflow: 'hidden',
@@ -419,16 +406,14 @@ const styles = StyleSheet.create({
   eventContent: {
     flex: 1,
     padding: Spacing.sm,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   eventHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  eventTime: {
-    fontSize: 13,
-  },
+  eventTime: { ...Typography.small },
   eventMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -437,9 +422,7 @@ const styles = StyleSheet.create({
   eventMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  eventMetaText: {
-    fontSize: 12,
-  },
+  eventMetaText: { ...Typography.caption },
 });

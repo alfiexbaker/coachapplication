@@ -22,13 +22,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getClubById } from '@/constants/mock-data';
@@ -163,7 +164,7 @@ export default function CoachInvitesScreen() {
         [
           {
             text: 'Go to Club',
-            onPress: () => router.push({ pathname: '/club/[id]', params: { id: invite.clubId } }),
+            onPress: () => router.push(Routes.club(invite.clubId)),
           },
         ]
       );
@@ -226,16 +227,16 @@ export default function CoachInvitesScreen() {
       <SurfaceCard style={styles.inviteCard}>
         {/* Club Info */}
         <View style={styles.inviteHeader}>
-          <View style={[styles.clubBadge, { backgroundColor: `${palette.tint}15` }]}>
+          <View style={[styles.clubBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
             <ThemedText style={[styles.clubBadgeText, { color: palette.tint }]}>
               {invite.clubBadge?.slice(0, 2) || invite.clubName.slice(0, 2).toUpperCase()}
             </ThemedText>
           </View>
           <View style={styles.clubInfo}>
-            <ThemedText type="defaultSemiBold" style={{ fontSize: 17 }}>
+            <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>
               {invite.clubName}
             </ThemedText>
-            <View style={[styles.roleBadge, { backgroundColor: `${palette.success}15` }]}>
+            <View style={[styles.roleBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="shield-checkmark" size={14} color={palette.success} />
               <ThemedText style={[styles.roleText, { color: palette.success }]}>
                 Invited as {ROLE_LABELS[invite.role]}
@@ -274,7 +275,7 @@ export default function CoachInvitesScreen() {
               <ThemedText style={styles.acceptText}>Joining...</ThemedText>
             ) : (
               <>
-                <Ionicons name="checkmark" size={18} color="#fff" />
+                <Ionicons name="checkmark" size={18} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.acceptText}>Accept & Join</ThemedText>
               </>
             )}
@@ -304,7 +305,7 @@ export default function CoachInvitesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: `${palette.muted}10` }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
               <Ionicons name="shield-outline" size={40} color={palette.muted} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
@@ -315,10 +316,10 @@ export default function CoachInvitesScreen() {
             </ThemedText>
             <Pressable
               style={[styles.goToClubHubButton, { backgroundColor: palette.tint }]}
-              onPress={() => router.push('/(tabs)/club-hub')}
+              onPress={() => router.push(Routes.CLUB_HUB)}
             >
-              <Ionicons name="people" size={18} color="#fff" />
-              <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Go to Club Hub</ThemedText>
+              <Ionicons name="people" size={18} color={Colors.light.onPrimary} />
+              <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Go to Club Hub</ThemedText>
             </Pressable>
           </View>
         }
@@ -346,13 +347,12 @@ const styles = StyleSheet.create({
   clubBadge: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   clubBadgeText: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   clubInfo: {
     flex: 1,
@@ -362,14 +362,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   roleText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   detailsSection: {
     gap: Spacing.xs,
@@ -395,8 +394,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   declineText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   acceptButton: {
     flex: 2,
@@ -408,9 +406,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   acceptText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
   separator: {
     height: Spacing.sm,
@@ -425,16 +422,16 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   emptyTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 280,

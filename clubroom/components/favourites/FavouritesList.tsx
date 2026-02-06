@@ -12,6 +12,7 @@
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, FlatList, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { Colors, Spacing } from '@/constants/theme';
 import type { FavouriteCoach } from '@/constants/types';
@@ -58,7 +59,7 @@ export function FavouritesList({
   }, [onRefresh]);
 
   const handleDiscoverCoaches = useCallback(() => {
-    router.push('/book-coach');
+    router.push(Routes.BOOK_COACH);
   }, [router]);
 
   const renderItem = useCallback(

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 
@@ -9,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { StatCard } from '@/components/primitives/stat-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
@@ -57,9 +58,9 @@ export default function AthleteDetailScreen() {
         );
 
         // Get AsyncStorage sessions
-        const asyncSessions = await apiClient.get<any[]>('coach_sessions', []);
+        const asyncSessions = await apiClient.get<Session[]>('coach_sessions', []);
         const athleteAsyncSessions = asyncSessions.filter(
-          (s: any) => s.athleteId === athleteId && s.coachId === currentUser.id
+          (s) => s.athleteId === athleteId && s.coachId === currentUser.id
         );
 
         // Combine both sources
@@ -202,7 +203,7 @@ export default function AthleteDetailScreen() {
       {/* Hero Card - Athlete Overview */}
       <SurfaceCard style={styles.heroCard}>
         <View style={styles.heroHeader}>
-          <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
             <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
               {athlete.avatar || athlete.name.charAt(0)}
             </ThemedText>
@@ -220,7 +221,7 @@ export default function AthleteDetailScreen() {
         {/* Badges Row - separated for better layout */}
         <View style={styles.badgesRow}>
           <View style={styles.badges}>
-            <View style={[styles.trendBadge, { backgroundColor: trendColor + '15' }]}>
+            <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.09) }]}>
               <View style={styles.badgeRow}>
                 <Ionicons name={trendIcon} size={14} color={trendColor} />
                 <ThemedText style={[styles.badgeText, { color: trendColor }]}>
@@ -228,7 +229,7 @@ export default function AthleteDetailScreen() {
                 </ThemedText>
               </View>
             </View>
-            <View style={[styles.levelBadge, { backgroundColor: level.color + '15' }]}>
+            <View style={[styles.levelBadge, { backgroundColor: withAlpha(level.color, 0.09) }]}>
               <View style={styles.badgeRow}>
                 <Ionicons name={level.icon} size={14} color={level.color} />
                 <ThemedText style={[styles.badgeText, { color: level.color }]}>
@@ -257,19 +258,19 @@ export default function AthleteDetailScreen() {
                     skillsWorkedOn: [],
                     notes: '',
                     videoUrls: [],
-                    imageUrls: [],
-                    attendance: 'ATTENDED',
+                    nextFocusAreas: [],
+                    attendance: 'ATTENDED' as const,
                   };
 
                   // Save to AsyncStorage
-                  const sessions = await apiClient.get<any[]>('coach_sessions', []);
+                  const sessions = await apiClient.get<Session[]>('coach_sessions', []);
                   sessions.push(sessionRecord);
                   await apiClient.set('coach_sessions', sessions);
 
                   logger.info('Session created', { sessionId, athleteId });
 
                   // Navigate to session detail
-                  router.push(`/development/session/${sessionId}` as any);
+                  router.push(Routes.developmentSession(sessionId));
                 } catch (error) {
                   logger.error('Failed to create session', error);
                 }
@@ -278,7 +279,7 @@ export default function AthleteDetailScreen() {
               <ThemedText style={styles.ctaText}>Log Session</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.awardBadgeButton, { borderColor: palette.warning, backgroundColor: `${palette.warning}15` }]}
+              style={[styles.awardBadgeButton, { borderColor: palette.warning, backgroundColor: withAlpha(palette.warning, 0.09) }]}
               onPress={() => {
                 logger.press('AwardBadgeFromProfile', { athleteId });
                 setShowBadgeModal(true);
@@ -321,7 +322,7 @@ export default function AthleteDetailScreen() {
         tactile
         onPress={() => {
           logger.press('SpecialNeedsCard', { athleteId });
-          router.push(`/development/athlete/${athleteId}/special-needs` as any);
+          router.push(Routes.developmentAthleteSpecialNeeds(athleteId));
         }}
         style={styles.specialNeedsCard}
       >
@@ -330,8 +331,8 @@ export default function AthleteDetailScreen() {
             styles.specialNeedsIcon,
             {
               backgroundColor: childProfile?.hasSpecialNeeds
-                ? `${palette.warning}15`
-                : `${palette.muted}10`
+                ? withAlpha(palette.warning, 0.09)
+                : withAlpha(palette.muted, 0.06)
             }
           ]}>
             <Ionicons
@@ -356,12 +357,12 @@ export default function AthleteDetailScreen() {
               {
                 backgroundColor: (childProfile?.disabilities.length ?? 0) > 0
                   ? palette.warning
-                  : `${palette.muted}20`
+                  : withAlpha(palette.muted, 0.12)
               }
             ]}>
               <ThemedText style={[
                 styles.counterText,
-                { color: (childProfile?.disabilities.length ?? 0) > 0 ? '#fff' : palette.muted }
+                { color: (childProfile?.disabilities.length ?? 0) > 0 ? Colors.light.onPrimary : palette.muted }
               ]}>
                 {childProfile?.disabilities.length ?? 0}
               </ThemedText>
@@ -371,12 +372,12 @@ export default function AthleteDetailScreen() {
               {
                 backgroundColor: (childProfile?.allergies.length ?? 0) > 0
                   ? palette.error
-                  : `${palette.muted}20`
+                  : withAlpha(palette.muted, 0.12)
               }
             ]}>
               <ThemedText style={[
                 styles.counterText,
-                { color: (childProfile?.allergies.length ?? 0) > 0 ? '#fff' : palette.muted }
+                { color: (childProfile?.allergies.length ?? 0) > 0 ? Colors.light.onPrimary : palette.muted }
               ]}>
                 {childProfile?.allergies.length ?? 0}
               </ThemedText>
@@ -389,12 +390,12 @@ export default function AthleteDetailScreen() {
         {childProfile?.hasSpecialNeeds && childProfile.disabilities.length > 0 && (
           <View style={styles.quickPreview}>
             {childProfile.disabilities.slice(0, 2).map((d) => (
-              <View key={d.id} style={[styles.previewTag, { backgroundColor: `${palette.warning}12` }]}>
+              <View key={d.id} style={[styles.previewTag, { backgroundColor: withAlpha(palette.warning, 0.07) }]}>
                 <ThemedText style={[styles.previewTagText, { color: palette.warning }]}>{d.type}</ThemedText>
               </View>
             ))}
             {childProfile.allergies.slice(0, 2).map((a, i) => (
-              <View key={i} style={[styles.previewTag, { backgroundColor: `${palette.error}12` }]}>
+              <View key={i} style={[styles.previewTag, { backgroundColor: withAlpha(palette.error, 0.07) }]}>
                 <ThemedText style={[styles.previewTagText, { color: palette.error }]}>{a}</ThemedText>
               </View>
             ))}
@@ -421,7 +422,7 @@ export default function AthleteDetailScreen() {
 
           {progressionSummary.nextLevel && (
             <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBar, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.progressBar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <View
                   style={[
                     styles.progressFill,
@@ -448,7 +449,7 @@ export default function AthleteDetailScreen() {
                   {progressionSummary.topCategories.map((cat) => (
                     <View
                       key={cat.category}
-                      style={[styles.categoryChip, { backgroundColor: `${palette.tint}12` }]}
+                      style={[styles.categoryChip, { backgroundColor: withAlpha(palette.tint, 0.07) }]}
                     >
                       <ThemedText style={[styles.categoryChipText, { color: palette.tint }]}>
                         {cat.label}
@@ -489,7 +490,7 @@ export default function AthleteDetailScreen() {
               tactile
               onPress={() => {
                 logger.press('SessionCard', { sessionId: session.id, source: 'AthleteDetail' });
-                router.push({ pathname: '/development/session/[sessionId]', params: { sessionId: session.id } });
+                router.push(Routes.developmentSession(session.id));
               }}
               accessibilityRole="button"
               accessibilityLabel={`Session on ${formatDate(session.completedAt)}`}
@@ -517,10 +518,9 @@ export default function AthleteDetailScreen() {
                       setSelectedSession(session);
                     }}
                     accessibilityLabel="Open badges workspace for this session"
-                    accessibilityRole="button"
                     hitSlop={10}
                   >
-                    <View style={[styles.awardChip, styles.workspaceChip, { borderColor: palette.tint, backgroundColor: `${palette.tint}15` }]}>
+                    <View style={[styles.awardChip, styles.workspaceChip, { borderColor: palette.tint, backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <Ionicons name="ribbon-outline" size={14} color={palette.tint} />
                     </View>
                   </Clickable>
@@ -539,7 +539,7 @@ export default function AthleteDetailScreen() {
                       style={[styles.awardChip, { borderColor: palette.border }]}
                     >
                       <ThemedText style={{ fontWeight: '700' }}>{award.badgeLabel}</ThemedText>
-                      <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+                      <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                         {formatDate(award.awardedAt)}
                       </ThemedText>
                     </View>
@@ -553,7 +553,7 @@ export default function AthleteDetailScreen() {
                   {session.skillsWorkedOn.map((skill, index) => (
                     <View
                       key={index}
-                      style={[styles.skillChip, { backgroundColor: palette.tint + '15' }]}
+                      style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
                     >
                       <ThemedText style={[styles.skillText, { color: palette.tint }]}>
                         {skill}
@@ -630,7 +630,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.lg,
-    fontWeight: '600',
   },
 
   // Hero Card
@@ -659,7 +658,6 @@ const styles = StyleSheet.create({
   },
   athleteName: {
     ...Typography.xl,
-    fontWeight: '600',
   },
   sessionCountLabel: {
     ...Typography.small,
@@ -704,8 +702,7 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     ...Typography.small,
-    fontWeight: '600',
-    color: '#fff',
+    color: Colors.light.onPrimary,
   },
   heroButtons: {
     flexDirection: 'row',
@@ -724,7 +721,6 @@ const styles = StyleSheet.create({
   },
   awardBadgeText: {
     ...Typography.caption,
-    fontWeight: '600',
   },
 
   // Stats in hero card
@@ -750,7 +746,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...Typography.lg,
-    fontWeight: '600',
   },
   sectionSubtitle: {
     ...Typography.small,
@@ -784,7 +779,6 @@ const styles = StyleSheet.create({
   },
   sessionDate: {
     ...Typography.body,
-    fontWeight: '600',
   },
   needsNotesBadge: {
     paddingHorizontal: Spacing.xs,
@@ -793,7 +787,7 @@ const styles = StyleSheet.create({
   },
   needsNotesText: {
     ...Typography.micro,
-    color: '#fff',
+    color: Colors.light.onPrimary,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -820,7 +814,6 @@ const styles = StyleSheet.create({
   },
   rating: {
     ...Typography.body,
-    fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
   skillsRow: {
@@ -847,7 +840,6 @@ const styles = StyleSheet.create({
   },
   videoText: {
     ...Typography.caption,
-    fontWeight: '600',
   },
   chevron: {
     position: 'absolute',
@@ -878,7 +870,6 @@ const styles = StyleSheet.create({
   },
   progressionLevel: {
     ...Typography.body,
-    fontWeight: '600',
   },
   progressionPoints: {
     ...Typography.caption,
@@ -920,7 +911,6 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     ...Typography.caption,
-    fontWeight: '600',
   },
   categoryCountBadge: {
     minWidth: Components.icon.md,
@@ -932,7 +922,7 @@ const styles = StyleSheet.create({
   },
   categoryCountText: {
     ...Typography.micro,
-    color: '#fff',
+    color: Colors.light.onPrimary,
   },
 
   // Special Needs Summary Card
@@ -958,7 +948,6 @@ const styles = StyleSheet.create({
   },
   specialNeedsTitle: {
     ...Typography.body,
-    fontWeight: '600',
   },
   specialNeedsSubtitle: {
     ...Typography.caption,
@@ -977,7 +966,6 @@ const styles = StyleSheet.create({
   },
   counterText: {
     ...Typography.caption,
-    fontWeight: '700',
   },
   quickPreview: {
     flexDirection: 'row',

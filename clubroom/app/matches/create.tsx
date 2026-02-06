@@ -12,13 +12,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { createLogger } from '@/utils/logger';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { DateTimeField } from '@/components/ui/primitives';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { MatchType, ClubSquad } from '@/constants/types';
@@ -182,10 +184,7 @@ export default function CreateMatchScreen() {
           [
             {
               text: 'View Match',
-              onPress: () => router.replace({
-                pathname: '/matches/[id]',
-                params: { id: result.match.id },
-              }),
+              onPress: () => router.replace(Routes.match(result.match.id)),
             },
             {
               text: 'Done',
@@ -221,10 +220,7 @@ export default function CreateMatchScreen() {
           [
             {
               text: 'View Match',
-              onPress: () => router.replace({
-                pathname: '/matches/[id]',
-                params: { id: match.id },
-              }),
+              onPress: () => router.replace(Routes.match(match.id)),
             },
             {
               text: 'Done',
@@ -258,12 +254,12 @@ export default function CreateMatchScreen() {
                 style={[
                   styles.typeButton,
                   { borderColor: isSelected ? color : palette.border },
-                  isSelected && { backgroundColor: `${color}15` },
+                  isSelected && { backgroundColor: withAlpha(color, 0.09) },
                 ]}
                 onPress={() => setMatchType(t.type)}
               >
                 <Ionicons
-                  name={t.icon as any}
+                  name={t.icon as keyof typeof Ionicons.glyphMap}
                   size={20}
                   color={isSelected ? color : palette.muted}
                 />
@@ -301,7 +297,7 @@ export default function CreateMatchScreen() {
             style={[
               styles.toggleButton,
               { borderColor: isHome ? palette.tint : palette.border },
-              isHome && { backgroundColor: `${palette.tint}15` },
+              isHome && { backgroundColor: withAlpha(palette.tint, 0.09) },
             ]}
             onPress={() => setIsHome(true)}
           >
@@ -312,7 +308,7 @@ export default function CreateMatchScreen() {
             style={[
               styles.toggleButton,
               { borderColor: !isHome ? palette.tint : palette.border },
-              !isHome && { backgroundColor: `${palette.tint}15` },
+              !isHome && { backgroundColor: withAlpha(palette.tint, 0.09) },
             ]}
             onPress={() => setIsHome(false)}
           >
@@ -353,43 +349,29 @@ export default function CreateMatchScreen() {
       <ThemedText type="defaultSemiBold" style={styles.stepTitle}>Schedule</ThemedText>
 
       {/* Date */}
-      <View style={styles.fieldGroup}>
-        <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Date *</ThemedText>
-        <TextInput
-          style={[styles.input, { backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }]}
-          placeholder="YYYY-MM-DD (e.g., 2026-01-25)"
-          placeholderTextColor={palette.muted}
-          value={date}
-          onChangeText={setDate}
-        />
-      </View>
+      <DateTimeField
+        mode="date"
+        label="Date *"
+        value={date}
+        onChange={setDate}
+      />
 
       {/* Kickoff Time */}
-      <View style={styles.fieldGroup}>
-        <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Kickoff Time *</ThemedText>
-        <TextInput
-          style={[styles.input, { backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }]}
-          placeholder="HH:MM (e.g., 14:00)"
-          placeholderTextColor={palette.muted}
-          value={kickoffTime}
-          onChangeText={setKickoffTime}
-        />
-      </View>
+      <DateTimeField
+        mode="time"
+        label="Kickoff Time *"
+        value={kickoffTime}
+        onChange={setKickoffTime}
+      />
 
       {/* Meet Time */}
-      <View style={styles.fieldGroup}>
-        <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Meeting Time (optional)</ThemedText>
-        <TextInput
-          style={[styles.input, { backgroundColor: palette.surface, color: palette.text, borderColor: palette.border }]}
-          placeholder="HH:MM (e.g., 13:30)"
-          placeholderTextColor={palette.muted}
-          value={meetTime}
-          onChangeText={setMeetTime}
-        />
-        <ThemedText style={[styles.helpText, { color: palette.muted }]}>
-          When players should arrive (recommended 30min before kickoff)
-        </ThemedText>
-      </View>
+      <DateTimeField
+        mode="time"
+        label="Meeting Time (optional)"
+        value={meetTime}
+        onChange={setMeetTime}
+        placeholder="Select meeting time"
+      />
 
       {/* Max Players */}
       <View style={styles.fieldGroup}>
@@ -443,18 +425,18 @@ export default function CreateMatchScreen() {
               style={[
                 styles.squadCard,
                 { borderColor: isSelected ? palette.tint : palette.border },
-                isSelected && { backgroundColor: `${palette.tint}10` },
+                isSelected && { backgroundColor: withAlpha(palette.tint, 0.06) },
               ]}
               onPress={() => setSelectedSquadId(squad.id)}
             >
-              <View style={[styles.squadIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.squadIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="people" size={24} color={palette.tint} />
               </View>
               <View style={styles.squadInfo}>
                 <ThemedText type="defaultSemiBold">{squad.name}</ThemedText>
                 <View style={styles.squadMetaRow}>
-                  <View style={[styles.ageChip, { backgroundColor: `${palette.tint}10` }]}>
-                    <ThemedText style={{ fontSize: 11, color: palette.tint }}>
+                  <View style={[styles.ageChip, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                    <ThemedText style={{ ...Typography.caption, color: palette.tint }}>
                       {squadService.getAgeGroupLabel(squad)}
                     </ThemedText>
                   </View>
@@ -508,7 +490,7 @@ export default function CreateMatchScreen() {
 
         <SurfaceCard style={styles.reviewCard}>
           <View style={styles.reviewHeader}>
-            <View style={[styles.typeBadge, { backgroundColor: `${typeColor}15` }]}>
+            <View style={[styles.typeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}>
               <ThemedText style={[styles.typeBadgeText, { color: typeColor }]}>
                 {matchService.formatMatchType(matchType)}
               </ThemedText>
@@ -559,7 +541,7 @@ export default function CreateMatchScreen() {
           )}
 
           {autoInvite && (
-            <View style={[styles.inviteInfo, { backgroundColor: `${palette.success}10` }]}>
+            <View style={[styles.inviteInfo, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
               <Ionicons name="checkmark-circle" size={18} color={palette.success} />
               <ThemedText style={{ color: palette.success }}>
                 Invites will be sent to all squad members
@@ -630,7 +612,7 @@ export default function CreateMatchScreen() {
                   <ThemedText style={styles.primaryButtonText}>Creating...</ThemedText>
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.light.onPrimary} />
                     <ThemedText style={styles.primaryButtonText}>Create Match</ThemedText>
                   </>
                 )}
@@ -641,7 +623,7 @@ export default function CreateMatchScreen() {
                 onPress={handleNext}
               >
                 <ThemedText style={styles.primaryButtonText}>Continue</ThemedText>
-                <Ionicons name="arrow-forward" size={18} color="#fff" />
+                <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
               </TouchableOpacity>
             )}
           </View>
@@ -661,7 +643,7 @@ const styles = StyleSheet.create({
   progressDot: {
     width: 32,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
   scrollView: {
     flex: 1,
@@ -674,22 +656,21 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   stepTitle: {
-    fontSize: 18,
+    ...Typography.heading,
     marginBottom: Spacing.sm,
   },
   fieldGroup: {
     gap: Spacing.xs,
   },
   fieldLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   input: {
     borderRadius: Radii.md,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 15,
+    ...Typography.body,
   },
   smallInput: {
     width: 100,
@@ -699,7 +680,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   helpText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   typeGrid: {
     flexDirection: 'row',
@@ -716,8 +697,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   typeLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -747,16 +727,16 @@ const styles = StyleSheet.create({
   squadIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   squadInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   squadMeta: {
-    fontSize: 13,
+    ...Typography.small,
   },
   squadMetaRow: {
     flexDirection: 'row',
@@ -764,13 +744,13 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   ageChip: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   stepSubtitle: {
     textAlign: 'center',
-    fontSize: 14,
+    ...Typography.bodySmall,
     marginBottom: Spacing.sm,
   },
   emptySquads: {
@@ -782,7 +762,7 @@ const styles = StyleSheet.create({
   emptyCheck: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
   },
   autoInviteRow: {
@@ -796,7 +776,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   autoInviteDesc: {
-    fontSize: 13,
+    ...Typography.small,
   },
   reviewCard: {
     gap: Spacing.md,
@@ -807,27 +787,26 @@ const styles = StyleSheet.create({
   },
   typeBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   typeBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
     textTransform: 'uppercase',
   },
   homeAwayBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   homeAwayText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   reviewTitle: {
-    fontSize: 20,
+    ...Typography.title,
   },
   reviewDetails: {
     gap: Spacing.sm,
@@ -840,13 +819,13 @@ const styles = StyleSheet.create({
   notesBox: {
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   notesLabel: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   notesText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   inviteInfo: {
     flexDirection: 'row',
@@ -868,8 +847,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

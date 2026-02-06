@@ -15,7 +15,8 @@ import * as Haptics from 'expo-haptics';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { InjuryForm } from '@/components/health';
-import { Colors, Spacing } from '@/constants/theme';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import type { LogInjuryInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -79,11 +80,13 @@ export default function LogInjuryScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={100}
       >
-        <InjuryForm
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          loading={loading}
-        />
+        <ErrorBoundary>
+          <InjuryForm
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            loading={loading}
+          />
+        </ErrorBoundary>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -106,7 +109,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   content: {
     flex: 1,

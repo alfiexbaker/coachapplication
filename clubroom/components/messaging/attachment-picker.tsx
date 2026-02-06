@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 import type { Attachment } from '@/constants/types';
@@ -228,8 +228,8 @@ export function AttachmentPicker({
                 onPress={() => handleOptionPress(option.key)}
                 style={[styles.option, { backgroundColor: palette.surface }]}
               >
-                <View style={[styles.iconCircle, { backgroundColor: `${option.color}15` }]}>
-                  <Ionicons name={option.icon as any} size={28} color={option.color} />
+                <View style={[styles.iconCircle, { backgroundColor: withAlpha(option.color, 0.09) }]}>
+                  <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={28} color={option.color} />
                 </View>
                 <ThemedText type="defaultSemiBold" style={styles.optionLabel}>
                   {option.label}
@@ -296,7 +296,7 @@ export function AttachmentPreview({
           { backgroundColor: palette.surface, borderColor: palette.border },
         ]}
       >
-        <Ionicons name={getIcon() as any} size={14} color={palette.tint} />
+        <Ionicons name={getIcon() as keyof typeof Ionicons.glyphMap} size={14} color={palette.tint} />
         <ThemedText style={styles.compactName} numberOfLines={1}>
           {attachment.name}
         </ThemedText>
@@ -319,8 +319,8 @@ export function AttachmentPreview({
       {attachment.type === 'IMAGE' && attachment.thumbnailUrl ? (
         <Image source={{ uri: attachment.thumbnailUrl }} style={styles.previewImage} />
       ) : (
-        <View style={[styles.previewPlaceholder, { backgroundColor: `${palette.tint}10` }]}>
-          <Ionicons name={getIcon() as any} size={32} color={palette.tint} />
+        <View style={[styles.previewPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+          <Ionicons name={getIcon() as keyof typeof Ionicons.glyphMap} size={32} color={palette.tint} />
         </View>
       )}
 
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
     alignSelf: 'center',
     marginBottom: Spacing.md,
   },
@@ -383,16 +383,12 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
-  optionLabel: {
-    fontSize: 15,
-  },
-  optionDescription: {
-    fontSize: 12,
-  },
+  optionLabel: { ...Typography.body },
+  optionDescription: { ...Typography.caption },
   cancelButton: {
     marginTop: Spacing.lg,
     paddingVertical: Spacing.md,
@@ -410,10 +406,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     maxWidth: 150,
   },
-  compactName: {
-    flex: 1,
-    fontSize: 12,
-  },
+  compactName: { ...Typography.caption, flex: 1 },
   previewCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -436,11 +429,9 @@ const styles = StyleSheet.create({
   },
   previewInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  previewMeta: {
-    fontSize: 12,
-  },
+  previewMeta: { ...Typography.caption },
   removeButton: {
     padding: Spacing.xs,
   },

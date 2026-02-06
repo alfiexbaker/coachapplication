@@ -18,7 +18,7 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { walletService, type WalletTransaction, type Wallet } from '@/services/wallet-service';
@@ -158,10 +158,10 @@ export default function WalletScreen() {
             styles.transactionIcon,
             {
               backgroundColor: isPending
-                ? `${palette.warning}15`
+                ? withAlpha(palette.warning, 0.09)
                 : isCredit
-                ? `${palette.success}15`
-                : `${palette.error}15`,
+                ? withAlpha(palette.success, 0.09)
+                : withAlpha(palette.error, 0.09),
             },
           ]}
         >
@@ -262,7 +262,7 @@ export default function WalletScreen() {
                   style={[styles.topUpButtonLarge, { backgroundColor: palette.tint }]}
                   onPress={openTopUpModal}
                 >
-                  <Ionicons name="add" size={20} color="#FFFFFF" />
+                  <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
                   <ThemedText style={styles.topUpButtonText}>Top Up</ThemedText>
                 </TouchableOpacity>
               </SurfaceCard>
@@ -361,7 +361,7 @@ export default function WalletScreen() {
                     styles.presetButton,
                     {
                       backgroundColor:
-                        selectedAmount === amount ? `${palette.tint}15` : palette.surface,
+                        selectedAmount === amount ? withAlpha(palette.tint, 0.09) : palette.surface,
                       borderColor: selectedAmount === amount ? palette.tint : palette.border,
                     },
                   ]}
@@ -423,10 +423,10 @@ export default function WalletScreen() {
               disabled={(!selectedAmount && !customAmount) || processing}
             >
               {processing ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={Colors.light.onPrimary} />
               ) : (
                 <>
-                  <Ionicons name="card-outline" size={20} color="#FFFFFF" />
+                  <Ionicons name="card-outline" size={20} color={Colors.light.onPrimary} />
                   <ThemedText style={styles.addFundsButtonText}>
                     Add {'\u00A3'}
                     {selectedAmount || customAmount || '0'}
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   listContent: {
     paddingBottom: Spacing.xl,
@@ -474,12 +474,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   balanceLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   balanceAmount: {
-    fontSize: 42,
-    fontWeight: '700',
+    ...Typography.display,
     letterSpacing: -1,
   },
   pendingRow: {
@@ -488,8 +486,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   pendingText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   topUpButtonLarge: {
     flexDirection: 'row',
@@ -502,9 +499,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   topUpButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 
   // Quick Actions
@@ -523,8 +519,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   quickActionText: {
-    fontWeight: '600',
-    fontSize: 14,
+    ...Typography.bodySmallSemiBold,
   },
 
   // Pending Section
@@ -537,7 +532,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   sectionTitle: {
-    fontSize: 15,
+    ...Typography.body,
   },
   pendingItem: {
     flexDirection: 'row',
@@ -555,7 +550,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   transactionsTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   transactionItem: {
     flexDirection: 'row',
@@ -572,16 +567,16 @@ const styles = StyleSheet.create({
   },
   transactionDetails: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   transactionDescription: {
-    fontSize: 15,
+    ...Typography.body,
   },
   transactionDate: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   transactionAmount: {
-    fontSize: 15,
+    ...Typography.body,
   },
 
   // Empty State
@@ -592,11 +587,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyStateText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   emptyStateSubtext: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
 
   // Modal
@@ -611,12 +605,12 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
   },
   modalTitle: {
-    fontSize: 22,
+    ...Typography.title,
   },
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -625,8 +619,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   selectAmountLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
     marginBottom: Spacing.xs,
   },
   presetGrid: {
@@ -644,7 +637,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   presetAmountText: {
-    fontSize: 20,
+    ...Typography.title,
   },
   customAmountContainer: {
     flexDirection: 'row',
@@ -655,14 +648,12 @@ const styles = StyleSheet.create({
     height: 56,
   },
   currencySymbol: {
-    fontSize: 24,
-    fontWeight: '600',
+    ...Typography.display,
     marginRight: Spacing.xs,
   },
   customAmountInput: {
     flex: 1,
-    fontSize: 24,
-    fontWeight: '600',
+    ...Typography.display,
   },
   addFundsButton: {
     flexDirection: 'row',
@@ -674,13 +665,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   addFundsButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
   processingText: {
     textAlign: 'center',
-    fontSize: 14,
+    ...Typography.bodySmall,
     marginTop: Spacing.sm,
   },
 });

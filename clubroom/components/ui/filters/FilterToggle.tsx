@@ -8,7 +8,7 @@
 import { View, Switch, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface FilterToggleProps {
@@ -51,7 +51,7 @@ export function FilterToggle({
         value={value}
         onValueChange={onChange}
         disabled={disabled}
-        trackColor={{ false: palette.border, true: `${palette.tint}80` }}
+        trackColor={{ false: palette.border, true: withAlpha(palette.tint, 0.5) }}
         thumbColor={value ? palette.tint : palette.surface}
         ios_backgroundColor={palette.border}
       />
@@ -76,6 +76,6 @@ const styles = StyleSheet.create({
   },
   description: {
     ...Typography.small,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
 });

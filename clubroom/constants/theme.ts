@@ -32,6 +32,7 @@ export const Colors = {
     success,
     warning,
     error,
+    rating: '#D4A017',
     secondary: success,
     accent,
     tabIconDefault: '#9CA3AF',
@@ -66,6 +67,7 @@ export const Colors = {
     success,
     warning,
     error,
+    rating: '#D4A017',
     secondary: success,
     accent,
     tabIconDefault: '#9CA3AF',
@@ -91,17 +93,20 @@ export type ThemeName = keyof typeof Colors;
 // Uber-discipline spacing system: 8/16/24/32 rhythm
 
 export const Spacing = {
-  xs: 8,   // Micro spacing between text and small UI elements
-  sm: 16,  // Inside cards, buttons, list items
-  md: 24,  // Between components
-  lg: 32,  // Major sections, top of screen, hero blocks
-  xl: 40,  // Extra large spacing
+  micro: 2, // Hairline gaps between tightly coupled elements
+  xxs: 4,   // Tight internal gaps (icon-to-text, badge internals)
+  xs: 8,    // Micro spacing between text and small UI elements
+  sm: 16,   // Inside cards, buttons, list items
+  md: 24,   // Between components
+  lg: 32,   // Major sections, top of screen, hero blocks
+  xl: 40,   // Extra large spacing
   '2xl': 48, // Massive spacing
   '3xl': 64, // Hero sections
 } as const;
 
 // Border radius system - Uber minimalism
 export const Radii = {
+  xs: 4,      // Tiny elements, inline badges
   button: 16, // All buttons: 16px
   card: 16,   // All cards: 16px
   sm: 8,
@@ -109,6 +114,7 @@ export const Radii = {
   lg: 16,
   xl: 24,
   '2xl': 32,
+  '3xl': 40,
   pill: 999,
   rounded: 999, // Alias for pill - circular elements
   full: 999,    // Alias for fully rounded elements
@@ -135,7 +141,10 @@ export const Typography = {
   subheading: { fontSize: 16, lineHeight: 24, letterSpacing: -0.1, fontWeight: '500' as const }, // H4 - Sub-sections
   body: { fontSize: 15, lineHeight: 22, letterSpacing: -0.05, fontWeight: '400' as const },      // Body text - 150% line height
   bodySemiBold: { fontSize: 15, lineHeight: 22, letterSpacing: -0.05, fontWeight: '600' as const }, // Medium, not semi-bold
+  bodySmall: { fontSize: 14, lineHeight: 20, letterSpacing: 0, fontWeight: '400' as const },    // Secondary body text
+  bodySmallSemiBold: { fontSize: 14, lineHeight: 20, letterSpacing: 0, fontWeight: '600' as const }, // Secondary body text bold
   small: { fontSize: 13, lineHeight: 20, letterSpacing: 0, fontWeight: '400' as const },        // Small text
+  smallSemiBold: { fontSize: 13, lineHeight: 20, letterSpacing: 0, fontWeight: '600' as const }, // Small text bold
   caption: { fontSize: 12, lineHeight: 18, letterSpacing: 0, fontWeight: '500' as const },      // Captions, metadata
   micro: { fontSize: 10, lineHeight: 16, letterSpacing: 0.6, fontWeight: '600' as const, textTransform: 'uppercase' as const },
 // Pills, tags - lighter
@@ -220,6 +229,15 @@ export const Shadows = {
     },
   },
 } as const;
+
+// Color utility — use instead of hardcoded rgba() or hex+opacity hacks
+export function withAlpha(hexColor: string, opacity: number): string {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
 
 // Component-specific design tokens - Uber-minimal sizing
 export const Components = {

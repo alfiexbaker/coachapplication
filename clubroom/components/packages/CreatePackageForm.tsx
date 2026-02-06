@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { packageService, CreatePackageParams } from '@/services/package-service';
@@ -239,7 +239,7 @@ export function CreatePackageForm({
                 <ThemedText
                   style={[
                     styles.optionText,
-                    { color: sessionCount === count ? '#FFFFFF' : palette.text },
+                    { color: sessionCount === count ? palette.onPrimary : palette.text },
                   ]}
                 >
                   {count}
@@ -314,7 +314,7 @@ export function CreatePackageForm({
 
         {/* Price Preview */}
         {priceNum > 0 && (
-          <SurfaceCard style={[styles.previewCard, { backgroundColor: `${palette.success}08` }]}>
+          <SurfaceCard style={[styles.previewCard, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
             <View style={styles.previewRow}>
               <Ionicons name="calculator-outline" size={16} color={palette.success} />
               <ThemedText style={[styles.previewText, { color: palette.success }]}>
@@ -345,7 +345,7 @@ export function CreatePackageForm({
                 <ThemedText
                   style={[
                     styles.optionText,
-                    { color: validDays === option.days ? '#FFFFFF' : palette.text },
+                    { color: validDays === option.days ? palette.onPrimary : palette.text },
                   ]}
                 >
                   {option.label}
@@ -369,7 +369,7 @@ export function CreatePackageForm({
                   style={[
                     styles.focusChip,
                     {
-                      backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                      backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                       borderColor: isSelected ? palette.tint : palette.border,
                     },
                   ]}
@@ -412,10 +412,10 @@ export function CreatePackageForm({
           disabled={submitting}
         >
           {submitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
           ) : (
             <>
-              <Ionicons name={isEditing ? 'save-outline' : 'add-circle-outline'} size={20} color="#FFFFFF" />
+              <Ionicons name={isEditing ? 'save-outline' : 'add-circle-outline'} size={20} color={Colors.light.onPrimary} />
               <ThemedText style={styles.submitButtonText}>
                 {isEditing ? 'Save Changes' : 'Create Package'}
               </ThemedText>
@@ -438,17 +438,11 @@ const styles = StyleSheet.create({
   field: {
     marginBottom: Spacing.md,
   },
-  label: {
-    fontSize: 14,
-    marginBottom: Spacing.xs,
-  },
-  input: {
-    borderWidth: 1.5,
+  label: { ...Typography.bodySmall, marginBottom: Spacing.xs },
+  input: { ...Typography.subheading, borderWidth: 1.5,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    fontSize: 16,
-  },
+    paddingVertical: Spacing.sm },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
@@ -467,21 +461,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
   },
-  inputNoBorder: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    fontSize: 16,
-  },
-  currencyPrefix: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginRight: 4,
-  },
-  percentSuffix: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
+  inputNoBorder: { ...Typography.subheading, flex: 1,
+    paddingVertical: Spacing.sm },
+  currencyPrefix: { ...Typography.heading, marginRight: Spacing.xxs },
+  percentSuffix: { ...Typography.subheading, marginLeft: Spacing.xxs },
   row: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -499,10 +482,7 @@ const styles = StyleSheet.create({
     minWidth: 60,
     alignItems: 'center',
   },
-  optionText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  optionText: { ...Typography.bodySmallSemiBold },
   previewCard: {
     padding: Spacing.sm,
     marginBottom: Spacing.md,
@@ -512,10 +492,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  previewText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  previewText: { ...Typography.bodySmallSemiBold },
   focusGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -524,20 +501,14 @@ const styles = StyleSheet.create({
   focusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
-  focusChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  errorText: {
-    fontSize: 12,
-    marginTop: 4,
-  },
+  focusChipText: { ...Typography.smallSemiBold },
+  errorText: { ...Typography.caption, marginTop: Spacing.xxs },
   footer: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -554,10 +525,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     borderWidth: 1.5,
   },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  cancelButtonText: { ...Typography.subheading },
   submitButton: {
     flex: 2,
     flexDirection: 'row',
@@ -567,11 +535,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
   },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  submitButtonText: { ...Typography.subheading, color: Colors.light.onPrimary },
   buttonDisabled: {
     opacity: 0.6,
   },

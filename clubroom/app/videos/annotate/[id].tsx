@@ -27,7 +27,8 @@ import { AnnotationPanel } from '@/components/video/AnnotationPanel';
 import { AnnotationForm } from '@/components/video/AnnotationForm';
 import { AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
@@ -276,15 +277,17 @@ export default function CoachAnnotateScreen() {
       >
         {/* Video Player */}
         <Animated.View entering={FadeInDown.springify()}>
-          <VideoPlayer
-            videoUrl={video.videoUrl}
-            thumbnailUrl={video.thumbnailUrl}
-            duration={video.duration}
-            annotations={video.annotations}
-            onAnnotationPress={handleAnnotationSelect}
-            onTimeUpdate={handleTimeUpdate}
-            initialPosition={currentTime}
-          />
+          <ErrorBoundary>
+            <VideoPlayer
+              videoUrl={video.videoUrl}
+              thumbnailUrl={video.thumbnailUrl}
+              duration={video.duration}
+              annotations={video.annotations}
+              onAnnotationPress={handleAnnotationSelect}
+              onTimeUpdate={handleTimeUpdate}
+              initialPosition={currentTime}
+            />
+          </ErrorBoundary>
         </Animated.View>
 
         {/* Timeline Bar */}
@@ -307,7 +310,7 @@ export default function CoachAnnotateScreen() {
                 onPress={handleAddAnnotation}
                 style={[styles.addButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="add" size={20} color="#fff" />
+                <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.addButtonText}>Add at {videoService.formatTimestamp(currentTime)}</ThemedText>
               </Clickable>
             </View>
@@ -320,7 +323,7 @@ export default function CoachAnnotateScreen() {
                     <Clickable
                       key={type}
                       onPress={() => handleQuickAnnotation(type)}
-                      style={[styles.quickTypeButton, { backgroundColor: `${config.color}15` }]}
+                      style={[styles.quickTypeButton, { backgroundColor: withAlpha(config.color, 0.15) }]}
                     >
                       <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={16} color={config.color} />
                     </Clickable>
@@ -387,12 +390,12 @@ export default function CoachAnnotateScreen() {
               <Ionicons
                 name="git-branch-outline"
                 size={16}
-                color={viewMode === 'timeline' ? '#fff' : palette.text}
+                color={viewMode === 'timeline' ? Colors.light.onPrimary : palette.text}
               />
               <ThemedText
                 style={[
                   styles.viewModeText,
-                  { color: viewMode === 'timeline' ? '#fff' : palette.text },
+                  { color: viewMode === 'timeline' ? Colors.light.onPrimary : palette.text },
                 ]}
               >
                 Timeline
@@ -411,12 +414,12 @@ export default function CoachAnnotateScreen() {
               <Ionicons
                 name="list-outline"
                 size={16}
-                color={viewMode === 'list' ? '#fff' : palette.text}
+                color={viewMode === 'list' ? Colors.light.onPrimary : palette.text}
               />
               <ThemedText
                 style={[
                   styles.viewModeText,
-                  { color: viewMode === 'list' ? '#fff' : palette.text },
+                  { color: viewMode === 'list' ? Colors.light.onPrimary : palette.text },
                 ]}
               >
                 List
@@ -525,9 +528,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
+    color: Colors.light.onPrimary,
+    ...Typography.smallSemiBold,
   },
   quickTypes: {
     flexDirection: 'row',
@@ -536,7 +538,7 @@ const styles = StyleSheet.create({
   quickTypeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -554,7 +556,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   statText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   viewModeContainer: {
     flexDirection: 'row',
@@ -571,8 +573,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   viewModeText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   annotationsCard: {
     padding: 0,

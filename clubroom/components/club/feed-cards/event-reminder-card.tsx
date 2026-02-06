@@ -78,7 +78,6 @@ export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardPr
         <Clickable
           onPress={onRsvp}
           accessibilityLabel="RSVP Now"
-          accessibilityRole="button"
           style={{
             backgroundColor: data.hasRsvped ? palette.surfaceSecondary : palette.tint,
             height: Components.button.height,
@@ -93,12 +92,12 @@ export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardPr
           <Ionicons
             name={data.hasRsvped ? 'checkmark-circle' : 'hand-right-outline'}
             size={Components.icon.md}
-            color={data.hasRsvped ? palette.success : '#FFFFFF'}
+            color={data.hasRsvped ? palette.success : palette.onPrimary}
           />
           <ThemedText
             style={{
               ...Typography.bodySemiBold,
-              color: data.hasRsvped ? palette.success : '#FFFFFF',
+              color: data.hasRsvped ? palette.success : palette.onPrimary,
             }}
           >
             {data.hasRsvped ? 'Going' : 'RSVP Now'}

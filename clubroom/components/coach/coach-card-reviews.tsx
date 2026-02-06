@@ -53,7 +53,7 @@ export function RatingDisplay({
 
   return (
     <View style={styles.ratingContainer}>
-      <Ionicons name="star" size={Components.icon.sm} color={palette.warning} />
+      <Ionicons name="star" size={Components.icon.sm} color={palette.rating} />
       <ThemedText style={[styles.ratingValue, { color: palette.text }]}>
         {rating.toFixed(1)}
       </ThemedText>
@@ -185,12 +185,9 @@ const styles = StyleSheet.create({
   compactRatingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  compactRatingText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  compactRatingText: { ...Typography.smallSemiBold },
   quoteContainer: {
     flexDirection: 'row',
     gap: Spacing.xs,

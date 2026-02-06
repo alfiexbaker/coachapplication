@@ -1,10 +1,11 @@
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { matchService } from '@/services/match-service';
 import type { Match } from '@/constants/types';
@@ -24,7 +25,7 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
     if (onCreateMatch) {
       onCreateMatch();
     } else {
-      router.push('/matches/create');
+      router.push(Routes.MATCHES_CREATE);
     }
   };
 
@@ -32,7 +33,7 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
     if (onViewAll) {
       onViewAll();
     } else {
-      router.push('/matches');
+      router.push(Routes.MATCHES);
     }
   };
 
@@ -70,18 +71,15 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
             <TouchableOpacity
               key={match.id}
               style={[styles.matchItem, { borderColor: palette.border }]}
-              onPress={() => router.push({
-                pathname: '/matches/[id]',
-                params: { id: match.id },
-              })}
+              onPress={() => router.push(Routes.match(match.id))}
             >
               <View style={styles.matchItemLeft}>
-                <View style={[styles.matchTypeBadge, { backgroundColor: `${typeColor}15` }]}>
+                <View style={[styles.matchTypeBadge, { backgroundColor: withAlpha(typeColor, 0.09) }]}>
                   <ThemedText style={[styles.matchTypeText, { color: typeColor }]}>
                     {matchService.formatMatchType(match.matchType)}
                   </ThemedText>
                 </View>
-                <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }} numberOfLines={1}>
+                <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }} numberOfLines={1}>
                   vs {match.opponent}
                 </ThemedText>
                 <ThemedText style={[styles.matchMeta, { color: palette.muted }]}>
@@ -128,12 +126,9 @@ const styles = StyleSheet.create({
   viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  viewAllText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  viewAllText: { ...Typography.smallSemiBold },
   matchesList: {
     gap: Spacing.sm,
   },
@@ -146,23 +141,17 @@ const styles = StyleSheet.create({
   },
   matchItemLeft: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   matchTypeBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
-    marginBottom: 2,
+    marginBottom: Spacing.micro,
   },
-  matchTypeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  matchMeta: {
-    fontSize: 12,
-  },
+  matchTypeText: { ...Typography.micro, textTransform: 'uppercase' },
+  matchMeta: { ...Typography.caption },
   createMatchButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -172,8 +161,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
-  createMatchText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  createMatchText: { ...Typography.bodySmallSemiBold },
 });

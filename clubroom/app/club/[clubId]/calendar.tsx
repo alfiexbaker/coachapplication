@@ -13,7 +13,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   clubService,
@@ -101,7 +101,7 @@ function DayCell({
         backgroundColor: isSelected
           ? palette.tint
           : isToday
-            ? `${palette.tint}15`
+            ? withAlpha(palette.tint, 0.09)
             : 'transparent',
         borderRadius: Radii.sm,
       }}
@@ -109,7 +109,7 @@ function DayCell({
       <ThemedText
         style={{
           ...Typography.body,
-          color: isSelected ? '#FFFFFF' : isToday ? palette.tint : palette.foreground,
+          color: isSelected ? Colors.light.onPrimary : isToday ? palette.tint : palette.foreground,
           fontWeight: isToday || isSelected ? '600' : '400',
         }}
       >
@@ -119,7 +119,7 @@ function DayCell({
         {uniqueTypes.slice(0, 3).map((type) => (
           <EventDot
             key={type}
-            color={isSelected ? '#FFFFFF' : getEventColor(type, palette)}
+            color={isSelected ? Colors.light.onPrimary : getEventColor(type, palette)}
           />
         ))}
       </View>
@@ -147,7 +147,7 @@ function EventListItem({
         <View
           style={[
             styles.eventTypePill,
-            { backgroundColor: `${typeColor}15` },
+            { backgroundColor: withAlpha(typeColor, 0.09) },
           ]}
         >
           <ThemedText style={{ ...Typography.micro, color: typeColor }}>
@@ -221,7 +221,7 @@ function SquadFilter({
         <ThemedText
           style={{
             ...Typography.caption,
-            color: selected === null ? '#FFFFFF' : palette.muted,
+            color: selected === null ? Colors.light.onPrimary : palette.muted,
           }}
         >
           All
@@ -244,7 +244,7 @@ function SquadFilter({
           <ThemedText
             style={{
               ...Typography.caption,
-              color: selected === squad.id ? '#FFFFFF' : palette.muted,
+              color: selected === squad.id ? Colors.light.onPrimary : palette.muted,
             }}
           >
             {squad.name}
@@ -547,14 +547,14 @@ const styles = StyleSheet.create({
   },
   dotsRow: {
     flexDirection: 'row',
-    gap: 3,
+    gap: Spacing.micro,
     height: 6,
     alignItems: 'center',
   },
   eventDot: {
     width: 5,
     height: 5,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
   selectedDaySection: {
     gap: Spacing.sm,
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   },
   eventTypePill: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
   eventMeta: {

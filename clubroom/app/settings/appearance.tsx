@@ -8,7 +8,7 @@ import { SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/se
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemePreferences } from '@/hooks/theme-provider';
 import { createLogger } from '@/utils/logger';
@@ -38,14 +38,14 @@ function ThemeCard({ label, value, selected, onSelect, icon, description }: Them
           selected ? { borderColor: palette.accent, borderWidth: 2 } : undefined,
         ]}
       >
-        <View style={[styles.themeIconContainer, { backgroundColor: `${palette.accent}15` }]}>
-          <Ionicons name={icon as any} size={28} color={palette.accent} />
+        <View style={[styles.themeIconContainer, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
+          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={28} color={palette.accent} />
         </View>
         <ThemedText type="defaultSemiBold" style={styles.themeLabel}>{label}</ThemedText>
         <ThemedText style={[styles.themeDescription, { color: palette.muted }]}>{description}</ThemedText>
         {selected && (
           <View style={[styles.selectedBadge, { backgroundColor: palette.accent }]}>
-            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={14} color={Colors.light.onPrimary} />
           </View>
         )}
       </SurfaceCard>
@@ -183,17 +183,17 @@ export default function AppearanceSettingsScreen() {
           <SurfaceCard style={styles.previewCard}>
             <View style={styles.previewHeader}>
               <View style={[styles.previewAvatar, { backgroundColor: palette.accent }]}>
-                <Ionicons name="person" size={20} color="#FFFFFF" />
+                <Ionicons name="person" size={20} color={Colors.light.onPrimary} />
               </View>
               <View style={styles.previewText}>
                 <ThemedText type="defaultSemiBold">Sample Card Title</ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                   This is how content looks with your current theme settings.
                 </ThemedText>
               </View>
             </View>
             <View style={[styles.previewButton, { backgroundColor: palette.accent }]}>
-              <ThemedText style={{ color: '#FFFFFF', fontWeight: '600' }}>
+              <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>
                 Sample Button
               </ThemedText>
             </View>
@@ -223,8 +223,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading,
   },
   content: {
     paddingHorizontal: Spacing.lg,
@@ -235,8 +234,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginLeft: Spacing.xs,
@@ -256,16 +254,16 @@ const styles = StyleSheet.create({
   themeIconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.xs,
   },
   themeLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   themeDescription: {
-    fontSize: 11,
+    ...Typography.caption,
     textAlign: 'center',
   },
   selectedBadge: {
@@ -274,7 +272,7 @@ const styles = StyleSheet.create({
     right: Spacing.xs,
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -292,13 +290,13 @@ const styles = StyleSheet.create({
   previewAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
   previewText: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   previewButton: {
     paddingVertical: Spacing.sm,
@@ -310,8 +308,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   infoText: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
     textAlign: 'center',
   },
 });

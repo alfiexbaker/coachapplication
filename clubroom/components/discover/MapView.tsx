@@ -20,7 +20,7 @@ import { CoachMarker, ClusterMarker } from './CoachMarker';
 import { CoachCard, type CoachCardData } from '@/components/coach';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CoachProfile, CoachSearchResult } from '@/constants/types';
 
@@ -189,7 +189,7 @@ export function MapView({
       <View
         style={[
           styles.mapContainer,
-          { backgroundColor: `${palette.tint}08` },
+          { backgroundColor: withAlpha(palette.tint, 0.03) },
         ]}
         onLayout={handleLayout}
       >
@@ -201,7 +201,7 @@ export function MapView({
               styles.gridLineH,
               {
                 top: `${pos * 100}%`,
-                backgroundColor: `${palette.border}40`,
+                backgroundColor: withAlpha(palette.border, 0.25),
               },
             ]}
           />
@@ -213,7 +213,7 @@ export function MapView({
               styles.gridLineV,
               {
                 left: `${pos * 100}%`,
-                backgroundColor: `${palette.border}40`,
+                backgroundColor: withAlpha(palette.border, 0.25),
               },
             ]}
           />
@@ -294,7 +294,7 @@ export function MapView({
             },
           ]}
         >
-          <ThemedText style={styles.searchAreaText} lightColor="#fff" darkColor="#fff">
+          <ThemedText style={styles.searchAreaText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
             Search this area
           </ThemedText>
         </Pressable>
@@ -333,7 +333,7 @@ export function MapView({
 
       {/* Expanded Cluster View */}
       {expandedCluster && (
-        <View style={[styles.clusterOverlay, { backgroundColor: `${palette.text}80` }]}>
+        <View style={[styles.clusterOverlay, { backgroundColor: withAlpha(palette.text, 0.5) }]}>
           <Pressable
             style={StyleSheet.absoluteFill}
             onPress={() => setExpandedCluster(null)}
@@ -399,15 +399,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 16,
     height: 16,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
   userMarkerInner: {
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#fff',
+    borderRadius: Radii.xs,
+    backgroundColor: Colors.light.surface,
   },
   searchAreaButton: {
     position: 'absolute',

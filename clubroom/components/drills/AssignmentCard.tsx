@@ -12,7 +12,7 @@ import { DifficultyBadge } from './DifficultyBadge';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
 import type { AssignedDrill } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { drillService } from '@/services/drill-service';
@@ -83,7 +83,7 @@ export function AssignmentCard({
           hitSlop={8}
         >
           {assignment.isCompleted && (
-            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={14} color={palette.onSuccess} />
           )}
         </Clickable>
 
@@ -120,7 +120,7 @@ export function AssignmentCard({
 
         {/* Priority indicator */}
         {!assignment.isCompleted && assignment.priority === 1 && (
-          <View style={[styles.priorityBadge, { backgroundColor: `${palette.error}15` }]}>
+          <View style={[styles.priorityBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
             <Ionicons name="alert-circle" size={12} color={palette.error} />
           </View>
         )}
@@ -142,13 +142,13 @@ export function AssignmentCard({
             <Image source={{ uri: drill.thumbnailUrl }} style={styles.thumbnail} />
             {assignment.isCompleted && (
               <View style={styles.completedOverlay}>
-                <Ionicons name="checkmark-circle" size={48} color="#FFFFFF" />
+                <Ionicons name="checkmark-circle" size={48} color={Colors.light.onPrimary} />
               </View>
             )}
             {hasVideo && !assignment.isCompleted && (
               <View style={styles.playOverlay}>
                 <View style={styles.playButton}>
-                  <Ionicons name="play" size={20} color="#FFFFFF" />
+                  <Ionicons name="play" size={20} color={Colors.light.onPrimary} />
                 </View>
               </View>
             )}
@@ -159,7 +159,7 @@ export function AssignmentCard({
           {/* Header with category and priority */}
           <View style={styles.header}>
             {categoryInfo && (
-              <View style={[styles.categoryBadge, { backgroundColor: `${categoryInfo.color}20` }]}>
+              <View style={[styles.categoryBadge, { backgroundColor: withAlpha(categoryInfo.color, 0.12) }]}>
                 <Ionicons
                   name={categoryInfo.icon as keyof typeof Ionicons.glyphMap}
                   size={12}
@@ -171,7 +171,7 @@ export function AssignmentCard({
               </View>
             )}
             {!assignment.isCompleted && assignment.priority === 1 && (
-              <View style={[styles.priorityBadgeFull, { backgroundColor: `${palette.error}15` }]}>
+              <View style={[styles.priorityBadgeFull, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                 <Ionicons name="alert-circle" size={12} color={palette.error} />
                 <ThemedText style={[styles.priorityText, { color: palette.error }]}>
                   Priority
@@ -241,7 +241,7 @@ export function AssignmentCard({
               onPress={onComplete}
               style={[styles.completeButton, { backgroundColor: palette.tint }]}
             >
-              <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+              <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
               <ThemedText style={styles.completeButtonText}>Mark Complete</ThemedText>
             </Clickable>
           )}
@@ -287,13 +287,13 @@ const styles = StyleSheet.create({
   playButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   content: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.xs,
   },
   header: {
@@ -304,9 +304,9 @@ const styles = StyleSheet.create({
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   categoryText: {
@@ -316,9 +316,9 @@ const styles = StyleSheet.create({
   priorityBadgeFull: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   priorityText: {
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   notesText: {
     flex: 1,
@@ -356,12 +356,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: Colors.light.border,
   },
   dueDateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   dueDateText: {
     fontSize: scaleFont(13),
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   durationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   durationText: {
     fontSize: scaleFont(12),
@@ -383,12 +383,12 @@ const styles = StyleSheet.create({
   repetitionsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   repetitionsText: {
     fontSize: scaleFont(13),
@@ -399,12 +399,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.md,
     marginTop: Spacing.sm,
   },
   completeButtonText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontSize: scaleFont(15),
     fontWeight: '600',
   },
@@ -420,18 +420,18 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxCompleted: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: Colors.light.success,
+    borderColor: Colors.light.success,
   },
   compactContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   compactHeader: {
     flexDirection: 'row',
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   metaText: {
     fontSize: scaleFont(12),
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   priorityBadge: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },

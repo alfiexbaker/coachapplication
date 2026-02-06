@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
 import { Chip } from '@/components/primitives/chip';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { PriceRangeSlider } from './PriceRangeSlider';
 import { RatingFilter } from './RatingFilter';
@@ -216,7 +217,7 @@ export function FilterModal({
             />
           </View>
 
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider spacing={Spacing.sm} />
 
           {/* Rating */}
           <View style={styles.section}>
@@ -228,7 +229,7 @@ export function FilterModal({
             />
           </View>
 
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider spacing={Spacing.sm} />
 
           {/* Distance */}
           <View style={styles.section}>
@@ -248,7 +249,7 @@ export function FilterModal({
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider spacing={Spacing.sm} />
 
           {/* Training Focus */}
           <View style={styles.section}>
@@ -268,7 +269,7 @@ export function FilterModal({
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider spacing={Spacing.sm} />
 
           {/* Session Format */}
           <View style={styles.section}>
@@ -288,7 +289,7 @@ export function FilterModal({
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider spacing={Spacing.sm} />
 
           {/* Languages */}
           <View style={styles.section}>
@@ -308,7 +309,7 @@ export function FilterModal({
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider spacing={Spacing.sm} />
 
           {/* Gender */}
           <View style={styles.section}>
@@ -395,10 +396,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xs,
-  },
-  divider: {
-    height: 1,
-    marginVertical: Spacing.sm,
   },
   footer: {
     position: 'absolute',

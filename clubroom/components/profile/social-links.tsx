@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { createLogger } from '@/utils/logger';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { SocialLinks as SocialLinksType, SocialPlatform } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -118,8 +118,8 @@ export function SocialLinks({
                 },
               ]}
               onPress={() => handlePress(platform, value!)}>
-              <View style={[styles.listIconContainer, { backgroundColor: `${config.color}15` }]}>
-                <Ionicons name={config.icon as any} size={20} color={config.color} />
+              <View style={[styles.listIconContainer, { backgroundColor: withAlpha(config.color, 0.09) }]}>
+                <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={20} color={config.color} />
               </View>
               <View style={styles.listContent}>
                 <ThemedText type="defaultSemiBold" style={styles.listLabel}>
@@ -149,11 +149,11 @@ export function SocialLinks({
               {
                 width: buttonSize,
                 height: buttonSize,
-                backgroundColor: pressed ? `${config.color}25` : `${config.color}15`,
+                backgroundColor: pressed ? withAlpha(config.color, 0.15) : withAlpha(config.color, 0.09),
               },
             ]}
             onPress={() => handlePress(platform, value!)}>
-            <Ionicons name={config.icon as any} size={iconSize} color={config.color} />
+            <Ionicons name={config.icon as keyof typeof Ionicons.glyphMap} size={iconSize} color={config.color} />
             {showLabels && (
               <ThemedText style={[styles.iconLabel, { color: config.color }]}>
                 {config.label}
@@ -181,11 +181,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 2,
-  },
+  iconLabel: { ...Typography.micro, marginTop: Spacing.micro },
   listContainer: {
     gap: Spacing.xs,
   },
@@ -206,12 +202,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  listLabel: {
-    fontSize: 14,
-  },
-  listValue: {
-    fontSize: 12,
-  },
+  listLabel: { ...Typography.bodySmall },
+  listValue: { ...Typography.caption },
 });

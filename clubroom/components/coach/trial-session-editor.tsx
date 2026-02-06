@@ -28,7 +28,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -49,7 +49,7 @@ interface TrialSessionEditorProps {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function FieldLabel({ label, hint, palette }: { label: string; hint?: string; palette: any }) {
+function FieldLabel({ label, hint, palette }: { label: string; hint?: string; palette: (typeof Colors)['light'] }) {
   return (
     <View style={styles.fieldLabelContainer}>
       <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>{label}</ThemedText>
@@ -67,7 +67,7 @@ function DiscoveryPreview({
 }: {
   offering: Partial<TrialOffering>;
   coachName: string;
-  palette: any;
+  palette: (typeof Colors)['light'];
 }) {
   return (
     <View style={styles.previewSection}>
@@ -78,7 +78,7 @@ function DiscoveryPreview({
         {/* Coach info row */}
         <View style={styles.previewHeader}>
           <View style={[styles.previewAvatar, { backgroundColor: palette.tint }]}>
-            <ThemedText style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>
+            <ThemedText style={{ ...Typography.subheading, color: palette.onPrimary }}>
               {coachName.split(' ').map((n) => n[0]).join('')}
             </ThemedText>
           </View>
@@ -94,7 +94,7 @@ function DiscoveryPreview({
 
         {/* Trial badge */}
         {offering.enabled ? (
-          <View style={[styles.previewTrialBadge, { backgroundColor: `${palette.success}12` }]}>
+          <View style={[styles.previewTrialBadge, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
             <Ionicons name="flash-outline" size={Components.icon.sm} color={palette.success} />
             <ThemedText style={[Typography.bodySemiBold, { color: palette.success }]}>
               Trial Session Available
@@ -120,7 +120,7 @@ function DiscoveryPreview({
               >
                 {'\u00A3'}{offering.normalPrice ?? 0}
               </ThemedText>
-              <View style={[styles.previewSavingBadge, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.previewSavingBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <ThemedText style={[Typography.caption, { color: palette.success }]}>
                   Save {'\u00A3'}{(offering.normalPrice ?? 0) - (offering.trialPrice ?? 0)}
                 </ThemedText>
@@ -299,7 +299,7 @@ export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEdito
           <Switch
             value={enabled}
             onValueChange={setEnabled}
-            trackColor={{ false: palette.border, true: `${palette.success}80` }}
+            trackColor={{ false: palette.border, true: withAlpha(palette.success, 0.5) }}
             thumbColor={enabled ? palette.success : palette.surface}
           />
         </View>
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   fieldLabelContainer: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   inputRow: {
     flexDirection: 'row',
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   },
   previewSavingBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,7 +11,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ScreenHeader } from '@/components/primitives/screen-header';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { chatThreads } from '@/constants/mock-data';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -59,7 +60,7 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
             </ThemedText>
             {hasUnread && (
               <View style={[styles.badge, { backgroundColor: palette.premium }]}>
-                <ThemedText style={styles.badgeText} lightColor="#fff" darkColor="#fff">
+                <ThemedText style={styles.badgeText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.onPrimary}>
                   {thread.unreadCount}
                 </ThemedText>
               </View>
@@ -86,7 +87,7 @@ function GroupConversationRow({ thread, index, onPress }: { thread: ChatThreadSu
     <Animated.View entering={FadeInDown.delay(index * 40).springify()}>
       <SurfaceCard style={styles.groupCard}>
         <View style={styles.groupHeader}>
-          <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}> 
+          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}> 
             <ThemedText style={[styles.avatarText, { color: palette.text }]}>
               {(thread.title || thread.coachName)
                 .split(' ')
@@ -160,7 +161,7 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (params.coachId) {
       const thread = chatThreads[0];
-      if (thread) router.push(`/chat/${thread.id}`);
+      if (thread) router.push(Routes.chat(thread.id));
     }
   }, [params.coachId]);
 
@@ -273,7 +274,7 @@ export default function MessagesScreen() {
                   ? "Create a squad or club space to coordinate with coaches, teams, and classes."
                   : "Join a club with an invite code to access group chats with coaches and teams."}
                 actionLabel={isCoach ? "Go to Club Hub" : "Join a Club"}
-                onPressAction={() => router.push('/club-hub')}
+                onPressAction={() => router.push(Routes.CLUB_HUB)}
               />
             ) : (
               groupThreads.map((thread, index) => (
@@ -281,7 +282,7 @@ export default function MessagesScreen() {
                   key={thread.id}
                   thread={thread}
                   index={index}
-                  onPress={() => router.push(`/chat/${thread.id}`)}
+                  onPress={() => router.push(Routes.chat(thread.id))}
                 />
               ))
             )}
@@ -292,7 +293,7 @@ export default function MessagesScreen() {
             title="No messages yet"
             message="Start a conversation with a coach or respond to pending requests."
             actionLabel="Find coaches"
-            onPressAction={() => router.push('/(tabs)/more')}
+            onPressAction={() => router.push(Routes.MORE)}
           />
         ) : (
           directThreads.map((thread, index) => (
@@ -300,7 +301,7 @@ export default function MessagesScreen() {
               key={thread.id}
               thread={thread}
               index={index}
-              onPress={() => router.push(`/chat/${thread.id}`)}
+              onPress={() => router.push(Routes.chat(thread.id))}
             />
           ))
         )}
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
   },
   segmentedControl: {
     flexDirection: 'row',
@@ -369,21 +370,19 @@ const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.subheading,
   },
   conversationContent: {
     flex: 1,
     gap: Spacing.xs / 2,
   },
   metaPill: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   conversationHeader: {
     flexDirection: 'row',
@@ -392,12 +391,10 @@ const styles = StyleSheet.create({
   },
   coachName: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   time: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   conversationMeta: {
     flexDirection: 'row',
@@ -405,8 +402,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   serviceName: {
-    fontSize: Typography.small.fontSize,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
     flex: 1,
   },
   badge: {
@@ -418,8 +414,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...Typography.caption,
   },
   preview: {
     fontSize: Typography.small.fontSize,

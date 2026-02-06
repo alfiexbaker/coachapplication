@@ -10,8 +10,9 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Chip } from '@/components/primitives/chip';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type {
   CoachSearchFilters,
@@ -160,7 +161,7 @@ export function FilterBar({
           style={({ pressed }) => [
             styles.filterButton,
             {
-              backgroundColor: hasActiveFilters ? `${palette.tint}15` : palette.surface,
+              backgroundColor: hasActiveFilters ? withAlpha(palette.tint, 0.09) : palette.surface,
               borderColor: hasActiveFilters ? palette.tint : palette.border,
               opacity: pressed ? 0.8 : 1,
             },
@@ -181,7 +182,7 @@ export function FilterBar({
           </ThemedText>
           {activeFilterCount > 0 && (
             <View style={[styles.badge, { backgroundColor: palette.tint }]}>
-              <ThemedText style={styles.badgeText} lightColor="#fff" darkColor="#fff">
+              <ThemedText style={styles.badgeText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
                 {activeFilterCount}
               </ThemedText>
             </View>
@@ -201,7 +202,7 @@ export function FilterBar({
         ))}
 
         {/* Separator */}
-        <View style={[styles.separator, { backgroundColor: palette.border }]} />
+        <Divider vertical style={{ height: 24, marginHorizontal: Spacing.sm }} />
 
         {/* Focus Filters */}
         {FOCUS_FILTERS.map((focus) => (
@@ -268,24 +269,18 @@ const styles = StyleSheet.create({
   badge: {
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
   },
   badgeText: {
-    ...Typography.xs,
+    ...Typography.caption,
     fontWeight: '700',
-    fontSize: 11,
   },
   chip: {
     marginRight: 0,
     marginBottom: 0,
-  },
-  separator: {
-    width: 1,
-    height: 24,
-    marginHorizontal: Spacing.sm,
   },
   footer: {
     flexDirection: 'row',
@@ -300,7 +295,7 @@ const styles = StyleSheet.create({
   clearButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   clearText: {
     ...Typography.sm,

@@ -1,15 +1,15 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
-import { Colors, Radii } from '@/constants/theme';
+import { Colors, Radii  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type SkeletonProps = {
   height?: number;
   width?: number | string;
   radius?: number;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 };
 
 /**
@@ -29,9 +29,9 @@ export function Skeleton({ height = 16, width = '100%', radius = Radii.md, style
         styles.base,
         {
           height,
-          width,
+          width: width as any,
           borderRadius: radius,
-          backgroundColor: scheme === 'dark' ? `${palette.border}55` : `${palette.border}80`,
+          backgroundColor: scheme === 'dark' ? withAlpha(palette.border, 0.33) : withAlpha(palette.border, 0.5),
         },
         style,
       ]}

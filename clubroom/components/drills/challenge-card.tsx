@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -120,7 +121,7 @@ export function ChallengeCard({
       {/* Leaderboard */}
       {submissions.length > 0 && (
         <View style={styles.leaderboardSection}>
-          <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          <Divider spacing={Spacing.xs} />
           <ThemedText style={[styles.leaderboardTitle, { color: palette.foreground }]}>
             Completions
           </ThemedText>
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   playCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -200,10 +201,6 @@ const styles = StyleSheet.create({
   leaderboardSection: {
     gap: Spacing.xs,
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginVertical: Spacing.xs,
-  },
   leaderboardTitle: {
     ...Typography.subheading,
   },
@@ -216,7 +213,7 @@ const styles = StyleSheet.create({
   rankCircle: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },

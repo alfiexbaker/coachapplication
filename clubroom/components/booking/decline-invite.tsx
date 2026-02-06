@@ -25,7 +25,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components  , withAlpha } from '@/constants/theme';
 import {
   ModalStyles,
   InputStyles,
@@ -42,7 +42,7 @@ interface DeclineInviteProps {
   invite: {
     coachName: string;
     athleteNames: string[];
-    proposedSlots: any[];
+    proposedSlots: { date: string; time: string }[];
     sessionType: string;
   };
   onDecline: (reason: DeclineReason) => void;
@@ -311,12 +311,12 @@ const styles = StyleSheet.create({
   },
   reasonItemSelected: {
     borderColor: Colors.light.tint,
-    backgroundColor: `${Colors.light.tint}08`,
+    backgroundColor: withAlpha(Colors.light.tint, 0.03),
   },
   radioOuter: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     borderColor: Colors.light.border,
     alignItems: 'center',
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
     backgroundColor: Colors.light.tint,
   },
   reasonLabel: {
@@ -375,11 +375,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
+  cancelButtonText: { ...Typography.subheading, color: Colors.light.text },
   declineButton: {
     flex: 1,
     height: Components.button.height,
@@ -391,11 +387,7 @@ const styles = StyleSheet.create({
   declineButtonDisabled: {
     backgroundColor: Colors.light.border,
   },
-  declineButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.surface,
-  },
+  declineButtonText: { ...Typography.subheading, color: Colors.light.surface },
   declineButtonTextDisabled: {
     color: Colors.light.muted,
   },

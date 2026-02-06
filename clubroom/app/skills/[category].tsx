@@ -25,7 +25,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SkillTreeView } from '@/components/skills/SkillTreeView';
 import { SkillNode as SkillNodeComponent } from '@/components/skills/SkillNode';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { skillTreeService } from '@/services/skills';
@@ -284,7 +284,7 @@ export default function SkillTreeDetailScreen() {
                       <View
                         style={[
                           styles.levelPill,
-                          { backgroundColor: `${tree.themeColor}15` },
+                          { backgroundColor: withAlpha(tree.themeColor, 0.09) },
                         ]}
                       >
                         <ThemedText
@@ -340,8 +340,8 @@ export default function SkillTreeDetailScreen() {
                               styles.prereqItem,
                               {
                                 backgroundColor: prereq.isUnlocked
-                                  ? `${palette.success}15`
-                                  : `${palette.error}15`,
+                                  ? withAlpha(palette.success, 0.09)
+                                  : withAlpha(palette.error, 0.09),
                               },
                             ]}
                           >
@@ -370,7 +370,7 @@ export default function SkillTreeDetailScreen() {
 
                   {/* Badge reward */}
                   {selectedNode.badgeId && (
-                    <View style={[styles.badgeReward, { backgroundColor: `${palette.warning}15` }]}>
+                    <View style={[styles.badgeReward, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                       <Ionicons name="ribbon" size={18} color={palette.warning} />
                       <ThemedText style={{ color: palette.warning }}>
                         Unlocking awards a badge!
@@ -380,7 +380,7 @@ export default function SkillTreeDetailScreen() {
 
                   {/* Status */}
                   {selectedNode.isUnlocked ? (
-                    <View style={[styles.unlockedBanner, { backgroundColor: `${palette.success}15` }]}>
+                    <View style={[styles.unlockedBanner, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                       <Ionicons name="checkmark-circle" size={20} color={palette.success} />
                       <ThemedText style={[styles.unlockedText, { color: palette.success }]}>
                         Skill Unlocked!
@@ -411,7 +411,7 @@ export default function SkillTreeDetailScreen() {
                           Unlock Skill ({selectedNode.xpRequired} XP)
                         </Button>
                       ) : (
-                        <View style={[styles.lockedBanner, { backgroundColor: `${palette.muted}15` }]}>
+                        <View style={[styles.lockedBanner, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
                           <Ionicons name="lock-closed" size={16} color={palette.muted} />
                           <ThemedText style={{ color: palette.muted }}>
                             Complete prerequisites to unlock
@@ -469,31 +469,29 @@ const styles = StyleSheet.create({
   },
   modalTitleContainer: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   modalTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   levelPill: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   levelPillText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   progressSection: {
     gap: Spacing.xs,
@@ -505,12 +503,12 @@ const styles = StyleSheet.create({
   },
   progressBg: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   prereqSection: {
     gap: Spacing.xs,
@@ -523,14 +521,13 @@ const styles = StyleSheet.create({
   prereqItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   prereqText: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   badgeReward: {
     flexDirection: 'row',
@@ -548,8 +545,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   unlockedText: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   lockedBanner: {
     flexDirection: 'row',

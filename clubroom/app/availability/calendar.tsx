@@ -22,12 +22,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
@@ -268,7 +269,7 @@ export default function AvailabilityCalendarScreen() {
                   style={[
                     styles.dayCell,
                     !day.isCurrentMonth && styles.otherMonthDay,
-                    isSelected && { backgroundColor: `${palette.tint}20` },
+                    isSelected && { backgroundColor: withAlpha(palette.tint, 0.12) },
                   ]}
                   onPress={() => setSelectedDate(day.date)}
                 >
@@ -314,14 +315,14 @@ export default function AvailabilityCalendarScreen() {
               </ThemedText>
               <View style={styles.detailsActions}>
                 <Pressable
-                  style={[styles.actionButton, { backgroundColor: `${palette.error}15` }]}
-                  onPress={() => router.push('/availability/block-date')}
+                  style={[styles.actionButton, { backgroundColor: withAlpha(palette.error, 0.09) }]}
+                  onPress={() => router.push(Routes.AVAILABILITY_BLOCK_DATE)}
                 >
                   <Ionicons name="close-circle-outline" size={18} color={palette.error} />
                 </Pressable>
                 <Pressable
-                  style={[styles.actionButton, { backgroundColor: `${palette.tint}15` }]}
-                  onPress={() => router.push('/availability/add-template')}
+                  style={[styles.actionButton, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+                  onPress={() => router.push(Routes.AVAILABILITY_ADD_TEMPLATE)}
                 >
                   <Ionicons name="add-circle-outline" size={18} color={palette.tint} />
                 </Pressable>
@@ -352,7 +353,7 @@ export default function AvailabilityCalendarScreen() {
                       <View
                         style={[
                           styles.slotStatus,
-                          { backgroundColor: slot.isAvailable ? `${palette.success}15` : `${palette.tint}15` },
+                          { backgroundColor: slot.isAvailable ? withAlpha(palette.success, 0.09) : withAlpha(palette.tint, 0.09) },
                         ]}
                       >
                         <ThemedText
@@ -436,13 +437,13 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: 12 },
+  legendDot: { width: 10, height: 10, borderRadius: Radii.sm },
+  legendText: { ...Typography.caption },
 
   calendar: { padding: Spacing.sm },
   weekHeader: { flexDirection: 'row', marginBottom: Spacing.xs },
   dayHeaderCell: { flex: 1, alignItems: 'center', paddingVertical: Spacing.xs },
-  dayHeaderText: { fontSize: 12, fontWeight: '600' },
+  dayHeaderText: { ...Typography.caption },
 
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayCell: {
@@ -453,14 +454,14 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   otherMonthDay: { opacity: 0.4 },
-  dayNumber: { fontSize: 14 },
+  dayNumber: { ...Typography.bodySmall },
   indicators: {
     flexDirection: 'row',
-    gap: 2,
-    marginTop: 2,
+    gap: Spacing.micro,
+    marginTop: Spacing.micro,
     height: 6,
   },
-  indicator: { width: 6, height: 6, borderRadius: 3 },
+  indicator: { width: 6, height: 6, borderRadius: Radii.xs },
 
   detailsCard: { padding: Spacing.md, gap: Spacing.sm },
   detailsHeader: {
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
   actionButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -491,16 +492,16 @@ const styles = StyleSheet.create({
   },
   slotStatus: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  slotStatusText: { fontSize: 12, fontWeight: '600' },
-  slotLocation: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  slotLocationText: { fontSize: 12 },
+  slotStatusText: { ...Typography.caption },
+  slotLocation: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs, marginTop: Spacing.xxs },
+  slotLocationText: { ...Typography.caption },
 
   statsCard: { padding: Spacing.md },
   statsTitle: { marginBottom: Spacing.sm },
   statsGrid: { flexDirection: 'row', justifyContent: 'space-around' },
   statItem: { alignItems: 'center' },
-  statLabel: { fontSize: 12, marginTop: 2 },
+  statLabel: { ...Typography.caption, marginTop: Spacing.micro },
 });

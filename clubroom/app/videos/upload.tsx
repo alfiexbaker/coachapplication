@@ -9,13 +9,14 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { VideoUpload } from '@/components/video/video-upload';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -102,7 +103,7 @@ export default function VideoUploadScreen() {
       logger.info('Video uploaded successfully', { videoId: newVideo.id });
 
       Alert.alert('Success', 'Video uploaded successfully!', [
-        { text: 'View Video', onPress: () => router.replace(`/videos/${newVideo.id}`) },
+        { text: 'View Video', onPress: () => router.replace(Routes.video(newVideo.id)) },
         { text: 'Upload Another', onPress: () => {
           setVideoData(null);
           setTitle('');
@@ -136,8 +137,8 @@ export default function VideoUploadScreen() {
         >
           <ThemedText
             style={styles.submitText}
-            lightColor={videoData && title.trim() ? '#FFFFFF' : palette.muted}
-            darkColor={videoData && title.trim() ? '#000000' : palette.muted}
+            lightColor={videoData && title.trim() ? Colors.light.onPrimary : palette.muted}
+            darkColor={videoData && title.trim() ? Colors.dark.text : palette.muted}
           >
             {uploading ? 'Uploading...' : 'Upload'}
           </ThemedText>
@@ -207,13 +208,13 @@ export default function VideoUploadScreen() {
                     styles.visibilityOption,
                     {
                       borderColor: isSelected ? palette.tint : palette.border,
-                      backgroundColor: isSelected ? `${palette.tint}15` : palette.card,
+                      backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.card,
                     },
                   ]}
                 >
                   <View style={styles.visibilityHeader}>
                     <Ionicons
-                      name={option.icon as any}
+                      name={option.icon as keyof typeof Ionicons.glyphMap}
                       size={20}
                       color={isSelected ? palette.tint : palette.muted}
                     />
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   textArea: {
     minHeight: 100,
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   visibilityDescription: {
-    fontSize: 13,
+    ...Typography.small,
     marginLeft: 28,
   },
   progressContainer: {
@@ -339,11 +340,11 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
 });

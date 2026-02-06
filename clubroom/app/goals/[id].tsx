@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, {
@@ -40,7 +41,7 @@ import {
   MilestoneList,
   CategoryBadge,
 } from '@/components/goals';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import type { Goal, GoalStatus } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -277,7 +278,7 @@ export default function GoalDetailScreen() {
             <>
               <Clickable
                 onPress={() =>
-                  router.push({ pathname: '/goals/create', params: { editId: goal.id } })
+                  router.push(Routes.GOALS_CREATE)
                 }
                 hitSlop={8}
               >
@@ -414,8 +415,8 @@ export default function GoalDetailScreen() {
                   style={[styles.actionButton, { backgroundColor: palette.success }]}
                 >
                   <View style={styles.buttonContent}>
-                    <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
-                    <ThemedText style={[styles.buttonText, { color: '#FFFFFF' }]}>
+                    <Ionicons name="checkmark-circle-outline" size={18} color={Colors.light.onPrimary} />
+                    <ThemedText style={[styles.buttonText, { color: Colors.light.onPrimary }]}>
                       Complete Goal
                     </ThemedText>
                   </View>
@@ -430,8 +431,8 @@ export default function GoalDetailScreen() {
                   style={styles.actionButton}
                 >
                   <View style={styles.buttonContent}>
-                    <Ionicons name="play-outline" size={18} color="#FFFFFF" />
-                    <ThemedText style={[styles.buttonText, { color: '#FFFFFF' }]}>
+                    <Ionicons name="play-outline" size={18} color={Colors.light.onPrimary} />
+                    <ThemedText style={[styles.buttonText, { color: Colors.light.onPrimary }]}>
                       Resume Goal
                     </ThemedText>
                   </View>
@@ -495,7 +496,7 @@ export default function GoalDetailScreen() {
           >
             <Animated.View style={[styles.celebrationContent, celebrationStyle]}>
               <View style={[styles.celebrationIcon, { backgroundColor: palette.success }]}>
-                <Ionicons name="trophy" size={48} color="#FFFFFF" />
+                <Ionicons name="trophy" size={48} color={Colors.light.onPrimary} />
               </View>
               <ThemedText type="title" style={styles.celebrationTitle}>
                 Goal Achieved!
@@ -557,11 +558,11 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   goalTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
     marginTop: Spacing.xs,
   },
   goalDescription: {
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
   },
   metaCard: {
@@ -579,14 +580,14 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   metaLabel: {
-    fontSize: scaleFont(11),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   metaDivider: {
     width: 1,
     height: 32,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: Colors.light.border,
     marginHorizontal: Spacing.sm,
   },
   section: {
@@ -612,7 +613,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   buttonText: {
     fontWeight: '600',
@@ -627,19 +628,19 @@ const styles = StyleSheet.create({
   },
   completedText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   completedSubtext: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
   createdInfo: {
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: Colors.light.border,
     marginTop: Spacing.md,
   },
   createdText: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
     textAlign: 'center',
   },
   celebrationOverlay: {
@@ -651,14 +652,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.xl,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.surface,
     borderRadius: Radii.xl,
     marginHorizontal: Spacing.xl,
   },
   celebrationIcon: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -668,6 +669,6 @@ const styles = StyleSheet.create({
   },
   celebrationSubtitle: {
     textAlign: 'center',
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
   },
 });

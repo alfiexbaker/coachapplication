@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii } from '@/constants/theme';
+import { Colors, Radii , Typography, Spacing} from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CoachProfile } from '@/constants/types';
 
@@ -96,7 +96,7 @@ export function CoachMarker({
                 width: dimensions.avatar,
                 height: dimensions.avatar,
                 borderRadius: dimensions.avatar / 2,
-                borderColor: isSelected ? '#fff' : palette.border,
+                borderColor: isSelected ? palette.onPrimary : palette.border,
               },
             ]}
             contentFit="cover"
@@ -127,14 +127,14 @@ export function CoachMarker({
             <Ionicons
               name="star"
               size={dimensions.font - 2}
-              color={isSelected ? '#fff' : '#FFA500'}
+              color={isSelected ? palette.onPrimary : palette.warning}
             />
             <ThemedText
               style={[
                 styles.ratingText,
                 {
                   fontSize: dimensions.font - 2,
-                  color: isSelected ? '#fff' : palette.text,
+                  color: isSelected ? palette.onPrimary : palette.text,
                 },
               ]}
             >
@@ -196,7 +196,7 @@ export function ClusterMarker({ count, onPress }: ClusterMarkerProps) {
         },
       ]}
     >
-      <ThemedText style={styles.clusterText} lightColor="#fff" darkColor="#fff">
+      <ThemedText style={styles.clusterText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
         {count}
       </ThemedText>
     </Pressable>
@@ -235,9 +235,9 @@ const styles = StyleSheet.create({
     right: -8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    gap: Spacing.micro,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
@@ -247,8 +247,8 @@ const styles = StyleSheet.create({
   priceBadge: {
     position: 'absolute',
     bottom: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   cluster: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -267,8 +267,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  clusterText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
+  clusterText: { ...Typography.bodySemiBold },
 });

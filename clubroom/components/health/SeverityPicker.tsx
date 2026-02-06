@@ -11,7 +11,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { InjurySeverity } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { injuryService } from '@/services/injury-service';
@@ -72,7 +72,7 @@ export function SeverityPicker({ selectedSeverity, onSelect }: SeverityPickerPro
                 style={[
                   styles.optionCard,
                   {
-                    backgroundColor: isSelected ? `${info.color}15` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(info.color, 0.09) : palette.surface,
                     borderColor: isSelected ? info.color : palette.border,
                   },
                 ]}
@@ -81,7 +81,7 @@ export function SeverityPicker({ selectedSeverity, onSelect }: SeverityPickerPro
                   <View
                     style={[
                       styles.iconContainer,
-                      { backgroundColor: `${info.color}20` },
+                      { backgroundColor: withAlpha(info.color, 0.12) },
                     ]}
                   >
                     <Ionicons
@@ -107,7 +107,7 @@ export function SeverityPicker({ selectedSeverity, onSelect }: SeverityPickerPro
                             { backgroundColor: info.color },
                           ]}
                         >
-                          <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                          <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
                         </View>
                       )}
                     </View>
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: Spacing.micro,
   },
   optionLabel: {
     fontSize: scaleFont(16),
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   checkCircle: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
-    marginBottom: 2,
+    marginBottom: Spacing.micro,
   },
   examplesText: {
     fontSize: scaleFont(13),
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   scaleBar: {
     flexDirection: 'row',
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
     marginBottom: Spacing.xs,
   },
@@ -255,12 +255,12 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   scaleSegmentFirst: {
-    borderTopLeftRadius: 4,
-    borderBottomLeftRadius: 4,
+    borderTopLeftRadius: Radii.xs,
+    borderBottomLeftRadius: Radii.xs,
   },
   scaleSegmentLast: {
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
+    borderTopRightRadius: Radii.xs,
+    borderBottomRightRadius: Radii.xs,
   },
   scaleLabels: {
     flexDirection: 'row',

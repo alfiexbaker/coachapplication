@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Image, Alert, TextInput, Modal, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -13,7 +14,7 @@ import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { AthleteNotes } from '@/components/roster/athlete-notes';
 import { MedicalAlertBadge } from '@/components/safety/MedicalAlertBadge';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService } from '@/services/roster-service';
@@ -80,7 +81,7 @@ export default function AthleteDetailScreen() {
 
   const handleNavigateToEmergency = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push(`/roster/${athleteId}/emergency`);
+    router.push(Routes.rosterAthleteEmergency(athleteId));
   }, [athleteId]);
 
   const handleUpdateStatus = async (status: RosterEntry['status']) => {
@@ -205,15 +206,15 @@ export default function AthleteDetailScreen() {
                 { text: 'Cancel', style: 'cancel' },
                 {
                   text: 'Send Message',
-                  onPress: () => router.push(`/chat?athleteId=${entry.athleteId}` as any),
+                  onPress: () => router.push(Routes.chatWithAthlete(entry.athleteId)),
                 },
                 {
                   text: 'Schedule Session',
-                  onPress: () => router.push(`/coach/invite?athleteId=${entry.athleteId}`),
+                  onPress: () => router.push(Routes.coachInviteAthlete(entry.athleteId)),
                 },
                 {
                   text: 'View Analytics',
-                  onPress: () => router.push(`/analytics/${entry.athleteId}`),
+                  onPress: () => router.push(Routes.analyticsAthlete(entry.athleteId)),
                 },
                 {
                   text: 'Remove from Roster',
@@ -266,7 +267,7 @@ export default function AthleteDetailScreen() {
                 <View style={styles.statusRow}>
                   <Clickable
                     onPress={() => setShowStatusModal(true)}
-                    style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}
+                    style={[styles.statusBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}
                   >
                     <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
                     <ThemedText style={[styles.statusText, { color: statusColor }]}>
@@ -321,7 +322,10 @@ export default function AthleteDetailScreen() {
                 )}
               </View>
               <View style={styles.contactActions}>
-                <Clickable style={[styles.contactButton, { borderColor: palette.border }]}>
+                <Clickable
+                  style={[styles.contactButton, { borderColor: palette.border }]}
+                  onPress={() => router.push(Routes.messagesWith({ athleteId: entry.athleteId }))}
+                >
                   <Ionicons name="chatbubble-outline" size={18} color={palette.tint} />
                 </Clickable>
                 <Clickable style={[styles.contactButton, { borderColor: palette.border }]}>
@@ -339,7 +343,7 @@ export default function AthleteDetailScreen() {
               styles.emergencyCard,
               {
                 borderColor: emergencyData?.hasAlerts
-                  ? `${safetyService.getAlertLevelColor(emergencyData.alertLevel)}40`
+                  ? withAlpha(safetyService.getAlertLevelColor(emergencyData.alertLevel), 0.25)
                   : palette.border,
               },
             ]}
@@ -351,8 +355,8 @@ export default function AthleteDetailScreen() {
                   styles.emergencyIcon,
                   {
                     backgroundColor: emergencyData?.hasAlerts
-                      ? `${safetyService.getAlertLevelColor(emergencyData?.alertLevel || 'none')}15`
-                      : `${palette.success}15`,
+                      ? withAlpha(safetyService.getAlertLevelColor(emergencyData?.alertLevel || 'none'), 0.09)
+                      : withAlpha(palette.success, 0.09),
                   },
                 ]}
               >
@@ -436,7 +440,7 @@ export default function AthleteDetailScreen() {
                   {childData.disabilities.map((disability) => (
                     <View
                       key={disability.id}
-                      style={[styles.disabilityItem, { backgroundColor: `${palette.warning}10` }]}
+                      style={[styles.disabilityItem, { backgroundColor: withAlpha(palette.warning, 0.06) }]}
                     >
                       <View style={styles.disabilityHeader}>
                         <Ionicons name="information-circle" size={16} color={palette.warning} />
@@ -458,7 +462,7 @@ export default function AthleteDetailScreen() {
                           <ThemedText style={[styles.triggerLabel, { color: palette.error }]}>
                             Avoid:
                           </ThemedText>
-                          <ThemedText style={{ fontSize: 13 }}>
+                          <ThemedText style={{ ...Typography.small }}>
                             {disability.triggers.join(', ')}
                           </ThemedText>
                         </View>
@@ -468,7 +472,7 @@ export default function AthleteDetailScreen() {
                           <ThemedText style={[styles.triggerLabel, { color: palette.success }]}>
                             Helps:
                           </ThemedText>
-                          <ThemedText style={{ fontSize: 13 }}>
+                          <ThemedText style={{ ...Typography.small }}>
                             {disability.calmingStrategies.join(', ')}
                           </ThemedText>
                         </View>
@@ -496,9 +500,9 @@ export default function AthleteDetailScreen() {
                         </ThemedText>
                       )}
                       {need.coachNotes && (
-                        <View style={[styles.coachNote, { backgroundColor: `${palette.tint}10` }]}>
+                        <View style={[styles.coachNote, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                           <Ionicons name="bulb-outline" size={14} color={palette.tint} />
-                          <ThemedText style={{ fontSize: 13, flex: 1 }}>
+                          <ThemedText style={{ ...Typography.small, flex: 1 }}>
                             {need.coachNotes}
                           </ThemedText>
                         </View>
@@ -531,6 +535,42 @@ export default function AthleteDetailScreen() {
           </Animated.View>
         )}
 
+        {/* SEN Info (from roster entry) */}
+        {entry.senInfo?.hasSen && (
+          <Animated.View entering={FadeInDown.delay(140).springify()}>
+            <SurfaceCard style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                  <Ionicons name="accessibility-outline" size={18} color={palette.tint} />
+                  <ThemedText type="defaultSemiBold">Special Needs</ThemedText>
+                </View>
+              </View>
+              <View style={styles.tagsRow}>
+                {entry.senInfo.conditions.map((condition) => (
+                  <View
+                    key={condition}
+                    style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.09) }]}
+                  >
+                    <ThemedText style={[styles.tagText, { color: palette.tint }]}>{condition}</ThemedText>
+                  </View>
+                ))}
+              </View>
+              {entry.senInfo.supportNotes && (
+                <View style={{ gap: Spacing.xxs }}>
+                  <ThemedText style={{ ...Typography.small, color: palette.muted, fontWeight: '600' }}>Support Notes</ThemedText>
+                  <ThemedText style={{ ...Typography.small }}>{entry.senInfo.supportNotes}</ThemedText>
+                </View>
+              )}
+              {entry.senInfo.communicationPreferences && (
+                <View style={{ gap: Spacing.xxs }}>
+                  <ThemedText style={{ ...Typography.small, color: palette.muted, fontWeight: '600' }}>Communication</ThemedText>
+                  <ThemedText style={{ ...Typography.small }}>{entry.senInfo.communicationPreferences}</ThemedText>
+                </View>
+              )}
+            </SurfaceCard>
+          </Animated.View>
+        )}
+
         {/* Primary Focus */}
         <Animated.View entering={FadeInDown.delay(150).springify()}>
           <SurfaceCard style={styles.card}>
@@ -540,7 +580,7 @@ export default function AthleteDetailScreen() {
                 <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Change</ThemedText>
               </Clickable>
             </View>
-            <View style={[styles.focusBadge, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.focusBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="football-outline" size={18} color={palette.tint} />
               <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
                 {entry.primaryFocus}
@@ -648,7 +688,7 @@ export default function AthleteDetailScreen() {
                   onPress={() => handleUpdateStatus(status)}
                   style={[
                     styles.optionRow,
-                    entry.status === status && { backgroundColor: `${rosterService.getStatusColor(status)}15` },
+                    entry.status === status && { backgroundColor: withAlpha(rosterService.getStatusColor(status), 0.09) },
                   ].filter(Boolean) as ViewStyle[]}
                 >
                   <View
@@ -681,7 +721,7 @@ export default function AthleteDetailScreen() {
                 onPress={() => handleUpdateFocus(focus)}
                 style={[
                   styles.optionRow,
-                  entry.primaryFocus === focus && { backgroundColor: `${palette.tint}15` },
+                  entry.primaryFocus === focus && { backgroundColor: withAlpha(palette.tint, 0.09) },
                 ].filter(Boolean) as ViewStyle[]}
               >
                 <ThemedText style={{ flex: 1 }}>{focus}</ThemedText>
@@ -756,26 +796,25 @@ const styles = StyleSheet.create({
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
   },
   avatarPlaceholder: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 24,
-    fontWeight: '600',
+    ...Typography.display,
   },
   profileInfo: {
     flex: 1,
     justifyContent: 'center',
   },
   age: {
-    fontSize: 14,
-    marginTop: 2,
+    ...Typography.bodySmall,
+    marginTop: Spacing.micro,
   },
   statusRow: {
     flexDirection: 'row',
@@ -785,28 +824,26 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   levelBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   levelText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -817,10 +854,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statLabel: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   card: {
     gap: Spacing.sm,
@@ -845,7 +882,7 @@ const styles = StyleSheet.create({
   contactButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -867,14 +904,13 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
   tagText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   sessionInfo: {
     gap: Spacing.xs,
@@ -916,7 +952,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   // Emergency Card styles
   emergencyCard: {
@@ -933,7 +969,7 @@ const styles = StyleSheet.create({
   emergencyIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -941,24 +977,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emergencySubtext: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   emergencyAlerts: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,
   },
   moreAlerts: {
-    paddingHorizontal: 6,
-    paddingVertical: 3,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   moreAlertsText: {
-    fontSize: 10,
-    fontWeight: '500',
+    ...Typography.micro,
   },
   emergencyContact: {
     flexDirection: 'row',
@@ -969,7 +1004,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   emergencyContactText: {
-    fontSize: 12,
+    ...Typography.caption,
     flex: 1,
   },
   // Special Needs Section styles
@@ -985,8 +1020,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -1001,11 +1035,11 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   disabilityDesc: {
-    fontSize: 13,
+    ...Typography.small,
     marginLeft: 20,
   },
   supportText: {
-    fontSize: 13,
+    ...Typography.small,
     marginLeft: 20,
     lineHeight: 18,
   },
@@ -1014,20 +1048,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: Spacing.xs,
     marginLeft: 20,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   triggerLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   needItem: {
     paddingLeft: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderLeftWidth: 3,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   needDesc: {
-    fontSize: 13,
+    ...Typography.small,
   },
   coachNote: {
     flexDirection: 'row',
@@ -1035,10 +1068,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   notesText: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
 });

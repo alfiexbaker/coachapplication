@@ -2,13 +2,14 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { EventCard } from '@/components/event/event-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { ClubEvent } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -76,13 +77,13 @@ export default function EventsListScreen() {
   const renderEvent = ({ item }: { item: ClubEvent }) => (
     <EventCard
       event={item}
-      onPress={() => router.push({ pathname: '/events/[id]', params: { id: item.id } })}
+      onPress={() => router.push(Routes.event(item.id))}
     />
   );
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <View style={[styles.emptyIcon, { backgroundColor: `${palette.tint}15` }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
         <Ionicons name="calendar-outline" size={48} color={palette.tint} />
       </View>
       <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -97,7 +98,7 @@ export default function EventsListScreen() {
       </ThemedText>
       {isCoach && (
         <Button
-          onPress={() => router.push('/events/create')}
+          onPress={() => router.push(Routes.EVENTS_CREATE)}
           style={styles.emptyButton}
         >
           Create Event
@@ -120,10 +121,10 @@ export default function EventsListScreen() {
         </View>
         {isCoach && (
           <Clickable
-            onPress={() => router.push('/events/create')}
+            onPress={() => router.push(Routes.EVENTS_CREATE)}
             style={[styles.addButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="add" size={24} color="#FFFFFF" />
+            <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -145,7 +146,7 @@ export default function EventsListScreen() {
             <ThemedText
               style={[
                 styles.filterTabText,
-                { color: filter === f ? '#FFFFFF' : palette.text },
+                { color: filter === f ? Colors.light.onPrimary : palette.text },
               ]}
             >
               {f === 'upcoming' ? 'Upcoming' : f === 'past' ? 'Past' : 'All'}
@@ -187,12 +188,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -209,8 +210,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterTabText: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   listContent: {
     paddingHorizontal: Spacing.lg,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
   },
   emptyButton: {

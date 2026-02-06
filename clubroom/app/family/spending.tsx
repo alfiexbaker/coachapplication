@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, ScrollView, ViewStyle } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,7 +11,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SpendingChart } from '@/components/family/SpendingChart';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -202,7 +203,7 @@ export default function FamilySpendingScreen() {
               <ThemedText
                 style={[
                   styles.filterChipText,
-                  dateFilter === filter ? { color: '#FFFFFF' } : undefined,
+                  dateFilter === filter ? { color: Colors.light.onPrimary } : undefined,
                 ]}
               >
                 {filter === '1m'
@@ -237,7 +238,7 @@ export default function FamilySpendingScreen() {
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
               Recent Sessions
             </ThemedText>
-            <Clickable onPress={() => router.push('/family/calendar')}>
+            <Clickable onPress={() => router.push(Routes.FAMILY_CALENDAR)}>
               <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
                 View All
               </ThemedText>
@@ -284,7 +285,7 @@ export default function FamilySpendingScreen() {
 
       {/* Tips Card */}
       <Animated.View entering={FadeInDown.delay(250).springify()}>
-        <SurfaceCard style={[styles.tipsCard, { backgroundColor: `${palette.tint}08` }]}>
+        <SurfaceCard style={[styles.tipsCard, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <View style={styles.tipsHeader}>
             <Ionicons name="bulb" size={20} color={palette.tint} />
             <ThemedText type="defaultSemiBold" style={styles.tipsTitle}>
@@ -296,7 +297,7 @@ export default function FamilySpendingScreen() {
             Packages are available from most coaches.
           </ThemedText>
           <Clickable
-            onPress={() => router.push('/packages')}
+            onPress={() => router.push(Routes.PACKAGES)}
             style={[styles.tipsButton, { borderColor: palette.tint }]}
           >
             <ThemedText style={[styles.tipsButtonText, { color: palette.tint }]}>
@@ -310,14 +311,14 @@ export default function FamilySpendingScreen() {
       <Animated.View entering={FadeInDown.delay(300).springify()}>
         <View style={styles.quickActions}>
           <Clickable
-            onPress={() => router.push('/(tabs)/wallet')}
+            onPress={() => router.push(Routes.WALLET)}
             style={[styles.actionButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="wallet" size={20} color="#FFFFFF" />
+            <Ionicons name="wallet" size={20} color={Colors.light.onPrimary} />
             <ThemedText style={styles.actionButtonText}>Top Up Wallet</ThemedText>
           </Clickable>
           <Clickable
-            onPress={() => router.push('/family/calendar')}
+            onPress={() => router.push(Routes.FAMILY_CALENDAR)}
             style={[styles.actionButtonSecondary, { borderColor: palette.border }]}
           >
             <Ionicons name="calendar-outline" size={20} color={palette.tint} />
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   comparisonRow: {
     flexDirection: 'row',
@@ -348,27 +349,24 @@ const styles = StyleSheet.create({
   comparisonCard: {
     flex: 1,
     padding: Spacing.md,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   comparisonLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   comparisonValue: {
-    fontSize: 28,
-    fontWeight: '700',
+    ...Typography.display,
   },
   comparisonSubtext: {
-    fontSize: 11,
+    ...Typography.caption,
   },
   trendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   trendText: {
-    fontSize: 11,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   filterRow: {
     flexDirection: 'row',
@@ -382,15 +380,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   filterChipText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   sectionTitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   viewAllText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   transactionsCard: {
     padding: Spacing.md,
@@ -418,19 +414,19 @@ const styles = StyleSheet.create({
   transactionDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   transactionInfo: {
-    gap: 2,
+    gap: Spacing.micro,
   },
   transactionName: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   transactionMeta: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   transactionAmount: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   tipsCard: {
     padding: Spacing.md,
@@ -442,11 +438,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   tipsTitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   tipsText: {
-    fontSize: 13,
-    lineHeight: 20,
+    ...Typography.small,
   },
   tipsButton: {
     alignSelf: 'flex-start',
@@ -457,8 +452,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   tipsButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   quickActions: {
     flexDirection: 'row',
@@ -474,9 +468,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
   actionButtonSecondary: {
     flex: 1,
@@ -489,7 +482,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   actionButtonTextSecondary: {
-    fontSize: 15,
-    fontWeight: '700',
+    ...Typography.bodySemiBold,
   },
 });

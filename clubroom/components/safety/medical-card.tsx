@@ -5,7 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Badge } from '@/components/primitives/badge';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MedicalInfo, EmergencyContact } from '@/constants/types';
 
@@ -64,7 +64,7 @@ export function MedicalCard({
   return (
     <SurfaceCard onPress={onPress} style={styles.card}>
       <View style={styles.header}>
-        <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}>
+        <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
           <Ionicons name="medical" size={20} color={palette.tint} />
         </View>
         <View style={{ flex: 1 }}>
@@ -72,7 +72,7 @@ export function MedicalCard({
             <ThemedText type="defaultSemiBold">{athleteName}</ThemedText>
             {severityBadge && <Badge label={severityBadge.label} tone={severityBadge.tone} />}
           </View>
-          <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+          <ThemedText style={{ ...Typography.small, color: palette.muted }}>
             {hasAnyMedicalInfo ? 'Medical information on file' : 'No medical alerts'}
           </ThemedText>
         </View>
@@ -83,7 +83,7 @@ export function MedicalCard({
         <View style={[styles.content, { borderTopColor: palette.border }]}>
           {hasAllergies && (
             <View style={styles.infoRow}>
-              <View style={[styles.iconBg, { backgroundColor: `${palette.error}10` }]}>
+              <View style={[styles.iconBg, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
                 <Ionicons name="alert-circle" size={14} color={palette.error} />
               </View>
               <View style={{ flex: 1 }}>
@@ -95,7 +95,7 @@ export function MedicalCard({
 
           {hasConditions && (
             <View style={styles.infoRow}>
-              <View style={[styles.iconBg, { backgroundColor: `${palette.warning}10` }]}>
+              <View style={[styles.iconBg, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
                 <Ionicons name="fitness" size={14} color={palette.warning} />
               </View>
               <View style={{ flex: 1 }}>
@@ -107,7 +107,7 @@ export function MedicalCard({
 
           {hasMedications && (
             <View style={styles.infoRow}>
-              <View style={[styles.iconBg, { backgroundColor: `${palette.tint}10` }]}>
+              <View style={[styles.iconBg, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <Ionicons name="medkit" size={14} color={palette.tint} />
               </View>
               <View style={{ flex: 1 }}>
@@ -119,7 +119,7 @@ export function MedicalCard({
 
           {hasRestrictions && (
             <View style={styles.infoRow}>
-              <View style={[styles.iconBg, { backgroundColor: `${palette.muted}20` }]}>
+              <View style={[styles.iconBg, { backgroundColor: withAlpha(palette.muted, 0.12) }]}>
                 <Ionicons name="ban" size={14} color={palette.muted} />
               </View>
               <View style={{ flex: 1 }}>
@@ -143,7 +143,7 @@ export function MedicalCard({
           onPress={onPressContacts}
           style={[styles.contactRow, { borderTopColor: palette.border }]}
         >
-          <View style={[styles.iconBg, { backgroundColor: `${palette.success}10` }]}>
+          <View style={[styles.iconBg, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
             <Ionicons name="call" size={14} color={palette.success} />
           </View>
           <View style={{ flex: 1 }}>
@@ -161,7 +161,7 @@ export function MedicalCard({
       {hasDoctor && (
         <View style={[styles.doctorRow, { borderTopColor: palette.border }]}>
           <Ionicons name="person" size={14} color={palette.muted} />
-          <ThemedText style={{ color: palette.muted, fontSize: 12 }}>
+          <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
             {medical.doctorName}
             {medical.doctorPhone && ` - ${medical.doctorPhone}`}
           </ThemedText>
@@ -210,7 +210,7 @@ export function MedicalSummaryRow({
               styles.summaryTag,
               {
                 backgroundColor:
-                  item.type === 'allergy' ? `${palette.error}10` : `${palette.warning}10`,
+                  item.type === 'allergy' ? withAlpha(palette.error, 0.06) : withAlpha(palette.warning, 0.06),
               },
             ]}
           >
@@ -255,7 +255,7 @@ export function MedicalInfoEmptyState({
 
   return (
     <SurfaceCard style={styles.emptyCard}>
-      <View style={[styles.emptyIcon, { backgroundColor: `${palette.muted}10` }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
         <Ionicons name="medical-outline" size={32} color={palette.muted} />
       </View>
       <ThemedText type="defaultSemiBold">No Medical Information</ThemedText>
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -311,20 +311,14 @@ const styles = StyleSheet.create({
   iconBg: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
-  infoLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748b',
-    marginBottom: 1,
-  },
-  infoValue: {
-    fontSize: 14,
-  },
+  infoLabel: { ...Typography.caption, color: Colors.light.muted,
+    marginBottom: 1 },
+  infoValue: { ...Typography.bodySmall },
   notesBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -334,11 +328,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.02)',
     borderRadius: Radii.sm,
   },
-  notes: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  notes: { ...Typography.small, flex: 1,
+    lineHeight: 18 },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -362,21 +353,16 @@ const styles = StyleSheet.create({
   summaryTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 4,
+    gap: Spacing.xxs,
     alignItems: 'center',
   },
   summaryTag: {
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     paddingHorizontal: Spacing.xs,
     borderRadius: Radii.sm,
   },
-  summaryTagText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  moreText: {
-    fontSize: 11,
-  },
+  summaryTagText: { ...Typography.caption },
+  moreText: { ...Typography.caption },
   emptyCard: {
     alignItems: 'center',
     gap: Spacing.sm,
@@ -385,15 +371,12 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.xs,
   },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 14,
-  },
+  emptyText: { ...Typography.bodySmall, textAlign: 'center' },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',

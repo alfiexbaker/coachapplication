@@ -2,25 +2,67 @@
  * Community Group Service
  *
  * Handles parent group management: CRUD operations, membership,
- * invitations, and role management.
+ * invitations, and role management with full role hierarchy.
+ *
+ * Role hierarchy: OWNER > ADMIN > MODERATOR > MEMBER
  *
  * API Integration Notes:
  * - Groups are persisted via storageService (AsyncStorage in dev, API in prod)
- * - Notifications are triggered on invite/join actions
+ * - Notifications are triggered on invite/join/role-change actions
+ * - Role changes emit typed events via event bus
  */
 
 import {
   ParentGroup,
   GroupType,
   GroupMember,
+  GroupMemberRole,
 } from '@/constants/types';
 import { storageService } from '../storage-service';
 import { notificationService } from '../notification-service';
 import { type Result, type ServiceError, ok, err, notFound, validationError, conflictError, unauthorized } from '@/types/result';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from '../event-bus';
 
 const logger = createLogger('CommunityGroupService');
+
+// ============================================================================
+// ROLE HIERARCHY
+// ============================================================================
+
+/**
+ * Numeric weight for each role. Higher = more authority.
+ */
+const ROLE_WEIGHT: Record<GroupMemberRole, number> = {
+  OWNER: 40,
+  ADMIN: 30,
+  MODERATOR: 20,
+  MEMBER: 10,
+};
+
+/**
+ * Roles that have admin-level privileges (can manage members).
+ */
+const ADMIN_ROLES: GroupMemberRole[] = ['OWNER', 'ADMIN'];
+
+/**
+ * Returns true when `a` outranks `b` in the hierarchy.
+ */
+function outranks(a: GroupMemberRole, b: GroupMemberRole): boolean {
+  return ROLE_WEIGHT[a] > ROLE_WEIGHT[b];
+}
+
+/**
+ * Returns true when the role has admin-level privileges.
+ */
+function isAdminRole(role: GroupMemberRole): boolean {
+  return ADMIN_ROLES.includes(role);
+}
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 // Group invite type
 export interface GroupInvite {
@@ -50,7 +92,17 @@ export interface CreateGroupParams {
   maxMembers?: number;
 }
 
-// Mock data for initial state
+export interface ChangeMemberRoleParams {
+  groupId: string;
+  requesterId: string;
+  memberId: string;
+  newRole: GroupMemberRole;
+}
+
+// ============================================================================
+// MOCK DATA
+// ============================================================================
+
 const mockGroups: ParentGroup[] = [
   {
     id: 'group_1',
@@ -58,7 +110,7 @@ const mockGroups: ParentGroup[] = [
     description: 'Group for parents of U12 squad members',
     type: 'CLUB',
     members: [
-      { parentId: 'parent1', parentName: 'John Henderson', role: 'ADMIN', joinedAt: '2024-01-15' },
+      { parentId: 'parent1', parentName: 'John Henderson', role: 'OWNER', joinedAt: '2024-01-15' },
       { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'MEMBER', joinedAt: '2024-01-16' },
     ],
     createdById: 'parent1',
@@ -77,7 +129,7 @@ const mockGroups: ParentGroup[] = [
     description: 'Coordinate rides to Saturday training sessions',
     type: 'CARPOOL',
     members: [
-      { parentId: 'parent1', parentName: 'John Henderson', role: 'ADMIN', joinedAt: '2024-01-10' },
+      { parentId: 'parent1', parentName: 'John Henderson', role: 'OWNER', joinedAt: '2024-01-10' },
       { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'MEMBER', joinedAt: '2024-01-10' },
     ],
     createdById: 'parent1',
@@ -96,7 +148,7 @@ const mockGroups: ParentGroup[] = [
     type: 'GENERAL',
     members: [
       { parentId: 'parent1', parentName: 'John Henderson', role: 'MEMBER', joinedAt: '2024-01-05' },
-      { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'ADMIN', joinedAt: '2024-01-05' },
+      { parentId: 'parent2', parentName: 'Lisa Wilson', role: 'OWNER', joinedAt: '2024-01-05' },
     ],
     createdById: 'parent2',
     createdByName: 'Lisa Wilson',
@@ -108,6 +160,10 @@ const mockGroups: ParentGroup[] = [
     isPublic: true,
   },
 ];
+
+// ============================================================================
+// SERVICE
+// ============================================================================
 
 class CommunityGroupService {
   private inMemoryGroups: ParentGroup[] = [...mockGroups];
@@ -121,7 +177,7 @@ class CommunityGroupService {
   }
 
   /**
-   * Get all groups that a parent is a member of
+   * Get all groups that a user is a member of
    */
   async getParentGroups(parentId: string): Promise<ParentGroup[]> {
     const allGroups = await this.getAllGroups();
@@ -150,7 +206,8 @@ class CommunityGroupService {
   }
 
   /**
-   * Create a new parent group
+   * Create a new parent group.
+   * The creator is assigned OWNER role.
    */
   async createGroup(params: CreateGroupParams): Promise<ParentGroup> {
     const timestamp = new Date().toISOString();
@@ -159,7 +216,7 @@ class CommunityGroupService {
       {
         parentId: params.creatorId,
         parentName: params.creatorName,
-        role: 'ADMIN',
+        role: 'OWNER',
         joinedAt: timestamp,
       },
       ...params.memberIds.map((id, index) => ({
@@ -193,9 +250,18 @@ class CommunityGroupService {
   }
 
   /**
-   * Join an existing group
+   * Join an existing group.
+   *
+   * When `isCoach` is true the member is always assigned the MEMBER role,
+   * regardless of any other logic, so coaches start at the bottom of the
+   * hierarchy and must be explicitly promoted.
    */
-  async joinGroup(groupId: string, parentId: string, parentName: string): Promise<Result<ParentGroup, ServiceError>> {
+  async joinGroup(
+    groupId: string,
+    parentId: string,
+    parentName: string,
+    options?: { isCoach?: boolean },
+  ): Promise<Result<ParentGroup, ServiceError>> {
     const allGroups = await this.getAllGroups();
 
     const groupIndex = allGroups.findIndex((g) => g.id === groupId);
@@ -220,10 +286,14 @@ class CommunityGroupService {
       return err(unauthorized('Cannot join private group without invitation'));
     }
 
+    // Coaches always join as MEMBER
+    const assignedRole: GroupMemberRole = 'MEMBER';
+    const isCoach = options?.isCoach ?? false;
+
     const newMember: GroupMember = {
       parentId,
       parentName,
-      role: 'MEMBER',
+      role: assignedRole,
       joinedAt: new Date().toISOString(),
     };
 
@@ -232,6 +302,18 @@ class CommunityGroupService {
 
     this.inMemoryGroups = allGroups;
     await this.persistGroups();
+
+    // Emit typed event
+    emitTyped(ServiceEvents.GROUP_MEMBER_JOINED, {
+      groupId,
+      groupName: group.name,
+      memberId: parentId,
+      memberName: parentName,
+      role: assignedRole,
+      isCoach,
+    });
+
+    logger.info('member_joined_group', { groupId, parentId, isCoach, role: assignedRole });
 
     return ok(group);
   }
@@ -254,11 +336,14 @@ class CommunityGroupService {
       return err(notFound('Member', parentId));
     }
 
-    // Check if this is the only admin
-    const isAdmin = group.members[memberIndex].role === 'ADMIN';
-    const adminCount = group.members.filter((m) => m.role === 'ADMIN').length;
+    // Check if this is the only admin/owner
+    const memberRole = group.members[memberIndex].role;
+    const isPrivileged = isAdminRole(memberRole) || memberRole === 'OWNER';
+    const privilegedCount = group.members.filter(
+      (m) => isAdminRole(m.role) || m.role === 'OWNER'
+    ).length;
 
-    if (isAdmin && adminCount === 1 && group.members.length > 1) {
+    if (isPrivileged && privilegedCount === 1 && group.members.length > 1) {
       return err(validationError('Cannot leave group as the only admin. Promote another member first.'));
     }
 
@@ -289,9 +374,9 @@ class CommunityGroupService {
       return err(notFound('Group', groupId));
     }
 
-    // Check if inviter is an admin
+    // Check if inviter has admin privileges
     const inviter = group.members.find((m) => m.parentId === inviterId);
-    if (!inviter || inviter.role !== 'ADMIN') {
+    if (!inviter || !isAdminRole(inviter.role)) {
       return err(unauthorized('Only group admins can invite members'));
     }
 
@@ -423,18 +508,45 @@ class CommunityGroupService {
     return ok(undefined);
   }
 
+  // ============================================================================
+  // ROLE MANAGEMENT (PROMOTION / DEMOTION)
+  // ============================================================================
+
   /**
-   * Promote a member to admin
+   * Legacy promote helper - promotes a member to ADMIN.
+   * Kept for backward compatibility; prefer `changeMemberRole` for granular control.
    */
   async promoteMember(groupId: string, requesterId: string, memberId: string): Promise<Result<void, ServiceError>> {
+    return this.changeMemberRole({ groupId, requesterId, memberId, newRole: 'ADMIN' });
+  }
+
+  /**
+   * Change a member's role within a group.
+   *
+   * Rules enforced:
+   * 1. Requester must have OWNER or ADMIN role.
+   * 2. Cannot change your own role.
+   * 3. Cannot assign a role higher than (or equal to) your own.
+   * 4. Cannot change the role of someone who outranks you.
+   * 5. OWNER role cannot be assigned via this method.
+   *
+   * A notification is sent to the member and a typed event is emitted.
+   */
+  async changeMemberRole(params: ChangeMemberRoleParams): Promise<Result<void, ServiceError>> {
+    const { groupId, requesterId, memberId, newRole } = params;
+
     const group = await this.getGroup(groupId);
     if (!group) {
       return err(notFound('Group', groupId));
     }
 
     const requester = group.members.find((m) => m.parentId === requesterId);
-    if (!requester || requester.role !== 'ADMIN') {
-      return err(unauthorized('Only group admins can promote members'));
+    if (!requester || !isAdminRole(requester.role)) {
+      return err(unauthorized('Only group owners and admins can change member roles'));
+    }
+
+    if (requesterId === memberId) {
+      return err(validationError('Cannot change your own role'));
     }
 
     const member = group.members.find((m) => m.parentId === memberId);
@@ -442,11 +554,111 @@ class CommunityGroupService {
       return err(notFound('Member', memberId));
     }
 
-    member.role = 'ADMIN';
+    // Cannot touch someone who outranks you
+    if (!outranks(requester.role, member.role) && requester.role !== member.role) {
+      return err(unauthorized('Cannot change role of a higher-ranked member'));
+    }
+
+    // Cannot promote to OWNER via this method
+    if (newRole === 'OWNER') {
+      return err(validationError('OWNER role cannot be assigned. Transfer ownership instead.'));
+    }
+
+    // Cannot promote to a role equal to or higher than your own (unless you are OWNER)
+    if (requester.role !== 'OWNER' && ROLE_WEIGHT[newRole] >= ROLE_WEIGHT[requester.role]) {
+      return err(unauthorized('Cannot promote someone to a role equal to or higher than your own'));
+    }
+
+    // Same role – no-op
+    if (member.role === newRole) {
+      return ok(undefined);
+    }
+
+    const previousRole = member.role;
+    member.role = newRole;
     group.updatedAt = new Date().toISOString();
 
     await this.persistGroups();
+
+    // Determine notification text
+    const isPromotion = ROLE_WEIGHT[newRole] > ROLE_WEIGHT[previousRole];
+    const notificationBody = isPromotion
+      ? `You've been promoted to ${newRole} in ${group.name}`
+      : `Your role has been changed to ${newRole} in ${group.name}`;
+
+    // Send notification
+    await notificationService.create({
+      id: `notif_role_change_${Date.now()}`,
+      type: 'community',
+      title: isPromotion ? 'Role Promotion' : 'Role Changed',
+      body: notificationBody,
+      recipientId: memberId,
+      timeLabel: 'Just now',
+      read: false,
+      deepLink: `/community/${groupId}`,
+    });
+
+    // Emit typed event
+    emitTyped(ServiceEvents.GROUP_MEMBER_ROLE_CHANGED, {
+      groupId,
+      groupName: group.name,
+      memberId,
+      memberName: member.parentName,
+      previousRole,
+      newRole,
+      changedById: requesterId,
+    });
+
+    logger.info('member_role_changed', {
+      groupId,
+      memberId,
+      previousRole,
+      newRole,
+      changedBy: requesterId,
+    });
+
     return ok(undefined);
+  }
+
+  /**
+   * Get the role hierarchy weight for display/sorting purposes.
+   */
+  getRoleWeight(role: GroupMemberRole): number {
+    return ROLE_WEIGHT[role];
+  }
+
+  /**
+   * Get assignable roles for a given requester role.
+   * OWNER can assign: ADMIN, MODERATOR, MEMBER
+   * ADMIN can assign: MODERATOR, MEMBER
+   * Others cannot assign.
+   */
+  getAssignableRoles(requesterRole: GroupMemberRole): GroupMemberRole[] {
+    if (requesterRole === 'OWNER') {
+      return ['ADMIN', 'MODERATOR', 'MEMBER'];
+    }
+    if (requesterRole === 'ADMIN') {
+      return ['MODERATOR', 'MEMBER'];
+    }
+    return [];
+  }
+
+  /**
+   * Get a role breakdown for a group (counts per role).
+   */
+  getRoleBreakdown(members: GroupMember[]): Record<GroupMemberRole, number> {
+    const breakdown: Record<GroupMemberRole, number> = {
+      OWNER: 0,
+      ADMIN: 0,
+      MODERATOR: 0,
+      MEMBER: 0,
+    };
+
+    for (const member of members) {
+      breakdown[member.role] = (breakdown[member.role] || 0) + 1;
+    }
+
+    return breakdown;
   }
 
   /**

@@ -8,9 +8,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { comparisonService } from '@/services/comparison-service';
 import type { CoachComparison, ComparisonCriteria } from '@/constants/types';
@@ -71,7 +72,7 @@ export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTablePro
   );
 
   const handleBook = useCallback((coachId: string) => {
-    router.push(`/book/${coachId}/session-type`);
+    router.push(Routes.bookSessionType(coachId));
   }, []);
 
   if (isLoading) {
@@ -138,17 +139,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Spacing.lg,
   },
-  loadingText: {
-    marginTop: Spacing.sm,
-    fontSize: 14,
-  },
-  errorText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  emptyHint: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: Spacing.xs,
-  },
+  loadingText: { ...Typography.bodySmall, marginTop: Spacing.sm },
+  errorText: { ...Typography.bodySmall, textAlign: 'center' },
+  emptyHint: { ...Typography.bodySmall, textAlign: 'center',
+    marginTop: Spacing.xs },
 });

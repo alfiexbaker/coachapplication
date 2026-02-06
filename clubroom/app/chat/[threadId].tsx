@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { MessageBubble } from '@/components/messaging/message-bubble';
 import { ChatInput } from '@/components/messaging/chat-input';
 import { TypingIndicator } from '@/components/messaging/typing-indicator';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
@@ -100,11 +100,11 @@ export default function ChatScreen() {
         ) : null}
       </View>
       {showSafetyBanner && (
-        <View style={[styles.safetyBanner, { backgroundColor: `${palette.warning}10`, borderColor: palette.border }]}>
+        <View style={[styles.safetyBanner, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.border }]}>
           <Ionicons name="shield-checkmark" size={18} color={palette.warning} />
-          <View style={{ flex: 1, gap: 2 }}>
+          <View style={{ flex: 1, gap: Spacing.micro }}>
             <ThemedText type="defaultSemiBold">Stay safe</ThemedText>
-            <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+            <ThemedText style={{ color: palette.muted, ...Typography.small }}>
               Messaging unlocks after a confirmed booking. Report concerns any time.
             </ThemedText>
           </View>
@@ -125,7 +125,7 @@ export default function ChatScreen() {
               style={[
                 styles.postingAsChip,
                 {
-                  backgroundColor: postingAs === option ? `${palette.tint}15` : palette.surface,
+                  backgroundColor: postingAs === option ? withAlpha(palette.tint, 0.09) : palette.surface,
                   borderColor: postingAs === option ? palette.tint : palette.border,
                 },
               ]}>
@@ -175,15 +175,13 @@ const styles = StyleSheet.create({
   },
   chatHeaderInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   chatHeaderName: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   chatSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   chatContent: {
     paddingHorizontal: Spacing.lg,

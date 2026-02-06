@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { RSVPStatus, EventAttendee, ClubEvent } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { eventService } from '@/services/event-service';
@@ -92,7 +92,7 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
 
   const getTextColor = (status: RSVPStatus) => {
     const isSelected = currentRSVP?.status === status;
-    return isSelected ? '#FFFFFF' : palette.text;
+    return isSelected ? palette.onPrimary : palette.text;
   };
 
   const getIcon = (status: RSVPStatus) => {
@@ -108,7 +108,7 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
 
   if (event.status === 'CANCELLED') {
     return (
-      <View style={[styles.cancelledBanner, { backgroundColor: `${palette.error}15` }]}>
+      <View style={[styles.cancelledBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
         <Ionicons name="close-circle" size={20} color={palette.error} />
         <ThemedText style={[styles.cancelledText, { color: palette.error }]}>
           This event has been cancelled
@@ -119,7 +119,7 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
 
   if (rsvpClosed) {
     return (
-      <View style={[styles.closedBanner, { backgroundColor: `${palette.warning}15` }]}>
+      <View style={[styles.closedBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
         <Ionicons name="time" size={20} color={palette.warning} />
         <ThemedText style={[styles.closedText, { color: palette.warning }]}>
           RSVP deadline has passed
@@ -174,7 +174,7 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
 
       {/* Full event warning */}
       {isFull && !currentRSVP && (
-        <View style={[styles.fullBanner, { backgroundColor: `${palette.error}15` }]}>
+        <View style={[styles.fullBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
           <Ionicons name="alert-circle" size={20} color={palette.error} />
           <ThemedText style={[styles.fullText, { color: palette.error }]}>
             This event is at full capacity
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.light.border,
   },
   currentStatusLabel: {
     fontSize: scaleFont(13),
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   currentStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   currentStatusText: {
     fontSize: scaleFont(14),
@@ -331,8 +331,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },

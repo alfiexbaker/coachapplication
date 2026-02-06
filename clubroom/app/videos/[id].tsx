@@ -12,7 +12,7 @@ import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { VideoPlayer, AnnotationTimeline } from '@/components/video/video-player';
 import { AddAnnotationModal, QuickAnnotationBar } from '@/components/video/video-annotation';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
@@ -244,10 +244,10 @@ export default function VideoDetailScreen() {
                   {
                     backgroundColor:
                       video.visibility === 'PRIVATE'
-                        ? `${palette.muted}15`
+                        ? withAlpha(palette.muted, 0.09)
                         : video.visibility === 'SHARED'
-                        ? `${palette.tint}15`
-                        : `${palette.success}15`,
+                        ? withAlpha(palette.tint, 0.09)
+                        : withAlpha(palette.success, 0.09),
                   },
                 ]}
               >
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   videoTitle: {
-    fontSize: 22,
+    ...Typography.title,
   },
   metaRow: {
     flexDirection: 'row',
@@ -415,10 +415,10 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   metaText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   tagsRow: {
     flexDirection: 'row',
@@ -429,19 +429,17 @@ const styles = StyleSheet.create({
   visibilityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   visibilityText: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.caption,
     textTransform: 'uppercase',
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
     marginTop: Spacing.xs,
   },
   actionsCard: {

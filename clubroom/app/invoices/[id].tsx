@@ -16,7 +16,7 @@ import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoicePreview, DownloadButton } from '@/components/invoices';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { invoiceService } from '@/services/invoice-service';
@@ -210,7 +210,7 @@ export default function InvoiceDetailScreen() {
                 style={[styles.actionButton, { backgroundColor: palette.tint }]}
                 onPress={() => setShowSendModal(true)}
               >
-                <Ionicons name="paper-plane-outline" size={18} color="#FFFFFF" />
+                <Ionicons name="paper-plane-outline" size={18} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.actionButtonText}>Send</ThemedText>
               </TouchableOpacity>
             )}
@@ -220,7 +220,7 @@ export default function InvoiceDetailScreen() {
                 style={[styles.actionButton, { backgroundColor: palette.success }]}
                 onPress={handleMarkPaid}
               >
-                <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
+                <Ionicons name="checkmark-circle-outline" size={18} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.actionButtonText}>Mark Paid</ThemedText>
               </TouchableOpacity>
             )}
@@ -289,10 +289,10 @@ export default function InvoiceDetailScreen() {
               disabled={!sendEmail.trim() || actionLoading}
             >
               {actionLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={Colors.light.onPrimary} />
               ) : (
                 <>
-                  <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
+                  <Ionicons name="paper-plane" size={18} color={Colors.light.onPrimary} />
                   <ThemedText style={styles.sendButtonText}>Send Invoice</ThemedText>
                 </>
               )}
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   loadingText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   errorContainer: {
     flex: 1,
@@ -325,8 +325,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   errorText: {
-    fontSize: 16,
-    fontWeight: '500',
+    ...Typography.subheading,
   },
   backButton: {
     paddingVertical: Spacing.sm,
@@ -335,7 +334,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   backButtonText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   actionBar: {
@@ -356,9 +355,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   actionButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+    color: Colors.light.onPrimary,
+    ...Typography.bodySmallSemiBold,
   },
   voidButton: {
     width: 44,
@@ -384,7 +382,7 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -393,15 +391,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   input: {
     height: 48,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   sendButton: {
     flexDirection: 'row',
@@ -413,8 +410,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   sendButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 16,
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

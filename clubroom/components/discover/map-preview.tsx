@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { CoachProfile } from '@/constants/types';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
@@ -51,14 +51,14 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
             styles.searchPill,
             { backgroundColor: palette.tint, opacity: pressed ? 0.85 : 1 },
           ]}>
-          <ThemedText style={[Typography.sm, styles.searchLabel]} lightColor="#ffffff" darkColor="#ffffff">
+          <ThemedText style={[Typography.sm, styles.searchLabel]} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
             Search this area
           </ThemedText>
         </Pressable>
       </View>
       <View style={styles.mapContainer}>
         <View
-          style={[styles.map, { backgroundColor: `${palette.tint}10` }]}
+          style={[styles.map, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
           onLayout={handleLayout}>
           {coaches.map((coach) => {
             if (!size.width || !size.height) {
@@ -83,7 +83,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
                 <Ionicons
                   name={coach.id === selectedCoachId ? 'person' : 'location'}
                   size={coach.id === selectedCoachId ? 16 : 14}
-                  color={coach.id === selectedCoachId ? '#fff' : palette.tint}
+                  color={coach.id === selectedCoachId ? palette.onPrimary : palette.tint}
                 />
               </Pressable>
             );

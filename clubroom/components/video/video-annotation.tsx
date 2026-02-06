@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
@@ -133,14 +133,14 @@ export function AddAnnotationModal({
                     style={[
                       styles.typeButton,
                       {
-                        backgroundColor: isSelected ? `${annotationType.color}15` : palette.surface,
+                        backgroundColor: isSelected ? withAlpha(annotationType.color, 0.09) : palette.surface,
                         borderColor: isSelected ? annotationType.color : palette.border,
                       },
                     ]}
                   >
-                    <View style={[styles.typeIcon, { backgroundColor: `${annotationType.color}20` }]}>
+                    <View style={[styles.typeIcon, { backgroundColor: withAlpha(annotationType.color, 0.12) }]}>
                       <Ionicons
-                        name={annotationType.icon as any}
+                        name={annotationType.icon as keyof typeof Ionicons.glyphMap}
                         size={18}
                         color={annotationType.color}
                       />
@@ -214,7 +214,7 @@ export function AddAnnotationModal({
               style={[
                 styles.previewCard,
                 {
-                  backgroundColor: `${selectedTypeConfig.color}10`,
+                  backgroundColor: withAlpha(selectedTypeConfig.color, 0.06),
                   borderColor: selectedTypeConfig.color,
                 },
               ]}
@@ -230,7 +230,7 @@ export function AddAnnotationModal({
                   </ThemedText>
                 </View>
                 {note ? (
-                  <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                  <ThemedText style={{ ...Typography.small, color: palette.muted }}>
                     {note}
                   </ThemedText>
                 ) : null}
@@ -268,7 +268,7 @@ export function AnnotationBadge({ annotation, onPress, compact = false }: Annota
         onPress={onPress}
         style={[styles.compactBadge, { backgroundColor: typeConfig.color }]}
       >
-        <Ionicons name={typeConfig.icon as any} size={10} color="#fff" />
+        <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={10} color="#fff" />
       </Clickable>
     );
   }
@@ -310,11 +310,11 @@ export function QuickAnnotationBar({ onAdd, disabled = false }: QuickAnnotationB
             disabled={disabled}
             style={[
               styles.quickButton,
-              { backgroundColor: `${type.color}15`, opacity: disabled ? 0.5 : 1 },
+              { backgroundColor: withAlpha(type.color, 0.09), opacity: disabled ? 0.5 : 1 },
             ]}
           >
-            <Ionicons name={type.icon as any} size={16} color={type.color} />
-            <ThemedText style={{ color: type.color, fontSize: 12, fontWeight: '600' }}>
+            <Ionicons name={type.icon as keyof typeof Ionicons.glyphMap} size={16} color={type.color} />
+            <ThemedText style={ { color: type.color, ...Typography.caption }}>
               {type.label}
             </ThemedText>
           </Clickable>
@@ -350,17 +350,11 @@ const styles = StyleSheet.create({
   timestampInfo: {
     flex: 1,
   },
-  timestampLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  timestampLabel: { ...Typography.caption },
   section: {
     gap: Spacing.sm,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  sectionTitle: { ...Typography.bodySmallSemiBold },
   typesRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -377,33 +371,21 @@ const styles = StyleSheet.create({
   typeIcon: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  typeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  input: {
-    height: 48,
+  typeLabel: { ...Typography.caption },
+  input: { ...Typography.subheading, height: 48,
     borderWidth: 1,
     borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 80,
+    paddingHorizontal: Spacing.md },
+  textArea: { ...Typography.body, height: 80,
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
-    textAlignVertical: 'top',
-  },
-  charCount: {
-    fontSize: 11,
-    textAlign: 'right',
-  },
+    textAlignVertical: 'top' },
+  charCount: { ...Typography.caption, textAlign: 'right' },
   previewCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -415,26 +397,23 @@ const styles = StyleSheet.create({
   previewDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    marginTop: 4,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.xxs,
   },
   previewContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   previewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  previewTime: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  previewTime: { ...Typography.caption },
   compactBadge: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -450,25 +429,17 @@ const styles = StyleSheet.create({
   badgeDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  badgeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  badgeTime: {
-    fontSize: 11,
-  },
+  badgeLabel: { ...Typography.caption },
+  badgeTime: { ...Typography.caption },
   quickBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
   },
-  quickBarLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  quickBarLabel: { ...Typography.caption },
   quickButtons: {
     flexDirection: 'row',
     gap: Spacing.xs,

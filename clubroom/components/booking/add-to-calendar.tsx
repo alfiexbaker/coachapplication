@@ -28,7 +28,7 @@ import {
 } from 'react-native';
 import * as Calendar from 'expo-calendar';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Components } from '@/constants/theme';
+import { Colors, Spacing, Components , Typography , withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 
 // ---------------------------------------------------------------------------
@@ -92,8 +92,8 @@ async function getDefaultCalendarId(): Promise<string | null> {
 
   // Android: use the first writable calendar
   if (Platform.OS === 'android') {
-    const any = calendars.find((cal) => cal.allowsModifications);
-    if (any) return any.id;
+    const writableCalendar = calendars.find((cal) => cal.allowsModifications);
+    if (writableCalendar) return writableCalendar.id;
   }
 
   return null;
@@ -221,17 +221,13 @@ const styles = StyleSheet.create({
   },
   buttonPressed: {
     opacity: 0.8,
-    backgroundColor: `${Colors.light.tint}08`,
+    backgroundColor: withAlpha(Colors.light.tint, 0.03),
   },
   buttonAdded: {
     borderColor: Colors.light.success,
-    backgroundColor: `${Colors.light.success}10`,
+    backgroundColor: withAlpha(Colors.light.success, 0.06),
   },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.light.tint,
-  },
+  buttonText: { ...Typography.bodySemiBold, color: Colors.light.tint },
   buttonTextAdded: {
     color: Colors.light.success,
   },

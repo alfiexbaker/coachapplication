@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
@@ -51,7 +51,7 @@ export function SessionOfferingCard({
             {offering.title}
           </ThemedText>
           {offering.sessionType === 'group' && (
-            <View style={[styles.typeBadge, { backgroundColor: `${palette.accent}15` }]}>
+            <View style={[styles.typeBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
               <Ionicons name="people" size={12} color={palette.accent} />
               <ThemedText style={[styles.typeBadgeText, { color: palette.accent }]}>
                 Group
@@ -59,7 +59,7 @@ export function SessionOfferingCard({
             </View>
           )}
           {offering.sessionType === '1on1' && (
-            <View style={[styles.typeBadge, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.typeBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="person" size={12} color={palette.tint} />
               <ThemedText style={[styles.typeBadgeText, { color: palette.tint }]}>
                 1:1
@@ -113,7 +113,7 @@ export function SessionOfferingCard({
 
         {showCapacity && offering.sessionType === 'group' && (
           <View style={[styles.capacityBadge, {
-            backgroundColor: isFull ? `${palette.error}15` : `${palette.success}15`
+            backgroundColor: isFull ? withAlpha(palette.error, 0.09) : withAlpha(palette.success, 0.09)
           }]}>
             <ThemedText style={[styles.capacityText, {
               color: isFull ? palette.error : palette.success
@@ -131,7 +131,7 @@ export function SessionOfferingCard({
       </View>
 
       {isFull && offering.status === 'active' && (
-        <View style={[styles.fullOverlay, { backgroundColor: `${palette.error}10` }]}>
+        <View style={[styles.fullOverlay, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
           <ThemedText style={[styles.fullText, { color: palette.error }]}>
             Session Full
           </ThemedText>
@@ -173,15 +173,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontWeight: '500',
     lineHeight: scaleFont(21),
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
+    borderRadius: Radii.sm,
   },
   typeBadgeText: {
     fontSize: scaleFont(12),
@@ -192,13 +192,13 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(15),
     opacity: 0.7,
     lineHeight: scaleFont(22),
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   detailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    marginTop: 6,
+    marginTop: Spacing.xxs,
   },
   detailItem: {
     flexDirection: 'row',
@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   ageBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
   },
   ageText: {
     fontSize: scaleFont(13),
@@ -230,9 +230,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   capacityBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
   },
   capacityText: {
     fontSize: scaleFont(13),

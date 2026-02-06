@@ -9,7 +9,7 @@ import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Components, Borders } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components, Borders , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface FilterChipProps {
@@ -60,7 +60,7 @@ export function FilterChip({
         styles.chip,
         {
           height,
-          backgroundColor: active ? `${palette.tint}15` : palette.surface,
+          backgroundColor: active ? withAlpha(palette.tint, 0.09) : palette.surface,
           borderColor: active ? palette.tint : palette.border,
           opacity: pressed ? 0.8 : disabled ? 0.5 : 1,
         },
@@ -69,7 +69,7 @@ export function FilterChip({
     >
       {icon && (
         <Ionicons
-          name={(active ? icon.replace('-outline', '') : icon) as any}
+          name={(active ? icon.replace('-outline', '') : icon) as keyof typeof Ionicons.glyphMap}
           size={iconSize}
           color={active ? palette.tint : palette.muted}
         />
@@ -114,9 +114,7 @@ const styles = StyleSheet.create({
     ...Typography.small,
     fontWeight: '500',
   },
-  labelSm: {
-    fontSize: 12,
-  },
+  labelSm: { ...Typography.caption },
   labelActive: {
     fontWeight: '600',
   },

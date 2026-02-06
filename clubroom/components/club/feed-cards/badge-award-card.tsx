@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface BadgeAwardData {
@@ -28,7 +28,7 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  const celebratoryBg = `${palette.warning}10`;
+  const celebratoryBg = withAlpha(palette.warning, 0.06);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -56,7 +56,7 @@ export function BadgeAwardCard({ data, onLike, onComment, onPress }: BadgeAwardC
 
       {/* Badge display */}
       <View style={styles.badgeContainer}>
-        <View style={[styles.trophyCircle, { backgroundColor: `${palette.warning}20` }]}>
+        <View style={[styles.trophyCircle, { backgroundColor: withAlpha(palette.warning, 0.12) }]}>
           <Ionicons name="trophy" size={Components.icon.xl} color={palette.warning} />
         </View>
         <View style={styles.badgeInfo}>
@@ -127,13 +127,13 @@ const styles = StyleSheet.create({
   trophyCircle: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   badgeName: {
     ...Typography.heading,

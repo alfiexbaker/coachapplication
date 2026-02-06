@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUserById } from '@/constants/mock-data';
 import { childService, type ChildProfile } from '@/services/child-service';
@@ -76,7 +76,7 @@ export default function SpecialNeedsScreen() {
       {/* Athlete Header */}
       <SurfaceCard style={styles.heroCard}>
         <View style={styles.heroRow}>
-          <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
             <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
               {athlete.avatar || athlete.name.charAt(0)}
             </ThemedText>
@@ -94,15 +94,15 @@ export default function SpecialNeedsScreen() {
 
       {/* Quick Stats */}
       <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: palette.warning + '10' }]}>
+        <View style={[styles.statCard, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
           <ThemedText style={[styles.statNumber, { color: palette.warning }]}>{disabilityCount}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.warning }]}>Disabilities</ThemedText>
         </View>
-        <View style={[styles.statCard, { backgroundColor: palette.tint + '10' }]}>
+        <View style={[styles.statCard, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
           <ThemedText style={[styles.statNumber, { color: palette.tint }]}>{specialNeedsCount}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.tint }]}>Special Needs</ThemedText>
         </View>
-        <View style={[styles.statCard, { backgroundColor: palette.error + '10' }]}>
+        <View style={[styles.statCard, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
           <ThemedText style={[styles.statNumber, { color: palette.error }]}>{allergyCount}</ThemedText>
           <ThemedText style={[styles.statLabel, { color: palette.error }]}>Allergies</ThemedText>
         </View>
@@ -112,7 +112,7 @@ export default function SpecialNeedsScreen() {
       {childProfile && childProfile.disabilities.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: palette.warning + '15' }]}>
+            <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
               <Ionicons name="alert-circle" size={Components.icon.md} color={palette.warning} />
             </View>
             <ThemedText type="heading">Disabilities</ThemedText>
@@ -125,7 +125,7 @@ export default function SpecialNeedsScreen() {
                   {disability.type}
                 </ThemedText>
                 {disability.diagnosisDate && (
-                  <View style={[styles.dateBadge, { backgroundColor: palette.muted + '15' }]}>
+                  <View style={[styles.dateBadge, { backgroundColor: withAlpha(palette.muted, 0.09) }]}>
                     <ThemedText style={[styles.dateText, { color: palette.muted }]}>
                       Since {disability.diagnosisDate.split('-')[0]}
                     </ThemedText>
@@ -140,7 +140,7 @@ export default function SpecialNeedsScreen() {
               )}
 
               {disability.supportRequired && (
-                <View style={[styles.infoBlock, { backgroundColor: palette.tint + '08' }]}>
+                <View style={[styles.infoBlock, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
                   <View style={styles.infoHeader}>
                     <Ionicons name="hand-left" size={Components.icon.sm} color={palette.tint} />
                     <ThemedText style={[styles.infoLabel, { color: palette.tint }]}>Support Required</ThemedText>
@@ -157,7 +157,7 @@ export default function SpecialNeedsScreen() {
                   </View>
                   <View style={styles.tagList}>
                     {disability.communicationPreferences.map((pref, idx) => (
-                      <View key={idx} style={[styles.tag, { backgroundColor: palette.success + '15' }]}>
+                      <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                         <ThemedText style={[styles.tagText, { color: palette.success }]}>{pref}</ThemedText>
                       </View>
                     ))}
@@ -173,7 +173,7 @@ export default function SpecialNeedsScreen() {
                   </View>
                   <View style={styles.tagList}>
                     {disability.triggers.map((trigger, idx) => (
-                      <View key={idx} style={[styles.tag, { backgroundColor: palette.error + '15' }]}>
+                      <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                         <ThemedText style={[styles.tagText, { color: palette.error }]}>{trigger}</ThemedText>
                       </View>
                     ))}
@@ -189,7 +189,7 @@ export default function SpecialNeedsScreen() {
                   </View>
                   <View style={styles.tagList}>
                     {disability.calmingStrategies.map((strategy, idx) => (
-                      <View key={idx} style={[styles.tag, { backgroundColor: palette.tint + '15' }]}>
+                      <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                         <ThemedText style={[styles.tagText, { color: palette.tint }]}>{strategy}</ThemedText>
                       </View>
                     ))}
@@ -205,7 +205,7 @@ export default function SpecialNeedsScreen() {
       {childProfile && childProfile.specialNeeds.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: palette.tint + '15' }]}>
+            <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="accessibility" size={Components.icon.md} color={palette.tint} />
             </View>
             <ThemedText type="heading">Accommodations</ThemedText>
@@ -219,9 +219,9 @@ export default function SpecialNeedsScreen() {
                 </ThemedText>
                 {need.severity && (
                   <View style={[styles.severityBadge, {
-                    backgroundColor: need.severity === 'SEVERE' ? palette.error + '15'
-                      : need.severity === 'MODERATE' ? palette.warning + '15'
-                      : palette.success + '15'
+                    backgroundColor: need.severity === 'SEVERE' ? withAlpha(palette.error, 0.09)
+                      : need.severity === 'MODERATE' ? withAlpha(palette.warning, 0.09)
+                      : withAlpha(palette.success, 0.09)
                   }]}>
                     <ThemedText style={[styles.severityText, {
                       color: need.severity === 'SEVERE' ? palette.error
@@ -252,7 +252,7 @@ export default function SpecialNeedsScreen() {
               )}
 
               {need.coachNotes && (
-                <View style={[styles.coachNote, { backgroundColor: palette.warning + '08', borderColor: palette.warning + '30' }]}>
+                <View style={[styles.coachNote, { backgroundColor: withAlpha(palette.warning, 0.03), borderColor: withAlpha(palette.warning, 0.19) }]}>
                   <Ionicons name="bulb" size={Components.icon.sm} color={palette.warning} />
                   <ThemedText style={styles.coachNoteText}>{need.coachNotes}</ThemedText>
                 </View>
@@ -266,7 +266,7 @@ export default function SpecialNeedsScreen() {
       {childProfile && (childProfile.communicationNotes || childProfile.behavioralNotes) && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: palette.success + '15' }]}>
+            <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
               <Ionicons name="chatbubbles" size={Components.icon.md} color={palette.success} />
             </View>
             <ThemedText type="heading">Coach Notes</ThemedText>
@@ -298,21 +298,21 @@ export default function SpecialNeedsScreen() {
       {childProfile && (childProfile.allergies.length > 0 || childProfile.medications.length > 0) && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={[styles.sectionIcon, { backgroundColor: palette.error + '15' }]}>
+            <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
               <Ionicons name="medkit" size={Components.icon.md} color={palette.error} />
             </View>
             <ThemedText type="heading">Medical Alerts</ThemedText>
           </View>
 
           {childProfile.allergies.length > 0 && (
-            <SurfaceCard style={[styles.medicalCard, { borderColor: palette.error + '30' }]}>
+            <SurfaceCard style={[styles.medicalCard, { borderColor: withAlpha(palette.error, 0.19) }]}>
               <View style={styles.medicalHeader}>
                 <Ionicons name="warning" size={Components.icon.sm} color={palette.error} />
                 <ThemedText style={[styles.medicalLabel, { color: palette.error }]}>Allergies</ThemedText>
               </View>
               <View style={styles.tagList}>
                 {childProfile.allergies.map((allergy, idx) => (
-                  <View key={idx} style={[styles.tag, { backgroundColor: palette.error + '15' }]}>
+                  <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                     <ThemedText style={[styles.tagText, { color: palette.error }]}>{allergy}</ThemedText>
                   </View>
                 ))}
@@ -321,14 +321,14 @@ export default function SpecialNeedsScreen() {
           )}
 
           {childProfile.medications.length > 0 && (
-            <SurfaceCard style={[styles.medicalCard, { borderColor: palette.warning + '30' }]}>
+            <SurfaceCard style={[styles.medicalCard, { borderColor: withAlpha(palette.warning, 0.19) }]}>
               <View style={styles.medicalHeader}>
                 <Ionicons name="medical" size={Components.icon.sm} color={palette.warning} />
                 <ThemedText style={[styles.medicalLabel, { color: palette.warning }]}>Medications</ThemedText>
               </View>
               <View style={styles.tagList}>
                 {childProfile.medications.map((med, idx) => (
-                  <View key={idx} style={[styles.tag, { backgroundColor: palette.warning + '15' }]}>
+                  <View key={idx} style={[styles.tag, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                     <ThemedText style={[styles.tagText, { color: palette.warning }]}>{med}</ThemedText>
                   </View>
                 ))}
@@ -341,7 +341,7 @@ export default function SpecialNeedsScreen() {
       {/* Empty State */}
       {(!childProfile || totalCount === 0) && !loading && (
         <SurfaceCard style={styles.emptyCard}>
-          <View style={[styles.emptyIcon, { backgroundColor: palette.muted + '10' }]}>
+          <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
             <Ionicons name="accessibility-outline" size={Components.icon.xl} color={palette.muted} />
           </View>
           <ThemedText type="heading" style={{ textAlign: 'center' }}>No Special Needs</ThemedText>
@@ -367,8 +367,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   headerTitle: {
-    ...Typography.lg,
-    fontWeight: '600',
+    ...Typography.heading,
   },
 
   // Hero
@@ -482,7 +481,6 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     ...Typography.caption,
-    fontWeight: '600',
   },
   infoText: {
     ...Typography.small,
@@ -499,7 +497,6 @@ const styles = StyleSheet.create({
   },
   tagLabel: {
     ...Typography.caption,
-    fontWeight: '600',
   },
   tagList: {
     flexDirection: 'row',
@@ -513,7 +510,6 @@ const styles = StyleSheet.create({
   },
   tagText: {
     ...Typography.caption,
-    fontWeight: '500',
   },
 
   // Accommodations
@@ -557,7 +553,6 @@ const styles = StyleSheet.create({
   },
   noteLabel: {
     ...Typography.caption,
-    fontWeight: '600',
   },
   noteText: {
     ...Typography.small,
@@ -576,7 +571,6 @@ const styles = StyleSheet.create({
   },
   medicalLabel: {
     ...Typography.caption,
-    fontWeight: '600',
   },
 
   // Empty

@@ -9,7 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { BadgeSectionGrid, BadgeStats } from '@/components/badges/badge-grid';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { badgeService, AllBadgeWithProgress } from '@/services/badge-service';
@@ -191,7 +191,7 @@ export default function AllBadgesScreen() {
                 style={[
                   styles.filterTab,
                   isActive && {
-                    backgroundColor: `${palette.tint}12`,
+                    backgroundColor: withAlpha(palette.tint, 0.07),
                     borderColor: palette.tint,
                   },
                   !isActive && { borderColor: palette.border },
@@ -213,7 +213,7 @@ export default function AllBadgesScreen() {
                 <View
                   style={[
                     styles.filterCount,
-                    { backgroundColor: isActive ? `${palette.tint}20` : `${palette.muted}15` },
+                    { backgroundColor: isActive ? withAlpha(palette.tint, 0.12) : withAlpha(palette.muted, 0.09) },
                   ]}
                 >
                   <ThemedText
@@ -305,24 +305,22 @@ const styles = StyleSheet.create({
   filterTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
   filterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   filterCount: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   filterCountText: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...Typography.caption,
   },
   loadingCard: {
     padding: Spacing.xl,
@@ -336,11 +334,11 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
     textAlign: 'center',
   },
   emptySubtitle: {
-    fontSize: 13,
+    ...Typography.small,
     textAlign: 'center',
     maxWidth: 260,
   },
@@ -349,7 +347,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   legendTitle: {
-    fontSize: 13,
+    ...Typography.small,
   },
   legendRow: {
     flexDirection: 'row',
@@ -358,14 +356,14 @@ const styles = StyleSheet.create({
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   legendDot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
   legendText: {
-    fontSize: 11,
+    ...Typography.caption,
   },
 });

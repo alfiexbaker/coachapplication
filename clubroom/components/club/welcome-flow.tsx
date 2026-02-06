@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -148,7 +148,7 @@ export function WelcomeFlow({
       >
         {steps.map((step) => (
           <View key={step.key} style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-            <View style={[styles.iconCircle, { backgroundColor: `${brandColor}15` }]}>
+            <View style={[styles.iconCircle, { backgroundColor: withAlpha(brandColor, 0.09) }]}>
               <Ionicons name={step.icon} size={48} color={brandColor} />
             </View>
             <ThemedText style={[styles.stepTitle, { color: palette.text }]}>{step.title}</ThemedText>
@@ -236,7 +236,7 @@ export function WelcomeFlow({
             {isLastStep ? 'Get Started' : 'Next'}
           </ThemedText>
           {!isLastStep ? (
-            <Ionicons name="arrow-forward" size={Components.icon.md} color="#FFFFFF" />
+            <Ionicons name="arrow-forward" size={Components.icon.md} color={palette.onPrimary} />
           ) : null}
         </Clickable>
       </View>
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -323,6 +323,6 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     ...Typography.bodySemiBold,
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
   },
 });

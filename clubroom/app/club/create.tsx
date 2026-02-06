@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Club, ClubMembership } from '@/constants/types';
@@ -83,10 +84,7 @@ export default function CreateClubScreen() {
       logger.success('ClubCreated', { clubId, inviteCode });
 
       // Navigate to the new club
-      router.replace({
-        pathname: '/club/[id]',
-        params: { id: clubId, isNew: 'true' },
-      });
+      router.replace(Routes.club(clubId));
     } catch (error) {
       logger.error('CreateClubFailed', error);
     } finally {
@@ -114,7 +112,7 @@ export default function CreateClubScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <SurfaceCard style={styles.infoCard}>
-            <View style={[styles.iconCircle, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="people" size={32} color={palette.tint} />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.infoTitle}>
@@ -224,7 +222,7 @@ export default function CreateClubScreen() {
               Preview
             </ThemedText>
             <View style={styles.previewContent}>
-              <View style={[styles.previewBadge, { backgroundColor: `${palette.tint}20` }]}>
+              <View style={[styles.previewBadge, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <ThemedText style={[styles.previewBadgeText, { color: palette.tint }]}>
                   {badge || name.slice(0, 3).toUpperCase() || 'ABC'}
                 </ThemedText>
@@ -257,7 +255,7 @@ export default function CreateClubScreen() {
               { icon: 'ribbon-outline', text: 'Award badges and track progress' },
             ].map((item, index) => (
               <View key={index} style={styles.featureRow}>
-                <Ionicons name={item.icon as any} size={20} color={palette.tint} />
+                <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
                 <ThemedText style={styles.featureText}>{item.text}</ThemedText>
               </View>
             ))}
@@ -277,7 +275,7 @@ export default function CreateClubScreen() {
               <ThemedText style={styles.createButtonText}>Creating...</ThemedText>
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                <Ionicons name="checkmark-circle" size={20} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.createButtonText}>Create Club</ThemedText>
               </>
             )}
@@ -303,7 +301,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   content: {
     padding: Spacing.lg,
@@ -318,39 +316,37 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   infoTitle: {
-    fontSize: 18,
+    ...Typography.heading,
     textAlign: 'center',
   },
   infoText: {
     textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   formSection: {
     gap: Spacing.md,
   },
   sectionLabel: {
-    fontSize: 16,
+    ...Typography.subheading,
     marginBottom: Spacing.xs,
   },
   inputGroup: {
     gap: Spacing.xs,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   row: {
     flexDirection: 'row',
@@ -360,7 +356,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   previewLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   previewContent: {
     flexDirection: 'row',
@@ -370,32 +366,31 @@ const styles = StyleSheet.create({
   previewBadge: {
     width: 56,
     height: 56,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   previewBadgeText: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.subheading,
   },
   previewDetails: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   previewName: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   previewTagline: {
-    fontSize: 13,
+    ...Typography.small,
   },
   previewLocation: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   features: {
     gap: Spacing.sm,
   },
   featuresTitle: {
-    fontSize: 15,
+    ...Typography.body,
     marginBottom: Spacing.xs,
   },
   featureRow: {
@@ -404,7 +399,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   featureText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   footer: {
     position: 'absolute',
@@ -423,8 +418,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -28,20 +28,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     gap: Spacing.sm,
   },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
+  eyebrow: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 1.2 },
   title: {
+    ...Typography.display,
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: -1,
   },
-  subtitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '500',
-  },
+  subtitle: { ...Typography.subheading, lineHeight: 24,
+    fontWeight: '500' },
 });

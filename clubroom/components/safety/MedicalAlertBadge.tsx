@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type AlertType = 'allergy' | 'condition' | 'medication' | 'restriction';
@@ -34,25 +34,25 @@ export function MedicalAlertBadge({
         return {
           icon: 'alert-circle' as const,
           color: palette.error,
-          bgColor: `${palette.error}12`,
+          bgColor: withAlpha(palette.error, 0.07),
         };
       case 'condition':
         return {
           icon: 'fitness' as const,
           color: palette.warning,
-          bgColor: `${palette.warning}12`,
+          bgColor: withAlpha(palette.warning, 0.07),
         };
       case 'medication':
         return {
           icon: 'medkit' as const,
           color: palette.tint,
-          bgColor: `${palette.tint}12`,
+          bgColor: withAlpha(palette.tint, 0.07),
         };
       case 'restriction':
         return {
           icon: 'ban' as const,
           color: palette.muted,
-          bgColor: `${palette.muted}15`,
+          bgColor: withAlpha(palette.muted, 0.09),
         };
     }
   };
@@ -61,23 +61,17 @@ export function MedicalAlertBadge({
 
   const sizeStyles = {
     small: {
-      paddingHorizontal: 6,
-      paddingVertical: 3,
+      ...Typography.micro,
+      paddingHorizontal: Spacing.xxs,
+      paddingVertical: Spacing.micro,
       iconSize: 10,
-      fontSize: 10,
     },
-    medium: {
-      paddingHorizontal: Spacing.xs,
-      paddingVertical: 4,
-      iconSize: 12,
-      fontSize: 12,
-    },
-    large: {
-      paddingHorizontal: Spacing.sm,
-      paddingVertical: 6,
-      iconSize: 14,
-      fontSize: 14,
-    },
+    medium: { ...Typography.caption, paddingHorizontal: Spacing.xs,
+      paddingVertical: Spacing.xxs,
+      iconSize: 12 },
+    large: { ...Typography.bodySmall, paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.xxs,
+      iconSize: 14 },
   };
 
   const sizeConfig = sizeStyles[size];
@@ -163,7 +157,7 @@ export function MedicalAlertRow({
 
   const content = (
     <View style={styles.row}>
-      <View style={[styles.rowIcon, { backgroundColor: `${config.color}12` }]}>
+      <View style={[styles.rowIcon, { backgroundColor: withAlpha(config.color, 0.07) }]}>
         <Ionicons name={config.icon} size={16} color={config.color} />
       </View>
       <View style={styles.rowContent}>
@@ -266,7 +260,7 @@ export function AlertCountBadge({
   const color = getColor();
 
   return (
-    <View style={[styles.countBadge, { backgroundColor: `${color}15` }]}>
+    <View style={[styles.countBadge, { backgroundColor: withAlpha(color, 0.09) }]}>
       <ThemedText style={[styles.countText, { color }]}>{count}</ThemedText>
     </View>
   );
@@ -276,7 +270,7 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     borderRadius: Radii.md,
   },
   label: {
@@ -291,34 +285,24 @@ const styles = StyleSheet.create({
   rowIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   rowContent: {
     flex: 1,
   },
-  rowTypeLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  rowDescription: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  rowTypeLabel: { ...Typography.micro, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
+  rowDescription: { ...Typography.caption, marginTop: Spacing.micro },
   dot: {},
   countBadge: {
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 5,
   },
-  countText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  countText: { ...Typography.caption },
 });

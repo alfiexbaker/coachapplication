@@ -86,7 +86,7 @@ function ShimmerBlock({
     <Animated.View
       style={[
         {
-          width: width as any,
+          width: width as number | `${number}%`,
           height,
           borderRadius,
           backgroundColor,

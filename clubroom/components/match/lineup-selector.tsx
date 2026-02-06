@@ -3,7 +3,7 @@ import { StyleSheet, View, TouchableOpacity, ScrollView, Alert } from 'react-nat
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Match, MatchPlayer } from '@/constants/types';
 import { matchService } from '@/services/match-service';
@@ -114,8 +114,8 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
         style={[
           styles.playerRow,
           { borderColor: palette.border },
-          isSelected ? { backgroundColor: `${palette.tint}10`, borderColor: palette.tint } : undefined,
-          isReserve ? { backgroundColor: `${palette.warning}10`, borderColor: palette.warning } : undefined,
+          isSelected ? { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint } : undefined,
+          isReserve ? { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning } : undefined,
         ]}
         onPress={() => togglePlayerSelection(player)}
       >
@@ -123,7 +123,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
           <View
             style={[
               styles.playerAvatar,
-              { backgroundColor: `${statusColor}15` },
+              { backgroundColor: withAlpha(statusColor, 0.09) },
             ]}
           >
             <ThemedText style={[styles.avatarText, { color: statusColor }]}>
@@ -143,7 +143,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
         <View style={styles.selectionIndicator}>
           {isSelected && (
             <View style={[styles.checkCircle, { backgroundColor: palette.tint }]}>
-              <Ionicons name="checkmark" size={14} color="#fff" />
+              <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
             </View>
           )}
           {isReserve && (
@@ -210,7 +210,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
                 style={[styles.playerRow, styles.disabledRow, { borderColor: palette.border }]}
               >
                 <View style={styles.playerInfo}>
-                  <View style={[styles.playerAvatar, { backgroundColor: `${palette.warning}15` }]}>
+                  <View style={[styles.playerAvatar, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                     <ThemedText style={[styles.avatarText, { color: palette.warning }]}>
                       {player.athleteName.slice(0, 2).toUpperCase()}
                     </ThemedText>
@@ -241,7 +241,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
                 style={[styles.playerRow, styles.disabledRow, { borderColor: palette.border }]}
               >
                 <View style={styles.playerInfo}>
-                  <View style={[styles.playerAvatar, { backgroundColor: `${palette.error}15` }]}>
+                  <View style={[styles.playerAvatar, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                     <ThemedText style={[styles.avatarText, { color: palette.error }]}>
                       {player.athleteName.slice(0, 2).toUpperCase()}
                     </ThemedText>
@@ -277,7 +277,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
             <ThemedText style={styles.submitText}>Setting Lineup...</ThemedText>
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={20} color="#fff" />
+              <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
               <ThemedText style={styles.submitText}>
                 Confirm Lineup ({selectedForLineup.length} players, {reserves.length} reserves)
               </ThemedText>
@@ -303,10 +303,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  summaryLabel: {
-    fontSize: 12,
-    marginBottom: 2,
-  },
+  summaryLabel: { ...Typography.caption, marginBottom: Spacing.micro },
   summaryDivider: {
     width: 1,
     height: '100%',
@@ -326,7 +323,7 @@ const styles = StyleSheet.create({
   sectionDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   playerRow: {
     flexDirection: 'row',
@@ -349,24 +346,16 @@ const styles = StyleSheet.create({
   playerAvatar: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  avatarText: { ...Typography.bodySmallSemiBold },
   playerDetails: {
     flex: 1,
   },
-  positionText: {
-    fontSize: 12,
-  },
-  noteText: {
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
+  positionText: { ...Typography.caption },
+  noteText: { ...Typography.caption, fontStyle: 'italic' },
   selectionIndicator: {
     width: 28,
     alignItems: 'center',
@@ -374,19 +363,15 @@ const styles = StyleSheet.create({
   checkCircle: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reserveText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  reserveText: { ...Typography.caption, color: Colors.light.onPrimary },
   emptyCircle: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
   },
   footer: {
@@ -404,9 +389,5 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-  submitText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  submitText: { ...Typography.bodySemiBold, color: Colors.light.onPrimary },
 });

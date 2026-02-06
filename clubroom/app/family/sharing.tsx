@@ -30,7 +30,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -139,9 +139,9 @@ export default function FamilySharingScreen() {
       loadFamilyData();
 
       logger.success('InviteSent', { email: inviteEmail, role: inviteRole });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to send invite', error);
-      Alert.alert('Error', error.message || 'Failed to send invitation');
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to send invitation');
     } finally {
       setInviting(false);
     }
@@ -167,8 +167,8 @@ export default function FamilySharingScreen() {
               );
               Alert.alert('Removed', `${guardian.userName} has been removed from your family account.`);
               loadFamilyData();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to remove guardian');
+            } catch (error: unknown) {
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove guardian');
             }
           },
         },
@@ -191,8 +191,8 @@ export default function FamilySharingScreen() {
             try {
               await familyService.cancelInvite(family.id, currentUser.id, inviteId);
               loadFamilyData();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to cancel invitation');
+            } catch (error: unknown) {
+              Alert.alert('Error', error instanceof Error ? error.message : 'Failed to cancel invitation');
             }
           },
         },
@@ -238,7 +238,7 @@ export default function FamilySharingScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Intro Card */}
-        <SurfaceCard style={[styles.introCard, { backgroundColor: `${palette.tint}08` }]}>
+        <SurfaceCard style={[styles.introCard, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <View style={styles.introIcon}>
             <Ionicons name="people-circle" size={40} color={palette.tint} />
           </View>
@@ -267,7 +267,7 @@ export default function FamilySharingScreen() {
               style={[styles.guardianCard, { borderColor: palette.border }]}
             >
               <View style={styles.guardianHeader}>
-                <View style={[styles.avatar, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                     {guardian.userName.charAt(0)}
                   </ThemedText>
@@ -279,7 +279,7 @@ export default function FamilySharingScreen() {
                   </ThemedText>
                 </View>
                 {guardian.isPrimary ? (
-                  <View style={[styles.primaryBadge, { backgroundColor: `${palette.success}15` }]}>
+                  <View style={[styles.primaryBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <ThemedText style={[styles.primaryBadgeText, { color: palette.success }]}>
                       Primary
                     </ThemedText>
@@ -296,7 +296,7 @@ export default function FamilySharingScreen() {
 
               <View style={styles.permissionIcons}>
                 {getPermissionIcons(guardian.permissions).map((icon, index) => (
-                  <Ionicons key={index} name={icon as any} size={18} color={palette.muted} />
+                  <Ionicons key={index} name={icon as keyof typeof Ionicons.glyphMap} size={18} color={palette.muted} />
                 ))}
                 <ThemedText style={[styles.permissionCount, { color: palette.muted }]}>
                   {guardian.permissions.length} permissions
@@ -345,7 +345,7 @@ export default function FamilySharingScreen() {
           style={[styles.inviteButton, { backgroundColor: palette.tint }]}
           onPress={() => setShowInviteModal(true)}
         >
-          <Ionicons name="person-add" size={22} color="#fff" />
+          <Ionicons name="person-add" size={22} color={Colors.light.onPrimary} />
           <ThemedText style={styles.inviteButtonText}>Invite Family Member</ThemedText>
         </Pressable>
       </ScrollView>
@@ -404,7 +404,7 @@ export default function FamilySharingScreen() {
                       styles.relationshipOption,
                       {
                         borderColor: inviteRelationship === rel ? palette.tint : palette.border,
-                        backgroundColor: inviteRelationship === rel ? `${palette.tint}10` : 'transparent',
+                        backgroundColor: inviteRelationship === rel ? withAlpha(palette.tint, 0.06) : 'transparent',
                       }
                     ]}
                     onPress={() => setInviteRelationship(rel)}
@@ -429,7 +429,7 @@ export default function FamilySharingScreen() {
                     styles.roleOption,
                     {
                       borderColor: inviteRole === role ? palette.tint : palette.border,
-                      backgroundColor: inviteRole === role ? `${palette.tint}10` : 'transparent',
+                      backgroundColor: inviteRole === role ? withAlpha(palette.tint, 0.06) : 'transparent',
                     }
                   ]}
                   onPress={() => setInviteRole(role)}
@@ -478,10 +478,10 @@ export default function FamilySharingScreen() {
               disabled={inviting}
             >
               {inviting ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={Colors.light.onPrimary} />
               ) : (
                 <>
-                  <Ionicons name="send" size={20} color="#fff" />
+                  <Ionicons name="send" size={20} color={Colors.light.onPrimary} />
                   <ThemedText style={styles.sendButtonText}>Send Invitation</ThemedText>
                 </>
               )}
@@ -523,8 +523,7 @@ const styles = StyleSheet.create({
   },
   introText: {
     textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
   },
   section: {
     padding: Spacing.md,
@@ -537,7 +536,7 @@ const styles = StyleSheet.create({
   },
   count: {
     marginLeft: 'auto',
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   guardianCard: {
     padding: Spacing.md,
@@ -553,32 +552,30 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   guardianInfo: {
     flex: 1,
   },
   guardianMeta: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   primaryBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   primaryBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   removeButton: {
-    padding: 4,
+    padding: Spacing.xxs,
   },
   permissionIcons: {
     flexDirection: 'row',
@@ -587,7 +584,7 @@ const styles = StyleSheet.create({
     marginLeft: 56,
   },
   permissionCount: {
-    fontSize: 12,
+    ...Typography.caption,
     marginLeft: Spacing.xs,
   },
   inviteCard: {
@@ -601,18 +598,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inviteMeta: {
-    fontSize: 12,
-    marginTop: 2,
+    ...Typography.caption,
+    marginTop: Spacing.micro,
   },
   cancelInviteButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
   cancelInviteText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   inviteButton: {
     flexDirection: 'row',
@@ -624,9 +620,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   inviteButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
   // Modal styles
   modal: {
@@ -640,7 +635,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   modalClose: {
-    padding: 4,
+    padding: Spacing.xxs,
   },
   modalContent: {
     flex: 1,
@@ -656,13 +651,13 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   textArea: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 16,
+    ...Typography.subheading,
     minHeight: 80,
     textAlignVertical: 'top',
   },
@@ -688,7 +683,7 @@ const styles = StyleSheet.create({
   radioOuter: {
     width: 22,
     height: 22,
-    borderRadius: 11,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -696,14 +691,14 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
   roleInfo: {
     flex: 1,
   },
   roleDesc: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   modalFooter: {
     padding: Spacing.md,
@@ -718,8 +713,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   sendButtonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.heading,
   },
 });

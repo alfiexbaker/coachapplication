@@ -26,7 +26,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { RecoveryTimeline } from '@/components/health';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Injury } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -181,7 +181,7 @@ export default function InjuryDetailScreen() {
         <Clickable onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={palette.text} />
         </Clickable>
-        <View style={[styles.statusBadge, { backgroundColor: `${statusInfo.color}15` }]}>
+        <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
           <Ionicons
             name={statusInfo.icon as keyof typeof Ionicons.glyphMap}
             size={14}
@@ -205,7 +205,7 @@ export default function InjuryDetailScreen() {
           <SurfaceCard style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
               <ThemedText type="title">{bodyPartLabel}</ThemedText>
-              <View style={[styles.severityBadge, { backgroundColor: `${severityInfo.color}15` }]}>
+              <View style={[styles.severityBadge, { backgroundColor: withAlpha(severityInfo.color, 0.09) }]}>
                 <ThemedText style={[styles.severityText, { color: severityInfo.color }]}>
                   {severityInfo.label}
                 </ThemedText>
@@ -334,7 +334,7 @@ export default function InjuryDetailScreen() {
               style={[styles.healedButton, { backgroundColor: palette.success }]}
             >
               <View style={styles.buttonContent}>
-                <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+                <Ionicons name="checkmark-circle-outline" size={20} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.healedButtonText}>Mark as Healed</ThemedText>
               </View>
             </Button>
@@ -360,13 +360,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statusText: {
-    fontSize: scaleFont(13),
-    fontWeight: '600',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
@@ -394,15 +393,14 @@ const styles = StyleSheet.create({
   },
   severityBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   severityText: {
-    fontSize: scaleFont(12),
-    fontWeight: '600',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   description: {
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
     marginBottom: Spacing.md,
   },
@@ -414,10 +412,10 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   metaText: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
   addNoteSection: {
     marginTop: Spacing.lg,
@@ -437,7 +435,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     minHeight: 80,
     marginBottom: Spacing.md,
   },
@@ -451,11 +449,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   progressLabel: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
   progressValue: {
-    fontSize: scaleFont(16),
-    fontWeight: '700',
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
   },
   slider: {
     width: '100%',
@@ -475,7 +472,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   healedButtonText: {
-    color: '#FFFFFF',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

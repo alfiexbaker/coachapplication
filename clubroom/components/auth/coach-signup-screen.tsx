@@ -11,8 +11,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const inviteCodes = [
@@ -193,8 +194,8 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
                     onPress={validateInviteCode}>
                     <ThemedText
                       style={styles.validateButtonText}
-                      lightColor="#FFFFFF"
-                      darkColor="#000000">
+                      lightColor={Colors.light.onPrimary}
+                      darkColor={Colors.light.text}>
                       {inviteValidated ? 'Verified' : 'Verify'}
                     </ThemedText>
                   </Pressable>
@@ -212,7 +213,7 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
             {/* Coach Details Form (only show after validation) */}
             {inviteValidated && (
               <>
-                <View style={styles.divider} />
+                <Divider spacing={Spacing.sm} />
 
                 <View style={styles.fieldGroup}>
                   <ThemedText style={styles.label}>Full Name</ThemedText>
@@ -299,7 +300,7 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
                   ]}
                   disabled={!isFormValid}
                   onPress={handleSubmit}>
-                  <ThemedText style={styles.buttonLabel} lightColor="#FFFFFF" darkColor="#000000">
+                  <ThemedText style={styles.buttonLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.text}>
                     Create Coach Account
                   </ThemedText>
                 </Pressable>
@@ -348,13 +349,10 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '600',
   },
-  input: {
-    borderWidth: 1,
+  input: { ...Typography.subheading, borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    fontSize: 16,
-  },
+    paddingVertical: Spacing.sm },
   inviteRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -372,29 +370,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minWidth: 80,
   },
-  validateButtonText: {
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  helper: {
-    fontSize: 14,
-    opacity: 0.9,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
-    marginVertical: Spacing.sm,
-  },
+  validateButtonText: { ...Typography.bodySmallSemiBold },
+  helper: { ...Typography.bodySmall, opacity: 0.9 },
   button: {
     marginTop: Spacing.sm,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
     alignItems: 'center',
   },
-  buttonLabel: {
-    fontWeight: '600',
-    fontSize: 16,
-  },
+  buttonLabel: { ...Typography.subheading },
   backButton: {
     alignItems: 'center',
     paddingVertical: Spacing.md,

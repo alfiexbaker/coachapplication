@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface WaitlistBannerProps {
@@ -17,7 +17,7 @@ export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: Waitl
   const palette = Colors[scheme];
 
   return (
-    <View style={[styles.container, { backgroundColor: `${palette.warning}10`, borderColor: palette.warning }]}>
+    <View style={[styles.container, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }]}>
       <View style={styles.iconContainer}>
         <Ionicons name="time-outline" size={24} color={palette.warning} />
       </View>
@@ -39,10 +39,10 @@ export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: Waitl
         style={[styles.button, { backgroundColor: palette.warning }]}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator size="small" color={palette.onPrimary} />
         ) : (
           <>
-            <Ionicons name="add" size={18} color="#fff" />
+            <Ionicons name="add" size={18} color={palette.onPrimary} />
             <ThemedText style={styles.buttonText}>Join Waitlist</ThemedText>
           </>
         )}
@@ -62,25 +62,18 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   content: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  description: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  description: { ...Typography.small, lineHeight: 18 },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.md,
     alignSelf: 'flex-start',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  buttonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onPrimary },
 });

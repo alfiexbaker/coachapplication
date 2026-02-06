@@ -1,8 +1,9 @@
 import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { SelectionTile } from '@/components/primitives/selection-tile';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface ServiceListItem {
@@ -38,7 +39,7 @@ export function ServiceSelectionList({ services, selectedServiceId, onSelect }: 
               title={service.title}
               description={service.description}
               meta={service.capacity}
-              iconName={service.iconName as any}
+              iconName={service.iconName as keyof typeof Ionicons.glyphMap}
               selected={selected}
               onPress={() => onSelect(service.id)}
               rightAdornment={
@@ -59,10 +60,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
     gap: Spacing.sm,
   },
-  title: {
-    fontSize: 16,
-    paddingHorizontal: Spacing.lg,
-  },
+  title: { ...Typography.subheading, paddingHorizontal: Spacing.lg },
   list: {
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,

@@ -11,7 +11,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { Injury, RecoveryNote } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { injuryService } from '@/services/injury-service';
@@ -49,7 +49,7 @@ export function RecoveryTimeline({ injury, showProgress = true }: RecoveryTimeli
                 {injury.recoveryPercent}%
               </ThemedText>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: `${statusInfo.color}15` }]}>
+            <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusInfo.color, 0.09) }]}>
               <Ionicons
                 name={statusInfo.icon as keyof typeof Ionicons.glyphMap}
                 size={16}
@@ -200,7 +200,7 @@ function TimelineItem({ note, isFirst, isLast, palette, statusColor }: TimelineI
             </ThemedText>
           </View>
           {note.recoveryPercent !== undefined && (
-            <View style={[styles.progressBadge, { backgroundColor: `${statusColor}15` }]}>
+            <View style={[styles.progressBadge, { backgroundColor: withAlpha(statusColor, 0.09) }]}>
               <ThemedText style={[styles.progressBadgeText, { color: statusColor }]}>
                 {note.recoveryPercent}%
               </ThemedText>
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: scaleFont(13),
-    marginBottom: 2,
+    marginBottom: Spacing.micro,
   },
   progressValue: {
     fontSize: scaleFont(32),
@@ -243,9 +243,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   statusText: {
     fontSize: scaleFont(13),
@@ -253,14 +253,14 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 12,
-    borderRadius: 6,
+    borderRadius: Radii.sm,
     overflow: 'visible',
     marginBottom: Spacing.md,
     position: 'relative',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: Radii.sm,
   },
   expectedMarker: {
     position: 'absolute',
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   expectedLabel: {
     fontSize: scaleFont(10),
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   datesRow: {
     flexDirection: 'row',
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(11),
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 2,
+    marginBottom: Spacing.micro,
   },
   dateValue: {
     fontSize: scaleFont(14),
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   daysRemaining: {
     fontSize: scaleFont(12),
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   timelineSection: {
     gap: Spacing.sm,
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   timelineConnector: {
     width: 20,
     alignItems: 'center',
-    paddingTop: 6,
+    paddingTop: Spacing.xxs,
   },
   connectorLine: {
     width: 2,
@@ -347,8 +347,8 @@ const styles = StyleSheet.create({
   connectorDot: {
     width: 12,
     height: 12,
-    borderRadius: 6,
-    marginVertical: 4,
+    borderRadius: Radii.sm,
+    marginVertical: Spacing.xxs,
   },
   noteCard: {
     flex: 1,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   progressBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   progressBadgeText: {

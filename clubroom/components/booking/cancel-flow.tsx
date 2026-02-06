@@ -26,7 +26,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Shadows, Components  , withAlpha } from '@/constants/theme';
 import { ModalStyles } from '@/constants/styles';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { cancellationService } from '@/services/cancellation-service';
@@ -155,7 +155,7 @@ function RefundBanner({ calculation }: { calculation: RefundCalculation }) {
       : Colors.light.warning;
 
   return (
-    <View style={[styles.refundBanner, { backgroundColor: bannerColor + '12' }]}>
+    <View style={[styles.refundBanner, { backgroundColor: withAlpha(bannerColor, 0.07) }]}>
       <View style={styles.refundBannerHeader}>
         <Ionicons
           name={isFullRefund ? 'checkmark-circle' : isNoRefund ? 'close-circle' : 'information-circle'}
@@ -282,8 +282,8 @@ export default function CancelFlow({
 
       // 2. Update booking status to CANCELLED
       try {
-        const bookings = await apiClient.get<any[]>(STORAGE_KEYS.BOOKINGS, []);
-        const idx = bookings.findIndex((b: any) => b.id === bookingId);
+        const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+        const idx = bookings.findIndex((b) => b.id === bookingId);
         if (idx !== -1) {
           bookings[idx].status = 'CANCELLED';
           bookings[idx].cancelledBy = userRole;
@@ -297,7 +297,7 @@ export default function CancelFlow({
 
       // 3. Create notification for the other party
       try {
-        const notifications = await apiClient.get<any[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+        const notifications = await apiClient.get<Record<string, unknown>[]>(STORAGE_KEYS.NOTIFICATIONS, []);
         const recipientId = isCoachCancelling ? (booking.bookedById || '') : booking.coachId;
         const senderName = isCoachCancelling ? (booking.coachName || 'Coach') : (booking.athleteName || 'Parent');
         const sessionLabel = booking.service || 'session';
@@ -319,10 +319,10 @@ export default function CancelFlow({
 
       // 4. Free the availability slot
       try {
-        const overrides = await apiClient.get<any[]>(STORAGE_KEYS.AVAILABILITY_OVERRIDES, []);
+        const overrides = await apiClient.get<{ coachId: string; date: string; type: string; bookingId?: string }[]>(STORAGE_KEYS.AVAILABILITY_OVERRIDES, []);
         const bookingDate = (booking.scheduledAt || booking.start || '').split('T')[0];
         // Remove any override that was blocking this slot
-        const updatedOverrides = overrides.filter((o: any) => {
+        const updatedOverrides = overrides.filter((o) => {
           if (o.coachId !== booking.coachId) return true;
           if (o.date !== bookingDate) return true;
           if (o.type === 'booked' && o.bookingId === bookingId) return false;
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     backgroundColor: Colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   sessionCardMeta: {
     ...Typography.small,
     color: Colors.light.muted,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   sessionCardDetails: {
     flexDirection: 'row',
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
   coachNote: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    backgroundColor: Colors.light.warning + '12',
+    backgroundColor: withAlpha(Colors.light.warning, 0.07),
     borderRadius: Radii.card,
     padding: Spacing.sm,
     marginBottom: Spacing.md,
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
   },
   reasonCardSelected: {
     borderColor: Colors.light.tint,
-    backgroundColor: Colors.light.tint + '08',
+    backgroundColor: withAlpha(Colors.light.tint, 0.03),
   },
   reasonLabel: {
     flex: 1,

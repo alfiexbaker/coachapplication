@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -96,7 +96,7 @@ export function CoachAnalyticsScreen() {
         {/* Overview Cards */}
         <View style={styles.statsGrid}>
           <SurfaceCard style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: palette.tint + '20' }]}>
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
               <Ionicons name="calendar" size={24} color={palette.tint} />
             </View>
             <ThemedText type="title" style={styles.statNumber}>
@@ -107,7 +107,7 @@ export function CoachAnalyticsScreen() {
             </ThemedText>
             {analytics.sessionsCount > 0 && (
               <View style={styles.change}>
-                <Ionicons name="trending-up" size={14} color="#10b981" />
+                <Ionicons name="trending-up" size={14} color={palette.success} />
                 <ThemedText style={styles.changeText}>
                   This month
                 </ThemedText>
@@ -116,7 +116,7 @@ export function CoachAnalyticsScreen() {
           </SurfaceCard>
 
           <SurfaceCard style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: palette.tint + '20' }]}>
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
               <Ionicons name="people" size={24} color={palette.tint} />
             </View>
             <ThemedText type="title" style={styles.statNumber}>
@@ -127,7 +127,7 @@ export function CoachAnalyticsScreen() {
             </ThemedText>
             {analytics.activeClients > 0 && (
               <View style={styles.change}>
-                <Ionicons name="person-add" size={14} color="#10b981" />
+                <Ionicons name="person-add" size={14} color={palette.success} />
                 <ThemedText style={styles.changeText}>
                   Unique athletes
                 </ThemedText>
@@ -136,7 +136,7 @@ export function CoachAnalyticsScreen() {
           </SurfaceCard>
 
           <SurfaceCard style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: palette.tint + '20' }]}>
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
               <Ionicons name="star" size={24} color={palette.tint} />
             </View>
             <ThemedText type="title" style={styles.statNumber}>
@@ -153,8 +153,8 @@ export function CoachAnalyticsScreen() {
           </SurfaceCard>
 
           <SurfaceCard style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#10b981' + '20' }]}>
-              <Ionicons name="cash" size={24} color="#10b981" />
+            <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.12) }]}>
+              <Ionicons name="cash" size={24} color={palette.success} />
             </View>
             <ThemedText type="title" style={styles.statNumber}>
               {formatGBP(analytics.revenue)}
@@ -237,16 +237,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
-  },
+  title: { ...Typography.display, letterSpacing: -0.8 },
+  subtitle: { ...Typography.body, lineHeight: 22,
+    fontWeight: '500' },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -261,31 +254,21 @@ const styles = StyleSheet.create({
   statIcon: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  statLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  statNumber: { ...Typography.display },
+  statLabel: { ...Typography.smallSemiBold, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   change: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs / 2,
     marginTop: Spacing.xs / 2,
   },
-  changeText: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
+  changeText: { ...Typography.caption, color: Colors.light.muted },
   section: {
     padding: Spacing.lg,
     gap: Spacing.md,
@@ -295,10 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  sectionTitle: { ...Typography.subheading },
   skillsList: {
     gap: Spacing.md,
   },
@@ -313,25 +293,15 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     flex: 1,
   },
-  skillRank: {
-    fontSize: 14,
-    width: 24,
-  },
-  skillName: {
-    fontSize: 15,
-  },
+  skillRank: { ...Typography.bodySmall, width: 24 },
+  skillName: { ...Typography.body },
   skillCount: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.xs / 2,
   },
-  skillCountText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  skillCountLabel: {
-    fontSize: 12,
-  },
+  skillCountText: { ...Typography.heading },
+  skillCountLabel: { ...Typography.caption },
   insightRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

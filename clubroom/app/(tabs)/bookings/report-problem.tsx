@@ -8,7 +8,7 @@ import { apiClient } from '@/services/api-client';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { createLogger } from '@/utils/logger';
 
@@ -52,7 +52,7 @@ export default function ReportProblemScreen() {
     setSubmitting(true);
     try {
       // Save report to storage
-      const reports = await apiClient.get<any[]>('problem_reports', []);
+      const reports = await apiClient.get<Record<string, unknown>[]>('problem_reports', []);
 
       const newReport = {
         id: `report_${Date.now()}`,
@@ -108,7 +108,7 @@ export default function ReportProblemScreen() {
                       isSelected && {
                         borderColor: palette.tint,
                         borderWidth: 2,
-                        backgroundColor: palette.tint + '10',
+                        backgroundColor: withAlpha(palette.tint, 0.06),
                       },
                     ]}>
                     <Ionicons
@@ -167,7 +167,7 @@ export default function ReportProblemScreen() {
             (!selectedCategory || !description.trim() || submitting) && { opacity: 0.5 },
             pressed && { opacity: 0.8 },
           ]}>
-          <ThemedText style={styles.submitText} lightColor="#FFFFFF" darkColor="#000000">
+          <ThemedText style={styles.submitText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.text}>
             {submitting ? 'Submitting...' : 'Submit Report'}
           </ThemedText>
         </Pressable>
@@ -188,15 +188,14 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   subtitle: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     opacity: 0.6,
   },
   section: {
     gap: Spacing.sm,
   },
   label: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
     paddingLeft: Spacing.xs,
   },
   categoriesGrid: {
@@ -212,7 +211,7 @@ const styles = StyleSheet.create({
     minWidth: 110,
   },
   categoryLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     textAlign: 'center',
   },
   inputCard: {
@@ -220,10 +219,10 @@ const styles = StyleSheet.create({
   },
   textArea: {
     minHeight: 120,
-    fontSize: 15,
+    ...Typography.body,
   },
   helper: {
-    fontSize: 12,
+    ...Typography.caption,
     opacity: 0.6,
     paddingLeft: Spacing.xs,
   },
@@ -235,7 +234,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
+    ...Typography.small,
     opacity: 0.8,
   },
   footer: {
@@ -248,7 +247,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitText: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.subheading,
   },
 });

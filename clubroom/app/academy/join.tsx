@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, StyleSheet, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -9,7 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
@@ -49,7 +50,7 @@ export default function JoinTeamScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       logger.info('team_joined', { teamId: result.data.academyId });
       Alert.alert('Welcome!', 'You have successfully joined the team', [
-        { text: 'View Team', onPress: () => router.replace(`/academy/${result.data.academyId}`) },
+        { text: 'View Team', onPress: () => router.replace(Routes.academy(result.data.academyId)) },
       ]);
     } catch (error) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -80,7 +81,7 @@ export default function JoinTeamScreen() {
         <View style={styles.content}>
           {/* Hero */}
           <View style={styles.heroSection}>
-            <View style={[styles.iconCircle, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.iconCircle, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons name="people" size={48} color={palette.tint} />
             </View>
             <ThemedText type="subtitle" style={styles.heroTitle}>
@@ -124,7 +125,7 @@ export default function JoinTeamScreen() {
           </Button>
 
           {/* Info */}
-          <View style={[styles.infoCard, { backgroundColor: `${palette.info}10` }]}>
+          <View style={[styles.infoCard, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
             <Ionicons name="information-circle" size={20} color={palette.info} />
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>
               Don&apos;t have a code? Ask your coach or club administrator for an invite.
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    borderRadius: Radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
@@ -173,28 +174,26 @@ const styles = StyleSheet.create({
   },
   heroDescription: {
     textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
+    ...Typography.bodySmall,
     paddingHorizontal: Spacing.lg,
   },
   inputCard: {
     gap: Spacing.sm,
   },
   inputLabel: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   codeInput: {
     height: 56,
     borderRadius: Radii.md,
     borderWidth: 2,
     paddingHorizontal: Spacing.lg,
-    fontSize: 20,
-    fontWeight: '600',
+    ...Typography.title,
     letterSpacing: 2,
     textAlign: 'center',
   },
   helperText: {
-    fontSize: 12,
+    ...Typography.caption,
     textAlign: 'center',
   },
   infoCard: {
@@ -206,7 +205,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
 });

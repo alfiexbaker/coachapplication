@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { MOCK_SESSIONS, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
@@ -100,7 +100,7 @@ export default function AthleteSessionDetailScreen() {
                 {session.skillsWorkedOn.map((skill, index) => (
                   <View
                     key={index}
-                    style={[styles.skillChip, { backgroundColor: palette.tint + '20' }]}
+                    style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.12) }]}
                   >
                     <ThemedText style={[styles.skillText, { color: palette.tint }]}>
                       {skill}
@@ -202,8 +202,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title,
     letterSpacing: -0.5,
   },
   infoCard: {
@@ -218,14 +217,13 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   infoText: {
-    fontSize: 15,
+    ...Typography.body,
   },
   section: {
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
     letterSpacing: -0.3,
   },
   ratingCard: {
@@ -238,8 +236,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   ratingLabel: {
-    fontSize: 15,
-    fontWeight: '500',
+    ...Typography.bodySemiBold,
   },
   skillsCard: {
     padding: Spacing.lg,
@@ -255,15 +252,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   skillText: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   notesCard: {
     padding: Spacing.lg,
   },
   notesText: {
-    fontSize: 15,
-    lineHeight: 24,
+    ...Typography.body,
   },
   emptyNotes: {
     padding: Spacing.xl,
@@ -271,7 +266,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   focusCard: {
     padding: Spacing.lg,
@@ -283,7 +278,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   focusText: {
-    fontSize: 15,
+    ...Typography.body,
     flex: 1,
   },
   videoList: {
@@ -302,7 +297,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   videoName: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     flex: 1,
   },
 });

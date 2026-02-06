@@ -23,7 +23,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { CardStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
 
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: `${Colors.light.warning}15`,
+    backgroundColor: withAlpha(Colors.light.warning, 0.09),
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
@@ -297,11 +297,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     transform: [{ scale: 0.98 }],
   },
-  responseButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: -0.2,
-  },
+  responseButtonText: { ...Typography.heading, letterSpacing: -0.2 },
   activeButtonText: {
     color: Colors.light.surface,
   },
@@ -309,7 +305,7 @@ const styles = StyleSheet.create({
   // Going
   goingButton: {
     borderColor: Colors.light.success,
-    backgroundColor: `${Colors.light.success}10`,
+    backgroundColor: withAlpha(Colors.light.success, 0.06),
   },
   goingButtonActive: {
     backgroundColor: Colors.light.success,
@@ -322,7 +318,7 @@ const styles = StyleSheet.create({
   // Can't
   cantButton: {
     borderColor: Colors.light.error,
-    backgroundColor: `${Colors.light.error}10`,
+    backgroundColor: withAlpha(Colors.light.error, 0.06),
   },
   cantButtonActive: {
     backgroundColor: Colors.light.error,
@@ -335,7 +331,7 @@ const styles = StyleSheet.create({
   // Maybe
   maybeButton: {
     borderColor: Colors.light.warning,
-    backgroundColor: `${Colors.light.warning}10`,
+    backgroundColor: withAlpha(Colors.light.warning, 0.06),
   },
   maybeButtonActive: {
     backgroundColor: Colors.light.warning,

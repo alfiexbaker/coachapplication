@@ -13,6 +13,7 @@
  *   });
  */
 
+import { withAlpha } from '@/constants/theme';
 import { StyleSheet, TextStyle } from 'react-native';
 import { Colors, Spacing, Radii, Typography, Components, Shadows } from './theme';
 
@@ -282,13 +283,13 @@ export const BadgeStyles = StyleSheet.create({
 
   // Status badges
   statusSuccess: {
-    backgroundColor: `${Colors.light.success}15`,
+    backgroundColor: withAlpha(Colors.light.success, 0.09),
   },
   statusWarning: {
-    backgroundColor: `${Colors.light.warning}15`,
+    backgroundColor: withAlpha(Colors.light.warning, 0.09),
   },
   statusError: {
-    backgroundColor: `${Colors.light.error}15`,
+    backgroundColor: withAlpha(Colors.light.error, 0.09),
   },
   statusNeutral: {
     backgroundColor: Colors.light.border,
@@ -306,7 +307,7 @@ export const BadgeStyles = StyleSheet.create({
     borderColor: Colors.light.border,
   },
   chipActive: {
-    backgroundColor: `${Colors.light.tint}10`,
+    backgroundColor: withAlpha(Colors.light.tint, 0.06),
     borderColor: Colors.light.tint,
   },
   chipText: {
@@ -346,7 +347,7 @@ export const AvatarStyles = StyleSheet.create({
   placeholder: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: `${Colors.light.tint}15`,
+    backgroundColor: withAlpha(Colors.light.tint, 0.09),
   },
   placeholderText: {
     color: Colors.light.tint,

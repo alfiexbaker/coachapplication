@@ -9,7 +9,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { ClubSquad } from '@/constants/types';
@@ -152,7 +152,7 @@ export default function CreateSquadScreen() {
                   <ThemedText
                     style={[
                       styles.optionText,
-                      { color: selectedAgeGroup === option.value ? '#fff' : palette.text },
+                      { color: selectedAgeGroup === option.value ? Colors.light.onPrimary : palette.text },
                     ]}
                   >
                     {option.label}
@@ -178,7 +178,7 @@ export default function CreateSquadScreen() {
                         ? palette.tint
                         : palette.border,
                       backgroundColor: selectedLevel === option.value
-                        ? `${palette.tint}10`
+                        ? withAlpha(palette.tint, 0.06)
                         : 'transparent',
                     },
                   ]}
@@ -247,14 +247,14 @@ export default function CreateSquadScreen() {
               Preview
             </ThemedText>
             <View style={styles.previewContent}>
-              <View style={[styles.previewIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.previewIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="people" size={24} color={palette.tint} />
               </View>
               <View style={styles.previewInfo}>
                 <ThemedText type="defaultSemiBold">
                   {name || 'Squad Name'}
                 </ThemedText>
-                <ThemedText style={{ color: palette.muted, fontSize: 13 }}>
+                <ThemedText style={{ color: palette.muted, ...Typography.small }}>
                   {selectedAgeGroup || 'Age'} · {selectedLevel || 'Level'}
                 </ThemedText>
                 {tags && (
@@ -262,9 +262,9 @@ export default function CreateSquadScreen() {
                     {tags.split(',').slice(0, 3).map((tag, i) => (
                       <View
                         key={i}
-                        style={[styles.previewTag, { backgroundColor: `${palette.tint}10` }]}
+                        style={[styles.previewTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                       >
-                        <ThemedText style={{ color: palette.tint, fontSize: 11 }}>
+                        <ThemedText style={{ color: palette.tint, ...Typography.caption }}>
                           {tag.trim()}
                         </ThemedText>
                       </View>
@@ -289,7 +289,7 @@ export default function CreateSquadScreen() {
               <ThemedText style={styles.createButtonText}>Creating...</ThemedText>
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                <Ionicons name="checkmark-circle" size={20} color={Colors.light.onPrimary} />
                 <ThemedText style={styles.createButtonText}>Create Squad</ThemedText>
               </>
             )}
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   content: {
     padding: Spacing.lg,
@@ -326,14 +326,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionLabel: {
-    fontSize: 15,
+    ...Typography.body,
   },
   input: {
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    fontSize: 16,
+    ...Typography.subheading,
   },
   optionsGrid: {
     flexDirection: 'row',
@@ -347,8 +347,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   optionText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   levelOptions: {
     gap: Spacing.sm,
@@ -366,7 +365,7 @@ const styles = StyleSheet.create({
   radio: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -374,18 +373,17 @@ const styles = StyleSheet.create({
   radioInner: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: Radii.sm,
   },
   levelDescription: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   previewCard: {
     gap: Spacing.sm,
   },
   previewLabel: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
     textTransform: 'uppercase',
   },
   previewContent: {
@@ -402,16 +400,16 @@ const styles = StyleSheet.create({
   },
   previewInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   previewTags: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
   previewTag: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   footer: {
@@ -431,8 +429,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
 });

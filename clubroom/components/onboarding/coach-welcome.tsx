@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Components, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Components, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -114,7 +114,7 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
             <View style={styles.valuePropsContainer}>
               {VALUE_PROPS.map((prop) => (
                 <View key={prop.text} style={styles.valuePropRow}>
-                  <View style={[styles.valuePropIcon, { backgroundColor: `${palette.tint}10` }]}>
+                  <View style={[styles.valuePropIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                     <Ionicons name={prop.icon} size={Components.icon.lg} color={palette.tint} />
                   </View>
                   <ThemedText style={[Typography.body, { color: palette.text, flex: 1 }]}>
@@ -203,7 +203,7 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
                       ]}
                     >
                       <ThemedText
-                        style={[Typography.small, { color: selected ? '#FFFFFF' : palette.text }]}
+                        style={[Typography.small, { color: selected ? palette.onPrimary : palette.text }]}
                       >
                         {specialty}
                       </ThemedText>
@@ -239,7 +239,7 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
               </View>
             </SurfaceCard>
 
-            <View style={[styles.rateHint, { backgroundColor: `${palette.tint}08` }]}>
+            <View style={[styles.rateHint, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
               <Ionicons name="information-circle-outline" size={Components.icon.md} color={palette.tint} />
               <ThemedText style={[Typography.small, { color: palette.muted, flex: 1 }]}>
                 Coaches near you charge £30-55/hr
@@ -289,7 +289,7 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
                         style={[
                           styles.availCell,
                           {
-                            backgroundColor: active ? `${palette.success}20` : palette.surface,
+                            backgroundColor: active ? withAlpha(palette.success, 0.12) : palette.surface,
                             borderColor: active ? palette.success : palette.border,
                           },
                         ]}
@@ -339,8 +339,8 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
                 onPress={() => {}}
                 style={[styles.shareButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="share-outline" size={Components.icon.md} color="#FFFFFF" />
-                <ThemedText style={[Typography.bodySemiBold, { color: '#FFFFFF' }]}>
+                <Ionicons name="share-outline" size={Components.icon.md} color={palette.onPrimary} />
+                <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>
                   Share Link
                 </ThemedText>
               </Clickable>
@@ -382,11 +382,11 @@ export function CoachWelcome({ onComplete, onSkip }: CoachWelcomeProps) {
             onPress={handleNext}
             style={[styles.nextButton, { backgroundColor: palette.tint }]}
           >
-            <ThemedText style={[Typography.bodySemiBold, { color: '#FFFFFF' }]}>
+            <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>
               {isLastPage ? 'Done' : 'Next'}
             </ThemedText>
             {!isLastPage && (
-              <Ionicons name="arrow-forward" size={Components.icon.md} color="#FFFFFF" />
+              <Ionicons name="arrow-forward" size={Components.icon.md} color={palette.onPrimary} />
             )}
           </Clickable>
         </View>
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   photoPlaceholder: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     borderWidth: 2,
     borderStyle: 'dashed',
     alignItems: 'center',
@@ -480,13 +480,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  rateInput: {
-    ...Typography.display,
-    fontSize: 48,
-    fontWeight: '700',
+  rateInput: { ...Typography.display,
     minWidth: 100,
-    textAlign: 'center',
-  },
+    textAlign: 'center', ...Typography.display },
   rateHint: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -533,7 +529,7 @@ const styles = StyleSheet.create({
   },
   shareLinkText: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   shareButton: {
     flexDirection: 'row',

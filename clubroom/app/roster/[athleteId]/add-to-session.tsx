@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -9,7 +10,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
@@ -109,7 +110,7 @@ export default function AddToSessionScreen() {
       <Animated.View entering={FadeInDown.delay(index * 50)}>
         <SurfaceCard style={styles.sessionCard}>
           <View style={styles.sessionHeader}>
-            <View style={[styles.typeIcon, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.typeIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <Ionicons
                 name={session.sessionType === 'TEAM_TRAINING' ? 'fitness' : 'people'}
                 size={20}
@@ -136,7 +137,7 @@ export default function AddToSessionScreen() {
           </View>
 
           <View style={styles.sessionFooter}>
-            <View style={[styles.spotsBadge, { backgroundColor: spotsLeft <= 3 ? `${palette.warning}15` : `${palette.success}15` }]}>
+            <View style={[styles.spotsBadge, { backgroundColor: spotsLeft <= 3 ? withAlpha(palette.warning, 0.09) : withAlpha(palette.success, 0.09) }]}>
               <ThemedText style={[styles.spotsText, { color: spotsLeft <= 3 ? palette.warning : palette.success }]}>
                 {spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} left
               </ThemedText>
@@ -147,7 +148,7 @@ export default function AddToSessionScreen() {
               onPress={() => handleAddToSession(session)}
               disabled={isAdding}
             >
-              <Ionicons name={isAdding ? 'hourglass' : 'add'} size={16} color="#fff" />
+              <Ionicons name={isAdding ? 'hourglass' : 'add'} size={16} color={Colors.light.onPrimary} />
               <ThemedText style={styles.addButtonText}>
                 {isAdding ? 'Adding...' : 'Add'}
               </ThemedText>
@@ -169,9 +170,9 @@ export default function AddToSessionScreen() {
       </ThemedText>
       <Pressable
         style={[styles.createButton, { backgroundColor: palette.tint }]}
-        onPress={() => router.push('/group-sessions/create')}
+        onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
       >
-        <Ionicons name="add" size={18} color="#fff" />
+        <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
         <ThemedText style={styles.createButtonText}>Create Session</ThemedText>
       </Pressable>
     </View>
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   athleteLabel: {
-    fontSize: 13,
+    ...Typography.small,
   },
   listContent: {
     padding: Spacing.lg,
@@ -239,21 +240,21 @@ const styles = StyleSheet.create({
   typeIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sessionInfo: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   sessionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   metaText: {
-    fontSize: 12,
+    ...Typography.caption,
   },
   sessionFooter: {
     flexDirection: 'row',
@@ -262,25 +263,23 @@ const styles = StyleSheet.create({
   },
   spotsBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   spotsText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
   },
   addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
+    color: Colors.light.onPrimary,
+    ...Typography.bodySmallSemiBold,
   },
   emptyState: {
     flex: 1,
@@ -296,14 +295,14 @@ const styles = StyleSheet.create({
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: Radii.pill,
     marginTop: Spacing.lg,
   },
   createButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

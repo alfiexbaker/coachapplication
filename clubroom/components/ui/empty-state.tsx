@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
 
@@ -21,8 +21,8 @@ export function EmptyState({ icon = 'information-circle', title, message, action
 
   return (
     <View style={styles.container}>
-      <View style={[styles.iconContainer, { backgroundColor: `${palette.border}30` }]}>
-        <Ionicons name={icon as any} size={24} color={palette.icon} />
+      <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.border, 0.19) }]}>
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={palette.icon} />
       </View>
       <ThemedText type="subtitle" style={styles.title}>
         {title}
@@ -39,7 +39,7 @@ export function EmptyState({ icon = 'information-circle', title, message, action
             },
           ]}
         >
-          <ThemedText style={styles.actionLabel} lightColor="#FFFFFF" darkColor="#000000">
+          <ThemedText style={styles.actionLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.text}>
             {actionLabel}
           </ThemedText>
         </Clickable>
@@ -59,16 +59,9 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.pill,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  message: {
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  title: { ...Typography.heading, textAlign: 'center' },
+  message: { ...Typography.bodySmall, textAlign: 'center',
+    lineHeight: 20 },
   action: {
     marginTop: Spacing.xs,
     paddingHorizontal: Spacing.md,

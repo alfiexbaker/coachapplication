@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -11,7 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { AthleteRow } from '@/components/roster/athlete-row';
 import { AthleteFilters } from '@/components/roster/athlete-filters';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService, RosterFilters, RosterStats } from '@/services/roster-service';
@@ -80,10 +81,7 @@ export default function RosterScreen() {
       <AthleteRow
         entry={item}
         onPress={() =>
-          router.push({
-            pathname: '/roster/[athleteId]',
-            params: { athleteId: item.athleteId },
-          })
+          router.push(Routes.rosterAthlete(item.athleteId))
         }
       />
     </Animated.View>
@@ -167,7 +165,7 @@ export default function RosterScreen() {
           <Ionicons
             name="options-outline"
             size={20}
-            color={activeFiltersCount > 0 ? '#fff' : palette.text}
+            color={activeFiltersCount > 0 ? Colors.light.onPrimary : palette.text}
           />
           {activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
@@ -235,8 +233,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   subtitle: {
-    fontSize: 13,
-    marginTop: 2,
+    ...Typography.small,
+    marginTop: Spacing.micro,
   },
   statsRow: {
     flexDirection: 'row',
@@ -251,8 +249,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   statLabel: {
-    fontSize: 10,
-    marginTop: 2,
+    ...Typography.micro,
+    marginTop: Spacing.micro,
   },
   searchSection: {
     flexDirection: 'row',
@@ -271,7 +269,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
   },
   filterButton: {
     width: 44,
@@ -287,15 +285,14 @@ const styles = StyleSheet.create({
     right: 4,
     width: 16,
     height: 16,
-    borderRadius: 8,
-    backgroundColor: '#fff',
+    borderRadius: Radii.sm,
+    backgroundColor: Colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#000',
+    ...Typography.micro,
+    color: Colors.light.text,
   },
   listContent: {
     paddingHorizontal: Spacing.lg,

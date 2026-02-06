@@ -5,7 +5,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SessionPackage } from '@/constants/types';
 import { packageService } from '@/services/package-service';
@@ -84,7 +84,7 @@ export function PackageCard({
           {/* Stats Row */}
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <View style={[styles.statIcon, { backgroundColor: `${palette.tint}10` }]}>
+              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                 <Ionicons name="calendar-outline" size={14} color={palette.tint} />
               </View>
               <ThemedText style={styles.statText}>
@@ -93,7 +93,7 @@ export function PackageCard({
             </View>
 
             <View style={styles.stat}>
-              <View style={[styles.statIcon, { backgroundColor: `${palette.success}10` }]}>
+              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="pricetag-outline" size={14} color={palette.success} />
               </View>
               <ThemedText style={styles.statText}>
@@ -102,7 +102,7 @@ export function PackageCard({
             </View>
 
             <View style={styles.stat}>
-              <View style={[styles.statIcon, { backgroundColor: `${palette.warning}10` }]}>
+              <View style={[styles.statIcon, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
                 <Ionicons name="time-outline" size={14} color={palette.warning} />
               </View>
               <ThemedText style={styles.statText}>
@@ -115,7 +115,7 @@ export function PackageCard({
           {!compact && pkg.focus && pkg.focus.length > 0 && (
             <View style={styles.focusRow}>
               {pkg.focus.slice(0, 3).map((f) => (
-                <View key={f} style={[styles.focusTag, { backgroundColor: `${palette.tint}10` }]}>
+                <View key={f} style={[styles.focusTag, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
                   <ThemedText style={[styles.focusText, { color: palette.tint }]}>{f}</ThemedText>
                 </View>
               ))}
@@ -124,7 +124,7 @@ export function PackageCard({
 
           {/* Inactive indicator */}
           {!pkg.isActive && (
-            <View style={[styles.inactiveBanner, { backgroundColor: `${palette.error}15` }]}>
+            <View style={[styles.inactiveBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
               <Ionicons name="alert-circle-outline" size={14} color={palette.error} />
               <ThemedText style={[styles.inactiveText, { color: palette.error }]}>
                 Currently unavailable
@@ -151,19 +151,15 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderBottomLeftRadius: Radii.md,
     zIndex: 1,
   },
-  discountText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
+  discountText: { ...Typography.caption, color: Colors.light.onPrimary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   content: {
-    padding: Spacing.md,
+    padding: Components.card.padding,
     gap: Spacing.sm,
   },
   header: {
@@ -175,25 +171,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: Spacing.lg,
   },
-  title: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  coachName: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  title: { ...Typography.subheading, lineHeight: 22 },
+  coachName: { ...Typography.caption, marginTop: Spacing.micro },
   priceSection: {
     alignItems: 'flex-end',
-    paddingTop: 2,
+    paddingTop: Spacing.micro,
   },
-  price: {
-    fontSize: 20,
-  },
-  description: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  price: { ...Typography.title },
+  description: { ...Typography.small, lineHeight: 18 },
   statsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -202,46 +187,37 @@ const styles = StyleSheet.create({
   stat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   statIcon: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  statText: { ...Typography.caption },
   focusRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xxs,
   },
   focusTag: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  focusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  focusText: { ...Typography.caption },
   inactiveBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
-    marginTop: 4,
+    marginTop: Spacing.xxs,
   },
-  inactiveText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  inactiveText: { ...Typography.caption },
 });
 
 export default PackageCard;

@@ -2,13 +2,14 @@ import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useEffect, useState, useMemo } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getSessionsForAthlete, getUserById, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
@@ -138,7 +139,7 @@ export function AthleteProgressScreen() {
         {/* Profile Summary Card */}
         <SurfaceCard style={styles.profileCard}>
           <View style={styles.profileHeader}>
-            <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+            <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
               <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                 {athlete.avatar || athlete.name.charAt(0)}
               </ThemedText>
@@ -148,13 +149,13 @@ export function AthleteProgressScreen() {
                 {athlete.name}
               </ThemedText>
               <View style={styles.badgeRow}>
-                <View style={[styles.levelBadge, { backgroundColor: level.color + '20' }]}>
+                <View style={[styles.levelBadge, { backgroundColor: withAlpha(level.color, 0.12) }]}>
                   <Ionicons name={level.icon} size={12} color={level.color} />
                   <ThemedText style={[styles.levelText, { color: level.color }]}>
                     {level.name}
                   </ThemedText>
                 </View>
-                <View style={[styles.trendBadge, { backgroundColor: trendColor + '20' }]}>
+                <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
                   <Ionicons name={trendIcon} size={12} color={trendColor} />
                   <ThemedText style={[styles.trendText, { color: trendColor }]}>
                     {trendText}
@@ -180,7 +181,7 @@ export function AthleteProgressScreen() {
                 <ThemedText type="defaultSemiBold" style={styles.quickStatValue}>
                   {avgRating}
                 </ThemedText>
-                <Ionicons name="star" size={14} color="#F59E0B" />
+                <Ionicons name="star" size={14} color={Colors.light.warning} />
               </View>
               <ThemedText style={[styles.quickStatLabel, { color: palette.muted }]}>
                 Avg Rating
@@ -223,12 +224,12 @@ export function AthleteProgressScreen() {
                 <Ionicons
                   name={tab.icon}
                   size={16}
-                  color={isActive ? '#fff' : palette.muted}
+                  color={isActive ? palette.onPrimary : palette.muted}
                 />
                 <ThemedText
                   style={[
                     styles.tabLabel,
-                    { color: isActive ? '#fff' : palette.muted },
+                    { color: isActive ? palette.onPrimary : palette.muted },
                     isActive ? styles.tabLabelActive : undefined,
                   ]}
                 >
@@ -304,10 +305,7 @@ export function AthleteProgressScreen() {
                         <Clickable
                           onPress={() => {
                             logger.press('SessionCard', { sessionId: session.id, source: 'MyProgress' });
-                            router.push({
-                              pathname: '/development/athlete-session/[sessionId]',
-                              params: { sessionId: session.id },
-                            });
+                            router.push(Routes.developmentSession(session.id));
                           }}
                         >
                           <SurfaceCard style={styles.sessionCard}>
@@ -322,14 +320,14 @@ export function AthleteProgressScreen() {
                               </View>
                               <View style={styles.ratingBadge}>
                                 <ThemedText style={styles.ratingValue}>{session.performanceRating}</ThemedText>
-                                <Ionicons name="star" size={14} color="#F59E0B" />
+                                <Ionicons name="star" size={14} color={Colors.light.warning} />
                               </View>
                             </View>
 
                             {session.skillsWorkedOn.length > 0 && (
                               <View style={styles.skillsRow}>
                                 {session.skillsWorkedOn.map((skill, idx) => (
-                                  <View key={idx} style={[styles.skillChip, { backgroundColor: palette.tint + '12' }]}>
+                                  <View key={idx} style={[styles.skillChip, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                                     <ThemedText style={[styles.skillChipText, { color: palette.tint }]}>
                                       {skill}
                                     </ThemedText>
@@ -373,7 +371,7 @@ export function AthleteProgressScreen() {
             {/* Badges Summary */}
             <SurfaceCard style={styles.badgesSummaryCard}>
               <View style={styles.badgesSummaryHeader}>
-                <View style={[styles.badgesSummaryIcon, { backgroundColor: `${palette.tint}12` }]}>
+                <View style={[styles.badgesSummaryIcon, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                   <Ionicons name="ribbon" size={28} color={palette.tint} />
                 </View>
                 <View style={styles.badgesSummaryInfo}>
@@ -418,7 +416,7 @@ export function AthleteProgressScreen() {
                     entering={FadeInRight.delay(index * 50).springify()}
                   >
                     <SurfaceCard style={styles.badgeCard}>
-                      <View style={[styles.badgeIconContainer, { backgroundColor: getBadgeColor(award.badgeCategory) + '15' }]}>
+                      <View style={[styles.badgeIconContainer, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory), 0.09) }]}>
                         <Ionicons
                           name={getBadgeIcon(award.badgeCategory)}
                           size={24}
@@ -470,7 +468,7 @@ export function AthleteProgressScreen() {
                 <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
                   Active Goals
                 </ThemedText>
-                <View style={[styles.sectionBadge, { backgroundColor: palette.tint + '15' }]}>
+                <View style={[styles.sectionBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <ThemedText style={[styles.sectionBadgeText, { color: palette.tint }]}>
                     {activeGoals.length}
                   </ThemedText>
@@ -504,7 +502,7 @@ export function AthleteProgressScreen() {
                   <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
                     Completed Goals
                   </ThemedText>
-                  <View style={[styles.sectionBadge, { backgroundColor: palette.success + '15' }]}>
+                  <View style={[styles.sectionBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                     <Ionicons name="checkmark" size={12} color={palette.success} />
                     <ThemedText style={[styles.sectionBadgeText, { color: palette.success }]}>
                       {completedGoals.length}
@@ -532,7 +530,7 @@ export function AthleteProgressScreen() {
 }
 
 // Helper functions
-function generateMockSkills(sessions: any[]): SkillProgress[] {
+function generateMockSkills(sessions: { id: string }[]): SkillProgress[] {
   if (sessions.length === 0) return [];
 
   const skillNames = ['Dribbling', 'Passing', 'Shooting', 'Defending', 'Positioning', 'First Touch'];
@@ -659,15 +657,8 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  title: { ...Typography.display, letterSpacing: -0.6 },
+  subtitle: { ...Typography.bodySmall, lineHeight: 20 },
 
   // Profile Card
   profileCard: {
@@ -686,18 +677,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: '600',
-  },
+  avatarText: { ...Typography.display },
   profileInfo: {
     flex: 1,
     gap: Spacing.xs,
   },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  name: { ...Typography.heading },
   badgeRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -705,27 +690,21 @@ const styles = StyleSheet.create({
   levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  levelText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  levelText: { ...Typography.caption },
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  trendText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  trendText: { ...Typography.caption },
   quickStats: {
     flexDirection: 'row',
     paddingTop: Spacing.md,
@@ -734,50 +713,40 @@ const styles = StyleSheet.create({
   quickStat: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
   quickStatDivider: {
     width: 1,
     alignSelf: 'stretch',
-    marginVertical: 4,
+    marginVertical: Spacing.xxs,
   },
   quickStatValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  quickStatValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  quickStatLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
+  quickStatValue: { ...Typography.heading },
+  quickStatLabel: { ...Typography.micro, textTransform: 'uppercase',
+    letterSpacing: 0.3 },
 
   // Tabs
   tabContainer: {
     flexDirection: 'row',
     borderRadius: Radii.md,
-    padding: 4,
-    gap: 4,
+    padding: Spacing.xxs,
+    gap: Spacing.xxs,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.sm,
   },
   tabActive: {},
-  tabLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  tabLabel: { ...Typography.smallSemiBold },
   tabLabelActive: {
     fontWeight: '700',
   },
@@ -794,24 +763,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitle: {
-    fontSize: 16,
-  },
-  sectionCount: {
-    fontSize: 12,
-  },
+  sectionTitle: { ...Typography.subheading },
+  sectionCount: { ...Typography.caption },
   sectionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
-  sectionBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  sectionBadgeText: { ...Typography.caption },
   categoryList: {
     gap: Spacing.sm,
   },
@@ -830,23 +792,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   sessionLeft: {
-    gap: 2,
+    gap: Spacing.micro,
   },
-  sessionDate: {
-    fontSize: 14,
-  },
-  coachName: {
-    fontSize: 12,
-  },
+  sessionDate: { ...Typography.bodySmall },
+  coachName: { ...Typography.caption },
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  ratingValue: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  ratingValue: { ...Typography.subheading },
   skillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -854,13 +809,10 @@ const styles = StyleSheet.create({
   },
   skillChip: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  skillChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  skillChipText: { ...Typography.caption },
   sessionFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -873,11 +825,9 @@ const styles = StyleSheet.create({
   indicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  indicatorText: {
-    fontSize: 11,
-  },
+  indicatorText: { ...Typography.caption },
 
   // Badges Tab
   badgesSummaryCard: {
@@ -892,19 +842,15 @@ const styles = StyleSheet.create({
   badgesSummaryIcon: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgesSummaryInfo: {
-    gap: 2,
+    gap: Spacing.micro,
   },
-  badgesSummaryCount: {
-    fontSize: 28,
-  },
-  badgesSummaryLabel: {
-    fontSize: 12,
-  },
+  badgesSummaryCount: { ...Typography.display },
+  badgesSummaryLabel: { ...Typography.caption },
   badgeCategoryRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -913,16 +859,14 @@ const styles = StyleSheet.create({
   badgeCategoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   badgeCategoryDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  badgeCategoryText: {
-    fontSize: 12,
-  },
+  badgeCategoryText: { ...Typography.caption },
   badgeList: {
     gap: Spacing.sm,
   },
@@ -934,7 +878,7 @@ const styles = StyleSheet.create({
   badgeIconContainer: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -945,36 +889,24 @@ const styles = StyleSheet.create({
     right: -2,
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeTierText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  badgeTierText: { ...Typography.micro, color: Colors.light.onPrimary },
   badgeContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  badgeLabel: {
-    fontSize: 14,
-  },
-  badgeReason: {
-    fontSize: 12,
-  },
+  badgeLabel: { ...Typography.bodySmall },
+  badgeReason: { ...Typography.caption },
   badgeMeta: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
-  badgeDate: {
-    fontSize: 11,
-  },
-  badgeCoach: {
-    fontSize: 11,
-  },
+  badgeDate: { ...Typography.caption },
+  badgeCoach: { ...Typography.caption },
 
   // Goals Tab
   goalsList: {

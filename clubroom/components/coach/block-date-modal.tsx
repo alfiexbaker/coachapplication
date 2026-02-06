@@ -6,8 +6,9 @@ import * as Haptics from 'expo-haptics';
 import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
+import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const logger = createLogger('BlockDateModal');
@@ -224,8 +225,8 @@ export function BlockDateModal({
                       },
                     ]}
                   >
-                    <Ionicons name={m.icon as any} size={18} color={isActive ? '#fff' : palette.muted} />
-                    <ThemedText style={[styles.modeButtonText, { color: isActive ? '#fff' : palette.text }]}>
+                    <Ionicons name={m.icon as keyof typeof Ionicons.glyphMap} size={18} color={isActive ? palette.onPrimary : palette.muted} />
+                    <ThemedText style={[styles.modeButtonText, { color: isActive ? palette.onPrimary : palette.text }]}>
                       {m.label}
                     </ThemedText>
                   </Clickable>
@@ -248,7 +249,7 @@ export function BlockDateModal({
                       style={[
                         styles.quickDateChip,
                         {
-                          backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                          backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                           borderColor: isSelected ? palette.tint : palette.border,
                         },
                       ]}
@@ -281,15 +282,15 @@ export function BlockDateModal({
                       style={[
                         styles.holidayCard,
                         {
-                          backgroundColor: isSelected ? `${palette.tint}10` : palette.surface,
+                          backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
                           borderColor: isSelected ? palette.tint : palette.border,
                         },
                       ]}
                     >
-                      <View style={[styles.holidayIcon, { backgroundColor: isSelected ? `${palette.tint}20` : `${palette.muted}15` }]}>
+                      <View style={[styles.holidayIcon, { backgroundColor: isSelected ? withAlpha(palette.tint, 0.12) : withAlpha(palette.muted, 0.09) }]}>
                         <Ionicons name="gift" size={20} color={isSelected ? palette.tint : palette.muted} />
                       </View>
-                      <ThemedText type="defaultSemiBold" style={{ fontSize: 14 }}>
+                      <ThemedText type="defaultSemiBold" style={{ ...Typography.bodySmall }}>
                         {preset.label}
                       </ThemedText>
                       <ThemedText style={[styles.holidayDates, { color: palette.muted }]}>
@@ -297,7 +298,7 @@ export function BlockDateModal({
                       </ThemedText>
                       {isSelected && (
                         <View style={[styles.selectedBadge, { backgroundColor: palette.tint }]}>
-                          <Ionicons name="checkmark" size={12} color="#fff" />
+                          <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
                         </View>
                       )}
                     </Clickable>
@@ -316,14 +317,14 @@ export function BlockDateModal({
             <SurfaceCard style={styles.dateCard}>
               {/* Start Date */}
               <View style={styles.dateRow}>
-                <View style={[styles.dateIcon, { backgroundColor: `${palette.tint}15` }]}>
+                <View style={[styles.dateIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                   <Ionicons name="calendar" size={18} color={palette.tint} />
                 </View>
                 <View style={styles.dateInfo}>
                   <ThemedText style={[styles.dateLabel, { color: palette.muted }]}>
                     {mode === 'single' ? 'Date' : 'From'}
                   </ThemedText>
-                  <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>
+                  <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
                     {formatDate(startDate)}
                   </ThemedText>
                 </View>
@@ -346,14 +347,14 @@ export function BlockDateModal({
               {/* End Date (for range/holiday) */}
               {mode !== 'single' && (
                 <>
-                  <View style={[styles.dateDivider, { backgroundColor: palette.border }]} />
+                  <Divider spacing={Spacing.md} />
                   <View style={styles.dateRow}>
-                    <View style={[styles.dateIcon, { backgroundColor: `${palette.error}15` }]}>
+                    <View style={[styles.dateIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
                       <Ionicons name="calendar" size={18} color={palette.error} />
                     </View>
                     <View style={styles.dateInfo}>
                       <ThemedText style={[styles.dateLabel, { color: palette.muted }]}>To</ThemedText>
-                      <ThemedText type="defaultSemiBold" style={{ fontSize: 16 }}>
+                      <ThemedText type="defaultSemiBold" style={{ ...Typography.subheading }}>
                         {formatDate(endDate)}
                       </ThemedText>
                     </View>
@@ -378,7 +379,7 @@ export function BlockDateModal({
 
             {/* Day count summary */}
             {!isSameDay && (
-              <View style={[styles.daySummary, { backgroundColor: `${palette.warning}10` }]}>
+              <View style={[styles.daySummary, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
                 <Ionicons name="time-outline" size={16} color={palette.warning} />
                 <ThemedText style={{ color: palette.warning, fontWeight: '600' }}>
                   Blocking {dayCount} day{dayCount !== 1 ? 's' : ''}
@@ -403,12 +404,12 @@ export function BlockDateModal({
                     style={[
                       styles.reasonChip,
                       {
-                        backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                        backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                         borderColor: isSelected ? palette.tint : palette.border,
                       },
                     ]}
                   >
-                    <Ionicons name={r.icon as any} size={16} color={isSelected ? palette.tint : palette.muted} />
+                    <Ionicons name={r.icon as keyof typeof Ionicons.glyphMap} size={16} color={isSelected ? palette.tint : palette.muted} />
                     <ThemedText style={[styles.reasonText, { color: isSelected ? palette.tint : palette.text }]}>
                       {r.label}
                     </ThemedText>
@@ -419,7 +420,7 @@ export function BlockDateModal({
           </View>
 
           {/* Summary */}
-          <SurfaceCard style={[styles.summaryCard, { backgroundColor: `${palette.error}08` }]}>
+          <SurfaceCard style={[styles.summaryCard, { backgroundColor: withAlpha(palette.error, 0.03) }]}>
             <View style={styles.summaryRow}>
               <Ionicons name="alert-circle" size={20} color={palette.error} />
               <View style={{ flex: 1 }}>
@@ -463,13 +464,8 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.sm,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  sectionHint: {
-    fontSize: 13,
-  },
+  sectionTitle: { ...Typography.subheading },
+  sectionHint: { ...Typography.small },
   modeSelector: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -479,15 +475,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
-  modeButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  modeButtonText: { ...Typography.smallSemiBold },
   quickDates: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -518,21 +511,19 @@ const styles = StyleSheet.create({
   holidayIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
-  holidayDates: {
-    fontSize: 11,
-  },
+  holidayDates: { ...Typography.caption },
   selectedBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -547,16 +538,14 @@ const styles = StyleSheet.create({
   dateIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dateInfo: {
     flex: 1,
   },
-  dateLabel: {
-    fontSize: 12,
-  },
+  dateLabel: { ...Typography.caption },
   dateAdjust: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -564,14 +553,10 @@ const styles = StyleSheet.create({
   adjustButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  dateDivider: {
-    height: 1,
-    marginVertical: Spacing.md,
   },
   daySummary: {
     flexDirection: 'row',
@@ -589,16 +574,13 @@ const styles = StyleSheet.create({
   reasonChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
-  reasonText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  reasonText: { ...Typography.smallSemiBold },
   summaryCard: {
     padding: Spacing.md,
   },
@@ -606,8 +588,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.md,
   },
-  summaryText: {
-    fontSize: 13,
-    marginTop: 2,
-  },
+  summaryText: { ...Typography.small, marginTop: Spacing.micro },
 });

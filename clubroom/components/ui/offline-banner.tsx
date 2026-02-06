@@ -15,7 +15,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Colors, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,8 +43,8 @@ export function OfflineBanner() {
   }));
 
   const backgroundColor = showReconnected
-    ? `${palette.success}15`
-    : `${palette.warning}15`;
+    ? withAlpha(palette.success, 0.09)
+    : withAlpha(palette.warning, 0.09);
 
   const textColor = showReconnected
     ? palette.success
@@ -64,7 +64,7 @@ export function OfflineBanner() {
       ]}
     >
       <Ionicons
-        name={iconName as any}
+        name={iconName as keyof typeof Ionicons.glyphMap}
         size={16}
         color={textColor}
         style={styles.icon}

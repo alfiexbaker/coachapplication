@@ -5,6 +5,7 @@
  * Tests the pure functions that don't require React Native rendering.
  */
 
+import { withAlpha } from '@/constants/theme';
 import assert from 'node:assert';
 import test, { describe } from 'node:test';
 
@@ -287,7 +288,7 @@ describe('InvoiceCard Status Badge', () => {
     };
 
     return {
-      backgroundColor: `${colors[status]}15`,
+      backgroundColor: withAlpha(colors[status], 0.09),
       textColor: colors[status],
     };
   };

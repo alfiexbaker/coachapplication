@@ -13,7 +13,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ export function BulkMessage({
           <ThemedText
             style={{
               ...Typography.bodySemiBold,
-              color: scope === 'squad' ? '#FFFFFF' : palette.text,
+              color: scope === 'squad' ? palette.onPrimary : palette.text,
             }}
           >
             Squad
@@ -135,7 +135,7 @@ export function BulkMessage({
           <ThemedText
             style={{
               ...Typography.bodySemiBold,
-              color: scope === 'club' ? '#FFFFFF' : palette.text,
+              color: scope === 'club' ? palette.onPrimary : palette.text,
             }}
           >
             Whole Club
@@ -157,7 +157,7 @@ export function BulkMessage({
                 paddingVertical: Spacing.xs,
                 borderRadius: Radii.pill,
                 backgroundColor:
-                  selectedSquadId === squad.id ? `${palette.tint}15` : palette.surface,
+                  selectedSquadId === squad.id ? withAlpha(palette.tint, 0.15) : palette.surface,
                 borderWidth: 1,
                 borderColor:
                   selectedSquadId === squad.id ? palette.tint : palette.border,
@@ -215,7 +215,7 @@ export function BulkMessage({
           marginTop: Spacing.sm,
         }}
       >
-        <ThemedText style={{ ...Typography.bodySemiBold, color: '#FFFFFF' }}>
+        <ThemedText style={{ ...Typography.bodySemiBold, color: palette.onPrimary }}>
           Preview Message
         </ThemedText>
       </Clickable>
@@ -272,8 +272,8 @@ export function BulkMessage({
             gap: Spacing.xs,
           }}
         >
-          <Ionicons name="send" size={Components.icon.md} color="#FFFFFF" />
-          <ThemedText style={{ ...Typography.bodySemiBold, color: '#FFFFFF' }}>
+          <Ionicons name="send" size={Components.icon.md} color={palette.onPrimary} />
+          <ThemedText style={{ ...Typography.bodySemiBold, color: palette.onPrimary }}>
             {isSending ? 'Sending...' : 'Send Now'}
           </ThemedText>
         </Clickable>
@@ -295,7 +295,7 @@ export function BulkMessage({
 
       return (
         <View style={[styles.recipientRow, { borderBottomColor: palette.border }]}>
-          <View style={[styles.recipientAvatar, { backgroundColor: `${palette.tint}10` }]}>
+          <View style={[styles.recipientAvatar, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
             <ThemedText style={[styles.recipientInitial, { color: palette.tint }]}>
               {item.name.charAt(0).toUpperCase()}
             </ThemedText>
@@ -325,7 +325,7 @@ export function BulkMessage({
   const renderSent = () => (
     <View style={styles.sentContainer}>
       {/* Success banner */}
-      <View style={[styles.successBanner, { backgroundColor: `${palette.success}10` }]}>
+      <View style={[styles.successBanner, { backgroundColor: withAlpha(palette.success, 0.1) }]}>
         <Ionicons name="checkmark-circle" size={Components.icon.xl} color={palette.success} />
         <ThemedText style={[styles.successText, { color: palette.success }]}>Message Sent</ThemedText>
         <ThemedText style={[styles.successSub, { color: palette.muted }]}>

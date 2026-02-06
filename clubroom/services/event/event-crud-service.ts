@@ -35,7 +35,7 @@ const MOCK_EVENTS: ClubEvent[] = [
     id: 'event_1',
     clubId: 'club_1',
     clubName: 'Bradwell Boys FC',
-    createdBy: 'coach_1',
+    createdBy: 'coach1',
     createdByName: 'Director Kelly',
     title: 'End of Season Presentation',
     description:
@@ -78,7 +78,7 @@ const MOCK_EVENTS: ClubEvent[] = [
     id: 'event_2',
     clubId: 'club_1',
     clubName: 'Bradwell Boys FC',
-    createdBy: 'coach_1',
+    createdBy: 'coach1',
     createdByName: 'Director Kelly',
     title: 'Summer Tournament',
     description:
@@ -114,7 +114,7 @@ const MOCK_EVENTS: ClubEvent[] = [
     id: 'event_3',
     clubId: 'club_1',
     clubName: 'Bradwell Boys FC',
-    createdBy: 'coach_1',
+    createdBy: 'coach1',
     createdByName: 'Director Kelly',
     title: 'Parents Meeting',
     description:

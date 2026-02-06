@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export function BookingStepper({
@@ -49,11 +49,7 @@ const styles = StyleSheet.create({
   dot: {
     flex: 1,
     height: 4,
-    borderRadius: 2,
+    borderRadius: Radii.xs,
   },
-  caption: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  caption: { ...Typography.caption, textAlign: 'center' },
 });

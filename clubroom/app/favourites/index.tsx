@@ -14,6 +14,7 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, RefreshControl, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -22,7 +23,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FavouriteCoachCard } from '@/components/favourites/FavouriteCoachCard';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { FavouriteCoach } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -99,13 +100,13 @@ export default function FavouritesScreen() {
   // Handle book coach
   const handleBook = useCallback((coachId: string) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push(`/book/${coachId}/session-type`);
+    router.push(Routes.bookSessionType(coachId));
   }, []);
 
   // Navigate to discover coaches
   const handleDiscoverCoaches = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push('/book-coach');
+    router.push(Routes.BOOK_COACH);
   }, []);
 
   return (
@@ -213,20 +214,19 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   discoverButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     borderWidth: 1,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   discoverText: {
-    fontSize: scaleFont(14),
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   scrollContent: {
     paddingHorizontal: Spacing.md,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.md,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 1,
     marginBottom: Spacing.md,
   },
@@ -248,11 +248,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statValue: {
-    fontSize: scaleFont(18),
-    fontWeight: '700',
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
   statLabel: {
-    fontSize: scaleFont(14),
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
   },
   loadingPlaceholder: {
     flex: 1,

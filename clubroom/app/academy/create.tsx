@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -10,7 +11,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService, CreateAcademyInput } from '@/services/academy-service';
@@ -115,10 +116,7 @@ export default function CreateAcademyScreen() {
         });
       }
 
-      router.replace({
-        pathname: '/academy/[id]',
-        params: { id: academy.id },
-      });
+      router.replace(Routes.academy(academy.id));
     } catch (error) {
       logger.error('Failed to create academy:', error);
     } finally {
@@ -133,7 +131,7 @@ export default function CreateAcademyScreen() {
           <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
             <View style={styles.stepHeader}>
               <View style={[styles.stepIcon, { backgroundColor: palette.tint }]}>
-                <Ionicons name="people" size={28} color="#fff" />
+                <Ionicons name="people" size={28} color={Colors.light.onPrimary} />
               </View>
               <ThemedText type="title" style={styles.stepTitle}>
                 Create Your Team
@@ -261,7 +259,7 @@ export default function CreateAcademyScreen() {
                     styles.specialtyCard,
                     {
                       backgroundColor: specialties.includes(specialty)
-                        ? `${palette.tint}15`
+                        ? withAlpha(palette.tint, 0.09)
                         : palette.surface,
                       borderColor: specialties.includes(specialty) ? palette.tint : palette.border,
                     },
@@ -269,7 +267,7 @@ export default function CreateAcademyScreen() {
                 >
                   {specialties.includes(specialty) && (
                     <View style={[styles.checkIcon, { backgroundColor: palette.tint }]}>
-                      <Ionicons name="checkmark" size={12} color="#fff" />
+                      <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />
                     </View>
                   )}
                   <ThemedText
@@ -322,7 +320,7 @@ export default function CreateAcademyScreen() {
               )}
             </SurfaceCard>
 
-            <View style={[styles.infoBox, { backgroundColor: `${palette.tint}10` }]}>
+            <View style={[styles.infoBox, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
               <Ionicons name="information-circle" size={20} color={palette.tint} />
               <ThemedText style={[styles.infoText, { color: palette.muted }]}>
                 You can customize your branding (logo, colors) after creating your academy.
@@ -413,7 +411,7 @@ const styles = StyleSheet.create({
   progressDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   scrollContent: {
     padding: Spacing.lg,
@@ -430,7 +428,7 @@ const styles = StyleSheet.create({
   stepIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: Radii['2xl'],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -439,26 +437,25 @@ const styles = StyleSheet.create({
   },
   stepSubtitle: {
     textAlign: 'center',
-    fontSize: 14,
+    ...Typography.bodySmall,
   },
   inputGroup: {
     gap: Spacing.xs,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   input: {
     height: 48,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   textArea: {
     minHeight: 100,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
     textAlignVertical: 'top',
   },
   specialtiesGrid: {
@@ -479,13 +476,12 @@ const styles = StyleSheet.create({
     right: 8,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   specialtyText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     textAlign: 'center',
   },
   reviewCard: {
@@ -498,7 +494,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   reviewLabel: {
-    fontSize: 13,
+    ...Typography.small,
     flex: 1,
   },
   infoBox: {
@@ -510,8 +506,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.small,
   },
   footer: {
     padding: Spacing.lg,

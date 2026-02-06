@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { ModalStyles, ButtonStyles } from '@/constants/styles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { blockService } from '@/services/block-service';
@@ -76,7 +76,7 @@ export function BlockUserModal({
               <View
                 style={[
                   styles.iconCircle,
-                  { backgroundColor: `${palette.success}15` },
+                  { backgroundColor: withAlpha(palette.success, 0.09) },
                 ]}
               >
                 <Ionicons
@@ -105,7 +105,7 @@ export function BlockUserModal({
               <View
                 style={[
                   styles.iconCircle,
-                  { backgroundColor: `${palette.error}15` },
+                  { backgroundColor: withAlpha(palette.error, 0.09) },
                 ]}
               >
                 <Ionicons
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: Radii['3xl'],
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.xs,
@@ -178,12 +178,9 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
   },
-  message: {
-    fontSize: 14,
-    lineHeight: 20,
+  message: { ...Typography.bodySmall, lineHeight: 20,
     textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   actions: {
     width: '100%',
     gap: Spacing.xs,

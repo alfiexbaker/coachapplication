@@ -2,7 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Appearance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { logger } from '@/utils/logger';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
 
 interface Props {
   children: ReactNode;
@@ -140,17 +140,10 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 16,
-    textAlign: 'center',
+  title: { ...Typography.display, textAlign: 'center' },
+  message: { ...Typography.subheading, textAlign: 'center',
     maxWidth: 400,
-    lineHeight: 24,
-  },
+    lineHeight: 24 },
   errorDetails: {
     marginTop: Spacing.lg,
     padding: Spacing.md,
@@ -160,47 +153,23 @@ const styles = StyleSheet.create({
     maxWidth: 600,
     gap: Spacing.sm,
   },
-  errorTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: Spacing.sm,
-  },
-  errorName: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  errorMessage: {
-    fontSize: 12,
-    marginBottom: Spacing.sm,
-  },
+  errorTitle: { ...Typography.bodySmallSemiBold, marginBottom: Spacing.sm },
+  errorName: { ...Typography.smallSemiBold },
+  errorMessage: { ...Typography.caption, marginBottom: Spacing.sm },
   stackContainer: {
     maxHeight: 200,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     marginTop: Spacing.xs,
   },
-  errorStack: {
-    fontSize: 10,
-    fontFamily: 'monospace',
-  },
-  componentStackTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: Spacing.md,
-  },
-  componentStack: {
-    fontSize: 10,
-    fontFamily: 'monospace',
-  },
+  errorStack: { ...Typography.micro, fontFamily: 'monospace' },
+  componentStackTitle: { ...Typography.smallSemiBold, marginTop: Spacing.md },
+  componentStack: { ...Typography.micro, fontFamily: 'monospace' },
   button: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
     marginTop: Spacing.lg,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  buttonText: { ...Typography.subheading, color: Colors.light.onPrimary },
 });

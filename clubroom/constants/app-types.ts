@@ -1,9 +1,9 @@
 import type { Goal } from './skill-types';
+import type { UserRole, SkillLevel } from './user-types';
 
-// Core User Types - Only USER and COACH roles
-// Users with children access child management via hasChildren() check
-// Legacy aliases (PARENT -> USER, Coach -> COACH) for backward compatibility
-export type UserRole = 'COACH' | 'USER' | 'PARENT' | 'Coach' | 'ADMIN';
+// Core User Types - re-exported from user-types (single source of truth)
+export type { UserRole, SkillLevel } from './user-types';
+export { normalizeUserRole } from './user-types';
 
 export interface User {
   id: string;
@@ -38,8 +38,6 @@ export interface AvailabilitySlot {
 }
 
 // User/Athlete Profile
-export type SkillLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE';
-
 export interface UserProfile {
   userId: string;
   bio: string;
@@ -71,16 +69,16 @@ export interface Booking {
   duration?: number; // minutes (default 60)
   location: string;
   notes?: string;
-  coachName?: string; // Denormalized for easy display
-  athleteName?: string; // Denormalized for easy display
+  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
+  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId/athleteIds instead
   // Group booking fields
   isGroupSession?: boolean;
   maxParticipants?: number;
   currentParticipants?: number;
   participants?: {
     id: string;
-    name: string;
-    avatar: string;
+    name: string; // TODO(T3.4): Remove when connecting to real API — resolve from id instead
+    avatar: string; // TODO(T3.4): Remove when connecting to real API — resolve from id instead
     status: 'confirmed' | 'pending' | 'cancelled';
   }[];
   service?: string;
@@ -93,7 +91,10 @@ export interface Booking {
   cancellationReason?: string;
   isRecurringGenerated?: boolean;
   recurringBookingId?: string;
-  bookedByName?: string;
+  bookedByName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from bookedById instead
+  // Group session linkage
+  groupSessionId?: string;
+  groupRegistrationId?: string;
   // Session invite link (bidirectional)
   sessionInviteId?: string;
   // Bilateral confirmation fields
@@ -119,8 +120,8 @@ export interface Session {
   performanceRating: number; // 1-5
   nextFocusAreas: string[];
   videoUrls?: string[]; // Session videos uploaded by coach
-  coachName?: string; // Denormalized
-  athleteName?: string; // Denormalized
+  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from coachId instead
+  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
 }
 
 // Messages
@@ -132,15 +133,15 @@ export interface Conversation {
   lastMessageAt: string;
   lastMessage?: string;
   unreadCount?: number;
-  coachName?: string; // Denormalized
-  athleteName?: string; // Denormalized
+  coachName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from participants instead
+  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from relatedAthleteId instead
 }
 
 export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  senderName?: string;
+  senderName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from senderId instead
   content: string;
   sentAt: string;
   read: boolean;
@@ -150,8 +151,8 @@ export interface Message {
 export interface Post {
   id: string;
   authorId: string;
-  authorName?: string;
-  authorAvatar?: string;
+  authorName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
+  authorAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
   content: string;
   images?: string[];
   likes: string[]; // User IDs who liked
@@ -163,8 +164,8 @@ export interface Comment {
   id: string;
   postId: string;
   authorId: string;
-  authorName?: string;
-  authorAvatar?: string;
+  authorName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
+  authorAvatar?: string; // TODO(T3.4): Remove when connecting to real API — resolve from authorId instead
   content: string;
   likes: string[]; // User IDs who liked
   createdAt: string;
@@ -178,7 +179,7 @@ export interface Review {
   rating: number; // 1-5
   comment: string;
   createdAt: string;
-  athleteName?: string;
+  athleteName?: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId instead
 }
 
 // Analytics Types
@@ -361,7 +362,7 @@ export interface SessionRecap {
 export interface AthleteHighlight {
   athleteId?: string;
   guestId?: string;
-  athleteName: string;
+  athleteName: string; // TODO(T3.4): Remove when connecting to real API — resolve from athleteId/guestId instead
   strengths: string[];
   areasToImprove: string[];
   performanceRating: number; // 1-5

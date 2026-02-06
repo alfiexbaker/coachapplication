@@ -212,7 +212,7 @@ export function MilestoneList({
             <Ionicons
               name={isAdding ? 'hourglass' : 'add'}
               size={20}
-              color="#FFFFFF"
+              color={palette.onPrimary}
             />
           </Clickable>
         </Animated.View>
@@ -300,7 +300,7 @@ function MilestoneItem({
           ]}
         >
           {milestone.isCompleted && (
-            <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
           )}
         </View>
 
@@ -349,14 +349,14 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   milestoneContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   milestoneTitle: {
     fontSize: scaleFont(15),
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   addButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -404,12 +404,12 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(14),
   },
   compactContainer: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
   compactItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   compactText: {
     fontSize: scaleFont(13),

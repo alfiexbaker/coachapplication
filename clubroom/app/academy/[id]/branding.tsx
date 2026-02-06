@@ -9,7 +9,7 @@ import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService, UpdateBrandingInput } from '@/services/academy-service';
@@ -187,7 +187,7 @@ export default function AcademyBrandingScreen() {
                   ].filter(Boolean) as ViewStyle[]}
                 >
                   {primaryColor === color && (
-                    <Ionicons name="checkmark" size={18} color="#fff" />
+                    <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
                   )}
                 </Clickable>
               ))}
@@ -208,7 +208,7 @@ export default function AcademyBrandingScreen() {
                   ].filter(Boolean) as ViewStyle[]}
                 >
                   {secondaryColor === color && (
-                    <Ionicons name="checkmark" size={18} color="#fff" />
+                    <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
                   )}
                 </Clickable>
               ))}
@@ -248,7 +248,7 @@ export default function AcademyBrandingScreen() {
             />
           </View>
 
-          <View style={[styles.infoBox, { backgroundColor: `${palette.tint}10` }]}>
+          <View style={[styles.infoBox, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <Ionicons name="information-circle" size={18} color={palette.tint} />
             <ThemedText style={[styles.infoText, { color: palette.muted }]}>
               In the full app, you would upload images directly. For now, paste image URLs.
@@ -376,28 +376,26 @@ const styles = StyleSheet.create({
   previewLogo: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: Radii['2xl'],
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: Colors.light.onPrimary,
   },
   previewLogoPlaceholder: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: Radii['2xl'],
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: Colors.light.onPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   previewLogoText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.heading,
   },
   previewName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
     marginTop: Spacing.xs,
   },
   card: {
@@ -407,8 +405,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   colorLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   colorGrid: {
     flexDirection: 'row',
@@ -418,13 +415,13 @@ const styles = StyleSheet.create({
   colorOption: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   colorSelected: {
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: Colors.light.onPrimary,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -435,14 +432,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   inputLabel: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   input: {
     height: 48,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    fontSize: 15,
+    ...Typography.body,
   },
   infoBox: {
     flexDirection: 'row',
@@ -453,8 +449,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    ...Typography.caption,
   },
   bottomSpacer: {
     height: 100,

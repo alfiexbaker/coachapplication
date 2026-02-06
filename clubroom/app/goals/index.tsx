@@ -9,6 +9,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -22,7 +23,7 @@ import {
   GoalCard,
   ProgressRing,
 } from '@/components/goals';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Goal, GoalCategory } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -111,12 +112,12 @@ export default function GoalsDashboardScreen() {
   // Navigation
   const handleGoalPress = useCallback((goal: Goal) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/goals/[id]', params: { id: goal.id } });
+    router.push(Routes.goal(goal.id));
   }, []);
 
   const handleCreateGoal = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/goals/create');
+    router.push(Routes.GOALS_CREATE);
   }, []);
 
   const handleTabChange = useCallback((tab: TabFilter) => {
@@ -145,7 +146,7 @@ export default function GoalsDashboardScreen() {
           onPress={handleCreateGoal}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
+          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
         </Clickable>
       </View>
 
@@ -205,7 +206,7 @@ export default function GoalsDashboardScreen() {
               <ThemedText
                 style={[
                   styles.tabText,
-                  { color: activeTab === tab ? '#FFFFFF' : palette.text },
+                  { color: activeTab === tab ? Colors.light.onPrimary : palette.text },
                 ]}
               >
                 {tab === 'active' ? 'Active' : tab === 'completed' ? 'Completed' : 'All'}
@@ -230,7 +231,7 @@ export default function GoalsDashboardScreen() {
                       style={[
                         styles.categoryChip,
                         {
-                          backgroundColor: isSelected ? `${color}20` : palette.surface,
+                          backgroundColor: isSelected ? withAlpha(color, 0.12) : palette.surface,
                           borderColor: isSelected ? color : palette.border,
                         },
                       ]}
@@ -264,7 +265,7 @@ export default function GoalsDashboardScreen() {
             </View>
           ) : filteredGoals.length === 0 ? (
             <Animated.View entering={FadeInDown.delay(250).springify()} style={styles.emptyState}>
-              <View style={[styles.emptyIcon, { backgroundColor: `${palette.tint}15` }]}>
+              <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                 <Ionicons name="flag-outline" size={48} color={palette.tint} />
               </View>
               <ThemedText type="subtitle" style={styles.emptyTitle}>
@@ -322,12 +323,12 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   addButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -349,16 +350,15 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statValue: {
-    fontSize: scaleFont(28),
-    fontWeight: '700',
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   statLabel: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: Colors.light.border,
   },
   tabRow: {
     flexDirection: 'row',
@@ -372,8 +372,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tabText: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   categoryRow: {
     marginBottom: Spacing.md,
@@ -387,15 +386,14 @@ const styles = StyleSheet.create({
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   categoryChipText: {
-    fontSize: scaleFont(12),
-    fontWeight: '500',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   goalsSection: {
     flex: 1,
@@ -414,7 +412,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
@@ -424,7 +422,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     textAlign: 'center',
-    fontSize: scaleFont(15),
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
     maxWidth: 280,
   },

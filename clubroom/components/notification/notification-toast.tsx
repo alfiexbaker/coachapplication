@@ -1,11 +1,11 @@
 import { useCallback, useRef, useState } from 'react';
 import { Animated, StyleSheet, View, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Clickable } from '@/components/primitives/clickable';
 import { createLogger } from '@/utils/logger';
@@ -90,7 +90,7 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
     hideToast();
     if (toast.notification?.deepLink) {
       try {
-        router.push(toast.notification.deepLink as any);
+        router.push(toast.notification.deepLink as Href);
       } catch (error) {
         logger.error('Navigation error', error);
       }
@@ -122,8 +122,8 @@ export function NotificationToastProvider({ children }: { children: React.ReactN
         <Clickable onPress={handlePress}>
           <View style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border }]}>
             {/* Icon */}
-            <View style={[styles.iconContainer, { backgroundColor: `${palette.tint}15` }]}>
-              <Ionicons name={icon as any} size={20} color={palette.tint} />
+            <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+              <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
             </View>
 
             {/* Content */}
@@ -169,8 +169,8 @@ export function NotificationToast({
   return (
     <Clickable onPress={onPress}>
       <View style={[styles.toast, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-        <View style={[styles.iconContainer, { backgroundColor: `${palette.tint}15` }]}>
-          <Ionicons name={icon as any} size={20} color={palette.tint} />
+        <View style={[styles.iconContainer, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
+          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={palette.tint} />
         </View>
 
         <View style={styles.content}>
@@ -224,16 +224,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  title: {
-    fontSize: 14,
-  },
-  body: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
+  title: { ...Typography.bodySmall },
+  body: { ...Typography.small, lineHeight: 18 },
   closeButton: {
-    padding: 4,
+    padding: Spacing.xxs,
   },
 });

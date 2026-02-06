@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { CoachProfile } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
@@ -192,7 +192,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
       <SurfaceCard style={styles.flowCard}>
         <View style={styles.flowHeader}>
           <ThemedText type="eyebrow">Booking flow</ThemedText>
-          <View style={[styles.liveBadge, { backgroundColor: `${palette.tint}12` }]}>
+          <View style={[styles.liveBadge, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
             <Ionicons name="sparkles-outline" size={16} color={palette.tint} />
             <ThemedText style={[styles.badgeLabel, { color: palette.tint }]}>Coach-led</ThemedText>
           </View>
@@ -215,7 +215,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
                   step.status === 'upcoming' && { borderColor: palette.border },
                 ]}>
                 {step.status === 'complete' ? (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Ionicons name="checkmark" size={16} color={palette.onPrimary} />
                 ) : (
                   <ThemedText
                     style={[
@@ -267,7 +267,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
               Pick a day that works—live calendar sync keeps cancellations low.
             </ThemedText>
           </View>
-          <View style={[styles.liveBadge, { backgroundColor: `${palette.secondary}15` }]}>
+          <View style={[styles.liveBadge, { backgroundColor: withAlpha(palette.secondary, 0.09) }]}>
             <Ionicons name="time-outline" size={16} color={palette.secondary} />
             <ThemedText style={[styles.badgeLabel, { color: palette.secondary }]}>Live sync</ThemedText>
           </View>
@@ -283,7 +283,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
                   styles.calendarDay,
                   {
                     borderColor: isSelected ? palette.tint : palette.border,
-                    backgroundColor: isSelected ? `${palette.tint}12` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.surface,
                     opacity: pressed ? 0.85 : 1,
                   },
                   !hasSlots && { borderStyle: 'dashed', opacity: 0.55 },
@@ -321,7 +321,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
                   styles.slotCard,
                   {
                     borderColor: isSelected ? palette.tint : palette.border,
-                    backgroundColor: isSelected ? `${palette.tint}12` : palette.surface,
+                    backgroundColor: isSelected ? withAlpha(palette.tint, 0.07) : palette.surface,
                     opacity: pressed ? 0.9 : 1,
                   },
                 ]}
@@ -375,7 +375,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
             },
           ]}
           disabled={!selectedSlot}>
-          <ThemedText style={styles.ctaLabel} lightColor="#fff" darkColor="#fff">
+          <ThemedText style={styles.ctaLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
             {selectedSlot ? 'Continue to payment' : 'Pick a slot to continue'}
           </ThemedText>
         </Pressable>
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
   },
   calloutCopy: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   liveBadge: {
     flexDirection: 'row',
@@ -473,13 +473,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     borderRadius: Radii.pill,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
   },
-  badgeLabel: {
-    fontWeight: '600',
-    fontSize: 12,
-    textTransform: 'uppercase',
-  },
+  badgeLabel: { ...Typography.caption, textTransform: 'uppercase' },
   schedulerCard: {
     gap: Spacing.md,
   },
@@ -490,7 +486,7 @@ const styles = StyleSheet.create({
   },
   schedulerSubtitle: {
     opacity: 0.75,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -503,15 +499,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    gap: 2,
+    gap: Spacing.micro,
   },
   calendarWeekday: {
     fontWeight: '600',
     opacity: 0.75,
   },
-  calendarDate: {
-    fontSize: 18,
-  },
+  calendarDate: { ...Typography.heading },
   calendarMeta: {
     opacity: 0.7,
   },

@@ -26,7 +26,7 @@ import * as Clipboard from 'expo-clipboard';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // ---------------------------------------------------------------------------
@@ -132,10 +132,10 @@ export function ShareProfile({
             onPress={handleCopyLink}
             style={[
               styles.actionRow,
-              { backgroundColor: copied ? `${palette.success}12` : palette.background },
+              { backgroundColor: copied ? withAlpha(palette.success, 0.07) : palette.background },
             ]}
           >
-            <View style={[styles.actionIcon, { backgroundColor: copied ? `${palette.success}18` : `${palette.tint}12` }]}>
+            <View style={[styles.actionIcon, { backgroundColor: copied ? withAlpha(palette.success, 0.09) : withAlpha(palette.tint, 0.07) }]}>
               <Ionicons
                 name={copied ? 'checkmark-circle' : 'copy-outline'}
                 size={Components.icon.md}
@@ -157,7 +157,7 @@ export function ShareProfile({
             onPress={handleNativeShare}
             style={[styles.actionRow, { backgroundColor: palette.background }]}
           >
-            <View style={[styles.actionIcon, { backgroundColor: `${palette.tint}12` }]}>
+            <View style={[styles.actionIcon, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
               <Ionicons name="share-outline" size={Components.icon.md} color={palette.tint} />
             </View>
             <View style={{ flex: 1 }}>
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   actionIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },

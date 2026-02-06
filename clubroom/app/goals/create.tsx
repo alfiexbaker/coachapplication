@@ -9,6 +9,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -16,7 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { GoalForm } from '@/components/goals';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Typography } from '@/constants/theme';
 import type { Goal, CreateGoalInput, UpdateGoalInput, GoalCreator } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -98,7 +99,7 @@ export default function CreateGoalScreen() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
           // Navigate to the new goal
-          router.replace({ pathname: '/goals/[id]', params: { id: newGoal.id } });
+          router.replace(Routes.goal(newGoal.id));
         }
       } catch (error) {
         logger.error('Failed to save goal', error);
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(18),
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
   loadingText: {
     textAlign: 'center',

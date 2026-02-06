@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
@@ -9,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AttendeeList } from '@/components/event/AttendeeList';
 import { CheckInButton } from '@/components/event/CheckInButton';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import type {
   ClubEvent,
   EventRSVP,
@@ -90,7 +91,7 @@ export default function EventAttendeesScreen() {
   const handleAttendeePress = (userId: string) => {
     logger.press('AttendeeRow', { userId });
     // Navigate to user profile
-    router.push(`/profile/${userId}` as any);
+    router.push(Routes.profile(userId));
   };
 
   if (loading) {
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   errorText: {
-    fontSize: scaleFont(16),
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
     textAlign: 'center',
   },
   header: {
@@ -265,10 +266,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: scaleFont(17),
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
   },
   headerSubtitle: {
-    fontSize: scaleFont(12),
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   headerSpacer: {
     width: 40,
@@ -283,12 +284,11 @@ const styles = StyleSheet.create({
   todayBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     marginBottom: Spacing.xs,
   },
   todayText: {
-    fontSize: scaleFont(13),
-    fontWeight: '600',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
   listContainer: {
     flex: 1,
@@ -305,13 +305,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
   },
   coachActionText: {
-    fontSize: scaleFont(13),
-    fontWeight: '500',
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
   },
 });

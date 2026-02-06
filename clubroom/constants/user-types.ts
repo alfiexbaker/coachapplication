@@ -13,8 +13,13 @@
 export type SportCategory = 'Football';
 
 // Core User Roles - Single source of truth
-// Legacy aliases (PARENT -> USER, Coach -> COACH) kept for backward compatibility
-export type UserRole = 'COACH' | 'USER' | 'PARENT' | 'Coach' | 'ADMIN';
+// Legacy alias (PARENT -> USER) kept for backward compatibility
+export type UserRole = 'COACH' | 'USER' | 'PARENT' | 'ADMIN';
+
+/** Normalize legacy role values (e.g. 'Coach') to uppercase canonical form */
+export function normalizeUserRole(role: string): UserRole {
+  return role === 'Coach' ? 'COACH' : role as UserRole;
+}
 
 export type FootballObjective =
   | 'Dribbling'
@@ -326,7 +331,7 @@ export interface UserProfile {
   phone?: string;
   profilePhotoUrl?: string;
   bio?: string;
-  role: 'User' | 'Parent' | 'Coach' | 'Admin';
+  role: UserRole;
   joinedDate: string;
   children?: {
     name: string;

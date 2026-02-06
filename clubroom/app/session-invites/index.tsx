@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -11,12 +12,12 @@ import { Chip } from '@/components/primitives/chip';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { hasChildren, isCoach } from '@/utils/user-helpers';
-import type { SessionInvite } from '@/constants/types';
+import type { SessionInvite, SessionInviteType } from '@/constants/types';
 
 const logger = createLogger('SessionInvitesScreen');
 
@@ -103,19 +104,41 @@ function InviteCard({
 
   const expiryText = getExpiryText();
 
+  const inviteTypeConfig: Record<
+    SessionInviteType,
+    { label: string; icon: string; bg: string; text: string }
+  > = {
+    OPEN: { label: 'Open', icon: 'globe-outline', bg: withAlpha(palette.success, 0.09), text: palette.success },
+    CLOSED: { label: 'Closed', icon: 'lock-closed-outline', bg: withAlpha(palette.warning, 0.09), text: palette.warning },
+    SQUAD_ONLY: { label: 'Squad Only', icon: 'people-outline', bg: withAlpha(palette.info, 0.09), text: palette.info },
+  };
+
+  const currentInviteType = invite.inviteType || 'OPEN';
+  const inviteTypeCfg = inviteTypeConfig[currentInviteType];
+
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
       <SurfaceCard style={styles.inviteCard} onPress={onPress}>
         {/* Invitation Message Banner */}
-        <View style={[styles.invitationBanner, { backgroundColor: `${palette.tint}08` }]}>
+        <View style={[styles.invitationBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
           <Ionicons name="mail-outline" size={16} color={palette.tint} />
           <ThemedText style={[styles.invitationText, { color: palette.text }]} numberOfLines={2}>
             {invitationMessage}
           </ThemedText>
         </View>
 
+        {/* Invite Type Badge */}
+        <View style={styles.inviteTypeBadgeRow}>
+          <View style={[styles.inviteTypeBadge, { backgroundColor: inviteTypeCfg.bg }]}>
+            <Ionicons name={inviteTypeCfg.icon as keyof typeof Ionicons.glyphMap} size={12} color={inviteTypeCfg.text} />
+            <ThemedText style={[styles.inviteTypeBadgeText, { color: inviteTypeCfg.text }]}>
+              {inviteTypeCfg.label}
+            </ThemedText>
+          </View>
+        </View>
+
         <View style={styles.cardHeader}>
-          <View style={[styles.avatar, { backgroundColor: `${palette.tint}10` }]}>
+          <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
               {initials}
             </ThemedText>
@@ -136,7 +159,7 @@ function InviteCard({
           </View>
 
           <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.text} />
+            <Ionicons name={statusConfig.icon as keyof typeof Ionicons.glyphMap} size={12} color={statusConfig.text} />
             <ThemedText style={[styles.statusText, { color: statusConfig.text }]}>
               {status}
             </ThemedText>
@@ -205,8 +228,8 @@ function InviteCard({
               style={[styles.actionButton, styles.acceptButton, { backgroundColor: palette.tint }]}
               onPress={onPress}
             >
-              <Ionicons name="checkmark-outline" size={16} color="#fff" />
-              <ThemedText style={[styles.actionText, { color: '#fff' }]}>View & Accept</ThemedText>
+              <Ionicons name="checkmark-outline" size={16} color={palette.onPrimary} />
+              <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>View & Accept</ThemedText>
             </Clickable>
           </View>
         )}
@@ -390,10 +413,10 @@ export default function SessionInvitesScreen() {
         </View>
         {userIsCoach && (
           <Clickable
-            onPress={() => router.push('/session-invites/create')}
+            onPress={() => router.push(Routes.SESSION_INVITES_CREATE)}
             style={[styles.createButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="add" size={20} color="#fff" />
+            <Ionicons name="add" size={20} color={palette.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -444,7 +467,7 @@ export default function SessionInvitesScreen() {
       >
         {/* Pending invites highlight for parents */}
         {userHasChildren && pendingCount > 0 && filter === 'all' && (
-          <View style={[styles.pendingBanner, { backgroundColor: `${palette.warning}15` }]}>
+          <View style={[styles.pendingBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
             <Ionicons name="alert-circle" size={20} color={palette.warning} />
             <ThemedText style={[styles.pendingBannerText, { color: palette.text }]}>
               You have {pendingCount} pending invite{pendingCount > 1 ? 's' : ''} awaiting your response
@@ -479,10 +502,7 @@ export default function SessionInvitesScreen() {
                 index={index}
                 mode={mode}
                 onPress={() =>
-                  router.push({
-                    pathname: '/session-invites/[id]',
-                    params: { id: invite.id },
-                  })
+                  router.push(Routes.sessionInvite(invite.id))
                 }
                 onQuickDecline={() => handleQuickDecline(invite)}
                 onCancel={() => handleCancelInvite(invite)}
@@ -516,20 +536,19 @@ const styles = StyleSheet.create({
   badge: {
     minWidth: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: Spacing.xxs,
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
+    ...Typography.caption,
+    color: Colors.light.onPrimary,
   },
   createButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -558,14 +577,12 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   invitationText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     flex: 1,
     lineHeight: 18,
   },
   clubName: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -575,42 +592,40 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.subheading,
   },
   headerContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   name: {
-    fontSize: 15,
+    ...Typography.body,
   },
   sessionType: {
-    fontSize: 13,
+    ...Typography.small,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: '700',
+    ...Typography.caption,
     textTransform: 'uppercase',
   },
   divider: {
     height: 1,
   },
   cardDetails: {
-    gap: 6,
+    gap: Spacing.xxs,
   },
   detailRow: {
     flexDirection: 'row',
@@ -618,10 +633,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   detailText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   notes: {
-    fontSize: 13,
+    ...Typography.small,
     fontStyle: 'italic',
   },
   actionsRow: {
@@ -638,15 +653,14 @@ const styles = StyleSheet.create({
   declineButton: {
     borderWidth: 1,
     flexDirection: 'row',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   acceptButton: {
     flexDirection: 'row',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   actionText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   filterRow: {
     flexDirection: 'row',
@@ -663,18 +677,31 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   pendingBannerText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
     flex: 1,
   },
   expiryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     marginTop: Spacing.xs,
   },
   expiryText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
+  },
+  inviteTypeBadgeRow: {
+    flexDirection: 'row',
+  },
+  inviteTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: 10,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+    alignSelf: 'flex-start',
+  },
+  inviteTypeBadgeText: {
+    ...Typography.caption,
   },
 });

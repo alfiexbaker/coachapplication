@@ -12,7 +12,7 @@ import Animated, { FadeIn, FadeOut, SlideInDown } from 'react-native-reanimated'
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ANNOTATION_TYPE_CONFIG, videoService } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
@@ -162,7 +162,7 @@ export function AnnotationForm({
                 style={[
                   styles.typeOption,
                   {
-                    backgroundColor: isSelected ? `${config.color}15` : palette.background,
+                    backgroundColor: isSelected ? withAlpha(config.color, 0.09) : palette.background,
                     borderColor: isSelected ? config.color : palette.border,
                   },
                 ]}
@@ -170,7 +170,7 @@ export function AnnotationForm({
                 <View
                   style={[
                     styles.typeIcon,
-                    { backgroundColor: `${config.color}20` },
+                    { backgroundColor: withAlpha(config.color, 0.12) },
                   ]}
                 >
                   <Ionicons
@@ -271,7 +271,7 @@ export function AnnotationForm({
       )}
 
       {/* Preview */}
-      <View style={[styles.preview, { backgroundColor: `${selectedTypeConfig.color}10`, borderColor: selectedTypeConfig.color }]}>
+      <View style={[styles.preview, { backgroundColor: withAlpha(selectedTypeConfig.color, 0.06), borderColor: selectedTypeConfig.color }]}>
         <View style={[styles.previewDot, { backgroundColor: selectedTypeConfig.color }]} />
         <View style={styles.previewContent}>
           <View style={styles.previewHeader}>
@@ -309,7 +309,7 @@ export function AnnotationForm({
             },
           ]}
         >
-          <Ionicons name="checkmark" size={18} color="#fff" />
+          <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
           <ThemedText style={styles.saveButtonText}>
             {saving ? 'Saving...' : isEditing ? 'Update' : 'Add'}
           </ThemedText>
@@ -334,20 +334,14 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.xs,
   },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  sectionLabel: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.5 },
   labelHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  charCount: {
-    fontSize: 11,
-  },
+  charCount: { ...Typography.caption },
   timestampControl: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -356,7 +350,7 @@ const styles = StyleSheet.create({
   timestampButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -370,12 +364,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     gap: Spacing.xs,
   },
-  timestampText: {
-    fontSize: 18,
-  },
-  timestampTotal: {
-    fontSize: 14,
-  },
+  timestampText: { ...Typography.heading },
+  timestampTotal: { ...Typography.bodySmall },
   typesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -394,39 +384,28 @@ const styles = StyleSheet.create({
   typeIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  typeLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  input: {
-    height: 48,
+  typeLabel: { ...Typography.smallSemiBold },
+  input: { ...Typography.body, height: 48,
     borderWidth: 1,
     borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    fontSize: 15,
-  },
-  textArea: {
-    minHeight: 80,
+    paddingHorizontal: Spacing.md },
+  textArea: { ...Typography.body, minHeight: 80,
     borderWidth: 1,
     borderRadius: Radii.md,
-    padding: Spacing.md,
-    fontSize: 15,
-  },
+    padding: Spacing.md },
   errorsContainer: {
-    gap: 4,
+    gap: Spacing.xxs,
   },
   errorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  errorText: {
-    fontSize: 12,
-  },
+  errorText: { ...Typography.caption },
   preview: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -438,25 +417,20 @@ const styles = StyleSheet.create({
   previewDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    marginTop: 4,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.xxs,
   },
   previewContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
   previewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  previewTime: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  previewNote: {
-    fontSize: 13,
-  },
+  previewTime: { ...Typography.caption },
+  previewNote: { ...Typography.small },
   actions: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -480,7 +454,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   saveButtonText: {
-    color: '#fff',
+    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

@@ -24,7 +24,7 @@ import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { CategoryBadge } from './CategoryBadge';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { Goal, GoalCategory, CreateGoalInput, UpdateGoalInput } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { progressService } from '@/services/progress-service';
@@ -188,7 +188,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
                   style={[
                     styles.categoryOption,
                     {
-                      backgroundColor: isSelected ? `${color}15` : palette.surface,
+                      backgroundColor: isSelected ? withAlpha(color, 0.09) : palette.surface,
                       borderColor: isSelected ? color : palette.border,
                     },
                   ]}
@@ -290,7 +290,7 @@ export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalForm
                   },
                 ]}
               >
-                <Ionicons name="add" size={20} color="#FFFFFF" />
+                <Ionicons name="add" size={20} color={palette.onPrimary} />
               </Clickable>
             </View>
 
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: scaleFont(14),
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   input: {
     height: 48,
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    gap: 6,
+    gap: Spacing.xxs,
   },
   categoryLabel: {
     fontSize: scaleFont(13),
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   addMilestoneButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   previewMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     marginTop: Spacing.xs,
   },
   previewMetaText: {

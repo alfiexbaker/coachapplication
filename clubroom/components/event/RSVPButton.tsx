@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { RSVPStatus, ClubEvent, EventRSVP } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { eventService } from '@/services/event-service';
@@ -64,7 +64,7 @@ export function RSVPButton({
 
   const getTextColor = (status: RSVPStatus) => {
     const isSelected = currentRSVP?.status === status;
-    return isSelected ? '#FFFFFF' : palette.text;
+    return isSelected ? palette.onPrimary : palette.text;
   };
 
   const getIcon = (status: RSVPStatus): keyof typeof Ionicons.glyphMap => {
@@ -80,7 +80,7 @@ export function RSVPButton({
 
   if (event.status === 'CANCELLED') {
     return (
-      <View style={[styles.statusBanner, { backgroundColor: `${palette.error}15` }]}>
+      <View style={[styles.statusBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
         <Ionicons name="close-circle" size={18} color={palette.error} />
         <ThemedText style={[styles.statusText, { color: palette.error }]}>
           Event cancelled
@@ -91,7 +91,7 @@ export function RSVPButton({
 
   if (rsvpClosed) {
     return (
-      <View style={[styles.statusBanner, { backgroundColor: `${palette.warning}15` }]}>
+      <View style={[styles.statusBanner, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
         <Ionicons name="time" size={18} color={palette.warning} />
         <ThemedText style={[styles.statusText, { color: palette.warning }]}>
           RSVP closed
@@ -112,24 +112,24 @@ export function RSVPButton({
         style={[
           styles.compactButton,
           {
-            backgroundColor: currentRSVP ? `${color}15` : palette.tint,
+            backgroundColor: currentRSVP ? withAlpha(color, 0.09) : palette.tint,
             borderColor: currentRSVP ? color : palette.tint,
           },
         ]}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={currentRSVP ? color : '#FFFFFF'} />
+          <ActivityIndicator size="small" color={currentRSVP ? color : palette.onPrimary} />
         ) : (
           <>
             <Ionicons
               name={currentRSVP ? (getIcon(currentRSVP.status) as keyof typeof Ionicons.glyphMap) : 'add'}
               size={16}
-              color={currentRSVP ? color : '#FFFFFF'}
+              color={currentRSVP ? color : palette.onPrimary}
             />
             <ThemedText
               style={[
                 styles.compactButtonText,
-                { color: currentRSVP ? color : '#FFFFFF' },
+                { color: currentRSVP ? color : palette.onPrimary },
               ]}
             >
               {currentRSVP ? eventService.formatRSVPStatus(currentRSVP.status) : 'RSVP'}
@@ -144,7 +144,7 @@ export function RSVPButton({
     <View style={styles.container}>
       {/* Full event warning */}
       {isFull && !currentRSVP && (
-        <View style={[styles.statusBanner, { backgroundColor: `${palette.error}15` }]}>
+        <View style={[styles.statusBanner, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
           <Ionicons name="alert-circle" size={18} color={palette.error} />
           <ThemedText style={[styles.statusText, { color: palette.error }]}>
             Event is full
@@ -259,8 +259,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.md,
     borderWidth: 1.5,
   },
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   currentStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   currentStatusText: {
     fontSize: scaleFont(13),
@@ -304,9 +304,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.md,
     borderWidth: 1,
   },

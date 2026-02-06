@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface SessionTypeOption {
@@ -37,7 +37,7 @@ export function SessionTypeSelector({
               styles.card,
               {
                 borderColor: active ? palette.tint : palette.border,
-                backgroundColor: active ? `${palette.tint}10` : palette.surface,
+                backgroundColor: active ? withAlpha(palette.tint, 0.06) : palette.surface,
               },
             ]}
             onPress={() => onSelect(opt.id)}

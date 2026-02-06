@@ -5,7 +5,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { FamilyCalendarEvent } from '@/constants/types';
 
@@ -165,7 +165,7 @@ export function UpcomingSessionsList({
                     <View
                       style={[
                         styles.statusBadge,
-                        { backgroundColor: `${statusBadge.color}15` },
+                        { backgroundColor: withAlpha(statusBadge.color, 0.09) },
                       ]}
                     >
                       <View
@@ -270,13 +270,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 14,
-  },
-  viewAllText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  sectionTitle: { ...Typography.bodySmall },
+  viewAllText: { ...Typography.smallSemiBold },
   sessionsList: {
     gap: Spacing.sm,
   },
@@ -303,38 +298,27 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: Spacing.xs,
   },
-  dateText: {
-    fontSize: 14,
-  },
-  timeText: {
-    fontSize: 12,
-  },
+  dateText: { ...Typography.bodySmall },
+  timeText: { ...Typography.caption },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   statusDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  statusText: { ...Typography.caption },
   sessionInfo: {
-    gap: 2,
+    gap: Spacing.micro,
   },
-  sessionTitle: {
-    fontSize: 15,
-  },
-  sessionDescription: {
-    fontSize: 13,
-  },
+  sessionTitle: { ...Typography.body },
+  sessionDescription: { ...Typography.small },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -343,23 +327,19 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   childDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  metaText: {
-    fontSize: 12,
-  },
+  metaText: { ...Typography.caption },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
   },
-  priceText: {
-    fontSize: 14,
-  },
+  priceText: { ...Typography.bodySmall },
   chevronContainer: {
     justifyContent: 'center',
     paddingRight: Spacing.sm,
@@ -374,8 +354,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     marginTop: Spacing.xs,
   },
-  viewAllButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  viewAllButtonText: { ...Typography.bodySmallSemiBold },
 });

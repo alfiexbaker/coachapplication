@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export interface StatCardProps {
@@ -80,14 +80,14 @@ export function StatCard({
           style={[
             styles.value,
             isCompact ? styles.valueCompact : undefined,
-            { fontVariant: ['tabular-nums'] as any },
+            { fontVariant: ['tabular-nums' as const] },
           ]}
         >
           {value}
         </ThemedText>
         {icon}
         {trend ? (
-          <View style={[styles.trendBadge, { backgroundColor: finalTrendColor + '20' }]}>
+          <View style={[styles.trendBadge, { backgroundColor: withAlpha(finalTrendColor, 0.12) }]}>
             <ThemedText style={[styles.trendText, { color: finalTrendColor }]}>
               {trend}
             </ThemedText>
@@ -114,35 +114,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs / 2,
   },
-  value: {
-    fontSize: 24,
-    fontWeight: '600',
-    letterSpacing: -0.4,
-  },
-  valueCompact: {
-    fontSize: 20,
-    fontWeight: '500',
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  labelCompact: {
-    fontSize: 13,
-    textTransform: 'none',
+  value: { ...Typography.display, letterSpacing: -0.4 },
+  valueCompact: { ...Typography.title },
+  label: { ...Typography.caption, textTransform: 'uppercase',
+    letterSpacing: 0.6 },
+  labelCompact: { ...Typography.small, textTransform: 'none',
     letterSpacing: 0,
-    fontWeight: '400',
-  },
+    fontWeight: '400' },
   trendBadge: {
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.xs,
   },
-  trendText: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0,
-  },
+  trendText: { ...Typography.caption, letterSpacing: 0 },
 });

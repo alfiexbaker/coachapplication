@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getSessionsForAthlete, formatDate } from '@/constants/mock-data';
@@ -210,18 +211,18 @@ export function ParentDevelopmentScreen() {
                   >
                     <View style={[
                       styles.childAvatar,
-                      { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : palette.border }
+                      { backgroundColor: isSelected ? withAlpha(Colors.light.onPrimary, 0.2) : palette.border }
                     ]}>
                       <ThemedText style={[
                         styles.childAvatarText,
-                        { color: isSelected ? '#fff' : palette.tint }
+                        { color: isSelected ? palette.onPrimary : palette.tint }
                       ]}>
                         {child.name.charAt(0)}
                       </ThemedText>
                     </View>
                     <ThemedText style={[
                       styles.childName,
-                      { color: isSelected ? '#fff' : palette.text },
+                      { color: isSelected ? palette.onPrimary : palette.text },
                       isSelected && styles.childNameActive,
                     ]}>
                       {child.name}
@@ -248,7 +249,7 @@ export function ParentDevelopmentScreen() {
             {/* Profile Summary Card */}
             <SurfaceCard style={styles.profileCard}>
               <View style={styles.profileHeader}>
-                <View style={[styles.avatar, { backgroundColor: palette.tint + '20' }]}>
+                <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                   <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
                     {selectedChild.name.charAt(0)}
                   </ThemedText>
@@ -258,7 +259,7 @@ export function ParentDevelopmentScreen() {
                     {selectedChild.name}
                   </ThemedText>
                   <View style={styles.profileBadges}>
-                    <View style={[styles.trendBadge, { backgroundColor: trendColor + '20' }]}>
+                    <View style={[styles.trendBadge, { backgroundColor: withAlpha(trendColor, 0.12) }]}>
                       <Ionicons name={trendIcon} size={12} color={trendColor} />
                       <ThemedText style={[styles.trendBadgeText, { color: trendColor }]}>
                         {trendText}
@@ -271,7 +272,7 @@ export function ParentDevelopmentScreen() {
               {/* Quick Stats */}
               <View style={[styles.quickStats, { borderTopColor: palette.border }]}>
                 <View style={styles.quickStat}>
-                  <View style={[styles.quickStatIcon, { backgroundColor: `${palette.tint}12` }]}>
+                  <View style={[styles.quickStatIcon, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                     <Ionicons name="calendar" size={16} color={palette.tint} />
                   </View>
                   <ThemedText type="defaultSemiBold" style={styles.quickStatValue}>
@@ -283,8 +284,8 @@ export function ParentDevelopmentScreen() {
                 </View>
                 <View style={[styles.quickStatDivider, { backgroundColor: palette.border }]} />
                 <View style={styles.quickStat}>
-                  <View style={[styles.quickStatIcon, { backgroundColor: '#F59E0B15' }]}>
-                    <Ionicons name="star" size={16} color="#F59E0B" />
+                  <View style={[styles.quickStatIcon, { backgroundColor: withAlpha(Colors.light.warning, 0.09) }]}>
+                    <Ionicons name="star" size={16} color={Colors.light.warning} />
                   </View>
                   <ThemedText type="defaultSemiBold" style={styles.quickStatValue}>
                     {avgRating}
@@ -295,7 +296,7 @@ export function ParentDevelopmentScreen() {
                 </View>
                 <View style={[styles.quickStatDivider, { backgroundColor: palette.border }]} />
                 <View style={styles.quickStat}>
-                  <View style={[styles.quickStatIcon, { backgroundColor: `${palette.success}12` }]}>
+                  <View style={[styles.quickStatIcon, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
                     <Ionicons name="ribbon" size={16} color={palette.success} />
                   </View>
                   <ThemedText type="defaultSemiBold" style={styles.quickStatValue}>
@@ -324,12 +325,12 @@ export function ParentDevelopmentScreen() {
                     <Ionicons
                       name={tab.icon}
                       size={16}
-                      color={isActive ? '#fff' : palette.muted}
+                      color={isActive ? palette.onPrimary : palette.muted}
                     />
                     <ThemedText
                       style={[
                         styles.tabLabel,
-                        { color: isActive ? '#fff' : palette.muted },
+                        { color: isActive ? palette.onPrimary : palette.muted },
                         isActive && styles.tabLabelActive,
                       ]}
                     >
@@ -388,7 +389,7 @@ export function ParentDevelopmentScreen() {
                           <Clickable
                             onPress={() => {
                               logger.press('SessionCard', { sessionId: session.id });
-                              router.push(`/bookings/${session.bookingId}`);
+                              router.push(Routes.booking(session.bookingId));
                             }}
                           >
                             <SurfaceCard style={styles.sessionCard}>
@@ -405,14 +406,14 @@ export function ParentDevelopmentScreen() {
                                   <ThemedText type="defaultSemiBold" style={styles.ratingValue}>
                                     {session.performanceRating.toFixed(1)}
                                   </ThemedText>
-                                  <Ionicons name="star" size={14} color="#F59E0B" />
+                                  <Ionicons name="star" size={14} color={Colors.light.warning} />
                                 </View>
                               </View>
 
                               {session.skillsWorkedOn && session.skillsWorkedOn.length > 0 && (
                                 <View style={styles.skillsRow}>
                                   {session.skillsWorkedOn.slice(0, 3).map((skill, idx) => (
-                                    <View key={idx} style={[styles.skillPill, { backgroundColor: palette.tint + '12' }]}>
+                                    <View key={idx} style={[styles.skillPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
                                       <ThemedText style={[styles.skillText, { color: palette.tint }]}>
                                         {skill}
                                       </ThemedText>
@@ -437,7 +438,7 @@ export function ParentDevelopmentScreen() {
                 {sharedBadges.length > 0 && (
                   <SurfaceCard style={styles.sharedBadgesCard}>
                     <View style={styles.sectionHeaderRow}>
-                      <View style={[styles.sectionIcon, { backgroundColor: `${palette.success}12` }]}>
+                      <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
                         <Ionicons name="share" size={16} color={palette.success} />
                       </View>
                       <View style={styles.sectionHeaderContent}>
@@ -454,7 +455,7 @@ export function ParentDevelopmentScreen() {
                           entering={FadeInRight.delay(index * 50).springify()}
                           style={[styles.sharedBadge, { borderColor: palette.border }]}
                         >
-                          <View style={[styles.badgeIcon, { backgroundColor: getBadgeColor(award.badgeCategory) + '15' }]}>
+                          <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory), 0.09) }]}>
                             <Ionicons name={getBadgeIcon(award.badgeCategory)} size={20} color={getBadgeColor(award.badgeCategory)} />
                           </View>
                           <View style={styles.badgeContent}>
@@ -483,7 +484,7 @@ export function ParentDevelopmentScreen() {
                     <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
                       Badge Log
                     </ThemedText>
-                    <View style={[styles.countBadge, { backgroundColor: palette.tint + '15' }]}>
+                    <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <ThemedText style={[styles.countBadgeText, { color: palette.tint }]}>
                         {awards.length}
                       </ThemedText>
@@ -491,7 +492,7 @@ export function ParentDevelopmentScreen() {
                   </View>
 
                   {coachOnlyCount > 0 && (
-                    <View style={[styles.infoStrip, { backgroundColor: `${palette.icon}08` }]}>
+                    <View style={[styles.infoStrip, { backgroundColor: withAlpha(palette.icon, 0.03) }]}>
                       <Ionicons name="shield" size={14} color={palette.icon} />
                       <ThemedText style={[styles.infoStripText, { color: palette.muted }]}>
                         {coachOnlyCount} coach-only badge{coachOnlyCount > 1 ? 's are' : ' is'} hidden
@@ -514,7 +515,7 @@ export function ParentDevelopmentScreen() {
                         >
                           <SurfaceCard style={styles.badgeCard}>
                             <View style={styles.badgeCardHeader}>
-                              <View style={[styles.badgeIcon, { backgroundColor: getBadgeColor(award.badgeCategory) + '15' }]}>
+                              <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory), 0.09) }]}>
                                 <Ionicons name={getBadgeIcon(award.badgeCategory)} size={20} color={getBadgeColor(award.badgeCategory)} />
                               </View>
                               <View style={styles.badgeCardContent}>
@@ -530,7 +531,7 @@ export function ParentDevelopmentScreen() {
                             <View style={styles.badgeCardFooter}>
                               <View style={[
                                 styles.visibilityPill,
-                                { backgroundColor: award.shared ? `${palette.success}12` : `${palette.icon}08` }
+                                { backgroundColor: award.shared ? withAlpha(palette.success, 0.07) : withAlpha(palette.icon, 0.03) }
                               ]}>
                                 <Ionicons
                                   name={award.shared ? 'share' : 'eye'}
@@ -567,7 +568,7 @@ export function ParentDevelopmentScreen() {
                     <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
                       Active Goals
                     </ThemedText>
-                    <View style={[styles.countBadge, { backgroundColor: palette.tint + '15' }]}>
+                    <View style={[styles.countBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
                       <ThemedText style={[styles.countBadgeText, { color: palette.tint }]}>
                         {activeGoals.length}
                       </ThemedText>
@@ -641,20 +642,13 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.6,
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  title: { ...Typography.display, letterSpacing: -0.6 },
+  subtitle: { ...Typography.bodySmall, lineHeight: 20 },
 
   // Child Selector
   childSelector: {
     borderRadius: Radii.md,
-    padding: 4,
+    padding: Spacing.xxs,
   },
   childSelectorContent: {
     gap: Spacing.xs,
@@ -671,18 +665,12 @@ const styles = StyleSheet.create({
   childAvatar: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  childAvatarText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  childName: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  childAvatarText: { ...Typography.caption },
+  childName: { ...Typography.bodySmallSemiBold },
   childNameActive: {
     fontWeight: '700',
   },
@@ -704,18 +692,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: '600',
-  },
+  avatarText: { ...Typography.display },
   profileInfo: {
     flex: 1,
     gap: Spacing.xs,
   },
-  profileName: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
+  profileName: { ...Typography.heading },
   profileBadges: {
     flexDirection: 'row',
     gap: Spacing.xs,
@@ -723,15 +705,12 @@ const styles = StyleSheet.create({
   trendBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  trendBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  trendBadgeText: { ...Typography.caption },
   quickStats: {
     flexDirection: 'row',
     paddingTop: Spacing.md,
@@ -745,47 +724,37 @@ const styles = StyleSheet.create({
   quickStatIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   quickStatDivider: {
     width: 1,
     alignSelf: 'stretch',
-    marginVertical: 4,
+    marginVertical: Spacing.xxs,
   },
-  quickStatValue: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  quickStatLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
+  quickStatValue: { ...Typography.heading },
+  quickStatLabel: { ...Typography.micro, textTransform: 'uppercase',
+    letterSpacing: 0.3 },
 
   // Tabs
   tabContainer: {
     flexDirection: 'row',
     borderRadius: Radii.md,
-    padding: 4,
-    gap: 4,
+    padding: Spacing.xxs,
+    gap: Spacing.xxs,
   },
   tab: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.sm,
   },
   tabActive: {},
-  tabLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  tabLabel: { ...Typography.smallSemiBold },
   tabLabelActive: {
     fontWeight: '700',
   },
@@ -802,12 +771,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitle: {
-    fontSize: 16,
-  },
-  sectionCount: {
-    fontSize: 12,
-  },
+  sectionTitle: { ...Typography.subheading },
+  sectionCount: { ...Typography.caption },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -816,26 +781,21 @@ const styles = StyleSheet.create({
   sectionIcon: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionHeaderContent: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  sectionHint: {
-    fontSize: 12,
-  },
+  sectionHint: { ...Typography.caption },
   countBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
-  countBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  countBadgeText: { ...Typography.caption },
 
   // Sessions
   sessionsList: {
@@ -852,22 +812,16 @@ const styles = StyleSheet.create({
   },
   sessionInfo: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.micro,
   },
-  sessionCoach: {
-    fontSize: 15,
-  },
-  sessionDate: {
-    fontSize: 12,
-  },
+  sessionCoach: { ...Typography.body },
+  sessionDate: { ...Typography.caption },
   rating: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  ratingValue: {
-    fontSize: 16,
-  },
+  ratingValue: { ...Typography.subheading },
   skillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -875,13 +829,10 @@ const styles = StyleSheet.create({
   },
   skillPill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  skillText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  skillText: { ...Typography.caption },
 
   // Badges
   sharedBadgesCard: {
@@ -901,35 +852,26 @@ const styles = StyleSheet.create({
   badgeIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  badgeReason: {
-    fontSize: 12,
-  },
-  badgeNote: {
-    fontSize: 12,
-    fontStyle: 'italic',
-  },
-  badgeDate: {
-    fontSize: 11,
-  },
+  badgeReason: { ...Typography.caption },
+  badgeNote: { ...Typography.caption, fontStyle: 'italic' },
+  badgeDate: { ...Typography.caption },
   infoStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.md,
   },
-  infoStripText: {
-    fontSize: 12,
-  },
+  infoStripText: { ...Typography.caption },
   badgeList: {
     gap: Spacing.sm,
   },
@@ -944,7 +886,7 @@ const styles = StyleSheet.create({
   },
   badgeCardContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   badgeCardFooter: {
     flexDirection: 'row',
@@ -952,15 +894,12 @@ const styles = StyleSheet.create({
   visibilityPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  visibilityText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  visibilityText: { ...Typography.caption },
 
   // Goals
   goalsList: {

@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { RatingStars } from './rating-stars';
 
@@ -24,9 +24,9 @@ export function ReviewCard({ name, role, rating, text, date, response }: ReviewC
       </View>
       <RatingStars rating={rating} />
       {text ? <ThemedText style={{ marginTop: Spacing.xs }}>{text}</ThemedText> : null}
-      {date ? <ThemedText style={{ color: palette.muted, fontSize: 12 }}>{date}</ThemedText> : null}
+      {date ? <ThemedText style={{ ...Typography.caption, color: palette.muted }}>{date}</ThemedText> : null}
       {response ? (
-        <View style={[styles.response, { backgroundColor: `${palette.tint}10`, borderColor: palette.border }]}>
+        <View style={[styles.response, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.border }]}>
           <ThemedText type="defaultSemiBold">Coach response</ThemedText>
           <ThemedText style={{ color: palette.muted }}>{response}</ThemedText>
         </View>

@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { CancellationStats, CancellationReason } from '@/constants/types';
 
@@ -131,7 +131,7 @@ export function CancellationChart({
                       styles.reasonBar,
                       {
                         width: `${(reason.count / maxReasonCount) * 100}%`,
-                        backgroundColor: palette.error + '60',
+                        backgroundColor: withAlpha(palette.error, 0.38),
                       },
                     ]}
                   />
@@ -160,7 +160,7 @@ export function CancellationChart({
                 <ThemedText style={styles.dayName}>
                   {day.dayName.slice(0, 3)}
                 </ThemedText>
-                <View style={[styles.dayBadge, { backgroundColor: palette.error + '20' }]}>
+                <View style={[styles.dayBadge, { backgroundColor: withAlpha(palette.error, 0.12) }]}>
                   <ThemedText style={[styles.dayCount, { color: palette.error }]}>
                     {day.count}
                   </ThemedText>
@@ -194,10 +194,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  title: { ...Typography.subheading },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -207,26 +204,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  summaryValue: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
-    marginTop: 2,
-  },
+  summaryValue: { ...Typography.title },
+  summaryLabel: { ...Typography.caption, textAlign: 'center',
+    marginTop: Spacing.micro },
   reasonsSection: {
     marginBottom: Spacing.md,
   },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+  sectionTitle: { ...Typography.caption, textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   reasonsList: {
     gap: Spacing.sm,
   },
@@ -241,35 +227,24 @@ const styles = StyleSheet.create({
     width: 100,
   },
   reasonIcon: {
-    marginRight: 6,
+    marginRight: Spacing.xxs,
   },
-  reasonLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-  },
+  reasonLabel: { ...Typography.smallSemiBold, flex: 1 },
   reasonBarContainer: {
     flex: 1,
     height: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
+    backgroundColor: Colors.light.border,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   reasonBar: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  reasonCount: {
-    fontSize: 13,
-    fontWeight: '600',
-    width: 24,
-    textAlign: 'right',
-  },
-  reasonPercent: {
-    fontSize: 11,
-    width: 36,
-    textAlign: 'right',
-  },
+  reasonCount: { ...Typography.smallSemiBold, width: 24,
+    textAlign: 'right' },
+  reasonPercent: { ...Typography.caption, width: 36,
+    textAlign: 'right' },
   daysSection: {
     paddingTop: Spacing.md,
     borderTopWidth: 1,
@@ -281,23 +256,17 @@ const styles = StyleSheet.create({
   },
   dayItem: {
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
-  dayName: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
+  dayName: { ...Typography.caption },
   dayBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.md,
     minWidth: 28,
     alignItems: 'center',
   },
-  dayCount: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  dayCount: { ...Typography.caption },
   noticeSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -305,9 +274,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     borderTopWidth: 1,
   },
-  noticeText: {
-    fontSize: 13,
-  },
+  noticeText: { ...Typography.small },
   noticeValue: {
     fontWeight: '600',
   },

@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -112,7 +113,7 @@ export default function MapScreen() {
 
   const handleCoachPress = useCallback(
     (coach: CoachProfile) => {
-      router.push(`/book/${coach.id}` as any);
+      router.push(Routes.bookCoach(coach.id));
     },
     [router]
   );
@@ -123,10 +124,7 @@ export default function MapScreen() {
 
   const handleToggleView = useCallback(() => {
     // Navigate to list view with current filters
-    router.replace({
-      pathname: '/',
-      params: { filters: JSON.stringify(filters) },
-    });
+    router.replace(Routes.ROOT);
   }, [router, filters]);
 
   const activeFilterCount = discoverService.getActiveFilterCount(filters);

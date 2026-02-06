@@ -10,6 +10,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -18,7 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { DrillList } from '@/components/drills';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import type { AssignedDrill, DrillAssignmentStats } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -99,7 +100,7 @@ export default function DrillsDashboardScreen() {
    */
   const handleAssignmentPress = useCallback((assignment: AssignedDrill) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: '/drills/[id]', params: { id: assignment.id } });
+    router.push(Routes.drill(assignment.id));
   }, []);
 
   /**
@@ -252,7 +253,7 @@ export default function DrillsDashboardScreen() {
                 <ThemedText
                   style={[
                     styles.tabText,
-                    { color: activeTab === tab ? '#FFFFFF' : palette.text },
+                    { color: activeTab === tab ? Colors.light.onPrimary : palette.text },
                   ]}
                 >
                   {tab === 'pending' ? 'To Do' : tab === 'completed' ? 'Done' : 'All'}
@@ -268,7 +269,7 @@ export default function DrillsDashboardScreen() {
                   <ThemedText
                     style={[
                       styles.tabBadgeText,
-                      { color: activeTab === tab ? '#FFFFFF' : palette.muted },
+                      { color: activeTab === tab ? Colors.light.onPrimary : palette.muted },
                     ]}
                   >
                     {count}
@@ -324,7 +325,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   headerTitle: {
-    fontSize: scaleFont(24),
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
@@ -344,12 +345,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: scaleFont(24),
-    fontWeight: '700',
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
   },
   statLabel: {
-    fontSize: scaleFont(12),
-    marginTop: 2,
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
+    marginTop: Spacing.micro,
   },
   statDivider: {
     width: 1,
@@ -358,13 +358,13 @@ const styles = StyleSheet.create({
   streakContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   progressSection: {
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: Colors.light.border,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -373,20 +373,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   progressLabel: {
-    fontSize: scaleFont(13),
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
   },
   progressValue: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   progressBarBg: {
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
   tabRow: {
     flexDirection: 'row',
@@ -404,20 +403,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   tabText: {
-    fontSize: scaleFont(14),
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
   },
   tabBadge: {
     minWidth: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: Spacing.xxs,
   },
   tabBadgeText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
   },
   listSection: {
     flex: 1,

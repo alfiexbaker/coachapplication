@@ -10,11 +10,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
@@ -171,7 +172,7 @@ export default function ConfirmBookingScreen() {
         setIsProcessing(false);
         Alert.alert(
           'Booking Issue',
-          result.error || 'Booking could not be completed. Please try again.'
+          result.error?.message || 'Booking could not be completed. Please try again.'
         );
         return;
       }
@@ -185,7 +186,7 @@ export default function ConfirmBookingScreen() {
         parentName: currentUser?.name || currentUser?.fullName || 'Parent',
         childName: athleteNames,
         date: formattedDate,
-        bookingId: result.booking?.id || 'new',
+        bookingId: result.data?.id || 'new',
       });
 
       // Notify parent of confirmed booking
@@ -193,7 +194,7 @@ export default function ConfirmBookingScreen() {
         parentId: currentUser?.id || 'parent',
         coachName,
         date: `${formattedDate} at ${formattedTime}`,
-        bookingId: result.booking?.id || 'new',
+        bookingId: result.data?.id || 'new',
       });
 
       setIsProcessing(false);
@@ -211,13 +212,13 @@ export default function ConfirmBookingScreen() {
           {
             text: 'View Bookings',
             onPress: () => {
-              router.replace('/(tabs)/bookings');
+              router.replace(Routes.BOOKINGS);
             },
           },
           {
             text: 'Find More Coaches',
             onPress: () => {
-              router.replace('/(tabs)');
+              router.replace(Routes.HOME);
             },
           },
         ]
@@ -294,7 +295,7 @@ export default function ConfirmBookingScreen() {
                 {objectives.map((objective: string, index: number) => (
                   <View
                     key={index}
-                    style={[styles.objectiveChip, { backgroundColor: palette.tint + '15', borderColor: palette.tint }]}
+                    style={[styles.objectiveChip, { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint }]}
                   >
                     <Ionicons name="football" size={14} color={palette.tint} />
                     <ThemedText style={[styles.objectiveText, { color: palette.tint }]}>
@@ -385,7 +386,7 @@ export default function ConfirmBookingScreen() {
               </View>
             </View>
 
-            <View style={[styles.securityNote, { backgroundColor: palette.tint + '10' }]}>
+            <View style={[styles.securityNote, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
               <Ionicons name="lock-closed" size={16} color={palette.tint} />
               <ThemedText style={[styles.securityText, { color: palette.tint }]}>
                 Your payment information is secure and encrypted
@@ -417,7 +418,7 @@ export default function ConfirmBookingScreen() {
         >
           {isProcessing ? (
             <View style={styles.processingContainer}>
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={Colors.light.onPrimary} />
               <ThemedText style={styles.confirmButtonText}>Processing...</ThemedText>
             </View>
           ) : (
@@ -462,7 +463,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   summaryTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -491,8 +492,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   objectiveText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   participantsSection: {
     gap: Spacing.sm,
@@ -515,17 +515,16 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   participantName: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   totalPrice: {
-    fontSize: 22,
+    ...Typography.title,
   },
   section: {
     paddingHorizontal: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: 16,
+    ...Typography.subheading,
     marginBottom: Spacing.md,
   },
   paymentCard: {
@@ -536,8 +535,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -550,8 +548,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
+    ...Typography.subheading,
     paddingVertical: 0,
   },
   inputRow: {
@@ -567,8 +564,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   securityText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
     flex: 1,
   },
   testNotice: {
@@ -579,7 +575,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   testNoticeText: {
-    fontSize: 13,
+    ...Typography.small,
     flex: 1,
     lineHeight: 18,
   },
@@ -594,9 +590,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.subheading,
   },
   processingContainer: {
     flexDirection: 'row',

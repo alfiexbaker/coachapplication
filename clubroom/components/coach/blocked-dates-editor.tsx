@@ -25,8 +25,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { Colors, Spacing, Radii, Typography, Shadows, Components } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Shadows, Components  , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
+import type { Booking } from '@/constants/app-types';
 
 const logger = createLogger('BlockedDatesEditor');
 
@@ -101,14 +102,14 @@ async function getBookingsInRange(
   endDate: string,
 ): Promise<{ count: number; dates: string[] }> {
   try {
-    const bookings = await apiClient.get<any[]>(STORAGE_KEYS.BOOKINGS, []);
-    const matching = bookings.filter((b: any) => {
+    const bookings = await apiClient.get<Booking[]>(STORAGE_KEYS.BOOKINGS, []);
+    const matching = bookings.filter((b) => {
       if (b.coachId !== coachId) return false;
       if (b.status === 'CANCELLED' || b.status === 'COMPLETED') return false;
       const bookingDate = (b.scheduledAt || b.start || '').split('T')[0];
       return bookingDate >= startDate && bookingDate <= endDate;
     });
-    const dates = [...new Set(matching.map((b: any) => (b.scheduledAt || b.start || '').split('T')[0]))];
+    const dates = [...new Set(matching.map((b) => (b.scheduledAt || b.start || '').split('T')[0]))];
     return { count: matching.length, dates };
   } catch {
     return { count: 0, dates: [] };
@@ -290,12 +291,12 @@ const calStyles = StyleSheet.create({
   },
   weekRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   weekCell: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
   },
   weekText: {
     ...Typography.caption,
@@ -310,13 +311,13 @@ const calStyles = StyleSheet.create({
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: Radii.sm,
   },
   dayCellSelected: {
     backgroundColor: Colors.light.tint,
   },
   dayCellBlocked: {
-    backgroundColor: Colors.light.error + '18',
+    backgroundColor: withAlpha(Colors.light.error, 0.09),
   },
   dayText: {
     ...Typography.body,
@@ -659,16 +660,16 @@ const styles = StyleSheet.create({
   bookingWarning: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    backgroundColor: Colors.light.warning + '14',
+    backgroundColor: withAlpha(Colors.light.warning, 0.08),
     borderRadius: Radii.card,
     padding: Spacing.sm,
     marginTop: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.light.warning + '30',
+    borderColor: withAlpha(Colors.light.warning, 0.19),
   },
   bookingWarningContent: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   bookingWarningTitle: {
     ...Typography.bodySemiBold,
@@ -690,7 +691,7 @@ const styles = StyleSheet.create({
   selectionInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     marginBottom: Spacing.xs,
   },
   selectionLabel: {
@@ -711,7 +712,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,
     backgroundColor: Colors.light.error,
@@ -777,10 +778,10 @@ const styles = StyleSheet.create({
   listItemReason: {
     ...Typography.small,
     color: Colors.light.muted,
-    marginTop: 2,
+    marginTop: Spacing.micro,
   },
   removeBtn: {
-    padding: 4,
+    padding: Spacing.xxs,
   },
 
   // Empty state
@@ -793,7 +794,7 @@ const styles = StyleSheet.create({
     ...Typography.heading,
     color: Colors.light.text,
     marginTop: Spacing.sm,
-    marginBottom: 4,
+    marginBottom: Spacing.xxs,
   },
   emptySubtitle: {
     ...Typography.body,

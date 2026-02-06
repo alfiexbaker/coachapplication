@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { comparisonService } from '@/services/comparison-service';
 
@@ -135,7 +135,7 @@ export default function CompareScreen() {
                 },
               ]}
             >
-              <Ionicons name="search" size={18} color="#fff" />
+              <Ionicons name="search" size={18} color={Colors.light.onPrimary} />
               <ThemedText style={styles.browseButtonText}>Browse Coaches</ThemedText>
             </Pressable>
           </View>
@@ -154,8 +154,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
   },
   headerButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   statusBar: {
     flexDirection: 'row',
@@ -171,21 +170,19 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   statusText: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Typography.bodySmallSemiBold,
   },
   addMoreButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
   addMoreText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   emptyState: {
     flex: 1,
@@ -196,7 +193,7 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 96,
     height: 96,
-    borderRadius: 48,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
@@ -206,7 +203,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
     marginBottom: Spacing.lg,
     maxWidth: 280,
@@ -220,8 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.button,
   },
   browseButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
 });

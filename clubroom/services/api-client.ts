@@ -7,7 +7,6 @@
  * Features:
  * - Config-driven settings (base URL, timeout, mock mode)
  * - Rate limiting based on config
- * - Offline queue for write operations
  * - Automatic token refresh
  *
  * Usage:
@@ -67,74 +66,7 @@ const rateLimiter = new RateLimiter(rateLimits.apiRequestsPerMinute);
 // Re-export for backwards compatibility
 export { ApiError };
 
-import { STORAGE_KEYS } from '@/constants/storage-keys';
-
-// ============================================================================
-// OFFLINE QUEUE
-// ============================================================================
-
-interface QueuedAction {
-  id: string;
-  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  path: string;
-  body: unknown;
-  timestamp: number;
-}
-
-let _isConnected = true;
-
-export function setConnectionStatus(connected: boolean) {
-  _isConnected = connected;
-  if (connected) {
-    flushQueue().catch(err => logger.error('Failed to flush queue', err));
-  }
-}
-
-async function addToQueue(action: QueuedAction): Promise<void> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
-    const queue: QueuedAction[] = raw ? JSON.parse(raw) : [];
-    queue.push(action);
-    await AsyncStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
-    logger.info('Queued offline action', { method: action.method, path: action.path });
-  } catch (error) {
-    logger.error('Failed to queue action', error);
-  }
-}
-
-async function getQueue(): Promise<QueuedAction[]> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-async function removeFromQueue(actionId: string): Promise<void> {
-  const queue = await getQueue();
-  const filtered = queue.filter(a => a.id !== actionId);
-  await AsyncStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(filtered));
-}
-
-async function flushQueue(): Promise<void> {
-  const queue = await getQueue();
-  if (queue.length === 0) return;
-
-  logger.info(`Flushing ${queue.length} queued actions`);
-  for (const action of queue) {
-    try {
-      await apiFetch(action.path, {
-        method: action.method,
-        body: JSON.stringify(action.body),
-      });
-      await removeFromQueue(action.id);
-    } catch (err) {
-      logger.error('Queue flush failed, will retry', err);
-      break; // Stop on first failure — retry next reconnect
-    }
-  }
-}
+// TODO: Implement real offline support with @react-native-community/netinfo when connecting to real API
 
 // ============================================================================
 // API FETCH (for real API mode)
@@ -308,16 +240,6 @@ export const apiClient = {
   async set<T>(key: string, data: T): Promise<void> {
     if (USE_MOCK) {
       return mockSet(key, data);
-    }
-    if (!_isConnected) {
-      await addToQueue({
-        id: this.generateId('q'),
-        method: 'PUT',
-        path: `/api/${key}`,
-        body: data,
-        timestamp: Date.now(),
-      });
-      return;
     }
     await apiFetch(`/api/${key}`, {
       method: 'PUT',

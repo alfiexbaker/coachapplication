@@ -20,7 +20,7 @@ import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing } from '@/constants/theme';
+import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -156,14 +156,14 @@ export function ProgressBadge({
           <Ionicons
             name={icon as keyof typeof Ionicons.glyphMap}
             size={dimensions.icon}
-            color={isComplete ? '#FFFFFF' : themeColor}
+            color={isComplete ? palette.onPrimary : themeColor}
           />
         </View>
 
         {/* Completion check */}
         {isComplete && (
           <View style={[styles.completeBadge, { backgroundColor: palette.success }]}>
-            <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
           </View>
         )}
       </View>
@@ -184,8 +184,8 @@ export function ProgressBadge({
           styles.progressPill,
           {
             backgroundColor: isComplete
-              ? `${palette.success}15`
-              : `${themeColor}15`,
+              ? withAlpha(palette.success, 0.09)
+              : withAlpha(themeColor, 0.09),
           },
         ]}
       >
@@ -227,32 +227,22 @@ const styles = StyleSheet.create({
     right: 0,
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: Colors.light.surface,
   },
   labelContainer: {
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.micro,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  stats: {
-    fontSize: 11,
-    textAlign: 'center',
-  },
+  label: { ...Typography.smallSemiBold, textAlign: 'center' },
+  stats: { ...Typography.caption, textAlign: 'center' },
   progressPill: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  progressText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  progressText: { ...Typography.caption },
 });

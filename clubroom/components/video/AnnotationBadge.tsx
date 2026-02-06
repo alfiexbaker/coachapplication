@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotationType } from '@/constants/types';
@@ -38,26 +38,20 @@ export function AnnotationBadge({
 
   const sizeStyles = {
     small: {
-      paddingHorizontal: 6,
-      paddingVertical: 2,
+      ...Typography.micro,
+      paddingHorizontal: Spacing.xxs,
+      paddingVertical: Spacing.micro,
       iconSize: 10,
-      fontSize: 10,
-      gap: 2,
+      gap: Spacing.micro,
     },
-    medium: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
+    medium: { ...Typography.caption, paddingHorizontal: 8,
+      paddingVertical: Spacing.xxs,
       iconSize: 12,
-      fontSize: 11,
-      gap: 4,
-    },
-    large: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
+      gap: Spacing.xxs },
+    large: { ...Typography.small, paddingHorizontal: Spacing.xs + Spacing.xxs,
+      paddingVertical: Spacing.xxs,
       iconSize: 14,
-      fontSize: 13,
-      gap: 6,
-    },
+      gap: Spacing.xxs },
   };
 
   const currentSize = sizeStyles[size];
@@ -76,7 +70,7 @@ export function AnnotationBadge({
       iconColor: config.color,
     },
     subtle: {
-      backgroundColor: `${config.color}15`,
+      backgroundColor: withAlpha(config.color, 0.09),
       borderColor: 'transparent',
       textColor: config.color,
       iconColor: config.color,
@@ -155,7 +149,7 @@ export function AnnotationTypeCountBadge({
       style={[
         styles.countBadge,
         {
-          backgroundColor: isSelected ? `${config.color}20` : palette.background,
+          backgroundColor: isSelected ? withAlpha(config.color, 0.12) : palette.background,
           borderColor: isSelected ? config.color : palette.border,
         },
       ]}
@@ -272,28 +266,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    gap: 6,
+    gap: Spacing.xxs,
   },
-  countLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  countLabel: { ...Typography.caption },
   countNumber: {
     minWidth: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: Spacing.xxs,
   },
-  countText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  countText: { ...Typography.caption, color: '#fff' },
   summaryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -302,20 +289,13 @@ const styles = StyleSheet.create({
   inlineContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
   },
   inlineDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: Radii.xs,
   },
-  inlineLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-  },
-  inlineTimestamp: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  inlineLabel: { ...Typography.smallSemiBold, flex: 1 },
+  inlineTimestamp: { ...Typography.caption },
 });

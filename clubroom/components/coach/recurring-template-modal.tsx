@@ -7,7 +7,7 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AvailabilityTemplate } from '@/constants/types';
 
@@ -94,7 +94,7 @@ function TimePicker({ label, value, onChange, minHour = 6 }: TimePickerProps) {
                     style={[
                       styles.pickerOption,
                       {
-                        backgroundColor: isSelected ? `${palette.tint}15` : 'transparent',
+                        backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : 'transparent',
                         borderColor: isSelected ? palette.tint : 'transparent',
                       },
                     ]}
@@ -311,7 +311,7 @@ export function RecurringTemplateModal({
             {isEditing ? 'Edit Availability' : 'Add Availability'}
           </ThemedText>
           <Clickable onPress={handleSave} disabled={saving}>
-            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>
+            <ThemedText style={{ ...Typography.bodySemiBold, color: palette.tint }}>
               {saving ? 'Saving...' : 'Save'}
             </ThemedText>
           </Clickable>
@@ -348,11 +348,11 @@ export function RecurringTemplateModal({
                       ]}
                     >
                       <Ionicons
-                        name={preset.icon as any}
+                        name={preset.icon as keyof typeof Ionicons.glyphMap}
                         size={14}
-                        color={isActive ? '#fff' : palette.muted}
+                        color={isActive ? palette.onPrimary : palette.muted}
                       />
-                      <ThemedText style={[styles.presetText, { color: isActive ? '#fff' : palette.text }]}>
+                      <ThemedText style={[styles.presetText, { color: isActive ? palette.onPrimary : palette.text }]}>
                         {preset.label}
                       </ThemedText>
                     </Clickable>
@@ -361,9 +361,9 @@ export function RecurringTemplateModal({
               </View>
             )}
 
-            {/* Day buttons */}
-            <View style={styles.daysGrid}>
-              {DAYS.map((day, index) => {
+            {/* Day chips - compact circular selectors */}
+            <View style={styles.dayChipsRow}>
+              {DAYS_SHORT.map((day, index) => {
                 const isSelected = selectedDays.includes(index);
                 const isWeekend = index === 0 || index === 6;
                 return (
@@ -372,25 +372,17 @@ export function RecurringTemplateModal({
                     onPress={() => !isEditing && toggleDay(index)}
                     disabled={isEditing}
                     style={[
-                      styles.dayButton,
+                      styles.dayChip,
                       {
                         backgroundColor: isSelected ? palette.tint : palette.surface,
-                        borderColor: isSelected ? palette.tint : palette.border,
-                        opacity: isEditing && !isSelected ? 0.5 : 1,
+                        borderColor: isSelected ? palette.tint : isWeekend ? palette.warning : palette.border,
+                        opacity: isEditing && !isSelected ? 0.4 : 1,
                       },
                     ]}
                   >
-                    {!isEditing && (
-                      <View style={[styles.checkbox, { borderColor: isSelected ? '#fff' : palette.border }]}>
-                        {isSelected && <Ionicons name="checkmark" size={12} color="#fff" />}
-                      </View>
-                    )}
-                    <ThemedText style={[styles.dayButtonText, { color: isSelected ? '#fff' : palette.text }]}>
+                    <ThemedText style={[styles.dayChipText, { color: isSelected ? palette.onPrimary : palette.text }]}>
                       {day}
                     </ThemedText>
-                    {isWeekend && !isSelected && (
-                      <View style={[styles.weekendDot, { backgroundColor: palette.warning }]} />
-                    )}
                   </Clickable>
                 );
               })}
@@ -398,9 +390,9 @@ export function RecurringTemplateModal({
 
             {/* Selection summary */}
             {!isEditing && selectedDays.length > 0 && (
-              <View style={[styles.selectionSummary, { backgroundColor: `${palette.success}10` }]}>
+              <View style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="checkmark-circle" size={16} color={palette.success} />
-                <ThemedText style={{ color: palette.success, fontSize: 13 }}>
+                <ThemedText style={{ ...Typography.small, color: palette.success }}>
                   {selectedDays.length === 7
                     ? 'Every day'
                     : selectedDays.length === 1
@@ -434,9 +426,9 @@ export function RecurringTemplateModal({
             </View>
 
             {duration && (
-              <View style={[styles.durationBadge, { backgroundColor: `${palette.success}15` }]}>
+              <View style={[styles.durationBadge, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
                 <Ionicons name="time-outline" size={16} color={palette.success} />
-                <ThemedText style={{ color: palette.success, fontWeight: '600' }}>
+                <ThemedText style={{ ...Typography.bodySemiBold, color: palette.success }}>
                   {duration} availability {!isEditing && selectedDays.length > 1 && `× ${selectedDays.length} days`}
                 </ThemedText>
               </View>
@@ -461,7 +453,7 @@ export function RecurringTemplateModal({
                     style={[
                       styles.locationChip,
                       {
-                        backgroundColor: isSelected ? `${palette.tint}15` : palette.surface,
+                        backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
                         borderColor: isSelected ? palette.tint : palette.border,
                       },
                     ]}
@@ -485,7 +477,7 @@ export function RecurringTemplateModal({
                 style={[
                   styles.locationChip,
                   {
-                    backgroundColor: showLocationInput ? `${palette.tint}15` : palette.surface,
+                    backgroundColor: showLocationInput ? withAlpha(palette.tint, 0.09) : palette.surface,
                     borderColor: showLocationInput ? palette.tint : palette.border,
                   },
                 ]}
@@ -512,30 +504,78 @@ export function RecurringTemplateModal({
             )}
           </View>
 
-          {/* Capacity Settings */}
+          {/* Session Type */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Capacity Settings</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Session Type</ThemedText>
+            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+              Choose between individual or group sessions
+            </ThemedText>
 
-            <SurfaceCard style={styles.settingsCard}>
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <View style={[styles.settingIcon, { backgroundColor: `${palette.tint}15` }]}>
-                    <Ionicons name="people-outline" size={18} color={palette.tint} />
-                  </View>
-                  <View style={styles.settingText}>
-                    <ThemedText type="defaultSemiBold">Concurrent Sessions</ThemedText>
-                    <ThemedText style={[styles.settingHint, { color: palette.muted }]}>
-                      Max sessions at once
-                    </ThemedText>
-                  </View>
+            <View style={styles.sessionTypeRow}>
+              <Clickable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setMaxConcurrent(1);
+                }}
+                style={[
+                  styles.sessionTypeOption,
+                  {
+                    backgroundColor: maxConcurrent === 1 ? withAlpha(palette.tint, 0.07) : palette.surface,
+                    borderColor: maxConcurrent === 1 ? palette.tint : palette.border,
+                    borderWidth: maxConcurrent === 1 ? 2 : 1,
+                  },
+                ]}
+              >
+                <View style={[styles.sessionTypeIconWrap, { backgroundColor: maxConcurrent === 1 ? withAlpha(palette.tint, 0.12) : palette.background }]}>
+                  <Ionicons name="person-outline" size={22} color={maxConcurrent === 1 ? palette.tint : palette.muted} />
                 </View>
+                <ThemedText style={[styles.sessionTypeLabel, { color: maxConcurrent === 1 ? palette.tint : palette.text }]}>
+                  1v1 Session
+                </ThemedText>
+                <ThemedText style={[styles.sessionTypeDesc, { color: palette.muted }]}>
+                  One athlete at a time
+                </ThemedText>
+              </Clickable>
+
+              <Clickable
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (maxConcurrent <= 1) setMaxConcurrent(4);
+                }}
+                style={[
+                  styles.sessionTypeOption,
+                  {
+                    backgroundColor: maxConcurrent > 1 ? withAlpha(palette.info, 0.07) : palette.surface,
+                    borderColor: maxConcurrent > 1 ? palette.info : palette.border,
+                    borderWidth: maxConcurrent > 1 ? 2 : 1,
+                  },
+                ]}
+              >
+                <View style={[styles.sessionTypeIconWrap, { backgroundColor: maxConcurrent > 1 ? withAlpha(palette.info, 0.12) : palette.background }]}>
+                  <Ionicons name="people-outline" size={22} color={maxConcurrent > 1 ? palette.info : palette.muted} />
+                </View>
+                <ThemedText style={[styles.sessionTypeLabel, { color: maxConcurrent > 1 ? palette.info : palette.text }]}>
+                  Group Session
+                </ThemedText>
+                <ThemedText style={[styles.sessionTypeDesc, { color: palette.muted }]}>
+                  Multiple athletes
+                </ThemedText>
+              </Clickable>
+            </View>
+
+            {/* Group size stepper - only show when group is selected */}
+            {maxConcurrent > 1 && (
+              <View style={[styles.groupSizeRow, { backgroundColor: withAlpha(palette.info, 0.03), borderColor: palette.border }]}>
+                <ThemedText style={[styles.groupSizeLabel, { color: palette.text }]}>
+                  Max group size
+                </ThemedText>
                 <View style={styles.stepper}>
                   <Clickable
                     onPress={() => {
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setMaxConcurrent(Math.max(1, maxConcurrent - 1));
+                      setMaxConcurrent(Math.max(2, maxConcurrent - 1));
                     }}
-                    style={[styles.stepperButton, { borderColor: palette.border, backgroundColor: palette.background }]}
+                    style={[styles.stepperButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
                   >
                     <Ionicons name="remove" size={18} color={palette.text} />
                   </Clickable>
@@ -545,54 +585,47 @@ export function RecurringTemplateModal({
                       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setMaxConcurrent(maxConcurrent + 1);
                     }}
-                    style={[styles.stepperButton, { borderColor: palette.border, backgroundColor: palette.background }]}
+                    style={[styles.stepperButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
                   >
                     <Ionicons name="add" size={18} color={palette.text} />
                   </Clickable>
                 </View>
               </View>
+            )}
+          </View>
 
-              <View style={[styles.divider, { backgroundColor: palette.border }]} />
+          {/* Buffer Time */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Buffer Time</ThemedText>
+            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+              Break between sessions
+            </ThemedText>
 
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
-                  <View style={[styles.settingIcon, { backgroundColor: `${palette.tint}15` }]}>
-                    <Ionicons name="timer-outline" size={18} color={palette.tint} />
-                  </View>
-                  <View style={styles.settingText}>
-                    <ThemedText type="defaultSemiBold">Buffer Time</ThemedText>
-                    <ThemedText style={[styles.settingHint, { color: palette.muted }]}>
-                      Break between sessions
+            <View style={styles.bufferOptions}>
+              {[0, 15, 30].map((mins) => {
+                const isSelected = bufferMinutes === mins;
+                return (
+                  <Clickable
+                    key={mins}
+                    onPress={() => {
+                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setBufferMinutes(mins);
+                    }}
+                    style={[
+                      styles.bufferOption,
+                      {
+                        backgroundColor: isSelected ? palette.tint : palette.surface,
+                        borderColor: isSelected ? palette.tint : palette.border,
+                      },
+                    ]}
+                  >
+                    <ThemedText style={[styles.bufferOptionText, { color: isSelected ? palette.onPrimary : palette.text }]}>
+                      {mins === 0 ? 'None' : `${mins} min`}
                     </ThemedText>
-                  </View>
-                </View>
-                <View style={styles.bufferOptions}>
-                  {[0, 15, 30].map((mins) => {
-                    const isSelected = bufferMinutes === mins;
-                    return (
-                      <Clickable
-                        key={mins}
-                        onPress={() => {
-                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setBufferMinutes(mins);
-                        }}
-                        style={[
-                          styles.bufferOption,
-                          {
-                            backgroundColor: isSelected ? palette.tint : palette.background,
-                            borderColor: isSelected ? palette.tint : palette.border,
-                          },
-                        ]}
-                      >
-                        <ThemedText style={[styles.bufferOptionText, { color: isSelected ? '#fff' : palette.text }]}>
-                          {mins === 0 ? 'None' : `${mins}m`}
-                        </ThemedText>
-                      </Clickable>
-                    );
-                  })}
-                </View>
-              </View>
-            </SurfaceCard>
+                  </Clickable>
+                );
+              })}
+            </View>
           </View>
 
           {/* Delete Button */}
@@ -603,7 +636,7 @@ export function RecurringTemplateModal({
               style={[styles.deleteButton, { borderColor: palette.error }]}
             >
               <Ionicons name="trash-outline" size={18} color={palette.error} />
-              <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Delete This Slot</ThemedText>
+              <ThemedText style={{ ...Typography.bodySemiBold, color: palette.error }}>Delete This Slot</ThemedText>
             </Clickable>
           )}
         </ScrollView>
@@ -633,11 +666,10 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.subheading,
   },
   sectionHint: {
-    fontSize: 13,
+    ...Typography.small,
     marginBottom: Spacing.xs,
   },
   presetsRow: {
@@ -649,46 +681,31 @@ const styles = StyleSheet.create({
   presetChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
   presetText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
-  daysGrid: {
+  dayChipsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: Spacing.xs,
   },
-  dayButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1.5,
+  dayChip: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
   },
-  dayButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  weekendDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+  dayChipText: {
+    ...Typography.caption,
+    fontWeight: '700',
   },
   selectionSummary: {
     flexDirection: 'row',
@@ -706,11 +723,10 @@ const styles = StyleSheet.create({
   },
   timePickerContainer: {
     flex: 1,
-    gap: 4,
+    gap: Spacing.xxs,
   },
   inputLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   timePickerButton: {
     flexDirection: 'row',
@@ -744,7 +760,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.light.border,
   },
   pickerScroll: {
     padding: Spacing.sm,
@@ -760,8 +776,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   pickerOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
+    ...Typography.subheading,
   },
   durationBadge: {
     flexDirection: 'row',
@@ -781,15 +796,14 @@ const styles = StyleSheet.create({
   locationChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
   locationChipText: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   customLocationInput: {
     flexDirection: 'row',
@@ -802,38 +816,48 @@ const styles = StyleSheet.create({
   },
   customLocationTextInput: {
     flex: 1,
-    fontSize: 15,
+    ...Typography.body,
     padding: 0,
   },
-  settingsCard: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  settingRow: {
+  sessionTypeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-  },
-  settingInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.sm,
   },
-  settingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+  sessionTypeOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.md,
+    gap: Spacing.xs,
+  },
+  sessionTypeIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingText: {
-    flex: 1,
+  sessionTypeLabel: {
+    ...Typography.bodySmallSemiBold,
+    fontWeight: '700',
   },
-  settingHint: {
-    fontSize: 12,
-    marginTop: 2,
+  sessionTypeDesc: {
+    ...Typography.caption,
+    textAlign: 'center',
+  },
+  groupSizeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    marginTop: Spacing.xs,
+  },
+  groupSizeLabel: {
+    ...Typography.bodySmallSemiBold,
   },
   stepper: {
     flexDirection: 'row',
@@ -843,35 +867,30 @@ const styles = StyleSheet.create({
   stepperButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: Radii.xl,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepperValue: {
-    fontSize: 18,
+    ...Typography.heading,
     fontWeight: '700',
     minWidth: 28,
     textAlign: 'center',
   },
   bufferOptions: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   bufferOption: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    flex: 1,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1.5,
-    minWidth: 48,
     alignItems: 'center',
   },
   bufferOptionText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  divider: {
-    height: 1,
+    ...Typography.smallSemiBold,
   },
   deleteButton: {
     flexDirection: 'row',

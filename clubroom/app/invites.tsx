@@ -31,7 +31,7 @@ import { Image } from 'expo-image';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as sessionInviteService } from '@/services/invite';
@@ -220,7 +220,7 @@ export default function InvitesScreen() {
                 contentFit="cover"
               />
             ) : (
-              <View style={[styles.coachPhoto, styles.coachPhotoPlaceholder, { backgroundColor: `${palette.tint}20` }]}>
+              <View style={[styles.coachPhoto, styles.coachPhotoPlaceholder, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
                 <ThemedText style={[styles.coachInitial, { color: palette.tint }]}>
                   {invite.coachName.charAt(0)}
                 </ThemedText>
@@ -236,7 +236,7 @@ export default function InvitesScreen() {
             </View>
           </View>
 
-          <View style={[styles.statusBadge, { backgroundColor: `${statusBadge.color}15` }]}>
+          <View style={[styles.statusBadge, { backgroundColor: withAlpha(statusBadge.color, 0.09) }]}>
             <ThemedText style={[styles.statusText, { color: statusBadge.color }]}>
               {statusBadge.text}
             </ThemedText>
@@ -257,7 +257,7 @@ export default function InvitesScreen() {
             {invite.sessionType}
           </ThemedText>
           {invite.focus && (
-            <View style={[styles.focusBadge, { backgroundColor: `${palette.tint}15` }]}>
+            <View style={[styles.focusBadge, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
               <ThemedText style={[styles.focusText, { color: palette.tint }]}>
                 {invite.focus}
               </ThemedText>
@@ -332,7 +332,7 @@ export default function InvitesScreen() {
                 <ThemedText style={styles.acceptText}>Booking...</ThemedText>
               ) : (
                 <>
-                  <Ionicons name="checkmark" size={18} color="#fff" />
+                  <Ionicons name="checkmark" size={18} color={Colors.light.onPrimary} />
                   <ThemedText style={styles.acceptText}>Accept</ThemedText>
                 </>
               )}
@@ -342,7 +342,7 @@ export default function InvitesScreen() {
 
         {/* Show accepted slot */}
         {invite.status === 'ACCEPTED' && invite.selectedSlot && (
-          <View style={[styles.confirmedSlot, { backgroundColor: `${palette.success}10` }]}>
+          <View style={[styles.confirmedSlot, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
             <Ionicons name="checkmark-circle" size={18} color={palette.success} />
             <ThemedText style={[styles.confirmedText, { color: palette.success }]}>
               Booked: {new Date(invite.selectedSlot.date).toLocaleDateString('en-GB', {
@@ -373,7 +373,7 @@ export default function InvitesScreen() {
             styles.tab,
             {
               borderColor: tabFilter === 'pending' ? palette.tint : palette.border,
-              backgroundColor: tabFilter === 'pending' ? `${palette.tint}10` : 'transparent',
+              backgroundColor: tabFilter === 'pending' ? withAlpha(palette.tint, 0.06) : 'transparent',
             },
           ]}
           onPress={() => setTabFilter('pending')}
@@ -392,7 +392,7 @@ export default function InvitesScreen() {
             styles.tab,
             {
               borderColor: tabFilter === 'responded' ? palette.tint : palette.border,
-              backgroundColor: tabFilter === 'responded' ? `${palette.tint}10` : 'transparent',
+              backgroundColor: tabFilter === 'responded' ? withAlpha(palette.tint, 0.06) : 'transparent',
             },
           ]}
           onPress={() => setTabFilter('responded')}
@@ -419,7 +419,7 @@ export default function InvitesScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: `${palette.muted}10` }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
               <Ionicons
                 name={tabFilter === 'pending' ? 'mail-outline' : 'time-outline'}
                 size={40}
@@ -463,8 +463,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   list: {
     padding: Spacing.md,
@@ -486,30 +485,28 @@ const styles = StyleSheet.create({
   coachPhoto: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radii.xl,
   },
   coachPhotoPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   coachInitial: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   coachDetails: {
     flex: 1,
   },
   clubName: {
-    fontSize: 13,
+    ...Typography.small,
   },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   athleteRow: {
     flexDirection: 'row',
@@ -517,7 +514,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   athleteNames: {
-    fontSize: 13,
+    ...Typography.small,
   },
   sessionInfo: {
     flexDirection: 'row',
@@ -525,19 +522,18 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sessionType: {
-    fontSize: 16,
+    ...Typography.subheading,
   },
   focusBadge: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   focusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...Typography.caption,
   },
   notes: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     fontStyle: 'italic',
     lineHeight: 20,
   },
@@ -545,8 +541,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   slotsLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   slotsList: {
     flexDirection: 'row',
@@ -557,18 +552,17 @@ const styles = StyleSheet.create({
   slotChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
   slotText: {
-    fontSize: 13,
+    ...Typography.small,
   },
   moreSlots: {
-    fontSize: 12,
-    fontWeight: '500',
+    ...Typography.caption,
   },
   metaRow: {
     flexDirection: 'row',
@@ -576,12 +570,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   price: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.heading,
   },
   expires: {
-    fontSize: 13,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
   actions: {
     flexDirection: 'row',
@@ -596,8 +588,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   declineText: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   acceptButton: {
     flex: 2,
@@ -609,9 +600,8 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   acceptText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
   confirmedSlot: {
     flexDirection: 'row',
@@ -622,8 +612,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   confirmedText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmallSemiBold,
   },
   separator: {
     height: Spacing.sm,
@@ -638,16 +627,16 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 72,
     height: 72,
-    borderRadius: 36,
+    borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
   emptyTitle: {
-    fontSize: 18,
+    ...Typography.heading,
   },
   emptyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     textAlign: 'center',
     lineHeight: 20,
   },
