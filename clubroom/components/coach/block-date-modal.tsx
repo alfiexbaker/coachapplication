@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
@@ -57,10 +58,6 @@ function getSummerBreak(): { start: Date; end: Date } {
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-function formatDateISO(date: Date): string {
-  return date.toISOString().split('T')[0];
 }
 
 function getDaysBetween(start: Date, end: Date): number {
@@ -160,7 +157,7 @@ export function BlockDateModal({
       const end = new Date(endDate);
 
       while (current <= end) {
-        dates.push(formatDateISO(current));
+        dates.push(toDateStr(current));
         current.setDate(current.getDate() + 1);
       }
 
@@ -178,7 +175,7 @@ export function BlockDateModal({
   };
 
   const dayCount = getDaysBetween(startDate, endDate);
-  const isSameDay = formatDateISO(startDate) === formatDateISO(endDate);
+  const isSameDay = toDateStr(startDate) === toDateStr(endDate);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -241,7 +238,7 @@ export function BlockDateModal({
               <ThemedText style={styles.sectionTitle}>Quick Select</ThemedText>
               <View style={styles.quickDates}>
                 {quickDates.map((qd) => {
-                  const isSelected = formatDateISO(startDate) === formatDateISO(qd.date);
+                  const isSelected = toDateStr(startDate) === toDateStr(qd.date);
                   return (
                     <Clickable
                       key={qd.id}

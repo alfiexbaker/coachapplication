@@ -20,6 +20,7 @@ import { apiClient } from '../api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
 
@@ -415,7 +416,7 @@ class BookingCrudService {
       return err(validationError('Cannot create booking: missing athlete information'));
     }
 
-    const scheduledAt = `${draft.date || new Date().toISOString().split('T')[0]}T${draft.slot || '10:00'}:00`;
+    const scheduledAt = `${draft.date || toDateStr(new Date())}T${draft.slot || '10:00'}:00`;
 
     // Create booking through the centralized createBooking method
     // Note: We use saveBookingDirect to bypass validation for draft flow (legacy compatibility)

@@ -21,6 +21,7 @@ import { apiClient } from './api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from './notification-trigger';
 import { createLogger } from '../utils/logger';
+import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import type {
   Drill,
@@ -653,7 +654,7 @@ async function getAssignmentStats(athleteId: string): Promise<DrillAssignmentSta
     .filter((a) => a.completedAt)
     .map((a) => {
       const date = new Date(a.completedAt as string);
-      return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      return toDateStr(date);
     })
     .filter((value, index, self) => self.indexOf(value) === index) // Unique dates
     .sort()
@@ -664,7 +665,7 @@ async function getAssignmentStats(athleteId: string): Promise<DrillAssignmentSta
   for (let i = 0; i < completedDates.length; i++) {
     const checkDate = new Date(today);
     checkDate.setDate(checkDate.getDate() - i);
-    const checkKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
+    const checkKey = toDateStr(checkDate);
 
     if (completedDates.includes(checkKey)) {
       currentStreak++;

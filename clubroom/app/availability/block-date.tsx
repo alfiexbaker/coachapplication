@@ -30,6 +30,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 
 const logger = createLogger('BlockDate');
 
@@ -91,7 +92,7 @@ export default function BlockDateScreen() {
     try {
       await availabilityService.saveOverride({
         coachId: currentUser.id,
-        date: selectedDate.toISOString().split('T')[0],
+        date: toDateStr(selectedDate),
         isBlocked: true,
         reason: reasonText,
       });

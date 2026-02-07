@@ -32,6 +32,7 @@ import { availabilityService } from '@/services/availability-service';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 
@@ -171,10 +172,10 @@ export function ParentDiscoverScreen() {
   // Fetch next available slot for each coach
   useEffect(() => {
     const fetchNextAvailableSlots = async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = toDateStr(new Date());
       const twoWeeksLater = new Date();
       twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
-      const endDate = twoWeeksLater.toISOString().split('T')[0];
+      const endDate = toDateStr(twoWeeksLater);
 
       const slotsMap: Record<string, AvailabilitySlot | null> = {};
 

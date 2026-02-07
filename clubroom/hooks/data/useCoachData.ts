@@ -10,6 +10,7 @@ import { rosterService, type RosterStats, type AthleteRemovalRecord } from '@/se
 import { bookingService } from '@/services/booking-service';
 import { groupSessionService, type CreateGroupSessionInput } from '@/services/group-session-service';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type { RosterEntry, GroupSession } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
 
@@ -349,7 +350,7 @@ export function useCoachSessions(coachId: string | null | undefined) {
 
   // Compute upcoming sessions
   const upcomingSessions = useMemo(() => {
-    const now = new Date().toISOString().split('T')[0];
+    const now = toDateStr(new Date());
     return groupSessions.filter((s) => {
       const nextDate = s.schedule[0]?.date;
       return nextDate && nextDate >= now && s.status === 'PUBLISHED';

@@ -19,6 +19,7 @@
 
 import { apiClient } from '../api-client';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
 import type {
   CoachEarnings,
@@ -517,7 +518,7 @@ export const earningsReportService = {
       description: `Session payment - ${athleteName}`,
       bookingId,
       athleteName,
-      sessionDate: sessionDate || new Date().toISOString().split('T')[0],
+      sessionDate: sessionDate || toDateStr(new Date()),
       createdAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
     };

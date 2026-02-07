@@ -18,6 +18,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityOverride } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 
 const logger = createLogger('TimeOffSheet');
 
@@ -33,10 +34,6 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-function formatDateISO(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
 function getDaysBetween(start: Date, end: Date): number {
   return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 }
@@ -45,7 +42,7 @@ function expandDateRange(start: Date, end: Date): string[] {
   const dates: string[] = [];
   const current = new Date(start);
   while (current <= end) {
-    dates.push(formatDateISO(current));
+    dates.push(toDateStr(current));
     current.setDate(current.getDate() + 1);
   }
   return dates;
@@ -57,7 +54,7 @@ interface TimeOffSheetProps {
   coachId: string;
   preselectedDate?: string;
   existingOverride?: AvailabilityOverride | null;
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
 }
 
 export function TimeOffSheet({
@@ -114,7 +111,7 @@ export function TimeOffSheet({
     }
   }, [visible, preselectedDate, existingOverride]);
 
-  const isSameDay = formatDateISO(startDate) === formatDateISO(endDate);
+  const isSameDay = toDateStr(startDate) === toDateStr(endDate);
   const dayCount = getDaysBetween(startDate, endDate);
   const isEditing = !!existingOverride;
 
@@ -159,8 +156,8 @@ export function TimeOffSheet({
       }
 
       if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      onSaved();
       onClose();
+      await onSaved();
     } catch (error) {
       logger.error('Failed to save time off', error);
       Alert.alert('Error', 'Failed to save time off. Please try again.');
@@ -183,8 +180,8 @@ export function TimeOffSheet({
             try {
               await availabilityService.unblockDate(coachId, existingOverride.date);
               if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              onSaved();
               onClose();
+              await onSaved();
             } catch (error) {
               logger.error('Failed to remove time off', error);
               Alert.alert('Error', 'Failed to remove time off.');
@@ -275,7 +272,7 @@ export function TimeOffSheet({
               {mode === 'single' && !isEditing && (
                 <View style={styles.quickRow}>
                   {quickDates.map((qd) => {
-                    const isSelected = formatDateISO(startDate) === formatDateISO(qd.date);
+                    const isSelected = toDateStr(startDate) === toDateStr(qd.date);
                     return (
                       <Clickable
                         key={qd.label}

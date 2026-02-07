@@ -31,6 +31,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Components, Fonts, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { toDateStr } from '@/utils/format';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,14 +83,6 @@ function parseTimeValue(value: string): Date {
   const d = new Date();
   d.setHours(h, m, 0, 0);
   return d;
-}
-
-/** Format Date → `YYYY-MM-DD` */
-function formatDateString(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
 }
 
 /** Format Date → `HH:mm` */
@@ -164,7 +157,7 @@ function DateTimeFieldInner({
         if (_event.type === 'set' && selected) {
           onChange(
             mode === 'date'
-              ? formatDateString(selected)
+              ? toDateStr(selected)
               : formatTimeString(selected),
           );
         }
@@ -183,7 +176,7 @@ function DateTimeFieldInner({
     if (tempDate) {
       onChange(
         mode === 'date'
-          ? formatDateString(tempDate)
+          ? toDateStr(tempDate)
           : formatTimeString(tempDate),
       );
     }

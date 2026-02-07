@@ -15,6 +15,7 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import type {
   ClubEvent,
@@ -210,7 +211,7 @@ export const eventRsvpService = {
    */
   isRSVPClosed(event: ClubEvent): boolean {
     if (!event.rsvpDeadline) return false;
-    const now = new Date().toISOString().split('T')[0];
+    const now = toDateStr(new Date());
     return event.rsvpDeadline < now;
   },
 

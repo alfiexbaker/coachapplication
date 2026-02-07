@@ -20,6 +20,7 @@ import {
   type CalendarEvent,
   type CalendarEventType,
 } from '@/services/club-service';
+import { toDateStr } from '@/utils/format';
 
 // ============================================================================
 // HELPERS
@@ -40,9 +41,7 @@ function getFirstDayOfWeek(year: number, month: number): number {
 }
 
 function formatDateKey(year: number, month: number, day: number): string {
-  const m = String(month + 1).padStart(2, '0');
-  const d = String(day).padStart(2, '0');
-  return `${year}-${m}-${d}`;
+  return toDateStr(new Date(year, month, day));
 }
 
 function getEventColor(type: CalendarEventType, palette: typeof Colors.light): string {

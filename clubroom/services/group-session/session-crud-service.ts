@@ -18,6 +18,7 @@ import { notificationTriggers } from '../notification-trigger';
 import { socialFeedService } from '../social-feed-service';
 import { emitTyped, ServiceEvents } from '../event-bus';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import type {
   GroupSession,
@@ -361,7 +362,7 @@ function generateRecurringDates(pattern: RecurringPattern, weeksAhead: number = 
 
   for (let i = 0; i < weeksAhead; i++) {
     if (endDate && currentDate > endDate) break;
-    dates.push(currentDate.toISOString().split('T')[0]);
+    dates.push(toDateStr(currentDate));
     currentDate.setDate(currentDate.getDate() + 7);
   }
 

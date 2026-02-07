@@ -41,6 +41,7 @@ import { sessionTemplateService } from '@/services/session-template-service';
 import { coachVenueService } from '@/services/coach-venue-service';
 import type { SessionTemplate } from '@/constants/session-types';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 
 const logger = createLogger('Schedule');
 
@@ -160,8 +161,8 @@ export default function ScheduleScreen() {
 
       const coachBookings = await availabilityService.getCoachBookings(
         coachId,
-        weekStart.toISOString().split('T')[0],
-        weekEnd.toISOString().split('T')[0]
+        toDateStr(weekStart),
+        toDateStr(weekEnd)
       );
       setBookings(coachBookings);
 
@@ -177,9 +178,9 @@ export default function ScheduleScreen() {
             let cur = bd.startDate;
             while (cur <= bd.endDate) {
               blockedSet.add(cur);
-              const d = new Date(cur + 'T00:00:00');
+              const d = new Date(cur + 'T12:00:00');
               d.setDate(d.getDate() + 1);
-              cur = d.toISOString().split('T')[0];
+              cur = toDateStr(d);
             }
           }
           setBlockedDates(blockedSet);
@@ -205,6 +206,7 @@ export default function ScheduleScreen() {
   // Build week data
   const weekData = useMemo((): DayData[] => {
     const today = new Date();
+    const todayStr = toDateStr(today);
     const currentDay = today.getDay();
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - currentDay);
@@ -220,7 +222,7 @@ export default function ScheduleScreen() {
     return Array.from({ length: 7 }, (_, i) => {
       const date = new Date(weekStart);
       date.setDate(weekStart.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toDateStr(date);
       const dayOfWeek = date.getDay();
 
       // Get sessions for this day
@@ -288,8 +290,8 @@ export default function ScheduleScreen() {
         dayName: DAYS_FULL[dayOfWeek],
         dayShort: DAYS[dayOfWeek],
         dayNum: date.getDate(),
-        isToday: dateStr === today.toISOString().split('T')[0],
-        isPast: date < new Date(today.toISOString().split('T')[0]),
+        isToday: dateStr === todayStr,
+        isPast: dateStr < todayStr,
         sessions: daySessions,
         availabilitySlots,
         isBlocked: blockedDates.has(dateStr) || overrides.some(o => o.date === dateStr && o.isBlocked),
@@ -874,10 +876,10 @@ export default function ScheduleScreen() {
           loadData();
         }}
         onSaveRepeatedOverride={async (data) => {
-          const startDate = new Date(data.date + 'T00:00:00');
+          const startDate = new Date(data.date + 'T12:00:00');
           const endDate = new Date(startDate);
           endDate.setDate(endDate.getDate() + (data.repeatWeeks - 1) * 7);
-          const repeatUntil = endDate.toISOString().split('T')[0];
+          const repeatUntil = toDateStr(endDate);
           await availabilityService.saveRepeatedOverride({
             coachId,
             date: data.date,
@@ -911,7 +913,13 @@ export default function ScheduleScreen() {
         coachId={coachId}
         preselectedDate={timeOffConfig?.preselectedDate}
         existingOverride={timeOffConfig?.existingOverride}
-        onSaved={() => loadData()}
+        onSaved={async () => {
+          // Refresh overrides immediately so the grid updates without full reload flash
+          const freshOverrides = await availabilityService.getOverrides(coachId);
+          setOverrides(freshOverrides);
+          // Background-refresh everything else
+          loadData();
+        }}
       />
 
       {/* Scheduling Rules Modal */}

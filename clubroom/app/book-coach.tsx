@@ -7,6 +7,7 @@ import { Routes } from '@/navigation/routes';
 
 import { AthletePicker } from '@/components/ui/booking/AthletePicker';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { AvailabilityPicker } from '@/components/ui/booking/availability-picker';
 import { BookingStepper } from '@/components/ui/booking/booking-stepper';
 import { CoachSummaryCard } from '@/components/ui/booking/coach-summary-card';
@@ -65,12 +66,12 @@ export default function BookCoachScreen() {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const startDate = today.toISOString().split('T')[0];
+      const startDate = toDateStr(today);
 
       // Get 14 days of availability
       const endDateObj = new Date(today);
       endDateObj.setDate(endDateObj.getDate() + 14);
-      const endDate = endDateObj.toISOString().split('T')[0];
+      const endDate = toDateStr(endDateObj);
 
       // Get duration from selected service or default to 60 min
       const duration = selectedServiceId

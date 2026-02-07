@@ -25,6 +25,7 @@ import { availabilityService } from '@/services/availability-service';
 import { multiWeekBookingService } from '@/services/multi-week-booking-service';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 
 const logger = createLogger('MultiWeekScreen');
 const WEEKS_TO_SHOW = 8;
@@ -55,10 +56,10 @@ export default function MultiWeekScreen() {
 
     try {
       const today = new Date();
-      const startDate = today.toISOString().split('T')[0];
+      const startDate = toDateStr(today);
       const endDate = new Date(today);
       endDate.setDate(endDate.getDate() + WEEKS_TO_SHOW * 7);
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const endDateStr = toDateStr(endDate);
 
       const slots = await availabilityService.getAvailableSlots(
         coachId,
@@ -77,7 +78,7 @@ export default function MultiWeekScreen() {
         const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
         const monday = new Date(slotDate);
         monday.setDate(slotDate.getDate() + mondayOffset);
-        const weekKey = monday.toISOString().split('T')[0];
+        const weekKey = toDateStr(monday);
 
         // Only keep the first available slot per week
         if (!weekMap.has(weekKey) || (!weekMap.get(weekKey)!.available && slot.isAvailable)) {

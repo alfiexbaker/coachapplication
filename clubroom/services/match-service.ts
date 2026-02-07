@@ -35,6 +35,7 @@ import type {
 import { notificationService } from './notification-service';
 import { socialFeedService } from './social-feed-service';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -256,7 +257,7 @@ export const matchService = {
    */
   async getUpcomingMatches(clubId: string): Promise<Match[]> {
     const matches = await this.getClubMatches(clubId);
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateStr(new Date());
     return matches
       .filter((m) => m.date >= today && m.status !== 'CANCELLED' && m.status !== 'COMPLETED')
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

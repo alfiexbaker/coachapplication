@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { counterOfferService } from '@/services/counter-offer-service';
 import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type { TimeSlot, CounterOfferProposerRole } from '@/constants/types';
 
 const logger = createLogger('CounterOffer');
@@ -89,7 +90,7 @@ export default function CounterOfferScreen() {
   const getOriginalTime = (): TimeSlot => {
     if (!booking) {
       return {
-        date: new Date().toISOString().split('T')[0],
+        date: toDateStr(new Date()),
         startTime: '10:00',
         endTime: '11:00',
         location: 'TBD',
@@ -97,7 +98,7 @@ export default function CounterOfferScreen() {
     }
 
     const scheduledDate = new Date(booking.scheduledAt);
-    const date = scheduledDate.toISOString().split('T')[0];
+    const date = toDateStr(scheduledDate);
     const startTime = scheduledDate.toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit',

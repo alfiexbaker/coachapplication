@@ -34,6 +34,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 
 const logger = createLogger('AvailabilityCalendar');
 
@@ -82,8 +83,8 @@ export default function AvailabilityCalendarScreen() {
       const endDate = new Date(lastDay);
       endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
 
-      const startStr = startDate.toISOString().split('T')[0];
-      const endStr = endDate.toISOString().split('T')[0];
+      const startStr = toDateStr(startDate);
+      const endStr = toDateStr(endDate);
 
       const [templatesData, overridesData, slotsData] = await Promise.all([
         availabilityService.getTemplates(currentUser.id),
@@ -135,7 +136,7 @@ export default function AvailabilityCalendarScreen() {
     endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
 
     for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toDateStr(date);
       const dayOfWeek = date.getDay();
 
       // Check if there's availability on this day of week
@@ -185,7 +186,7 @@ export default function AvailabilityCalendarScreen() {
 
   const getSelectedDateSlots = () => {
     if (!selectedDate) return [];
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = toDateStr(selectedDate);
     return slots.filter(s => s.date === dateStr);
   };
 

@@ -29,6 +29,7 @@ import type {
 } from '@/constants/types';
 import { DAY_NAMES } from '@/constants/booking-types';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -113,7 +114,7 @@ function generateMockRevenueChart(period: CoachAnalyticsPeriod, baseRevenue: num
     const amount = Math.round((baseRevenue / dataPoints) * variance);
     const sessionCount = Math.round(amount / 50);
     points.push({
-      date: date.toISOString().split('T')[0],
+      date: toDateStr(date),
       amount,
       sessionCount,
     });

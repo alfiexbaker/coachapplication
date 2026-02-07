@@ -11,6 +11,7 @@ import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type { ClubEvent } from '@/constants/types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -58,7 +59,7 @@ export default function EventsListScreen() {
   };
 
   const filteredEvents = events.filter((event) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateStr(new Date());
     const isPast = event.date < today;
 
     if (filter === 'upcoming') {

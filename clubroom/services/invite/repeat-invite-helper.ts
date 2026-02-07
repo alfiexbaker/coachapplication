@@ -8,6 +8,7 @@
 import { availabilityService } from '../availability-service';
 import type { AvailabilitySlot } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 
 const logger = createLogger('RepeatInviteHelper');
 
@@ -32,11 +33,11 @@ export async function findRepeatSlot(
   const nextWeek = new Date(orig);
   nextWeek.setDate(orig.getDate() + 7);
 
-  const startDate = nextWeek.toISOString().split('T')[0];
+  const startDate = toDateStr(nextWeek);
   // Search the entire week for alternatives
   const weekEnd = new Date(nextWeek);
   weekEnd.setDate(nextWeek.getDate() + 6);
-  const endDate = weekEnd.toISOString().split('T')[0];
+  const endDate = toDateStr(weekEnd);
 
   try {
     const slots = await availabilityService.getInvitableSlots(

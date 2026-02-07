@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { toDateStr } from '@/utils/format';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
@@ -45,7 +46,7 @@ function getNextSevenDays(): { date: string; label: string; dayName: string }[] 
     const date = new Date(today);
     date.setDate(today.getDate() + i);
 
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toDateStr(date);
     const dayName = date.toLocaleDateString('en-GB', { weekday: 'short' });
     const label = date.toLocaleDateString('en-GB', {
       day: 'numeric',

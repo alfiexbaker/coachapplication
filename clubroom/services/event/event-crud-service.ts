@@ -16,6 +16,7 @@ import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { notificationTriggers } from '../notification-trigger';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
 import type {
   ClubEvent,
@@ -363,7 +364,7 @@ export const eventCrudService = {
   async getUpcomingEvents(clubId: string): Promise<ClubEvent[]> {
     if (USE_MOCK) {
       eventsCache = await loadEvents();
-      const now = new Date().toISOString().split('T')[0];
+      const now = toDateStr(new Date());
       return eventsCache
         .filter(
           (e) => e.clubId === clubId && e.status === 'PUBLISHED' && e.date >= now

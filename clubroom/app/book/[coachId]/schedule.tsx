@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
 import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
@@ -32,12 +33,12 @@ export default function ScheduleScreen() {
   // Calculate date range (next 14 days)
   const dateRange = useMemo(() => {
     const today = new Date();
-    const startDate = today.toISOString().split('T')[0];
+    const startDate = toDateStr(today);
     const endDate = new Date(today);
     endDate.setDate(endDate.getDate() + 14);
     return {
       startDate,
-      endDate: endDate.toISOString().split('T')[0],
+      endDate: toDateStr(endDate),
     };
   }, []);
 

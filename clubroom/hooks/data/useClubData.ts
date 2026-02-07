@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { clubService, type ClubMember, type ClubMemberRemovalRecord } from '@/services/club-service';
 import { groupSessionService } from '@/services/group-session-service';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type { ClubSquad, GroupSession, ClubRole } from '@/constants/types';
 
 const logger = createLogger('useClubData');
@@ -191,7 +192,7 @@ export function useClubData(
       // Build sessions summary if fetched
       if (resultMap.trainingSessions) {
         const trainingSessions = resultMap.trainingSessions as GroupSession[];
-        const now = new Date().toISOString().split('T')[0];
+        const now = toDateStr(new Date());
 
         const sessionsSummary: ClubSessionsSummary = {
           upcomingSessions: trainingSessions.filter((s) => {
@@ -327,7 +328,7 @@ export function useClubSessions(clubId: string | null | undefined) {
 
   // Compute upcoming sessions
   const upcomingSessions = useMemo(() => {
-    const now = new Date().toISOString().split('T')[0];
+    const now = toDateStr(new Date());
     return sessions.filter((s) => {
       const nextDate = s.schedule[0]?.date;
       return nextDate && nextDate >= now;

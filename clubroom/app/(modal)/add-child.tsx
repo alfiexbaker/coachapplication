@@ -27,6 +27,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { toDateStr } from '@/utils/format';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -211,7 +212,7 @@ export default function AddChildScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         nickname: nickname.trim() || undefined,
-        dateOfBirth: dateOfBirth ? dateOfBirth.toISOString().split('T')[0] : undefined,
+        dateOfBirth: dateOfBirth ? toDateStr(dateOfBirth) : undefined,
         gender: gender!,
         relationship: relationship!,
         photoUrl: photoUri || undefined,

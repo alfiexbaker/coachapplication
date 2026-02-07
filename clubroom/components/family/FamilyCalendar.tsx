@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { toDateStr } from '@/utils/format';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
@@ -84,7 +85,7 @@ export function FamilyCalendar({
   const getEventsForDate = useCallback(
     (date: Date | null): FamilyCalendarEvent[] => {
       if (!date) return [];
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toDateStr(date);
       return filteredEvents.filter((e) => e.start.split('T')[0] === dateStr);
     },
     [filteredEvents]

@@ -24,6 +24,7 @@ import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 
 const logger = createLogger('WeekPatternGrid');
 
@@ -61,14 +62,6 @@ const PRESETS = [
   { id: 'mwf', label: 'Mon/Wed/Fri', days: [1, 3, 5], start: '09:00', end: '17:00' },
   { id: 'custom', label: 'Custom', days: [] as number[], start: '09:00', end: '17:00' },
 ];
-
-/** Formats YYYY-MM-DD for a given day offset from a base Monday */
-function formatDateStr(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
 
 /** Parses HH:MM to total minutes */
 function timeToMinutes(t: string): number {
@@ -112,7 +105,7 @@ export function WeekPatternGrid({
       const offsetFromMonday = dayIndex === 0 ? 6 : dayIndex - 1;
       const d = new Date(viewedWeekStart);
       d.setDate(viewedWeekStart.getDate() + offsetFromMonday);
-      return formatDateStr(d);
+      return toDateStr(d);
     },
     [viewedWeekStart]
   );

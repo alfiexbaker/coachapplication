@@ -16,6 +16,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { availabilityService } from '@/services/availability-service';
+import { toDateStr } from '@/utils/format';
 import type { AvailabilitySlot, TimeSlot } from '@/constants/types';
 
 const MAX_SELECTIONS = 3;
@@ -44,8 +45,8 @@ function getWeekRange(offset: number): { start: string; end: string; label: stri
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
-  const startStr = monday.toISOString().split('T')[0];
-  const endStr = sunday.toISOString().split('T')[0];
+  const startStr = toDateStr(monday);
+  const endStr = toDateStr(sunday);
 
   const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric' });
   const label = `${monthFmt.format(monday)} – ${monthFmt.format(sunday)}`;
@@ -168,7 +169,7 @@ export function SlotPicker({
   const weekDays: string[] = [];
   const d = new Date(week.start + 'T00:00:00');
   for (let i = 0; i < 7; i++) {
-    weekDays.push(d.toISOString().split('T')[0]);
+    weekDays.push(toDateStr(d));
     d.setDate(d.getDate() + 1);
   }
 

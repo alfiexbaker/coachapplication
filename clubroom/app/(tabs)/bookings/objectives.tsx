@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { toDateStr } from '@/utils/format';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { activeObjectives, getChildrenForParent } from '@/constants/mock-data';
@@ -97,7 +98,7 @@ export default function ObjectivesScreen() {
         coachName: 'Assigned in sessions',
         progress: 0,
         sessionsCompleted: 0,
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: toDateStr(new Date()),
         targetSessions: parseInt(targetSessions) || 10,
       };
       setObjectives([...objectives, newObjective]);

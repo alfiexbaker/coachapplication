@@ -5,6 +5,7 @@ import { apiClient } from '@/services/api-client';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
+import { toDateStr } from '@/utils/format';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
@@ -55,7 +56,7 @@ function getUpcomingInstances(offering: SessionOffering, count: number = 8): Dat
   while (instances.length < count) {
     if (endDate && currentDate > endDate) break;
 
-    const dateStr = currentDate.toISOString().split('T')[0];
+    const dateStr = toDateStr(currentDate);
     if (!cancelledDates.has(dateStr)) {
       instances.push(new Date(currentDate));
     }
@@ -99,7 +100,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
   const handleCancelInstance = async (instanceDate: Date) => {
     if (!offering) return;
 
-    const dateStr = instanceDate.toISOString().split('T')[0];
+    const dateStr = toDateStr(instanceDate);
     const formattedDate = instanceDate.toLocaleDateString('en-GB', {
       weekday: 'long',
       day: 'numeric',
@@ -205,7 +206,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                   // Set end date to today to stop future occurrences
                   return {
                     ...o,
-                    endDate: new Date().toISOString().split('T')[0],
+                    endDate: toDateStr(new Date()),
                     status: 'cancelled' as const,
                   };
                 }

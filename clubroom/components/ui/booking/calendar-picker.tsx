@@ -1,4 +1,5 @@
 import { View, StyleSheet } from 'react-native';
+import { toDateStr } from '@/utils/format';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -30,7 +31,7 @@ export function CalendarPicker({
   return (
     <View style={styles.row}>
       {days.map((date) => {
-        const iso = date.toISOString().split('T')[0];
+        const iso = toDateStr(date);
         const active = selectedDate === iso;
 
         // Check if this date has available slots

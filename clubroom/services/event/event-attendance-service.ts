@@ -15,6 +15,7 @@ import { apiClient } from '../api-client';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type {
   ClubEvent,
   EventAttendance,
@@ -311,7 +312,7 @@ export const eventAttendanceService = {
    * Check if event is happening today
    */
   isEventToday(event: ClubEvent): boolean {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateStr(new Date());
     return event.date === today;
   },
 
@@ -323,7 +324,7 @@ export const eventAttendanceService = {
     if (event.status !== 'PUBLISHED') return false;
 
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
+    const today = toDateStr(now);
 
     // Event must be today
     if (event.date !== today) return false;

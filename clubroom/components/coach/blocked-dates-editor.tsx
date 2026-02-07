@@ -27,6 +27,7 @@ import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { Colors, Spacing, Radii, Typography, Shadows, Components  , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type { Booking } from '@/constants/app-types';
 
 const logger = createLogger('BlockedDatesEditor');
@@ -63,17 +64,10 @@ function formatDateRange(start: string, end: string): string {
   return `${formatDate(start)} - ${formatDate(end)}`;
 }
 
-function toDateString(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
 function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + days);
-  return toDateString(d);
+  return toDateStr(d);
 }
 
 function getWeekRange(): { start: string; end: string } {
@@ -83,7 +77,7 @@ function getWeekRange(): { start: string; end: string } {
   monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
-  return { start: toDateString(monday), end: toDateString(sunday) };
+  return { start: toDateStr(monday), end: toDateStr(sunday) };
 }
 
 function getDaysInMonth(year: number, month: number): number {
@@ -155,7 +149,7 @@ function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDay = getFirstDayOfMonth(viewYear, viewMonth);
-  const todayStr = toDateString(today);
+  const todayStr = toDateStr(today);
 
   // Build set of blocked dates for quick lookup
   const blockedSet = new Set<string>();
@@ -592,7 +586,7 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
           <View style={styles.listCard}>
             {blockedDates.map((block, idx) => {
               const isLast = idx === blockedDates.length - 1;
-              const isPast = block.endDate < toDateString(new Date());
+              const isPast = block.endDate < toDateStr(new Date());
 
               return (
                 <View

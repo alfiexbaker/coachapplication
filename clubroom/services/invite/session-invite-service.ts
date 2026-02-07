@@ -34,6 +34,7 @@ import { inviteHoldService } from '../invite-hold-service';
 import { availabilityService } from '../availability-service';
 import { multiWeekBookingService } from '../multi-week-booking-service';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, serviceError } from '@/types/result';
 
@@ -888,7 +889,7 @@ export const sessionInviteService = {
     for (let i = 0; i < recurrenceWeeks; i++) {
       const weekDate = new Date(start);
       weekDate.setDate(start.getDate() + i * 7);
-      const dateStr = weekDate.toISOString().split('T')[0];
+      const dateStr = toDateStr(weekDate);
 
       weekSlots.push({
         weekDate: dateStr,

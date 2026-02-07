@@ -14,6 +14,20 @@ const timeFormatter = new Intl.DateTimeFormat('en-GB', {
 
 const toDate = (value: string | number | Date) => (value instanceof Date ? value : new Date(value));
 
+/**
+ * Canonical YYYY-MM-DD date string formatter (LOCAL time).
+ *
+ * Use this **everywhere** you need a date-only string for storage, lookup,
+ * comparison, or display keys. Never call `.toISOString().split('T')[0]`
+ * directly — it returns UTC and silently shifts dates near midnight.
+ */
+export function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export const formatPriceRange = (price: CoachProfile['priceRange']) =>
   `£${price.minUsd.toLocaleString()}–£${price.maxUsd.toLocaleString()} / ${price.unitLabel}`;
 

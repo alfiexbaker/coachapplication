@@ -22,6 +22,7 @@ import type {
   FootballObjective,
 } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import { api } from '@/constants/config';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -256,7 +257,7 @@ export const analyticsTrackingService = {
       }
 
       let skillProgress = analytics.skills.find((s) => s.skillName === skill);
-      const today = new Date().toISOString().split('T')[0];
+      const today = toDateStr(new Date());
 
       if (skillProgress) {
         skillProgress.previousLevel = skillProgress.currentLevel;

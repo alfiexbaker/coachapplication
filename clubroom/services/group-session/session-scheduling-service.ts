@@ -12,6 +12,7 @@
 
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 import type {
   GroupSession,
   GroupSessionSchedule,
@@ -128,7 +129,7 @@ export const sessionSchedulingService = {
    * Get next upcoming date for a training session
    */
   getNextTrainingDate(session: GroupSession): GroupSessionSchedule | null {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateStr(new Date());
     return session.schedule.find((s) => s.date >= today) || null;
   },
 };

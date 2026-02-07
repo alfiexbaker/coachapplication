@@ -20,6 +20,7 @@ import { DAY_NAMES } from '@/constants/booking-types';
 import { inviteHoldService } from './invite-hold-service';
 import { sessionTemplateService } from './session-template-service';
 import { createLogger } from '@/utils/logger';
+import { toDateStr } from '@/utils/format';
 
 const logger = createLogger('AvailabilityService');
 const USE_MOCK = api.useMock;
@@ -414,7 +415,7 @@ export const availabilityService = {
 
     // Iterate through each day in range
     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toDateStr(date);
       const dayOfWeek = date.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
       // Check for override on this date
@@ -658,7 +659,7 @@ export const availabilityService = {
     let index = 0;
 
     while (current <= endDate) {
-      const dateStr = current.toISOString().split('T')[0];
+      const dateStr = toDateStr(current);
       const saved = await this.saveOverride({
         ...override,
         date: dateStr,
@@ -709,10 +710,10 @@ export const availabilityService = {
     }
 
     // Get next available slot
-    const today = new Date().toISOString().split('T')[0];
+    const today = toDateStr(new Date());
     const twoWeeksLater = new Date();
     twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
-    const slots = await this.getAvailableSlots(coachId, today, twoWeeksLater.toISOString().split('T')[0]);
+    const slots = await this.getAvailableSlots(coachId, today, toDateStr(twoWeeksLater));
     const nextAvailableSlot = slots.find((s) => s.isAvailable);
 
     return {
@@ -795,7 +796,7 @@ export const availabilityService = {
       const d = new Date(today);
       d.setDate(today.getDate() + ((dayOfWeek - today.getDay() + 7) % 7) + w * 7);
       if (d >= today) {
-        dates.push(d.toISOString().split('T')[0]);
+        dates.push(toDateStr(d));
       }
     }
 
@@ -846,7 +847,7 @@ export const availabilityService = {
       const d = new Date(today);
       d.setDate(today.getDate() + ((dayOfWeek - today.getDay() + 7) % 7) + w * 7);
       if (d >= today) {
-        dates.push(d.toISOString().split('T')[0]);
+        dates.push(toDateStr(d));
       }
     }
     if (dates.length === 0) return { affectedBookings: [], affectedCount: 0 };
