@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useState, useMemo, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,15 +29,15 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
-import type { AvailabilityTemplate, SessionOffering, CoachSchedulingRules, BlockedDateRange, Booking } from '@/constants/types';
-import { RecurringTemplateModal } from '@/components/coach/recurring-template-modal';
-import { BlockDateModal } from '@/components/coach/block-date-modal';
+import type { AvailabilityTemplate, AvailabilityOverride, SessionOffering, CoachSchedulingRules, BlockedDateRange, Booking, CoachVenue } from '@/constants/types';
+
 import { SchedulingRulesModal } from '@/components/coach/scheduling-rules-modal';
-import { AvailabilitySetupWizard } from '@/components/coach/availability-setup-wizard';
 import { SessionTypeChips } from '@/components/coach/session-type-chips';
 import { SessionTypeModal } from '@/components/coach/session-type-modal';
-import { AdjustDayModal } from '@/components/coach/adjust-day-modal';
+import { WeekPatternGrid } from '@/components/coach/week-pattern-grid';
+import { DayEditorSheet } from '@/components/coach/day-editor-sheet';
 import { sessionTemplateService } from '@/services/session-template-service';
+import { coachVenueService } from '@/services/coach-venue-service';
 import type { SessionTemplate } from '@/constants/session-types';
 import { createLogger } from '@/utils/logger';
 
@@ -59,6 +59,7 @@ interface DayData {
   sessions: SessionData[];
   availabilitySlots: number;
   isBlocked: boolean;
+  hasOverride: boolean;
 }
 
 interface SessionData {
@@ -88,22 +89,27 @@ export default function ScheduleScreen() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
+  const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
-  const [showAddSlotModal, setShowAddSlotModal] = useState(false);
-  const [preselectedDay, setPreselectedDay] = useState<number | undefined>();
 
   // Availability segment state
-  const [selectedAvailDay, setSelectedAvailDay] = useState(new Date().getDay());
-  const [showBlockDateModal, setShowBlockDateModal] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<AvailabilityTemplate | null>(null);
   const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
   const [showSessionTypeModal, setShowSessionTypeModal] = useState(false);
   const [editingSessionType, setEditingSessionType] = useState<SessionTemplate | null>(null);
-  const [showAdjustDayModal, setShowAdjustDayModal] = useState(false);
-  const [adjustDayTarget, setAdjustDayTarget] = useState<{ dateStr: string; dayName: string; startTime?: string; endTime?: string } | null>(null);
-  const [showBulkEditWizard, setShowBulkEditWizard] = useState(false);
+
+  // Unified Week Editor state
+  const [dayEditorOpen, setDayEditorOpen] = useState(false);
+  const [dayEditorConfig, setDayEditorConfig] = useState<{
+    dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    dateStr?: string;
+    template?: AvailabilityTemplate | null;
+    override?: AvailabilityOverride | null;
+    existingTemplatesForDay?: AvailabilityTemplate[];
+    defaultScope?: 'recurring' | 'just-this-date' | 'next-n-weeks';
+  } | null>(null);
+  const [venues, setVenues] = useState<CoachVenue[]>([]);
 
   const coachId = currentUser?.id || 'coach_1';
 
@@ -114,19 +120,24 @@ export default function ScheduleScreen() {
     }
   }, [params.segment]);
 
-  // Load all data
+  // Load all data — uses Promise.allSettled so individual failures don't block updates
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Load in parallel
-      const [templatesData, rulesData, sessionTemplatesData] = await Promise.all([
+      // Load in parallel — allSettled ensures each result is independent
+      const results = await Promise.allSettled([
         availabilityService.getTemplates(coachId),
         schedulingRulesService.getCoachRules(coachId),
         sessionTemplateService.getTemplates(coachId),
+        availabilityService.getOverrides(coachId),
+        coachVenueService.ensureDefaultVenues(coachId),
       ]);
-      setTemplates(templatesData);
-      setRules(rulesData);
-      setSessionTemplates(sessionTemplatesData);
+
+      if (results[0].status === 'fulfilled') setTemplates(results[0].value);
+      if (results[1].status === 'fulfilled') setRules(results[1].value);
+      if (results[2].status === 'fulfilled') setSessionTemplates(results[2].value);
+      if (results[3].status === 'fulfilled') setOverrides(results[3].value);
+      if (results[4].status === 'fulfilled') setVenues(results[4].value);
 
       // Load offerings
       const all = await apiClient.get<SessionOffering[]>('session_offerings', []);
@@ -168,11 +179,6 @@ export default function ScheduleScreen() {
       } catch (err) {
         logger.warn('Failed to load blocked dates', err);
       }
-
-      logger.debug('Loaded schedule data', {
-        templates: templatesData.length,
-        bookings: coachBookings.length,
-      });
     } catch (err) {
       logger.error('Failed to load schedule', err);
     } finally {
@@ -263,6 +269,11 @@ export default function ScheduleScreen() {
       const dayTemplates = templates.filter(t => t.dayOfWeek === dayOfWeek);
       const availabilitySlots = dayTemplates.length;
 
+      // Check if this day has an active (non-blocked) override with custom slots
+      const hasOverride = overrides.some(
+        o => o.date === dateStr && !o.isBlocked && (o.customSlots?.length ?? 0) > 0
+      );
+
       return {
         date,
         dateStr,
@@ -274,9 +285,10 @@ export default function ScheduleScreen() {
         sessions: daySessions,
         availabilitySlots,
         isBlocked: blockedDates.has(dateStr),
+        hasOverride,
       };
     });
-  }, [templates, bookings, offerings, blockedDates]);
+  }, [templates, bookings, offerings, blockedDates, overrides]);
 
   // Today's data
   const todayData = weekData.find(d => d.isToday);
@@ -303,208 +315,34 @@ export default function ScheduleScreen() {
     return `in ${mins}m`;
   };
 
-  // Availability segment helpers
-  const summaryStats = useMemo(() => {
-    let totalMinutes = 0;
-    const daysWithSlots = new Set<number>();
-    templates.forEach(t => {
-      const [startH, startM] = t.startTime.split(':').map(Number);
-      const [endH, endM] = t.endTime.split(':').map(Number);
-      totalMinutes += (endH * 60 + endM) - (startH * 60 + startM);
-      daysWithSlots.add(t.dayOfWeek);
-    });
-    return {
-      totalHours: Math.round(totalMinutes / 60 * 10) / 10,
-      daysCount: daysWithSlots.size,
-      slotsCount: templates.length,
-    };
-  }, [templates]);
-
-  const getDayTemplates = (dayOfWeek: number) => {
-    return templates
-      .filter(t => t.dayOfWeek === dayOfWeek)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  };
-
-  // Count bookings that fall within a template's time range for the next occurrence
-  const getSlotFillCount = (template: AvailabilityTemplate): number => {
-    // Find the next occurrence of this day of week
-    const today = new Date();
-    const currentDay = today.getDay();
-    let daysUntil = template.dayOfWeek - currentDay;
-    if (daysUntil < 0) daysUntil += 7;
-    const nextDate = new Date(today);
-    nextDate.setDate(today.getDate() + daysUntil);
-    const dateStr = nextDate.toISOString().split('T')[0];
-
-    const [tStartH, tStartM] = template.startTime.split(':').map(Number);
-    const [tEndH, tEndM] = template.endTime.split(':').map(Number);
-    const templateStartMins = tStartH * 60 + tStartM;
-    const templateEndMins = tEndH * 60 + tEndM;
-
-    let count = 0;
-    for (const b of bookings) {
-      if (!b.scheduledAt || b.status === 'CANCELLED') continue;
-      const bDate = b.scheduledAt.split('T')[0];
-      if (bDate !== dateStr) continue;
-      const bTime = new Date(b.scheduledAt);
-      const bMins = bTime.getHours() * 60 + bTime.getMinutes();
-      if (bMins >= templateStartMins && bMins < templateEndMins) {
-        count++;
-      }
-    }
-
-    // Also check today if it's the same day
-    if (daysUntil !== 0) {
-      const todayStr = today.toISOString().split('T')[0];
-      for (const b of bookings) {
-        if (!b.scheduledAt || b.status === 'CANCELLED') continue;
-        const bDate = b.scheduledAt.split('T')[0];
-        if (bDate !== todayStr) continue;
-        if (new Date(todayStr + 'T00:00:00').getDay() !== template.dayOfWeek) continue;
-        const bTime = new Date(b.scheduledAt);
-        const bMins = bTime.getHours() * 60 + bTime.getMinutes();
-        if (bMins >= templateStartMins && bMins < templateEndMins) {
-          count++;
-        }
-      }
-    }
-
-    return count;
-  };
-
-  const formatTimeRange = (start: string, end: string) => {
-    const formatTime = (time: string) => {
-      const [h] = time.split(':').map(Number);
-      if (h === 12) return '12pm';
-      if (h === 0) return '12am';
-      return h > 12 ? `${h - 12}pm` : `${h}am`;
-    };
-    return `${formatTime(start)} - ${formatTime(end)}`;
-  };
-
-  const selectedAvailDaySlots = getDayTemplates(selectedAvailDay);
-  const todayIndex = new Date().getDay();
-
   // Selected day
   const selectedDay = selectedDayIndex !== null ? weekData[selectedDayIndex] : null;
 
   // Handlers
   const handleDayPress = (index: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedDayIndex(index);
   };
 
   const handleSessionPress = (session: SessionData) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.bookingCancel(session.id));
   };
 
-  const handleAddSlot = (dayIndex?: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setEditingTemplate(null);
-    setPreselectedDay(dayIndex);
-    setShowAddSlotModal(true);
-  };
-
-  const handleBlockDay = async (dateStr: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // Check for conflicts before blocking
-    const conflicts = await availabilityService.checkConflicts(coachId, [dateStr]);
-    const total = conflicts.bookingCount + conflicts.holdCount;
-
-    if (total > 0) {
-      const parts: string[] = [];
-      if (conflicts.bookingCount > 0) {
-        parts.push(`${conflicts.bookingCount} booking${conflicts.bookingCount !== 1 ? 's' : ''}`);
-      }
-      if (conflicts.holdCount > 0) {
-        parts.push(`${conflicts.holdCount} pending invite${conflicts.holdCount !== 1 ? 's' : ''}`);
-      }
-
-      Alert.alert(
-        'This Day Has Appointments',
-        `You have ${parts.join(' and ')} on this day. Blocking won't cancel them, but no new bookings can be made.\n\nExisting sessions will still happen.`,
-        [
-          { text: 'Keep Available', style: 'cancel' },
-          {
-            text: 'Block Anyway',
-            style: 'destructive',
-            onPress: async () => {
-              await availabilityService.blockDate(coachId, dateStr, 'Blocked from schedule');
-              await loadData();
-            },
-          },
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Block This Day?',
-        'No new bookings will be allowed on this day.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Block Day',
-            style: 'destructive',
-            onPress: async () => {
-              await availabilityService.blockDate(coachId, dateStr, 'Blocked from schedule');
-              await loadData();
-            },
-          },
-        ]
-      );
-    }
-  };
-
-  const handleAdjustDay = (dateStr: string, dayName: string) => {
-    // Find the template for this day to get default times
+  const handleAdjustDay = (dateStr: string) => {
     const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6;
-    const dayTemplate = templates.find((t) => t.dayOfWeek === dayOfWeek);
-    setAdjustDayTarget({
+    const allForDay = templates.filter((t) => t.dayOfWeek === dayOfWeek);
+    const dayTemplate = allForDay[0] ?? null;
+    const dayOverride = overrides.find((o) => o.date === dateStr) ?? null;
+    setDayEditorConfig({
+      dayOfWeek,
       dateStr,
-      dayName,
-      startTime: dayTemplate?.startTime,
-      endTime: dayTemplate?.endTime,
+      template: dayTemplate,
+      override: dayOverride,
+      existingTemplatesForDay: allForDay,
+      defaultScope: 'just-this-date',
     });
-    setShowAdjustDayModal(true);
-  };
-
-  const handleSaveAdjustDay = async (data: { startTime: string; endTime: string }) => {
-    if (!adjustDayTarget) return;
-
-    // Check for conflicts on this specific date
-    const conflicts = await availabilityService.checkConflicts(coachId, [adjustDayTarget.dateStr]);
-    const total = conflicts.bookingCount + conflicts.holdCount;
-
-    const doSave = async () => {
-      await availabilityService.saveOverride({
-        coachId,
-        date: adjustDayTarget.dateStr,
-        isBlocked: false,
-        customSlots: [{ date: adjustDayTarget.dateStr, startTime: data.startTime, endTime: data.endTime }],
-      });
-      await loadData();
-      setShowAdjustDayModal(false);
-      setAdjustDayTarget(null);
-    };
-
-    if (total > 0) {
-      const parts: string[] = [];
-      if (conflicts.bookingCount > 0) parts.push(`${conflicts.bookingCount} booking${conflicts.bookingCount !== 1 ? 's' : ''}`);
-      if (conflicts.holdCount > 0) parts.push(`${conflicts.holdCount} pending invite${conflicts.holdCount !== 1 ? 's' : ''}`);
-
-      Alert.alert(
-        'Appointments on This Day',
-        `You have ${parts.join(' and ')} that may fall outside your new hours. They won't be cancelled, but check they still fit.`,
-        [
-          { text: 'Go Back', style: 'cancel' },
-          { text: 'Save Anyway', onPress: doSave },
-        ]
-      );
-    } else {
-      await doSave();
-    }
+    setDayEditorOpen(true);
   };
 
   const handleInviteFromSchedule = (dateStr: string) => {
@@ -514,119 +352,13 @@ export default function ScheduleScreen() {
     });
   };
 
-  const handleSaveTemplate = async (templateData: Omit<AvailabilityTemplate, 'id' | 'coachId'>) => {
-    if (editingTemplate) {
-      await availabilityService.saveTemplate({ ...templateData, id: editingTemplate.id, coachId });
-    } else {
-      await availabilityService.saveTemplate({ ...templateData, coachId });
-    }
-    await loadData();
-    setShowAddSlotModal(false);
-    setEditingTemplate(null);
-  };
-
-  const handleDeleteTemplate = async (templateId: string) => {
-    await availabilityService.deleteTemplate(templateId);
-    await loadData();
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  };
-
-  const handleEditSlot = (template: AvailabilityTemplate) => {
-    setEditingTemplate(template);
-    setPreselectedDay(undefined);
-    setShowAddSlotModal(true);
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  const handleDeleteSlot = async (template: AvailabilityTemplate) => {
-    // Check for conflicts on this recurring day before deleting
-    const conflicts = await availabilityService.checkRecurringConflicts(coachId, template.dayOfWeek);
-    const total = conflicts.bookingCount + conflicts.holdCount;
-
-    if (total > 0) {
-      const parts: string[] = [];
-      if (conflicts.bookingCount > 0) {
-        parts.push(`${conflicts.bookingCount} booking${conflicts.bookingCount !== 1 ? 's' : ''}`);
-      }
-      if (conflicts.holdCount > 0) {
-        parts.push(`${conflicts.holdCount} pending invite${conflicts.holdCount !== 1 ? 's' : ''}`);
-      }
-
-      Alert.alert(
-        'Appointments Exist',
-        `You have ${parts.join(' and ')} on upcoming ${DAYS_FULL[template.dayOfWeek]}s.\n\nRemoving this slot won't cancel existing appointments, but will stop new ones from being booked.`,
-        [
-          { text: 'Keep Slot', style: 'cancel' },
-          {
-            text: 'Remove Anyway',
-            style: 'destructive',
-            onPress: () => handleDeleteTemplate(template.id),
-          },
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Delete Slot',
-        `Remove this ${formatTimeRange(template.startTime, template.endTime)} slot from ${DAYS_FULL[template.dayOfWeek]}?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => handleDeleteTemplate(template.id),
-          },
-        ]
-      );
-    }
-  };
-
-  const handleBlockDates = async (dates: string[], reason: string) => {
-    // Check for conflicts across all dates being blocked
-    const conflicts = await availabilityService.checkConflicts(coachId, dates);
-    const total = conflicts.bookingCount + conflicts.holdCount;
-
-    const doBlock = async () => {
-      for (const date of dates) {
-        await availabilityService.saveOverride({
-          coachId,
-          date,
-          isBlocked: true,
-          reason,
-        });
-      }
-    };
-
-    if (total > 0) {
-      const parts: string[] = [];
-      if (conflicts.bookingCount > 0) parts.push(`${conflicts.bookingCount} booking${conflicts.bookingCount !== 1 ? 's' : ''}`);
-      if (conflicts.holdCount > 0) parts.push(`${conflicts.holdCount} pending invite${conflicts.holdCount !== 1 ? 's' : ''}`);
-
-      return new Promise<void>((resolve) => {
-        Alert.alert(
-          'Appointments Found',
-          `${parts.join(' and ')} across ${dates.length} day${dates.length !== 1 ? 's' : ''} being blocked. Existing appointments won't be cancelled.`,
-          [
-            { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
-            {
-              text: 'Block Anyway',
-              style: 'destructive',
-              onPress: async () => { await doBlock(); resolve(); },
-            },
-          ]
-        );
-      });
-    }
-
-    await doBlock();
-  };
-
   const handleOpenSettings = () => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.AVAILABILITY_SCHEDULING_RULES);
   };
 
   const handleSegmentChange = (s: Segment) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSegment(s);
   };
 
@@ -667,7 +399,7 @@ export default function ScheduleScreen() {
             <ThemedText
               style={[
                 styles.segmentText,
-                { color: segment === 'sessions' ? Colors.light.onPrimary : palette.muted },
+                { color: segment === 'sessions' ? palette.onPrimary : palette.muted },
               ]}
             >
               Sessions
@@ -683,7 +415,7 @@ export default function ScheduleScreen() {
             <ThemedText
               style={[
                 styles.segmentText,
-                { color: segment === 'availability' ? Colors.light.onPrimary : palette.muted },
+                { color: segment === 'availability' ? palette.onPrimary : palette.muted },
               ]}
             >
               Availability
@@ -715,7 +447,7 @@ export default function ScheduleScreen() {
                 </View>
 
                 {nextSession ? (
-                  <View style={styles.nextSessionBanner}>
+                  <View style={[styles.nextSessionBanner, { backgroundColor: palette.background }]}>
                     <View style={styles.nextSessionInfo}>
                       <ThemedText style={[styles.nextSessionTitle, { color: palette.text }]} numberOfLines={1}>
                         {nextSession.athleteName || nextSession.title}
@@ -724,8 +456,8 @@ export default function ScheduleScreen() {
                         {nextSession.time} · {nextSession.location || 'Location TBD'}
                       </ThemedText>
                     </View>
-                    <View style={styles.nextSessionCountdown}>
-                      <ThemedText style={styles.countdownText}>
+                    <View style={[styles.nextSessionCountdown, { backgroundColor: palette.tint }]}>
+                      <ThemedText style={[styles.countdownText, { color: palette.onPrimary }]}>
                         {getTimeUntil(nextSession.time)}
                       </ThemedText>
                     </View>
@@ -797,6 +529,9 @@ export default function ScheduleScreen() {
                         {!hasSession && hasAvailability && !isSelected && (
                           <View style={[styles.dayDot, { backgroundColor: palette.border }]} />
                         )}
+                        {day.hasOverride && !isSelected && (
+                          <View style={[styles.overrideDot, { borderColor: palette.warning }]} />
+                        )}
                       </Clickable>
                     );
                   })}
@@ -820,31 +555,23 @@ export default function ScheduleScreen() {
                     <ThemedText style={[styles.dayDetailSub, { color: palette.muted }]}>
                       {selectedDay.sessions.length} session{selectedDay.sessions.length !== 1 ? 's' : ''} · {selectedDay.availabilitySlots} slot{selectedDay.availabilitySlots !== 1 ? 's' : ''} available
                     </ThemedText>
-                  </View>
-                  <View style={styles.dayActions}>
-                    {!selectedDay.isPast && (
-                      <Clickable
-                        onPress={() => handleAdjustDay(selectedDay.dateStr, selectedDay.dayName)}
-                        style={[styles.dayActionBtn, { borderColor: palette.border }]}
-                      >
-                        <Ionicons name="create-outline" size={18} color={palette.muted} />
-                      </Clickable>
+                    {selectedDay.hasOverride && (
+                      <View style={[styles.adjustedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+                        <Ionicons name="swap-horizontal-outline" size={12} color={palette.warning} />
+                        <ThemedText style={[styles.adjustedBadgeText, { color: palette.warning }]}>
+                          Adjusted
+                        </ThemedText>
+                      </View>
                     )}
+                  </View>
+                  {!selectedDay.isPast && (
                     <Clickable
-                      onPress={() => handleAddSlot(selectedDay.date.getDay())}
-                      style={[styles.dayActionBtn, { borderColor: palette.tint }]}
+                      onPress={() => handleAdjustDay(selectedDay.dateStr)}
+                      style={[styles.dayActionBtn, { borderColor: palette.border }]}
                     >
-                      <Ionicons name="add" size={18} color={palette.tint} />
+                      <Ionicons name="create-outline" size={18} color={palette.muted} />
                     </Clickable>
-                    {!selectedDay.isPast && (
-                      <Clickable
-                        onPress={() => handleBlockDay(selectedDay.dateStr)}
-                        style={[styles.dayActionBtn, { borderColor: palette.border }]}
-                      >
-                        <Ionicons name="close" size={18} color={palette.muted} />
-                      </Clickable>
-                    )}
-                  </View>
+                  )}
                 </View>
 
                 {selectedDay.sessions.length === 0 ? (
@@ -855,7 +582,7 @@ export default function ScheduleScreen() {
                         ? 'Available but no bookings yet'
                         : 'No availability set for this day'}
                     </ThemedText>
-                    {selectedDay.availabilitySlots > 0 && !selectedDay.isPast ? (
+                    {selectedDay.availabilitySlots > 0 && !selectedDay.isPast && (
                       <Clickable
                         onPress={() => handleInviteFromSchedule(selectedDay.dateStr)}
                         style={[styles.addSlotBtn, { backgroundColor: palette.success }]}
@@ -863,15 +590,7 @@ export default function ScheduleScreen() {
                         <Ionicons name="paper-plane-outline" size={16} color={palette.surface} />
                         <ThemedText style={[styles.addSlotBtnText, { color: palette.surface }]}>Invite to This Slot</ThemedText>
                       </Clickable>
-                    ) : selectedDay.availabilitySlots === 0 ? (
-                      <Clickable
-                        onPress={() => handleAddSlot(selectedDay.date.getDay())}
-                        style={[styles.addSlotBtn, { backgroundColor: palette.tint }]}
-                      >
-                        <Ionicons name="add" size={16} color={palette.surface} />
-                        <ThemedText style={[styles.addSlotBtnText, { color: palette.surface }]}>Add Availability</ThemedText>
-                      </Clickable>
-                    ) : null}
+                    )}
                   </View>
                 ) : (
                   <View style={styles.sessionsList}>
@@ -992,354 +711,150 @@ export default function ScheduleScreen() {
       {/* ============ AVAILABILITY SEGMENT ============ */}
       {segment === 'availability' && (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-          {templates.length === 0 ? (
-            <AvailabilitySetupWizard coachId={coachId} onComplete={loadData} sessionTemplates={sessionTemplates} />
-          ) : showBulkEditWizard ? (
-            <AvailabilitySetupWizard
-              coachId={coachId}
-              existingTemplates={templates}
-              title="Edit Weekly Hours"
-              sessionTemplates={sessionTemplates}
-              onComplete={() => {
-                setShowBulkEditWizard(false);
-                loadData();
+          {/* Week Pattern Grid — replaces old wizard, day pills, and slot cards */}
+          <WeekPatternGrid
+            templates={templates}
+            overrides={overrides}
+            blockedDates={blockedDates}
+            coachId={coachId}
+            isSetupMode={templates.length === 0}
+            onDayPress={(dow, templateId, dateStr) => {
+              const tmpl = templateId ? templates.find((t) => t.id === templateId) ?? null : null;
+              const allForDay = templates.filter((t) => t.dayOfWeek === dow);
+              const dayOverride = dateStr ? overrides.find((o) => o.date === dateStr) ?? null : null;
+              // New block → default recurring; editing existing → date-aware
+              const isNewBlock = !templateId;
+              setDayEditorConfig({
+                dayOfWeek: dow as 0|1|2|3|4|5|6,
+                dateStr,
+                template: tmpl,
+                override: dayOverride,
+                existingTemplatesForDay: allForDay,
+                defaultScope: isNewBlock ? 'recurring' : (dateStr ? 'just-this-date' : 'recurring'),
+              });
+              setDayEditorOpen(true);
+            }}
+            onSetupComplete={async (newTemplates) => {
+              for (const t of newTemplates) {
+                await availabilityService.saveTemplate(t);
+              }
+              loadData();
+            }}
+          />
+
+          {/* Session Types */}
+          {templates.length > 0 && (
+            <SessionTypeChips
+              templates={sessionTemplates}
+              onPress={(t) => {
+                setEditingSessionType(t);
+                setShowSessionTypeModal(true);
+              }}
+              onAdd={() => {
+                setEditingSessionType(null);
+                setShowSessionTypeModal(true);
               }}
             />
-          ) : (
-            <>
-              {/* Summary Stats Row */}
-              <SurfaceCard style={styles.availSummaryCard}>
-                <View style={styles.availSummaryRow}>
-                  <View style={styles.availSummaryItem}>
-                    <ThemedText style={[styles.availSummaryValue, { color: palette.tint }]}>
-                      {summaryStats.totalHours}
-                    </ThemedText>
-                    <ThemedText style={[styles.availSummaryLabel, { color: palette.muted }]}>
-                      hrs/week
-                    </ThemedText>
-                  </View>
-                  <View style={[styles.availSummaryDivider, { backgroundColor: palette.border }]} />
-                  <View style={styles.availSummaryItem}>
-                    <ThemedText style={[styles.availSummaryValue, { color: palette.tint }]}>
-                      {summaryStats.daysCount}
-                    </ThemedText>
-                    <ThemedText style={[styles.availSummaryLabel, { color: palette.muted }]}>
-                      days
-                    </ThemedText>
-                  </View>
-                  <View style={[styles.availSummaryDivider, { backgroundColor: palette.border }]} />
-                  <View style={styles.availSummaryItem}>
-                    <ThemedText style={[styles.availSummaryValue, { color: palette.tint }]}>
-                      {summaryStats.slotsCount}
-                    </ThemedText>
-                    <ThemedText style={[styles.availSummaryLabel, { color: palette.muted }]}>
-                      slots
-                    </ThemedText>
-                  </View>
-                </View>
-              </SurfaceCard>
+          )}
 
-              {/* Edit Weekly Hours Button */}
-              <Clickable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setShowBulkEditWizard(true);
-                }}
-                style={[styles.editWeeklyBtn, { borderColor: palette.tint }]}
-              >
-                <Ionicons name="create-outline" size={18} color={palette.tint} />
-                <ThemedText style={[styles.editWeeklyBtnText, { color: palette.tint }]}>
-                  Edit Weekly Hours
-                </ThemedText>
-              </Clickable>
-
-              {/* Session Types */}
-              <SessionTypeChips
-                templates={sessionTemplates}
-                onPress={(t) => {
-                  setEditingSessionType(t);
-                  setShowSessionTypeModal(true);
-                }}
-                onAdd={() => {
-                  setEditingSessionType(null);
-                  setShowSessionTypeModal(true);
-                }}
-              />
-
-              {/* Day Selector Pills */}
-              <View style={styles.availDayPills}>
-                {DAYS.map((day, index) => {
-                  const daySlots = getDayTemplates(index);
-                  const hasSlots = daySlots.length > 0;
-                  const isSelected = selectedAvailDay === index;
-                  const isToday = todayIndex === index;
-
-                  return (
-                    <TouchableOpacity
-                      key={day}
-                      onPress={() => {
-                        setSelectedAvailDay(index);
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }}
-                      style={[
-                        styles.availDayPill,
-                        {
-                          backgroundColor: isSelected
-                            ? palette.tint
-                            : hasSlots
-                            ? withAlpha(palette.success, 0.09)
-                            : palette.background,
-                          borderColor: isToday ? palette.tint : palette.border,
-                          borderWidth: isToday ? 2 : 1,
-                        },
-                      ]}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.availDayPillText,
-                          {
-                            color: isSelected
-                              ? Colors.light.onPrimary
-                              : hasSlots
-                              ? palette.success
-                              : palette.muted,
-                            fontWeight: isSelected || isToday ? '700' : '500',
-                          },
-                        ]}
-                      >
-                        {day}
-                      </ThemedText>
-                      {hasSlots && !isSelected && (
-                        <View style={[styles.availDayDot, { backgroundColor: palette.success }]} />
-                      )}
-                      {isSelected && (
-                        <ThemedText style={styles.availSlotCount}>
-                          {daySlots.length}
-                        </ThemedText>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Selected Day Slot Cards */}
-              <SurfaceCard style={styles.availDayDetailCard}>
-                <View style={styles.availDayDetailHeader}>
-                  <View>
-                    <ThemedText type="subtitle">{DAYS_FULL[selectedAvailDay]}</ThemedText>
-                    <ThemedText style={[styles.availDayDetailSubtitle, { color: palette.muted }]}>
-                      {selectedAvailDaySlots.length === 0
-                        ? 'No availability set'
-                        : `${selectedAvailDaySlots.length} slot${selectedAvailDaySlots.length !== 1 ? 's' : ''}`}
-                    </ThemedText>
-                  </View>
-                  {selectedAvailDaySlots.length > 0 && (
-                    <TouchableOpacity
-                      style={[styles.availMiniAddButton, { borderColor: palette.tint }]}
-                      onPress={() => handleAddSlot(selectedAvailDay)}
-                    >
-                      <Ionicons name="add" size={16} color={palette.tint} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {selectedAvailDaySlots.length === 0 ? (
-                  <View style={[styles.availEmptyState, { backgroundColor: palette.background }]}>
-                    <Ionicons name="calendar-outline" size={40} color={palette.muted} />
-                    <ThemedText style={[styles.availEmptyTitle, { color: palette.text }]}>
-                      Not available
-                    </ThemedText>
-                    <ThemedText style={[styles.availEmptyText, { color: palette.muted }]}>
-                      Add availability so athletes can book on {DAYS_FULL[selectedAvailDay]}
-                    </ThemedText>
-                    <TouchableOpacity
-                      style={[styles.availEmptyAddButton, { backgroundColor: palette.tint }]}
-                      onPress={() => handleAddSlot(selectedAvailDay)}
-                    >
-                      <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
-                      <ThemedText style={styles.availEmptyAddButtonText}>Add Slot</ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.availSlotsList}>
-                    {selectedAvailDaySlots.map((template) => {
-                      const [startH, startM] = template.startTime.split(':').map(Number);
-                      const [endH, endM] = template.endTime.split(':').map(Number);
-                      const durationMins = (endH * 60 + endM) - (startH * 60 + startM);
-                      const durationHrs = Math.floor(durationMins / 60);
-                      const durationRemainder = durationMins % 60;
-                      const durationLabel = durationRemainder === 0
-                        ? `${durationHrs} hour${durationHrs !== 1 ? 's' : ''}`
-                        : `${durationHrs}h ${durationRemainder}m`;
-
-                      // Look up linked session template
-                      const linkedTemplate = template.sessionTemplateId
-                        ? sessionTemplates.find(st => st.id === template.sessionTemplateId)
-                        : undefined;
-
-                      // Fill rate for group slots
-                      const fillCount = template.maxConcurrent > 1 ? getSlotFillCount(template) : 0;
-                      const fillRatio = template.maxConcurrent > 1 ? fillCount / template.maxConcurrent : 0;
-
-                      return (
-                        <View
-                          key={template.id}
-                          style={[styles.availSlotCard, { backgroundColor: palette.background, borderColor: palette.border }]}
-                        >
-                          <View style={[styles.availSlotTime, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
-                            <Ionicons name="time-outline" size={16} color={palette.success} />
-                            <ThemedText style={[styles.availSlotTimeText, { color: palette.success }]}>
-                              {formatTimeRange(template.startTime, template.endTime)}
-                            </ThemedText>
-                          </View>
-
-                          <View style={styles.availSlotInfo}>
-                            <View style={styles.availSlotInfoRow}>
-                              <ThemedText style={styles.availSlotDuration}>
-                                {durationLabel}
-                              </ThemedText>
-                              {linkedTemplate ? (
-                                <View style={[styles.availSessionTypeBadge, { backgroundColor: withAlpha(palette.accent, 0.09) }]}>
-                                  <Ionicons
-                                    name={linkedTemplate.capacity === 1 ? 'person-outline' : 'people-outline'}
-                                    size={10}
-                                    color={palette.accent}
-                                  />
-                                  <ThemedText style={[styles.availSessionTypeBadgeText, { color: palette.accent }]}>
-                                    {linkedTemplate.name}
-                                  </ThemedText>
-                                </View>
-                              ) : template.maxConcurrent > 1 ? (
-                                <View style={[styles.availSessionTypeBadge, { backgroundColor: withAlpha(palette.info, 0.07) }]}>
-                                  <Ionicons name="people-outline" size={10} color={palette.info} />
-                                  <ThemedText style={[styles.availSessionTypeBadgeText, { color: palette.info }]}>
-                                    Group
-                                  </ThemedText>
-                                </View>
-                              ) : (
-                                <View style={[styles.availSessionTypeBadge, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-                                  <Ionicons name="person-outline" size={10} color={palette.tint} />
-                                  <ThemedText style={[styles.availSessionTypeBadgeText, { color: palette.tint }]}>
-                                    1v1
-                                  </ThemedText>
-                                </View>
-                              )}
-                            </View>
-                            {template.location && (
-                              <View style={styles.availSlotMeta}>
-                                <Ionicons name="location-outline" size={12} color={palette.muted} />
-                                <ThemedText style={[styles.availSlotMetaText, { color: palette.muted }]}>
-                                  {template.location}
-                                </ThemedText>
-                              </View>
-                            )}
-                            {template.maxConcurrent > 1 && (
-                              <View style={styles.availFillRow}>
-                                <View style={[styles.availFillBar, { backgroundColor: palette.border }]}>
-                                  <View
-                                    style={[
-                                      styles.availFillBarFill,
-                                      {
-                                        width: `${Math.min(fillRatio * 100, 100)}%`,
-                                        backgroundColor: fillRatio >= 1 ? palette.warning : palette.success,
-                                      },
-                                    ]}
-                                  />
-                                </View>
-                                <ThemedText style={[styles.availFillText, {
-                                  color: fillRatio >= 1 ? palette.warning : fillCount > 0 ? palette.success : palette.muted,
-                                }]}>
-                                  {fillCount}/{template.maxConcurrent} booked
-                                </ThemedText>
-                              </View>
-                            )}
-                          </View>
-
-                          <View style={styles.availSlotActions}>
-                            <TouchableOpacity
-                              style={[styles.availSlotActionBtn, { borderColor: palette.border }]}
-                              onPress={() => handleEditSlot(template)}
-                            >
-                              <Ionicons name="pencil-outline" size={16} color={palette.tint} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              style={[styles.availSlotActionBtn, { borderColor: palette.border }]}
-                              onPress={() => handleDeleteSlot(template)}
-                            >
-                              <Ionicons name="trash-outline" size={16} color={palette.error} />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
-              </SurfaceCard>
-
-              {/* Action Buttons */}
-              <View style={styles.availActionRow}>
-                <Clickable
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowBlockDateModal(true);
-                  }}
-                  style={[styles.availActionBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
-                >
-                  <View style={[styles.availActionBtnIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
-                    <Ionicons name="calendar-outline" size={20} color={palette.error} />
-                  </View>
-                  <ThemedText type="defaultSemiBold" style={styles.availActionBtnLabel}>Block Time Off</ThemedText>
-                </Clickable>
-
-                <Clickable
-                  onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setShowRulesModal(true);
-                  }}
-                  style={[styles.availActionBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
-                >
-                  <View style={[styles.availActionBtnIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
-                    <Ionicons name="settings-outline" size={20} color={palette.warning} />
-                  </View>
-                  <ThemedText type="defaultSemiBold" style={styles.availActionBtnLabel}>Booking Rules</ThemedText>
-                </Clickable>
-              </View>
-
-              {/* Add Slot Button */}
-              <Clickable
-                onPress={() => handleAddSlot(selectedAvailDay)}
-                style={[styles.availAddSlotBtn, { backgroundColor: palette.tint }]}
-              >
-                <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
-                <ThemedText style={[styles.availAddSlotBtnText, { color: Colors.light.onPrimary }]}>
-                  Add Slot
-                </ThemedText>
-              </Clickable>
-            </>
+          {/* Booking Rules */}
+          {templates.length > 0 && (
+            <Clickable
+              onPress={() => {
+                if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowRulesModal(true);
+              }}
+              style={[styles.rulesBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            >
+              <Ionicons name="settings-outline" size={18} color={palette.muted} />
+              <ThemedText style={[styles.rulesBtnText, { color: palette.text }]}>Booking Rules</ThemedText>
+              <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+            </Clickable>
           )}
         </ScrollView>
       )}
 
-      {/* Add/Edit Slot Modal */}
-      <RecurringTemplateModal
-        visible={showAddSlotModal}
-        onClose={() => {
-          setShowAddSlotModal(false);
-          setEditingTemplate(null);
-          setPreselectedDay(undefined);
+      {/* Day Editor Sheet (replaces RecurringTemplateModal + AdjustDayModal) */}
+      <DayEditorSheet
+        visible={dayEditorOpen}
+        onClose={() => { setDayEditorOpen(false); setDayEditorConfig(null); }}
+        dayOfWeek={dayEditorConfig?.dayOfWeek ?? 0}
+        dateStr={dayEditorConfig?.dateStr}
+        template={dayEditorConfig?.template}
+        existingOverride={dayEditorConfig?.override}
+        existingTemplatesForDay={dayEditorConfig?.existingTemplatesForDay}
+        venues={venues}
+        defaultScope={dayEditorConfig?.defaultScope}
+        coachId={coachId}
+        onSaveRecurring={async (data) => {
+          const existing = dayEditorConfig?.template;
+          const saved = await availabilityService.saveTemplate({
+            ...(existing ? { id: existing.id } : {}),
+            coachId,
+            dayOfWeek: data.dayOfWeek as 0|1|2|3|4|5|6,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            isRecurring: true,
+            maxConcurrent: existing?.maxConcurrent ?? 1,
+            bufferMinutes: existing?.bufferMinutes ?? 15,
+            location: data.location,
+          });
+          // Optimistically update templates so the new block shows immediately
+          setTemplates((prev) => {
+            if (existing) {
+              return prev.map((t) => (t.id === existing.id ? saved : t));
+            }
+            return [...prev, saved];
+          });
+          setDayEditorOpen(false);
+          setDayEditorConfig(null);
+          loadData();
         }}
-        onSave={handleSaveTemplate}
-        onDelete={handleDeleteTemplate}
-        editingTemplate={editingTemplate}
-        preselectedDay={preselectedDay}
-        sessionTemplates={sessionTemplates}
-      />
-
-      {/* Block Date Modal */}
-      <BlockDateModal
-        visible={showBlockDateModal}
-        onClose={() => setShowBlockDateModal(false)}
-        onBlock={handleBlockDates}
+        onSaveOverride={async (data) => {
+          const saved = await availabilityService.saveOverride({
+            coachId,
+            date: data.date,
+            isBlocked: false,
+            customSlots: [{ date: data.date, startTime: data.startTime, endTime: data.endTime, location: data.location }],
+          });
+          // Optimistically update overrides
+          setOverrides((prev) => {
+            const filtered = prev.filter((o) => !(o.coachId === coachId && o.date === data.date));
+            return [...filtered, saved];
+          });
+          setDayEditorOpen(false);
+          setDayEditorConfig(null);
+          loadData();
+        }}
+        onSaveRepeatedOverride={async (data) => {
+          const startDate = new Date(data.date + 'T00:00:00');
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + (data.repeatWeeks - 1) * 7);
+          const repeatUntil = endDate.toISOString().split('T')[0];
+          await availabilityService.saveRepeatedOverride({
+            coachId,
+            date: data.date,
+            isBlocked: false,
+            customSlots: [{ date: data.date, startTime: data.startTime, endTime: data.endTime, location: data.location }],
+            repeatUntil,
+          });
+          setDayEditorOpen(false);
+          setDayEditorConfig(null);
+          loadData();
+        }}
+        onDeleteTemplate={async (id) => {
+          await availabilityService.deleteTemplate(id);
+          // Optimistically remove from state
+          setTemplates((prev) => prev.filter((t) => t.id !== id));
+          setDayEditorOpen(false);
+          setDayEditorConfig(null);
+          loadData();
+        }}
+        onAddVenue={async (label) => {
+          await coachVenueService.saveVenue({ coachId, label });
+          const updated = await coachVenueService.getVenues(coachId);
+          setVenues(updated);
+        }}
       />
 
       {/* Scheduling Rules Modal */}
@@ -1385,18 +900,6 @@ export default function ScheduleScreen() {
           setShowSessionTypeModal(false);
           setEditingSessionType(null);
         } : undefined}
-      />
-      <AdjustDayModal
-        visible={showAdjustDayModal}
-        onClose={() => {
-          setShowAdjustDayModal(false);
-          setAdjustDayTarget(null);
-        }}
-        onSave={handleSaveAdjustDay}
-        date={adjustDayTarget?.dateStr || ''}
-        dayName={adjustDayTarget?.dayName || ''}
-        templateStartTime={adjustDayTarget?.startTime}
-        templateEndTime={adjustDayTarget?.endTime}
       />
     </SafeAreaView>
   );
@@ -1478,7 +981,6 @@ const styles = StyleSheet.create({
   nextSessionBanner: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: Colors.light.background,
     borderRadius: Radii.md,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1496,12 +998,10 @@ const styles = StyleSheet.create({
   nextSessionCountdown: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.light.tint,
     borderRadius: Radii.md,
   },
   countdownText: {
     ...Typography.small,
-    color: Colors.light.surface,
   },
   todayEmpty: {
     marginTop: Spacing.md,
@@ -1547,6 +1047,16 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: Radii.xs,
   },
+  overrideDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    borderWidth: 1.5,
+    backgroundColor: 'transparent',
+  },
   // Day Detail
   dayDetailCard: {
     padding: Spacing.lg,
@@ -1561,13 +1071,23 @@ const styles = StyleSheet.create({
     ...Typography.small,
     marginTop: Spacing.micro,
   },
-  dayActions: {
+  adjustedBadge: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.micro,
+    borderRadius: Radii.sm,
+    marginTop: Spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  adjustedBadgeText: {
+    ...Typography.micro,
+    fontWeight: '600',
   },
   dayActionBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: Radii.xl,
     borderWidth: 1.5,
     alignItems: 'center',
@@ -1690,232 +1210,17 @@ const styles = StyleSheet.create({
   },
 
   // ============ AVAILABILITY SEGMENT STYLES ============
-  availSummaryCard: {
-    padding: Spacing.md,
-  },
-  availSummaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  availSummaryItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  availSummaryValue: {
-    ...Typography.title,
-  },
-  availSummaryLabel: {
-    ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
-  availSummaryDivider: {
-    width: 1,
-    height: 30,
-  },
-  availDayPills: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.xxs,
-  },
-  availDayPill: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    gap: Spacing.xxs,
-  },
-  availDayPillText: {
-    ...Typography.caption,
-  },
-  availDayDot: {
-    width: 4,
-    height: 4,
-    borderRadius: Radii.xs,
-  },
-  availSlotCount: {
-    ...Typography.micro,
-    color: Colors.light.onPrimary,
-    fontWeight: '700',
-  },
-  availDayDetailCard: {
-    padding: Spacing.md,
-  },
-  availDayDetailHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  availDayDetailSubtitle: {
-    ...Typography.small,
-    marginTop: Spacing.micro,
-  },
-  availMiniAddButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.lg,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  availEmptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    borderRadius: Radii.md,
-    gap: Spacing.xs,
-  },
-  availEmptyTitle: {
-    ...Typography.subheading,
-    marginTop: Spacing.sm,
-  },
-  availEmptyText: {
-    ...Typography.bodySmall,
-    textAlign: 'center',
-    maxWidth: 240,
-  },
-  availEmptyAddButton: {
+  rulesBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.md,
-  },
-  availEmptyAddButtonText: {
-    color: Colors.light.onPrimary,
-    fontWeight: '600',
-  },
-  availSlotsList: {
     gap: Spacing.sm,
-  },
-  availSlotCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.sm,
-  },
-  availSlotTime: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
-  availSlotTimeText: {
-    ...Typography.smallSemiBold,
-  },
-  availSlotInfo: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  availSlotInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  availSlotDuration: {
-    fontWeight: '500',
-  },
-  availSessionTypeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.micro,
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
-  availSessionTypeBadgeText: {
-    ...Typography.micro,
-  },
-  availSlotMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  availSlotMetaText: {
-    ...Typography.caption,
-  },
-  availSlotActions: {
-    flexDirection: 'row',
-    gap: Spacing.xxs,
-  },
-  availSlotActionBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  availActionRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  availActionBtn: {
-    flex: 1,
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.sm,
-  },
-  availActionBtnIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  availActionBtnLabel: {
-    ...Typography.caption,
-  },
-  availAddSlotBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
     paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
     borderRadius: Radii.md,
+    borderWidth: 1,
   },
-  availAddSlotBtnText: {
-    fontWeight: '600',
-    fontSize: Typography.body.fontSize,
-  },
-  editWeeklyBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  editWeeklyBtnText: {
-    ...Typography.smallSemiBold,
-  },
-  availFillRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: Spacing.micro,
-  },
-  availFillBar: {
+  rulesBtnText: {
+    ...Typography.bodySmall,
     flex: 1,
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  availFillBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  availFillText: {
-    ...Typography.micro,
-    fontWeight: '600',
-    minWidth: 55,
   },
 });

@@ -6,24 +6,34 @@
  */
 
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, Modal, KeyboardAvoidingView, Platform, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+const LOCATION_OPTIONS: { id: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { id: 'hyde_park', label: 'Hyde Park', icon: 'leaf-outline' },
+  { id: 'victoria_park', label: 'Victoria Park', icon: 'leaf-outline' },
+  { id: 'london_fields', label: 'London Fields', icon: 'leaf-outline' },
+  { id: 'indoor', label: 'Indoor Facility', icon: 'business-outline' },
+  { id: 'online', label: 'Online', icon: 'videocam-outline' },
+  { id: 'custom', label: 'Custom', icon: 'create-outline' },
+];
 
 interface AdjustDayModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (data: { startTime: string; endTime: string }) => void;
+  onSave: (data: { startTime: string; endTime: string; location?: string }) => void;
   date: string; // ISO date string
   dayName: string; // e.g. "Tuesday 11 Feb"
   templateStartTime?: string; // Current template default
   templateEndTime?: string;
+  templateLocation?: string;
 }
 
 export function AdjustDayModal({
@@ -33,26 +43,31 @@ export function AdjustDayModal({
   dayName,
   templateStartTime,
   templateEndTime,
+  templateLocation,
 }: AdjustDayModalProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [location, setLocation] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setStartTime(templateStartTime || '09:00');
       setEndTime(templateEndTime || '17:00');
+      setLocation(templateLocation || '');
+      setShowCustomInput(false);
     }
-  }, [visible, templateStartTime, templateEndTime]);
+  }, [visible, templateStartTime, templateEndTime, templateLocation]);
 
   const isValid = startTime && endTime && startTime < endTime;
 
   const handleSave = () => {
     if (!isValid) return;
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    onSave({ startTime, endTime });
+    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onSave({ startTime, endTime, location: location || undefined });
   };
 
   return (
@@ -107,6 +122,69 @@ export function AdjustDayModal({
             </ThemedText>
           )}
 
+          {/* Location */}
+          <View style={styles.locationSection}>
+            <ThemedText style={[styles.locationLabel, { color: palette.text }]}>
+              Location
+            </ThemedText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.locationScroll}>
+              <View style={styles.locationChipsRow}>
+                {LOCATION_OPTIONS.map((opt) => {
+                  const isCustom = opt.id === 'custom';
+                  const isSelected = isCustom
+                    ? showCustomInput
+                    : location === opt.label;
+                  return (
+                    <Clickable
+                      key={opt.id}
+                      onPress={() => {
+                        if (Platform.OS !== 'web') {
+                          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        }
+                        if (isCustom) {
+                          setShowCustomInput(true);
+                          setLocation('');
+                        } else {
+                          setShowCustomInput(false);
+                          setLocation(isSelected ? '' : opt.label);
+                        }
+                      }}
+                      style={[
+                        styles.locationChip,
+                        {
+                          backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.background,
+                          borderColor: isSelected ? palette.tint : palette.border,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={opt.icon}
+                        size={14}
+                        color={isSelected ? palette.tint : palette.muted}
+                      />
+                      <ThemedText style={[styles.locationChipText, { color: isSelected ? palette.tint : palette.text }]}>
+                        {opt.label}
+                      </ThemedText>
+                    </Clickable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+            {showCustomInput && (
+              <View style={[styles.customInput, { borderColor: palette.border, backgroundColor: palette.background }]}>
+                <Ionicons name="location-outline" size={18} color={palette.muted} />
+                <TextInput
+                  style={[styles.customInputText, { color: palette.text }]}
+                  placeholder="Enter custom location"
+                  placeholderTextColor={palette.muted}
+                  value={location}
+                  onChangeText={setLocation}
+                  autoFocus
+                />
+              </View>
+            )}
+          </View>
+
           <Clickable
             onPress={handleSave}
             style={[
@@ -114,7 +192,7 @@ export function AdjustDayModal({
               { backgroundColor: isValid ? palette.tint : palette.border },
             ]}
           >
-            <Ionicons name="checkmark" size={20} color={Colors.light.onPrimary} />
+            <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
             <ThemedText style={styles.saveBtnText}>Save Override</ThemedText>
           </Clickable>
         </View>
@@ -178,8 +256,47 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   saveBtnText: {
-    color: Colors.light.onPrimary,
-    fontWeight: '600',
-    fontSize: Typography.body.fontSize,
+    ...Typography.bodySemiBold,
+    color: '#FFFFFF',
+  },
+  locationSection: {
+    gap: Spacing.sm,
+  },
+  locationLabel: {
+    ...Typography.bodySmallSemiBold,
+  },
+  locationScroll: {
+    marginHorizontal: -Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+  },
+  locationChipsRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  locationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    gap: Spacing.xxs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  locationChipText: {
+    ...Typography.smallSemiBold,
+  },
+  customInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  customInputText: {
+    flex: 1,
+    ...Typography.body,
+    padding: 0,
   },
 });

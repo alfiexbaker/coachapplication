@@ -372,6 +372,9 @@ export const STORAGE_KEYS = {
   /** Coach saved locations */
   SAVED_LOCATIONS: 'coach_saved_locations',
 
+  /** Coach venue presets for availability */
+  COACH_VENUES: 'clubroom.coach_venues',
+
   // ============================================================================
   // FAMILY - CHILDREN DOMAIN
   // ============================================================================

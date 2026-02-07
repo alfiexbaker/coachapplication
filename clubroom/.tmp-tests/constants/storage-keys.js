@@ -262,6 +262,8 @@ exports.STORAGE_KEYS = {
     REPORTS: 'clubroom.reports',
     /** Coach saved locations */
     SAVED_LOCATIONS: 'coach_saved_locations',
+    /** Coach venue presets for availability */
+    COACH_VENUES: 'clubroom.coach_venues',
     // ============================================================================
     // FAMILY - CHILDREN DOMAIN
     // ============================================================================

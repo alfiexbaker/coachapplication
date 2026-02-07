@@ -18,9 +18,7 @@ import type { SessionTemplate, SessionType } from '@/constants/session-types';
 const DURATION_OPTIONS = [30, 45, 60, 90];
 const TYPE_OPTIONS: { key: SessionType; label: string }[] = [
   { key: '1-to-1', label: '1-on-1' },
-  { key: 'small-group', label: 'Small Group' },
-  { key: 'clinic', label: 'Clinic' },
-  { key: 'assessment', label: 'Assessment' },
+  { key: 'small-group', label: 'Group' },
 ];
 
 interface SessionTypeModalProps {

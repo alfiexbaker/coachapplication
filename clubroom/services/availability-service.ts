@@ -427,6 +427,9 @@ export const availabilityService = {
 
       if (override?.customSlots) {
         // Use custom slots for this date
+        const dayTemplate = templates.find(t => t.dayOfWeek === dayOfWeek);
+        const fallbackLocation = dayTemplate?.location;
+
         for (const customSlot of override.customSlots) {
           const bookedCount = this.countBookingsForSlot(
             coachBookings,
@@ -442,7 +445,7 @@ export const availabilityService = {
             isAvailable: bookedCount < 1,
             bookedCount,
             maxBookings: 1,
-            location: customSlot.location,
+            location: customSlot.location ?? fallbackLocation,
           });
         }
         continue;
@@ -640,6 +643,46 @@ export const availabilityService = {
   },
 
   /**
+   * Save a repeated override — generates individual overrides for each week
+   * from the override's date through repeatUntil, all sharing the same repeatGroupId.
+   */
+  async saveRepeatedOverride(
+    override: Omit<AvailabilityOverride, 'id'> & { repeatUntil: string }
+  ): Promise<AvailabilityOverride[]> {
+    const groupId = `rpg_${Date.now()}`;
+    const startDate = new Date(override.date + 'T00:00:00');
+    const endDate = new Date(override.repeatUntil + 'T00:00:00');
+    const results: AvailabilityOverride[] = [];
+
+    let current = new Date(startDate);
+    let index = 0;
+
+    while (current <= endDate) {
+      const dateStr = current.toISOString().split('T')[0];
+      const saved = await this.saveOverride({
+        ...override,
+        date: dateStr,
+        id: `ovr_${Date.now()}_${index}`,
+        repeatGroupId: groupId,
+        repeatDayOfWeek: current.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+        repeatUntil: override.repeatUntil,
+      });
+      results.push(saved);
+      current.setDate(current.getDate() + 7);
+      index++;
+    }
+
+    logger.info('Saved repeated overrides', {
+      groupId,
+      count: results.length,
+      from: override.date,
+      until: override.repeatUntil,
+    });
+
+    return results;
+  },
+
+  /**
    * Get a summary of availability for display
    */
   async getAvailabilitySummary(coachId: string): Promise<{
@@ -689,7 +732,7 @@ export const availabilityService = {
   ): Promise<{
     bookingCount: number;
     holdCount: number;
-    bookings: { date: string; time: string; athleteName?: string }[];
+    bookings: { id: string; date: string; time: string; location?: string; athleteName?: string }[];
     holds: { date: string; time: string; inviteId: string }[];
   }> {
     if (dates.length === 0) return { bookingCount: 0, holdCount: 0, bookings: [], holds: [] };
@@ -707,8 +750,10 @@ export const availabilityService = {
         return bookingDate ? dateSet.has(bookingDate) : false;
       })
       .map((b) => ({
+        id: b.id,
         date: b.scheduledAt?.split('T')[0] || '',
         time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
+        location: b.location,
         athleteName: (b as unknown as Record<string, unknown>).athleteName as string | undefined,
       }));
 
@@ -760,5 +805,70 @@ export const availabilityService = {
       holdCount: result.holdCount,
       affectedDates: dates,
     };
+  },
+
+  /**
+   * Bulk-update the location field on a list of bookings.
+   */
+  async updateBookingLocations(
+    bookingIds: string[],
+    newLocation: string
+  ): Promise<void> {
+    if (bookingIds.length === 0) return;
+    const allBookings = await loadBookings();
+    let changed = false;
+    for (const booking of allBookings) {
+      if (bookingIds.includes(booking.id)) {
+        booking.location = newLocation;
+        changed = true;
+      }
+    }
+    if (changed) {
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, allBookings);
+    }
+  },
+
+  /**
+   * Check if future bookings on a given day-of-week have a different location.
+   * Looks 4 weeks ahead. Used when editing a recurring template's location.
+   */
+  async checkLocationDrift(
+    coachId: string,
+    dayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6,
+    newLocation: string
+  ): Promise<{
+    affectedBookings: { id: string; date: string; time: string; location: string; athleteName?: string }[];
+    affectedCount: number;
+  }> {
+    const today = new Date();
+    const dates: string[] = [];
+    for (let w = 0; w < 4; w++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + ((dayOfWeek - today.getDay() + 7) % 7) + w * 7);
+      if (d >= today) {
+        dates.push(d.toISOString().split('T')[0]);
+      }
+    }
+    if (dates.length === 0) return { affectedBookings: [], affectedCount: 0 };
+
+    const dateSet = new Set(dates);
+    const allBookings = await loadBookings();
+
+    const affected = allBookings
+      .filter((b) => {
+        if (b.coachId !== coachId || b.status === 'CANCELLED') return false;
+        const bookingDate = b.scheduledAt?.split('T')[0];
+        if (!bookingDate || !dateSet.has(bookingDate)) return false;
+        return b.location !== undefined && b.location !== newLocation;
+      })
+      .map((b) => ({
+        id: b.id,
+        date: b.scheduledAt?.split('T')[0] || '',
+        time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
+        location: b.location || '',
+        athleteName: b.athleteName,
+      }));
+
+    return { affectedBookings: affected, affectedCount: affected.length };
   },
 };

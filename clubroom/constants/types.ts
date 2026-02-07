@@ -206,6 +206,7 @@ export type {
   CalendarSyncSettings,
   BookingSeries,
   WeekAcceptance,
+  CoachVenue,
 } from './session-types';
 
 // ============================================================================

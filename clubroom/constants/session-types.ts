@@ -472,6 +472,19 @@ export interface CounterOfferNotification {
 }
 
 // ============================================================================
+// COACH VENUE MANAGEMENT
+// ============================================================================
+
+export interface CoachVenue {
+  id: string;
+  coachId: string;
+  label: string;
+  icon?: string;       // Ionicons name
+  isDefault?: boolean;
+  createdAt: string;
+}
+
+// ============================================================================
 // AVAILABILITY MANAGEMENT
 // ============================================================================
 
@@ -495,6 +508,9 @@ export interface AvailabilityOverride {
   isBlocked: boolean;
   reason?: string;
   customSlots?: TimeSlot[];
+  repeatUntil?: string;
+  repeatDayOfWeek?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  repeatGroupId?: string;
 }
 
 export interface AvailabilitySlot {

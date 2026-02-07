@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, ScrollView, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, TextInput, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -43,6 +43,12 @@ interface RecurringTemplateModalProps {
   preselectedDay?: number;
   preselectedHour?: number;
   sessionTemplates?: SessionTemplate[];
+  onCheckLocationDrift?: (dayOfWeek: number, newLocation: string) => Promise<{
+    affectedCount: number;
+    affectedBookingIds: string[];
+    oldLocation: string;
+  } | null>;
+  onUpdateBookingLocations?: (bookingIds: string[], newLocation: string) => Promise<void>;
 }
 
 export function RecurringTemplateModal({
@@ -54,6 +60,8 @@ export function RecurringTemplateModal({
   preselectedDay,
   preselectedHour,
   sessionTemplates,
+  onCheckLocationDrift,
+  onUpdateBookingLocations,
 }: RecurringTemplateModalProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -70,6 +78,7 @@ export function RecurringTemplateModal({
   const [showLocationInput, setShowLocationInput] = useState(false);
 
   const isEditing = !!editingTemplate;
+  const isQuickAdd = preselectedDay !== undefined && !isEditing;
 
   useEffect(() => {
     if (!visible) return; // Only run when modal becomes visible
@@ -108,7 +117,7 @@ export function RecurringTemplateModal({
   }, [editingTemplate, preselectedDay, preselectedHour, visible]);
 
   const toggleDay = (dayIndex: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedDays(prev => {
       if (prev.includes(dayIndex)) {
         // Don't allow deselecting last day
@@ -120,7 +129,7 @@ export function RecurringTemplateModal({
   };
 
   const applyPreset = (days: number[]) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedDays(days);
   };
 
@@ -152,25 +161,9 @@ export function RecurringTemplateModal({
     }
   };
 
-  const handleSave = async () => {
-    if (selectedDays.length === 0) {
-      Alert.alert('Select Days', 'Please select at least one day');
-      return;
-    }
-
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-
-    if (endMinutes <= startMinutes) {
-      Alert.alert('Invalid times', 'End time must be after start time');
-      return;
-    }
-
+  const doSaveAll = async () => {
     setSaving(true);
     try {
-      // Save template for each selected day
       for (const dayOfWeek of selectedDays) {
         await onSave({
           dayOfWeek: dayOfWeek as 0 | 1 | 2 | 3 | 4 | 5 | 6,
@@ -183,7 +176,7 @@ export function RecurringTemplateModal({
           sessionTemplateId,
         });
       }
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
     } catch (error) {
       logger.error('Failed to save template:', error);
@@ -191,6 +184,51 @@ export function RecurringTemplateModal({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSave = async () => {
+    if (selectedDays.length === 0) {
+      Alert.alert('Select Days', 'Please select at least one day');
+      return;
+    }
+
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    if (endHour * 60 + endMin <= startHour * 60 + startMin) {
+      Alert.alert('Invalid times', 'End time must be after start time');
+      return;
+    }
+
+    const newLocation = location || undefined;
+    const locationChanged = isEditing && editingTemplate &&
+      (editingTemplate.location || '') !== (location || '') &&
+      newLocation;
+
+    if (locationChanged && onCheckLocationDrift) {
+      const drift = await onCheckLocationDrift(editingTemplate!.dayOfWeek, newLocation!);
+      if (drift && drift.affectedCount > 0) {
+        Alert.alert(
+          'Location Changed',
+          `You have ${drift.affectedCount} upcoming booking${drift.affectedCount !== 1 ? 's' : ''} at ${drift.oldLocation} on ${DAYS[editingTemplate!.dayOfWeek]}s. Change them to ${newLocation}?`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Keep Original', onPress: () => doSaveAll() },
+            {
+              text: 'Update All',
+              onPress: async () => {
+                if (onUpdateBookingLocations) {
+                  await onUpdateBookingLocations(drift.affectedBookingIds, newLocation!);
+                }
+                await doSaveAll();
+              },
+            },
+          ]
+        );
+        return;
+      }
+    }
+
+    await doSaveAll();
   };
 
   const handleDelete = async () => {
@@ -205,7 +243,7 @@ export function RecurringTemplateModal({
           setSaving(true);
           try {
             await onDelete(editingTemplate.id);
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             onClose();
           } catch (error) {
             logger.error('Failed to delete template:', error);
@@ -221,14 +259,14 @@ export function RecurringTemplateModal({
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: palette.background }]}>
+      <KeyboardAvoidingView style={[styles.container, { backgroundColor: palette.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: palette.border }]}>
           <Clickable onPress={onClose} disabled={saving}>
             <ThemedText style={{ color: palette.muted }}>Cancel</ThemedText>
           </Clickable>
           <ThemedText type="subtitle">
-            {isEditing ? 'Edit Availability' : 'Add Availability'}
+            {isEditing ? 'Edit Availability' : isQuickAdd ? 'Quick Add Slot' : 'Add Availability'}
           </ThemedText>
           <Clickable onPress={handleSave} disabled={saving}>
             <ThemedText style={{ ...Typography.bodySemiBold, color: palette.tint }}>
@@ -241,16 +279,26 @@ export function RecurringTemplateModal({
           {/* Day Selection - Multi-select when adding, single when editing */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>
-              {isEditing ? 'Day' : 'Select Days'}
+              {isEditing ? 'Day' : isQuickAdd ? 'Day' : 'Select Days'}
             </ThemedText>
-            {!isEditing && (
+            {!isEditing && !isQuickAdd && (
               <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
                 Select multiple days to set the same hours
               </ThemedText>
             )}
 
-            {/* Quick presets - only when adding new */}
-            {!isEditing && (
+            {/* Quick Add: static day label */}
+            {isQuickAdd && (
+              <View style={[styles.quickAddDayLabel, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
+                <Ionicons name="calendar-outline" size={16} color={palette.tint} />
+                <ThemedText style={{ ...Typography.bodySemiBold, color: palette.tint }}>
+                  {DAYS[preselectedDay]}
+                </ThemedText>
+              </View>
+            )}
+
+            {/* Quick presets - only when adding new (not quick add) */}
+            {!isEditing && !isQuickAdd && (
               <View style={styles.presetsRow}>
                 {QUICK_PRESETS.map((preset) => {
                   const isActive = preset.days.every(d => selectedDays.includes(d)) &&
@@ -281,35 +329,37 @@ export function RecurringTemplateModal({
               </View>
             )}
 
-            {/* Day chips - compact circular selectors */}
-            <View style={styles.dayChipsRow}>
-              {DAYS_SHORT.map((day, index) => {
-                const isSelected = selectedDays.includes(index);
-                const isWeekend = index === 0 || index === 6;
-                return (
-                  <Clickable
-                    key={day}
-                    onPress={() => !isEditing && toggleDay(index)}
-                    disabled={isEditing}
-                    style={[
-                      styles.dayChip,
-                      {
-                        backgroundColor: isSelected ? palette.tint : palette.surface,
-                        borderColor: isSelected ? palette.tint : isWeekend ? palette.warning : palette.border,
-                        opacity: isEditing && !isSelected ? 0.4 : 1,
-                      },
-                    ]}
-                  >
-                    <ThemedText style={[styles.dayChipText, { color: isSelected ? palette.onPrimary : palette.text }]}>
-                      {day}
-                    </ThemedText>
-                  </Clickable>
-                );
-              })}
-            </View>
+            {/* Day chips - compact circular selectors (hidden in quick add mode) */}
+            {!isQuickAdd && (
+              <View style={styles.dayChipsRow}>
+                {DAYS_SHORT.map((day, index) => {
+                  const isSelected = selectedDays.includes(index);
+                  const isWeekend = index === 0 || index === 6;
+                  return (
+                    <Clickable
+                      key={day}
+                      onPress={() => !isEditing && toggleDay(index)}
+                      disabled={isEditing}
+                      style={[
+                        styles.dayChip,
+                        {
+                          backgroundColor: isSelected ? palette.tint : palette.surface,
+                          borderColor: isSelected ? palette.tint : isWeekend ? palette.warning : palette.border,
+                          opacity: isEditing && !isSelected ? 0.4 : 1,
+                        },
+                      ]}
+                    >
+                      <ThemedText style={[styles.dayChipText, { color: isSelected ? palette.onPrimary : palette.text }]}>
+                        {day}
+                      </ThemedText>
+                    </Clickable>
+                  );
+                })}
+              </View>
+            )}
 
-            {/* Selection summary */}
-            {!isEditing && selectedDays.length > 0 && (
+            {/* Selection summary (hidden in quick add mode) */}
+            {!isEditing && !isQuickAdd && selectedDays.length > 0 && (
               <View style={[styles.selectionSummary, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
                 <Ionicons name="checkmark-circle" size={16} color={palette.success} />
                 <ThemedText style={{ ...Typography.small, color: palette.success }}>
@@ -375,7 +425,7 @@ export function RecurringTemplateModal({
                   <Clickable
                     key={loc}
                     onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setLocation(isSelected ? '' : loc);
                       setShowLocationInput(false);
                     }}
@@ -444,7 +494,7 @@ export function RecurringTemplateModal({
               <View style={styles.locationOptions}>
                 <Clickable
                   onPress={() => {
-                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setSessionTemplateId(undefined);
                   }}
                   style={[
@@ -466,7 +516,7 @@ export function RecurringTemplateModal({
                     <Clickable
                       key={st.id}
                       onPress={() => {
-                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                         setSessionTemplateId(isSelected ? undefined : st.id);
                       }}
                       style={[
@@ -502,7 +552,7 @@ export function RecurringTemplateModal({
             <View style={styles.sessionTypeRow}>
               <Clickable
                 onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setMaxConcurrent(1);
                 }}
                 style={[
@@ -527,7 +577,7 @@ export function RecurringTemplateModal({
 
               <Clickable
                 onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   if (maxConcurrent <= 1) setMaxConcurrent(4);
                 }}
                 style={[
@@ -560,7 +610,7 @@ export function RecurringTemplateModal({
                 <View style={styles.stepper}>
                   <Clickable
                     onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setMaxConcurrent(Math.max(2, maxConcurrent - 1));
                     }}
                     style={[styles.stepperButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
@@ -570,7 +620,7 @@ export function RecurringTemplateModal({
                   <ThemedText style={styles.stepperValue}>{maxConcurrent}</ThemedText>
                   <Clickable
                     onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setMaxConcurrent(maxConcurrent + 1);
                     }}
                     style={[styles.stepperButton, { borderColor: palette.border, backgroundColor: palette.surface }]}
@@ -582,39 +632,41 @@ export function RecurringTemplateModal({
             )}
           </View>
 
-          {/* Buffer Time */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Buffer Time</ThemedText>
-            <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
-              Break between sessions
-            </ThemedText>
+          {/* Buffer Time (hidden in quick add mode) */}
+          {!isQuickAdd && (
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Buffer Time</ThemedText>
+              <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                Break between sessions
+              </ThemedText>
 
-            <View style={styles.bufferOptions}>
-              {[0, 15, 30].map((mins) => {
-                const isSelected = bufferMinutes === mins;
-                return (
-                  <Clickable
-                    key={mins}
-                    onPress={() => {
-                      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setBufferMinutes(mins);
-                    }}
-                    style={[
-                      styles.bufferOption,
-                      {
-                        backgroundColor: isSelected ? palette.tint : palette.surface,
-                        borderColor: isSelected ? palette.tint : palette.border,
-                      },
-                    ]}
-                  >
-                    <ThemedText style={[styles.bufferOptionText, { color: isSelected ? palette.onPrimary : palette.text }]}>
-                      {mins === 0 ? 'None' : `${mins} min`}
-                    </ThemedText>
-                  </Clickable>
-                );
-              })}
+              <View style={styles.bufferOptions}>
+                {[0, 15, 30].map((mins) => {
+                  const isSelected = bufferMinutes === mins;
+                  return (
+                    <Clickable
+                      key={mins}
+                      onPress={() => {
+                        if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setBufferMinutes(mins);
+                      }}
+                      style={[
+                        styles.bufferOption,
+                        {
+                          backgroundColor: isSelected ? palette.tint : palette.surface,
+                          borderColor: isSelected ? palette.tint : palette.border,
+                        },
+                      ]}
+                    >
+                      <ThemedText style={[styles.bufferOptionText, { color: isSelected ? palette.onPrimary : palette.text }]}>
+                        {mins === 0 ? 'None' : `${mins} min`}
+                      </ThemedText>
+                    </Clickable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Delete Button */}
           {isEditing && onDelete && (
@@ -628,7 +680,7 @@ export function RecurringTemplateModal({
             </Clickable>
           )}
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -671,7 +723,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
+    minHeight: 44,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
@@ -799,8 +851,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   stepperButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: Radii.xl,
     borderWidth: 1.5,
     alignItems: 'center',
@@ -835,5 +887,13 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1.5,
     marginTop: Spacing.md,
+  },
+  quickAddDayLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radii.md,
   },
 });

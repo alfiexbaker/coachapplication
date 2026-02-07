@@ -9,7 +9,8 @@ import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { schedulingRulesService } from '@/services/scheduling-rules-service';
+import { schedulingRulesService, POLICY_TEMPLATES } from '@/services/scheduling-rules-service';
+import type { CancellationPolicy } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SchedulingRulesModal');
@@ -111,12 +112,17 @@ export function SchedulingRulesModal({
   const [allowSameDayBookings, setAllowSameDayBookings] = useState(true);
   const [allowRescheduling, setAllowRescheduling] = useState(true);
   const [rescheduleDeadlineHours, setRescheduleDeadlineHours] = useState(24);
+  const [cancellationPreset, setCancellationPreset] = useState<string>('standard');
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy | null>(null);
 
   const loadRules = useCallback(async () => {
     if (!visible) return;
     setLoading(true);
     try {
-      const data = await schedulingRulesService.getCoachRules(coachId);
+      const [data, policy] = await Promise.all([
+        schedulingRulesService.getCoachRules(coachId),
+        schedulingRulesService.getCancellationPolicy(coachId),
+      ]);
       if (data) {
         setMinimumAdvanceHours(data.minimumAdvanceBookingHours);
         setMaxAdvanceDays(data.maxAdvanceBookingDays);
@@ -124,6 +130,16 @@ export function SchedulingRulesModal({
         setAllowSameDayBookings(data.allowSameDayBookings);
         setAllowRescheduling(data.allowRescheduling);
         setRescheduleDeadlineHours(data.rescheduleDeadlineHours);
+      }
+      if (policy) {
+        setCancellationPolicy(policy);
+        // Detect which preset matches
+        const pName = policy.name.toLowerCase();
+        if (pName === 'flexible' || pName === 'standard' || pName === 'strict') {
+          setCancellationPreset(pName);
+        } else {
+          setCancellationPreset('standard');
+        }
       }
     } catch (error) {
       logger.error('Failed to load scheduling rules', error);
@@ -138,18 +154,29 @@ export function SchedulingRulesModal({
     }
   }, [visible, loadRules]);
 
+  const handleCancellationPresetChange = async (preset: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCancellationPreset(preset);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await schedulingRulesService.updateCoachRules(coachId, {
-        minimumAdvanceBookingHours: minimumAdvanceHours,
-        maxAdvanceBookingDays: maxAdvanceDays,
-        bufferMinutesDefault: bufferMinutes,
-        maxConcurrentDefault: 1,
-        allowSameDayBookings,
-        allowRescheduling,
-        rescheduleDeadlineHours,
-      });
+      await Promise.all([
+        schedulingRulesService.updateCoachRules(coachId, {
+          minimumAdvanceBookingHours: minimumAdvanceHours,
+          maxAdvanceBookingDays: maxAdvanceDays,
+          bufferMinutesDefault: bufferMinutes,
+          maxConcurrentDefault: 1,
+          allowSameDayBookings,
+          allowRescheduling,
+          rescheduleDeadlineHours,
+        }),
+        schedulingRulesService.setCancellationPolicy(
+          coachId,
+          cancellationPreset as keyof typeof POLICY_TEMPLATES,
+        ),
+      ]);
 
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSaved?.();
@@ -337,6 +364,78 @@ export function SchedulingRulesModal({
             )}
           </SurfaceCard>
 
+          {/* Cancellation Policy */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIcon, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+                <Ionicons name="shield-outline" size={18} color={palette.error} />
+              </View>
+              <View style={styles.sectionTitleWrap}>
+                <ThemedText type="defaultSemiBold">Cancellation Policy</ThemedText>
+                <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                  Refund rules when athletes cancel
+                </ThemedText>
+              </View>
+            </View>
+            <View style={styles.chipRow}>
+              {(['flexible', 'standard', 'strict'] as const).map((key) => {
+                const tmpl = POLICY_TEMPLATES[key];
+                const isSelected = cancellationPreset === key;
+                return (
+                  <Clickable
+                    key={key}
+                    onPress={() => handleCancellationPresetChange(key)}
+                    style={[
+                      styles.policyChip,
+                      {
+                        backgroundColor: isSelected ? palette.tint : palette.surface,
+                        borderColor: isSelected ? palette.tint : palette.border,
+                      },
+                    ]}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.policyChipName,
+                        { color: isSelected ? palette.onPrimary : palette.text },
+                      ]}
+                    >
+                      {tmpl.name}
+                    </ThemedText>
+                    <ThemedText
+                      style={[
+                        styles.policyChipDesc,
+                        { color: isSelected ? withAlpha(palette.onPrimary, 0.7) : palette.muted },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {tmpl.description}
+                    </ThemedText>
+                  </Clickable>
+                );
+              })}
+            </View>
+
+            {/* Tier summary for selected policy */}
+            <View style={[styles.tierSummary, { backgroundColor: palette.surface }]}>
+              {POLICY_TEMPLATES[cancellationPreset]?.tiers.map((tier, i) => {
+                const color = tier.refundPercentage >= 75 ? palette.success
+                  : tier.refundPercentage >= 25 ? palette.warning
+                  : palette.error;
+                return (
+                  <View key={i} style={styles.tierRow}>
+                    <View style={[styles.tierDot, { backgroundColor: color }]} />
+                    <ThemedText style={[styles.tierText, { color: palette.text }]}>
+                      {tier.refundPercentage}% refund
+                    </ThemedText>
+                    <ThemedText style={[styles.tierHint, { color: palette.muted }]}>
+                      {tier.hoursBeforeSession}h+ before
+                    </ThemedText>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
           {/* Current Settings Summary */}
           <SurfaceCard style={[styles.currentSettings, { backgroundColor: withAlpha(palette.success, 0.03) }]}>
             <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>
@@ -369,6 +468,12 @@ export function SchedulingRulesModal({
                 />
                 <ThemedText style={styles.settingText}>
                   Same-day {allowSameDayBookings ? 'allowed' : 'not allowed'}
+                </ThemedText>
+              </View>
+              <View style={styles.settingItem}>
+                <Ionicons name="shield-checkmark" size={14} color={palette.success} />
+                <ThemedText style={styles.settingText}>
+                  {POLICY_TEMPLATES[cancellationPreset]?.name || 'Standard'} cancellation policy
                 </ThemedText>
               </View>
             </View>
@@ -489,4 +594,43 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   settingText: { ...Typography.small },
+  // Cancellation policy
+  policyChip: {
+    flex: 1,
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    minWidth: 90,
+  },
+  policyChipName: {
+    ...Typography.smallSemiBold,
+  },
+  policyChipDesc: {
+    ...Typography.micro,
+    textAlign: 'center',
+  },
+  tierSummary: {
+    padding: Spacing.sm,
+    borderRadius: Radii.md,
+    gap: Spacing.xs,
+  },
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  tierDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  tierText: {
+    ...Typography.smallSemiBold,
+    minWidth: 80,
+  },
+  tierHint: {
+    ...Typography.micro,
+  },
 });

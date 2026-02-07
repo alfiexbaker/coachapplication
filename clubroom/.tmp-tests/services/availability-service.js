@@ -390,6 +390,8 @@ exports.availabilityService = {
             }
             if (override?.customSlots) {
                 // Use custom slots for this date
+                const dayTemplate = templates.find(t => t.dayOfWeek === dayOfWeek);
+                const fallbackLocation = dayTemplate?.location;
                 for (const customSlot of override.customSlots) {
                     const bookedCount = this.countBookingsForSlot(coachBookings, coachOfferings, dateStr, customSlot.startTime);
                     slots.push({
@@ -399,7 +401,7 @@ exports.availabilityService = {
                         isAvailable: bookedCount < 1,
                         bookedCount,
                         maxBookings: 1,
-                        location: customSlot.location,
+                        location: customSlot.location ?? fallbackLocation,
                     });
                 }
                 continue;
@@ -550,6 +552,39 @@ exports.availabilityService = {
         return invitable;
     },
     /**
+     * Save a repeated override — generates individual overrides for each week
+     * from the override's date through repeatUntil, all sharing the same repeatGroupId.
+     */
+    async saveRepeatedOverride(override) {
+        const groupId = `rpg_${Date.now()}`;
+        const startDate = new Date(override.date + 'T00:00:00');
+        const endDate = new Date(override.repeatUntil + 'T00:00:00');
+        const results = [];
+        let current = new Date(startDate);
+        let index = 0;
+        while (current <= endDate) {
+            const dateStr = current.toISOString().split('T')[0];
+            const saved = await this.saveOverride({
+                ...override,
+                date: dateStr,
+                id: `ovr_${Date.now()}_${index}`,
+                repeatGroupId: groupId,
+                repeatDayOfWeek: current.getDay(),
+                repeatUntil: override.repeatUntil,
+            });
+            results.push(saved);
+            current.setDate(current.getDate() + 7);
+            index++;
+        }
+        logger.info('Saved repeated overrides', {
+            groupId,
+            count: results.length,
+            from: override.date,
+            until: override.repeatUntil,
+        });
+        return results;
+    },
+    /**
      * Get a summary of availability for display
      */
     async getAvailabilitySummary(coachId) {
@@ -599,8 +634,10 @@ exports.availabilityService = {
             return bookingDate ? dateSet.has(bookingDate) : false;
         })
             .map((b) => ({
+            id: b.id,
             date: b.scheduledAt?.split('T')[0] || '',
             time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
+            location: b.location,
             athleteName: b.athleteName,
         }));
         // Check pending invite holds
@@ -640,5 +677,59 @@ exports.availabilityService = {
             holdCount: result.holdCount,
             affectedDates: dates,
         };
+    },
+    /**
+     * Bulk-update the location field on a list of bookings.
+     */
+    async updateBookingLocations(bookingIds, newLocation) {
+        if (bookingIds.length === 0)
+            return;
+        const allBookings = await loadBookings();
+        let changed = false;
+        for (const booking of allBookings) {
+            if (bookingIds.includes(booking.id)) {
+                booking.location = newLocation;
+                changed = true;
+            }
+        }
+        if (changed) {
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BOOKINGS, allBookings);
+        }
+    },
+    /**
+     * Check if future bookings on a given day-of-week have a different location.
+     * Looks 4 weeks ahead. Used when editing a recurring template's location.
+     */
+    async checkLocationDrift(coachId, dayOfWeek, newLocation) {
+        const today = new Date();
+        const dates = [];
+        for (let w = 0; w < 4; w++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + ((dayOfWeek - today.getDay() + 7) % 7) + w * 7);
+            if (d >= today) {
+                dates.push(d.toISOString().split('T')[0]);
+            }
+        }
+        if (dates.length === 0)
+            return { affectedBookings: [], affectedCount: 0 };
+        const dateSet = new Set(dates);
+        const allBookings = await loadBookings();
+        const affected = allBookings
+            .filter((b) => {
+            if (b.coachId !== coachId || b.status === 'CANCELLED')
+                return false;
+            const bookingDate = b.scheduledAt?.split('T')[0];
+            if (!bookingDate || !dateSet.has(bookingDate))
+                return false;
+            return b.location !== undefined && b.location !== newLocation;
+        })
+            .map((b) => ({
+            id: b.id,
+            date: b.scheduledAt?.split('T')[0] || '',
+            time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
+            location: b.location || '',
+            athleteName: b.athleteName,
+        }));
+        return { affectedBookings: affected, affectedCount: affected.length };
     },
 };
