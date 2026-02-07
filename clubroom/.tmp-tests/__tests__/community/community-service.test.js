@@ -105,10 +105,10 @@ const community_service_1 = require("../../services/community-service");
                 node_assert_1.default.strictEqual(group.isPublic, false);
                 node_assert_1.default.ok(group.createdAt);
                 node_assert_1.default.ok(group.updatedAt);
-                // Creator should be added as admin
+                // Creator should be added as owner
                 node_assert_1.default.strictEqual(group.members.length, 1);
                 node_assert_1.default.strictEqual(group.members[0].parentId, 'test_parent');
-                node_assert_1.default.strictEqual(group.members[0].role, 'ADMIN');
+                node_assert_1.default.strictEqual(group.members[0].role, 'OWNER');
             });
             (0, node_test_1.default)('should create a group with all optional fields', async () => {
                 const params = {

@@ -23,6 +23,8 @@ exports.STORAGE_KEYS = {
     BOOKINGS: 'session_bookings',
     /** Recurring booking configurations */
     RECURRING_BOOKINGS: 'clubroom.recurring_bookings',
+    /** Multi-week booking series (groups of bookings booked together) */
+    BOOKING_SERIES: 'clubroom.booking_series',
     /** Auto-generated bookings from recurring patterns */
     GENERATED_BOOKINGS: 'clubroom.generated_bookings',
     /** Session offerings/slots available for booking */
@@ -44,6 +46,10 @@ exports.STORAGE_KEYS = {
     NO_SHOW_COUNTS: 'clubroom.no_show_counts',
     /** Blocked date ranges for coaches */
     BLOCKED_DATES: 'clubroom.blocked_dates',
+    /** Coach session type presets (reusable templates for invites) */
+    SESSION_TEMPLATES: 'clubroom.session_templates',
+    /** Soft-holds on slots for pending invites */
+    INVITE_SLOT_HOLDS: 'clubroom.invite_slot_holds',
     /** Waitlist entries for fully booked sessions */
     WAITLIST: 'clubroom.waitlist',
     /** Counter offers from coaches */
@@ -270,6 +276,11 @@ exports.STORAGE_KEYS = {
     TRIAL_USAGES: 'clubroom.trial_usages',
     /** Trial-to-regular booking conversions */
     TRIAL_CONVERSIONS: 'clubroom.trial_conversions',
+    // ============================================================================
+    // ONBOARDING & TUTORIAL DOMAIN
+    // ============================================================================
+    /** Whether the availability tutorial has been completed by the coach */
+    AVAILABILITY_TUTORIAL_COMPLETED: 'clubroom.availability_tutorial_completed',
 };
 /**
  * Known storage key conflicts/duplicates.

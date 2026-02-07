@@ -102,12 +102,17 @@ exports.ServiceEvents = {
     BOOKING_UPDATED: 'booking:updated',
     BOOKING_CANCELLED: 'booking:cancelled',
     BOOKING_CONFIRMED: 'booking:confirmed',
+    // Series events (multi-week bookings)
+    SERIES_CREATED: 'series:created',
+    SERIES_UPDATED: 'series:updated',
     // Session events
     SESSION_CREATED: 'session:created',
     SESSION_UPDATED: 'session:updated',
     SESSION_STARTED: 'session:started',
     SESSION_COMPLETED: 'session:completed',
     SESSION_CANCELLED: 'session:cancelled',
+    // Group session events
+    OPEN_SESSION_PUBLISHED: 'group_session:open_published',
     // User events
     USER_CREATED: 'user:created',
     USER_UPDATED: 'user:updated',
@@ -130,6 +135,9 @@ exports.ServiceEvents = {
     CLUB_MEMBER_JOINED: 'club:member:joined',
     CLUB_MEMBER_LEFT: 'club:member:left',
     CLUB_POST_CREATED: 'club:post:created',
+    // Community group events
+    GROUP_MEMBER_JOINED: 'community:group:member_joined',
+    GROUP_MEMBER_ROLE_CHANGED: 'community:group:member_role_changed',
     // Achievement events
     BADGE_EARNED: 'achievement:badge_earned',
     STREAK_MILESTONE: 'achievement:streak_milestone',

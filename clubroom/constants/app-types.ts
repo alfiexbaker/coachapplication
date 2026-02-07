@@ -104,6 +104,9 @@ export interface Booking {
   cancelledBy?: string;                    // userId who cancelled
   cancelledAt?: string;                    // when cancelled
   cancelReason?: string;                   // reason for cancellation
+  // Multi-week series fields
+  seriesId?: string;                       // ID of the BookingSeries this booking belongs to
+  seriesIndex?: number;                    // 0-based index within the series
 }
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';

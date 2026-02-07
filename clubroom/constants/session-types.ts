@@ -204,6 +204,39 @@ export interface TeamInviteCode {
 }
 
 // ============================================================================
+// MULTI-WEEK BOOKING SERIES
+// ============================================================================
+
+export interface BookingSeries {
+  id: string;
+  bookingIds: string[];
+  createdById: string;
+  createdByName: string;
+  coachId: string;
+  coachName: string;
+  athleteIds: string[];
+  athleteNames: string[];
+  sessionType: string;
+  focus?: string;
+  pricePerSession?: number;
+  selectedWeeks: string[];
+  totalCost: number;
+  patternLabel: string;
+  location: string;
+  sessionInviteId?: string;
+  createdAt: string;
+  status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+}
+
+export interface WeekAcceptance {
+  weekDate: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  accepted: boolean;
+}
+
+// ============================================================================
 // BOOKING SUMMARY
 // ============================================================================
 
@@ -235,6 +268,10 @@ export interface BookingSummary {
     avatar: string;
     status: 'confirmed' | 'pending' | 'cancelled';
   }[];
+  // Multi-week series fields
+  seriesId?: string;
+  seriesIndex?: number;
+  seriesTotalWeeks?: number;
 }
 
 // Session Offering System
@@ -360,9 +397,11 @@ export interface SessionInvite {
   parentName: string; // TODO(T3.4): Remove when connecting to real API — resolve from parentId instead
   proposedSlots: TimeSlot[];
   sessionType: string;
+  sessionTemplateId?: string; // Links to SessionTemplate for auto-fill
   focus: string;
   notes?: string;
   priceUsd?: number;
+  duration?: number; // Duration in minutes (from session template)
   status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED';
   expiresAt: string;
   createdAt: string;
@@ -375,6 +414,12 @@ export interface SessionInvite {
   dismissed?: boolean; // When parent removes/hides the invite from their view
   declineReason?: 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
   declineNote?: string;
+  isRecurring?: boolean; // Whether this is a weekly recurring invite
+  recurrenceWeeks?: number; // Number of weeks for recurring (4, 8, 12, or undefined for until cancelled)
+  // Multi-week acceptance fields
+  weekSlots?: WeekAcceptance[]; // Per-week slots for multi-week invites
+  acceptedWeeks?: string[]; // ISO date strings of accepted weeks
+  declinedWeeks?: string[]; // ISO date strings of declined weeks
 }
 
 // ============================================================================
@@ -440,6 +485,7 @@ export interface AvailabilityTemplate {
   maxConcurrent: number;
   bufferMinutes: number;
   location?: string;
+  sessionTemplateId?: string; // Optional: restricts this block to a specific session type
 }
 
 export interface AvailabilityOverride {

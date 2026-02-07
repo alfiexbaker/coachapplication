@@ -204,6 +204,8 @@ export type {
   CalendarProvider,
   CalendarEvent,
   CalendarSyncSettings,
+  BookingSeries,
+  WeekAcceptance,
 } from './session-types';
 
 // ============================================================================

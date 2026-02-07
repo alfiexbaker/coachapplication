@@ -67,7 +67,7 @@ const MOCK_VIDEOS = [
         id: 'vid_1',
         sessionId: 'session_1',
         bookingId: 'booking_1',
-        coachId: 'coach_1',
+        coachId: 'coach1',
         coachName: 'Marcus Thompson',
         athleteIds: ['athlete_1'],
         athleteNames: ['Tom Baker'],
@@ -92,7 +92,7 @@ const MOCK_VIDEOS = [
     {
         id: 'vid_2',
         bookingId: 'booking_2',
-        coachId: 'coach_1',
+        coachId: 'coach1',
         coachName: 'Marcus Thompson',
         athleteIds: ['athlete_1'],
         athleteNames: ['Tom Baker'],
@@ -115,7 +115,7 @@ const MOCK_VIDEOS = [
     },
     {
         id: 'vid_3',
-        coachId: 'coach_1',
+        coachId: 'coach1',
         coachName: 'Marcus Thompson',
         athleteIds: ['athlete_2', 'athlete_3'],
         athleteNames: ['Lucy Baker', 'James Wilson'],

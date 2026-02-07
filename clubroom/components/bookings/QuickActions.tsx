@@ -52,24 +52,11 @@ export function QuickActions({
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
 
-  // Quick Actions for Users/Parents - Invites, Discover, Find Coach
+  // Quick Actions for Users/Parents - Discover, Find Coach, Groups
+  // Invites are now shown inline as "Action Required" section above the bookings list
   if (userRole === 'USER' || userRole === 'PARENT') {
     return (
       <View style={styles.quickActions}>
-        <Clickable
-          onPress={onInvitesPress || (() => {})}
-          style={[styles.actionPill, { borderColor: pendingInvites > 0 ? palette.tint : palette.border }]}>
-          <View style={styles.iconWithBadge}>
-            <Ionicons name="mail-outline" size={18} color={palette.tint} />
-            {pendingInvites > 0 && (
-              <View style={[styles.badge, { backgroundColor: palette.error }]}>
-                <ThemedText style={styles.badgeText}>{pendingInvites}</ThemedText>
-              </View>
-            )}
-          </View>
-          <ThemedText style={[styles.actionText, { color: palette.text }]}>Invites</ThemedText>
-        </Clickable>
-
         <Clickable
           onPress={onDiscoverSessionsPress || (() => {})}
           style={[styles.actionPill, { borderColor: palette.border }]}>
@@ -82,6 +69,13 @@ export function QuickActions({
           style={[styles.actionPill, { borderColor: palette.border }]}>
           <Ionicons name="people-outline" size={18} color={palette.tint} />
           <ThemedText style={[styles.actionText, { color: palette.text }]}>Find Coach</ThemedText>
+        </Clickable>
+
+        <Clickable
+          onPress={onGroupSessionsPress || (() => {})}
+          style={[styles.actionPill, { borderColor: palette.border }]}>
+          <Ionicons name="people-circle-outline" size={18} color={palette.tint} />
+          <ThemedText style={[styles.actionText, { color: palette.text }]}>Groups</ThemedText>
         </Clickable>
       </View>
     );

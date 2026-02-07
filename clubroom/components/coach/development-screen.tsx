@@ -189,7 +189,7 @@ export function CoachDevelopmentScreen() {
     { icon: 'chatbubbles' as const, label: 'Messages', route: '/(tabs)/messages', color: '#2563EB' },
     { icon: 'calendar' as const, label: 'Schedule', route: '/(tabs)/schedule', color: '#059669' },
     { icon: 'people' as const, label: 'Athletes', route: '/(tabs)/athletes', color: palette.tint },
-    { icon: 'mail' as const, label: 'Invites', route: '/session-invites', color: '#7C3AED' },
+    { icon: 'paper-plane' as const, label: 'Send Invite', route: '/session-invites/create', color: '#7C3AED' },
   ];
 
   return (

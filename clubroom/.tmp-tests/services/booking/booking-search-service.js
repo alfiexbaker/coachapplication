@@ -11,18 +11,17 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bookingSearchService = void 0;
-const api_client_1 = require("../api-client");
-const storage_keys_1 = require("@/constants/storage-keys");
 const logger_1 = require("@/utils/logger");
 const booking_crud_service_1 = require("./booking-crud-service");
 const logger = (0, logger_1.createLogger)('BookingSearchService');
 exports.bookingSearchService = {
     /**
-     * Get all bookings for a specific user (coach, parent, or athlete)
+     * Get all bookings for a specific user (coach, parent, or athlete).
+     * Reads through bookingCrudService.list() so the in-memory cache is used.
      */
     async getBookingsForUser(userId, role) {
         try {
-            const bookings = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.BOOKINGS, []);
+            const bookings = await booking_crud_service_1.bookingCrudService.list();
             switch (role) {
                 case 'coach':
                     return bookings.filter((b) => b.coachId === userId);

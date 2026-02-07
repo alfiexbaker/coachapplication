@@ -125,7 +125,7 @@ class MockBookingService {
         // Validate availability
         const validation = await this.validateBooking(params.coachId, date, time, params.duration);
         if (!validation.valid) {
-            return { success: false, error: validation.reason };
+            return { success: false, error: { code: 'VALIDATION', message: validation.reason || 'Validation failed' } };
         }
         const totalPrice = (params.price || 0) * params.athleteIds.length;
         const isSharedSession = params.athleteIds.length > 1;
@@ -157,7 +157,7 @@ class MockBookingService {
             bookingId: newBooking.id,
             coachId: params.coachId,
         });
-        return { success: true, booking: newBooking };
+        return { success: true, data: newBooking };
     }
     async getBookingsForUser(userId, role) {
         switch (role) {
@@ -365,11 +365,11 @@ let bookingService;
         };
         const result = await bookingService.createBooking(params);
         node_assert_1.default.ok(result.success);
-        node_assert_1.default.ok(result.booking);
-        node_assert_1.default.strictEqual(result.booking.coachName, 'Sarah Mitchell');
-        node_assert_1.default.strictEqual(result.booking.athleteName, 'Jake Smith');
-        node_assert_1.default.strictEqual(result.booking.status, 'CONFIRMED');
-        node_assert_1.default.strictEqual(result.booking.price, 45);
+        node_assert_1.default.ok(result.data);
+        node_assert_1.default.strictEqual(result.data.coachName, 'Sarah Mitchell');
+        node_assert_1.default.strictEqual(result.data.athleteName, 'Jake Smith');
+        node_assert_1.default.strictEqual(result.data.status, 'CONFIRMED');
+        node_assert_1.default.strictEqual(result.data.price, 45);
     });
     (0, node_test_1.default)('createBooking() fails for unavailable slot', async () => {
         const params = {
@@ -387,7 +387,7 @@ let bookingService;
         };
         const result = await bookingService.createBooking(params);
         node_assert_1.default.strictEqual(result.success, false);
-        node_assert_1.default.ok(result.error?.includes('fully booked'));
+        node_assert_1.default.ok(!result.success && result.error?.message?.includes('fully booked'));
     });
     (0, node_test_1.default)('createBooking() fails for slot outside coach hours', async () => {
         const params = {
@@ -405,7 +405,7 @@ let bookingService;
         };
         const result = await bookingService.createBooking(params);
         node_assert_1.default.strictEqual(result.success, false);
-        node_assert_1.default.ok(result.error?.includes('available hours'));
+        node_assert_1.default.ok(!result.success && result.error?.message?.includes('available hours'));
     });
     (0, node_test_1.default)('createBooking() calculates total price for multiple athletes', async () => {
         const params = {
@@ -424,9 +424,9 @@ let bookingService;
         };
         const result = await bookingService.createBooking(params);
         node_assert_1.default.ok(result.success);
-        node_assert_1.default.strictEqual(result.booking?.price, 60); // 30 * 2 athletes
-        node_assert_1.default.strictEqual(result.booking?.isSharedSession, true);
-        node_assert_1.default.strictEqual(result.booking?.athleteName, 'Jake Smith, Amy Johnson');
+        node_assert_1.default.strictEqual(result.data?.price, 60); // 30 * 2 athletes
+        node_assert_1.default.strictEqual(result.data?.isSharedSession, true);
+        node_assert_1.default.strictEqual(result.data?.athleteName, 'Jake Smith, Amy Johnson');
     });
     (0, node_test_1.default)('createBooking() creates notification for coach', async () => {
         const params = {
@@ -670,7 +670,7 @@ let bookingService;
         };
         const result = await bookingService.createBooking(params);
         node_assert_1.default.ok(result.success);
-        node_assert_1.default.strictEqual(result.booking?.sessionInviteId, 'invite_123');
+        node_assert_1.default.strictEqual(result.data?.sessionInviteId, 'invite_123');
     });
     (0, node_test_1.default)('createBooking() with objectives', async () => {
         const params = {
@@ -689,6 +689,6 @@ let bookingService;
         };
         const result = await bookingService.createBooking(params);
         node_assert_1.default.ok(result.success);
-        node_assert_1.default.deepStrictEqual(result.booking?.objectives, ['Improve passing', 'Work on stamina']);
+        node_assert_1.default.deepStrictEqual(result.data?.objectives, ['Improve passing', 'Work on stamina']);
     });
 });

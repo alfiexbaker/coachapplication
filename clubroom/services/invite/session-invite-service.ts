@@ -25,10 +25,14 @@ import type {
   SessionInvite,
   SessionInviteType,
   TimeSlot,
+  WeekAcceptance,
   NotificationItem,
 } from '@/constants/types';
 import { notificationService } from '../notification-service';
 import { bookingService } from '../booking-service';
+import { inviteHoldService } from '../invite-hold-service';
+import { availabilityService } from '../availability-service';
+import { multiWeekBookingService } from '../multi-week-booking-service';
 import { createLogger } from '@/utils/logger';
 import type { Result, ServiceError } from '@/types/result';
 import { ok, err, serviceError } from '@/types/result';
@@ -54,12 +58,16 @@ export interface CreateInviteInput {
   parentName: string;
   proposedSlots: TimeSlot[];
   sessionType: string;
+  sessionTemplateId?: string; // Links to SessionTemplate for auto-fill
   focus: string;
   notes?: string;
   priceUsd?: number;
+  duration?: number; // Duration in minutes from session template
   expiresInDays?: number;
   groupId?: string; // Links invites that were sent as part of a group/bulk send
   existingSessionId?: string; // When inviting to an existing group session
+  isRecurring?: boolean;
+  recurrenceWeeks?: number;
 }
 
 export interface RespondToInviteInput {
@@ -202,13 +210,73 @@ export const sessionInviteService = {
       ? [sessionDetails.athleteNames]
       : athleteIds.map((_, i) => `Athlete ${i + 1}`);
 
-    const input: CreateInviteInput = {
+    let input: CreateInviteInput = {
       ...sessionDetails,
       athleteIds,
       athleteNames,
     };
 
+    // Validate proposed slots are still available before creating
+    if (input.proposedSlots.length > 0) {
+      const validationResults = await this._validateSlots(input.coachId, input.proposedSlots, input.sessionTemplateId);
+      if (validationResults.takenSlots.length > 0) {
+        const takenDesc = validationResults.takenSlots
+          .map((s) => `${s.date} ${s.startTime}`)
+          .join(', ');
+        logger.warn('Some proposed slots are no longer available', { takenDesc });
+
+        if (validationResults.validSlots.length === 0) {
+          throw new Error('All proposed time slots are no longer available. Please select new times.');
+        }
+
+        // Proceed with only valid slots
+        input = {
+          ...input,
+          proposedSlots: validationResults.validSlots,
+        };
+      }
+    }
+
     return this._createSingleInvite(input);
+  },
+
+  /**
+   * Validate proposed slots against current availability
+   */
+  async _validateSlots(
+    coachId: string,
+    slots: TimeSlot[],
+    sessionTemplateId?: string
+  ): Promise<{ validSlots: TimeSlot[]; takenSlots: TimeSlot[] }> {
+    const validSlots: TimeSlot[] = [];
+    const takenSlots: TimeSlot[] = [];
+
+    // Get date range from proposed slots
+    const dates = slots.map((s) => s.date).sort();
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+
+    const invitableSlots = await availabilityService.getInvitableSlots(
+      coachId,
+      startDate,
+      endDate,
+      sessionTemplateId
+    );
+
+    const invitableKeys = new Set(
+      invitableSlots.map((s) => `${s.date}_${s.startTime}`)
+    );
+
+    for (const slot of slots) {
+      const key = `${slot.date}_${slot.startTime}`;
+      if (invitableKeys.has(key)) {
+        validSlots.push(slot);
+      } else {
+        takenSlots.push(slot);
+      }
+    }
+
+    return { validSlots, takenSlots };
   },
 
   /**
@@ -232,19 +300,63 @@ export const sessionInviteService = {
       parentName: input.parentName,
       proposedSlots: input.proposedSlots,
       sessionType: input.sessionType,
+      sessionTemplateId: input.sessionTemplateId,
       focus: input.focus,
       notes: input.notes,
       priceUsd: input.priceUsd,
+      duration: input.duration,
       status: 'PENDING',
       expiresAt: expiresAt.toISOString(),
       createdAt: new Date().toISOString(),
       groupId: input.groupId,
+      isRecurring: input.isRecurring,
+      recurrenceWeeks: input.recurrenceWeeks,
     };
+
+    // Generate weekSlots for recurring invites
+    if (input.isRecurring && input.recurrenceWeeks && input.proposedSlots.length > 0) {
+      const startDate = input.proposedSlots[0].date;
+      newInvite.weekSlots = this.generateWeekSlots(
+        input.proposedSlots,
+        input.recurrenceWeeks,
+        startDate
+      );
+    }
+
+    // Populate location from availability slots if not already set on proposed slots
+    for (const slot of newInvite.proposedSlots) {
+      if (!slot.location) {
+        try {
+          const availSlots = await availabilityService.getAvailableSlots(
+            input.coachId,
+            slot.date,
+            slot.date,
+            input.duration ?? 60
+          );
+          const match = availSlots.find(
+            (s) => s.date === slot.date && s.startTime === slot.startTime
+          );
+          if (match?.location) {
+            slot.location = match.location;
+          }
+        } catch {
+          // Non-critical: location enrichment is best-effort
+        }
+      }
+    }
 
     if (USE_MOCK) {
       invitesCache = await loadFromStorage();
       invitesCache.push(newInvite);
       await saveToStorage(invitesCache);
+
+      // Create soft-holds for proposed slots
+      await inviteHoldService.createHolds(
+        input.coachId,
+        newInvite.id,
+        input.proposedSlots.map((s) => ({ date: s.date, startTime: s.startTime, endTime: s.endTime })),
+        newInvite.expiresAt
+      );
 
       // Create notification for parent
       const coachFirstName = input.coachName.split(' ')[0];
@@ -337,6 +449,35 @@ export const sessionInviteService = {
       };
 
       if (input.response === 'ACCEPTED') {
+        // CRITICAL: Validate slot is still available before creating booking
+        if (input.selectedSlot) {
+          const slotDate = input.selectedSlot.date;
+          const slotStart = input.selectedSlot.startTime;
+          const slots = await availabilityService.getAvailableSlots(
+            invite.coachId, slotDate, slotDate, invite.duration || 60
+          );
+          const matchingSlot = slots.find(
+            (s) => s.date === slotDate && s.startTime === slotStart
+          );
+
+          if (matchingSlot && !matchingSlot.isAvailable) {
+            // Slot is taken — revert invite status back to PENDING
+            invitesCache[index] = { ...invite, status: 'PENDING' };
+            await saveToStorage(invitesCache);
+
+            // Release holds since we're reverting
+            // Return remaining available proposed slots
+            const remainingSlots = invite.proposedSlots.filter(
+              (ps) => !(ps.date === slotDate && ps.startTime === slotStart)
+            );
+
+            return err(serviceError(
+              'CONFLICT',
+              `This time slot is no longer available.${remainingSlots.length > 0 ? ' Please pick another time.' : ' All proposed times have been taken.'}`
+            ));
+          }
+        }
+
         notification.title = 'Invite Accepted!';
         notification.body = `${invite.parentName} accepted your invite for ${athleteNames}. Session confirmed for ${
           input.selectedSlot
@@ -383,12 +524,19 @@ export const sessionInviteService = {
             logger.error('Failed to create booking', { error: bookingResult.error?.message });
           }
         }
+
+        // Release all holds for this invite (accepted slot becomes a booking, others freed)
+        await inviteHoldService.releaseHoldsForInvite(invite.id);
       } else if (input.response === 'DECLINED') {
         notification.title = 'Invite Declined';
         notification.body = `${invite.parentName} declined your session invite for ${athleteNames}.`;
+        // Release all holds
+        await inviteHoldService.releaseHoldsForInvite(invite.id);
       } else if (input.response === 'COUNTERED') {
         notification.title = 'Counter Proposal Received';
         notification.body = `${invite.parentName} proposed alternative times for ${athleteNames}. ${input.counterNote || ''}`;
+        // Release original holds (counter slots aren't held until coach accepts)
+        await inviteHoldService.releaseHoldsForInvite(invite.id);
       }
 
       await notificationService.create(notification);
@@ -415,6 +563,8 @@ export const sessionInviteService = {
         invitesCache[index].status = 'EXPIRED';
         await saveToStorage(invitesCache);
       }
+      // Release all holds
+      await inviteHoldService.releaseHoldsForInvite(inviteId);
       return;
     }
 
@@ -713,5 +863,133 @@ export const sessionInviteService = {
   async clearCache(): Promise<void> {
     invitesCache = [...MOCK_INVITES];
     await apiClient.remove(STORAGE_KEYS.SESSION_INVITES);
+  },
+
+  // ==========================================================================
+  // MULTI-WEEK / RECURRING INVITE METHODS
+  // ==========================================================================
+
+  /**
+   * Generate weekSlots from a recurring invite's proposed slots and recurrence config.
+   * Used to populate the per-week acceptance UI.
+   */
+  generateWeekSlots(
+    proposedSlots: TimeSlot[],
+    recurrenceWeeks: number,
+    startDate: string
+  ): WeekAcceptance[] {
+    const weekSlots: WeekAcceptance[] = [];
+    const baseSlot = proposedSlots[0];
+
+    if (!baseSlot) return weekSlots;
+
+    const start = new Date(startDate + 'T00:00:00');
+
+    for (let i = 0; i < recurrenceWeeks; i++) {
+      const weekDate = new Date(start);
+      weekDate.setDate(start.getDate() + i * 7);
+      const dateStr = weekDate.toISOString().split('T')[0];
+
+      weekSlots.push({
+        weekDate: dateStr,
+        startTime: baseSlot.startTime,
+        endTime: baseSlot.endTime,
+        location: baseSlot.location,
+        accepted: true, // Default all to accepted
+      });
+    }
+
+    return weekSlots;
+  },
+
+  /**
+   * Respond to a recurring invite with per-week acceptance.
+   * Creates a BookingSeries for the accepted weeks only.
+   */
+  async respondToRecurringInvite(
+    inviteId: string,
+    weekAcceptances: WeekAcceptance[]
+  ): Promise<Result<SessionInvite, ServiceError>> {
+    invitesCache = await loadFromStorage();
+    const index = invitesCache.findIndex((inv) => inv.id === inviteId);
+
+    if (index === -1) {
+      return err(serviceError('NOT_FOUND', `Invite not found: ${inviteId}`));
+    }
+
+    const invite = invitesCache[index];
+    const acceptedWeeks = weekAcceptances.filter((w) => w.accepted);
+    const declinedWeeks = weekAcceptances.filter((w) => !w.accepted);
+
+    if (acceptedWeeks.length === 0) {
+      // Decline the entire invite
+      return this.respondToInvite({
+        inviteId,
+        response: 'DECLINED',
+      });
+    }
+
+    // Create a multi-week booking series for accepted weeks
+    const seriesResult = await multiWeekBookingService.createSeries({
+      createdById: invite.parentId,
+      createdByName: invite.parentName,
+      coachId: invite.coachId,
+      coachName: invite.coachName,
+      athleteIds: invite.athleteIds,
+      athleteNames: invite.athleteNames,
+      sessionType: invite.sessionType,
+      focus: invite.focus,
+      pricePerSession: invite.priceUsd,
+      selectedWeeks: acceptedWeeks.map((w) => w.weekDate),
+      startTime: acceptedWeeks[0].startTime,
+      duration: invite.duration ?? 60,
+      location: acceptedWeeks[0].location ?? 'Coach preferred location',
+      patternLabel: `${acceptedWeeks.length} of ${weekAcceptances.length} weeks`,
+      sessionInviteId: invite.id,
+      notes: invite.notes,
+    });
+
+    if (!seriesResult.success) {
+      logger.error('Failed to create series from recurring invite', { error: seriesResult.error });
+      return err(seriesResult.error);
+    }
+
+    // Update the invite with acceptance data
+    const status = declinedWeeks.length > 0 ? 'ACCEPTED' as const : 'ACCEPTED' as const;
+    invitesCache[index] = {
+      ...invite,
+      status,
+      respondedAt: new Date().toISOString(),
+      weekSlots: weekAcceptances,
+      acceptedWeeks: acceptedWeeks.map((w) => w.weekDate),
+      declinedWeeks: declinedWeeks.map((w) => w.weekDate),
+      bookingId: seriesResult.data.bookingIds[0], // Link to first booking
+    };
+
+    await saveToStorage(invitesCache);
+
+    // Notify coach
+    const athleteNames = invite.athleteNames.join(', ');
+    const notification: NotificationItem = {
+      id: `notif_${Date.now()}`,
+      type: 'booking',
+      title: 'Recurring Invite Accepted!',
+      body: `${invite.parentName} accepted ${acceptedWeeks.length} of ${weekAcceptances.length} weeks for ${athleteNames}.`,
+      timeLabel: 'Just now',
+      read: false,
+    };
+    await notificationService.create(notification);
+
+    // Release holds
+    await inviteHoldService.releaseHoldsForInvite(invite.id);
+
+    logger.info('Recurring invite responded', {
+      inviteId,
+      acceptedCount: acceptedWeeks.length,
+      declinedCount: declinedWeeks.length,
+      seriesId: seriesResult.data.id,
+    });
+
+    return ok(invitesCache[index]);
   },
 };

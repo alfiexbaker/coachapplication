@@ -22,6 +22,9 @@ export const STORAGE_KEYS = {
   /** Recurring booking configurations */
   RECURRING_BOOKINGS: 'clubroom.recurring_bookings',
 
+  /** Multi-week booking series (groups of bookings booked together) */
+  BOOKING_SERIES: 'clubroom.booking_series',
+
   /** Auto-generated bookings from recurring patterns */
   GENERATED_BOOKINGS: 'clubroom.generated_bookings',
 
@@ -52,6 +55,12 @@ export const STORAGE_KEYS = {
 
   /** Blocked date ranges for coaches */
   BLOCKED_DATES: 'clubroom.blocked_dates',
+
+  /** Coach session type presets (reusable templates for invites) */
+  SESSION_TEMPLATES: 'clubroom.session_templates',
+
+  /** Soft-holds on slots for pending invites */
+  INVITE_SLOT_HOLDS: 'clubroom.invite_slot_holds',
 
   /** Waitlist entries for fully booked sessions */
   WAITLIST: 'clubroom.waitlist',

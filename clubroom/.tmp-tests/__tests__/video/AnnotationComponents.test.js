@@ -42,6 +42,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const theme_1 = require("@/constants/theme");
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const video_service_1 = require("../../services/video-service");
@@ -349,7 +350,7 @@ function createMockAnnotation(overrides = {}) {
                     borderColor: config.color,
                 },
                 subtle: {
-                    backgroundColor: `${config.color}15`,
+                    backgroundColor: (0, theme_1.withAlpha)(config.color, 0.09),
                 },
             };
             node_assert_1.default.strictEqual(variantStyles.filled.backgroundColor, '#4CAF50');

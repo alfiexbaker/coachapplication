@@ -107,7 +107,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
-      { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
+      { name: 'bookings', title: 'Sessions', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],
@@ -118,7 +118,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
     primary: [
       { name: 'index', title: 'Home', icon: 'house.fill', badge: 'notifications' },
       { name: 'feed', title: 'Feed', icon: 'newspaper.fill' },
-      { name: 'bookings', title: 'Bookings', icon: 'calendar.badge.clock' },
+      { name: 'bookings', title: 'Sessions', icon: 'calendar.badge.clock' },
       { name: 'messages', title: 'Messages', icon: 'bubble.left.and.bubble.right.fill', badge: 'messages' },
       { name: 'settings', title: 'Profile', icon: 'gearshape.fill' },
     ],

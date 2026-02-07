@@ -1,9 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { FlatList, View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { UnifiedBookingCard } from '@/components/bookings/UnifiedBookingCard';
+import { SeriesBookingGroup } from '@/components/bookings/series-booking-group';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Colors, Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
@@ -22,6 +23,12 @@ export interface BookingsListProps {
   onCreateSessionPress: () => void;
 }
 
+/** Union type for display items: either a regular item or a series group */
+type DisplayItem =
+  | { type: 'offering'; data: SessionOffering }
+  | { type: 'booking'; data: BookingSummary }
+  | { type: 'series'; seriesId: string; bookings: BookingSummary[]; coachName: string };
+
 export function BookingsList({
   items,
   timeFilter,
@@ -35,26 +42,76 @@ export function BookingsList({
   const palette = Colors[scheme];
 
   const isCoach = userRole === 'COACH';
-  const hasItems = items.length > 0;
+
+  /** Group bookings by seriesId, leaving ungrouped items as-is */
+  const displayItems = useMemo((): DisplayItem[] => {
+    const result: DisplayItem[] = [];
+    const seriesMap = new Map<string, BookingSummary[]>();
+    const seenSeriesIds = new Set<string>();
+
+    for (const item of items) {
+      if ('registrations' in item) {
+        result.push({ type: 'offering', data: item });
+        continue;
+      }
+
+      const booking = item as BookingSummary;
+      if (booking.seriesId) {
+        if (!seriesMap.has(booking.seriesId)) {
+          seriesMap.set(booking.seriesId, []);
+        }
+        seriesMap.get(booking.seriesId)!.push(booking);
+      } else {
+        result.push({ type: 'booking', data: booking });
+      }
+    }
+
+    // Add series groups
+    for (const [seriesId, bookings] of seriesMap) {
+      if (!seenSeriesIds.has(seriesId)) {
+        seenSeriesIds.add(seriesId);
+        result.push({
+          type: 'series',
+          seriesId,
+          bookings,
+          coachName: bookings[0]?.coachName ?? 'Coach',
+        });
+      }
+    }
+
+    return result;
+  }, [items]);
+
+  const hasItems = displayItems.length > 0;
 
   const renderItem = useCallback(
-    ({ item }: { item: SessionOffering | BookingSummary }) => {
-      // SessionOffering (coach's offerings)
-      if ('registrations' in item) {
+    ({ item }: { item: DisplayItem }) => {
+      if (item.type === 'offering') {
         return (
           <SessionOfferingCard
-            offering={item}
+            offering={item.data}
             showCoach={!isCoach}
-            showCapacity={isCoach}
-            onPress={() => onOfferingPress(item)}
+            showCapacity
+            onPress={() => onOfferingPress(item.data)}
           />
         );
       }
-      // Regular booking - use unified card
+
+      if (item.type === 'series') {
+        return (
+          <SeriesBookingGroup
+            seriesId={item.seriesId}
+            bookings={item.bookings}
+            coachName={item.coachName}
+          />
+        );
+      }
+
+      // Regular booking
       return (
         <View style={styles.cardWrapper}>
           <UnifiedBookingCard
-            booking={item}
+            booking={item.data}
             variant="standard"
             showActions={timeFilter === 'past'}
           />
@@ -64,7 +121,10 @@ export function BookingsList({
     [isCoach, onOfferingPress, timeFilter]
   );
 
-  const keyExtractor = useCallback((item: SessionOffering | BookingSummary) => item.id, []);
+  const keyExtractor = useCallback((item: DisplayItem) => {
+    if (item.type === 'series') return `series-${item.seriesId}`;
+    return item.data.id;
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -108,7 +168,7 @@ export function BookingsList({
 
       {hasItems ? (
         <FlatList
-          data={items}
+          data={displayItems}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           contentContainerStyle={styles.list}

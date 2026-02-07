@@ -57,6 +57,11 @@ exports.inviteService = {
     getCounteredInvites: session_invite_service_2.sessionInviteService.getCounteredInvites.bind(session_invite_service_2.sessionInviteService),
     acceptCounterProposal: session_invite_service_2.sessionInviteService.acceptCounterProposal.bind(session_invite_service_2.sessionInviteService),
     getInvitesForParent: session_invite_service_2.sessionInviteService.getInvitesForParent.bind(session_invite_service_2.sessionInviteService),
+    // INVITE TYPE FILTERING
+    getOpenInvites: session_invite_service_2.sessionInviteService.getOpenInvites.bind(session_invite_service_2.sessionInviteService),
+    getClosedInvitesForParent: session_invite_service_2.sessionInviteService.getClosedInvitesForParent.bind(session_invite_service_2.sessionInviteService),
+    getSquadOnlyInvitesForParent: session_invite_service_2.sessionInviteService.getSquadOnlyInvitesForParent.bind(session_invite_service_2.sessionInviteService),
+    getAvailableInvitesForParent: session_invite_service_2.sessionInviteService.getAvailableInvitesForParent.bind(session_invite_service_2.sessionInviteService),
     // ==========================================================================
     // BULK INVITE OPERATIONS (from bulk-invite-service)
     // ==========================================================================

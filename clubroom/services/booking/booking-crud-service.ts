@@ -465,6 +465,42 @@ class BookingCrudService {
   }
 
   /**
+   * Create multiple bookings at once for a multi-week series.
+   * Skips per-slot availability validation (caller is responsible).
+   * Each booking gets the provided seriesId and its index within the series.
+   */
+  async createMultipleBookings(
+    bookings: Booking[]
+  ): Promise<Result<Booking[], ServiceError>> {
+    try {
+      const existing = await this.loadFromStorage();
+      existing.push(...bookings);
+      await this.saveToStorage(existing);
+
+      // Emit events for each booking
+      for (const booking of bookings) {
+        emitTyped(ServiceEvents.BOOKING_CREATED, {
+          bookingId: booking.id,
+          userId: booking.bookedById ?? '',
+          coachId: booking.coachId,
+          coachName: booking.coachName,
+          athleteIds: booking.athleteIds,
+          athleteName: booking.athleteName,
+          scheduledAt: booking.scheduledAt,
+          service: booking.service,
+          price: booking.price,
+        });
+      }
+
+      logger.info(`Created ${bookings.length} bookings in batch`);
+      return ok(bookings);
+    } catch (error) {
+      logger.error('Failed to create multiple bookings', error);
+      return err(storageError('Failed to create bookings batch'));
+    }
+  }
+
+  /**
    * Save a booking directly without validation (for internal service use only)
    * Used by recurringBookingService and other trusted callers
    */

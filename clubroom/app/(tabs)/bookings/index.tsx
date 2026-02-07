@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
-import { StyleSheet, ActivityIndicator, View } from 'react-native';
+import { StyleSheet, ActivityIndicator, View, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
+import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { PageHeader } from '@/components/primitives/page-header';
+import { Clickable } from '@/components/primitives/clickable';
 import { Colors, Radii, Typography, Spacing, withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -12,8 +14,9 @@ import {
   upcomingBookings,
   getChildrenForParent,
 } from '@/constants/mock-data';
-import { BookingSummary, SessionOffering, Booking } from '@/constants/types';
+import { BookingSummary, SessionOffering, Booking, SessionInvite } from '@/constants/types';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
+import { SessionInviteCard } from '@/components/parent/session-invite-card';
 import { bookingService } from '@/services/booking';
 import { inviteService as sessionInviteService } from '@/services/invite';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
@@ -40,6 +43,7 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingInvites, setPendingInvites] = useState(0);
+  const [pendingInvitesList, setPendingInvitesList] = useState<SessionInvite[]>([]);
 
   const userRole = currentUser?.role;
 
@@ -81,10 +85,11 @@ export default function BookingsScreen() {
         logger.debug('Loaded session offerings', { count: offerings.length });
       }
 
-      // Load pending invites count for parents/athletes
+      // Load pending invites for parents/athletes
       if (currentUser && currentUser.role !== 'COACH') {
         try {
           const invites = await sessionInviteService.getPendingInvites(currentUser.id);
+          setPendingInvitesList(invites);
           setPendingInvites(invites.length);
           logger.debug('Loaded pending invites', { count: invites.length });
         } catch (inviteErr) {
@@ -221,6 +226,41 @@ export default function BookingsScreen() {
     loadData();
   };
 
+  const handleAcceptInvite = async (invite: SessionInvite, selectedSlot?: SessionInvite['proposedSlots'][0]) => {
+    const slot = selectedSlot || invite.proposedSlots[0];
+    const result = await sessionInviteService.respondToInvite({
+      inviteId: invite.id,
+      response: 'ACCEPTED',
+      selectedSlot: slot,
+    });
+    if (result.success) {
+      loadData(); // Refresh - accepted invite becomes a booking
+    }
+  };
+
+  const handleDeclineInvite = async (invite: SessionInvite) => {
+    Alert.alert(
+      'Decline Invite?',
+      `Decline the session invite from ${invite.coachName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Decline',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await sessionInviteService.respondToInvite({
+              inviteId: invite.id,
+              response: 'DECLINED',
+            });
+            if (result.success) {
+              loadData();
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
@@ -242,6 +282,38 @@ export default function BookingsScreen() {
         pendingInvites={pendingInvites}
         showCoachActions={true}
       />
+
+      {/* Action Required - Pending Invites (non-coach users) */}
+      {pendingInvitesList.length > 0 && userRole !== 'COACH' && (
+        <View style={styles.actionRequiredSection}>
+          <View style={styles.actionRequiredHeader}>
+            <ThemedText type="defaultSemiBold" style={styles.actionRequiredTitle}>
+              Action Required
+            </ThemedText>
+            <View style={[styles.actionRequiredBadge, { backgroundColor: palette.error }]}>
+              <ThemedText style={styles.actionRequiredBadgeText}>{pendingInvitesList.length}</ThemedText>
+            </View>
+          </View>
+          {pendingInvitesList.slice(0, 3).map(invite => (
+            <SessionInviteCard
+              key={invite.id}
+              invite={invite}
+              onPress={() => router.push(Routes.sessionInvite(invite.id))}
+              onAccept={(slot) => handleAcceptInvite(invite, slot)}
+              onDecline={() => handleDeclineInvite(invite)}
+              compact
+            />
+          ))}
+          {pendingInvitesList.length > 3 && (
+            <Clickable onPress={() => router.push(Routes.SESSION_INVITES)} style={styles.viewAllInvites}>
+              <ThemedText style={[styles.viewAllInvitesText, { color: palette.tint }]}>
+                View all {pendingInvitesList.length} invites
+              </ThemedText>
+              <Ionicons name="chevron-forward" size={16} color={palette.tint} />
+            </Clickable>
+          )}
+        </View>
+      )}
 
       {/* Loading State */}
       {loading && (
@@ -300,5 +372,43 @@ const styles = StyleSheet.create({
   errorText: {
     ...Typography.bodySmall,
     textAlign: 'center',
+  },
+  // Action Required Section
+  actionRequiredSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  actionRequiredHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  actionRequiredTitle: {
+    ...Typography.heading,
+    letterSpacing: -0.2,
+  },
+  actionRequiredBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xxs,
+  },
+  actionRequiredBadgeText: {
+    ...Typography.micro,
+    color: Colors.light.onPrimary,
+    fontWeight: '700',
+  },
+  viewAllInvites: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.sm,
+  },
+  viewAllInvitesText: {
+    ...Typography.smallSemiBold,
   },
 });

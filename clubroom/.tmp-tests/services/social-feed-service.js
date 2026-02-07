@@ -22,16 +22,27 @@ class ClubFeedService {
         if (!body && !input.imageUrl) {
             return (0, result_1.err)((0, result_1.validationError)('Post must have content or an image'));
         }
+        // Determine the feed type: default to CLUB for backward compatibility
+        const feedType = input.feedType || 'CLUB';
+        // Build audience label based on feed type
+        let audienceLabel = input.audienceLabel || 'Club-wide';
+        if (feedType === 'PERSONAL') {
+            audienceLabel = 'Personal Feed';
+        }
+        else if (feedType === 'BOTH') {
+            audienceLabel = input.audienceLabel || 'Personal + Club';
+        }
         const post = (0, mock_data_1.addClubFeedPost)({
             clubId: input.clubId,
             title: input.title || (input.postType === 'photo' ? 'Photo' : 'Update'),
             body,
             audience: input.audience || 'club',
-            audienceLabel: input.audienceLabel || 'Club-wide',
+            audienceLabel,
             authorName: input.authorName,
             authorId: input.authorId,
             postAs: input.postAs || 'self',
             postType: input.postType || 'general',
+            feedType,
             imageUrl: input.imageUrl,
             attachments: input.attachments,
             eventDate: input.eventDate,
@@ -43,6 +54,7 @@ class ClubFeedService {
             clubId: input.clubId,
             postType: post.postType,
             audience: post.audience,
+            feedType,
         });
         // Notify club members if requested (default to true for announcements)
         const shouldNotify = input.notifyMembers ?? (input.postType === 'announcement');
@@ -287,6 +299,80 @@ class ClubFeedService {
             clubId: input.clubId,
             parentId: input.parentId,
             athleteId: input.athleteId,
+        });
+        return post;
+    }
+    /**
+     * Get personal feed posts for a specific coach.
+     * Returns posts where feedType is PERSONAL or BOTH authored by this coach.
+     */
+    getPersonalFeed(coachId) {
+        const posts = (0, mock_data_1.getPersonalFeedForCoach)(coachId);
+        this.logger.info('personal_feed_fetched', {
+            coachId,
+            postCount: posts.length,
+        });
+        return posts;
+    }
+    /**
+     * Get combined feed for a parent: club posts + personal feed posts
+     * from coaches they have had sessions with.
+     */
+    getCombinedFeedForParent(parentId, filter = 'all') {
+        const posts = (0, mock_data_1.getCombinedFeedForParent)(parentId, filter === 'all' ? undefined : filter);
+        this.logger.info('combined_parent_feed_fetched', {
+            parentId,
+            filter,
+            postCount: posts.length,
+        });
+        return posts;
+    }
+    /**
+     * Create a session announcement post when an OPEN session is published.
+     * Auto-called via service-subscribers when OPEN_SESSION_PUBLISHED fires.
+     * Posts to the coach's club (or first club) so followers see it in their feed.
+     */
+    createSessionAnnouncementPost(input) {
+        // Resolve the target club: use the provided clubId or fall back to coach's first club
+        const clubs = (0, mock_data_1.getUserClubs)(input.coachId);
+        const clubId = input.clubId || clubs[0]?.id;
+        if (!clubId) {
+            this.logger.warn('session_announcement_no_club', { coachId: input.coachId });
+            return undefined;
+        }
+        const dateStr = new Date(input.date).toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+        });
+        const priceLabel = input.price === 0
+            ? 'Free'
+            : `${input.currency === 'GBP' ? '\u00A3' : input.currency}${input.price}`;
+        const post = (0, mock_data_1.addClubFeedPost)({
+            clubId,
+            title: input.title,
+            body: `${input.description}\n\n${dateStr} \u00B7 ${input.startTime}\u2013${input.endTime}\n${input.location} \u00B7 ${priceLabel} per person`,
+            audience: 'club',
+            audienceLabel: 'Personal + Club',
+            feedType: 'BOTH',
+            authorName: input.coachName,
+            authorId: input.coachId,
+            postAs: 'self',
+            postType: 'session_announcement',
+            sessionId: input.sessionId,
+            eventDate: input.date,
+            eventLocation: input.location,
+            imageUrl: input.imageUrl,
+            sessionPrice: input.price,
+            sessionCurrency: input.currency,
+            sessionTime: `${input.startTime}\u2013${input.endTime}`,
+            sessionType: input.sessionType,
+        });
+        this.logger.info('session_announcement_post_created', {
+            postId: post.id,
+            clubId,
+            sessionId: input.sessionId,
+            coachId: input.coachId,
         });
         return post;
     }

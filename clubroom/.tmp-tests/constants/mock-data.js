@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MOCK_DISCOVERY_COACHES = exports.activeObjectives = exports.bookings = exports.inviteCodes = exports.schools = exports.athleteSkillLevels = exports.sessionHistory = exports.upcomingBookings = exports.coachProfiles = exports.mockUserProfile = exports.chatMessages = exports.chatThreads = exports.clubSessions = exports.clubFeedPosts = exports.clubInvites = exports.clubSquads = exports.clubMemberships = exports.clubs = exports.MOCK_INVITE_CODES = exports.MOCK_PAYMENTS = exports.MOCK_NOTIFICATIONS = exports.MOCK_SESSION_RECAPS = exports.MOCK_SESSION_PLANS = exports.MOCK_ATHLETE_DIRECTORY = exports.MOCK_SESSION_REQUESTS = exports.MOCK_GUEST_ATHLETES = exports.MOCK_COACH_SESSIONS = exports.UK_VENUES = exports.MOCK_SESSION_TEMPLATES = exports.MOCK_REVIEWS = exports.MOCK_COMMENTS = exports.MOCK_POSTS = exports.MOCK_MESSAGES = exports.MOCK_CONVERSATIONS = exports.MOCK_SESSIONS = exports.badgeAwards = exports.badgeCatalog = exports.MOCK_BOOKINGS = exports.MOCK_RELATIONSHIPS = exports.MOCK_USER_PROFILES = exports.MOCK_COACH_PROFILES = exports.MOCK_USERS = void 0;
+exports.MOCK_DISCOVERY_COACHES = exports.activeObjectives = exports.bookings = exports.inviteCodes = exports.schools = exports.athleteSkillLevels = exports.sessionHistory = exports.upcomingBookings = exports.coachProfiles = exports.mockUserProfile = exports.chatMessages = exports.chatThreads = exports.coachParentSessions = exports.clubSessions = exports.clubFeedPosts = exports.clubInvites = exports.clubSquads = exports.clubMemberships = exports.clubs = exports.MOCK_INVITE_CODES = exports.MOCK_PAYMENTS = exports.MOCK_NOTIFICATIONS = exports.MOCK_SESSION_RECAPS = exports.MOCK_SESSION_PLANS = exports.MOCK_ATHLETE_DIRECTORY = exports.MOCK_SESSION_REQUESTS = exports.MOCK_GUEST_ATHLETES = exports.MOCK_COACH_SESSIONS = exports.UK_VENUES = exports.MOCK_SESSION_TEMPLATES = exports.MOCK_REVIEWS = exports.MOCK_COMMENTS = exports.MOCK_POSTS = exports.MOCK_MESSAGES = exports.MOCK_CONVERSATIONS = exports.MOCK_SESSIONS = exports.badgeAwards = exports.badgeCatalog = exports.MOCK_BOOKINGS = exports.MOCK_RELATIONSHIPS = exports.MOCK_USER_PROFILES = exports.MOCK_COACH_PROFILES = exports.MOCK_USERS = void 0;
 exports.getUserById = getUserById;
 exports.getCoachProfile = getCoachProfile;
 exports.getUserProfile = getUserProfile;
@@ -34,6 +34,9 @@ exports.getDirectoryForCoach = getDirectoryForCoach;
 exports.getNotificationsForUser = getNotificationsForUser;
 exports.getPaymentsForUser = getPaymentsForUser;
 exports.getInviteCodesForCoach = getInviteCodesForCoach;
+exports.getCoachesForParent = getCoachesForParent;
+exports.getPersonalFeedForCoach = getPersonalFeedForCoach;
+exports.getCombinedFeedForParent = getCombinedFeedForParent;
 exports.getClubMembershipForUser = getClubMembershipForUser;
 exports.getAllClubMembershipsForUser = getAllClubMembershipsForUser;
 exports.getClubById = getClubById;
@@ -145,7 +148,7 @@ exports.MOCK_USERS = [
         dateOfBirth: '2007-12-03',
     },
     {
-        id: 'user4',
+        id: 'user4a',
         email: 'sophie.taylor@email.com',
         role: 'USER',
         name: 'Sophie Taylor',
@@ -442,7 +445,7 @@ exports.MOCK_BOOKINGS = [
         participants: [
             { id: 'user1', name: 'Tom Henderson', avatar: 'TH', status: 'confirmed' },
             { id: 'user3', name: 'James Wilson', avatar: 'JW', status: 'confirmed' },
-            { id: 'user4', name: 'Sophie Taylor', avatar: 'ST', status: 'confirmed' },
+            { id: 'user4a', name: 'Sophie Taylor', avatar: 'ST', status: 'confirmed' },
             { id: 'user5', name: 'Liam Davies', avatar: 'LD', status: 'confirmed' },
             { id: 'user6', name: 'Ella Martinez', avatar: 'EM', status: 'pending' },
         ],
@@ -1421,7 +1424,7 @@ exports.MOCK_REVIEWS = [
     {
         id: 'rev5',
         coachId: 'coach5',
-        athleteId: 'user4',
+        athleteId: 'user4a',
         rating: 4,
         comment: 'The video review showing my positioning mistakes was useful.',
         createdAt: today.toISOString(),
@@ -2794,6 +2797,115 @@ exports.clubSessions = [
         footballSkill: 'Conditioning',
     },
 ];
+// ===== PERSONAL FEED: coach-parent session relationships =====
+// Maps coach IDs to parent IDs who have had sessions with that coach.
+// In production this would be derived from the bookings/sessions database.
+exports.coachParentSessions = {
+    coach1: ['user4', 'user5', 'user6'], // Sarah Mitchell's session parents
+    coach2: ['user4', 'user6'], // Mike Thompson's session parents
+    coach3: ['user5'], // David Roberts' session parents
+};
+/** Look up which coaches a parent has had sessions with */
+function getCoachesForParent(parentId) {
+    return Object.entries(exports.coachParentSessions)
+        .filter(([, parents]) => parents.includes(parentId))
+        .map(([coachId]) => coachId);
+}
+// ===== PERSONAL FEED POSTS (feedType = 'PERSONAL' or 'BOTH') =====
+// These are stored in the same clubFeedPosts array but with feedType set.
+// A personal post can optionally have clubId = '' if the coach doesn't belong to a club.
+// Seed some personal feed posts
+const personalFeedSeedPosts = [
+    {
+        id: 'personal_post_1',
+        clubId: 'club_lions',
+        title: 'Quick tip: first touch drills',
+        body: 'Here are 3 first-touch drills you can practice at home with just a wall and a ball. Great for building confidence before the next session.',
+        createdAt: new Date(today.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        audience: 'club',
+        audienceLabel: 'Personal Feed',
+        authorName: 'Sarah Mitchell',
+        authorId: 'coach1',
+        postAs: 'self',
+        postType: 'general',
+        feedType: 'PERSONAL',
+        reactionCount: 8,
+        commentCount: 2,
+    },
+    {
+        id: 'personal_post_2',
+        clubId: 'club_lions',
+        title: 'Session recap: U15 finishing',
+        body: 'Brilliant energy from the U15s today! We focused on quick-release shots inside the box. Everyone stepped up. Keep up the work at home.',
+        createdAt: new Date(today.getTime() - 7 * 60 * 60 * 1000).toISOString(),
+        audience: 'club',
+        audienceLabel: 'Personal Feed',
+        authorName: 'Sarah Mitchell',
+        authorId: 'coach1',
+        postAs: 'self',
+        postType: 'general',
+        feedType: 'BOTH',
+        reactionCount: 14,
+        commentCount: 5,
+    },
+    {
+        id: 'personal_post_3',
+        clubId: 'club_eagles',
+        title: 'Weekend availability update',
+        body: 'I have a couple of 1-on-1 slots opening up this Saturday morning. Perfect for anyone wanting extra work on positioning or set pieces. DM to book!',
+        createdAt: new Date(today.getTime() - 10 * 60 * 60 * 1000).toISOString(),
+        audience: 'club',
+        audienceLabel: 'Personal Feed',
+        authorName: 'Mike Thompson',
+        authorId: 'coach2',
+        postAs: 'self',
+        postType: 'general',
+        feedType: 'PERSONAL',
+        reactionCount: 6,
+        commentCount: 3,
+    },
+];
+// Add personal posts into the main feed array
+exports.clubFeedPosts.push(...personalFeedSeedPosts);
+/**
+ * Get personal feed posts for a specific coach.
+ * Returns posts where feedType is 'PERSONAL' or 'BOTH' and the author matches.
+ */
+function getPersonalFeedForCoach(coachId) {
+    return exports.clubFeedPosts
+        .filter((post) => post.authorId === coachId &&
+        (post.feedType === 'PERSONAL' || post.feedType === 'BOTH'))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+/**
+ * Get combined feed for a parent: club posts (existing) + personal feed posts
+ * from coaches they've had sessions with.
+ */
+function getCombinedFeedForParent(parentId, filter) {
+    // 1. Get normal club posts the user already sees
+    const clubPosts = getAggregatedFeed(parentId, filter);
+    // 2. Get personal posts from their coaches
+    const coachIds = getCoachesForParent(parentId);
+    const personalPosts = exports.clubFeedPosts
+        .filter((post) => coachIds.includes(post.authorId || '') &&
+        (post.feedType === 'PERSONAL' || post.feedType === 'BOTH') &&
+        // Avoid duplicates - if feedType is BOTH and the post is already
+        // in clubPosts (because user is in that club), skip it
+        !clubPosts.some((cp) => cp.id === post.id))
+        .map((post) => {
+        const club = post.clubId ? getClubById(post.clubId) : undefined;
+        return {
+            ...post,
+            clubName: club?.name || 'Personal',
+            clubBadge: club?.badge,
+        };
+    });
+    if (filter && filter !== 'all') {
+        const filteredPersonal = personalPosts.filter((p) => p.postType === filter);
+        return [...clubPosts, ...filteredPersonal].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return [...clubPosts, ...personalPosts].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
 function getClubMembershipForUser(userId) {
     return exports.clubMemberships.find((membership) => membership.userId === userId && membership.status === 'active');
 }
@@ -3064,7 +3176,7 @@ exports.mockUserProfile = {
     phone: '+1 (555) 123-4567',
     profilePhotoUrl: 'https://i.pravatar.cc/150?u=john',
     bio: 'Parent of two young athletes. Supporting my kids in their football development.',
-    role: 'Parent',
+    role: 'PARENT',
     joinedDate: new Date(today.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString(),
     children: [
         { name: 'Tom Henderson', age: 15 },

@@ -9,15 +9,21 @@ import { ThemedText } from '@/components/themed-text';
 import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
+import { DeclineReasonSheet, type DeclineReasonResult } from './decline-reason-sheet';
+import { MultiWeekInviteCard } from './multi-week-invite-card';
 
 interface SessionInviteCardProps {
   invite: SessionInvite;
   onPress: () => void;
   onAccept?: (selectedSlot?: TimeSlot) => void;
-  onDecline?: () => void;
+  onDecline?: (reason?: DeclineReasonResult) => void;
   onCounterPropose?: () => void;
   compact?: boolean;
   showSlotSelector?: boolean;
+  /** Error state: slot was taken */
+  slotTakenError?: string | null;
+  /** Loading state during accept */
+  acceptLoading?: boolean;
 }
 
 const statusColors: Record<string, { bg: string; text: string; icon: string }> = {
@@ -36,10 +42,13 @@ export function SessionInviteCard({
   onCounterPropose,
   compact = false,
   showSlotSelector = false,
+  slotTakenError = null,
+  acceptLoading = false,
 }: SessionInviteCardProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
+  const [showDeclineSheet, setShowDeclineSheet] = useState(false);
 
   const isExpired = new Date(invite.expiresAt) < new Date();
   const status = isExpired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
@@ -60,6 +69,11 @@ export function SessionInviteCard({
     .join('');
 
   const canRespond = status === 'PENDING';
+
+  // Delegate to MultiWeekInviteCard for recurring invites with weekSlots
+  if (invite.isRecurring && invite.weekSlots && invite.weekSlots.length > 0 && canRespond) {
+    return <MultiWeekInviteCard invite={invite} onResponded={() => onAccept?.()} />;
+  }
 
   // Build invitation message: "Coach X has invited [Athlete] to [Club/Session]"
   const coachFirstName = invite.coachName.split(' ')[0];
@@ -157,6 +171,25 @@ export function SessionInviteCard({
         </View>
       </View>
 
+      {/* Session Type Chip + Duration + Price */}
+      <View style={styles.sessionMeta}>
+        <View style={[styles.sessionChip, { backgroundColor: withAlpha(palette.tint, 0.08), borderColor: withAlpha(palette.tint, 0.2) }]}>
+          <ThemedText style={[styles.sessionChipText, { color: palette.tint }]}>
+            {invite.sessionType}
+          </ThemedText>
+        </View>
+        {invite.duration && (
+          <ThemedText style={[styles.metaText, { color: palette.muted }]}>
+            {invite.duration} min
+          </ThemedText>
+        )}
+        {invite.priceUsd != null && invite.priceUsd > 0 && (
+          <ThemedText style={[styles.metaText, { color: palette.text }]}>
+            {'\u00A3'}{invite.priceUsd}/session
+          </ThemedText>
+        )}
+      </View>
+
       {/* Athletes */}
       <View style={styles.athleteRow}>
         <Ionicons name="person-outline" size={16} color={palette.muted} />
@@ -168,11 +201,11 @@ export function SessionInviteCard({
       {/* Divider */}
       <Divider />
 
-      {/* Time Slots - with optional selector */}
-      {showSlotSelector && invite.proposedSlots.length > 1 ? (
+      {/* Time Slots — always show all as selectable when pending */}
+      {canRespond && invite.proposedSlots.length > 1 ? (
         <View style={styles.slotSelector}>
           <ThemedText style={[styles.slotSelectorLabel, { color: palette.muted }]}>
-            Select a time slot:
+            Pick a time:
           </ThemedText>
           {invite.proposedSlots.map((slot, index) => {
             const isSelected = selectedSlotIndex === index;
@@ -190,14 +223,15 @@ export function SessionInviteCard({
               >
                 <View style={styles.slotOptionContent}>
                   <ThemedText type="defaultSemiBold">
-                    {new Date(slot.date).toLocaleDateString('en-GB', {
+                    {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {
                       weekday: 'short',
                       day: 'numeric',
                       month: 'short',
                     })}
                   </ThemedText>
                   <ThemedText style={{ color: palette.muted }}>
-                    {slot.startTime} - {slot.endTime}
+                    {slot.startTime} – {slot.endTime}
+                    {slot.location && `  ·  ${slot.location}`}
                   </ThemedText>
                 </View>
                 <View
@@ -217,31 +251,28 @@ export function SessionInviteCard({
         </View>
       ) : (
         <View style={styles.details}>
-          <View style={styles.detailRow}>
-            <Ionicons name="calendar-outline" size={16} color={palette.muted} />
-            <ThemedText style={styles.detailText}>
-              {slotDate} at {firstSlot?.startTime}
-              {invite.proposedSlots.length > 1 && (
-                <ThemedText style={{ color: palette.muted }}>
-                  {' '}(+{invite.proposedSlots.length - 1} options)
-                </ThemedText>
-              )}
-            </ThemedText>
-          </View>
-
-          {firstSlot?.location && (
-            <View style={styles.detailRow}>
-              <Ionicons name="location-outline" size={16} color={palette.muted} />
-              <ThemedText style={styles.detailText}>{firstSlot.location}</ThemedText>
+          {invite.proposedSlots.map((slot, index) => (
+            <View key={index} style={styles.detailRow}>
+              <Ionicons name="calendar-outline" size={16} color={palette.muted} />
+              <ThemedText style={styles.detailText}>
+                {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {
+                  weekday: 'short', day: 'numeric', month: 'short',
+                })}{' '}
+                {slot.startTime} – {slot.endTime}
+                {slot.location && `  ·  ${slot.location}`}
+              </ThemedText>
             </View>
-          )}
+          ))}
+        </View>
+      )}
 
-          {invite.priceUsd && (
-            <View style={styles.detailRow}>
-              <Ionicons name="pricetag-outline" size={16} color={palette.muted} />
-              <ThemedText style={styles.detailText}>${invite.priceUsd}</ThemedText>
-            </View>
-          )}
+      {/* Slot Taken Error (Job 5.2) */}
+      {slotTakenError && (
+        <View style={[styles.slotTakenBanner, { backgroundColor: withAlpha(palette.error, 0.08) }]}>
+          <Ionicons name="warning-outline" size={16} color={palette.error} />
+          <ThemedText style={[styles.slotTakenText, { color: palette.error }]}>
+            {slotTakenError}
+          </ThemedText>
         </View>
       )}
 
@@ -256,7 +287,7 @@ export function SessionInviteCard({
       {canRespond && onAccept && onDecline && (
         <View style={styles.actionsRow}>
           <Clickable
-            onPress={onDecline}
+            onPress={() => setShowDeclineSheet(true)}
             style={[styles.actionButton, styles.declineButton, { borderColor: palette.border }]}
           >
             <Ionicons name="close-outline" size={18} color={palette.text} />
@@ -275,18 +306,20 @@ export function SessionInviteCard({
 
           <Clickable
             onPress={handleAccept}
-            disabled={showSlotSelector && invite.proposedSlots.length > 1 && selectedSlotIndex === null}
+            disabled={(invite.proposedSlots.length > 1 && selectedSlotIndex === null) || acceptLoading}
             style={[
               styles.actionButton,
               styles.acceptButton,
               {
                 backgroundColor: palette.tint,
-                opacity: showSlotSelector && invite.proposedSlots.length > 1 && selectedSlotIndex === null ? 0.5 : 1,
+                opacity: (invite.proposedSlots.length > 1 && selectedSlotIndex === null) || acceptLoading ? 0.5 : 1,
               },
             ]}
           >
-            <Ionicons name="checkmark-outline" size={18} color={palette.onPrimary} />
-            <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>Accept</ThemedText>
+            <Ionicons name={acceptLoading ? 'hourglass-outline' : 'checkmark-outline'} size={18} color={palette.onPrimary} />
+            <ThemedText style={[styles.actionText, { color: palette.onPrimary }]}>
+              {acceptLoading ? 'Checking...' : 'Accept'}
+            </ThemedText>
           </Clickable>
         </View>
       )}
@@ -300,6 +333,17 @@ export function SessionInviteCard({
           </ThemedText>
         </View>
       )}
+
+      {/* Decline Reason Sheet */}
+      <DeclineReasonSheet
+        visible={showDeclineSheet}
+        onClose={() => setShowDeclineSheet(false)}
+        onSubmit={(result) => {
+          setShowDeclineSheet(false);
+          onDecline?.(result);
+        }}
+        athleteName={invite.athleteNames[0]}
+      />
     </SurfaceCard>
   );
 }
@@ -371,6 +415,36 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   athletes: { ...Typography.small },
+  sessionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flexWrap: 'wrap',
+  },
+  sessionChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xxs,
+    borderRadius: Radii.sm,
+    borderWidth: 1,
+  },
+  sessionChipText: {
+    ...Typography.smallSemiBold,
+  },
+  metaText: {
+    ...Typography.small,
+  },
+  slotTakenBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    borderRadius: Radii.sm,
+  },
+  slotTakenText: {
+    ...Typography.small,
+    fontWeight: '600',
+    flex: 1,
+  },
   details: {
     gap: Spacing.xxs,
   },

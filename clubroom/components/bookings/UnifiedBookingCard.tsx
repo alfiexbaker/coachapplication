@@ -109,6 +109,14 @@ export function UnifiedBookingCard({
               <ThemedText style={[styles.compactMeta, { color: palette.muted }]} numberOfLines={1}>
                 {booking.coachName} · {day}
               </ThemedText>
+              {booking.locationLabel ? (
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={12} color={palette.tint} />
+                  <ThemedText style={[styles.compactLocation, { color: palette.tint }]} numberOfLines={1}>
+                    {booking.locationLabel}
+                  </ThemedText>
+                </View>
+              ) : null}
             </View>
             <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           </View>
@@ -152,8 +160,8 @@ export function UnifiedBookingCard({
             </View>
             {booking.locationLabel && (
               <View style={styles.metaRow}>
-                <Ionicons name="location-outline" size={16} color={palette.muted} />
-                <ThemedText style={styles.metaText}>{booking.locationLabel}</ThemedText>
+                <Ionicons name="location-outline" size={16} color={palette.tint} />
+                <ThemedText style={[styles.metaText, { color: palette.tint, fontWeight: '600' }]}>{booking.locationLabel}</ThemedText>
               </View>
             )}
             {booking.childName && (
@@ -229,6 +237,15 @@ export function UnifiedBookingCard({
                 {day} · {time}
               </ThemedText>
             </View>
+
+            {booking.locationLabel ? (
+              <View style={styles.locationRow}>
+                <Ionicons name="location-outline" size={14} color={palette.tint} />
+                <ThemedText style={[styles.locationText, { color: palette.tint }]} numberOfLines={1}>
+                  {booking.locationLabel}
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.standardRight}>
@@ -323,6 +340,13 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   dateText: { ...Typography.caption },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
+  locationText: { ...Typography.smallSemiBold },
+  compactLocation: { ...Typography.caption, fontWeight: '600' },
 
   // DETAILED
   detailedCard: {

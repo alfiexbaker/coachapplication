@@ -34,7 +34,7 @@ const MOCK_ATTENDANCE = [
         userName: 'Sarah Baker',
         userRole: 'PARENT',
         checkedInAt: '2026-06-15T13:45:00Z',
-        checkedInBy: 'coach_1',
+        checkedInBy: 'coach1',
         checkedInByName: 'Director Kelly',
         checkInMethod: 'COACH',
         guestsCheckedIn: 2,

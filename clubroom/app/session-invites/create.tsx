@@ -11,6 +11,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
+import { SlotPicker } from '@/components/coach/slot-picker';
 import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
@@ -18,11 +19,11 @@ import { inviteService as sessionInviteService } from '@/services/invite';
 import { academyService } from '@/services/academy-service';
 import { rosterService } from '@/services/roster-service';
 import { groupSessionService } from '@/services/group-session';
-import type { TimeSlot, Academy, SessionInvite, SessionInviteType, RosterEntry, GroupSession } from '@/constants/types';
+import { sessionTemplateService } from '@/services/session-template-service';
+import type { TimeSlot, Academy, SessionInvite, SessionInviteType, RosterEntry, GroupSession, SessionTemplate, AvailabilitySlot } from '@/constants/types';
 
 const logger = createLogger('CreateSessionInviteScreen');
 
-const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Trial'];
 const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
 
 type Step = 'athlete' | 'club' | 'mode' | 'type' | 'slots' | 'details' | 'confirm' | 'existing';
@@ -56,7 +57,18 @@ export default function CreateSessionInviteScreen() {
   const [existingSessions, setExistingSessions] = useState<GroupSession[]>([]);
   const [selectedExistingSession, setSelectedExistingSession] = useState<GroupSession | null>(null);
 
-  // Time slot form
+  // Session template state
+  const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<SessionTemplate | null>(null);
+
+  // Slot picker state (real availability)
+  const [selectedAvailabilitySlots, setSelectedAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+
+  // Recurring invite state (Job 6.1)
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceWeeks, setRecurrenceWeeks] = useState(8);
+
+  // Fallback manual time slot form (when no availability data)
   const [slotDate, setSlotDate] = useState('');
   const [slotStartTime, setSlotStartTime] = useState('');
   const [slotEndTime, setSlotEndTime] = useState('');
@@ -102,6 +114,16 @@ export default function CreateSessionInviteScreen() {
     }
   }, [currentUser?.id]);
 
+  const loadSessionTemplates = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      const templates = await sessionTemplateService.getTemplates(currentUser.id);
+      setSessionTemplates(templates);
+    } catch (error) {
+      logger.error('Failed to load session templates', error);
+    }
+  }, [currentUser?.id]);
+
   const loadExistingSessions = useCallback(async () => {
     if (!currentUser?.id) return;
     try {
@@ -118,15 +140,16 @@ export default function CreateSessionInviteScreen() {
     }
   }, [currentUser?.id]);
 
-  // Load coach's academies, athletes, sent invites, and existing sessions
+  // Load coach's academies, athletes, sent invites, existing sessions, and session templates
   useEffect(() => {
     if (currentUser?.id) {
       loadAcademies();
       loadAthletes();
       loadSentInvites();
       loadExistingSessions();
+      loadSessionTemplates();
     }
-  }, [currentUser?.id, loadAcademies, loadAthletes, loadSentInvites, loadExistingSessions]);
+  }, [currentUser?.id, loadAcademies, loadAthletes, loadSentInvites, loadExistingSessions, loadSessionTemplates]);
 
   const toggleAthlete = (athlete: AthleteOption) => {
     const isSelected = selectedAthletes.some((a) => a.id === athlete.id);
@@ -168,9 +191,9 @@ export default function CreateSessionInviteScreen() {
       case 'mode':
         return true; // Always can proceed - mode is pre-selected
       case 'type':
-        return sessionType && focus;
+        return selectedTemplate !== null && focus;
       case 'slots':
-        return proposedSlots.length > 0;
+        return selectedAvailabilitySlots.length > 0;
       case 'details':
         return true;
       case 'existing':
@@ -271,6 +294,14 @@ export default function CreateSessionInviteScreen() {
           }
         );
       } else {
+        // Build proposed slots from availability picker
+        const slotsFromPicker: TimeSlot[] = selectedAvailabilitySlots.map((slot) => ({
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          location: slot.location || undefined,
+        }));
+
         await sessionInviteService.createInvite(
           selectedAthletes.map((a) => a.id),
           {
@@ -281,12 +312,16 @@ export default function CreateSessionInviteScreen() {
             athleteNames: selectedAthletes.map((a) => a.name),
             parentId,
             parentName,
-            proposedSlots,
-            sessionType,
+            proposedSlots: slotsFromPicker,
+            sessionType: selectedTemplate?.name || sessionType,
+            sessionTemplateId: selectedTemplate?.id,
+            duration: selectedTemplate?.duration,
             focus,
             notes: notes || undefined,
-            priceUsd: price ? parseFloat(price) : undefined,
+            priceUsd: price ? parseFloat(price) : selectedTemplate?.defaultPrice,
             expiresInDays: 7,
+            isRecurring: isRecurring || undefined,
+            recurrenceWeeks: isRecurring ? recurrenceWeeks : undefined,
           }
         );
       }
@@ -663,29 +698,54 @@ export default function CreateSessionInviteScreen() {
         Session Details
       </ThemedText>
 
+      {/* Session Template Picker */}
       <View style={styles.formSection}>
         <ThemedText style={styles.formLabel}>Session Type</ThemedText>
         <View style={styles.optionsRow}>
-          {SESSION_TYPES.map((type) => (
-            <Clickable
-              key={type}
-              onPress={() => setSessionType(type)}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: sessionType === type ? palette.tint : palette.surface,
-                  borderColor: sessionType === type ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <ThemedText
-                style={{ color: sessionType === type ? palette.onPrimary : palette.text, ...Typography.small }}
+          {sessionTemplates.map((tmpl) => {
+            const isSelected = selectedTemplate?.id === tmpl.id;
+            return (
+              <Clickable
+                key={tmpl.id}
+                onPress={() => {
+                  setSelectedTemplate(tmpl);
+                  setSessionType(tmpl.name);
+                  if (!price) setPrice(String(tmpl.defaultPrice));
+                }}
+                style={[
+                  styles.templateChip,
+                  {
+                    backgroundColor: isSelected ? palette.tint : palette.surface,
+                    borderColor: isSelected ? palette.tint : palette.border,
+                  },
+                ]}
               >
-                {type}
-              </ThemedText>
-            </Clickable>
-          ))}
+                <ThemedText
+                  style={{ color: isSelected ? palette.onPrimary : palette.text, ...Typography.smallSemiBold }}
+                  numberOfLines={1}
+                >
+                  {tmpl.name}
+                </ThemedText>
+                <View style={styles.templateMeta}>
+                  <ThemedText style={{ color: isSelected ? withAlpha(palette.onPrimary, 0.8) : palette.muted, ...Typography.micro }}>
+                    {tmpl.duration}m
+                  </ThemedText>
+                  <ThemedText style={{ color: isSelected ? withAlpha(palette.onPrimary, 0.8) : palette.muted, ...Typography.micro }}>
+                    {'\u00A3'}{tmpl.defaultPrice}
+                  </ThemedText>
+                </View>
+              </Clickable>
+            );
+          })}
         </View>
+        {selectedTemplate && (
+          <View style={[styles.autoFillBanner, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
+            <Ionicons name="sparkles" size={14} color={palette.success} />
+            <ThemedText style={[styles.autoFillText, { color: palette.success }]}>
+              {selectedTemplate.duration}min · {'\u00A3'}{selectedTemplate.defaultPrice}/session · Cap {selectedTemplate.capacity}
+            </ThemedText>
+          </View>
+        )}
       </View>
 
       <View style={styles.formSection}>
@@ -751,82 +811,43 @@ export default function CreateSessionInviteScreen() {
   const renderSlotsStep = () => (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
       <ThemedText type="subtitle" style={styles.stepTitle}>
-        Propose Time Slots
+        Pick Time Slots
       </ThemedText>
       <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-        Add one or more time options for the parent to choose from
+        Select up to 3 available times from your schedule
       </ThemedText>
 
-      <SurfaceCard style={styles.addSlotCard}>
-        <View style={styles.slotFormRow}>
-          <DateTimeField
-            mode="date"
-            label="Date"
-            value={slotDate}
-            onChange={setSlotDate}
-          />
-        </View>
-        <View style={styles.slotFormRow}>
-          <DateTimeField
-            mode="time"
-            label="Start"
-            value={slotStartTime}
-            onChange={setSlotStartTime}
-            style={{ flex: 1 }}
-          />
-          <DateTimeField
-            mode="time"
-            label="End"
-            value={slotEndTime}
-            onChange={setSlotEndTime}
-            style={{ flex: 1 }}
-          />
-        </View>
-        <View style={styles.slotFormRow}>
-          <View style={[styles.slotInput, { flex: 1 }]}>
-            <ThemedText style={styles.inputLabel}>Location (optional)</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="e.g., Hackney Marshes"
-              placeholderTextColor={palette.muted}
-              value={slotLocation}
-              onChangeText={setSlotLocation}
-            />
-          </View>
-        </View>
-        <Clickable
-          onPress={addTimeSlot}
-          style={[styles.addSlotButton, { backgroundColor: palette.tint }]}
-        >
-          <Ionicons name="add" size={18} color={palette.onPrimary} />
-          <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Add Time Slot</ThemedText>
-        </Clickable>
-      </SurfaceCard>
+      {currentUser?.id && (
+        <SlotPicker
+          coachId={currentUser.id}
+          sessionTemplateId={selectedTemplate?.id}
+          onSelectionChange={setSelectedAvailabilitySlots}
+        />
+      )}
 
-      {proposedSlots.length > 0 && (
+      {/* Selected slots summary */}
+      {selectedAvailabilitySlots.length > 0 && (
         <View style={styles.slotsList}>
-          <ThemedText style={styles.formLabel}>Proposed Slots</ThemedText>
-          {proposedSlots.map((slot, index) => (
+          <ThemedText style={styles.formLabel}>Selected Slots</ThemedText>
+          {selectedAvailabilitySlots.map((slot, index) => (
             <View
-              key={index}
-              style={[styles.slotItem, { backgroundColor: palette.surface, borderColor: palette.border }]}
+              key={`${slot.date}_${slot.startTime}`}
+              style={[styles.slotItem, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }]}
             >
+              <Ionicons name="checkmark-circle" size={20} color={palette.tint} />
               <View style={styles.slotInfo}>
                 <ThemedText type="defaultSemiBold">
-                  {new Date(slot.date).toLocaleDateString('en-GB', {
+                  {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {
                     weekday: 'short',
                     day: 'numeric',
                     month: 'short',
                   })}
                 </ThemedText>
                 <ThemedText style={{ color: palette.muted }}>
-                  {slot.startTime} - {slot.endTime}
-                  {slot.location && ` at ${slot.location}`}
+                  {slot.startTime} – {slot.endTime}
+                  {slot.location && ` · ${slot.location}`}
                 </ThemedText>
               </View>
-              <Clickable onPress={() => removeTimeSlot(index)}>
-                <Ionicons name="close-circle" size={22} color={palette.error} />
-              </Clickable>
             </View>
           ))}
         </View>
@@ -873,7 +894,7 @@ export default function CreateSessionInviteScreen() {
       ? selectedAthletes[0].name
       : `${selectedAthletes.length} athletes`;
     const clubDisplay = selectedClub ? ` to ${selectedClub.name}` : '';
-    const sessionLabel = isExisting ? selectedExistingSession.title : sessionType;
+    const sessionLabel = isExisting ? selectedExistingSession.title : (selectedTemplate?.name || sessionType);
     const invitePreview = `Coach ${currentUser?.name?.split(' ')[0] || 'You'} has invited ${athleteDisplay}${clubDisplay} - ${sessionLabel}`;
 
     return (
@@ -941,9 +962,15 @@ export default function CreateSessionInviteScreen() {
               <View style={styles.summaryRow}>
                 <Ionicons name="football-outline" size={18} color={palette.muted} />
                 <ThemedText>
-                  {sessionType} - {focus}
+                  {selectedTemplate?.name || sessionType} · {focus}
                 </ThemedText>
               </View>
+              {selectedTemplate && (
+                <View style={styles.summaryRow}>
+                  <Ionicons name="time-outline" size={18} color={palette.muted} />
+                  <ThemedText>{selectedTemplate.duration} minutes</ThemedText>
+                </View>
+              )}
               <View style={styles.summaryRow}>
                 <Ionicons
                   name={
@@ -964,16 +991,31 @@ export default function CreateSessionInviteScreen() {
                     : 'Squad members only'}
                 </ThemedText>
               </View>
-              <View style={styles.summaryRow}>
-                <Ionicons name="calendar-outline" size={18} color={palette.muted} />
-                <ThemedText>{proposedSlots.length} time slot(s) proposed</ThemedText>
-              </View>
-              {price && (
+              {selectedAvailabilitySlots.length > 0 ? (
+                selectedAvailabilitySlots.map((slot) => (
+                  <View key={`${slot.date}_${slot.startTime}`} style={styles.summaryRow}>
+                    <Ionicons name="calendar-outline" size={18} color={palette.muted} />
+                    <ThemedText>
+                      {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {
+                        weekday: 'short', day: 'numeric', month: 'short',
+                      })}{' '}
+                      {slot.startTime} – {slot.endTime}
+                      {slot.location && ` · ${slot.location}`}
+                    </ThemedText>
+                  </View>
+                ))
+              ) : (
                 <View style={styles.summaryRow}>
-                  <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
-                  <ThemedText>${price}</ThemedText>
+                  <Ionicons name="calendar-outline" size={18} color={palette.muted} />
+                  <ThemedText>{proposedSlots.length} time slot(s) proposed</ThemedText>
                 </View>
               )}
+              <View style={styles.summaryRow}>
+                <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
+                <ThemedText>
+                  {'\u00A3'}{price || selectedTemplate?.defaultPrice || '0'}/session
+                </ThemedText>
+              </View>
             </>
           )}
           {notes && (
@@ -983,6 +1025,61 @@ export default function CreateSessionInviteScreen() {
             </View>
           )}
         </SurfaceCard>
+
+        {/* Recurring Toggle (Job 6.1) */}
+        {inviteMode === 'new' && (
+          <SurfaceCard style={styles.recurringCard}>
+            <View style={styles.recurringRow}>
+              <View style={styles.recurringInfo}>
+                <ThemedText type="defaultSemiBold">Repeat Weekly</ThemedText>
+                <ThemedText style={[styles.recurringDesc, { color: palette.muted }]}>
+                  Create a recurring session on the same day each week
+                </ThemedText>
+              </View>
+              <Clickable
+                onPress={() => setIsRecurring(!isRecurring)}
+                style={[
+                  styles.toggleTrack,
+                  { backgroundColor: isRecurring ? palette.tint : palette.border },
+                ]}
+              >
+                <View style={[
+                  styles.toggleThumb,
+                  { transform: [{ translateX: isRecurring ? 20 : 0 }] },
+                ]} />
+              </Clickable>
+            </View>
+            {isRecurring && (
+              <View style={styles.recurringOptions}>
+                <ThemedText style={[styles.recurringLabel, { color: palette.muted }]}>For how long?</ThemedText>
+                <View style={styles.optionsRow}>
+                  {[4, 8, 12].map((weeks) => (
+                    <Clickable
+                      key={weeks}
+                      onPress={() => setRecurrenceWeeks(weeks)}
+                      style={[
+                        styles.optionChip,
+                        {
+                          backgroundColor: recurrenceWeeks === weeks ? palette.tint : palette.surface,
+                          borderColor: recurrenceWeeks === weeks ? palette.tint : palette.border,
+                        },
+                      ]}
+                    >
+                      <ThemedText
+                        style={{ color: recurrenceWeeks === weeks ? palette.onPrimary : palette.text, ...Typography.small }}
+                      >
+                        {weeks} weeks
+                      </ThemedText>
+                    </Clickable>
+                  ))}
+                </View>
+                <ThemedText style={[styles.recurringPreview, { color: palette.tint }]}>
+                  This will create {recurrenceWeeks} invites, one per week
+                </ThemedText>
+              </View>
+            )}
+          </SurfaceCard>
+        )}
 
         <ThemedText style={[styles.disclaimer, { color: palette.muted }]}>
           The parent will receive a notification and have 7 days to respond. You can cancel the
@@ -1149,6 +1246,31 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
   },
+  templateChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1.5,
+    gap: Spacing.micro,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  templateMeta: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  autoFillBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.sm,
+  },
+  autoFillText: {
+    ...Typography.small,
+    fontWeight: '600',
+  },
   addSlotCard: {
     padding: Spacing.md,
     gap: Spacing.sm,
@@ -1306,5 +1428,45 @@ const styles = StyleSheet.create({
     ...Typography.bodySmallSemiBold,
     flex: 1,
     lineHeight: 20,
+  },
+  // Recurring styles (Job 6.1)
+  recurringCard: {
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  recurringRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  recurringInfo: {
+    flex: 1,
+    gap: Spacing.micro,
+  },
+  recurringDesc: {
+    ...Typography.small,
+  },
+  toggleTrack: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+  },
+  recurringOptions: {
+    gap: Spacing.sm,
+  },
+  recurringLabel: {
+    ...Typography.smallSemiBold,
+  },
+  recurringPreview: {
+    ...Typography.small,
+    fontWeight: '600',
   },
 });

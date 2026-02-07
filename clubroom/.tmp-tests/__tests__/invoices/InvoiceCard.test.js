@@ -42,6 +42,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const theme_1 = require("@/constants/theme");
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 (0, node_test_1.describe)('InvoiceCard Utility Functions', () => {
@@ -281,7 +282,7 @@ const node_test_1 = __importStar(require("node:test"));
             VOID: '#DC2626',
         };
         return {
-            backgroundColor: `${colors[status]}15`,
+            backgroundColor: (0, theme_1.withAlpha)(colors[status], 0.09),
             textColor: colors[status],
         };
     };

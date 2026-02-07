@@ -17,6 +17,8 @@ const api_client_1 = require("./api-client");
 const config_1 = require("@/constants/config");
 const storage_keys_1 = require("@/constants/storage-keys");
 const booking_types_1 = require("@/constants/booking-types");
+const invite_hold_service_1 = require("./invite-hold-service");
+const session_template_service_1 = require("./session-template-service");
 const logger_1 = require("@/utils/logger");
 const logger = (0, logger_1.createLogger)('AvailabilityService');
 const USE_MOCK = config_1.api.useMock;
@@ -489,13 +491,63 @@ exports.availabilityService = {
             scheduledAt: offering.scheduledAt,
             service: offering.title,
             location: offering.location,
-            status: offering.status === 'active' ? 'CONFIRMED' : offering.status?.toUpperCase(),
+            status: (offering.status === 'active' ? 'CONFIRMED' : offering.status?.toUpperCase()),
             isGroupSession: offering.sessionType === 'group',
             maxParticipants: offering.maxParticipants,
             currentParticipants: offering.registrations?.filter(r => r.status === 'confirmed').length || 0,
             registrations: offering.registrations,
         }));
         return [...coachBookings, ...coachOfferingBookings];
+    },
+    /**
+     * Get slots that a coach can invite someone to.
+     * Respects availability, existing bookings, session type tagging, AND pending invite holds.
+     */
+    async getInvitableSlots(coachId, startDate, endDate, sessionTemplateId) {
+        // Determine duration from session template
+        let duration = 60;
+        if (sessionTemplateId) {
+            const template = await session_template_service_1.sessionTemplateService.getTemplate(sessionTemplateId);
+            if (template) {
+                duration = template.duration;
+            }
+        }
+        // Get all available slots
+        const allSlots = await this.getAvailableSlots(coachId, startDate, endDate, duration);
+        // Filter to available only
+        let invitable = allSlots.filter((s) => s.isAvailable);
+        // If a session template is specified, filter by tagged availability blocks
+        if (sessionTemplateId) {
+            const templates = await this.getTemplates(coachId);
+            const taggedDays = new Map(); // dayOfWeek → templateIds that tagged it
+            for (const t of templates) {
+                if (t.sessionTemplateId) {
+                    const existing = taggedDays.get(t.dayOfWeek) || [];
+                    existing.push(t.sessionTemplateId);
+                    taggedDays.set(t.dayOfWeek, existing);
+                }
+            }
+            // Only filter if some blocks are tagged (otherwise all are open to any type)
+            if (taggedDays.size > 0) {
+                invitable = invitable.filter((slot) => {
+                    const slotDay = new Date(slot.date + 'T00:00:00').getDay();
+                    const tagsForDay = taggedDays.get(slotDay);
+                    // If this day has no tagged blocks, it's open to any type
+                    if (!tagsForDay)
+                        return true;
+                    // If tagged, only allow matching session type
+                    return tagsForDay.includes(sessionTemplateId);
+                });
+            }
+        }
+        // Filter out slots held by pending invites
+        const activeHolds = await invite_hold_service_1.inviteHoldService.getActiveHolds(coachId);
+        if (activeHolds.length > 0) {
+            invitable = invitable.filter((slot) => {
+                return !activeHolds.some((h) => h.slotDate === slot.date && h.slotStartTime === slot.startTime);
+            });
+        }
+        return invitable;
     },
     /**
      * Get a summary of availability for display
@@ -525,6 +577,68 @@ exports.availabilityService = {
             weeklyHours: Math.round(weeklyMinutes / 60 * 10) / 10,
             daysAvailable,
             nextAvailableSlot,
+        };
+    },
+    /**
+     * Check for conflicts before blocking/removing availability.
+     * Returns bookings and pending invite holds that fall on the given date(s).
+     */
+    async checkConflicts(coachId, dates) {
+        if (dates.length === 0)
+            return { bookingCount: 0, holdCount: 0, bookings: [], holds: [] };
+        const startDate = dates.sort()[0];
+        const endDate = dates.sort()[dates.length - 1];
+        const dateSet = new Set(dates);
+        // Check bookings
+        const allBookings = await loadBookings();
+        const conflictBookings = allBookings
+            .filter((b) => {
+            if (b.coachId !== coachId || b.status === 'CANCELLED')
+                return false;
+            const bookingDate = b.scheduledAt?.split('T')[0];
+            return bookingDate ? dateSet.has(bookingDate) : false;
+        })
+            .map((b) => ({
+            date: b.scheduledAt?.split('T')[0] || '',
+            time: b.scheduledAt?.split('T')[1]?.substring(0, 5) || '',
+            athleteName: b.athleteName,
+        }));
+        // Check pending invite holds
+        const activeHolds = await invite_hold_service_1.inviteHoldService.getActiveHolds(coachId);
+        const conflictHolds = activeHolds
+            .filter((h) => dateSet.has(h.slotDate))
+            .map((h) => ({
+            date: h.slotDate,
+            time: h.slotStartTime,
+            inviteId: h.inviteId,
+        }));
+        return {
+            bookingCount: conflictBookings.length,
+            holdCount: conflictHolds.length,
+            bookings: conflictBookings,
+            holds: conflictHolds,
+        };
+    },
+    /**
+     * Check conflicts for a specific day of week (recurring template removal).
+     * Looks 4 weeks ahead to find affected bookings/holds.
+     */
+    async checkRecurringConflicts(coachId, dayOfWeek) {
+        const today = new Date();
+        const dates = [];
+        // Check next 4 weeks for this day of week
+        for (let w = 0; w < 4; w++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + ((dayOfWeek - today.getDay() + 7) % 7) + w * 7);
+            if (d >= today) {
+                dates.push(d.toISOString().split('T')[0]);
+            }
+        }
+        const result = await this.checkConflicts(coachId, dates);
+        return {
+            bookingCount: result.bookingCount,
+            holdCount: result.holdCount,
+            affectedDates: dates,
         };
     },
 };

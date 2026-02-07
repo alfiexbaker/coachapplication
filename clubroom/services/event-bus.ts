@@ -114,6 +114,10 @@ export const ServiceEvents = {
   BOOKING_CANCELLED: 'booking:cancelled',
   BOOKING_CONFIRMED: 'booking:confirmed',
 
+  // Series events (multi-week bookings)
+  SERIES_CREATED: 'series:created',
+  SERIES_UPDATED: 'series:updated',
+
   // Session events
   SESSION_CREATED: 'session:created',
   SESSION_UPDATED: 'session:updated',
@@ -203,6 +207,23 @@ export interface EventPayloads {
     coachName?: string;
     athleteName?: string;
     scheduledAt?: string;
+  };
+
+  // Series events (multi-week bookings)
+  [ServiceEvents.SERIES_CREATED]: {
+    seriesId: string;
+    coachId: string;
+    coachName: string;
+    createdById: string;
+    bookingIds: string[];
+    weekCount: number;
+    totalCost: number;
+    location: string;
+  };
+  [ServiceEvents.SERIES_UPDATED]: {
+    seriesId: string;
+    status: 'ACTIVE' | 'PARTIAL' | 'COMPLETED' | 'CANCELLED';
+    changes: Record<string, unknown>;
   };
 
   // Session events

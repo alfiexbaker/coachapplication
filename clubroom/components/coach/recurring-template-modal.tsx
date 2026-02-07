@@ -1,23 +1,21 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, ScrollView, Pressable, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { createLogger } from '@/utils/logger';
-import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
 import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { AvailabilityTemplate } from '@/constants/types';
+import type { SessionTemplate } from '@/constants/session-types';
 
 const logger = createLogger('RecurringTemplateModal');
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-// Time options for picker
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6am to 8pm
 
 // Common locations - defined outside component to be stable
 const COMMON_LOCATIONS = [
@@ -27,94 +25,6 @@ const COMMON_LOCATIONS = [
   'Indoor Facility',
   'Online Session',
 ];
-const formatHour = (hour: number) => {
-  if (hour === 12) return '12:00 PM';
-  if (hour > 12) return `${hour - 12}:00 PM`;
-  return `${hour}:00 AM`;
-};
-
-const formatTimeValue = (time: string) => {
-  const [h, m] = time.split(':').map(Number);
-  const period = h >= 12 ? 'PM' : 'AM';
-  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
-};
-
-interface TimePickerProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  minHour?: number;
-}
-
-function TimePicker({ label, value, onChange, minHour = 6 }: TimePickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
-  const [showPicker, setShowPicker] = useState(false);
-
-  const [currentHour] = value.split(':').map(Number);
-  const availableHours = HOURS.filter(h => h >= minHour);
-
-  const handleSelectHour = (hour: number) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onChange(`${hour.toString().padStart(2, '0')}:00`);
-    setShowPicker(false);
-  };
-
-  return (
-    <View style={styles.timePickerContainer}>
-      <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>{label}</ThemedText>
-      <Clickable
-        onPress={() => setShowPicker(true)}
-        style={[styles.timePickerButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
-      >
-        <Ionicons name="time-outline" size={18} color={palette.tint} />
-        <ThemedText type="defaultSemiBold" style={{ flex: 1 }}>
-          {formatTimeValue(value)}
-        </ThemedText>
-        <Ionicons name="chevron-down" size={16} color={palette.muted} />
-      </Clickable>
-
-      <Modal visible={showPicker} animationType="fade" transparent onRequestClose={() => setShowPicker(false)}>
-        <Pressable style={styles.pickerOverlay} onPress={() => setShowPicker(false)}>
-          <View style={[styles.pickerModal, { backgroundColor: palette.surface }]}>
-            <View style={styles.pickerHeader}>
-              <ThemedText type="subtitle">Select {label}</ThemedText>
-              <Clickable onPress={() => setShowPicker(false)}>
-                <Ionicons name="close" size={24} color={palette.muted} />
-              </Clickable>
-            </View>
-            <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
-              {availableHours.map((hour) => {
-                const isSelected = hour === currentHour;
-                return (
-                  <Clickable
-                    key={hour}
-                    onPress={() => handleSelectHour(hour)}
-                    style={[
-                      styles.pickerOption,
-                      {
-                        backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : 'transparent',
-                        borderColor: isSelected ? palette.tint : 'transparent',
-                      },
-                    ]}
-                  >
-                    <ThemedText
-                      style={[styles.pickerOptionText, { color: isSelected ? palette.tint : palette.text }]}
-                    >
-                      {formatHour(hour)}
-                    </ThemedText>
-                    {isSelected && <Ionicons name="checkmark-circle" size={20} color={palette.tint} />}
-                  </Clickable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
-    </View>
-  );
-}
 
 // Quick presets for common schedules
 const QUICK_PRESETS = [
@@ -132,6 +42,7 @@ interface RecurringTemplateModalProps {
   editingTemplate?: AvailabilityTemplate | null;
   preselectedDay?: number;
   preselectedHour?: number;
+  sessionTemplates?: SessionTemplate[];
 }
 
 export function RecurringTemplateModal({
@@ -142,6 +53,7 @@ export function RecurringTemplateModal({
   editingTemplate,
   preselectedDay,
   preselectedHour,
+  sessionTemplates,
 }: RecurringTemplateModalProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -153,6 +65,7 @@ export function RecurringTemplateModal({
   const [location, setLocation] = useState('');
   const [maxConcurrent, setMaxConcurrent] = useState(1);
   const [bufferMinutes, setBufferMinutes] = useState(15);
+  const [sessionTemplateId, setSessionTemplateId] = useState<string | undefined>();
   const [saving, setSaving] = useState(false);
   const [showLocationInput, setShowLocationInput] = useState(false);
 
@@ -169,6 +82,7 @@ export function RecurringTemplateModal({
       setLocation(editingTemplate.location || '');
       setMaxConcurrent(editingTemplate.maxConcurrent);
       setBufferMinutes(editingTemplate.bufferMinutes);
+      setSessionTemplateId(editingTemplate.sessionTemplateId);
       setShowLocationInput(!!editingTemplate.location && !COMMON_LOCATIONS.includes(editingTemplate.location));
     } else {
       // Adding new - reset
@@ -188,6 +102,7 @@ export function RecurringTemplateModal({
       setLocation('');
       setMaxConcurrent(1);
       setBufferMinutes(15);
+      setSessionTemplateId(undefined);
       setShowLocationInput(false);
     }
   }, [editingTemplate, preselectedDay, preselectedHour, visible]);
@@ -225,11 +140,15 @@ export function RecurringTemplateModal({
 
   const handleStartTimeChange = (newTime: string) => {
     setStartTime(newTime);
-    const [newStartH] = newTime.split(':').map(Number);
-    const [currentEndH] = endTime.split(':').map(Number);
-    if (currentEndH <= newStartH) {
-      const newEndH = Math.min(newStartH + 2, 20);
-      setEndTime(`${newEndH.toString().padStart(2, '0')}:00`);
+    const [newStartH, newStartM] = newTime.split(':').map(Number);
+    const [currentEndH, currentEndM] = endTime.split(':').map(Number);
+    const newStartMins = newStartH * 60 + newStartM;
+    const currentEndMins = currentEndH * 60 + currentEndM;
+    if (currentEndMins <= newStartMins) {
+      const newEndMins = Math.min(newStartMins + 120, 20 * 60);
+      const endH = Math.floor(newEndMins / 60);
+      const endM = newEndMins % 60;
+      setEndTime(`${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`);
     }
   };
 
@@ -261,6 +180,7 @@ export function RecurringTemplateModal({
           maxConcurrent,
           bufferMinutes,
           location: location || undefined,
+          sessionTemplateId,
         });
       }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -413,15 +333,24 @@ export function RecurringTemplateModal({
             </ThemedText>
 
             <View style={styles.timeRow}>
-              <TimePicker label="Start Time" value={startTime} onChange={handleStartTimeChange} minHour={6} />
+              <DateTimeField
+                mode="time"
+                label="Start Time"
+                value={startTime}
+                onChange={handleStartTimeChange}
+                minuteInterval={15}
+                style={{ flex: 1 }}
+              />
               <View style={styles.timeArrow}>
                 <Ionicons name="arrow-forward" size={20} color={palette.muted} />
               </View>
-              <TimePicker
+              <DateTimeField
+                mode="time"
                 label="End Time"
                 value={endTime}
                 onChange={setEndTime}
-                minHour={parseInt(startTime.split(':')[0]) + 1}
+                minuteInterval={15}
+                style={{ flex: 1 }}
               />
             </View>
 
@@ -503,6 +432,65 @@ export function RecurringTemplateModal({
               </View>
             )}
           </View>
+
+          {/* Session Template */}
+          {sessionTemplates && sessionTemplates.length > 0 && (
+            <View style={styles.section}>
+              <ThemedText style={styles.sectionTitle}>Session Template (Optional)</ThemedText>
+              <ThemedText style={[styles.sectionHint, { color: palette.muted }]}>
+                Link this slot to a specific session type
+              </ThemedText>
+
+              <View style={styles.locationOptions}>
+                <Clickable
+                  onPress={() => {
+                    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSessionTemplateId(undefined);
+                  }}
+                  style={[
+                    styles.locationChip,
+                    {
+                      backgroundColor: !sessionTemplateId ? withAlpha(palette.tint, 0.09) : palette.surface,
+                      borderColor: !sessionTemplateId ? palette.tint : palette.border,
+                    },
+                  ]}
+                >
+                  <Ionicons name="apps-outline" size={14} color={!sessionTemplateId ? palette.tint : palette.muted} />
+                  <ThemedText style={[styles.locationChipText, { color: !sessionTemplateId ? palette.tint : palette.text }]}>
+                    Any Type
+                  </ThemedText>
+                </Clickable>
+                {sessionTemplates.map((st) => {
+                  const isSelected = sessionTemplateId === st.id;
+                  return (
+                    <Clickable
+                      key={st.id}
+                      onPress={() => {
+                        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setSessionTemplateId(isSelected ? undefined : st.id);
+                      }}
+                      style={[
+                        styles.locationChip,
+                        {
+                          backgroundColor: isSelected ? withAlpha(palette.accent, 0.09) : palette.surface,
+                          borderColor: isSelected ? palette.accent : palette.border,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={st.capacity === 1 ? 'person-outline' : 'people-outline'}
+                        size={14}
+                        color={isSelected ? palette.accent : palette.muted}
+                      />
+                      <ThemedText style={[styles.locationChipText, { color: isSelected ? palette.accent : palette.text }]}>
+                        {st.name}
+                      </ThemedText>
+                    </Clickable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {/* Session Type */}
           <View style={styles.section}>
@@ -721,62 +709,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: Spacing.sm,
   },
-  timePickerContainer: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  inputLabel: {
-    ...Typography.caption,
-  },
-  timePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    height: 52,
-    borderWidth: 1.5,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-  },
   timeArrow: {
     paddingBottom: Spacing.sm,
-  },
-  pickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  pickerModal: {
-    width: '100%',
-    maxWidth: 320,
-    maxHeight: 400,
-    borderRadius: Radii.lg,
-    overflow: 'hidden',
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
-  pickerScroll: {
-    padding: Spacing.sm,
-  },
-  pickerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    marginBottom: Spacing.xs,
-  },
-  pickerOptionText: {
-    ...Typography.subheading,
   },
   durationBadge: {
     flexDirection: 'row',

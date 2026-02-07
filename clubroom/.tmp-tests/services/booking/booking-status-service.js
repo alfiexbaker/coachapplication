@@ -12,8 +12,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bookingStatusService = void 0;
 const notification_service_1 = require("../notification-service");
-const api_client_1 = require("../api-client");
-const storage_keys_1 = require("@/constants/storage-keys");
 const logger_1 = require("@/utils/logger");
 const event_bus_1 = require("@/services/event-bus");
 const result_1 = require("@/types/result");
@@ -21,19 +19,18 @@ const booking_crud_service_1 = require("./booking-crud-service");
 const logger = (0, logger_1.createLogger)('BookingStatusService');
 exports.bookingStatusService = {
     /**
-     * Confirm a pending booking (for coach)
+     * Confirm a pending booking (for coach).
+     * Delegates to bookingCrudService.updateBooking() so the write goes through
+     * the cache-aware path instead of hitting apiClient directly.
      */
     async confirmBooking(bookingId) {
         try {
-            const bookings = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.BOOKINGS, []);
-            const bookingIndex = bookings.findIndex((b) => b.id === bookingId);
-            if (bookingIndex === -1) {
+            const result = await booking_crud_service_1.bookingCrudService.updateBooking(bookingId, { status: 'CONFIRMED' });
+            if (!result.success) {
                 return { success: false, error: 'Booking not found' };
             }
-            bookings[bookingIndex].status = 'CONFIRMED';
-            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BOOKINGS, bookings);
             // Create confirmation notification
-            const booking = bookings[bookingIndex];
+            const booking = result.data;
             await notification_service_1.notificationService.create({
                 id: `notif-confirmed-${Date.now()}`,
                 type: 'booking',

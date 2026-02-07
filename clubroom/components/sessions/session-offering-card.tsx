@@ -118,7 +118,9 @@ export function SessionOfferingCard({
             <ThemedText style={[styles.capacityText, {
               color: isFull ? palette.error : palette.success
             }]}>
-              {isFull ? 'FULL' : `${capacityText} spots`}
+              {isFull ? 'FULL' : showCoach
+                ? `${registeredCount} attending · ${offering.maxParticipants - registeredCount} left`
+                : `${capacityText} spots`}
             </ThemedText>
           </View>
         )}

@@ -157,6 +157,10 @@ export const Routes = {
     pathname: '/book/[coachId]',
     params: { coachId },
   }) as unknown as Href,
+  bookMultiWeek: (coachId: string) => ({
+    pathname: '/book/[coachId]/multi-week',
+    params: { coachId },
+  }) as Href,
 
   // ─── Booking (non-tab) ────────────────────────────────────────
   bookingCancel: (id: string) => ({

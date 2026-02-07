@@ -51,6 +51,10 @@ exports.communityService = {
     acceptGroupInvite: community_group_service_2.communityGroupService.acceptGroupInvite.bind(community_group_service_2.communityGroupService),
     declineGroupInvite: community_group_service_2.communityGroupService.declineGroupInvite.bind(community_group_service_2.communityGroupService),
     promoteMember: community_group_service_2.communityGroupService.promoteMember.bind(community_group_service_2.communityGroupService),
+    changeMemberRole: community_group_service_2.communityGroupService.changeMemberRole.bind(community_group_service_2.communityGroupService),
+    getRoleWeight: community_group_service_2.communityGroupService.getRoleWeight.bind(community_group_service_2.communityGroupService),
+    getAssignableRoles: community_group_service_2.communityGroupService.getAssignableRoles.bind(community_group_service_2.communityGroupService),
+    getRoleBreakdown: community_group_service_2.communityGroupService.getRoleBreakdown.bind(community_group_service_2.communityGroupService),
     // ==========================================================================
     // GROUP MESSAGING (from communityMessagingService)
     // ==========================================================================
