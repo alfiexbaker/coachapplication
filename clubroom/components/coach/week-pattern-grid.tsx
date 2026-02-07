@@ -53,6 +53,7 @@ interface WeekPatternGridProps {
   isSetupMode: boolean;
   onDayPress: (dayOfWeek: number, templateId?: string, dateStr?: string) => void;
   onSetupComplete?: (templates: AvailabilityTemplate[]) => void;
+  onTimeOffPress?: (dateStr: string, existingOverride?: AvailabilityOverride) => void;
 }
 
 const PRESETS = [
@@ -83,6 +84,7 @@ export function WeekPatternGrid({
   isSetupMode,
   onDayPress,
   onSetupComplete,
+  onTimeOffPress,
 }: WeekPatternGridProps) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
@@ -166,7 +168,8 @@ export function WeekPatternGrid({
 
     for (const d of DAYS_ORDERED) {
       const dateStr = getDateForDay(d.index);
-      if (blockedDates.has(dateStr)) continue;
+      const blockedByOverride = overrides.some(o => o.date === dateStr && o.isBlocked);
+      if (blockedDates.has(dateStr) || blockedByOverride) continue;
 
       const override = overrides.find(
         (o) => o.date === dateStr && !o.isBlocked && (o.customSlots?.length ?? 0) > 0
@@ -424,6 +427,7 @@ export function WeekPatternGrid({
     locationDisplay,
     hasOverride,
     isBlocked,
+    blockReason,
     isToday,
     hasTemplates,
     showSeparator,
@@ -435,6 +439,7 @@ export function WeekPatternGrid({
     locationDisplay: string | null;
     hasOverride: boolean;
     isBlocked: boolean;
+    blockReason?: string;
     isToday: boolean;
     hasTemplates: boolean;
     showSeparator: boolean;
@@ -444,6 +449,7 @@ export function WeekPatternGrid({
       ...styles.dayRow,
       ...(showSeparator ? { borderBottomWidth: 1, borderBottomColor: palette.border } : {}),
       ...(isToday ? { backgroundColor: withAlpha(palette.tint, 0.03) } : {}),
+      ...(isBlocked ? { backgroundColor: withAlpha(palette.error, 0.03) } : {}),
     };
 
     return (
@@ -460,8 +466,8 @@ export function WeekPatternGrid({
             <ThemedText
               style={[
                 styles.dayLabel,
-                { color: hasTemplates ? palette.text : palette.muted },
-                isToday ? { fontWeight: '700' as const, color: palette.tint } : undefined,
+                { color: isBlocked ? palette.muted : hasTemplates ? palette.text : palette.muted },
+                isToday && !isBlocked ? { fontWeight: '700' as const, color: palette.tint } : undefined,
               ]}
             >
               {dayLabel}
@@ -469,21 +475,30 @@ export function WeekPatternGrid({
           )}
         </View>
 
-        {/* Time range */}
+        {/* Time range or Time Off label */}
         <View style={styles.dayTimeCol}>
-          <ThemedText
-            style={[
-              styles.dayTime,
-              { color: hasTemplates ? palette.text : palette.muted },
-            ]}
-          >
-            {timeDisplay}
-          </ThemedText>
+          {isBlocked ? (
+            <View style={styles.timeOffRow}>
+              <Ionicons name="airplane-outline" size={14} color={palette.error} />
+              <ThemedText style={[styles.dayTime, { color: palette.error, fontWeight: '600' }]}>
+                {blockReason || 'Time Off'}
+              </ThemedText>
+            </View>
+          ) : (
+            <ThemedText
+              style={[
+                styles.dayTime,
+                { color: hasTemplates ? palette.text : palette.muted },
+              ]}
+            >
+              {timeDisplay}
+            </ThemedText>
+          )}
         </View>
 
-        {/* Location pill */}
+        {/* Location pill (hidden when blocked) */}
         <View style={styles.dayLocationCol}>
-          {locationDisplay ? (
+          {!isBlocked && locationDisplay ? (
             <View style={[styles.locationPill, { backgroundColor: withAlpha(palette.tint, 0.07) }]}>
               <Ionicons name="location-outline" size={10} color={palette.tint} />
               <ThemedText style={[styles.locationPillText, { color: palette.tint }]} numberOfLines={1}>
@@ -495,11 +510,8 @@ export function WeekPatternGrid({
 
         {/* Indicators */}
         <View style={styles.dayIndicators}>
-          {hasOverride && (
+          {hasOverride && !isBlocked && (
             <View style={[styles.indicatorDot, { backgroundColor: palette.warning }]} />
-          )}
-          {isBlocked && (
-            <View style={[styles.indicatorDot, { backgroundColor: palette.error }]} />
           )}
           <Ionicons name="chevron-forward" size={16} color={palette.muted} />
         </View>
@@ -567,7 +579,29 @@ export function WeekPatternGrid({
 
           // For non-current weeks, use merged view
           if (weekOffset !== 0) {
-            const { hasOverride, override } = getOverrideForDate(dateStr);
+            const { hasOverride, isBlocked, override } = getOverrideForDate(dateStr);
+
+            // Blocked day — show "Time Off" row
+            if (isBlocked) {
+              const blockingOverride = overrides.find(o => o.date === dateStr && o.isBlocked);
+              return (
+                <View key={d.index}>
+                  {renderSlotRow({
+                    dayLabel: d.short,
+                    showDayLabel: true,
+                    timeDisplay: blockingOverride?.reason || 'Time Off',
+                    locationDisplay: null,
+                    hasOverride: false,
+                    isBlocked: true,
+                    blockReason: blockingOverride?.reason,
+                    isToday: false,
+                    hasTemplates: false,
+                    showSeparator: !isLastDay,
+                    onPress: () => onTimeOffPress?.(dateStr, blockingOverride ?? undefined),
+                  })}
+                </View>
+              );
+            }
 
             if (hasOverride && override?.customSlots) {
               // Override slots — sub-rows + add block
@@ -648,8 +682,30 @@ export function WeekPatternGrid({
           }
 
           // ========= CURRENT WEEK (weekOffset === 0) =========
-          const { hasOverride } = getOverrideIndicator(d.index);
+          const { hasOverride, isBlocked: isCurrentBlocked } = getOverrideIndicator(d.index);
           const currentDateStr = getDateForDay(d.index);
+
+          // Blocked day — show "Time Off" row
+          if (isCurrentBlocked) {
+            const blockingOverride = overrides.find(o => o.date === currentDateStr && o.isBlocked);
+            return (
+              <View key={d.index}>
+                {renderSlotRow({
+                  dayLabel: d.short,
+                  showDayLabel: true,
+                  timeDisplay: blockingOverride?.reason || 'Time Off',
+                  locationDisplay: null,
+                  hasOverride: false,
+                  isBlocked: true,
+                  blockReason: blockingOverride?.reason,
+                  isToday,
+                  hasTemplates: false,
+                  showSeparator: !isLastDay,
+                  onPress: () => onTimeOffPress?.(currentDateStr, blockingOverride ?? undefined),
+                })}
+              </View>
+            );
+          }
 
           if (dayTemplates.length === 0) {
             // No templates — single "--" row, tapping creates first block
@@ -790,6 +846,11 @@ const styles = StyleSheet.create({
   },
   dayTime: {
     ...Typography.bodySmall,
+  },
+  timeOffRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
   },
   dayLocationCol: {
     flex: 1,

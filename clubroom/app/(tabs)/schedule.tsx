@@ -36,6 +36,7 @@ import { SessionTypeChips } from '@/components/coach/session-type-chips';
 import { SessionTypeModal } from '@/components/coach/session-type-modal';
 import { WeekPatternGrid } from '@/components/coach/week-pattern-grid';
 import { DayEditorSheet } from '@/components/coach/day-editor-sheet';
+import { TimeOffSheet } from '@/components/coach/time-off-sheet';
 import { sessionTemplateService } from '@/services/session-template-service';
 import { coachVenueService } from '@/services/coach-venue-service';
 import type { SessionTemplate } from '@/constants/session-types';
@@ -110,6 +111,13 @@ export default function ScheduleScreen() {
     defaultScope?: 'recurring' | 'just-this-date' | 'next-n-weeks';
   } | null>(null);
   const [venues, setVenues] = useState<CoachVenue[]>([]);
+
+  // Time Off state
+  const [timeOffOpen, setTimeOffOpen] = useState(false);
+  const [timeOffConfig, setTimeOffConfig] = useState<{
+    preselectedDate?: string;
+    existingOverride?: AvailabilityOverride | null;
+  } | null>(null);
 
   const coachId = currentUser?.id || 'coach_1';
 
@@ -284,7 +292,7 @@ export default function ScheduleScreen() {
         isPast: date < new Date(today.toISOString().split('T')[0]),
         sessions: daySessions,
         availabilitySlots,
-        isBlocked: blockedDates.has(dateStr),
+        isBlocked: blockedDates.has(dateStr) || overrides.some(o => o.date === dateStr && o.isBlocked),
         hasOverride,
       };
     });
@@ -355,6 +363,12 @@ export default function ScheduleScreen() {
   const handleOpenSettings = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(Routes.AVAILABILITY_SCHEDULING_RULES);
+  };
+
+  const handleTimeOffPress = (dateStr: string, existingOverride?: AvailabilityOverride) => {
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTimeOffConfig({ preselectedDate: dateStr, existingOverride: existingOverride ?? null });
+    setTimeOffOpen(true);
   };
 
   const handleSegmentChange = (s: Segment) => {
@@ -555,7 +569,15 @@ export default function ScheduleScreen() {
                     <ThemedText style={[styles.dayDetailSub, { color: palette.muted }]}>
                       {selectedDay.sessions.length} session{selectedDay.sessions.length !== 1 ? 's' : ''} · {selectedDay.availabilitySlots} slot{selectedDay.availabilitySlots !== 1 ? 's' : ''} available
                     </ThemedText>
-                    {selectedDay.hasOverride && (
+                    {selectedDay.isBlocked && (
+                      <View style={[styles.adjustedBadge, { backgroundColor: withAlpha(palette.error, 0.09) }]}>
+                        <Ionicons name="airplane-outline" size={12} color={palette.error} />
+                        <ThemedText style={[styles.adjustedBadgeText, { color: palette.error }]}>
+                          Time Off
+                        </ThemedText>
+                      </View>
+                    )}
+                    {selectedDay.hasOverride && !selectedDay.isBlocked && (
                       <View style={[styles.adjustedBadge, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                         <Ionicons name="swap-horizontal-outline" size={12} color={palette.warning} />
                         <ThemedText style={[styles.adjustedBadgeText, { color: palette.warning }]}>
@@ -619,6 +641,14 @@ export default function ScheduleScreen() {
                             <ThemedText type="defaultSemiBold" numberOfLines={1} style={styles.sessionTitleText}>
                               {session.athleteName || session.title}
                             </ThemedText>
+                            {session.type === 'offering' && session.athleteCount !== undefined && (
+                              <View style={[styles.seriesBadge, { backgroundColor: withAlpha(palette.success, 0.1) }]}>
+                                <Ionicons name="people-outline" size={10} color={palette.success} />
+                                <ThemedText style={[styles.seriesBadgeText, { color: palette.success }]}>
+                                  {session.athleteCount}
+                                </ThemedText>
+                              </View>
+                            )}
                             {session.seriesId && session.seriesTotalWeeks ? (
                               <View style={[styles.seriesBadge, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
                                 <Ionicons name="repeat-outline" size={10} color={palette.tint} />
@@ -734,6 +764,7 @@ export default function ScheduleScreen() {
               });
               setDayEditorOpen(true);
             }}
+            onTimeOffPress={handleTimeOffPress}
             onSetupComplete={async (newTemplates) => {
               for (const t of newTemplates) {
                 await availabilityService.saveTemplate(t);
@@ -755,6 +786,22 @@ export default function ScheduleScreen() {
                 setShowSessionTypeModal(true);
               }}
             />
+          )}
+
+          {/* Take Time Off */}
+          {templates.length > 0 && (
+            <Clickable
+              onPress={() => {
+                if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setTimeOffConfig({ preselectedDate: undefined, existingOverride: null });
+                setTimeOffOpen(true);
+              }}
+              style={[styles.rulesBtn, { backgroundColor: palette.surface, borderColor: palette.border }]}
+            >
+              <Ionicons name="airplane-outline" size={18} color={palette.muted} />
+              <ThemedText style={[styles.rulesBtnText, { color: palette.text }]}>Take Time Off</ThemedText>
+              <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+            </Clickable>
           )}
 
           {/* Booking Rules */}
@@ -855,6 +902,16 @@ export default function ScheduleScreen() {
           const updated = await coachVenueService.getVenues(coachId);
           setVenues(updated);
         }}
+      />
+
+      {/* Time Off Sheet */}
+      <TimeOffSheet
+        visible={timeOffOpen}
+        onClose={() => { setTimeOffOpen(false); setTimeOffConfig(null); }}
+        coachId={coachId}
+        preselectedDate={timeOffConfig?.preselectedDate}
+        existingOverride={timeOffConfig?.existingOverride}
+        onSaved={() => loadData()}
       />
 
       {/* Scheduling Rules Modal */}

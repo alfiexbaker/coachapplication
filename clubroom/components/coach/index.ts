@@ -19,6 +19,7 @@ export * from './recurring-template-modal';
 export * from './scheduling-rules-editor';
 export * from './scheduling-rules-modal';
 export * from './share-profile';
+export * from './time-off-sheet';
 export { default as TrialSessionEditor } from './trial-session-editor';
 // Coach profile sub-components
 export * from './profile-header';
