@@ -208,7 +208,7 @@ class BookingCrudService {
     // Notify the other party about the cancellation
     if (booking) {
       const date = booking.scheduledAt
-        ? new Date(booking.scheduledAt).toLocaleDateString('en-US', {
+        ? new Date(booking.scheduledAt).toLocaleDateString('en-GB', {
             month: 'short',
             day: 'numeric',
           })
@@ -338,7 +338,7 @@ class BookingCrudService {
       await this.createBookingNotifications(newBooking as Booking, bookedByName);
 
       // Trigger notification for coach
-      const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-US', {
+      const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
         month: 'short', day: 'numeric',
       });
       await notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
@@ -368,12 +368,12 @@ class BookingCrudService {
    */
   async createBookingNotifications(booking: Booking, bookedByName: string): Promise<void> {
     const scheduledDate = new Date(booking.scheduledAt);
-    const formattedDate = scheduledDate.toLocaleDateString('en-US', {
+    const formattedDate = scheduledDate.toLocaleDateString('en-GB', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
     });
-    const formattedTime = scheduledDate.toLocaleTimeString('en-US', {
+    const formattedTime = scheduledDate.toLocaleTimeString('en-GB', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
@@ -450,7 +450,7 @@ class BookingCrudService {
 
     // Notify coach of new booking
     const formattedDate = draft.date
-      ? new Date(draft.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      ? new Date(draft.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })
       : 'upcoming date';
 
     await notificationService.notifyCoachNewBooking({

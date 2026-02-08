@@ -21,6 +21,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.earningsReportService = void 0;
 const api_client_1 = require("../api-client");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const config_1 = require("@/constants/config");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('EarningsReportService');
@@ -471,7 +472,7 @@ exports.earningsReportService = {
             description: `Session payment - ${athleteName}`,
             bookingId,
             athleteName,
-            sessionDate: sessionDate || new Date().toISOString().split('T')[0],
+            sessionDate: sessionDate || (0, format_1.toDateStr)(new Date()),
             createdAt: new Date().toISOString(),
             completedAt: new Date().toISOString(),
         };

@@ -18,6 +18,7 @@ exports.analyticsTrackingService = void 0;
 const api_client_1 = require("../api-client");
 const result_1 = require("@/types/result");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const config_1 = require("@/constants/config");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('AnalyticsTrackingService');
@@ -239,7 +240,7 @@ exports.analyticsTrackingService = {
                 analyticsCache.push(analytics);
             }
             let skillProgress = analytics.skills.find((s) => s.skillName === skill);
-            const today = new Date().toISOString().split('T')[0];
+            const today = (0, format_1.toDateStr)(new Date());
             if (skillProgress) {
                 skillProgress.previousLevel = skillProgress.currentLevel;
                 skillProgress.currentLevel = newLevel;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -217,11 +217,11 @@ export default function SessionInviteDetailScreen() {
   };
 
   const statusColors: Record<string, { bg: string; text: string }> = {
-    PENDING: { bg: '#FEF3C7', text: '#92400E' },
-    ACCEPTED: { bg: '#D1FAE5', text: '#065F46' },
-    DECLINED: { bg: '#FEE2E2', text: '#991B1B' },
-    EXPIRED: { bg: '#F3F4F6', text: '#6B7280' },
-    COUNTERED: { bg: '#DBEAFE', text: '#1E40AF' },
+    PENDING: { bg: withAlpha(palette.warning, 0.12), text: palette.warning },
+    ACCEPTED: { bg: withAlpha(palette.success, 0.12), text: palette.success },
+    DECLINED: { bg: withAlpha(palette.error, 0.12), text: palette.error },
+    EXPIRED: { bg: palette.background, text: palette.muted },
+    COUNTERED: { bg: withAlpha(palette.info, 0.12), text: palette.info },
   };
 
   if (loading || !invite) {
@@ -267,7 +267,8 @@ export default function SessionInviteDetailScreen() {
         {!isOwner && <View style={{ width: 24 }} />}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Status Banner */}
         <Animated.View
           entering={FadeInDown.springify()}
@@ -487,6 +488,7 @@ export default function SessionInviteDetailScreen() {
                   key={index}
                   onPress={() => canRespond && setSelectedSlot(index)}
                   disabled={!canRespond}
+                  accessibilityLabel={`Time slot ${index + 1}: ${slot.startTime} to ${slot.endTime}`}
                   style={[
                     styles.slotItem,
                     {
@@ -718,6 +720,7 @@ export default function SessionInviteDetailScreen() {
           </Animated.View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Action Buttons */}
       {canRespond && !showCounterPropose && (
@@ -725,12 +728,14 @@ export default function SessionInviteDetailScreen() {
           <Clickable
             onPress={handleDecline}
             disabled={responding}
+            accessibilityLabel="Decline"
             style={[styles.declineButton, { borderColor: palette.border }]}
           >
             <ThemedText style={{ fontWeight: '600' }}>Decline</ThemedText>
           </Clickable>
           <Clickable
             onPress={() => setShowCounterPropose(true)}
+            accessibilityLabel="Counter"
             style={[styles.counterButton, { borderColor: palette.tint }]}
           >
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Counter</ThemedText>
@@ -738,6 +743,7 @@ export default function SessionInviteDetailScreen() {
           <Clickable
             onPress={handleAccept}
             disabled={responding || selectedSlot === null}
+            accessibilityLabel="Accept"
             style={[
               styles.acceptButton,
               {
@@ -819,7 +825,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   statusText: {
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   invitationBanner: {
     flexDirection: 'row',

@@ -23,6 +23,7 @@ const api_client_1 = require("./api-client");
 const storage_keys_1 = require("@/constants/storage-keys");
 const notification_trigger_1 = require("./notification-trigger");
 const logger_1 = require("../utils/logger");
+const format_1 = require("@/utils/format");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('DrillService');
 // Using centralized storage keys
@@ -553,7 +554,7 @@ async function getAssignmentStats(athleteId) {
         .filter((a) => a.completedAt)
         .map((a) => {
         const date = new Date(a.completedAt);
-        return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        return (0, format_1.toDateStr)(date);
     })
         .filter((value, index, self) => self.indexOf(value) === index) // Unique dates
         .sort()
@@ -563,7 +564,7 @@ async function getAssignmentStats(athleteId) {
     for (let i = 0; i < completedDates.length; i++) {
         const checkDate = new Date(today);
         checkDate.setDate(checkDate.getDate() - i);
-        const checkKey = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
+        const checkKey = (0, format_1.toDateStr)(checkDate);
         if (completedDates.includes(checkKey)) {
             currentStreak++;
         }

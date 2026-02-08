@@ -101,9 +101,9 @@ export default function SessionDetailScreen() {
   }
 
   const date = new Date(booking.start);
-  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
-  const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const weekday = date.toLocaleDateString('en-GB', { weekday: 'long' });
+  const dateStr = date.toLocaleDateString('en-GB', { month: 'long', day: 'numeric', year: 'numeric' });
+  const time = date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
   const coachPhotoUrl = booking.coach?.photoUrl || 'https://i.pravatar.cc/100';
 
   const handleMessageCoach = () => {

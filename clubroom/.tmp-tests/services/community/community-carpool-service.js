@@ -125,7 +125,7 @@ class CommunityCarpoolService {
     async createCarpoolOffer(params) {
         const timestamp = new Date().toISOString();
         const newOffer = {
-            id: `carpool_${Date.now()}`,
+            id: `carpool_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             parentId: params.parentId,
             parentName: params.parentName,
             parentAvatar: params.parentAvatar,
@@ -169,7 +169,7 @@ class CommunityCarpoolService {
             return (0, result_1.err)((0, result_1.conflictError)('You already have a pending request for this carpool'));
         }
         const newRequest = {
-            id: `req_${Date.now()}`,
+            id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             offerId: params.offerId,
             parentId: params.parentId,
             parentName: params.parentName,

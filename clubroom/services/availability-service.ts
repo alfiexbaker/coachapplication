@@ -190,6 +190,7 @@ async function saveTemplates(templates: AvailabilityTemplate[]): Promise<void> {
     await apiClient.set(STORAGE_KEYS.AVAILABILITY_TEMPLATES, templates);
   } catch (error) {
     logger.error('Failed to save templates', error);
+    throw error;
   }
 }
 
@@ -208,6 +209,7 @@ async function saveOverrides(overrides: AvailabilityOverride[]): Promise<void> {
     await apiClient.set(STORAGE_KEYS.AVAILABILITY_OVERRIDES, overrides);
   } catch (error) {
     logger.error('Failed to save overrides', error);
+    throw error;
   }
 }
 
@@ -357,7 +359,8 @@ export const availabilityService = {
   },
 
   /**
-   * Unblock a specific date
+   * Unblock a specific date.
+   * Removes both the modern override AND any legacy blocked-date range entry.
    */
   async unblockDate(coachId: string, date: string): Promise<void> {
     if (USE_MOCK) {
@@ -366,6 +369,9 @@ export const availabilityService = {
         (o) => !(o.coachId === coachId && o.date === date)
       );
       await saveOverrides(overridesCache);
+
+      // Also clean legacy BLOCKED_DATES key so schedule screen stays in sync
+      await this.removeLegacyBlockedDate(coachId, date);
       return;
     }
 
@@ -373,6 +379,43 @@ export const availabilityService = {
     const override = overrides.find((o) => o.date === date);
     if (override) {
       await this.deleteOverride(override.id);
+    }
+  },
+
+  /**
+   * Remove a date from the legacy BLOCKED_DATES storage key.
+   * Handles single-day ranges (remove entirely) and multi-day ranges (split).
+   */
+  async removeLegacyBlockedDate(coachId: string, date: string): Promise<void> {
+    try {
+      const allBlocked = await apiClient.get<Record<string, Array<{ id: string; coachId: string; startDate: string; endDate: string; reason: string; createdAt: string }>> | null>(STORAGE_KEYS.BLOCKED_DATES, null);
+      if (!allBlocked?.[coachId]?.length) return;
+
+      const cleaned: typeof allBlocked[string] = [];
+      for (const bd of allBlocked[coachId]) {
+        if (date < bd.startDate || date > bd.endDate) {
+          // Not affected — keep as is
+          cleaned.push(bd);
+        } else if (bd.startDate === date && bd.endDate === date) {
+          // Single-day range matching this date — remove entirely
+        } else {
+          // Multi-day range containing this date — split into up to two sub-ranges
+          if (bd.startDate < date) {
+            const prevDay = new Date(date + 'T12:00:00');
+            prevDay.setDate(prevDay.getDate() - 1);
+            cleaned.push({ ...bd, endDate: toDateStr(prevDay), id: `${bd.id}_l` });
+          }
+          if (bd.endDate > date) {
+            const nextDay = new Date(date + 'T12:00:00');
+            nextDay.setDate(nextDay.getDate() + 1);
+            cleaned.push({ ...bd, startDate: toDateStr(nextDay), id: `${bd.id}_r` });
+          }
+        }
+      }
+      allBlocked[coachId] = cleaned;
+      await apiClient.set(STORAGE_KEYS.BLOCKED_DATES, allBlocked);
+    } catch (err) {
+      logger.error('Failed to clean legacy blocked dates', err);
     }
   },
 

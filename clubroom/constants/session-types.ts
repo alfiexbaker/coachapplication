@@ -37,6 +37,8 @@ export type SessionState = 'DRAFT' | 'OPEN' | 'REQUESTED' | 'CONFIRMED' | 'COMPL
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';
 
+export type NoShowCategory = 'no_contact' | 'cancelled_late' | 'arrived_late' | 'weather_travel' | 'other';
+
 export interface CoachSession {
   id: string;
   coachId: string;
@@ -441,6 +443,30 @@ export interface CounterOffer {
   status: CounterOfferStatus;
   message?: string;
   rejectionReason?: string;
+  createdAt: string;
+  respondedAt?: string;
+  expiresAt: string;
+}
+
+// Reschedule proposal types
+export type RescheduleProposalStatus = 'pending' | 'accepted' | 'declined' | 'countered' | 'withdrawn' | 'expired';
+
+export interface RescheduleProposalRecord {
+  id: string;
+  bookingId: string;
+  initiatedBy: 'coach' | 'parent';
+  initiatorId: string;
+  respondentId: string;
+  coachId: string;
+  originalDateTime: string;
+  proposedDateTime: string;
+  proposedLocation?: string;
+  reason: string;
+  durationMinutes: number;
+  status: RescheduleProposalStatus;
+  counterDateTime?: string;
+  declineReason?: string;
+  responseNote?: string;
   createdAt: string;
   respondedAt?: string;
   expiresAt: string;

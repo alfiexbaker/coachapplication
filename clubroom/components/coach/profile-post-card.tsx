@@ -43,7 +43,7 @@ function ProfilePostCardInner({
         <View style={styles.postHeaderText}>
           <ThemedText type="subtitle">{coachName}</ThemedText>
           <ThemedText style={styles.postDate}>
-            {new Date(post.createdAt).toLocaleDateString('en-US', {
+            {new Date(post.createdAt).toLocaleDateString('en-GB', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',

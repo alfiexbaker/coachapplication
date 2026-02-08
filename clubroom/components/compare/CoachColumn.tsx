@@ -72,7 +72,7 @@ export function CoachColumn({ coach, bestValues, onRemove, onBook }: CoachColumn
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Tomorrow';
     if (diffDays < 7) return `In ${diffDays} days`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
   };
 
   const handleViewProfile = () => {

@@ -205,7 +205,7 @@ function createMockRecurring(overrides) {
         pausedAt: new Date().toISOString(),
         pauseReason: 'Going on vacation',
     });
-    const shouldShowPauseReason = recurring.status === 'PAUSED' && recurring.pauseReason;
+    const shouldShowPauseReason = recurring.status === 'PAUSED' && !!recurring.pauseReason;
     node_assert_1.default.strictEqual(shouldShowPauseReason, true);
     node_assert_1.default.strictEqual(recurring.pauseReason, 'Going on vacation');
 });

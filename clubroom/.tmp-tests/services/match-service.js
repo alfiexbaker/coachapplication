@@ -29,6 +29,7 @@ const config_1 = require("@/constants/config");
 const notification_service_1 = require("./notification-service");
 const social_feed_service_1 = require("./social-feed-service");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const result_1 = require("@/types/result");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('MatchService');
@@ -194,7 +195,7 @@ exports.matchService = {
      */
     async getUpcomingMatches(clubId) {
         const matches = await this.getClubMatches(clubId);
-        const today = new Date().toISOString().split('T')[0];
+        const today = (0, format_1.toDateStr)(new Date());
         return matches
             .filter((m) => m.date >= today && m.status !== 'CANCELLED' && m.status !== 'COMPLETED')
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

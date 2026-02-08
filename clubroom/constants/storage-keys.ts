@@ -28,6 +28,9 @@ export const STORAGE_KEYS = {
   /** Auto-generated bookings from recurring patterns */
   GENERATED_BOOKINGS: 'clubroom.generated_bookings',
 
+  /** Reschedule proposals for bookings */
+  RESCHEDULE_PROPOSALS: 'clubroom.reschedule_proposals',
+
   /** Session offerings/slots available for booking */
   SESSION_OFFERINGS: 'session_offerings',
 
@@ -401,6 +404,13 @@ export const STORAGE_KEYS = {
 
   /** Whether the availability tutorial has been completed by the coach */
   AVAILABILITY_TUTORIAL_COMPLETED: 'clubroom.availability_tutorial_completed',
+
+  // ============================================================================
+  // SESSION COMPLETION DOMAIN
+  // ============================================================================
+
+  /** Session sharing preferences (per session, key is suffixed with _sessionId) */
+  SESSION_SHARING: 'session_sharing',
 } as const;
 
 /**

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -147,7 +148,7 @@ export function ParentDevelopmentScreen() {
   const trend = getProgressTrend();
   const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'remove';
   const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
-  const trendColor = trend === 'improving' ? Colors.light.success : trend === 'declining' ? Colors.light.error : palette.muted;
+  const trendColor = trend === 'improving' ? palette.success : trend === 'declining' ? palette.error : palette.muted;
 
   const sortedSessions = [...sessions].sort(
     (a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
@@ -201,6 +202,7 @@ export function ParentDevelopmentScreen() {
                   <Pressable
                     key={child.id}
                     onPress={() => {
+                      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setSelectedChildId(child.id);
                       logger.press('ChildTab', { childId: child.id, childName: child.name });
                     }}
@@ -211,7 +213,7 @@ export function ParentDevelopmentScreen() {
                   >
                     <View style={[
                       styles.childAvatar,
-                      { backgroundColor: isSelected ? withAlpha(Colors.light.onPrimary, 0.2) : palette.border }
+                      { backgroundColor: isSelected ? withAlpha(palette.onPrimary, 0.2) : palette.border }
                     ]}>
                       <ThemedText style={[
                         styles.childAvatarText,
@@ -284,8 +286,8 @@ export function ParentDevelopmentScreen() {
                 </View>
                 <View style={[styles.quickStatDivider, { backgroundColor: palette.border }]} />
                 <View style={styles.quickStat}>
-                  <View style={[styles.quickStatIcon, { backgroundColor: withAlpha(Colors.light.warning, 0.09) }]}>
-                    <Ionicons name="star" size={16} color={Colors.light.warning} />
+                  <View style={[styles.quickStatIcon, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
+                    <Ionicons name="star" size={16} color={palette.warning} />
                   </View>
                   <ThemedText type="defaultSemiBold" style={styles.quickStatValue}>
                     {avgRating}
@@ -316,7 +318,10 @@ export function ParentDevelopmentScreen() {
                 return (
                   <Pressable
                     key={tab.key}
-                    onPress={() => setActiveTab(tab.key)}
+                    onPress={() => {
+                      if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setActiveTab(tab.key);
+                    }}
                     style={[
                       styles.tab,
                       isActive ? [styles.tabActive, { backgroundColor: palette.tint }] : undefined,
@@ -406,7 +411,7 @@ export function ParentDevelopmentScreen() {
                                   <ThemedText type="defaultSemiBold" style={styles.ratingValue}>
                                     {session.performanceRating.toFixed(1)}
                                   </ThemedText>
-                                  <Ionicons name="star" size={14} color={Colors.light.warning} />
+                                  <Ionicons name="star" size={14} color={palette.warning} />
                                 </View>
                               </View>
 
@@ -455,8 +460,8 @@ export function ParentDevelopmentScreen() {
                           entering={FadeInRight.delay(index * 50).springify()}
                           style={[styles.sharedBadge, { borderColor: palette.border }]}
                         >
-                          <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory), 0.09) }]}>
-                            <Ionicons name={getBadgeIcon(award.badgeCategory)} size={20} color={getBadgeColor(award.badgeCategory)} />
+                          <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory, palette), 0.09) }]}>
+                            <Ionicons name={getBadgeIcon(award.badgeCategory)} size={20} color={getBadgeColor(award.badgeCategory, palette)} />
                           </View>
                           <View style={styles.badgeContent}>
                             <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
@@ -506,7 +511,18 @@ export function ParentDevelopmentScreen() {
                       title="No Badges Yet"
                       description="Badges will appear here when coaches award them"
                     />
-                  ) : (
+                  ) : selectedChildId ? (
+                    <>
+                    <Clickable
+                      onPress={() => router.push(Routes.childBadges(selectedChildId))}
+                      style={[styles.viewAllLink, { borderColor: palette.border }]}
+                    >
+                      <Ionicons name="ribbon-outline" size={16} color={palette.tint} />
+                      <ThemedText style={[styles.viewAllLinkText, { color: palette.tint }]}>
+                        View all {awards.length} badge{awards.length !== 1 ? 's' : ''}
+                      </ThemedText>
+                      <Ionicons name="chevron-forward" size={14} color={palette.tint} />
+                    </Clickable>
                     <View style={styles.badgeList}>
                       {awards.map((award, index) => (
                         <Animated.View
@@ -515,8 +531,8 @@ export function ParentDevelopmentScreen() {
                         >
                           <SurfaceCard style={styles.badgeCard}>
                             <View style={styles.badgeCardHeader}>
-                              <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory), 0.09) }]}>
-                                <Ionicons name={getBadgeIcon(award.badgeCategory)} size={20} color={getBadgeColor(award.badgeCategory)} />
+                              <View style={[styles.badgeIcon, { backgroundColor: withAlpha(getBadgeColor(award.badgeCategory, palette), 0.09) }]}>
+                                <Ionicons name={getBadgeIcon(award.badgeCategory)} size={20} color={getBadgeColor(award.badgeCategory, palette)} />
                               </View>
                               <View style={styles.badgeCardContent}>
                                 <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
@@ -550,7 +566,8 @@ export function ParentDevelopmentScreen() {
                         </Animated.View>
                       ))}
                     </View>
-                  )}
+                    </>
+                  ) : null}
                 </View>
               </Animated.View>
             )}
@@ -604,16 +621,19 @@ export function ParentDevelopmentScreen() {
 }
 
 // Helper functions
-function getBadgeColor(category?: string): string {
-  const colors: Record<string, string> = {
-    leadership: '#8B5CF6',
-    consistency: '#3B82F6',
-    technique: '#10B981',
-    mindset: '#F59E0B',
-    teamwork: '#EC4899',
-    resilience: '#EF4444',
-  };
-  return colors[category || ''] || '#6366F1';
+/** Badge category → palette semantic color mapping. */
+const BADGE_CATEGORY_COLORS: Record<string, (p: typeof Colors.light) => string> = {
+  leadership: (p) => p.accent,
+  consistency: (p) => p.info,
+  technique: (p) => p.success,
+  mindset: (p) => p.warning,
+  teamwork: (p) => p.error,
+  resilience: (p) => p.destructive,
+};
+
+function getBadgeColor(category: string | undefined, palette: typeof Colors.light): string {
+  const getter = BADGE_CATEGORY_COLORS[category || ''];
+  return getter ? getter(palette) : palette.tint;
 }
 
 function getBadgeIcon(category?: string): keyof typeof Ionicons.glyphMap {
@@ -672,7 +692,7 @@ const styles = StyleSheet.create({
   childAvatarText: { ...Typography.caption },
   childName: { ...Typography.bodySmallSemiBold },
   childNameActive: {
-    fontWeight: '700',
+    ...Typography.bodySemiBold,
   },
 
   // Profile Card
@@ -756,7 +776,7 @@ const styles = StyleSheet.create({
   tabActive: {},
   tabLabel: { ...Typography.smallSemiBold },
   tabLabelActive: {
-    fontWeight: '700',
+    ...Typography.bodySmallSemiBold,
   },
   tabContent: {
     gap: Spacing.md,
@@ -900,6 +920,18 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   visibilityText: { ...Typography.caption },
+
+  // View all link
+  viewAllLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+  },
+  viewAllLinkText: { ...Typography.smallSemiBold },
 
   // Goals
   goalsList: {

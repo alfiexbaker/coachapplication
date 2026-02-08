@@ -168,11 +168,11 @@ export default function TabLayout() {
   };
 
   // Consolidate bottom navigation to 4-5 role-aware hubs (home, schedule, comms, profile)
-  const tabBarOptions: Record<string, any> = {
+  const tabBarOptions = {
     tabBarActiveTintColor: palette.tint,
     tabBarInactiveTintColor: palette.tabIconDefault,
     headerShown: false,
-    tabBarButton: (props: any) => <HapticTab {...props} />,
+    tabBarButton: (props: React.ComponentProps<typeof HapticTab>) => <HapticTab {...props} />,
     tabBarStyle: {
       backgroundColor: palette.surface, // Use surface for cleaner white
       borderTopWidth: 0, // Remove border for sleeker look

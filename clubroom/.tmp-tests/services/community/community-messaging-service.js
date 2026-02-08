@@ -69,7 +69,7 @@ class CommunityMessagingService {
     async sendGroupMessage(groupId, senderId, senderName, body, senderAvatar, attachments) {
         const timestamp = new Date().toISOString();
         const newMessage = {
-            id: `gmsg_${Date.now()}`,
+            id: `gmsg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             groupId,
             senderId,
             senderName,

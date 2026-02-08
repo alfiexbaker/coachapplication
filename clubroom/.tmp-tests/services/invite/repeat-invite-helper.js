@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.findRepeatSlot = findRepeatSlot;
 const availability_service_1 = require("../availability-service");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const logger = (0, logger_1.createLogger)('RepeatInviteHelper');
 /**
  * Find the best slot to repeat a session next week.
@@ -18,11 +19,11 @@ async function findRepeatSlot(coachId, originalDate, originalStartTime, sessionT
     const orig = new Date(originalDate + 'T00:00:00');
     const nextWeek = new Date(orig);
     nextWeek.setDate(orig.getDate() + 7);
-    const startDate = nextWeek.toISOString().split('T')[0];
+    const startDate = (0, format_1.toDateStr)(nextWeek);
     // Search the entire week for alternatives
     const weekEnd = new Date(nextWeek);
     weekEnd.setDate(nextWeek.getDate() + 6);
-    const endDate = weekEnd.toISOString().split('T')[0];
+    const endDate = (0, format_1.toDateStr)(weekEnd);
     try {
         const slots = await availability_service_1.availabilityService.getInvitableSlots(coachId, startDate, endDate, sessionTemplateId);
         // Find exact match: same date + same start time

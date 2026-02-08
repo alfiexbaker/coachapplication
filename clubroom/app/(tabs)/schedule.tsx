@@ -12,7 +12,7 @@
 
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +28,7 @@ import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/them
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { AvailabilityTemplate, AvailabilityOverride, SessionOffering, CoachSchedulingRules, BlockedDateRange, Booking, CoachVenue } from '@/constants/types';
 
@@ -130,8 +131,8 @@ export default function ScheduleScreen() {
   }, [params.segment]);
 
   // Load all data — uses Promise.allSettled so individual failures don't block updates
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       // Load in parallel — allSettled ensures each result is independent
       const results = await Promise.allSettled([
@@ -166,32 +167,30 @@ export default function ScheduleScreen() {
       );
       setBookings(coachBookings);
 
-      // Load blocked dates
+      // Load blocked dates (legacy system — always reset to prevent stale state)
       try {
-        const blockedKey = 'clubroom.blocked_dates';
-        const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]> | null>(blockedKey, null);
-        if (allBlocked) {
-          const coachBlocked = allBlocked[coachId] || [];
-          const blockedSet = new Set<string>();
-          for (const bd of coachBlocked) {
-            // Expand date ranges into individual dates
-            let cur = bd.startDate;
-            while (cur <= bd.endDate) {
-              blockedSet.add(cur);
-              const d = new Date(cur + 'T12:00:00');
-              d.setDate(d.getDate() + 1);
-              cur = toDateStr(d);
-            }
+        const allBlocked = await apiClient.get<Record<string, BlockedDateRange[]> | null>(STORAGE_KEYS.BLOCKED_DATES, null);
+        const coachBlocked = allBlocked?.[coachId] ?? [];
+        const blockedSet = new Set<string>();
+        for (const bd of coachBlocked) {
+          // Expand date ranges into individual dates
+          let cur = bd.startDate;
+          while (cur <= bd.endDate) {
+            blockedSet.add(cur);
+            const d = new Date(cur + 'T12:00:00');
+            d.setDate(d.getDate() + 1);
+            cur = toDateStr(d);
           }
-          setBlockedDates(blockedSet);
         }
+        setBlockedDates(blockedSet);
       } catch (err) {
         logger.warn('Failed to load blocked dates', err);
+        setBlockedDates(new Set());
       }
     } catch (err) {
       logger.error('Failed to load schedule', err);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [coachId]);
 
@@ -359,7 +358,7 @@ export default function ScheduleScreen() {
     router.push({
       pathname: Routes.SESSION_INVITES_CREATE,
       params: { date: dateStr },
-    });
+    } as Href);
   };
 
   const handleOpenSettings = () => {
@@ -917,8 +916,8 @@ export default function ScheduleScreen() {
           // Refresh overrides immediately so the grid updates without full reload flash
           const freshOverrides = await availabilityService.getOverrides(coachId);
           setOverrides(freshOverrides);
-          // Background-refresh everything else
-          loadData();
+          // Background-refresh everything else (no loading spinner)
+          loadData(false);
         }}
       />
 
@@ -1005,7 +1004,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: Radii.md,
     borderWidth: 1,
-    padding: 3,
+    padding: Spacing.micro,
   },
   segmentButton: {
     flex: 1,
@@ -1081,7 +1080,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: Typography.body.fontSize,
+    ...Typography.subheading,
   },
   weekStrip: {
     marginHorizontal: -Spacing.lg,
@@ -1097,7 +1096,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs / 4,
+    gap: Spacing.micro,
   },
   dayPillLabel: {
     ...Typography.caption,
@@ -1107,7 +1106,7 @@ const styles = StyleSheet.create({
   },
   dayDot: {
     position: 'absolute',
-    bottom: 8,
+    bottom: Spacing.xs,
     width: 6,
     height: 6,
     borderRadius: Radii.xs,
@@ -1118,9 +1117,8 @@ const styles = StyleSheet.create({
     right: 6,
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: Radii.xs,
     borderWidth: 1.5,
-    backgroundColor: 'transparent',
   },
   // Day Detail
   dayDetailCard: {
@@ -1148,7 +1146,6 @@ const styles = StyleSheet.create({
   },
   adjustedBadgeText: {
     ...Typography.micro,
-    fontWeight: '600',
   },
   dayActionBtn: {
     width: 44,
@@ -1178,8 +1175,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   addSlotBtnText: {
-    fontWeight: '600',
-    fontSize: Typography.body.fontSize,
+    ...Typography.bodySemiBold,
   },
   sessionsList: {
     gap: Spacing.sm,
@@ -1197,19 +1193,19 @@ const styles = StyleSheet.create({
     minWidth: 50,
   },
   sessionTimeText: {
-    fontSize: Typography.body.fontSize,
+    ...Typography.bodySemiBold,
   },
   sessionEndTime: {
-    fontSize: Typography.micro.fontSize,
+    ...Typography.micro,
   },
   sessionInfo: {
     flex: 1,
-    gap: Spacing.xs / 2,
+    gap: Spacing.xxs,
   },
   sessionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xxs,
   },
   sessionMetaText: {
     ...Typography.caption,
@@ -1225,15 +1221,13 @@ const styles = StyleSheet.create({
   seriesBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: Spacing.micro,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: 2,
+    paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   seriesBadgeText: {
     ...Typography.micro,
-    fontWeight: '700',
-    letterSpacing: 0.3,
   },
   // Quick Actions
   quickActions: {
@@ -1271,7 +1265,7 @@ const styles = StyleSheet.create({
   },
   rulesText: {
     ...Typography.caption,
-    marginTop: Spacing.xs / 2,
+    marginTop: Spacing.xxs,
   },
 
   // ============ AVAILABILITY SEGMENT STYLES ============

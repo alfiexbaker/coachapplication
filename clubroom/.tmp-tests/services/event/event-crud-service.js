@@ -22,6 +22,7 @@ const config_1 = require("@/constants/config");
 const storage_keys_1 = require("@/constants/storage-keys");
 const notification_trigger_1 = require("../notification-trigger");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const result_1 = require("@/types/result");
 const USE_MOCK = config_1.api.useMock;
 const logger = (0, logger_1.createLogger)('EventCrudService');
@@ -311,7 +312,7 @@ exports.eventCrudService = {
     async getUpcomingEvents(clubId) {
         if (USE_MOCK) {
             eventsCache = await loadEvents();
-            const now = new Date().toISOString().split('T')[0];
+            const now = (0, format_1.toDateStr)(new Date());
             return eventsCache
                 .filter((e) => e.clubId === clubId && e.status === 'PUBLISHED' && e.date >= now)
                 .sort((a, b) => a.date.localeCompare(b.date));

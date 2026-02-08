@@ -39,7 +39,7 @@ describe('Consent Service', () => {
 
   describe('getRosterConsents', () => {
     test('should return consents for all athletes in roster', async () => {
-      const consents = await consentService.getRosterConsents('coach_1');
+      const consents = await consentService.getRosterConsents('coach1');
 
       assert.ok(Array.isArray(consents));
       assert.ok(consents.length > 0);
@@ -47,14 +47,14 @@ describe('Consent Service', () => {
     });
 
     test('should include athlete photo URL when available', async () => {
-      const consents = await consentService.getRosterConsents('coach_1');
+      const consents = await consentService.getRosterConsents('coach1');
 
       const athleteWithPhoto = consents.find((c) => c.athletePhotoUrl);
       assert.ok(athleteWithPhoto);
     });
 
     test('should filter by consent type granted', async () => {
-      const consents = await consentService.getRosterConsents('coach_1', {
+      const consents = await consentService.getRosterConsents('coach1', {
         type: 'PHOTO',
         status: 'granted',
       });
@@ -67,7 +67,7 @@ describe('Consent Service', () => {
     });
 
     test('should filter by consent type denied', async () => {
-      const consents = await consentService.getRosterConsents('coach_1', {
+      const consents = await consentService.getRosterConsents('coach1', {
         type: 'SOCIAL_MEDIA',
         status: 'denied',
       });
@@ -80,7 +80,7 @@ describe('Consent Service', () => {
     });
 
     test('should filter by search query', async () => {
-      const consents = await consentService.getRosterConsents('coach_1', {
+      const consents = await consentService.getRosterConsents('coach1', {
         search: 'Baker',
       });
 
@@ -117,7 +117,7 @@ describe('Consent Service', () => {
 
   describe('getConsentedAthletes', () => {
     test('should return athletes with granted consent', async () => {
-      const consentedAthletes = await consentService.getConsentedAthletes('coach_1', 'PHOTO');
+      const consentedAthletes = await consentService.getConsentedAthletes('coach1', 'PHOTO');
 
       assert.ok(Array.isArray(consentedAthletes));
       for (const athlete of consentedAthletes) {
@@ -128,7 +128,7 @@ describe('Consent Service', () => {
 
     test('should return empty array if no athletes have consent', async () => {
       // Update all athletes to not have a specific consent (this may need mock data adjustment)
-      const athletes = await consentService.getNonConsentedAthletes('coach_1', 'EMERGENCY_TREATMENT');
+      const athletes = await consentService.getNonConsentedAthletes('coach1', 'EMERGENCY_TREATMENT');
 
       // The non-consented athletes should not have EMERGENCY_TREATMENT granted
       for (const athlete of athletes) {
@@ -140,7 +140,7 @@ describe('Consent Service', () => {
 
   describe('getNonConsentedAthletes', () => {
     test('should return athletes without granted consent', async () => {
-      const nonConsentedAthletes = await consentService.getNonConsentedAthletes('coach_1', 'SOCIAL_MEDIA');
+      const nonConsentedAthletes = await consentService.getNonConsentedAthletes('coach1', 'SOCIAL_MEDIA');
 
       assert.ok(Array.isArray(nonConsentedAthletes));
       for (const athlete of nonConsentedAthletes) {
@@ -152,7 +152,7 @@ describe('Consent Service', () => {
 
   describe('getConsentSummary', () => {
     test('should return summary with correct structure', async () => {
-      const summary = await consentService.getConsentSummary('coach_1');
+      const summary = await consentService.getConsentSummary('coach1');
 
       assert.ok(summary);
       assert.ok(typeof summary.totalAthletes === 'number');
@@ -164,7 +164,7 @@ describe('Consent Service', () => {
     });
 
     test('should have correct counts for each consent type', async () => {
-      const summary = await consentService.getConsentSummary('coach_1');
+      const summary = await consentService.getConsentSummary('coach1');
 
       for (const type of consentService.getConsentTypes()) {
         const stat = summary.byType[type];

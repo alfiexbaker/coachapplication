@@ -51,7 +51,7 @@ function ConversationRow({ thread, index, onPress }: { thread: ChatThreadSummary
               {displayName}
             </ThemedText>
             <ThemedText style={[styles.time, { color: palette.muted }]} numberOfLines={1}>
-              {new Date(thread.scheduledFor).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {new Date(thread.scheduledFor).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
             </ThemedText>
           </View>
           <View style={styles.conversationMeta}>

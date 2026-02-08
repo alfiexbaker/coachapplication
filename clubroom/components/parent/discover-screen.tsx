@@ -225,7 +225,7 @@ export function ParentDiscoverScreen() {
     } else if (slotDate.toDateString() === tomorrow.toDateString()) {
       return `Tomorrow at ${slot.startTime}`;
     } else {
-      const dayName = slotDate.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayName = slotDate.toLocaleDateString('en-GB', { weekday: 'short' });
       return `${dayName} at ${slot.startTime}`;
     }
   };
@@ -418,7 +418,7 @@ export function ParentDiscoverScreen() {
             {completedSessions.map((session, index) => {
               const sessionDate = new Date(session.scheduledAt);
               const isToday = sessionDate.toDateString() === new Date().toDateString();
-              const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              const timeStr = sessionDate.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
               const dateStr = isToday ? `Today ${timeStr}` : sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ` ${timeStr}`;
 
               return (

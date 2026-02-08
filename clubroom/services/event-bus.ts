@@ -114,6 +114,12 @@ export const ServiceEvents = {
   BOOKING_CANCELLED: 'booking:cancelled',
   BOOKING_CONFIRMED: 'booking:confirmed',
 
+  // Reschedule events
+  RESCHEDULE_PROPOSED: 'reschedule:proposed',
+  RESCHEDULE_ACCEPTED: 'reschedule:accepted',
+  RESCHEDULE_DECLINED: 'reschedule:declined',
+  RESCHEDULE_COUNTERED: 'reschedule:countered',
+
   // Series events (multi-week bookings)
   SERIES_CREATED: 'series:created',
   SERIES_UPDATED: 'series:updated',
@@ -207,6 +213,34 @@ export interface EventPayloads {
     coachName?: string;
     athleteName?: string;
     scheduledAt?: string;
+  };
+
+  // Reschedule events
+  [ServiceEvents.RESCHEDULE_PROPOSED]: {
+    proposalId: string;
+    bookingId: string;
+    initiatedBy: 'coach' | 'parent';
+    coachId: string;
+    originalDateTime: string;
+    proposedDateTime: string;
+  };
+  [ServiceEvents.RESCHEDULE_ACCEPTED]: {
+    proposalId: string;
+    bookingId: string;
+    coachId: string;
+    newDateTime: string;
+  };
+  [ServiceEvents.RESCHEDULE_DECLINED]: {
+    proposalId: string;
+    bookingId: string;
+    coachId: string;
+    reason?: string;
+  };
+  [ServiceEvents.RESCHEDULE_COUNTERED]: {
+    proposalId: string;
+    bookingId: string;
+    coachId: string;
+    counterDateTime: string;
   };
 
   // Series events (multi-week bookings)

@@ -107,6 +107,8 @@ export interface Booking {
   // Multi-week series fields
   seriesId?: string;                       // ID of the BookingSeries this booking belongs to
   seriesIndex?: number;                    // 0-based index within the series
+  // Calendar sync
+  calendarEventId?: string;               // Native calendar event ID for sync
 }
 
 export type AttendanceStatus = 'ATTENDED' | 'NO_SHOW';

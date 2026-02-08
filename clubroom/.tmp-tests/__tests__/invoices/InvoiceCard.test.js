@@ -288,22 +288,22 @@ const node_test_1 = __importStar(require("node:test"));
     };
     (0, node_test_1.default)('should return correct style for DRAFT status', () => {
         const style = getStatusBadgeStyle('DRAFT');
-        node_assert_1.default.ok(style.backgroundColor.includes('6B7280'));
+        node_assert_1.default.strictEqual(style.backgroundColor, 'rgba(107, 114, 128, 0.09)');
         node_assert_1.default.strictEqual(style.textColor, '#6B7280');
     });
     (0, node_test_1.default)('should return correct style for SENT status', () => {
         const style = getStatusBadgeStyle('SENT');
-        node_assert_1.default.ok(style.backgroundColor.includes('2563EB'));
+        node_assert_1.default.strictEqual(style.backgroundColor, 'rgba(37, 99, 235, 0.09)');
         node_assert_1.default.strictEqual(style.textColor, '#2563EB');
     });
     (0, node_test_1.default)('should return correct style for PAID status', () => {
         const style = getStatusBadgeStyle('PAID');
-        node_assert_1.default.ok(style.backgroundColor.includes('059669'));
+        node_assert_1.default.strictEqual(style.backgroundColor, 'rgba(5, 150, 105, 0.09)');
         node_assert_1.default.strictEqual(style.textColor, '#059669');
     });
     (0, node_test_1.default)('should return correct style for VOID status', () => {
         const style = getStatusBadgeStyle('VOID');
-        node_assert_1.default.ok(style.backgroundColor.includes('DC2626'));
+        node_assert_1.default.strictEqual(style.backgroundColor, 'rgba(220, 38, 38, 0.09)');
         node_assert_1.default.strictEqual(style.textColor, '#DC2626');
     });
 });

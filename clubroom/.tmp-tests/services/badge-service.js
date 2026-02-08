@@ -176,6 +176,7 @@ class BadgeService {
             badgeAwardId: award.id,
             actionLabel: 'View Badge',
             handled: false,
+            deepLink: `/children/badges/${award.athleteId}?highlightBadge=${award.id}`,
         };
         await notification_service_1.notificationService.create(notification);
         this.logger.info('parent_notified_of_badge', {

@@ -295,25 +295,25 @@ describe('InvoiceCard Status Badge', () => {
 
   test('should return correct style for DRAFT status', () => {
     const style = getStatusBadgeStyle('DRAFT');
-    assert.ok(style.backgroundColor.includes('6B7280'));
+    assert.strictEqual(style.backgroundColor, 'rgba(107, 114, 128, 0.09)');
     assert.strictEqual(style.textColor, '#6B7280');
   });
 
   test('should return correct style for SENT status', () => {
     const style = getStatusBadgeStyle('SENT');
-    assert.ok(style.backgroundColor.includes('2563EB'));
+    assert.strictEqual(style.backgroundColor, 'rgba(37, 99, 235, 0.09)');
     assert.strictEqual(style.textColor, '#2563EB');
   });
 
   test('should return correct style for PAID status', () => {
     const style = getStatusBadgeStyle('PAID');
-    assert.ok(style.backgroundColor.includes('059669'));
+    assert.strictEqual(style.backgroundColor, 'rgba(5, 150, 105, 0.09)');
     assert.strictEqual(style.textColor, '#059669');
   });
 
   test('should return correct style for VOID status', () => {
     const style = getStatusBadgeStyle('VOID');
-    assert.ok(style.backgroundColor.includes('DC2626'));
+    assert.strictEqual(style.backgroundColor, 'rgba(220, 38, 38, 0.09)');
     assert.strictEqual(style.textColor, '#DC2626');
   });
 });

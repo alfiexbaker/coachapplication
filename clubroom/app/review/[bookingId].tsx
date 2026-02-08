@@ -1,5 +1,5 @@
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, View, Alert } from 'react-native';
+import { ScrollView, StyleSheet, View, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { apiClient } from '@/services/api-client';
 import { Ionicons } from '@expo/vector-icons';
@@ -123,7 +123,7 @@ export default function ReviewScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Clickable onPress={() => router.back()} style={styles.backButton}>
+        <Clickable onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back">
           <Ionicons name="arrow-back" size={24} color={palette.foreground} />
         </Clickable>
         <ThemedText type="title">
@@ -132,7 +132,8 @@ export default function ReviewScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Session Info */}
         {booking && (
           <SurfaceCard style={styles.sessionCard}>
@@ -167,13 +168,14 @@ export default function ReviewScreen() {
               onPress={() => router.back()}
               style={[styles.doneButton, { backgroundColor: palette.tint }]}
             >
-              <ThemedText style={styles.doneButtonText}>Done</ThemedText>
+              <ThemedText style={[styles.doneButtonText, { color: palette.onPrimary }]}>Done</ThemedText>
             </Clickable>
           </View>
         ) : (
           <ReviewForm onSubmit={handleSubmitReview} />
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -188,6 +190,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: Spacing.xs,
+    minHeight: 44,
+    minWidth: 44,
   },
   content: {
     padding: Spacing.lg,
@@ -243,7 +247,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   doneButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
 });

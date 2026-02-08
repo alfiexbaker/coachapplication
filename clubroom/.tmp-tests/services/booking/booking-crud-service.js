@@ -21,6 +21,7 @@ const api_client_1 = require("../api-client");
 const storage_keys_1 = require("@/constants/storage-keys");
 const notification_trigger_1 = require("../notification-trigger");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const event_bus_1 = require("@/services/event-bus");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('BookingCrudService');
@@ -152,7 +153,7 @@ class BookingCrudService {
         // Notify the other party about the cancellation
         if (booking) {
             const date = booking.scheduledAt
-                ? new Date(booking.scheduledAt).toLocaleDateString('en-US', {
+                ? new Date(booking.scheduledAt).toLocaleDateString('en-GB', {
                     month: 'short',
                     day: 'numeric',
                 })
@@ -245,7 +246,7 @@ class BookingCrudService {
             // Create notifications for coach and parent
             await this.createBookingNotifications(newBooking, bookedByName);
             // Trigger notification for coach
-            const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-US', {
+            const formattedDateTime = new Date(scheduledAt).toLocaleDateString('en-GB', {
                 month: 'short', day: 'numeric',
             });
             await notification_trigger_1.notificationTriggers.bookingConfirmed(coachName, formattedDateTime, coachId);
@@ -273,12 +274,12 @@ class BookingCrudService {
      */
     async createBookingNotifications(booking, bookedByName) {
         const scheduledDate = new Date(booking.scheduledAt);
-        const formattedDate = scheduledDate.toLocaleDateString('en-US', {
+        const formattedDate = scheduledDate.toLocaleDateString('en-GB', {
             weekday: 'short',
             month: 'short',
             day: 'numeric',
         });
-        const formattedTime = scheduledDate.toLocaleTimeString('en-US', {
+        const formattedTime = scheduledDate.toLocaleTimeString('en-GB', {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true,
@@ -316,7 +317,7 @@ class BookingCrudService {
         if (!draft.athleteId || !draft.athleteName) {
             return (0, result_1.err)((0, result_1.validationError)('Cannot create booking: missing athlete information'));
         }
-        const scheduledAt = `${draft.date || new Date().toISOString().split('T')[0]}T${draft.slot || '10:00'}:00`;
+        const scheduledAt = `${draft.date || (0, format_1.toDateStr)(new Date())}T${draft.slot || '10:00'}:00`;
         // Create booking through the centralized createBooking method
         // Note: We use saveBookingDirect to bypass validation for draft flow (legacy compatibility)
         const booking = {
@@ -346,7 +347,7 @@ class BookingCrudService {
         }
         // Notify coach of new booking
         const formattedDate = draft.date
-            ? new Date(draft.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            ? new Date(draft.date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })
             : 'upcoming date';
         await notification_service_1.notificationService.notifyCoachNewBooking({
             coachId: booking.coachId,

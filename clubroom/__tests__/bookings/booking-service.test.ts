@@ -131,7 +131,7 @@ class MockBookingService {
 
     // Create notification
     const date = booking.scheduledAt
-      ? new Date(booking.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      ? new Date(booking.scheduledAt).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })
       : 'upcoming date';
 
     mockNotifications.push({

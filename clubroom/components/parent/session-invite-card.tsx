@@ -26,13 +26,15 @@ interface SessionInviteCardProps {
   acceptLoading?: boolean;
 }
 
-const statusColors: Record<string, { bg: string; text: string; icon: string }> = {
-  PENDING: { bg: withAlpha(Colors.light.warning, 0.12), text: Colors.light.warning, icon: 'hourglass-outline' },
-  ACCEPTED: { bg: withAlpha(Colors.light.success, 0.12), text: Colors.light.success, icon: 'checkmark-circle-outline' },
-  DECLINED: { bg: withAlpha(Colors.light.error, 0.12), text: Colors.light.error, icon: 'close-circle-outline' },
-  EXPIRED: { bg: Colors.light.background, text: Colors.light.muted, icon: 'time-outline' },
-  COUNTERED: { bg: withAlpha(Colors.light.info, 0.12), text: Colors.light.info, icon: 'swap-horizontal-outline' },
-};
+function getStatusColors(palette: typeof Colors.light) {
+  return {
+    PENDING: { bg: withAlpha(palette.warning, 0.12), text: palette.warning, icon: 'hourglass-outline' },
+    ACCEPTED: { bg: withAlpha(palette.success, 0.12), text: palette.success, icon: 'checkmark-circle-outline' },
+    DECLINED: { bg: withAlpha(palette.error, 0.12), text: palette.error, icon: 'close-circle-outline' },
+    EXPIRED: { bg: palette.background, text: palette.muted, icon: 'time-outline' },
+    COUNTERED: { bg: withAlpha(palette.info, 0.12), text: palette.info, icon: 'swap-horizontal-outline' },
+  } as Record<string, { bg: string; text: string; icon: string }>;
+}
 
 export function SessionInviteCard({
   invite,
@@ -50,6 +52,7 @@ export function SessionInviteCard({
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
   const [showDeclineSheet, setShowDeclineSheet] = useState(false);
 
+  const statusColors = getStatusColors(palette);
   const isExpired = new Date(invite.expiresAt) < new Date();
   const status = isExpired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
   const statusConfig = statusColors[status] || statusColors.PENDING;
@@ -107,7 +110,7 @@ export function SessionInviteCard({
 
   if (compact) {
     return (
-      <SurfaceCard style={styles.compactCard} onPress={onPress}>
+      <SurfaceCard style={styles.compactCard} onPress={onPress} accessibilityLabel={`Session invite from ${invite.coachName}`}>
         <View style={styles.compactContent}>
           <View style={[styles.compactAvatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
             <ThemedText style={[styles.compactAvatarText, { color: palette.tint }]}>
@@ -133,7 +136,7 @@ export function SessionInviteCard({
   }
 
   return (
-    <SurfaceCard style={styles.card} onPress={onPress}>
+    <SurfaceCard style={styles.card} onPress={onPress} accessibilityLabel={`Session invite from ${invite.coachName}`}>
       {/* Invitation Message Banner */}
       <View style={[styles.invitationBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
         <Ionicons name="mail-outline" size={16} color={palette.tint} />
@@ -404,7 +407,7 @@ const styles = StyleSheet.create({
   coachName: { ...Typography.subheading },
   sessionType: { ...Typography.small },
   statusBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
@@ -441,8 +444,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   slotTakenText: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
     flex: 1,
   },
   details: {

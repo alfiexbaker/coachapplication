@@ -30,6 +30,10 @@ function getUpcomingInstances(offering: SessionOffering, count: number = 8): Dat
 
   // Start from the original scheduled date or today
   let currentDate = new Date(offering.scheduledAt);
+  if (isNaN(currentDate.getTime())) {
+    // scheduledAt is missing or invalid — start from today
+    currentDate = new Date(now);
+  }
   if (currentDate < now) {
     // Move to the next occurrence
     currentDate = new Date(now);
@@ -466,7 +470,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                   ) : (
                     upcomingInstances.map((instance, index) => (
                       <View
-                        key={instance.toISOString()}
+                        key={`instance-${index}`}
                         style={[styles.instanceRow, { borderBottomColor: palette.border }]}
                       >
                         <View style={styles.instanceInfo}>

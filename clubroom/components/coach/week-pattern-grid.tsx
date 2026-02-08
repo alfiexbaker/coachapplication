@@ -577,20 +577,28 @@ export function WeekPatternGrid({
             // Blocked day — show "Time Off" row
             if (isBlocked) {
               const blockingOverride = overrides.find(o => o.date === dateStr && o.isBlocked);
+              // Synthesise a minimal override for legacy blocked dates so TimeOffSheet can remove them
+              const effectiveOverride: AvailabilityOverride = blockingOverride ?? {
+                id: `legacy_${dateStr}`,
+                coachId,
+                date: dateStr,
+                isBlocked: true,
+                reason: 'Time Off',
+              };
               return (
                 <View key={d.index}>
                   {renderSlotRow({
                     dayLabel: d.short,
                     showDayLabel: true,
-                    timeDisplay: blockingOverride?.reason || 'Time Off',
+                    timeDisplay: effectiveOverride.reason || 'Time Off',
                     locationDisplay: null,
                     hasOverride: false,
                     isBlocked: true,
-                    blockReason: blockingOverride?.reason,
+                    blockReason: effectiveOverride.reason,
                     isToday: false,
                     hasTemplates: false,
                     showSeparator: !isLastDay,
-                    onPress: () => onTimeOffPress?.(dateStr, blockingOverride ?? undefined),
+                    onPress: () => onTimeOffPress?.(dateStr, effectiveOverride),
                   })}
                 </View>
               );
@@ -681,20 +689,28 @@ export function WeekPatternGrid({
           // Blocked day — show "Time Off" row
           if (isCurrentBlocked) {
             const blockingOverride = overrides.find(o => o.date === currentDateStr && o.isBlocked);
+            // Synthesise a minimal override for legacy blocked dates so TimeOffSheet can remove them
+            const effectiveOverride: AvailabilityOverride = blockingOverride ?? {
+              id: `legacy_${currentDateStr}`,
+              coachId,
+              date: currentDateStr,
+              isBlocked: true,
+              reason: 'Time Off',
+            };
             return (
               <View key={d.index}>
                 {renderSlotRow({
                   dayLabel: d.short,
                   showDayLabel: true,
-                  timeDisplay: blockingOverride?.reason || 'Time Off',
+                  timeDisplay: effectiveOverride.reason || 'Time Off',
                   locationDisplay: null,
                   hasOverride: false,
                   isBlocked: true,
-                  blockReason: blockingOverride?.reason,
+                  blockReason: effectiveOverride.reason,
                   isToday,
                   hasTemplates: false,
                   showSeparator: !isLastDay,
-                  onPress: () => onTimeOffPress?.(currentDateStr, blockingOverride ?? undefined),
+                  onPress: () => onTimeOffPress?.(currentDateStr, effectiveOverride),
                 })}
               </View>
             );

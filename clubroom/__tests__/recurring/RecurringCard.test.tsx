@@ -260,7 +260,7 @@ test('RecurringCard - shows pause reason when paused with reason', () => {
   });
 
   const shouldShowPauseReason =
-    recurring.status === 'PAUSED' && recurring.pauseReason;
+    recurring.status === 'PAUSED' && !!recurring.pauseReason;
 
   assert.strictEqual(shouldShowPauseReason, true);
   assert.strictEqual(recurring.pauseReason, 'Going on vacation');

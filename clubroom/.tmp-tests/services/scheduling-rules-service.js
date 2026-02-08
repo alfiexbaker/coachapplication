@@ -1,0 +1,578 @@
+"use strict";
+/**
+ * Scheduling Rules Service
+ *
+ * Manages coach scheduling constraints including:
+ * - Minimum advance booking notice
+ * - Maximum advance booking window
+ * - Buffer time between sessions
+ * - Rescheduling rules
+ * - Cancellation policies and refund calculations
+ *
+ * USER STORY:
+ * "As a coach, I want to set minimum notice requirements for bookings
+ * so I have enough time to prepare for sessions."
+ *
+ * "As a parent, I want to see clearly how much refund I'll get
+ * before cancelling so I can make an informed decision."
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.schedulingRulesService = exports.SCHEDULING_PRESETS = exports.POLICY_TEMPLATES = void 0;
+const api_client_1 = require("./api-client");
+const logger_1 = require("@/utils/logger");
+const result_1 = require("@/types/result");
+const storage_keys_1 = require("@/constants/storage-keys");
+const logger = (0, logger_1.createLogger)('SchedulingRulesService');
+const PLATFORM_FEE_PERCENT = 10; // 10% platform fee on refunds
+/**
+ * Default scheduling rules for new coaches
+ */
+const DEFAULT_RULES = {
+    minimumAdvanceBookingHours: 24,
+    maxAdvanceBookingDays: 30,
+    bufferMinutesDefault: 15,
+    maxConcurrentDefault: 1,
+    allowSameDayBookings: false,
+    cancellationPolicyId: undefined,
+    allowRescheduling: true,
+    rescheduleDeadlineHours: 24,
+};
+/**
+ * Default cancellation policy tiers (standard policy)
+ */
+const DEFAULT_TIERS = [
+    {
+        hoursBeforeSession: 24,
+        refundPercentage: 100,
+        description: 'Full refund if cancelled 24+ hours before',
+    },
+    {
+        hoursBeforeSession: 12,
+        refundPercentage: 50,
+        description: '50% refund if cancelled 12-24 hours before',
+    },
+    {
+        hoursBeforeSession: 0,
+        refundPercentage: 0,
+        description: 'No refund if cancelled less than 12 hours before',
+    },
+];
+/**
+ * Pre-configured cancellation policy templates coaches can choose from
+ */
+exports.POLICY_TEMPLATES = {
+    standard: {
+        name: 'Standard',
+        description: 'Balanced policy with full refund 24+ hours ahead',
+        tiers: DEFAULT_TIERS,
+        minimumNoticeHours: 0,
+        allowCancellations: true,
+        isDefault: true,
+    },
+    flexible: {
+        name: 'Flexible',
+        description: 'Generous policy with full refund up to 6 hours before',
+        tiers: [
+            {
+                hoursBeforeSession: 6,
+                refundPercentage: 100,
+                description: 'Full refund if cancelled 6+ hours before',
+            },
+            {
+                hoursBeforeSession: 2,
+                refundPercentage: 75,
+                description: '75% refund if cancelled 2-6 hours before',
+            },
+            {
+                hoursBeforeSession: 0,
+                refundPercentage: 25,
+                description: '25% refund if cancelled less than 2 hours before',
+            },
+        ],
+        minimumNoticeHours: 0,
+        allowCancellations: true,
+        isDefault: false,
+    },
+    strict: {
+        name: 'Strict',
+        description: 'Limited refunds - full refund only 48+ hours ahead',
+        tiers: [
+            {
+                hoursBeforeSession: 48,
+                refundPercentage: 100,
+                description: 'Full refund if cancelled 48+ hours before',
+            },
+            {
+                hoursBeforeSession: 24,
+                refundPercentage: 50,
+                description: '50% refund if cancelled 24-48 hours before',
+            },
+            {
+                hoursBeforeSession: 12,
+                refundPercentage: 25,
+                description: '25% refund if cancelled 12-24 hours before',
+            },
+            {
+                hoursBeforeSession: 0,
+                refundPercentage: 0,
+                description: 'No refund if cancelled less than 12 hours before',
+            },
+        ],
+        minimumNoticeHours: 2,
+        allowCancellations: true,
+        isDefault: false,
+    },
+    noRefund: {
+        name: 'No Refunds',
+        description: 'All bookings are final - no refunds available',
+        tiers: [
+            {
+                hoursBeforeSession: 0,
+                refundPercentage: 0,
+                description: 'No refunds - all bookings are final',
+            },
+        ],
+        minimumNoticeHours: 0,
+        allowCancellations: true,
+        isDefault: false,
+    },
+};
+/**
+ * Pre-configured rule presets coaches can choose from
+ */
+exports.SCHEDULING_PRESETS = {
+    flexible: {
+        name: 'Flexible',
+        description: 'Accept bookings with short notice',
+        rules: {
+            minimumAdvanceBookingHours: 2,
+            maxAdvanceBookingDays: 60,
+            allowSameDayBookings: true,
+            allowRescheduling: true,
+            rescheduleDeadlineHours: 2,
+        },
+    },
+    standard: {
+        name: 'Standard',
+        description: 'Balanced booking rules (recommended)',
+        rules: {
+            minimumAdvanceBookingHours: 24,
+            maxAdvanceBookingDays: 30,
+            allowSameDayBookings: false,
+            allowRescheduling: true,
+            rescheduleDeadlineHours: 24,
+        },
+    },
+    strict: {
+        name: 'Strict',
+        description: 'Require advance planning',
+        rules: {
+            minimumAdvanceBookingHours: 48,
+            maxAdvanceBookingDays: 14,
+            allowSameDayBookings: false,
+            allowRescheduling: true,
+            rescheduleDeadlineHours: 48,
+        },
+    },
+    professional: {
+        name: 'Professional',
+        description: 'For busy coaches with high demand',
+        rules: {
+            minimumAdvanceBookingHours: 72,
+            maxAdvanceBookingDays: 60,
+            allowSameDayBookings: false,
+            allowRescheduling: true,
+            rescheduleDeadlineHours: 72,
+        },
+    },
+};
+class SchedulingRulesService {
+    constructor() {
+        this.rulesCache = new Map();
+        this.policiesCache = null;
+    }
+    /**
+     * Load all rules from storage
+     */
+    async loadAllRules() {
+        try {
+            return await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.SCHEDULING_RULES, []);
+        }
+        catch (error) {
+            logger.error('Failed to load scheduling rules', error);
+            return [];
+        }
+    }
+    /**
+     * Save all rules to storage
+     */
+    async saveAllRules(rules) {
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SCHEDULING_RULES, rules);
+        // Update cache
+        this.rulesCache.clear();
+        rules.forEach(r => this.rulesCache.set(r.coachId, r));
+    }
+    /**
+     * Get scheduling rules for a coach
+     */
+    async getCoachRules(coachId) {
+        // Check cache first
+        if (this.rulesCache.has(coachId)) {
+            return this.rulesCache.get(coachId);
+        }
+        const allRules = await this.loadAllRules();
+        const coachRules = allRules.find(r => r.coachId === coachId);
+        if (coachRules) {
+            this.rulesCache.set(coachId, coachRules);
+            return coachRules;
+        }
+        // Return default rules if none exist
+        return this.getDefaultRules(coachId);
+    }
+    /**
+     * Get default rules for a coach
+     */
+    getDefaultRules(coachId) {
+        return {
+            id: `rules_default_${coachId}`,
+            coachId,
+            ...DEFAULT_RULES,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+    }
+    /**
+     * Update scheduling rules for a coach
+     */
+    async updateCoachRules(coachId, updates) {
+        const allRules = await this.loadAllRules();
+        const existingIndex = allRules.findIndex(r => r.coachId === coachId);
+        const now = new Date().toISOString();
+        const existingRules = existingIndex >= 0 ? allRules[existingIndex] : this.getDefaultRules(coachId);
+        const updatedRules = {
+            ...existingRules,
+            ...updates,
+            id: existingRules.id.startsWith('rules_default_') ? `rules_${Date.now()}` : existingRules.id,
+            coachId,
+            updatedAt: now,
+        };
+        if (existingIndex >= 0) {
+            allRules[existingIndex] = updatedRules;
+        }
+        else {
+            allRules.push(updatedRules);
+        }
+        await this.saveAllRules(allRules);
+        logger.debug('Scheduling rules updated', { coachId });
+        return updatedRules;
+    }
+    /**
+     * Apply a preset to a coach's rules
+     */
+    async applyPreset(coachId, presetKey) {
+        const preset = exports.SCHEDULING_PRESETS[presetKey];
+        if (!preset) {
+            return (0, result_1.err)((0, result_1.validationError)(`Unknown preset: ${presetKey}`));
+        }
+        return (0, result_1.ok)(await this.updateCoachRules(coachId, preset.rules));
+    }
+    /**
+     * Validate a proposed booking time against coach's rules
+     */
+    async validateBookingTime(coachId, proposedTime) {
+        const rules = await this.getCoachRules(coachId);
+        const now = new Date();
+        // Calculate hours until proposed session
+        const hoursUntilSession = (proposedTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        const daysUntilSession = hoursUntilSession / 24;
+        // Check minimum advance booking
+        if (hoursUntilSession < rules.minimumAdvanceBookingHours) {
+            const minHours = rules.minimumAdvanceBookingHours;
+            return {
+                isValid: false,
+                errorMessage: minHours >= 24
+                    ? `Bookings must be made at least ${Math.floor(minHours / 24)} day${Math.floor(minHours / 24) > 1 ? 's' : ''} in advance`
+                    : `Bookings must be made at least ${minHours} hours in advance`,
+            };
+        }
+        // Check same-day booking
+        const isSameDay = now.toDateString() === proposedTime.toDateString();
+        if (isSameDay && !rules.allowSameDayBookings) {
+            return {
+                isValid: false,
+                errorMessage: 'This coach does not accept same-day bookings',
+            };
+        }
+        // Check max advance booking
+        if (daysUntilSession > rules.maxAdvanceBookingDays) {
+            return {
+                isValid: false,
+                errorMessage: `Bookings cannot be made more than ${rules.maxAdvanceBookingDays} days in advance`,
+            };
+        }
+        // Warning for close to deadline
+        if (hoursUntilSession < rules.minimumAdvanceBookingHours * 1.5) {
+            return {
+                isValid: true,
+                warningMessage: 'This booking is close to the minimum notice deadline',
+            };
+        }
+        return { isValid: true };
+    }
+    /**
+     * Validate a proposed reschedule
+     */
+    async validateReschedule(coachId, originalTime, newTime) {
+        const rules = await this.getCoachRules(coachId);
+        const now = new Date();
+        // Check if rescheduling is allowed
+        if (!rules.allowRescheduling) {
+            return {
+                isValid: false,
+                errorMessage: 'This coach does not allow rescheduling',
+            };
+        }
+        // Check reschedule deadline
+        const hoursUntilOriginal = (originalTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        if (hoursUntilOriginal < rules.rescheduleDeadlineHours) {
+            return {
+                isValid: false,
+                errorMessage: `Rescheduling must be done at least ${rules.rescheduleDeadlineHours} hours before the original session`,
+            };
+        }
+        // Validate the new time
+        return this.validateBookingTime(coachId, newTime);
+    }
+    /**
+     * Format rules for display
+     */
+    formatRulesForDisplay(rules) {
+        const items = [];
+        if (rules.minimumAdvanceBookingHours >= 24) {
+            const days = Math.floor(rules.minimumAdvanceBookingHours / 24);
+            items.push(`Book ${days}+ day${days > 1 ? 's' : ''} in advance`);
+        }
+        else {
+            items.push(`Book ${rules.minimumAdvanceBookingHours}+ hours in advance`);
+        }
+        if (rules.allowSameDayBookings) {
+            items.push('Same-day bookings allowed');
+        }
+        items.push(`Book up to ${rules.maxAdvanceBookingDays} days ahead`);
+        if (rules.allowRescheduling) {
+            items.push(`Reschedule ${rules.rescheduleDeadlineHours}+ hours before`);
+        }
+        else {
+            items.push('No rescheduling');
+        }
+        return items;
+    }
+    /**
+     * Get a summary of rules for booking cards
+     */
+    getRulesSummary(rules) {
+        if (rules.minimumAdvanceBookingHours >= 24) {
+            const days = Math.floor(rules.minimumAdvanceBookingHours / 24);
+            return `${days}+ day${days > 1 ? 's' : ''} notice required`;
+        }
+        return `${rules.minimumAdvanceBookingHours}+ hours notice required`;
+    }
+    /**
+     * Clear cache
+     */
+    clearCache() {
+        this.rulesCache.clear();
+        this.policiesCache = null;
+    }
+    // ============================================================================
+    // CANCELLATION POLICY METHODS
+    // ============================================================================
+    /**
+     * Load all cancellation policies from storage
+     */
+    async loadPolicies() {
+        if (this.policiesCache)
+            return this.policiesCache;
+        try {
+            this.policiesCache = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.CANCELLATION_POLICIES, []);
+            return this.policiesCache || [];
+        }
+        catch (error) {
+            logger.error('Failed to load cancellation policies', error);
+            return [];
+        }
+    }
+    /**
+     * Save cancellation policies to storage
+     */
+    async savePolicies(policies) {
+        this.policiesCache = policies;
+        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.CANCELLATION_POLICIES, policies);
+    }
+    /**
+     * Get a coach's cancellation policy
+     */
+    async getCancellationPolicy(coachId) {
+        const policies = await this.loadPolicies();
+        return policies.find(p => p.coachId === coachId) || null;
+    }
+    /**
+     * Get the default cancellation policy (used when coach hasn't configured one)
+     */
+    getDefaultCancellationPolicy() {
+        return {
+            id: 'default',
+            coachId: '',
+            ...exports.POLICY_TEMPLATES.standard,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+    }
+    /**
+     * Create or update a coach's cancellation policy
+     */
+    async setCancellationPolicy(coachId, templateKey, customTiers) {
+        const policies = await this.loadPolicies();
+        const existingIndex = policies.findIndex(p => p.coachId === coachId);
+        const now = new Date().toISOString();
+        let template = exports.POLICY_TEMPLATES[templateKey] || exports.POLICY_TEMPLATES.standard;
+        if (templateKey === 'custom' && customTiers) {
+            template = {
+                ...template,
+                name: 'Custom',
+                description: 'Custom cancellation policy',
+                tiers: customTiers,
+            };
+        }
+        const policy = {
+            id: existingIndex >= 0 ? policies[existingIndex].id : `policy_${Date.now()}`,
+            coachId,
+            ...template,
+            createdAt: existingIndex >= 0 ? policies[existingIndex].createdAt : now,
+            updatedAt: now,
+        };
+        if (existingIndex >= 0) {
+            policies[existingIndex] = policy;
+        }
+        else {
+            policies.push(policy);
+        }
+        await this.savePolicies(policies);
+        logger.debug('Cancellation policy saved', { coachId, policyName: policy.name });
+        return policy;
+    }
+    /**
+     * Calculate refund for a booking cancellation
+     */
+    calculateRefund(bookingAmount, sessionStartTime, policy) {
+        const now = new Date();
+        const hoursUntilSession = Math.max(0, (sessionStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+        // Use default policy if none provided
+        const effectivePolicy = policy || this.getDefaultCancellationPolicy();
+        // Check if cancellations are allowed
+        if (!effectivePolicy.allowCancellations) {
+            return {
+                originalAmount: bookingAmount,
+                refundAmount: 0,
+                platformFee: 0,
+                netRefundAmount: 0,
+                refundPercentage: 0,
+                hoursUntilSession,
+                appliedTier: null,
+                explanation: 'Cancellations are not allowed for this coach.',
+                isEligible: false,
+            };
+        }
+        // Check minimum notice
+        if (hoursUntilSession < effectivePolicy.minimumNoticeHours) {
+            return {
+                originalAmount: bookingAmount,
+                refundAmount: 0,
+                platformFee: 0,
+                netRefundAmount: 0,
+                refundPercentage: 0,
+                hoursUntilSession,
+                appliedTier: null,
+                explanation: `Minimum ${effectivePolicy.minimumNoticeHours} hours notice required. Only ${Math.floor(hoursUntilSession)} hours remaining.`,
+                isEligible: false,
+            };
+        }
+        // Find applicable tier (tiers should be sorted highest hours first)
+        const sortedTiers = [...effectivePolicy.tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
+        let appliedTier = null;
+        for (const tier of sortedTiers) {
+            if (hoursUntilSession >= tier.hoursBeforeSession) {
+                appliedTier = tier;
+                break;
+            }
+        }
+        // Default to lowest tier if no match (shouldn't happen with proper config)
+        if (!appliedTier && sortedTiers.length > 0) {
+            appliedTier = sortedTiers[sortedTiers.length - 1];
+        }
+        const refundPercentage = appliedTier?.refundPercentage ?? 0;
+        const refundAmount = Math.round((bookingAmount * refundPercentage) / 100 * 100) / 100;
+        const platformFee = Math.round((refundAmount * PLATFORM_FEE_PERCENT) / 100 * 100) / 100;
+        const netRefundAmount = Math.round((refundAmount - platformFee) * 100) / 100;
+        // Build explanation
+        let explanation;
+        if (refundPercentage === 100) {
+            explanation = `Full refund of £${refundAmount.toFixed(2)} (less £${platformFee.toFixed(2)} platform fee).`;
+        }
+        else if (refundPercentage === 0) {
+            explanation = `No refund available. Session is within ${appliedTier?.hoursBeforeSession || 0} hours.`;
+        }
+        else {
+            explanation = `${refundPercentage}% refund: £${refundAmount.toFixed(2)} (less £${platformFee.toFixed(2)} platform fee).`;
+        }
+        return {
+            originalAmount: bookingAmount,
+            refundAmount,
+            platformFee,
+            netRefundAmount,
+            refundPercentage,
+            hoursUntilSession,
+            appliedTier,
+            explanation,
+            isEligible: refundPercentage > 0,
+        };
+    }
+    /**
+     * Check if a booking can be cancelled based on policy
+     */
+    canCancel(sessionStartTime, policy) {
+        const effectivePolicy = policy || this.getDefaultCancellationPolicy();
+        if (!effectivePolicy.allowCancellations) {
+            return false;
+        }
+        const now = new Date();
+        const hoursUntilSession = Math.max(0, (sessionStartTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+        return hoursUntilSession >= effectivePolicy.minimumNoticeHours;
+    }
+    /**
+     * Format cancellation policy tiers for display
+     */
+    formatPolicyForDisplay(policy) {
+        return policy.tiers.map(tier => {
+            if (tier.hoursBeforeSession === 0) {
+                return `• ${tier.refundPercentage}% refund: Less than ${policy.tiers[policy.tiers.length - 2]?.hoursBeforeSession || 0} hours before`;
+            }
+            return `• ${tier.refundPercentage}% refund: ${tier.hoursBeforeSession}+ hours before`;
+        });
+    }
+    /**
+     * Get short cancellation policy summary for display in booking cards
+     */
+    getCancellationPolicySummary(policy) {
+        if (!policy)
+            return 'Standard cancellation policy';
+        if (!policy.allowCancellations)
+            return 'No cancellations allowed';
+        const fullRefundTier = policy.tiers.find(t => t.refundPercentage === 100);
+        if (fullRefundTier) {
+            return `Full refund ${fullRefundTier.hoursBeforeSession}h+ before`;
+        }
+        return policy.name + ' cancellation policy';
+    }
+}
+exports.schedulingRulesService = new SchedulingRulesService();

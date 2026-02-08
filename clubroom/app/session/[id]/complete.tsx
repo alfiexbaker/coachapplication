@@ -21,12 +21,16 @@ import {
   TextInput,
   Alert,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { apiClient } from '@/services/api-client';
 import Slider from '@react-native-community/slider';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
@@ -186,6 +190,7 @@ export default function SessionCompleteScreen() {
   };
 
   const updateAttendance = (regId: string, updates: Partial<AthleteAttendance>) => {
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAttendance(prev => ({
       ...prev,
       [regId]: { ...prev[regId], ...updates },
@@ -193,6 +198,7 @@ export default function SessionCompleteScreen() {
   };
 
   const toggleBadge = (regId: string, badgeId: string) => {
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAttendance(prev => {
       const current = prev[regId];
       const hasBadge = current.badges.includes(badgeId);
@@ -249,7 +255,7 @@ export default function SessionCompleteScreen() {
       }
 
       // Save sharing preferences
-      await apiClient.set(`session_sharing_${session.id}`, {
+      await apiClient.set(`${STORAGE_KEYS.SESSION_SHARING}_${session.id}`, {
         shareNotesWithParents,
         shareAttendance,
       });
@@ -432,6 +438,7 @@ export default function SessionCompleteScreen() {
                           isSelected ? { backgroundColor: withAlpha(btnIcon.color, 0.09) } : undefined,
                         ]}
                         onPress={() => updateAttendance(registration.id, { status: s })}
+                        accessibilityLabel={`Mark ${registration.userName} as ${s}`}
                       >
                         <Ionicons
                           name={btnIcon.name as keyof typeof Ionicons.glyphMap}
@@ -493,7 +500,7 @@ export default function SessionCompleteScreen() {
                   )
                 }
               >
-                <ThemedText style={[styles.skillChipText, { color: isSelected ? Colors.light.onPrimary : palette.text }]}>
+                <ThemedText style={[styles.skillChipText, { color: isSelected ? palette.onPrimary : palette.text }]}>
                   {skill}
                 </ThemedText>
               </Pressable>
@@ -745,10 +752,12 @@ export default function SessionCompleteScreen() {
         </ThemedText>
       </View>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentInner}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {currentStep === 'attendance' && renderAttendanceStep()}
         {currentStep === 'notes' && renderNotesStep()}
@@ -761,6 +770,7 @@ export default function SessionCompleteScreen() {
             <Pressable
               style={[styles.navButtonSecondary, { borderColor: palette.border }]}
               onPress={goToPrevStep}
+              accessibilityLabel="Go back"
             >
               <Ionicons name="chevron-back" size={18} color={palette.text} />
               <ThemedText style={[styles.navButtonSecondaryText, { color: palette.text }]}>Back</ThemedText>
@@ -771,11 +781,12 @@ export default function SessionCompleteScreen() {
             <Pressable
               style={[styles.navButtonPrimary, { backgroundColor: palette.tint, flex: currentStepIndex === 0 ? 1 : undefined }]}
               onPress={goToNextStep}
+              accessibilityLabel="Next step"
             >
-              <ThemedText style={styles.navButtonPrimaryText}>
+              <ThemedText style={[styles.navButtonPrimaryText, { color: palette.onPrimary }]}>
                 {currentStep === 'badges' ? 'Review' : 'Next'}
               </ThemedText>
-              <Ionicons name="chevron-forward" size={18} color={Colors.light.onPrimary} />
+              <Ionicons name="chevron-forward" size={18} color={palette.onPrimary} />
             </Pressable>
           ) : (
             <Pressable
@@ -785,19 +796,21 @@ export default function SessionCompleteScreen() {
               ]}
               onPress={handleComplete}
               disabled={submitting}
+              accessibilityLabel="Complete session"
             >
               {submitting ? (
-                <ThemedText style={styles.submitText}>Saving...</ThemedText>
+                <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>Saving...</ThemedText>
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle" size={22} color={Colors.light.onPrimary} />
-                  <ThemedText style={styles.submitText}>Complete Session</ThemedText>
+                  <Ionicons name="checkmark-circle" size={22} color={palette.onPrimary} />
+                  <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>Complete Session</ThemedText>
                 </>
               )}
             </Pressable>
           )}
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -816,7 +829,7 @@ const styles = StyleSheet.create({
   },
   contentInner: {
     padding: Spacing.md,
-    paddingBottom: Spacing.xl * 2,
+    paddingBottom: Spacing['3xl'],
   },
   // Step indicator
   stepRow: {
@@ -899,8 +912,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   attendanceBtn: {
-    padding: 8,
+    padding: Spacing.xs,
     borderRadius: Radii.sm,
+    minHeight: 44,
+    minWidth: 44,
   },
   // Badge step styles
   badgeStepHint: {
@@ -929,6 +944,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
     borderWidth: 1,
+    minHeight: 44,
   },
   badgeOptionText: {
     ...Typography.caption,
@@ -957,6 +973,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
     borderWidth: 1.5,
+    minHeight: 44,
   },
   skillChipText: {
     ...Typography.smallSemiBold,
@@ -1025,7 +1042,6 @@ const styles = StyleSheet.create({
     borderRadius: Components.button.borderRadius,
   },
   navButtonPrimaryText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
   navButtonSecondary: {
@@ -1051,7 +1067,6 @@ const styles = StyleSheet.create({
     borderRadius: Components.button.borderRadius,
   },
   submitText: {
-    color: Colors.light.onPrimary,
     ...Typography.heading,
   },
 });

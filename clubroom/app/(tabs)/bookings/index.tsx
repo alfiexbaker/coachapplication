@@ -291,7 +291,7 @@ export default function BookingsScreen() {
               Action Required
             </ThemedText>
             <View style={[styles.actionRequiredBadge, { backgroundColor: palette.error }]}>
-              <ThemedText style={styles.actionRequiredBadgeText}>{pendingInvitesList.length}</ThemedText>
+              <ThemedText style={[styles.actionRequiredBadgeText, { color: palette.onPrimary }]}>{pendingInvitesList.length}</ThemedText>
             </View>
           </View>
           {pendingInvitesList.slice(0, 3).map(invite => (
@@ -305,7 +305,7 @@ export default function BookingsScreen() {
             />
           ))}
           {pendingInvitesList.length > 3 && (
-            <Clickable onPress={() => router.push(Routes.SESSION_INVITES)} style={styles.viewAllInvites}>
+            <Clickable onPress={() => router.push(Routes.SESSION_INVITES)} accessibilityLabel={`View all ${pendingInvitesList.length} invites`} style={styles.viewAllInvites}>
               <ThemedText style={[styles.viewAllInvitesText, { color: palette.tint }]}>
                 View all {pendingInvitesList.length} invites
               </ThemedText>
@@ -361,11 +361,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: Spacing['2xl'],
   },
   errorContainer: {
-    margin: 16,
-    padding: Spacing.xs + Spacing.xxs,
+    margin: Spacing.lg,
+    padding: Spacing.sm,
     borderRadius: Radii.sm,
     borderWidth: 1,
   },
@@ -385,8 +385,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   actionRequiredTitle: {
-    ...Typography.heading,
-    letterSpacing: -0.2,
+    ...Typography.subheading,
   },
   actionRequiredBadge: {
     minWidth: 22,
@@ -398,8 +397,6 @@ const styles = StyleSheet.create({
   },
   actionRequiredBadgeText: {
     ...Typography.micro,
-    color: Colors.light.onPrimary,
-    fontWeight: '700',
   },
   viewAllInvites: {
     flexDirection: 'row',

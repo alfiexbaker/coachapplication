@@ -168,7 +168,7 @@ class CommunityCarpoolService {
     const timestamp = new Date().toISOString();
 
     const newOffer: CarpoolOffer = {
-      id: `carpool_${Date.now()}`,
+      id: `carpool_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       parentId: params.parentId,
       parentName: params.parentName,
       parentAvatar: params.parentAvatar,
@@ -220,7 +220,7 @@ class CommunityCarpoolService {
     }
 
     const newRequest: CarpoolRequest = {
-      id: `req_${Date.now()}`,
+      id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       offerId: params.offerId,
       parentId: params.parentId,
       parentName: params.parentName,

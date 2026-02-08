@@ -171,7 +171,7 @@ function GoalsSection({
           </View>
           {goal.targetDate && (
             <ThemedText style={[styles.goalDueDate, { color: palette.muted }]}>
-              Target: {new Date(goal.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              Target: {new Date(goal.targetDate).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
             </ThemedText>
           )}
         </SurfaceCard>
@@ -217,7 +217,7 @@ function BadgesSection({
             {badge.label}
           </ThemedText>
           <ThemedText style={[styles.badgeDate, { color: palette.muted }]}>
-            {new Date(badge.awardedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {new Date(badge.awardedAt).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
           </ThemedText>
         </View>
       ))}
@@ -404,7 +404,7 @@ export function ParentProgressSummary({
       {progress.recentFeedback.length > 0 && (
         <View style={[styles.latestFeedback, { borderTopColor: palette.border }]}>
           <ThemedText style={[styles.latestFeedbackLabel, { color: palette.muted }]}>
-            Latest: {new Date(progress.recentFeedback[0].createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            Latest: {new Date(progress.recentFeedback[0].createdAt).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
           </ThemedText>
           <ThemedText style={styles.latestFeedbackText} numberOfLines={1}>
             {progress.recentFeedback[0].publicSummary || 'Session completed'}

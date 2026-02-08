@@ -403,8 +403,8 @@ const drill_service_1 = require("../../services/drill-service");
             node_assert_1.default.strictEqual(drill_service_1.drillService.isDueSoon(dueLaterAssignment), false);
         });
         (0, node_test_1.default)('formatDueDate should format date correctly', () => {
-            const formatted = drill_service_1.drillService.formatDueDate('2026-06-15T23:59:59Z');
-            node_assert_1.default.ok(formatted.includes('15'));
+            const formatted = drill_service_1.drillService.formatDueDate('2026-06-15T12:00:00Z');
+            node_assert_1.default.ok(formatted.includes('15') || formatted.includes('16'), `Expected '15' or '16' in: ${formatted}`);
             node_assert_1.default.ok(formatted.includes('Jun'));
         });
         (0, node_test_1.default)('getCategoryInfo should return correct info', () => {

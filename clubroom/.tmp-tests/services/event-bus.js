@@ -102,6 +102,11 @@ exports.ServiceEvents = {
     BOOKING_UPDATED: 'booking:updated',
     BOOKING_CANCELLED: 'booking:cancelled',
     BOOKING_CONFIRMED: 'booking:confirmed',
+    // Reschedule events
+    RESCHEDULE_PROPOSED: 'reschedule:proposed',
+    RESCHEDULE_ACCEPTED: 'reschedule:accepted',
+    RESCHEDULE_DECLINED: 'reschedule:declined',
+    RESCHEDULE_COUNTERED: 'reschedule:countered',
     // Series events (multi-week bookings)
     SERIES_CREATED: 'series:created',
     SERIES_UPDATED: 'series:updated',

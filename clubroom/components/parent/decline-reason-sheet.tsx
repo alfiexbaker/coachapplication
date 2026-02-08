@@ -55,12 +55,12 @@ export function DeclineReasonSheet({
   const [note, setNote] = useState('');
 
   const handleSelect = (key: DeclineReasonCategory) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelected(key);
   };
 
   const handleSubmit = () => {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onSubmit({
       reason: selected ?? undefined,
       note: note.trim() || undefined,
@@ -90,7 +90,7 @@ export function DeclineReasonSheet({
             <ThemedText type="subtitle">
               {athleteName ? `Can't make it for ${athleteName}?` : "Why can't you make it?"}
             </ThemedText>
-            <Clickable onPress={handleClose}>
+            <Clickable onPress={handleClose} accessibilityLabel="Close">
               <Ionicons name="close" size={24} color={palette.muted} />
             </Clickable>
           </View>
@@ -107,6 +107,7 @@ export function DeclineReasonSheet({
                 <Clickable
                   key={reason.key}
                   onPress={() => handleSelect(reason.key)}
+                  accessibilityLabel={reason.label}
                   style={[
                     styles.option,
                     {
@@ -159,10 +160,11 @@ export function DeclineReasonSheet({
           {/* Submit */}
           <Clickable
             onPress={handleSubmit}
+            accessibilityLabel="Send decline"
             style={[styles.submitBtn, { backgroundColor: palette.error }]}
           >
-            <Ionicons name="close-outline" size={20} color={Colors.light.onPrimary} />
-            <ThemedText style={styles.submitBtnText}>
+            <Ionicons name="close-outline" size={20} color={palette.onPrimary} />
+            <ThemedText style={[styles.submitBtnText, { color: palette.onPrimary }]}>
               Send Decline
             </ThemedText>
           </Clickable>
@@ -175,7 +177,7 @@ export function DeclineReasonSheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: withAlpha('#000000', 0.4),
     justifyContent: 'flex-end',
   },
   sheet: {
@@ -213,8 +215,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   optionText: {
-    ...Typography.body,
-    fontWeight: '500',
+    ...Typography.subheading,
     flex: 1,
   },
   noteInput: {
@@ -235,8 +236,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   submitBtnText: {
-    color: Colors.light.onPrimary,
-    fontWeight: '600',
-    fontSize: Typography.body.fontSize,
+    ...Typography.bodySemiBold,
   },
 });

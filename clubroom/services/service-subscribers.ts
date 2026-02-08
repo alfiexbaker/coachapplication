@@ -12,6 +12,11 @@
 
 import { onTyped, ServiceEvents, type EventPayloads } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
+import {
+  handleBookingCreated as handleCalendarBookingCreated,
+  handleBookingUpdated as handleCalendarBookingUpdated,
+  handleBookingCancelled as handleCalendarBookingCancelled,
+} from './calendar-sync-subscriber';
 
 const logger = createLogger('ServiceSubscribers');
 
@@ -119,6 +124,125 @@ export function initializeSubscribers(): void {
       bookingId: data.bookingId,
       reason: data.reason,
       cancelledBy: data.cancelledBy,
+    });
+  });
+
+  // ---------- Calendar sync events ------------------------------------------
+
+  subscribe(ServiceEvents.BOOKING_CREATED, (data) => {
+    handleCalendarBookingCreated(data).catch((err) => {
+      logger.error('Calendar sync failed for BOOKING_CREATED', err);
+    });
+  });
+
+  subscribe(ServiceEvents.BOOKING_UPDATED, (data) => {
+    handleCalendarBookingUpdated(data).catch((err) => {
+      logger.error('Calendar sync failed for BOOKING_UPDATED', err);
+    });
+  });
+
+  subscribe(ServiceEvents.BOOKING_CANCELLED, (data) => {
+    handleCalendarBookingCancelled(data).catch((err) => {
+      logger.error('Calendar sync failed for BOOKING_CANCELLED', err);
+    });
+  });
+
+  // ---------- Reschedule events ----------------------------------------------
+
+  subscribe(ServiceEvents.RESCHEDULE_PROPOSED, (data) => {
+    logger.debug('Handling RESCHEDULE_PROPOSED', data);
+
+    // Notify respondent about new reschedule proposal
+    try {
+      const notifService = getNotificationService();
+      notifService.create({
+        id: `notif_resched_proposed_${data.proposalId}`,
+        type: 'booking',
+        title: 'Reschedule Request',
+        body: `A reschedule has been proposed for your booking.`,
+        timeLabel: 'Just now',
+        read: false,
+      });
+    } catch (err) {
+      logger.error('Notification creation failed for RESCHEDULE_PROPOSED', err);
+    }
+
+    logger.info('Reschedule proposed event processed', {
+      proposalId: data.proposalId,
+      bookingId: data.bookingId,
+      initiatedBy: data.initiatedBy,
+    });
+  });
+
+  subscribe(ServiceEvents.RESCHEDULE_ACCEPTED, (data) => {
+    logger.debug('Handling RESCHEDULE_ACCEPTED', data);
+
+    // Notify initiator that reschedule was accepted
+    try {
+      const notifService = getNotificationService();
+      notifService.create({
+        id: `notif_resched_accepted_${data.proposalId}`,
+        type: 'booking',
+        title: 'Reschedule Accepted',
+        body: `Your reschedule request has been accepted.`,
+        timeLabel: 'Just now',
+        read: false,
+      });
+    } catch (err) {
+      logger.error('Notification creation failed for RESCHEDULE_ACCEPTED', err);
+    }
+
+    logger.info('Reschedule accepted event processed', {
+      proposalId: data.proposalId,
+      bookingId: data.bookingId,
+    });
+  });
+
+  subscribe(ServiceEvents.RESCHEDULE_DECLINED, (data) => {
+    logger.debug('Handling RESCHEDULE_DECLINED', data);
+
+    // Notify initiator that reschedule was declined
+    try {
+      const notifService = getNotificationService();
+      notifService.create({
+        id: `notif_resched_declined_${data.proposalId}`,
+        type: 'booking',
+        title: 'Reschedule Declined',
+        body: `Your reschedule request has been declined.`,
+        timeLabel: 'Just now',
+        read: false,
+      });
+    } catch (err) {
+      logger.error('Notification creation failed for RESCHEDULE_DECLINED', err);
+    }
+
+    logger.info('Reschedule declined event processed', {
+      proposalId: data.proposalId,
+      bookingId: data.bookingId,
+    });
+  });
+
+  subscribe(ServiceEvents.RESCHEDULE_COUNTERED, (data) => {
+    logger.debug('Handling RESCHEDULE_COUNTERED', data);
+
+    // Notify original initiator about the counter-proposal
+    try {
+      const notifService = getNotificationService();
+      notifService.create({
+        id: `notif_resched_countered_${data.proposalId}`,
+        type: 'booking',
+        title: 'Reschedule Counter-Proposal',
+        body: `A new time has been suggested for your reschedule request.`,
+        timeLabel: 'Just now',
+        read: false,
+      });
+    } catch (err) {
+      logger.error('Notification creation failed for RESCHEDULE_COUNTERED', err);
+    }
+
+    logger.info('Reschedule countered event processed', {
+      proposalId: data.proposalId,
+      bookingId: data.bookingId,
     });
   });
 

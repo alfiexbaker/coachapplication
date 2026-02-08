@@ -25,7 +25,7 @@ function formatDate(dateString: string): string {
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;
 
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
 }
 
 function RatingStars({ rating, size = 14 }: { rating: number; size?: number }) {

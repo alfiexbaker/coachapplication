@@ -37,9 +37,9 @@ export function AvailabilityPicker({
         {availability.map((day) => {
           const isSelected = day.id === selectedDayId;
           const dateObj = new Date(day.date);
-          const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+          const dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'short' });
           const dayNum = dateObj.getDate();
-          const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
+          const month = dateObj.toLocaleDateString('en-GB', { month: 'short' });
 
           return (
             <Clickable
@@ -90,7 +90,7 @@ export function AvailabilityPicker({
 function SlotRow({ slot, selected, onPress }: { slot: SlotInstance; selected: boolean; onPress: () => void }) {
   const scheme = useColorScheme() ?? 'light';
   const palette = Colors[scheme];
-  const timeString = slot.start.toLocaleTimeString('en-US', {
+  const timeString = slot.start.toLocaleTimeString('en-GB', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,

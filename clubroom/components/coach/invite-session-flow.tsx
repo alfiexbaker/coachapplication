@@ -214,9 +214,9 @@ export function InviteSessionFlow({
 
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-    const dateFormatted = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const dayName = date.toLocaleDateString('en-GB', { weekday: 'short' });
+    const dateFormatted = date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
+    const time = date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
     return { dayName, date: dateFormatted, time };
   };
 

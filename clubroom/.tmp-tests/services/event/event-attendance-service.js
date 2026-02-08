@@ -17,6 +17,7 @@ const api_client_1 = require("../api-client");
 const config_1 = require("@/constants/config");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const event_crud_service_1 = require("./event-crud-service");
 const event_rsvp_service_1 = require("./event-rsvp-service");
 const USE_MOCK = config_1.api.useMock;
@@ -256,7 +257,7 @@ exports.eventAttendanceService = {
      * Check if event is happening today
      */
     isEventToday(event) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = (0, format_1.toDateStr)(new Date());
         return event.date === today;
     },
     /**
@@ -267,7 +268,7 @@ exports.eventAttendanceService = {
         if (event.status !== 'PUBLISHED')
             return false;
         const now = new Date();
-        const today = now.toISOString().split('T')[0];
+        const today = (0, format_1.toDateStr)(now);
         // Event must be today
         if (event.date !== today)
             return false;

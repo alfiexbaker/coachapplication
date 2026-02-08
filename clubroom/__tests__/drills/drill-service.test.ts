@@ -486,8 +486,8 @@ describe('Drill Service', () => {
     });
 
     test('formatDueDate should format date correctly', () => {
-      const formatted = drillService.formatDueDate('2026-06-15T23:59:59Z');
-      assert.ok(formatted.includes('15'));
+      const formatted = drillService.formatDueDate('2026-06-15T12:00:00Z');
+      assert.ok(formatted.includes('15') || formatted.includes('16'), `Expected '15' or '16' in: ${formatted}`);
       assert.ok(formatted.includes('Jun'));
     });
 

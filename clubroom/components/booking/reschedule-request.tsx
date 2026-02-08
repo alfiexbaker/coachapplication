@@ -395,9 +395,7 @@ const styles = StyleSheet.create({
   timeSlotText: {
     flex: 1,
   },
-  timeSlotLabel: { ...Typography.caption, textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    fontWeight: '600' },
+  timeSlotLabel: { ...Typography.micro },
   timeSlotValue: { ...Typography.body, marginTop: Spacing.micro },
 
   // Arrow between slots

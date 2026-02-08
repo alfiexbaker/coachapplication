@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -20,9 +20,10 @@ import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/co
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubService, type ClubMember } from '@/services/club-service';
-import { clubSquads as allClubSquads } from '@/constants/mock-data';
+import { clubSquads as fallbackSquads } from '@/constants/mock-data';
 import type { ClubSquad } from '@/constants/types';
 import { apiClient } from '@/services/api-client';
+import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SquadDetail');
@@ -42,6 +43,9 @@ export default function SquadDetailScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [showAddMembers, setShowAddMembers] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<ClubMember | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!squadId) {
@@ -50,8 +54,10 @@ export default function SquadDetailScreen() {
     }
     setLoading(true);
     try {
-      // Find squad from all squads (route only provides squadId, not clubId)
-      const squadData = allClubSquads.find((s) => s.id === squadId) || null;
+      // Load from storage first, fall back to mock data
+      const storedSquads = await apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []);
+      const allSquads = storedSquads.length > 0 ? storedSquads : fallbackSquads;
+      const squadData = allSquads.find((s) => s.id === squadId) || null;
       setSquad(squadData);
       const clubId = squadData?.clubId;
       setResolvedClubId(clubId || null);
@@ -128,59 +134,48 @@ export default function SquadDetailScreen() {
 
   const handleRemoveFromSquad = (member: ClubMember) => {
     if (!resolvedClubId || !squadId) return;
+    setMemberToRemove(member);
+  };
 
-    Alert.alert(
-      'Remove from Squad',
-      `Remove ${member.userName} from ${squad?.name || 'this squad'}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const result = await clubService.removeMemberFromSquad(resolvedClubId, member.userId, squadId);
-              if (result.success) {
-                await loadData();
-                showToast(`${member.userName} removed from squad`, 'success');
-              } else {
-                showToast('Failed to remove member', 'error');
-              }
-            } catch (error) {
-              logger.error('Failed to remove from squad', error);
-              showToast('Failed to remove member', 'error');
-            }
-          },
-        },
-      ]
-    );
+  const confirmRemoveMember = async () => {
+    if (!resolvedClubId || !squadId || !memberToRemove) return;
+    try {
+      const result = await clubService.removeMemberFromSquad(resolvedClubId, memberToRemove.userId, squadId);
+      if (result.success) {
+        showToast(`${memberToRemove.userName} removed from squad`, 'success');
+        setMemberToRemove(null);
+        await loadData();
+      } else {
+        showToast('Failed to remove member', 'error');
+      }
+    } catch (error) {
+      logger.error('Failed to remove from squad', error);
+      showToast('Failed to remove member', 'error');
+    }
   };
 
   const handleDeleteSquad = () => {
-    Alert.alert(
-      'Delete Squad',
-      `Are you sure you want to delete ${squad?.name}? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const storedSquads = await apiClient.get<ClubSquad[]>('club_squads', []);
-              const filtered = storedSquads.filter((s) => s.id !== squadId);
-              await apiClient.set('club_squads', filtered);
-              showToast('Squad deleted', 'success');
-              logger.action('DeleteSquad', { squadId });
-              router.back();
-            } catch (error) {
-              logger.error('Failed to delete squad', error);
-              showToast('Failed to delete squad', 'error');
-            }
-          },
-        },
-      ]
-    );
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteSquad = async () => {
+    if (!squadId) return;
+    setDeleting(true);
+    try {
+      const storedSquads = await apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []);
+      // Also include fallback squads so we filter from the combined set
+      const allSquads = storedSquads.length > 0 ? storedSquads : [...fallbackSquads];
+      const filtered = allSquads.filter((s) => s.id !== squadId);
+      await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, filtered);
+      showToast('Squad deleted', 'success');
+      logger.action('DeleteSquad', { squadId });
+      router.back();
+    } catch (error) {
+      logger.error('Failed to delete squad', error);
+      showToast('Failed to delete squad', 'error');
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleInviteSquad = () => {
@@ -444,14 +439,67 @@ export default function SquadDetailScreen() {
 
         {/* Delete Squad */}
         <SurfaceCard style={[styles.dangerCard, { borderColor: withAlpha(palette.error, 0.19) }]}>
-          <Clickable
-            style={[styles.deleteButton, { borderColor: palette.error }]}
-            onPress={handleDeleteSquad}
-          >
-            <Ionicons name="trash-outline" size={18} color={palette.error} />
-            <ThemedText style={{ color: palette.error, fontWeight: '600' }}>Delete Squad</ThemedText>
-          </Clickable>
+          {showDeleteConfirm ? (
+            <View style={styles.deleteConfirmContent}>
+              <View style={[styles.deleteWarning, { backgroundColor: withAlpha(palette.error, 0.06) }]}>
+                <Ionicons name="warning-outline" size={18} color={palette.error} />
+                <ThemedText style={{ ...Typography.bodySmall, color: palette.error, flex: 1 }}>
+                  Delete {squad.name}? This cannot be undone.
+                </ThemedText>
+              </View>
+              <Clickable
+                style={[styles.deleteButton, { backgroundColor: palette.error, borderColor: palette.error }]}
+                onPress={confirmDeleteSquad}
+                disabled={deleting}
+              >
+                <Ionicons name="trash-outline" size={18} color={palette.onPrimary} />
+                <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySemiBold }}>
+                  {deleting ? 'Deleting...' : 'Yes, Delete Squad'}
+                </ThemedText>
+              </Clickable>
+              <Clickable
+                style={styles.cancelDeleteBtn}
+                onPress={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                <ThemedText style={{ color: palette.muted, ...Typography.bodySmall }}>Cancel</ThemedText>
+              </Clickable>
+            </View>
+          ) : (
+            <Clickable
+              style={[styles.deleteButton, { borderColor: palette.error }]}
+              onPress={handleDeleteSquad}
+            >
+              <Ionicons name="trash-outline" size={18} color={palette.error} />
+              <ThemedText style={{ color: palette.error, ...Typography.bodySemiBold }}>Delete Squad</ThemedText>
+            </Clickable>
+          )}
         </SurfaceCard>
+
+        {/* Remove Member Confirmation */}
+        {memberToRemove && (
+          <View style={[styles.removeOverlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}>
+            <SurfaceCard style={styles.removeConfirmCard}>
+              <ThemedText type="subtitle">Remove Member</ThemedText>
+              <ThemedText style={{ ...Typography.body, color: palette.muted }}>
+                Remove {memberToRemove.userName} from {squad.name}?
+              </ThemedText>
+              <Clickable
+                style={[styles.deleteButton, { backgroundColor: palette.error, borderColor: palette.error }]}
+                onPress={confirmRemoveMember}
+              >
+                <Ionicons name="person-remove-outline" size={18} color={palette.onPrimary} />
+                <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySemiBold }}>Remove</ThemedText>
+              </Clickable>
+              <Clickable
+                style={styles.cancelDeleteBtn}
+                onPress={() => setMemberToRemove(null)}
+              >
+                <ThemedText style={{ color: palette.muted, ...Typography.bodySmall }}>Cancel</ThemedText>
+              </Clickable>
+            </SurfaceCard>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -639,8 +687,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.md,
+    minHeight: 48,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
+  },
+  deleteConfirmContent: {
+    gap: Spacing.sm,
+  },
+  deleteWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+  },
+  cancelDeleteBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  removeOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  removeConfirmCard: {
+    width: '100%',
+    maxWidth: 340,
+    gap: Spacing.sm,
+    padding: Spacing.lg,
   },
 });

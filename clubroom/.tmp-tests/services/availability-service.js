@@ -20,6 +20,7 @@ const booking_types_1 = require("@/constants/booking-types");
 const invite_hold_service_1 = require("./invite-hold-service");
 const session_template_service_1 = require("./session-template-service");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const logger = (0, logger_1.createLogger)('AvailabilityService');
 const USE_MOCK = config_1.api.useMock;
 // Helper to load existing bookings from storage
@@ -332,19 +333,61 @@ exports.availabilityService = {
         });
     },
     /**
-     * Unblock a specific date
+     * Unblock a specific date.
+     * Removes both the modern override AND any legacy blocked-date range entry.
      */
     async unblockDate(coachId, date) {
         if (USE_MOCK) {
             overridesCache = await loadOverrides();
             overridesCache = overridesCache.filter((o) => !(o.coachId === coachId && o.date === date));
             await saveOverrides(overridesCache);
+            // Also clean legacy BLOCKED_DATES key so schedule screen stays in sync
+            await this.removeLegacyBlockedDate(coachId, date);
             return;
         }
         const overrides = await this.getOverrides(coachId);
         const override = overrides.find((o) => o.date === date);
         if (override) {
             await this.deleteOverride(override.id);
+        }
+    },
+    /**
+     * Remove a date from the legacy BLOCKED_DATES storage key.
+     * Handles single-day ranges (remove entirely) and multi-day ranges (split).
+     */
+    async removeLegacyBlockedDate(coachId, date) {
+        try {
+            const allBlocked = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.BLOCKED_DATES, null);
+            if (!allBlocked?.[coachId]?.length)
+                return;
+            const cleaned = [];
+            for (const bd of allBlocked[coachId]) {
+                if (date < bd.startDate || date > bd.endDate) {
+                    // Not affected — keep as is
+                    cleaned.push(bd);
+                }
+                else if (bd.startDate === date && bd.endDate === date) {
+                    // Single-day range matching this date — remove entirely
+                }
+                else {
+                    // Multi-day range containing this date — split into up to two sub-ranges
+                    if (bd.startDate < date) {
+                        const prevDay = new Date(date + 'T12:00:00');
+                        prevDay.setDate(prevDay.getDate() - 1);
+                        cleaned.push({ ...bd, endDate: (0, format_1.toDateStr)(prevDay), id: `${bd.id}_l` });
+                    }
+                    if (bd.endDate > date) {
+                        const nextDay = new Date(date + 'T12:00:00');
+                        nextDay.setDate(nextDay.getDate() + 1);
+                        cleaned.push({ ...bd, startDate: (0, format_1.toDateStr)(nextDay), id: `${bd.id}_r` });
+                    }
+                }
+            }
+            allBlocked[coachId] = cleaned;
+            await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.BLOCKED_DATES, allBlocked);
+        }
+        catch (err) {
+            logger.error('Failed to clean legacy blocked dates', err);
         }
     },
     /**
@@ -380,7 +423,7 @@ exports.availabilityService = {
         const end = new Date(endDate);
         // Iterate through each day in range
         for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = (0, format_1.toDateStr)(date);
             const dayOfWeek = date.getDay();
             // Check for override on this date
             const override = overrides.find((o) => o.date === dateStr);
@@ -563,7 +606,7 @@ exports.availabilityService = {
         let current = new Date(startDate);
         let index = 0;
         while (current <= endDate) {
-            const dateStr = current.toISOString().split('T')[0];
+            const dateStr = (0, format_1.toDateStr)(current);
             const saved = await this.saveOverride({
                 ...override,
                 date: dateStr,
@@ -603,10 +646,10 @@ exports.availabilityService = {
             }
         }
         // Get next available slot
-        const today = new Date().toISOString().split('T')[0];
+        const today = (0, format_1.toDateStr)(new Date());
         const twoWeeksLater = new Date();
         twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
-        const slots = await this.getAvailableSlots(coachId, today, twoWeeksLater.toISOString().split('T')[0]);
+        const slots = await this.getAvailableSlots(coachId, today, (0, format_1.toDateStr)(twoWeeksLater));
         const nextAvailableSlot = slots.find((s) => s.isAvailable);
         return {
             weeklyHours: Math.round(weeklyMinutes / 60 * 10) / 10,
@@ -668,7 +711,7 @@ exports.availabilityService = {
             const d = new Date(today);
             d.setDate(today.getDate() + ((dayOfWeek - today.getDay() + 7) % 7) + w * 7);
             if (d >= today) {
-                dates.push(d.toISOString().split('T')[0]);
+                dates.push((0, format_1.toDateStr)(d));
             }
         }
         const result = await this.checkConflicts(coachId, dates);
@@ -707,7 +750,7 @@ exports.availabilityService = {
             const d = new Date(today);
             d.setDate(today.getDate() + ((dayOfWeek - today.getDay() + 7) % 7) + w * 7);
             if (d >= today) {
-                dates.push(d.toISOString().split('T')[0]);
+                dates.push((0, format_1.toDateStr)(d));
             }
         }
         if (dates.length === 0)

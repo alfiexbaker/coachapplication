@@ -31,21 +31,12 @@ const DEFAULT_TEMPLATES = [
         skillsFocus: [],
     },
     {
-        name: 'Small Group',
+        name: 'Group Training',
         type: 'small-group',
         duration: 60,
         capacity: 4,
         defaultPrice: 35,
-        description: 'Small group training for focused development.',
-        skillsFocus: [],
-    },
-    {
-        name: 'Assessment',
-        type: 'assessment',
-        duration: 45,
-        capacity: 1,
-        defaultPrice: 50,
-        description: 'Skills assessment and development plan.',
+        description: 'Group training for focused development.',
         skillsFocus: [],
     },
 ];
@@ -76,7 +67,7 @@ exports.sessionTemplateService = {
     async getTemplates(coachId) {
         if (USE_MOCK) {
             let all = await loadTemplates();
-            const coachTemplates = all.filter((t) => t.coachId === coachId);
+            let coachTemplates = all.filter((t) => t.coachId === coachId);
             // Seed defaults if this coach has none
             if (coachTemplates.length === 0) {
                 const seeded = DEFAULT_TEMPLATES.map((def, i) => ({
@@ -88,6 +79,14 @@ exports.sessionTemplateService = {
                 all = [...all, ...seeded];
                 await saveTemplates(all);
                 return seeded;
+            }
+            // Clean up legacy types that are no longer offered
+            const ACTIVE_TYPES = new Set(['1-to-1', 'small-group']);
+            const legacyCount = coachTemplates.filter((t) => !ACTIVE_TYPES.has(t.type)).length;
+            if (legacyCount > 0) {
+                all = all.filter((t) => t.coachId !== coachId || ACTIVE_TYPES.has(t.type));
+                await saveTemplates(all);
+                coachTemplates = all.filter((t) => t.coachId === coachId);
             }
             return coachTemplates;
         }

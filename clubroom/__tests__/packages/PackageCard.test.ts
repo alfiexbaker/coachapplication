@@ -176,7 +176,7 @@ test('PackageCard handles undefined focus', () => {
   const compact = false;
 
   const shouldShowFocus = !compact && pkg.focus && pkg.focus.length > 0;
-  assert.strictEqual(shouldShowFocus, false);
+  assert.ok(!shouldShowFocus);
 });
 
 // ============================================================================

@@ -141,7 +141,7 @@ const createMockPackage = (overrides = {}) => ({
     const pkg = createMockPackage({ focus: undefined });
     const compact = false;
     const shouldShowFocus = !compact && pkg.focus && pkg.focus.length > 0;
-    node_assert_1.default.strictEqual(shouldShowFocus, false);
+    node_assert_1.default.ok(!shouldShowFocus);
 });
 // ============================================================================
 // STATS ROW TESTS

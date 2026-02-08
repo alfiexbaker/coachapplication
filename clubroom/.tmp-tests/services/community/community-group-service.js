@@ -121,7 +121,10 @@ class CommunityGroupService {
      */
     async getAllGroups() {
         const persisted = await storage_service_1.storageService.getItem(storage_keys_1.STORAGE_KEYS.PARENT_GROUPS, []);
-        return persisted.length > 0 ? persisted : this.inMemoryGroups;
+        if (persisted.length > 0) {
+            this.inMemoryGroups = persisted;
+        }
+        return this.inMemoryGroups;
     }
     /**
      * Get all groups that a user is a member of
@@ -165,7 +168,7 @@ class CommunityGroupService {
             })),
         ];
         const newGroup = {
-            id: `group_${Date.now()}`,
+            id: `group_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             name: params.name,
             description: params.description,
             type: params.type,
@@ -289,7 +292,7 @@ class CommunityGroupService {
         }
         // Create the invite
         const invite = {
-            id: `group_invite_${Date.now()}`,
+            id: `group_invite_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
             groupId,
             groupName: group.name,
             inviterId,

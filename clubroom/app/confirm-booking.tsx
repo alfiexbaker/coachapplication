@@ -65,12 +65,12 @@ export default function ConfirmBookingScreen() {
   const [athletesInfo, setAthletesInfo] = useState<{ id: string; name: string; avatar?: string }[]>([]);
 
   const slotDate = new Date(slotStart);
-  const formattedDate = slotDate.toLocaleDateString('en-US', {
+  const formattedDate = slotDate.toLocaleDateString('en-GB', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   });
-  const formattedTime = slotDate.toLocaleTimeString('en-US', {
+  const formattedTime = slotDate.toLocaleTimeString('en-GB', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,

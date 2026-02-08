@@ -34,6 +34,7 @@ const invite_hold_service_1 = require("../invite-hold-service");
 const availability_service_1 = require("../availability-service");
 const multi_week_booking_service_1 = require("../multi-week-booking-service");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('SessionInviteService');
 const USE_MOCK = config_1.api.useMock;
@@ -705,7 +706,7 @@ exports.sessionInviteService = {
         for (let i = 0; i < recurrenceWeeks; i++) {
             const weekDate = new Date(start);
             weekDate.setDate(start.getDate() + i * 7);
-            const dateStr = weekDate.toISOString().split('T')[0];
+            const dateStr = (0, format_1.toDateStr)(weekDate);
             weekSlots.push({
                 weekDate: dateStr,
                 startTime: baseSlot.startTime,

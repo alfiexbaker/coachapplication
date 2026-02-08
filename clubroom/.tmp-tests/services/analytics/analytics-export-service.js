@@ -20,6 +20,7 @@ exports.analyticsExportService = void 0;
 const api_client_1 = require("../api-client");
 const booking_types_1 = require("@/constants/booking-types");
 const logger_1 = require("@/utils/logger");
+const format_1 = require("@/utils/format");
 const config_1 = require("@/constants/config");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('AnalyticsExportService');
@@ -94,7 +95,7 @@ function generateMockRevenueChart(period, baseRevenue) {
         const amount = Math.round((baseRevenue / dataPoints) * variance);
         const sessionCount = Math.round(amount / 50);
         points.push({
-            date: date.toISOString().split('T')[0],
+            date: (0, format_1.toDateStr)(date),
             amount,
             sessionCount,
         });

@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, type Href } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -185,11 +186,11 @@ export function CoachDevelopmentScreen() {
   });
 
   const quickActions = [
-    { icon: 'calendar-number' as const, label: 'Bookings', route: '/(tabs)/bookings', color: '#DC2626' },
-    { icon: 'chatbubbles' as const, label: 'Messages', route: '/(tabs)/messages', color: '#2563EB' },
-    { icon: 'calendar' as const, label: 'Schedule', route: '/(tabs)/schedule', color: '#059669' },
-    { icon: 'people' as const, label: 'Athletes', route: '/(tabs)/athletes', color: palette.tint },
-    { icon: 'paper-plane' as const, label: 'Send Invite', route: '/session-invites/create', color: '#7C3AED' },
+    { icon: 'calendar-number' as const, label: 'Bookings', route: Routes.BOOKINGS, color: palette.error },
+    { icon: 'chatbubbles' as const, label: 'Messages', route: Routes.MESSAGES, color: palette.tint },
+    { icon: 'calendar' as const, label: 'Schedule', route: Routes.SCHEDULE, color: palette.success },
+    { icon: 'people' as const, label: 'Athletes', route: Routes.ATHLETES, color: palette.icon },
+    { icon: 'paper-plane' as const, label: 'Send Invite', route: Routes.SESSION_INVITES_CREATE, color: palette.warning },
   ];
 
   return (
@@ -207,8 +208,11 @@ export function CoachDevelopmentScreen() {
         <View style={styles.quickActionsRow}>
           {quickActions.map((action) => (
             <Clickable
-              key={action.route}
-              onPress={() => router.push(action.route as Href)}
+              key={action.label}
+              onPress={() => {
+                if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push(action.route as Href);
+              }}
               style={styles.quickActionItem}
             >
               <View style={[styles.quickActionIcon, { backgroundColor: withAlpha(action.color, 0.09) }]}>
@@ -223,7 +227,7 @@ export function CoachDevelopmentScreen() {
 
         {/* Sessions to Complete Card */}
         {awaitingCompletion.length > 0 && (
-          <SurfaceCard style={[styles.sectionCard, styles.completionCard]}>
+          <SurfaceCard style={[styles.sectionCard, styles.completionCard, { borderLeftColor: palette.warning }]}>
             <View style={styles.completionHeader}>
               <View style={[styles.completionIconCircle, { backgroundColor: withAlpha(palette.warning, 0.09) }]}>
                 <Ionicons name="clipboard-outline" size={20} color={palette.warning} />
@@ -236,7 +240,7 @@ export function CoachDevelopmentScreen() {
             {awaitingCompletion.slice(0, 3).map((booking) => {
               const sessionDate = new Date(booking.scheduledAt);
               const isToday = sessionDate.toDateString() === new Date().toDateString();
-              const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              const timeStr = sessionDate.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
               const dateStr = isToday ? `Today ${timeStr}` : sessionDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ` ${timeStr}`;
 
               return (
@@ -307,7 +311,7 @@ export function CoachDevelopmentScreen() {
                           {entry.athlete.avatar || entry.athlete.name.charAt(0)}
                         </ThemedText>
                         {entry.needsNotes && (
-                          <View style={[styles.badge, { backgroundColor: palette.error }]} />
+                          <View style={[styles.badge, { backgroundColor: palette.error, borderColor: palette.surface }]} />
                         )}
                       </View>
                       <View style={styles.rowContent}>
@@ -402,6 +406,28 @@ export function CoachDevelopmentScreen() {
             })}
           </View>
         </SurfaceCard>
+
+        {/* Badge Awarding Shortcut */}
+        <Clickable
+          onPress={() => {
+            logger.press('BadgesShortcut', { source: 'CoachDevelopment' });
+            router.push(Routes.DEVELOPMENT_BADGES);
+          }}
+          style={[styles.badgesShortcut, { borderColor: palette.border }]}
+        >
+          <View style={[styles.badgesShortcutIcon, { backgroundColor: withAlpha(palette.success, 0.07) }]}>
+            <Ionicons name="ribbon" size={20} color={palette.success} />
+          </View>
+          <View style={styles.rowContent}>
+            <ThemedText type="defaultSemiBold" style={styles.athleteName}>
+              Badges & Awards
+            </ThemedText>
+            <ThemedText style={[styles.subtleMeta, { color: palette.muted }]}>
+              Award badges, view athlete achievements
+            </ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={palette.muted} />
+        </Clickable>
       </PageContainer>
     </>
   );
@@ -436,7 +462,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.sm,
   },
-  sectionTitle: { ...Typography.heading, letterSpacing: -0.2 },
+  sectionTitle: { ...Typography.subheading },
   sectionHint: { ...Typography.caption },
   recentRow: {
     padding: Spacing.sm,
@@ -516,21 +542,18 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: Radii.sm,
     borderWidth: 2,
-    borderColor: '#1F2025',
   },
   athleteDetails: {
     flex: 1,
     gap: Spacing.micro,
   },
   athleteName: { ...Typography.bodySemiBold, letterSpacing: -0.1 },
-  athleteMetadata: { ...Typography.small, lineHeight: 18,
-    fontWeight: '400' },
+  athleteMetadata: { ...Typography.small },
 
 
   // Sessions to complete card
   completionCard: {
     borderLeftWidth: 3,
-    borderLeftColor: Colors.light.warning,
   },
   completionHeader: {
     flexDirection: 'row',
@@ -575,7 +598,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.xs,
   },
-  emptyTitle: { ...Typography.heading, letterSpacing: -0.2 },
+  badgesShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+  },
+  badgesShortcutIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radii.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: { ...Typography.subheading },
   emptyText: { ...Typography.bodySmall, lineHeight: 20,
     textAlign: 'center',
     maxWidth: 260 },

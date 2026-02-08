@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   reasonLabelSelected: {
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   noteInput: {
     marginBottom: Spacing.md,

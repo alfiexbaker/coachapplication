@@ -18,9 +18,10 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Components  , withAlpha } from '@/constants/theme';
+import { Colors, Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { CardStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { rsvpService } from '@/services/rsvp-service';
 import type { SessionRsvp } from '@/constants/types';
 
@@ -58,9 +59,10 @@ interface ExpandableListProps {
   names: string[];
   color: string;
   icon: keyof typeof Ionicons.glyphMap;
+  mutedColor: string;
 }
 
-function ExpandableList({ title, names, color, icon }: ExpandableListProps) {
+function ExpandableList({ title, names, color, icon, mutedColor }: ExpandableListProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (names.length === 0) return null;
@@ -70,6 +72,7 @@ function ExpandableList({ title, names, color, icon }: ExpandableListProps) {
       <Pressable
         style={styles.expandableHeader}
         onPress={() => setExpanded(!expanded)}
+        accessibilityLabel={`${title} (${names.length})`}
       >
         <View style={styles.expandableLeft}>
           <Ionicons name={icon} size={18} color={color} />
@@ -80,7 +83,7 @@ function ExpandableList({ title, names, color, icon }: ExpandableListProps) {
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={Colors.light.muted}
+          color={mutedColor}
         />
       </Pressable>
 
@@ -103,6 +106,8 @@ function ExpandableList({ title, names, color, icon }: ExpandableListProps) {
 // ---------------------------------------------------------------------------
 
 export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
+  const scheme = useColorScheme() ?? 'light';
+  const palette = Colors[scheme];
   const [rsvps, setRsvps] = useState<SessionRsvp[]>([]);
   const [counts, setCounts] = useState({ going: 0, notGoing: 0, maybe: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
@@ -170,7 +175,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
   if (loading) {
     return (
       <View style={[CardStyles.base, styles.loadingContainer]}>
-        <ActivityIndicator size="small" color={Colors.light.tint} />
+        <ActivityIndicator size="small" color={palette.tint} />
       </View>
     );
   }
@@ -178,7 +183,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
   if (total === 0) {
     return (
       <View style={[CardStyles.base, styles.emptyContainer]}>
-        <Ionicons name="people-outline" size={32} color={Colors.light.muted} />
+        <Ionicons name="people-outline" size={32} color={palette.muted} />
         <ThemedText style={styles.emptyText}>No RSVPs yet</ThemedText>
       </View>
     );
@@ -191,15 +196,15 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
 
       {/* Progress indicator */}
       <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
+        <View style={[styles.progressBar, { backgroundColor: palette.border }]}>
           <View
             style={[
               styles.progressFill,
-              { width: `${progressPercent}%` },
+              { width: `${progressPercent}%`, backgroundColor: palette.success },
             ]}
           />
         </View>
-        <ThemedText style={styles.progressText}>
+        <ThemedText style={[styles.progressText, { color: palette.muted }]}>
           {confirmed}/{total} confirmed
         </ThemedText>
       </View>
@@ -209,19 +214,19 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
         <CountBadge
           count={counts.going}
           label="Going"
-          color={Colors.light.success}
+          color={palette.success}
           icon="checkmark-circle"
         />
         <CountBadge
           count={counts.notGoing}
           label="Can't"
-          color={Colors.light.error}
+          color={palette.error}
           icon="close-circle"
         />
         <CountBadge
           count={counts.maybe}
           label="Maybe"
-          color={Colors.light.warning}
+          color={palette.warning}
           icon="help-circle"
         />
       </View>
@@ -231,26 +236,30 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
         <ExpandableList
           title="Going"
           names={goingNames}
-          color={Colors.light.success}
+          color={palette.success}
           icon="checkmark-circle-outline"
+          mutedColor={palette.muted}
         />
         <ExpandableList
           title="Can't Make It"
           names={cantNames}
-          color={Colors.light.error}
+          color={palette.error}
           icon="close-circle-outline"
+          mutedColor={palette.muted}
         />
         <ExpandableList
           title="Maybe"
           names={maybeNames}
-          color={Colors.light.warning}
+          color={palette.warning}
           icon="help-circle-outline"
+          mutedColor={palette.muted}
         />
         <ExpandableList
           title="Awaiting Response"
           names={pendingNames}
-          color={Colors.light.muted}
+          color={palette.muted}
           icon="time-outline"
+          mutedColor={palette.muted}
         />
       </View>
 
@@ -259,17 +268,19 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
         <Pressable
           style={({ pressed }) => [
             styles.reminderButton,
+            { borderColor: palette.tint },
             pressed && styles.reminderButtonPressed,
           ]}
           onPress={handleSendReminder}
           disabled={sendingReminder}
+          accessibilityLabel={`Send reminder to ${counts.pending} pending`}
         >
           {sendingReminder ? (
-            <ActivityIndicator size="small" color={Colors.light.tint} />
+            <ActivityIndicator size="small" color={palette.tint} />
           ) : (
             <>
-              <Ionicons name="notifications-outline" size={18} color={Colors.light.tint} />
-              <ThemedText style={styles.reminderButtonText}>
+              <Ionicons name="notifications-outline" size={18} color={palette.tint} />
+              <ThemedText style={[styles.reminderButtonText, { color: palette.tint }]}>
                 Send Reminder ({counts.pending} pending)
               </ThemedText>
             </>
@@ -301,11 +312,9 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...Typography.small,
-    color: Colors.light.muted,
   },
   sectionTitle: {
-    ...Typography.heading,
-    color: Colors.light.text,
+    ...Typography.subheading,
   },
 
   // Progress
@@ -314,18 +323,15 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    backgroundColor: Colors.light.border,
     borderRadius: Radii.sm,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.light.success,
     borderRadius: Radii.sm,
   },
   progressText: {
     ...Typography.caption,
-    color: Colors.light.muted,
   },
 
   // Count badges
@@ -347,8 +353,7 @@ const styles = StyleSheet.create({
     ...Typography.bodySemiBold,
   },
   countLabel: {
-    ...Typography.small,
-    fontWeight: '500',
+    ...Typography.smallSemiBold,
   },
 
   // Expandable lists
@@ -373,7 +378,6 @@ const styles = StyleSheet.create({
   },
   expandableTitle: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
   },
   namesList: {
     paddingLeft: Spacing.lg,
@@ -392,7 +396,6 @@ const styles = StyleSheet.create({
   },
   nameText: {
     ...Typography.body,
-    color: Colors.light.text,
   },
 
   // Reminder button
@@ -404,14 +407,13 @@ const styles = StyleSheet.create({
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,
     borderWidth: 1.5,
-    borderColor: Colors.light.tint,
     backgroundColor: 'transparent',
     marginTop: Spacing.xs,
   },
   reminderButtonPressed: {
     opacity: 0.8,
   },
-  reminderButtonText: { ...Typography.bodySemiBold, color: Colors.light.tint },
+  reminderButtonText: { ...Typography.bodySemiBold },
 });
 
 export default RSVPSummary;
