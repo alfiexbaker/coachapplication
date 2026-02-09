@@ -5,10 +5,10 @@ import { Swipeable } from 'react-native-gesture-handler';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { rosterService } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AthleteRowProps {
   entry: RosterEntry;
@@ -25,8 +25,7 @@ export function AthleteRow({
   onLongPress,
   swipeEnabled = true,
 }: AthleteRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const swipeableRef = useRef<Swipeable>(null);
 
   const statusColor = rosterService.getStatusColor(entry.status);
@@ -60,7 +59,7 @@ export function AthleteRow({
         >
           <Animated.View style={{ transform: [{ scale }] }}>
             <Ionicons name="trash-outline" size={22} color={palette.onPrimary} />
-            <ThemedText style={styles.removeText}>Remove</ThemedText>
+            <ThemedText style={[styles.removeText, { color: palette.onPrimary }]}>Remove</ThemedText>
           </Animated.View>
         </Pressable>
       </Animated.View>
@@ -242,6 +241,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: Radii.md,
   },
-  removeText: { ...Typography.caption, color: Colors.light.onPrimary,
+  removeText: { ...Typography.caption,
     marginTop: Spacing.xxs },
 });

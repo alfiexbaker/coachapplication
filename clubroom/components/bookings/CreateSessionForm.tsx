@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing} from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, Radii, Spacing, Shadows} from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { FootballObjective } from '@/constants/types';
 import { scale, scaleFont } from '@/utils/scale';
 
@@ -89,8 +89,7 @@ export function CreateSessionForm({
   onFootballSkillChange,
   onSubmit,
 }: CreateSessionFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
 
   return (
     <ScrollView
@@ -483,16 +482,14 @@ export function CreateSessionForm({
       {/* Create Button */}
       <Clickable
         onPress={onSubmit}
-        style={[styles.createButton, { backgroundColor: palette.tint }]}>
+        style={[styles.createButton, { backgroundColor: palette.tint, ...Shadows[scheme].card }]}>
         <Ionicons
           name="checkmark-circle-outline"
           size={24}
           color={palette.onPrimary}
         />
         <ThemedText
-          style={styles.createButtonText}
-          lightColor={Colors.light.onPrimary}
-          darkColor={Colors.dark.onPrimary}>
+          style={[styles.createButtonText, { color: palette.onPrimary }]}>
           Create Session Offering
         </ThemedText>
       </Clickable>
@@ -581,11 +578,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     marginTop: Spacing.xs + Spacing.xxs,
     marginBottom: 32,
-    shadowColor: Colors.light.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   createButtonText: {
     fontSize: scaleFont(18),

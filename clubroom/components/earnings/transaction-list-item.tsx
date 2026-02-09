@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export function TransactionListItem({
   title,
@@ -14,8 +14,7 @@ export function TransactionListItem({
   amount: string;
   status: string;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   return (
     <View style={[styles.row, { borderBottomColor: palette.border }]}> 
       <View style={{ flex: 1 }}>

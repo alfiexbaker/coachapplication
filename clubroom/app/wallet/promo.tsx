@@ -16,8 +16,8 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { PromoCodeInput } from '@/components/promo';
-import { Colors, Spacing, Typography, Radii , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography, Radii , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { promoService } from '@/services/promo-service';
 import { walletService } from '@/services/wallet-service';
@@ -26,8 +26,7 @@ import type { PromoCodeUsage } from '@/constants/types';
 const logger = createLogger('PromoCodeScreen');
 
 export default function PromoCodeScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   useRouter();
   const { currentUser } = useAuth();
 

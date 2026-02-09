@@ -10,13 +10,22 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import type { Academy, AcademyMembership } from '@/constants/types';
 
 const logger = createLogger('AcademyDetailScreen');
+
+// Decorative: staff role hierarchy colors
+const ROLE_COLORS = {
+  OWNER: '#7C3AED',
+  ADMIN: '#0284C7',
+  HEAD_COACH: '#059669',
+  ASSISTANT: '#6B7280',
+  MEMBER: '#9CA3AF',
+} as const;
 
 function StaffCard({
   member,
@@ -29,16 +38,11 @@ function StaffCard({
   isOwner: boolean;
   onManage: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const roleColors: Record<AcademyMembership['role'], string> = {
-    OWNER: '#7C3AED',
-    ADMIN: '#0284C7',
-    HEAD_COACH: '#059669',
+    ...ROLE_COLORS,
     COACH: palette.tint,
-    ASSISTANT: '#6B7280',
-    MEMBER: '#9CA3AF',
   };
 
   return (
@@ -75,8 +79,7 @@ function StaffCard({
 
 export default function AcademyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [academy, setAcademy] = useState<Academy | null>(null);
@@ -141,14 +144,14 @@ export default function AcademyDetailScreen() {
           <View style={styles.bannerOverlay} />
           <Clickable
             onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+            style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]} // Decorative: overlay button scrim
           >
             <Ionicons name="arrow-back" size={22} color={palette.onPrimary} />
           </Clickable>
           {canManage && (
             <Clickable
               onPress={() => router.push(Routes.academySettings(id))}
-              style={[styles.settingsButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+              style={[styles.settingsButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]} // Decorative: overlay button scrim
             >
               <Ionicons name="settings-outline" size={20} color={palette.onPrimary} />
             </Clickable>
@@ -158,10 +161,10 @@ export default function AcademyDetailScreen() {
         {/* Logo & Name */}
         <View style={styles.logoSection}>
           {academy.logoUrl ? (
-            <Image source={{ uri: academy.logoUrl }} style={styles.logo} />
+            <Image source={{ uri: academy.logoUrl }} style={[styles.logo, { borderColor: palette.onPrimary }]} />
           ) : (
-            <View style={[styles.logoPlaceholder, { backgroundColor: primaryColor }]}>
-              <ThemedText style={styles.logoText}>
+            <View style={[styles.logoPlaceholder, { backgroundColor: primaryColor, borderColor: palette.onPrimary }]}>
+              <ThemedText style={[styles.logoText, { color: palette.onPrimary }]}>
                 {academy.name.slice(0, 2).toUpperCase()}
               </ThemedText>
             </View>
@@ -297,7 +300,7 @@ export default function AcademyDetailScreen() {
                   style={[styles.inviteButton, { backgroundColor: primaryColor }]}
                 >
                   <Ionicons name="person-add-outline" size={16} color={palette.onPrimary} />
-                  <ThemedText style={styles.inviteButtonText}>Invite</ThemedText>
+                  <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>Invite</ThemedText>
                 </Clickable>
               )}
             </View>
@@ -324,7 +327,7 @@ export default function AcademyDetailScreen() {
                 onPress={() => router.push(Routes.ACADEMY_JOIN)}
                 style={[styles.joinButton, { backgroundColor: primaryColor }]}
               >
-                <ThemedText style={styles.joinButtonText}>Join Team</ThemedText>
+                <ThemedText style={[styles.joinButtonText, { color: palette.onPrimary }]}>Join Team</ThemedText>
               </Clickable>
             </View>
           )}
@@ -361,7 +364,7 @@ const styles = StyleSheet.create({
   },
   bannerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.2)', // Decorative: banner image darkening overlay
   },
   backButton: {
     position: 'absolute',
@@ -393,19 +396,16 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: Radii.pill,
     borderWidth: 4,
-    borderColor: Colors.light.onPrimary,
   },
   logoPlaceholder: {
     width: 100,
     height: 100,
     borderRadius: Radii.pill,
     borderWidth: 4,
-    borderColor: Colors.light.onPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoText: {
-    color: Colors.light.onPrimary,
     ...Typography.display,
   },
   academyName: {
@@ -506,7 +506,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   inviteButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.smallSemiBold,
   },
   staffList: {
@@ -563,7 +562,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   joinButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.bodySemiBold,
   },
   bottomSpacer: {

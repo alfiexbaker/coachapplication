@@ -1,89 +1,83 @@
-# Clubroom - Coach Booking Platform
+# Clubroom
 
-A React Native / Expo app for connecting athletes with coaches. Built with file-based routing and a modular service architecture.
+Premium football coaching marketplace & community platform. Connects coaches, parents, athletes, and clubs.
 
-## Architecture Overview
+## Tech Stack
+
+- **Expo 54** / React Native 0.81 / React 19 / TypeScript 5.9
+- Expo Router 6 — file-based routing (~185 routes)
+- Custom design system — `constants/theme.ts` (14 UI primitives + 4 layout primitives)
+- Result<T, ServiceError> — Rust-inspired error handling, zero exceptions
+- Node.js built-in test runner (`node --test`)
+
+## Quick Start
+
+```bash
+cd clubroom
+npm install
+npm run dev
+```
+
+## Architecture
 
 ```
 clubroom/
-├── app/                    # Expo Router screens (file-based routing)
-│   ├── (tabs)/            # Tab navigation screens
+├── app/                    # Expo Router screens (~185 routes)
+│   ├── (tabs)/            # Tab navigation (home, bookings, children, etc.)
+│   ├── (modal)/           # Modal presentations
 │   ├── book/              # Booking wizard flow
-│   ├── sessions/          # Session management
+│   ├── club/              # Club screens
 │   └── ...
-├── components/            # Reusable UI components (50 folders with index.ts exports)
-│   ├── ui/               # Core UI primitives and booking components
-│   ├── bookings/         # Booking list/card components
-│   └── ...
-├── services/             # Business logic layer (43 services)
-│   ├── booking-service.ts      # All booking creation
-│   ├── invite-service.ts       # Unified invites (session, bulk, squad)
-│   ├── progress-service.ts     # Goals, notes, skill tracking
-│   └── ...
-├── constants/            # App constants and configuration
-│   ├── storage-keys.ts   # All 74 AsyncStorage keys
-│   └── ...
-└── hooks/                # Custom React hooks
+├── components/            # Reusable UI (~380 components)
+│   ├── primitives/        # Layout: Row, Column, Center, Spacer
+│   ├── ui/primitives/     # UI: Button, Card, Avatar, Badge, Input, etc.
+│   └── [feature]/         # Feature-specific components
+├── services/              # Business logic (50 services, 7 split modules)
+│   ├── api-client.ts      # Single data access layer (wraps AsyncStorage)
+│   ├── event-bus.ts       # 51 typed events
+│   ├── base-service.ts    # Base class: Map cache, 30s TTL, O(1) getById()
+│   └── [module]/          # Split modules: booking/, invite/, earnings/, etc.
+├── constants/             # Types, theme tokens, storage keys, mock data
+├── hooks/                 # Custom hooks (useTheme, useScreen, etc.)
+└── docs/                  # Product docs, sprints, roadmap
 ```
 
-### Key Services
+## Key Patterns
 
-| Service | Responsibility |
-|---------|---------------|
-| `booking-service.ts` | Single source of truth for all booking creation |
-| `invite-service.ts` | Session, bulk, and squad invites (unified) |
-| `progress-service.ts` | Goals, session notes, skill levels |
-| `video-service.ts` | Video management + annotations |
-| `family-service.ts` | Family members + guardian sharing |
-| `scheduling-rules-service.ts` | Availability rules + cancellation policies |
+- **Storage**: All data via `apiClient` — never import AsyncStorage directly
+- **Services**: Extend `BaseService`, return `Result<T, ServiceError>`, use `createLogger()`
+- **Events**: `emitTyped()` / `onTyped()` via `event-bus.ts` for cross-service communication
+- **Screens**: `useScreen()` hook for data loading with 4 mandatory states (loading/error/empty/success)
+- **Theming**: `useTheme()` → `{ colors, scheme }`, then `Colors[scheme].*`, `Typography.*`, `Spacing.*`
+- **Layout**: `Row`, `Column`, `Center`, `Spacer` primitives — never raw `View` + `flexDirection`
 
-For full architecture details, see `../CODEBASE_AUDIT_REPORT.md`.
-
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npm run dev
-   ```
-
-   > You can also run `npx expo start` directly if you prefer.
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Testing
 
 ```bash
-npm run reset-project
+# Compile tests
+npx tsc -p tsconfig.test.json
+
+# Run all tests
+node --require ./scripts/test-register.js --test .tmp-tests/**/*.test.js
+
+# Run specific test
+node --require ./scripts/test-register.js --test .tmp-tests/__tests__/booking/booking-crud.test.js
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Docs
 
-## Learn more
+| Doc | Purpose |
+|-----|---------|
+| `CLAUDE.md` | 9-agent pipeline, architecture rules, design tokens |
+| `docs/SOURCE_OF_TRUTH.md` | Product vision, roles, spines, current state |
+| `docs/ROADMAP.md` | 5-month roadmap (March-July 2026) |
+| `docs/USER-STORIES.md` | Feature map (151 built, 100 to build) |
+| `docs/Sprints/INDEX.md` | Sprint index (19 complete, 13 todo, 26 evaluation) |
 
-To learn more about developing your project with Expo, look at the following resources:
+## Quality Scores
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+| Metric | Current |
+|--------|---------|
+| Architecture | 95/100 |
+| Overall | 58/100 |
+| Target (July 2026) | 95/100 |

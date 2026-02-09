@@ -5,15 +5,15 @@ import {
   NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -43,8 +43,7 @@ export function WelcomeFlow({
   onComplete,
   onSkip,
 }: WelcomeFlowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const brandColor = clubColor || palette.tint;
 
   const scrollRef = useRef<ScrollView>(null);
@@ -131,9 +130,9 @@ export function WelcomeFlow({
     <View style={[styles.container, { backgroundColor: palette.background }]}>
       {/* Skip button */}
       {!isLastStep ? (
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+        <Pressable style={styles.skipButton} onPress={handleSkip}>
           <ThemedText style={[styles.skipText, { color: palette.muted }]}>Skip</ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       ) : null}
 
       {/* Carousel */}
@@ -232,7 +231,7 @@ export function WelcomeFlow({
             gap: Spacing.xs,
           }}
         >
-          <ThemedText style={styles.nextButtonText}>
+          <ThemedText style={[styles.nextButtonText, { color: palette.onPrimary }]}>
             {isLastStep ? 'Get Started' : 'Next'}
           </ThemedText>
           {!isLastStep ? (
@@ -323,6 +322,5 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.onPrimary,
   },
 });

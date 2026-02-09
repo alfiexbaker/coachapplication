@@ -23,8 +23,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { CardStyles } from '@/constants/styles';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { createCardStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,9 @@ export function RSVPFlow({
   onRespond,
   responseDeadline,
 }: RSVPFlowProps) {
+  const { colors } = useTheme();
+  const CardStyles = createCardStyles(colors);
+
   const [selectedStatus, setSelectedStatus] = useState<'going' | 'not_going' | 'maybe' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -117,43 +121,43 @@ export function RSVPFlow({
     <View style={styles.container}>
       {/* Session Info Card */}
       <View style={[CardStyles.base, styles.infoCard]}>
-        <ThemedText style={styles.childLabel}>
+        <ThemedText style={[styles.childLabel, { color: colors.muted }]}>
           RSVP for {childName}
         </ThemedText>
-        <ThemedText style={styles.sessionTitle}>{sessionTitle}</ThemedText>
+        <ThemedText style={[styles.sessionTitle, { color: colors.text }]}>{sessionTitle}</ThemedText>
 
         <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={18} color={Colors.light.muted} />
-          <ThemedText style={styles.detailText}>{formatSessionDate(sessionDate)}</ThemedText>
+          <Ionicons name="calendar-outline" size={18} color={colors.muted} />
+          <ThemedText style={[styles.detailText, { color: colors.muted }]}>{formatSessionDate(sessionDate)}</ThemedText>
         </View>
 
         <View style={styles.detailRow}>
-          <Ionicons name="time-outline" size={18} color={Colors.light.muted} />
-          <ThemedText style={styles.detailText}>{formatSessionTime(sessionDate)}</ThemedText>
+          <Ionicons name="time-outline" size={18} color={colors.muted} />
+          <ThemedText style={[styles.detailText, { color: colors.muted }]}>{formatSessionTime(sessionDate)}</ThemedText>
         </View>
 
         <View style={styles.detailRow}>
-          <Ionicons name="location-outline" size={18} color={Colors.light.muted} />
-          <ThemedText style={styles.detailText}>{location}</ThemedText>
+          <Ionicons name="location-outline" size={18} color={colors.muted} />
+          <ThemedText style={[styles.detailText, { color: colors.muted }]}>{location}</ThemedText>
         </View>
 
         {deadlineLabel && (
-          <View style={styles.deadlineBanner}>
-            <Ionicons name="hourglass-outline" size={14} color={Colors.light.warning} />
-            <ThemedText style={styles.deadlineText}>{deadlineLabel}</ThemedText>
+          <View style={[styles.deadlineBanner, { backgroundColor: withAlpha(colors.warning, 0.09) }]}>
+            <Ionicons name="hourglass-outline" size={14} color={colors.warning} />
+            <ThemedText style={[styles.deadlineText, { color: colors.warning }]}>{deadlineLabel}</ThemedText>
           </View>
         )}
       </View>
 
       {/* Response Buttons */}
       <View style={styles.responseSection}>
-        <ThemedText style={styles.responseLabel}>Will {childName} attend?</ThemedText>
+        <ThemedText style={[styles.responseLabel, { color: colors.text }]}>Will {childName} attend?</ThemedText>
 
         <Pressable
           style={({ pressed }) => [
             styles.responseButton,
-            styles.goingButton,
-            selectedStatus === 'going' ? styles.goingButtonActive : undefined,
+            { borderColor: colors.success, backgroundColor: withAlpha(colors.success, 0.06) },
+            selectedStatus === 'going' ? { backgroundColor: colors.success, borderColor: colors.success } : undefined,
             pressed ? styles.buttonPressed : undefined,
           ]}
           onPress={() => handlePress('going')}
@@ -162,13 +166,13 @@ export function RSVPFlow({
           <Ionicons
             name={selectedStatus === 'going' ? 'checkmark-circle' : 'checkmark-circle-outline'}
             size={28}
-            color={selectedStatus === 'going' ? Colors.light.surface : Colors.light.success}
+            color={selectedStatus === 'going' ? colors.surface : colors.success}
           />
           <ThemedText
             style={[
               styles.responseButtonText,
-              styles.goingText,
-              selectedStatus === 'going' ? styles.activeButtonText : undefined,
+              { color: colors.success },
+              selectedStatus === 'going' ? { color: colors.surface } : undefined,
             ]}
           >
             Going
@@ -178,8 +182,8 @@ export function RSVPFlow({
         <Pressable
           style={({ pressed }) => [
             styles.responseButton,
-            styles.cantButton,
-            selectedStatus === 'not_going' ? styles.cantButtonActive : undefined,
+            { borderColor: colors.error, backgroundColor: withAlpha(colors.error, 0.06) },
+            selectedStatus === 'not_going' ? { backgroundColor: colors.error, borderColor: colors.error } : undefined,
             pressed ? styles.buttonPressed : undefined,
           ]}
           onPress={() => handlePress('not_going')}
@@ -188,13 +192,13 @@ export function RSVPFlow({
           <Ionicons
             name={selectedStatus === 'not_going' ? 'close-circle' : 'close-circle-outline'}
             size={28}
-            color={selectedStatus === 'not_going' ? Colors.light.surface : Colors.light.error}
+            color={selectedStatus === 'not_going' ? colors.surface : colors.error}
           />
           <ThemedText
             style={[
               styles.responseButtonText,
-              styles.cantText,
-              selectedStatus === 'not_going' ? styles.activeButtonText : undefined,
+              { color: colors.error },
+              selectedStatus === 'not_going' ? { color: colors.surface } : undefined,
             ]}
           >
             Can&apos;t Make It
@@ -204,8 +208,8 @@ export function RSVPFlow({
         <Pressable
           style={({ pressed }) => [
             styles.responseButton,
-            styles.maybeButton,
-            selectedStatus === 'maybe' ? styles.maybeButtonActive : undefined,
+            { borderColor: colors.warning, backgroundColor: withAlpha(colors.warning, 0.06) },
+            selectedStatus === 'maybe' ? { backgroundColor: colors.warning, borderColor: colors.warning } : undefined,
             pressed ? styles.buttonPressed : undefined,
           ]}
           onPress={() => handlePress('maybe')}
@@ -214,13 +218,13 @@ export function RSVPFlow({
           <Ionicons
             name={selectedStatus === 'maybe' ? 'help-circle' : 'help-circle-outline'}
             size={28}
-            color={selectedStatus === 'maybe' ? Colors.light.surface : Colors.light.warning}
+            color={selectedStatus === 'maybe' ? colors.surface : colors.warning}
           />
           <ThemedText
             style={[
               styles.responseButtonText,
-              styles.maybeText,
-              selectedStatus === 'maybe' ? styles.activeButtonText : undefined,
+              { color: colors.warning },
+              selectedStatus === 'maybe' ? { color: colors.surface } : undefined,
             ]}
           >
             Maybe
@@ -244,12 +248,10 @@ const styles = StyleSheet.create({
   },
   childLabel: {
     ...Typography.micro,
-    color: Colors.light.muted,
     letterSpacing: 0.6,
   },
   sessionTitle: {
     ...Typography.title,
-    color: Colors.light.text,
   },
   detailRow: {
     flexDirection: 'row',
@@ -258,29 +260,24 @@ const styles = StyleSheet.create({
   },
   detailText: {
     ...Typography.body,
-    color: Colors.light.muted,
   },
   deadlineBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: withAlpha(Colors.light.warning, 0.09),
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
     marginTop: Spacing.xs,
   },
   deadlineText: {
-    ...Typography.small,
-    color: Colors.light.warning,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   responseSection: {
     gap: Spacing.sm,
   },
   responseLabel: {
     ...Typography.heading,
-    color: Colors.light.text,
     textAlign: 'center',
     marginBottom: Spacing.xs,
   },
@@ -297,48 +294,9 @@ const styles = StyleSheet.create({
     opacity: 0.85,
     transform: [{ scale: 0.98 }],
   },
-  responseButtonText: { ...Typography.heading, letterSpacing: -0.2 },
-  activeButtonText: {
-    color: Colors.light.surface,
-  },
-
-  // Going
-  goingButton: {
-    borderColor: Colors.light.success,
-    backgroundColor: withAlpha(Colors.light.success, 0.06),
-  },
-  goingButtonActive: {
-    backgroundColor: Colors.light.success,
-    borderColor: Colors.light.success,
-  },
-  goingText: {
-    color: Colors.light.success,
-  },
-
-  // Can't
-  cantButton: {
-    borderColor: Colors.light.error,
-    backgroundColor: withAlpha(Colors.light.error, 0.06),
-  },
-  cantButtonActive: {
-    backgroundColor: Colors.light.error,
-    borderColor: Colors.light.error,
-  },
-  cantText: {
-    color: Colors.light.error,
-  },
-
-  // Maybe
-  maybeButton: {
-    borderColor: Colors.light.warning,
-    backgroundColor: withAlpha(Colors.light.warning, 0.06),
-  },
-  maybeButtonActive: {
-    backgroundColor: Colors.light.warning,
-    borderColor: Colors.light.warning,
-  },
-  maybeText: {
-    color: Colors.light.warning,
+  responseButtonText: {
+    ...Typography.heading,
+    letterSpacing: -0.2,
   },
 });
 

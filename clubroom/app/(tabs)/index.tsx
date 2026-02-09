@@ -6,13 +6,12 @@ import { AdminUsersScreen } from '@/components/admin/users-screen';
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Spacing} from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing} from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function IndexScreen() {
   const { currentUser } = useAuth();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Route to appropriate screen based on role
   switch (currentUser?.role) {

@@ -26,8 +26,8 @@ import { TimelineBar } from '@/components/video/TimelineBar';
 import { AnnotationPanel } from '@/components/video/AnnotationPanel';
 import { AnnotationBadge, AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
@@ -36,8 +36,7 @@ const logger = createLogger('AthleteReviewScreen');
 
 export default function AthleteReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State

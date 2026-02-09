@@ -8,8 +8,8 @@ import {
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { socialFeedService, type AggregatedFeedPost } from '@/services/social-feed-service';
 import type { Club } from '@/constants/types';
@@ -23,8 +23,7 @@ import {
 } from '@/components/social/feed-filters';
 
 export default function FeedScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [feed, setFeed] = useState<AggregatedFeedPost[]>([]);

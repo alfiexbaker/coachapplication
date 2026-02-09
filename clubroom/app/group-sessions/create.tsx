@@ -15,8 +15,8 @@ import { CreateSessionScheduleStep } from '@/components/group/create-session-sch
 import { CreateSessionPricingStep } from '@/components/group/create-session-pricing-step';
 import { CreateSessionReviewStep } from '@/components/group/create-session-review-step';
 import { CreateSessionInviteStep } from '@/components/group/create-session-invite-step';
-import { Colors, Spacing, Radii } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService, CreateGroupSessionInput } from '@/services/group-session-service';
 import { createLogger } from '@/utils/logger';
@@ -99,8 +99,7 @@ function sessionFormReducer(state: SessionFormState, action: SessionFormAction):
 type WizardStep = 'type' | 'details' | 'schedule' | 'pricing' | 'review' | 'invite';
 
 export default function CreateGroupSessionScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [form, dispatch] = useReducer(sessionFormReducer, initialState);

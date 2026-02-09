@@ -2,9 +2,9 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { VerificationStatus } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 type VerificationLevel = VerificationStatus['overallLevel'];
 
@@ -72,8 +72,7 @@ export function VerificationBadge({
   size = 'medium',
   showLabel = true,
 }: VerificationBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const config = LEVEL_CONFIG[level];
   const sizeConfig = SIZE_CONFIG[size];
   const color = palette[config.colorKey];
@@ -118,8 +117,7 @@ export function VerificationIcon({
   level: VerificationLevel;
   size?: number;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const config = LEVEL_CONFIG[level];
   const color = palette[config.colorKey];
 
@@ -138,8 +136,7 @@ export function VerificationStatusDisplay({
 }: {
   status: VerificationStatus;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const items = [
     { label: 'Email', verified: status.email.status === 'VERIFIED' },

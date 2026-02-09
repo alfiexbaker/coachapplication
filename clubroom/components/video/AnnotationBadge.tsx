@@ -10,10 +10,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotationType } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AnnotationBadgeProps {
   type: VideoAnnotationType;
@@ -32,7 +32,7 @@ export function AnnotationBadge({
   showLabel = true,
   onPress,
 }: AnnotationBadgeProps) {
-  useColorScheme();
+  const { colors: _palette } = useTheme();
 
   const config = ANNOTATION_TYPE_CONFIG[type];
 
@@ -60,8 +60,8 @@ export function AnnotationBadge({
     filled: {
       backgroundColor: config.color,
       borderColor: config.color,
-      textColor: '#fff',
-      iconColor: '#fff',
+      textColor: _palette.onPrimary,
+      iconColor: _palette.onPrimary,
     },
     outlined: {
       backgroundColor: 'transparent',
@@ -139,8 +139,7 @@ export function AnnotationTypeCountBadge({
   onPress,
   isSelected = false,
 }: TypeCountBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const config = ANNOTATION_TYPE_CONFIG[type];
 
@@ -173,7 +172,7 @@ export function AnnotationTypeCountBadge({
           { backgroundColor: isSelected ? config.color : palette.muted },
         ]}
       >
-        <ThemedText style={styles.countText}>{count}</ThemedText>
+        <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{count}</ThemedText>
       </View>
     </View>
   );
@@ -230,8 +229,7 @@ export function AnnotationInlineIndicator({
   label,
   timestamp,
 }: InlineIndicatorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const config = ANNOTATION_TYPE_CONFIG[type];
 
@@ -280,7 +278,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.xxs,
   },
-  countText: { ...Typography.caption, color: '#fff' },
+  countText: { ...Typography.caption },
   summaryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',

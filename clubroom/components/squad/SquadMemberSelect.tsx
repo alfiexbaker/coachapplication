@@ -16,13 +16,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import {
   inviteService as squadBulkInviteService,
   type SquadMemberWithSelection,
 } from '@/services/invite';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('SquadMemberSelect');
 
@@ -49,8 +49,7 @@ export function SquadMemberSelect({
   maxHeight = 400,
   disabled = false,
 }: SquadMemberSelectProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [members, setMembers] = useState<SquadMemberWithSelection[]>([]);
   const [loading, setLoading] = useState(true);

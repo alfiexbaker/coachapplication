@@ -11,9 +11,9 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { Injury, RecoveryNote } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -23,8 +23,7 @@ interface RecoveryTimelineProps {
 }
 
 export function RecoveryTimeline({ injury, showProgress = true }: RecoveryTimelineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const statusInfo = injuryService.getStatusInfo(injury.status);
   const daysUntilRecovery = injuryService.getDaysUntilRecovery(injury);
@@ -153,7 +152,7 @@ interface TimelineItemProps {
   note: RecoveryNote;
   isFirst: boolean;
   isLast: boolean;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
   statusColor: string;
 }
 

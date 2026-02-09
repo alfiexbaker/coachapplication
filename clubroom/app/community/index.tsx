@@ -6,8 +6,7 @@ import {
   RefreshControl,
   Modal,
   ViewStyle,
-  Alert,
-} from 'react-native';
+  Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -20,9 +19,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Typography, Radii , withAlpha } from '@/constants/theme';
 import type { ParentGroup, CarpoolOffer } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
 import { onTyped, ServiceEvents } from '@/services/event-bus';
@@ -35,8 +34,7 @@ const logger = createLogger('CommunityHubScreen');
 type TabType = 'groups' | 'carpools' | 'discover';
 
 export default function CommunityHubScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const parentId = currentUser?.id ?? 'parent1';
   const parentName = currentUser?.fullName ?? currentUser?.name ?? 'Parent';
@@ -110,8 +108,7 @@ export default function CommunityHubScreen() {
         memberNames: [],
         creatorId: parentId,
         creatorName: parentName,
-        isPublic: data.isPublic,
-      });
+        isPublic: data.isPublic });
       setShowCreateModal(false);
       loadData();
     } catch (error) {
@@ -307,7 +304,7 @@ export default function CommunityHubScreen() {
           onPress={() => setShowCreateModal(true)}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
+          <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
       </View>
 
@@ -321,8 +318,7 @@ export default function CommunityHubScreen() {
               styles.tab,
               activeTab === tab.key ? {
                 borderBottomColor: palette.tint,
-                borderBottomWidth: 2,
-              } : undefined,
+                borderBottomWidth: 2 } : undefined,
             ].filter(Boolean) as ViewStyle[]}
           >
             <Ionicons
@@ -383,35 +379,29 @@ export default function CommunityHubScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    paddingHorizontal: Spacing.lg,
-  },
+    paddingHorizontal: Spacing.lg },
   tab: {
     flex: 1,
     flexDirection: 'row',
@@ -419,128 +409,99 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
-    marginBottom: -1,
-  },
+    marginBottom: -1 },
   tabLabel: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   scrollView: {
-    flex: 1,
-  },
+    flex: 1 },
   scrollContent: {
-    flexGrow: 1,
-  },
+    flexGrow: 1 },
   listContainer: {
     padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing['3xl'],
-  },
+    paddingVertical: Spacing['3xl'] },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing['3xl'],
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   emptyIcon: {
     width: 96,
     height: 96,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   emptyTitle: {
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   emptyText: {
     textAlign: 'center',
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-  },
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
   emptyButton: {
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   quickActionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   quickActionIcon: {
     width: 52,
     height: 52,
     borderRadius: Radii['2xl'],
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   quickActionContent: {
     flex: 1,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   quickActionSubtext: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-  },
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   sectionTitle: {
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-  },
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   seeAllLink: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   noCarpoolsMessage: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   noCarpoolsText: {
     ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   discoverHint: {
     ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   discoverCard: {
     marginBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   joinButton: {
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   joinButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   joinButtonText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
 
   // Modal styles
   modalContainer: {
-    flex: 1,
-  },
+    flex: 1 },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   modalTitle: {
-    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
-  },
-});
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) } });

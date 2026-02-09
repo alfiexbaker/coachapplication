@@ -25,10 +25,11 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Components  , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import {
-  ModalStyles,
-  InputStyles,
+  createModalStyles,
+  createInputStyles,
 } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
 
@@ -82,6 +83,10 @@ export function DeclineInvite({
   onDecline,
   onCounterOffer,
 }: DeclineInviteProps) {
+  const { colors } = useTheme();
+  const ModalStyles = createModalStyles(colors);
+  const InputStyles = createInputStyles(colors);
+
   const [selectedReason, setSelectedReason] = useState<DeclineReason['category'] | null>(null);
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,11 +137,11 @@ export function DeclineInvite({
 
           {/* Header */}
           <View style={ModalStyles.header}>
-            <ThemedText style={[ModalStyles.headerTitle, { color: Colors.light.text }]}>
+            <ThemedText style={[ModalStyles.headerTitle, { color: colors.text }]}>
               Decline this invite?
             </ThemedText>
             <Pressable onPress={handleClose} hitSlop={12}>
-              <Ionicons name="close" size={24} color={Colors.light.text} />
+              <Ionicons name="close" size={24} color={colors.text} />
             </Pressable>
           </View>
 
@@ -145,20 +150,20 @@ export function DeclineInvite({
             keyboardShouldPersistTaps="handled"
           >
             {/* Invite summary */}
-            <View style={styles.inviteSummary}>
-              <ThemedText style={styles.inviteSummaryText}>
+            <View style={[styles.inviteSummary, { backgroundColor: colors.background }]}>
+              <ThemedText style={[styles.inviteSummaryText, { color: colors.text }]}>
                 Coach {invite.coachName} invited {athleteDisplay} to a{' '}
                 {invite.sessionType.toLowerCase()} session
               </ThemedText>
               {invite.proposedSlots.length > 0 && (
-                <ThemedText style={styles.inviteSummaryMuted}>
+                <ThemedText style={[styles.inviteSummaryMuted, { color: colors.muted }]}>
                   {invite.proposedSlots.length} proposed time{invite.proposedSlots.length !== 1 ? 's' : ''}
                 </ThemedText>
               )}
             </View>
 
             {/* Reason selection */}
-            <ThemedText style={styles.sectionLabel}>Reason (optional):</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.muted }]}>Reason (optional):</ThemedText>
             <View style={styles.reasonList}>
               {DECLINE_REASONS.map((reason) => {
                 const isSelected = selectedReason === reason.id;
@@ -167,7 +172,8 @@ export function DeclineInvite({
                     key={reason.id}
                     style={[
                       styles.reasonItem,
-                      isSelected ? styles.reasonItemSelected : undefined,
+                      { borderColor: colors.border, backgroundColor: colors.surface },
+                      isSelected ? { borderColor: colors.tint, backgroundColor: withAlpha(colors.tint, 0.03) } : undefined,
                     ]}
                     onPress={() =>
                       setSelectedReason(isSelected ? null : reason.id)
@@ -176,19 +182,21 @@ export function DeclineInvite({
                     <View
                       style={[
                         styles.radioOuter,
-                        isSelected ? styles.radioOuterSelected : undefined,
+                        { borderColor: colors.border },
+                        isSelected ? { borderColor: colors.tint } : undefined,
                       ]}
                     >
-                      {isSelected && <View style={styles.radioInner} />}
+                      {isSelected && <View style={[styles.radioInner, { backgroundColor: colors.tint }]} />}
                     </View>
                     <Ionicons
                       name={reason.icon}
                       size={20}
-                      color={isSelected ? Colors.light.tint : Colors.light.muted}
+                      color={isSelected ? colors.tint : colors.muted}
                     />
                     <ThemedText
                       style={[
                         styles.reasonLabel,
+                        { color: colors.text },
                         isSelected ? styles.reasonLabelSelected : undefined,
                       ]}
                     >
@@ -203,7 +211,7 @@ export function DeclineInvite({
             <TextInput
               style={[InputStyles.input, InputStyles.multiline, styles.noteInput]}
               placeholder="Add a note..."
-              placeholderTextColor={Colors.light.muted}
+              placeholderTextColor={colors.muted}
               value={note}
               onChangeText={setNote}
               multiline
@@ -216,13 +224,14 @@ export function DeclineInvite({
               <Pressable
                 style={({ pressed }) => [
                   styles.counterOfferButton,
+                  { borderColor: colors.border },
                   pressed && { opacity: 0.7 },
                 ]}
                 onPress={onCounterOffer}
               >
-                <Ionicons name="swap-horizontal-outline" size={18} color={Colors.light.tint} />
-                <ThemedText style={styles.counterOfferText}>Suggest another time</ThemedText>
-                <Ionicons name="chevron-forward" size={16} color={Colors.light.tint} />
+                <Ionicons name="swap-horizontal-outline" size={18} color={colors.tint} />
+                <ThemedText style={[styles.counterOfferText, { color: colors.tint }]}>Suggest another time</ThemedText>
+                <Ionicons name="chevron-forward" size={16} color={colors.tint} />
               </Pressable>
             )}
 
@@ -231,17 +240,19 @@ export function DeclineInvite({
               <Pressable
                 style={({ pressed }) => [
                   styles.cancelButton,
+                  { borderColor: colors.border },
                   pressed ? styles.buttonPressed : undefined,
                 ]}
                 onPress={handleClose}
               >
-                <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+                <ThemedText style={[styles.cancelButtonText, { color: colors.text }]}>Cancel</ThemedText>
               </Pressable>
 
               <Pressable
                 style={({ pressed }) => [
                   styles.declineButton,
-                  isSubmitting ? styles.declineButtonDisabled : undefined,
+                  { backgroundColor: colors.error },
+                  isSubmitting ? { backgroundColor: colors.border } : undefined,
                   pressed && !isSubmitting ? styles.buttonPressed : undefined,
                 ]}
                 onPress={handleDecline}
@@ -250,7 +261,8 @@ export function DeclineInvite({
                 <ThemedText
                   style={[
                     styles.declineButtonText,
-                    isSubmitting ? styles.declineButtonTextDisabled : undefined,
+                    { color: colors.surface },
+                    isSubmitting ? { color: colors.muted } : undefined,
                   ]}
                 >
                   {isSubmitting ? 'Declining...' : 'Decline'}
@@ -273,7 +285,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inviteSummary: {
-    backgroundColor: Colors.light.background,
     padding: Spacing.sm,
     borderRadius: Radii.sm,
     marginBottom: Spacing.md,
@@ -281,15 +292,12 @@ const styles = StyleSheet.create({
   },
   inviteSummaryText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
   },
   inviteSummaryMuted: {
     ...Typography.small,
-    color: Colors.light.muted,
   },
   sectionLabel: {
     ...Typography.caption,
-    color: Colors.light.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: Spacing.xs,
@@ -306,34 +314,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    borderColor: Colors.light.border,
-    backgroundColor: Colors.light.surface,
-  },
-  reasonItemSelected: {
-    borderColor: Colors.light.tint,
-    backgroundColor: withAlpha(Colors.light.tint, 0.03),
   },
   radioOuter: {
     width: 22,
     height: 22,
     borderRadius: Radii.md,
     borderWidth: 2,
-    borderColor: Colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  radioOuterSelected: {
-    borderColor: Colors.light.tint,
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: Radii.sm,
-    backgroundColor: Colors.light.tint,
   },
   reasonLabel: {
     ...Typography.body,
-    color: Colors.light.text,
     flex: 1,
   },
   reasonLabelSelected: {
@@ -353,12 +349,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     borderRadius: Components.button.borderRadius,
     borderWidth: 1,
-    borderColor: Colors.light.border,
     backgroundColor: 'transparent',
   },
   counterOfferText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.tint,
     flex: 1,
   },
   buttonRow: {
@@ -371,25 +365,21 @@ const styles = StyleSheet.create({
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,
     borderWidth: 1.5,
-    borderColor: Colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButtonText: { ...Typography.subheading, color: Colors.light.text },
+  cancelButtonText: {
+    ...Typography.subheading,
+  },
   declineButton: {
     flex: 1,
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,
-    backgroundColor: Colors.light.error,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  declineButtonDisabled: {
-    backgroundColor: Colors.light.border,
-  },
-  declineButtonText: { ...Typography.subheading, color: Colors.light.surface },
-  declineButtonTextDisabled: {
-    color: Colors.light.muted,
+  declineButtonText: {
+    ...Typography.subheading,
   },
   buttonPressed: {
     opacity: 0.85,

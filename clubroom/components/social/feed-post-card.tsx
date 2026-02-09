@@ -1,25 +1,28 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import {
   Image,
+  Platform,
+  Pressable,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { AggregatedFeedPost } from '@/services/social-feed-service';
 import { SessionAnnouncementCard } from './session-announcement-card';
+import { CommentPreview } from './comment-preview';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Sub-components ─────────────────────────────────────────────
 
-function OriginBadge({
+const OriginBadge = memo(function OriginBadge({
   clubName,
   clubBadge,
   clubId,
@@ -30,8 +33,7 @@ function OriginBadge({
   clubId: string;
   feedType?: string;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleClubPress = () => {
     router.push(Routes.club(clubId));
@@ -69,7 +71,7 @@ function OriginBadge({
             Personal
           </ThemedText>
         </View>
-        <TouchableOpacity
+        <Pressable
           onPress={handleClubPress}
           style={[
             styles.clubBadge,
@@ -78,7 +80,7 @@ function OriginBadge({
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <View style={[styles.clubBadgeIcon, { backgroundColor: palette.tint }]}>
-            <ThemedText style={styles.clubBadgeIconText}>
+            <ThemedText style={[styles.clubBadgeIconText, { color: palette.onPrimary }]}>
               {clubBadge?.slice(0, 2) || clubName.slice(0, 2).toUpperCase()}
             </ThemedText>
           </View>
@@ -86,13 +88,13 @@ function OriginBadge({
             {clubName}
           </ThemedText>
           <Ionicons name="chevron-forward" size={12} color={palette.tint} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={handleClubPress}
       style={[
         styles.clubBadge,
@@ -101,7 +103,7 @@ function OriginBadge({
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
       <View style={[styles.clubBadgeIcon, { backgroundColor: palette.tint }]}>
-        <ThemedText style={styles.clubBadgeIconText}>
+        <ThemedText style={[styles.clubBadgeIconText, { color: palette.onPrimary }]}>
           {clubBadge?.slice(0, 2) || clubName.slice(0, 2).toUpperCase()}
         </ThemedText>
       </View>
@@ -109,43 +111,68 @@ function OriginBadge({
         {clubName}
       </ThemedText>
       <Ionicons name="chevron-forward" size={12} color={palette.tint} />
-    </TouchableOpacity>
+    </Pressable>
   );
-}
+});
 
 // ─── Types ──────────────────────────────────────────────────────
 
 export interface FeedPostCardProps {
   post: AggregatedFeedPost;
+  onLike?: (postId: string) => void;
+  onComment?: (postId: string) => void;
+  onShare?: (postId: string) => void;
+}
+
+// ─── Helpers (pure — no component state) ────────────────────────
+
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffHours < 1) return 'Just now';
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
 }
 
 // ─── Component ──────────────────────────────────────────────────
 
-function FeedPostCardInner({ post }: FeedPostCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+function FeedPostCardInner({ post, onLike, onComment, onShare }: FeedPostCardProps) {
+  const { colors: palette } = useTheme();
 
   const initials =
     post.postAs === 'club'
       ? post.clubBadge?.slice(0, 2) || 'CL'
       : post.authorName?.slice(0, 2).toUpperCase() || 'ME';
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
-  };
-
   const handlePostPress = () => {
     router.push(Routes.modalPostDetail(post.id));
   };
+
+  const handleLike = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onLike?.(post.id);
+  }, [onLike, post.id]);
+
+  const handleComment = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onComment?.(post.id);
+  }, [onComment, post.id]);
+
+  const handleShare = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onShare?.(post.id);
+  }, [onShare, post.id]);
 
   return (
     <SurfaceCard style={styles.feedCard} onPress={handlePostPress}>
@@ -171,7 +198,7 @@ function FeedPostCardInner({ post }: FeedPostCardProps) {
         >
           <ThemedText style={styles.avatarText}>{initials}</ThemedText>
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={styles.bodyContainer}>
           <View style={styles.authorRow}>
             <ThemedText type="defaultSemiBold">{post.authorName}</ThemedText>
             {post.postAs === 'club' && (
@@ -241,9 +268,9 @@ function FeedPostCardInner({ post }: FeedPostCardProps) {
       {/* Attachments */}
       {post.attachments && post.attachments.length > 0 && (
         <View style={styles.attachments}>
-          {post.attachments.map((attachment, idx) => (
+          {post.attachments.map((attachment) => (
             <View
-              key={idx}
+              key={attachment}
               style={[
                 styles.attachmentChip,
                 { backgroundColor: palette.surface, borderColor: palette.border },
@@ -260,22 +287,49 @@ function FeedPostCardInner({ post }: FeedPostCardProps) {
 
       {/* Actions */}
       <View style={styles.feedFooter}>
-        <TouchableOpacity style={styles.actionButton}>
+        <Pressable
+          style={styles.actionButton}
+          onPress={handleLike}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Like post"
+          accessibilityRole="button"
+        >
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
           <ThemedText style={[styles.actionCount, { color: palette.muted }]}>
             {post.reactionCount ?? 0}
           </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        </Pressable>
+        <Pressable
+          style={styles.actionButton}
+          onPress={handleComment}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Comment on post"
+          accessibilityRole="button"
+        >
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
           <ThemedText style={[styles.actionCount, { color: palette.muted }]}>
             {post.commentCount ?? 0}
           </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        </Pressable>
+        <Pressable
+          style={styles.actionButton}
+          onPress={handleShare}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Share post"
+          accessibilityRole="button"
+        >
           <Ionicons name="share-outline" size={18} color={palette.muted} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
+
+      {/* Comment preview */}
+      {(post.commentCount ?? 0) > 0 && (
+        <CommentPreview
+          postId={post.id}
+          commentCount={post.commentCount ?? 0}
+          onPress={handlePostPress}
+        />
+      )}
     </SurfaceCard>
   );
 }
@@ -299,8 +353,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     gap: Spacing.xxs,
     paddingVertical: Spacing.xxs,
-    paddingHorizontal: 8,
-    paddingRight: 10,
+    paddingHorizontal: Spacing.xs,
+    paddingRight: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
   },
@@ -312,7 +366,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   clubBadgeIconText: {
-    color: Colors.light.onPrimary,
     ...Typography.micro,
     fontSize: 8,
     letterSpacing: 0,
@@ -327,6 +380,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     alignItems: 'flex-start',
+  },
+  bodyContainer: {
+    flex: 1,
   },
   avatar: {
     width: 40,
@@ -364,7 +420,6 @@ const styles = StyleSheet.create({
   },
   postBody: {
     ...Typography.body,
-    lineHeight: 20,
   },
   postImage: {
     width: '100%',
@@ -408,6 +463,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
+    minHeight: 44,
+    paddingVertical: Spacing.xs,
   },
   actionCount: {
     ...Typography.small,

@@ -1,9 +1,9 @@
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
 import type { AvailabilitySlot } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface TimeSlotPickerProps {
   selectedSlot?: string;
@@ -13,8 +13,7 @@ interface TimeSlotPickerProps {
 }
 
 export function TimeSlotPicker({ selectedSlot, onSelect, slots, isLoading }: TimeSlotPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (isLoading) {
     return (

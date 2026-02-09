@@ -28,13 +28,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   trialService,
   type TrialOffering,
 } from '@/services/trial-service';
+import { useTheme, ThemeColors } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -49,7 +49,7 @@ interface TrialSessionEditorProps {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function FieldLabel({ label, hint, palette }: { label: string; hint?: string; palette: (typeof Colors)['light'] }) {
+function FieldLabel({ label, hint, palette }: { label: string; hint?: string; palette: ThemeColors }) {
   return (
     <View style={styles.fieldLabelContainer}>
       <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>{label}</ThemedText>
@@ -67,7 +67,7 @@ function DiscoveryPreview({
 }: {
   offering: Partial<TrialOffering>;
   coachName: string;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }) {
   return (
     <View style={styles.previewSection}>
@@ -152,8 +152,7 @@ function DiscoveryPreview({
 // ---------------------------------------------------------------------------
 
 export default function TrialSessionEditor({ onSave, onBack }: TrialSessionEditorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
   const coachName = currentUser?.name ?? 'Coach';

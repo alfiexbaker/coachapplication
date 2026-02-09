@@ -1,5 +1,4 @@
 "use strict";
-// @ts-nocheck
 /**
  * Booking Service Tests
  *

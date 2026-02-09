@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 type ChatInputProps = {
   onAttach?: () => void;
@@ -12,8 +12,7 @@ type ChatInputProps = {
 };
 
 export function ChatInput({ onAttach, onSend, disabled }: ChatInputProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const [value, setValue] = useState('');
   const placeholderColor = useMemo(() => (scheme === 'dark' ? palette.muted : palette.muted), [scheme]);
 

@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface WaitlistButtonProps {
   /** Whether the user is already on the waitlist */
@@ -42,8 +42,7 @@ export function WaitlistButton({
   disabled = false,
   compact = false,
 }: WaitlistButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [showOptions, setShowOptions] = useState(false);
   const [localAutoBook, setLocalAutoBook] = useState(autoBook);
   const [actionLoading, setActionLoading] = useState(false);
@@ -201,7 +200,7 @@ export function WaitlistButton({
               {isLoading ? (
                 <ActivityIndicator size="small" color={palette.onPrimary} />
               ) : (
-                <ThemedText style={styles.confirmButtonText}>Join Waitlist</ThemedText>
+                <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>Join Waitlist</ThemedText>
               )}
             </Clickable>
           </View>
@@ -225,12 +224,12 @@ export function WaitlistButton({
       ) : (
         <>
           <Ionicons name="add" size={compact ? 16 : 18} color={palette.onPrimary} />
-          <ThemedText style={styles.joinButtonText}>
+          <ThemedText style={[styles.joinButtonText, { color: palette.onPrimary }]}>
             {compact ? 'Waitlist' : 'Join Waitlist'}
           </ThemedText>
           {totalWaiting !== undefined && totalWaiting > 0 && (
             <View style={[styles.countBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <ThemedText style={styles.countText}>{totalWaiting}</ThemedText>
+              <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{totalWaiting}</ThemedText>
             </View>
           )}
         </>
@@ -256,14 +255,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
   },
-  joinButtonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onPrimary },
+  joinButtonText: { ...Typography.bodySmallSemiBold, /* color set inline for dynamic theming */ },
   countBadge: {
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.md,
     marginLeft: Spacing.xxs,
   },
-  countText: { ...Typography.caption, color: Colors.light.onPrimary },
+  countText: { ...Typography.caption, /* color set inline for dynamic theming */ },
   onWaitlistCard: {
     borderRadius: Radii.md,
     borderWidth: 1,
@@ -349,7 +348,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   confirmButtonText: {
-    color: Colors.light.onPrimary,
+    // color set inline for dynamic theming
     fontWeight: '600',
   },
 });

@@ -11,17 +11,16 @@ import { Routes } from '@/navigation/routes';
 import { apiClient } from '@/services/api-client';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { FootballObjective, Booking } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SessionFeedbackScreen');
 
 export default function SessionFeedbackScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const params = useLocalSearchParams();
   const { currentUser } = useAuth();
   const [isCreating, setIsCreating] = useState(false);

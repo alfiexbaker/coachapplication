@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { PeakHoursData } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOUR_START = 6;
@@ -41,8 +41,7 @@ export function PeakHoursHeatmap({
   loading = false,
   onPress,
 }: PeakHoursHeatmapProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Build a lookup map for quick access
   const dataMap = new Map<string, PeakHoursData>();

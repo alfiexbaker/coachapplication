@@ -11,9 +11,9 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { InjurySeverity } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -47,8 +47,7 @@ const SEVERITY_OPTIONS: SeverityOption[] = [
 ];
 
 export function SeverityPicker({ selectedSeverity, onSelect }: SeverityPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleSelect = (severity: InjurySeverity) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

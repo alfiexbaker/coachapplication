@@ -19,6 +19,7 @@ import { apiClient } from './api-client';
 import type { ClubRole, ClubMembership } from '@/constants/types';
 import { type Result, type ServiceError, ok, err, notFound, validationError, storageError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from './event-bus';
 import { api } from '@/constants/config';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -530,6 +531,13 @@ export const clubService = {
         await saveMembers(clubId, members);
       }
 
+      emitTyped(ServiceEvents.SQUAD_MEMBER_ADDED, {
+        squadId,
+        clubId,
+        userId,
+        userName: members[memberIndex].userName,
+      });
+
       return ok(members[memberIndex]);
     }
 
@@ -538,7 +546,16 @@ export const clubService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ squadId }),
     });
-    return ok(await response.json());
+    const member: ClubMember = await response.json();
+
+    emitTyped(ServiceEvents.SQUAD_MEMBER_ADDED, {
+      squadId,
+      clubId,
+      userId,
+      userName: member.userName,
+    });
+
+    return ok(member);
   },
 
   /**
@@ -561,13 +578,29 @@ export const clubService = {
       members[memberIndex].squadIds = squadIds.filter((id) => id !== squadId);
       await saveMembers(clubId, members);
 
+      emitTyped(ServiceEvents.SQUAD_MEMBER_REMOVED, {
+        squadId,
+        clubId,
+        userId,
+        userName: members[memberIndex].userName,
+      });
+
       return ok(members[memberIndex]);
     }
 
     const response = await fetch(`/api/clubs/${clubId}/members/${userId}/squads/${squadId}`, {
       method: 'DELETE',
     });
-    return ok(await response.json());
+    const member: ClubMember = await response.json();
+
+    emitTyped(ServiceEvents.SQUAD_MEMBER_REMOVED, {
+      squadId,
+      clubId,
+      userId,
+      userName: member.userName,
+    });
+
+    return ok(member);
   },
 
   /**

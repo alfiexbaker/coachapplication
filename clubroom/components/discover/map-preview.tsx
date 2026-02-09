@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { CoachProfile } from '@/constants/types';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { formatDistance } from '@/utils/format';
 
 interface MapPreviewProps {
@@ -16,8 +16,7 @@ interface MapPreviewProps {
 }
 
 export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPreviewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   const bounds = useMemo(() => {
@@ -51,7 +50,7 @@ export function MapPreview({ coaches, selectedCoachId, onCoachFocus }: MapPrevie
             styles.searchPill,
             { backgroundColor: palette.tint, opacity: pressed ? 0.85 : 1 },
           ]}>
-          <ThemedText style={[Typography.sm, styles.searchLabel]} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+          <ThemedText style={[Typography.sm, styles.searchLabel, { color: palette.onPrimary }]}>
             Search this area
           </ThemedText>
         </Pressable>

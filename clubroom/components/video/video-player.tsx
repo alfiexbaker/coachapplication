@@ -7,8 +7,8 @@ import Slider from '@react-native-community/slider';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { VideoAnnotation } from '@/constants/types';
 
 Dimensions.get('window');
@@ -34,8 +34,7 @@ export function VideoPlayer({
   initialPosition = 0,
   autoPlay = false,
 }: VideoPlayerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const videoRef = useRef<Video>(null);
 
   const [isPlaying, setIsPlaying] = useState(autoPlay);
@@ -106,7 +105,7 @@ export function VideoPlayer({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.text }]}>
       {/* Video Element */}
       <Pressable onPress={toggleControls} style={styles.videoContainer}>
         <Video
@@ -124,7 +123,7 @@ export function VideoPlayer({
         {/* Buffering Indicator */}
         {isBuffering && (
           <View style={styles.bufferingOverlay}>
-            <Ionicons name="hourglass" size={40} color={Colors.light.onPrimary} />
+            <Ionicons name="hourglass" size={40} color={palette.onPrimary} />
           </View>
         )}
 
@@ -138,19 +137,19 @@ export function VideoPlayer({
             {/* Center Controls */}
             <View style={styles.centerControls}>
               <Clickable onPress={skipBackward} style={styles.skipButton}>
-                <Ionicons name="play-back" size={28} color={Colors.light.onPrimary} />
+                <Ionicons name="play-back" size={28} color={palette.onPrimary} />
               </Clickable>
 
               <Clickable onPress={togglePlayPause} style={styles.playPauseButton}>
                 <Ionicons
                   name={isPlaying ? 'pause' : 'play'}
                   size={40}
-                  color={Colors.light.onPrimary}
+                  color={palette.onPrimary}
                 />
               </Clickable>
 
               <Clickable onPress={skipForward} style={styles.skipButton}>
-                <Ionicons name="play-forward" size={28} color={Colors.light.onPrimary} />
+                <Ionicons name="play-forward" size={28} color={palette.onPrimary} />
               </Clickable>
             </View>
 
@@ -172,10 +171,10 @@ export function VideoPlayer({
                         left: `${getAnnotationPosition(annotation.timestamp)}%`,
                         backgroundColor:
                           annotation.type === 'HIGHLIGHT'
-                            ? Colors.light.success
+                            ? palette.success
                             : annotation.type === 'IMPROVEMENT'
-                            ? Colors.light.warning
-                            : Colors.light.info,
+                            ? palette.warning
+                            : palette.info,
                       },
                     ]}
                   >
@@ -190,17 +189,17 @@ export function VideoPlayer({
                   maximumValue={videoDuration}
                   onSlidingComplete={handleSliderChange}
                   minimumTrackTintColor={palette.tint}
-                  maximumTrackTintColor={withAlpha(Colors.light.onPrimary, 0.30)}
+                  maximumTrackTintColor={withAlpha(palette.onPrimary, 0.30)}
                   thumbTintColor={palette.tint}
                 />
               </View>
 
               {/* Time Display */}
               <View style={styles.timeRow}>
-                <ThemedText style={styles.timeText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.onPrimary}>
+                <ThemedText style={styles.timeText} lightColor={palette.onPrimary} darkColor={palette.onPrimary}>
                   {formatTime(currentTime)}
                 </ThemedText>
-                <ThemedText style={styles.timeText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.onPrimary}>
+                <ThemedText style={styles.timeText} lightColor={palette.onPrimary} darkColor={palette.onPrimary}>
                   {formatTime(videoDuration)}
                 </ThemedText>
               </View>
@@ -226,8 +225,7 @@ export function AnnotationTimeline({
   duration,
   onSeek,
 }: AnnotationTimelineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getMarkerColor = (type: VideoAnnotation['type']) => {
     switch (type) {
@@ -304,7 +302,6 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: Colors.light.text,
     borderRadius: Radii.lg,
     overflow: 'hidden',
   },

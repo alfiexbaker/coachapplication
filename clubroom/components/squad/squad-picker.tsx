@@ -11,11 +11,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { ClubSquad } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('SquadPicker');
 
@@ -40,8 +40,7 @@ export function SquadPicker({
   title = 'Select Squad',
   excludeStaffSquad = true,
 }: SquadPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>(selectedSquadIds);
@@ -305,8 +304,7 @@ export function InlineSquadSelector({
   excludeStaffSquad = true,
   label = 'Select Squad',
 }: InlineSquadSelectorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [squads, setSquads] = useState<ClubSquad[]>([]);
   const [loading, setLoading] = useState(true);

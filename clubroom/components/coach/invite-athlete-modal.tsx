@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface Athlete {
   id: string;
@@ -48,8 +48,7 @@ export function InviteAthleteModal({
   multiSelect = true,
   title = 'Select Athletes',
 }: InviteAthleteModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [selectedAthletes, setSelectedAthletes] = useState<Athlete[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

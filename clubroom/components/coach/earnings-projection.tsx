@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,8 +48,7 @@ export function EarningsProjection({
   repeatRate,
   currencySymbol = '\u00A3',
 }: EarningsProjectionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Bar widths as a percentage of the projected total
   const maxBarTotal = projectedTotal > 0 ? projectedTotal : 1;

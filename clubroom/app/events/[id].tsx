@@ -10,9 +10,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { ClubEvent, RSVPStatus } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
@@ -20,8 +20,7 @@ import { scaleFont } from '@/utils/scale';
 const logger = createLogger('EventDetailScreen');
 
 export default function EventDetailScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
@@ -85,8 +84,7 @@ export default function EventDetailScreen() {
             logger.error('Failed to publish:', error);
             Alert.alert('Error', 'Failed to publish event.');
           }
-        },
-      },
+        } },
     ]);
   };
 
@@ -106,8 +104,7 @@ export default function EventDetailScreen() {
             logger.error('Failed to cancel:', error);
             Alert.alert('Error', 'Failed to cancel event.');
           }
-        },
-      },
+        } },
     ]);
   };
 
@@ -144,7 +141,7 @@ export default function EventDetailScreen() {
             onPress={() => router.back()}
             style={[styles.backButton, { backgroundColor: event.imageUrl ? 'rgba(0,0,0,0.4)' : palette.surface }]}
           >
-            <Ionicons name="arrow-back" size={24} color={event.imageUrl ? Colors.light.onPrimary : palette.text} />
+            <Ionicons name="arrow-back" size={24} color={event.imageUrl ? palette.onPrimary : palette.text} />
           </Clickable>
         </View>
 
@@ -375,25 +372,20 @@ export default function EventDetailScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   imageContainer: {
     height: 220,
-    position: 'relative',
-  },
+    position: 'relative' },
   headerImage: {
     width: '100%',
-    height: '100%',
-  },
+    height: '100%' },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
+    backgroundColor: 'rgba(0,0,0,0.2)' },
   topBar: {
     position: 'absolute',
     top: 0,
@@ -401,90 +393,72 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    zIndex: 10,
-  },
+    zIndex: 10 },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
+    flexWrap: 'wrap' },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   typeBadgeText: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   statusText: {
     ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   virtualBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   virtualText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   title: {
     ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-    lineHeight: scaleFont(32),
-  },
+    lineHeight: scaleFont(32) },
   clubName: {
     ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
-    marginTop: -Spacing.sm,
-  },
+    marginTop: -Spacing.sm },
   detailsSection: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   detailCard: {
     padding: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   detailIcon: {
     width: 44,
     height: 44,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   detailContent: {
-    flex: 1,
-  },
+    flex: 1 },
   detailSubtext: {
     ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   linkButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -493,21 +467,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.md,
     borderWidth: 1,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   linkText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   section: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionTitle: {
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-  },
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   description: {
     ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    lineHeight: scaleFont(23),
-  },
+    lineHeight: scaleFont(23) },
   audienceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -515,65 +484,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
-    alignSelf: 'flex-start',
-  },
+    alignSelf: 'flex-start' },
   rsvpDeadline: {
     ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-    marginTop: -Spacing.xs,
-  },
+    marginTop: -Spacing.xs },
   attendanceHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   attendanceStats: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   statBox: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   statNumber: {
-    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
-  },
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
   statLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   attendeeList: {
     marginTop: Spacing.sm,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   attendeeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
+    paddingVertical: Spacing.xs },
   attendeeAvatar: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   attendeeInitial: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   attendeeInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   guestCount: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   statusDot: {
     width: 8,
     height: 8,
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   actionSection: {
-    marginTop: Spacing.md,
-  },
-});
+    marginTop: Spacing.md } });

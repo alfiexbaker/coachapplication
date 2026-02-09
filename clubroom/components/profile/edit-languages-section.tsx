@@ -1,0 +1,174 @@
+/**
+ * EditLanguagesSection — Languages list + add/edit modal for coach profiles.
+ */
+
+import React, { memo } from 'react';
+import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { ThemedText } from '@/components/themed-text';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import type { CoachLanguage } from '@/constants/types';
+import type { ThemeColors } from '@/hooks/useTheme';
+
+interface EditLanguagesSectionProps {
+  colors: ThemeColors;
+  languages: CoachLanguage[];
+  onOpenModal: (language?: CoachLanguage) => void;
+  onRemove: (id: string) => void;
+  onQuickAdd: (name: string) => void;
+  languageOptions: string[];
+  proficiencyOptions: CoachLanguage['proficiency'][];
+  // Modal
+  modalVisible: boolean;
+  draft: CoachLanguage;
+  onDraftChange: React.Dispatch<React.SetStateAction<CoachLanguage>>;
+  onSave: () => void;
+  onCloseModal: () => void;
+}
+
+export const EditLanguagesSection = memo(function EditLanguagesSection({
+  colors, languages, onOpenModal, onRemove, onQuickAdd, languageOptions, proficiencyOptions,
+  modalVisible, draft, onDraftChange, onSave, onCloseModal,
+}: EditLanguagesSectionProps) {
+  const inputStyle = [styles.input, { borderColor: colors.border, backgroundColor: colors.card, color: colors.foreground }];
+
+  return (
+    <>
+      <SurfaceCard style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <ThemedText type="subtitle">Languages</ThemedText>
+          <Pressable onPress={() => onOpenModal()} style={styles.inlineAction} accessibilityLabel="Add language" accessibilityRole="button">
+            <Ionicons name="add-circle" size={22} color={colors.tint} />
+            <ThemedText style={[styles.inlineActionText, { color: colors.tint }]}>Add</ThemedText>
+          </Pressable>
+        </View>
+        <ThemedText style={styles.subtitle}>
+          Set expectations for onboarding calls and session briefings with your language strengths.
+        </ThemedText>
+
+        {languages.length > 0 ? (
+          <View style={styles.list}>
+            {languages.map((lang) => (
+              <View key={lang.id} style={[styles.row, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                <View style={[styles.dot, { backgroundColor: colors.tint }]} />
+                <View style={styles.copy}>
+                  <ThemedText style={styles.name}>{lang.name}</ThemedText>
+                  <ThemedText style={styles.proficiency}>{lang.proficiency}</ThemedText>
+                </View>
+                <View style={styles.actions}>
+                  <Pressable onPress={() => onOpenModal(lang)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Edit ${lang.name}`} accessibilityRole="button">
+                    <Ionicons name="pencil" size={16} color={colors.muted} />
+                  </Pressable>
+                  <Pressable onPress={() => onRemove(lang.id)} style={[styles.iconButton, { borderColor: colors.border }]} accessibilityLabel={`Remove ${lang.name}`} accessibilityRole="button">
+                    <Ionicons name="close" size={16} color={colors.warning} />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <SurfaceCard style={[styles.emptyCard, { borderColor: colors.border }]}>
+            <Ionicons name="chatbubbles-outline" size={20} color={colors.muted} />
+            <ThemedText style={styles.emptyText}>
+              Add the languages you coach in so parents feel confident you can welcome their family.
+            </ThemedText>
+          </SurfaceCard>
+        )}
+
+        <View style={[styles.quickAddRow, { borderColor: colors.border }]}>
+          <ThemedText style={styles.helper}>Quick add</ThemedText>
+          <View style={styles.quickAddChips}>
+            {languageOptions.map((option) => {
+              const isAdded = languages.some((l) => l.name.toLowerCase() === option.toLowerCase());
+              return (
+                <Pressable
+                  key={option}
+                  disabled={isAdded}
+                  onPress={() => onQuickAdd(option)}
+                  style={[styles.chip, { opacity: isAdded ? 0.35 : 1, borderColor: isAdded ? colors.border : colors.tint, backgroundColor: isAdded ? colors.card : withAlpha(colors.tint, 0.09) }]}
+                  accessibilityLabel={`Quick add ${option}`}
+                  accessibilityRole="button"
+                >
+                  <ThemedText style={styles.chipText} lightColor={isAdded ? undefined : colors.tint} darkColor={isAdded ? undefined : colors.tint}>
+                    {option}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </SurfaceCard>
+
+      <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={onCloseModal}>
+        <View style={styles.modalOverlay}>
+          <SurfaceCard style={[styles.modalCard, { backgroundColor: colors.background }]}>
+            <View style={styles.modalHeader}>
+              <ThemedText type="subtitle">Language</ThemedText>
+              <Pressable onPress={onCloseModal} accessibilityLabel="Close" accessibilityRole="button">
+                <Ionicons name="close" size={22} color={colors.foreground} />
+              </Pressable>
+            </View>
+            <View style={styles.modalContent}>
+              <View style={styles.fieldGroup}>
+                <ThemedText style={styles.label}>Language</ThemedText>
+                <TextInput value={draft.name} onChangeText={(t) => onDraftChange((p) => ({ ...p, name: t }))} placeholder="e.g., English" placeholderTextColor={colors.muted} style={inputStyle} accessibilityLabel="Language name" />
+              </View>
+              <View style={styles.fieldGroup}>
+                <ThemedText style={styles.label}>Proficiency</ThemedText>
+                <View style={styles.pillRow}>
+                  {proficiencyOptions.map((level) => {
+                    const isActive = draft.proficiency === level;
+                    return (
+                      <Pressable key={level} onPress={() => onDraftChange((p) => ({ ...p, proficiency: level }))} style={[styles.chip, { borderColor: isActive ? colors.tint : colors.border, backgroundColor: isActive ? withAlpha(colors.tint, 0.09) : colors.card }]} accessibilityLabel={level} accessibilityRole="radio">
+                        <ThemedText style={styles.chipText} lightColor={isActive ? colors.tint : undefined} darkColor={isActive ? colors.tint : undefined}>{level}</ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+              <Pressable onPress={onSave} style={[styles.primaryButton, { backgroundColor: colors.tint }]} accessibilityLabel="Save language" accessibilityRole="button">
+                <ThemedText style={[styles.primaryButtonText, { color: colors.onPrimary }]}>Save language</ThemedText>
+              </Pressable>
+            </View>
+          </SurfaceCard>
+        </View>
+      </Modal>
+    </>
+  );
+});
+
+const styles = StyleSheet.create({
+  section: { gap: Spacing.md },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  subtitle: { opacity: 0.6, ...Typography.bodySmall },
+  inlineAction: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  inlineActionText: { fontWeight: '700' },
+  list: { gap: Spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md },
+  dot: { width: 10, height: 10, borderRadius: Radii.sm },
+  copy: { flex: 1, gap: Spacing.micro },
+  name: { fontWeight: '700' },
+  proficiency: { ...Typography.caption, opacity: 0.7 },
+  actions: { flexDirection: 'row', gap: Spacing.xs },
+  iconButton: { width: 36, height: 36, borderRadius: Radii.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyCard: { borderWidth: 1, borderRadius: Radii.lg, padding: Spacing.md, borderStyle: 'dashed', alignItems: 'center', gap: Spacing.xs },
+  emptyText: { textAlign: 'center', opacity: 0.7 },
+  quickAddRow: { marginTop: Spacing.sm, padding: Spacing.sm, borderWidth: 1, borderRadius: Radii.md, gap: Spacing.xs },
+  quickAddChips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  helper: { ...Typography.caption, opacity: 0.6 },
+  chip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, borderWidth: 1 },
+  chipText: { fontWeight: '600' },
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', padding: Spacing.lg },
+  modalCard: { padding: Spacing.lg, gap: Spacing.md },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  modalContent: { gap: Spacing.md },
+  fieldGroup: { gap: Spacing.xs },
+  label: { fontWeight: '600' },
+  input: { borderWidth: 1, borderRadius: Radii.md, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Typography.subheading },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
+  primaryButton: { marginTop: Spacing.sm, paddingVertical: Spacing.md, borderRadius: Radii.lg, alignItems: 'center' },
+  primaryButtonText: { ...Typography.subheading },
+});

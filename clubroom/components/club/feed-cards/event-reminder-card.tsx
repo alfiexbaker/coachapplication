@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface EventReminderData {
   id: string;
@@ -25,8 +25,7 @@ export interface EventReminderCardProps {
 }
 
 export function EventReminderCard({ data, onRsvp, onPress }: EventReminderCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

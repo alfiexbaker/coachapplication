@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   ScrollView,
   Alert,
@@ -13,8 +13,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubs } from '@/constants/mock-data';
 import { squadService } from '@/services/squad-service';
@@ -51,8 +51,7 @@ const SKILL_TAGS = [
 ];
 
 export default function CreateSquadScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   useAuth();
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
 
@@ -121,9 +120,9 @@ export default function CreateSquadScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
         <View style={[styles.header, { borderBottomColor: palette.border }]}>
-          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Pressable onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="close" size={24} color={palette.foreground} />
-          </TouchableOpacity>
+          </Pressable>
           <ThemedText type="defaultSemiBold">Create Group</ThemedText>
           <View style={{ width: 24 }} />
         </View>
@@ -138,14 +137,14 @@ export default function CreateSquadScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: palette.border }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Pressable onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="close" size={24} color={palette.foreground} />
-        </TouchableOpacity>
+        </Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <ThemedText type="defaultSemiBold">Create Group</ThemedText>
           <ThemedText style={{ color: palette.muted, ...Typography.caption }}>{club.name}</ThemedText>
         </View>
-        <TouchableOpacity
+        <Pressable
           onPress={handleCreate}
           disabled={isSubmitting || !squadName.trim() || !selectedAgeGroup || !selectedLevel}
           style={[
@@ -153,10 +152,10 @@ export default function CreateSquadScreen() {
             { backgroundColor: (squadName.trim() && selectedAgeGroup && selectedLevel) ? palette.tint : palette.border },
           ]}
         >
-          <ThemedText style={{ color: (squadName.trim() && selectedAgeGroup && selectedLevel) ? Colors.light.onPrimary : palette.muted, ...Typography.bodySmallSemiBold }}>
+          <ThemedText style={{ color: (squadName.trim() && selectedAgeGroup && selectedLevel) ? palette.onPrimary : palette.muted, ...Typography.bodySmallSemiBold }}>
             {isSubmitting ? 'Creating...' : 'Create'}
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -177,7 +176,7 @@ export default function CreateSquadScreen() {
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Age Group</ThemedText>
           <View style={styles.optionsGrid}>
             {AGE_GROUPS.map((age) => (
-              <TouchableOpacity
+              <Pressable
                 key={age.label}
                 style={[
                   styles.optionPill,
@@ -190,13 +189,13 @@ export default function CreateSquadScreen() {
               >
                 <ThemedText
                   style={{
-                    color: selectedAgeGroup?.label === age.label ? Colors.light.onPrimary : palette.text,
+                    color: selectedAgeGroup?.label === age.label ? palette.onPrimary : palette.text,
                     ...Typography.bodySmallSemiBold,
                   }}
                 >
                   {age.label}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -206,7 +205,7 @@ export default function CreateSquadScreen() {
           <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>Level</ThemedText>
           <View style={styles.optionsGrid}>
             {SQUAD_LEVELS.map((level) => (
-              <TouchableOpacity
+              <Pressable
                 key={level}
                 style={[
                   styles.optionPill,
@@ -219,13 +218,13 @@ export default function CreateSquadScreen() {
               >
                 <ThemedText
                   style={{
-                    color: selectedLevel === level ? Colors.light.onPrimary : palette.text,
+                    color: selectedLevel === level ? palette.onPrimary : palette.text,
                     ...Typography.smallSemiBold,
                   }}
                 >
                   {level}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -252,7 +251,7 @@ export default function CreateSquadScreen() {
             {SKILL_TAGS.map((tag) => {
               const isSelected = selectedTags.includes(tag);
               return (
-                <TouchableOpacity
+                <Pressable
                   key={tag}
                   style={[
                     styles.tagPill,
@@ -272,7 +271,7 @@ export default function CreateSquadScreen() {
                   >
                     {tag}
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
@@ -285,7 +284,7 @@ export default function CreateSquadScreen() {
             <SurfaceCard style={styles.previewCard}>
               <View style={styles.previewHeader}>
                 <View style={[styles.previewBadge, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.bodySmallSemiBold }}>
+                  <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySmallSemiBold }}>
                     {squadName.slice(0, 2).toUpperCase()}
                   </ThemedText>
                 </View>

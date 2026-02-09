@@ -5,10 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { RemovalReason } from '@/services/roster-service';
 import type { MemberRemovalReason } from '@/services/club-service';
+import { useTheme } from '@/hooks/useTheme';
 
 type ReasonType = RemovalReason | MemberRemovalReason;
 
@@ -44,8 +44,7 @@ export function RemovalConfirmationModal({
   name,
   isLoading,
 }: RemovalConfirmationModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [selectedReason, setSelectedReason] = useState<ReasonType | null>(null);
   const [customReason, setCustomReason] = useState('');

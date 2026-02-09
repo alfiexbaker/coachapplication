@@ -20,6 +20,27 @@ try {
   // Not installed
 }
 
+/** Shape of an Expo notification received in the foreground */
+interface NotificationContent {
+  title: string | null;
+  body: string | null;
+  data: Record<string, unknown>;
+}
+
+interface ExpoNotification {
+  date: number;
+  request: {
+    identifier: string;
+    content: NotificationContent;
+    trigger: unknown;
+  };
+}
+
+/** Subscription handle returned by Expo notification listeners */
+interface Subscription {
+  remove: () => void;
+}
+
 interface UsePushNotificationsResult {
   /** The Expo push token, or null if not registered */
   expoPushToken: string | null;
@@ -28,7 +49,7 @@ interface UsePushNotificationsResult {
   /** Whether notification permissions were granted */
   isPermissionGranted: boolean;
   /** Last notification received while app is in foreground */
-  lastNotification: any | null;
+  lastNotification: ExpoNotification | null;
   /** Request permission and register for push notifications */
   requestPermission: () => Promise<string | null>;
 }
@@ -37,10 +58,10 @@ export function usePushNotifications(): UsePushNotificationsResult {
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPermissionGranted, setIsPermissionGranted] = useState(false);
-  const [lastNotification, setLastNotification] = useState<any | null>(null);
+  const [lastNotification, setLastNotification] = useState<ExpoNotification | null>(null);
 
-  const notificationListener = useRef<any>(null);
-  const responseListener = useRef<any>(null);
+  const notificationListener = useRef<Subscription | null>(null);
+  const responseListener = useRef<Subscription | null>(null);
 
   const requestPermission = useCallback(async () => {
     try {

@@ -8,15 +8,15 @@ import {
   View,
   TextInput,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   type TextInputProps,
   type NativeSyntheticEvent,
   type TargetedEvent,
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Spacing, Radii, Borders, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Borders, Components, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 type BlurEvent = NativeSyntheticEvent<TargetedEvent>;
 
@@ -79,8 +79,7 @@ export function FormInput({
   placeholder,
   ...rest
 }: FormInputProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -181,7 +180,7 @@ export function FormInput({
         />
 
         {type === 'password' && (
-          <TouchableOpacity
+          <Pressable
             onPress={togglePasswordVisibility}
             style={styles.rightIconButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -191,18 +190,18 @@ export function FormInput({
               size={20}
               color={palette.muted}
             />
-          </TouchableOpacity>
+          </Pressable>
         )}
 
         {rightIcon && type !== 'password' && (
-          <TouchableOpacity
+          <Pressable
             onPress={onRightIconPress}
             style={styles.rightIconButton}
             disabled={!onRightIconPress}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <IconSymbol name={rightIcon as React.ComponentProps<typeof IconSymbol>['name']} size={20} color={palette.muted} />
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 

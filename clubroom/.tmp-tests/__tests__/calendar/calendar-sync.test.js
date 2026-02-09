@@ -49,6 +49,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
 const node_module_1 = __importDefault(require("node:module"));
+const ModuleInternals = node_module_1.default;
 // ---------------------------------------------------------------------------
 // Mocks — we override the expo-calendar mock and set up service stubs
 // before importing the module under test.
@@ -90,7 +91,7 @@ const calMod = new node_module_1.default('expo-calendar');
 calMod.filename = 'expo-calendar';
 calMod.loaded = true;
 calMod.exports = calendarMock;
-node_module_1.default._cache['expo-calendar'] = calMod;
+ModuleInternals._cache['expo-calendar'] = calMod;
 // ---------------------------------------------------------------------------
 // Mock booking service & calendar service (lazy loaded via require)
 // ---------------------------------------------------------------------------
@@ -131,7 +132,7 @@ const calendarServiceMock = {
 // We need to intercept the @/ require paths. Since test-register.js
 // translates @/services/booking-service -> .tmp-tests/services/booking-service,
 // we'll hook into _resolveFilename to catch those and return our mock module names.
-const origResolve = node_module_1.default._resolveFilename;
+const origResolve = ModuleInternals._resolveFilename;
 const mockModuleMap = {};
 function registerServiceMock(pathSuffix, mockExports) {
     const fakeName = `__mock__${pathSuffix}`;
@@ -140,13 +141,13 @@ function registerServiceMock(pathSuffix, mockExports) {
     mod.filename = fakeName;
     mod.loaded = true;
     mod.exports = mockExports;
-    node_module_1.default._cache[fakeName] = mod;
+    ModuleInternals._cache[fakeName] = mod;
 }
 registerServiceMock('services/booking-service', bookingServiceMock);
 registerServiceMock('services/calendar-service', calendarServiceMock);
 // Patch resolve to intercept .tmp-tests/services/* paths
-const prevResolve = node_module_1.default._resolveFilename;
-node_module_1.default._resolveFilename = function (request, parent, isMain, options) {
+const prevResolve = ModuleInternals._resolveFilename;
+ModuleInternals._resolveFilename = function (request, parent, isMain, options) {
     // Check if request ends with a known mock path
     for (const [suffix, fakeName] of Object.entries(mockModuleMap)) {
         if (request.endsWith(suffix) || request.endsWith(suffix + '.js') || request.endsWith(suffix + '/index')) {

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -7,8 +7,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { packageService } from '@/services/package-service';
@@ -43,8 +43,7 @@ export function MyPackages({
   showHeader = true,
   onViewAll,
 }: MyPackagesProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [purchases, setPurchases] = useState<PackagePurchase[]>([]);
@@ -141,11 +140,11 @@ export function MyPackages({
             My Packages
           </ThemedText>
           {onViewAll && purchases.length > 0 && (
-            <TouchableOpacity onPress={onViewAll}>
+            <Pressable onPress={onViewAll}>
               <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>
                 View All
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       )}

@@ -8,8 +8,8 @@ import { SettingsRow, SettingsSection } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Components, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { hasChildren, isCoach as checkIsCoach } from '@/utils/user-helpers';
@@ -17,8 +17,7 @@ import { hasChildren, isCoach as checkIsCoach } from '@/utils/user-helpers';
 const logger = createLogger('SettingsHub');
 
 export default function SettingsHubScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser, logout } = useAuth();
 
   const handleLogout = () => {

@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface WaitlistBannerProps {
   waitlistCount: number;
@@ -13,8 +13,7 @@ interface WaitlistBannerProps {
 }
 
 export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: WaitlistBannerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: withAlpha(palette.warning, 0.06), borderColor: palette.warning }]}>
@@ -43,7 +42,7 @@ export function WaitlistBanner({ waitlistCount, onJoinWaitlist, loading }: Waitl
         ) : (
           <>
             <Ionicons name="add" size={18} color={palette.onPrimary} />
-            <ThemedText style={styles.buttonText}>Join Waitlist</ThemedText>
+            <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>Join Waitlist</ThemedText>
           </>
         )}
       </Clickable>
@@ -75,5 +74,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     alignSelf: 'flex-start',
   },
-  buttonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onPrimary },
+  buttonText: { ...Typography.bodySmallSemiBold },
 });

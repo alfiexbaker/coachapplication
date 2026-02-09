@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ActivityIndicator,
   Image,
   Linking,
   StyleSheet,
@@ -14,8 +15,7 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SocialLinks } from '@/components/profile/social-links';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type {
   CoachExperience,
   CoachCertification,
@@ -23,6 +23,7 @@ import type {
   SessionOffering,
   SocialLinks as SocialLinksType,
 } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -62,6 +63,20 @@ export interface ProfileTabContentProps {
   };
   sessionOfferings: SessionOffering[];
   userRole?: string;
+  /** Real feed posts from socialFeedService (normalized to post card shape) */
+  feedPosts?: Array<{
+    id: string;
+    content: string;
+    createdAt: string;
+    likes: number;
+    comments: number;
+    mediaUrls?: string[];
+    mediaType?: string;
+  }>;
+  /** Whether feed posts are currently loading */
+  feedLoading?: boolean;
+  /** Called when the compose prompt card is pressed (coach only) */
+  onComposePress?: () => void;
   /** Called when a session offering card is pressed */
   onOfferingPress: (offering: SessionOffering) => void;
   /** Render a single post card (delegated to ProfilePostCard) */
@@ -79,8 +94,7 @@ export interface ProfileTabContentProps {
 // ─── Tab Bar ────────────────────────────────────────────────────
 
 function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const tabs: { key: TabType; label: string }[] = [
     { key: 'posts', label: 'Posts' },
@@ -128,34 +142,37 @@ function ProfileTabBarInner({ activeTab, onTabChange }: ProfileTabsProps) {
 
 // ─── Tab Content ────────────────────────────────────────────────
 
+// ─── Date helpers (pure — no component state) ───────────────────
+function formatDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+}
+
+function formatFullDate(dateStr: string) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 function ProfileTabContentInner({
   activeTab,
   coach,
   sessionOfferings,
   userRole,
+  feedPosts,
+  feedLoading,
+  onComposePress,
   onOfferingPress,
   renderPostCard,
 }: ProfileTabContentProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
-  };
-
-  const formatFullDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  const { colors: palette } = useTheme();
 
   const renderExperience = (exp: CoachExperience) => (
     <View key={exp.id} style={styles.experienceItem}>
-      <View style={styles.experienceIcon}>
+      <View style={[styles.experienceIcon, { backgroundColor: withAlpha(palette.tint, 0.1) }]}>
         <Ionicons name="briefcase" size={20} color={palette.tint} />
       </View>
       <View style={styles.experienceContent}>
@@ -171,7 +188,7 @@ function ProfileTabContentInner({
       </View>
       {userRole === 'COACH' && (
         <Clickable
-          onPress={() => alert('Edit experience: ' + exp.title)}
+          onPress={() => { /* TODO: navigate to edit experience screen */ }}
           style={styles.editButton}
         >
           <Ionicons name="pencil" size={16} color={palette.muted} />
@@ -187,7 +204,7 @@ function ProfileTabContentInner({
 
     return (
       <View key={cert.id} style={styles.certItem}>
-        <View style={styles.certIcon}>
+        <View style={[styles.certIcon, { backgroundColor: withAlpha(palette.success, 0.1) }]}>
           <Ionicons
             name={isExpiring ? 'warning' : 'ribbon'}
             size={20}
@@ -209,7 +226,7 @@ function ProfileTabContentInner({
         </View>
         {userRole === 'COACH' && (
           <Clickable
-            onPress={() => alert('Edit certification: ' + cert.name)}
+            onPress={() => { /* TODO: navigate to edit certification screen */ }}
             style={styles.editButton}
           >
             <Ionicons name="pencil" size={16} color={palette.muted} />
@@ -224,10 +241,10 @@ function ProfileTabContentInner({
       {/* Posts Tab */}
       {activeTab === 'posts' && (
         <>
-          {userRole === 'Coach' && (
+          {userRole === 'COACH' && onComposePress && (
             <Clickable
               style={[styles.createPostButton, { backgroundColor: palette.card }]}
-              onPress={() => alert('Create post')}
+              onPress={onComposePress}
             >
               <Ionicons name="add-circle" size={24} color={palette.tint} />
               <ThemedText style={[styles.createPostText, { color: palette.muted }]}>
@@ -235,13 +252,38 @@ function ProfileTabContentInner({
               </ThemedText>
             </Clickable>
           )}
-          {coach.posts && coach.posts.length > 0 ? (
-            coach.posts.map((post) => (
+          {feedLoading ? (
+            <View style={styles.feedLoadingContainer}>
+              {/* Skeleton placeholders */}
+              <SurfaceCard style={styles.skeletonCard}>
+                <View style={[styles.skeletonLine, { width: '60%', backgroundColor: palette.border }]} />
+                <View style={[styles.skeletonLine, { width: '100%', backgroundColor: palette.border }]} />
+                <View style={[styles.skeletonLine, { width: '80%', backgroundColor: palette.border }]} />
+              </SurfaceCard>
+              <SurfaceCard style={styles.skeletonCard}>
+                <View style={[styles.skeletonLine, { width: '50%', backgroundColor: palette.border }]} />
+                <View style={[styles.skeletonLine, { width: '90%', backgroundColor: palette.border }]} />
+              </SurfaceCard>
+              <ActivityIndicator size="small" color={palette.tint} style={{ marginTop: Spacing.md }} />
+            </View>
+          ) : (feedPosts ?? coach.posts) && (feedPosts ?? coach.posts)!.length > 0 ? (
+            (feedPosts ?? coach.posts)!.map((post) => (
               <View key={post.id}>{renderPostCard(post)}</View>
             ))
           ) : (
             <SurfaceCard style={styles.emptyState}>
-              <ThemedText style={styles.emptyStateText}>No posts yet</ThemedText>
+              <Ionicons name="newspaper-outline" size={40} color={palette.muted} style={{ marginBottom: Spacing.sm }} />
+              <ThemedText style={styles.emptyStateText}>
+                {userRole === 'COACH' ? 'No posts yet' : `${coach.fullName} hasn\u2019t posted yet`}
+              </ThemedText>
+              {userRole === 'COACH' && onComposePress && (
+                <Clickable
+                  style={[styles.emptyStateCta, { backgroundColor: palette.tint }]}
+                  onPress={onComposePress}
+                >
+                  <ThemedText style={[styles.emptyStateCtaText, { color: palette.onPrimary }]}>Create your first post</ThemedText>
+                </Clickable>
+              )}
             </SurfaceCard>
           )}
         </>
@@ -313,7 +355,7 @@ function ProfileTabContentInner({
               <ThemedText type="subtitle">Experience</ThemedText>
               {userRole === 'COACH' && (
                 <Clickable
-                  onPress={() => alert('Add new experience')}
+                  onPress={() => { /* TODO: navigate to add experience screen */ }}
                   style={styles.addButton}
                 >
                   <Ionicons name="add-circle" size={20} color={palette.tint} />
@@ -338,7 +380,7 @@ function ProfileTabContentInner({
               <ThemedText type="subtitle">Certifications &amp; Licences</ThemedText>
               {userRole === 'COACH' && (
                 <Clickable
-                  onPress={() => alert('Add new certification')}
+                  onPress={() => { /* TODO: navigate to add certification screen */ }}
                   style={styles.addButton}
                 >
                   <Ionicons name="add-circle" size={20} color={palette.tint} />
@@ -409,7 +451,7 @@ function ProfileTabContentInner({
               {coach.footballFocuses.map((focus) => (
                 <View
                   key={focus}
-                  style={[styles.specialtyTag, { backgroundColor: palette.card }]}
+                  style={[styles.specialtyTag, { backgroundColor: palette.card, borderColor: withAlpha(palette.text, 0.1) }]}
                 >
                   <ThemedText style={styles.specialtyText}>{focus}</ThemedText>
                 </View>
@@ -482,7 +524,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     ...Typography.bodySmall,
-    fontWeight: '500',
+    fontWeight: Typography.subheading.fontWeight,
   },
   tabContent: {
     padding: Spacing.lg,
@@ -523,7 +565,6 @@ const styles = StyleSheet.create({
   },
   bio: {
     ...Typography.body,
-    lineHeight: 20,
     opacity: 0.8,
   },
   contactItem: {
@@ -545,7 +586,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: Radii.full,
-    backgroundColor: 'rgba(99,102,241,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -566,7 +606,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     opacity: 0.7,
     marginTop: Spacing.xxs,
-    lineHeight: 18,
   },
   certItem: {
     flexDirection: 'row',
@@ -577,7 +616,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: Radii.full,
-    backgroundColor: 'rgba(0,217,163,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -644,7 +682,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
   },
   specialtyText: {
     ...Typography.bodySemiBold,
@@ -661,10 +698,36 @@ const styles = StyleSheet.create({
   emptyState: {
     paddingVertical: Spacing.xl,
     alignItems: 'center',
+    gap: Spacing.xs,
   },
   emptyStateText: {
     ...Typography.body,
     opacity: 0.6,
+  },
+  emptyStateCta: {
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  emptyStateCtaText: {
+    ...Typography.bodySmallSemiBold,
+    textAlign: 'center',
+  },
+  feedLoadingContainer: {
+    gap: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  skeletonCard: {
+    gap: Spacing.sm,
+    paddingVertical: Spacing.lg,
+  },
+  skeletonLine: {
+    height: 12,
+    borderRadius: Radii.sm,
+    opacity: 0.4,
   },
 });
 

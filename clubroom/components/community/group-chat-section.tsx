@@ -13,8 +13,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { GroupMessage } from '@/constants/types';
 
@@ -68,8 +68,7 @@ function GroupChatSectionInner({
   onInputChange,
   onSend,
 }: GroupChatSectionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
 
   return (
@@ -128,7 +127,7 @@ function GroupChatSectionInner({
                     <ThemedText
                       style={[
                         styles.messageText,
-                        { color: isOwnMessage ? Colors.light.onPrimary : palette.text },
+                        { color: isOwnMessage ? palette.onPrimary : palette.text },
                       ]}
                     >
                       {message.body}
@@ -197,7 +196,7 @@ function GroupChatSectionInner({
             disabled={!inputValue.trim() || sending}
           >
             {inputValue.trim() ? (
-              <IconSymbol name="paperplane.fill" size={18} color={Colors.light.onPrimary} />
+              <IconSymbol name="paperplane.fill" size={18} color={palette.onPrimary} />
             ) : (
               <IconSymbol name="paperplane" size={18} color={palette.muted} />
             )}

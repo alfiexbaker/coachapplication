@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface SettingsRowProps {
   icon: string;
@@ -18,6 +18,7 @@ export interface SettingsRowProps {
   rightElement?: React.ReactNode;
   destructive?: boolean;
   disabled?: boolean;
+  accessibilityLabel?: string;
 }
 
 /**
@@ -35,9 +36,9 @@ export function SettingsRow({
   rightElement,
   destructive = false,
   disabled = false,
+  accessibilityLabel,
 }: SettingsRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const textColor = destructive ? palette.error : palette.text;
   const iconBgColor = destructive ? withAlpha(palette.error, 0.09) : withAlpha(iconColor || palette.accent, 0.09);
@@ -47,6 +48,8 @@ export function SettingsRow({
     <Clickable
       onPress={onPress}
       disabled={disabled || !onPress}
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityRole={onPress ? 'button' : undefined}
       style={({ pressed }) => [
         styles.settingRow,
         { opacity: pressed ? 0.7 : disabled ? 0.5 : 1 },
@@ -100,8 +103,7 @@ export function SettingsToggleRow({
   onValueChange,
   disabled = false,
 }: SettingsToggleRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SettingsRow
@@ -118,6 +120,7 @@ export function SettingsToggleRow({
           trackColor={{ false: palette.border, true: palette.accent }}
           thumbColor={palette.surface}
           disabled={disabled}
+          accessibilityLabel={`Toggle ${title}`}
         />
       }
     />
@@ -133,8 +136,7 @@ export interface SettingsSectionProps {
  * SettingsSection - A wrapper for grouping related settings rows with an optional header.
  */
 export function SettingsSection({ title, children }: SettingsSectionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.section}>

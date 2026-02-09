@@ -16,8 +16,8 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubService, type ClubMember } from '@/services/club-service';
 import { getClubById, getClubSquads, getAllClubMembershipsForUser } from '@/constants/mock-data';
@@ -28,8 +28,7 @@ const logger = createLogger('MemberManagement');
 
 export default function MemberManagementScreen() {
   const { clubId, memberId } = useLocalSearchParams<{ clubId: string; memberId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 

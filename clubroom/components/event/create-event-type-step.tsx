@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import type { ClubEventType } from '@/constants/types';
@@ -27,8 +27,7 @@ interface CreateEventTypeStepProps {
 }
 
 function CreateEventTypeStepInner({ eventType, onEventTypeChange }: CreateEventTypeStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -64,7 +63,7 @@ function CreateEventTypeStepInner({ eventType, onEventTypeChange }: CreateEventT
                 <Ionicons
                   name={type.icon as keyof typeof Ionicons.glyphMap}
                   size={24}
-                  color={eventType === type.key ? Colors.light.onPrimary : palette.muted}
+                  color={eventType === type.key ? palette.onPrimary : palette.muted}
                 />
               </View>
               <ThemedText

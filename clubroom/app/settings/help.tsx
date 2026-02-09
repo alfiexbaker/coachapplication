@@ -9,8 +9,8 @@ import { SettingsRow, SettingsSection } from '@/components/settings';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
@@ -45,8 +45,7 @@ const FAQ_ITEMS: FAQItem[] = [
 ];
 
 function FAQCard({ item, expanded, onToggle }: { item: FAQItem; expanded: boolean; onToggle: () => void }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.faqCard} onPress={onToggle}>
@@ -70,8 +69,7 @@ function FAQCard({ item, expanded, onToggle }: { item: FAQItem; expanded: boolea
 }
 
 export default function HelpSettingsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
 

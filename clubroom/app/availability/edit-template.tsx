@@ -20,9 +20,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { DAY_NAMES } from '@/constants/booking-types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate } from '@/constants/types';
@@ -41,8 +41,7 @@ const MAX_SLOTS_OPTIONS = [1, 2, 3, 4, 5];
 
 export default function EditTemplateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -184,7 +183,7 @@ export default function EditTemplateScreen() {
                 onPress={() => setDayOfWeek(index as 0 | 1 | 2 | 3 | 4 | 5 | 6)}
               >
                 <ThemedText
-                  style={[styles.dayButtonText, { color: dayOfWeek === index ? Colors.light.onPrimary : palette.text }]}
+                  style={[styles.dayButtonText, { color: dayOfWeek === index ? palette.onPrimary : palette.text }]}
                 >
                   {day.slice(0, 3)}
                 </ThemedText>
@@ -267,7 +266,7 @@ export default function EditTemplateScreen() {
                   ]}
                   onPress={() => setMaxSlots(num)}
                 >
-                  <ThemedText style={{ color: maxSlots === num ? Colors.light.onPrimary : palette.text }}>
+                  <ThemedText style={{ color: maxSlots === num ? palette.onPrimary : palette.text }}>
                     {num}
                   </ThemedText>
                 </Pressable>
@@ -290,7 +289,7 @@ export default function EditTemplateScreen() {
                   ]}
                   onPress={() => setBufferMinutes(mins)}
                 >
-                  <ThemedText style={{ color: bufferMinutes === mins ? Colors.light.onPrimary : palette.text }}>
+                  <ThemedText style={{ color: bufferMinutes === mins ? palette.onPrimary : palette.text }}>
                     {mins === 0 ? 'None' : `${mins}m`}
                   </ThemedText>
                 </Pressable>
@@ -319,11 +318,11 @@ export default function EditTemplateScreen() {
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+            <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={22} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.saveButtonText}>Save Changes</ThemedText>
+              <Ionicons name="checkmark-circle" size={22} color={palette.onPrimary} />
+              <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Save Changes</ThemedText>
             </>
           )}
         </Pressable>
@@ -384,5 +383,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },
-  saveButtonText: { color: Colors.light.onPrimary, ...Typography.heading },
+  saveButtonText: { ...Typography.heading },
 });

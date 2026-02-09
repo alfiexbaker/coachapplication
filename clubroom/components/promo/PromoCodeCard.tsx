@@ -1,14 +1,14 @@
-import { View, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCode } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PromoCodeCardProps {
   /** The promo code to display */
@@ -30,8 +30,7 @@ export function PromoCodeCard({
   onPress,
   showActions = true,
 }: PromoCodeCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const status = promoService.getCodeStatus(promoCode);
   const statusInfo = promoService.getStatusInfo(status);
@@ -161,16 +160,16 @@ export function PromoCodeCard({
       {showActions && (
         <View style={styles.actions}>
           {onViewUsage && (
-            <TouchableOpacity
+            <Pressable
               style={[styles.actionButton, { backgroundColor: palette.surface, borderColor: palette.border }]}
               onPress={() => onViewUsage(promoCode.id)}
             >
               <Ionicons name="analytics-outline" size={16} color={palette.text} />
               <ThemedText style={styles.actionButtonText}>Usage</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
           {onToggleActive && (
-            <TouchableOpacity
+            <Pressable
               style={[
                 styles.actionButton,
                 {
@@ -193,7 +192,7 @@ export function PromoCodeCard({
               >
                 {promoCode.isActive ? 'Deactivate' : 'Activate'}
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       )}

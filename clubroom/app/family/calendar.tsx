@@ -13,15 +13,14 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { FamilyCalendar } from '@/components/family/FamilyCalendar';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   familyService,
   type FamilyMember,
   type FamilyCalendarEvent,
-  type FamilyDateRange,
-} from '@/services/family';
+  type FamilyDateRange } from '@/services/family';
 import { eventService } from '@/services/event-service';
 
 const logger = createLogger('FamilyCalendarScreen');
@@ -31,8 +30,7 @@ const logger = createLogger('FamilyCalendarScreen');
  * Supports filtering by child and date range
  */
 export default function FamilyCalendarScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -47,8 +45,7 @@ export default function FamilyCalendarScreen() {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
     return {
       startDate: startOfMonth.toISOString(),
-      endDate: endOfMonth.toISOString(),
-    };
+      endDate: endOfMonth.toISOString() };
   });
 
   const loadData = useCallback(async () => {
@@ -74,14 +71,13 @@ export default function FamilyCalendarScreen() {
         status: 'CONFIRMED' as const,
         childId: '', // Club events don't belong to a specific child
         childName: 'Club Event',
-        colorCode: '#6366F1', // Default color for club events
+        colorCode: '#6366F1', // Decorative: default color for club events on calendar
         coachId: '',
         coachName: event.location,
         location: event.location,
         price: 0,
         type: 'EVENT' as const,
-        eventType: event.eventType,
-      }));
+        eventType: event.eventType }));
 
       setMembers(membersData);
       // Combine bookings and club events, sort by date
@@ -130,8 +126,7 @@ export default function FamilyCalendarScreen() {
       (e) =>
         e.status === 'COMPLETED' &&
         (!selectedChildId || e.childId === selectedChildId)
-    ).length,
-  };
+    ).length };
 
   if (loading) {
     return (
@@ -238,8 +233,8 @@ export default function FamilyCalendarScreen() {
             onPress={() => router.push(Routes.MORE)}
             style={[styles.actionButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
-            <ThemedText style={styles.actionButtonText}>Book Session</ThemedText>
+            <Ionicons name="add" size={20} color={palette.onPrimary} />
+            <ThemedText style={[styles.actionButtonText, { color: palette.onPrimary }]}>Book Session</ThemedText>
           </Clickable>
           <Clickable
             onPress={() => router.push(Routes.FAMILY_SPENDING)}
@@ -261,67 +256,52 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingText: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   statsRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   statCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   statIcon: {
     width: 40,
     height: 40,
     borderRadius: Radii.md,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   statText: {
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   statValue: {
-    ...Typography.title,
-  },
+    ...Typography.title },
   statLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   legendCard: {
     padding: Spacing.sm,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   legendTitle: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   legendItems: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   legendDot: {
     width: 10,
     height: 10,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   legendName: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   quickActions: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
@@ -329,12 +309,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-  },
+    borderRadius: Radii.lg },
   actionButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySemiBold,
-  },
+    ...Typography.bodySemiBold },
   actionButtonSecondary: {
     flex: 1,
     flexDirection: 'row',
@@ -343,9 +320,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   actionButtonTextSecondary: {
-    ...Typography.bodySemiBold,
-  },
-});
+    ...Typography.bodySemiBold } });

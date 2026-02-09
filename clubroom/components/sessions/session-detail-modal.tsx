@@ -9,9 +9,9 @@ import { toDateStr } from '@/utils/format';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
-import { Colors, Radii, Typography, Spacing, withAlpha } from '@/constants/theme';
+import { Radii, Typography, Spacing, Shadows, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent } from '@/constants/mock-data';
 import { scale, scaleFont } from '@/utils/scale';
@@ -79,8 +79,7 @@ interface SessionDetailModalProps {
 }
 
 export function SessionDetailModal({ visible, offering, onClose, onUpdate }: SessionDetailModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [weeksToBook, setWeeksToBook] = useState(1);
@@ -388,7 +387,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                 {sessionAwards.map((award) => (
                   <View key={award.id} style={[styles.awardChip, { borderColor: palette.border }]}>
                     <ThemedText type="defaultSemiBold">{award.badgeLabel}</ThemedText>
-                    <ThemedText style={styles.awardMeta}>
+                    <ThemedText style={[styles.awardMeta, { color: palette.muted }]}>
                       Awarded {new Date(award.awardedAt).toLocaleString(undefined, {
                         month: 'short',
                         day: 'numeric',
@@ -595,7 +594,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
 
         {/* Footer Actions */}
         {!isCoach && !isRegistered && (
-          <View style={[styles.footer, { borderTopColor: palette.border }]}>
+          <View style={[styles.footer, { borderTopColor: palette.border, ...Shadows[scheme].card }]}>
             <Pressable
               onPress={handleBook}
               disabled={isFull}
@@ -603,6 +602,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
                 styles.bookButton,
                 {
                   backgroundColor: isFull ? palette.muted : palette.tint,
+                  ...Shadows[scheme].card,
                 },
               ]}>
               <ThemedText
@@ -615,7 +615,7 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
 
         {/* Coach Footer Actions */}
         {isMyOffering && registeredCount > 0 && (
-          <View style={[styles.footer, { borderTopColor: palette.border }]}>
+          <View style={[styles.footer, { borderTopColor: palette.border, ...Shadows[scheme].card }]}>
             <Pressable
               onPress={() => {
                 onClose();
@@ -623,10 +623,10 @@ export function SessionDetailModal({ visible, offering, onClose, onUpdate }: Ses
               }}
               style={[
                 styles.completeButton,
-                { backgroundColor: palette.success },
+                { backgroundColor: palette.success, ...Shadows[scheme].card },
               ]}>
               <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
-              <ThemedText style={styles.completeButtonText}>
+              <ThemedText style={[styles.completeButtonText, { color: palette.onSuccess }]}>
                 Complete Session
               </ThemedText>
             </Pressable>
@@ -667,11 +667,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 20,
     gap: 14,
-    shadowColor: Colors.light.text,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
   },
   title: {
     fontSize: scaleFont(24),
@@ -718,7 +713,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
     gap: Spacing.xxs,
   },
-  awardMeta: { ...Typography.caption, color: Colors.light.muted,
+  awardMeta: { ...Typography.caption,
     lineHeight: 16 },
   manageBadgesLink: {
     marginTop: 8,
@@ -820,21 +815,11 @@ const styles = StyleSheet.create({
   footer: {
     padding: 20,
     borderTopWidth: 0,
-    shadowColor: Colors.light.text,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 8,
   },
   bookButton: {
     paddingVertical: 18,
     borderRadius: Radii.md,
     alignItems: 'center',
-    shadowColor: Colors.light.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   bookButtonText: {
     fontSize: scaleFont(18),
@@ -911,14 +896,8 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 18,
     borderRadius: Radii.md,
-    shadowColor: Colors.light.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   completeButtonText: {
-    color: Colors.light.onSuccess,
     fontSize: scaleFont(18),
     fontWeight: '700',
     letterSpacing: -0.4,

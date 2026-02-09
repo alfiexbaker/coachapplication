@@ -52,6 +52,8 @@ export interface ClubSquad {
   tags?: string[];
   ageMin?: number;
   ageMax?: number;
+  /** Auto-provisioned parent group chat ID for this squad */
+  groupId?: string;
 }
 
 // Squad member types for squad-based invites
@@ -170,6 +172,9 @@ export interface ClubInvite {
 }
 
 export type ClubPostType = 'announcement' | 'photo' | 'event' | 'general' | 'achievement' | 'session' | 'match' | 'session_announcement';
+
+/** Filter for club/social feed queries. */
+export type FeedFilter = 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match' | 'session_announcement';
 
 /** Where a post appears: personal coach feed, club feed, or both. */
 export type FeedType = 'PERSONAL' | 'CLUB' | 'BOTH';

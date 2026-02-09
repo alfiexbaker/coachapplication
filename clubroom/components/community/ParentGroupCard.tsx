@@ -4,10 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ParentGroup, GroupType } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ParentGroupCardProps {
   group: ParentGroup;
@@ -23,6 +22,8 @@ function getGroupTypeIcon(type: GroupType): string {
       return 'calendar-outline';
     case 'CARPOOL':
       return 'car-outline';
+    case 'SQUAD':
+      return 'people';
     case 'GENERAL':
     default:
       return 'chatbubbles-outline';
@@ -37,6 +38,8 @@ function getGroupTypeLabel(type: GroupType): string {
       return 'Session';
     case 'CARPOOL':
       return 'Carpool';
+    case 'SQUAD':
+      return 'Squad';
     case 'GENERAL':
     default:
       return 'General';
@@ -61,8 +64,7 @@ function formatTimeAgo(dateString: string | undefined): string {
 }
 
 function ParentGroupCardComponent({ group, onPress, compact = false }: ParentGroupCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const typeIcon = getGroupTypeIcon(group.type);
   const typeLabel = getGroupTypeLabel(group.type);
@@ -94,7 +96,7 @@ function ParentGroupCardComponent({ group, onPress, compact = false }: ParentGro
             </ThemedText>
             {hasUnread && (
               <View style={[styles.unreadBadge, { backgroundColor: palette.tint }]}>
-                <ThemedText style={styles.unreadText}>
+                <ThemedText style={[styles.unreadText, { color: palette.onPrimary }]}>
                   {group.unreadCount! > 99 ? '99+' : group.unreadCount}
                 </ThemedText>
               </View>
@@ -132,7 +134,7 @@ function ParentGroupCardComponent({ group, onPress, compact = false }: ParentGro
         </View>
         {hasUnread && (
           <View style={[styles.unreadBadgeLarge, { backgroundColor: palette.tint }]}>
-            <ThemedText style={styles.unreadTextLarge}>
+            <ThemedText style={[styles.unreadTextLarge, { color: palette.onPrimary }]}>
               {group.unreadCount! > 99 ? '99+' : group.unreadCount}
             </ThemedText>
           </View>
@@ -193,8 +195,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   title: {
-    fontSize: scaleFont(17),
-    fontWeight: '700',
+    ...Typography.heading,
     letterSpacing: -0.2,
   },
   metaRow: {
@@ -203,13 +204,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   typeBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
   typeBadgeText: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
+    ...Typography.micro,
     letterSpacing: 0.2,
   },
   memberInfo: {
@@ -218,12 +218,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   memberCount: {
-    fontSize: scaleFont(12),
-    fontWeight: '500',
+    ...Typography.caption,
   },
   description: {
-    fontSize: scaleFont(14),
-    lineHeight: scaleFont(20),
+    ...Typography.bodySmall,
   },
   lastMessage: {
     paddingTop: Spacing.sm,
@@ -232,9 +230,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   lastMessageLabel: {
-    fontSize: scaleFont(11),
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    ...Typography.micro,
     letterSpacing: 0.5,
   },
   lastMessageRow: {
@@ -245,10 +241,10 @@ const styles = StyleSheet.create({
   },
   lastMessageText: {
     flex: 1,
-    fontSize: scaleFont(14),
+    ...Typography.bodySmall,
   },
   lastMessageTime: {
-    fontSize: scaleFont(12),
+    ...Typography.caption,
   },
   unreadBadgeLarge: {
     minWidth: 24,
@@ -259,8 +255,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxs,
   },
   unreadTextLarge: {
-    color: Colors.light.onPrimary,
-    fontSize: scaleFont(12),
+    ...Typography.caption,
     fontWeight: '700',
   },
 
@@ -291,7 +286,7 @@ const styles = StyleSheet.create({
   },
   compactTitle: {
     flex: 1,
-    fontSize: scaleFont(15),
+    ...Typography.body,
   },
   compactDetails: {
     flexDirection: 'row',
@@ -301,10 +296,10 @@ const styles = StyleSheet.create({
   },
   previewText: {
     flex: 1,
-    fontSize: scaleFont(13),
+    ...Typography.small,
   },
   timeLabel: {
-    fontSize: scaleFont(12),
+    ...Typography.caption,
   },
   unreadBadge: {
     minWidth: 20,
@@ -312,11 +307,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 5,
+    paddingHorizontal: Spacing.xxs,
   },
   unreadText: {
-    color: Colors.light.onPrimary,
-    fontSize: scaleFont(11),
+    ...Typography.micro,
     fontWeight: '700',
   },
 });

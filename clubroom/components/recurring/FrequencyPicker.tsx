@@ -3,10 +3,10 @@ import { StyleSheet, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { RecurrenceFrequency } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getFrequencyLabel } from '@/services/recurring-booking-service';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Frequency option configuration
@@ -85,8 +85,7 @@ export function FrequencyPicker({
   disabled = false,
   variant = 'cards',
 }: FrequencyPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (variant === 'pills') {
     return (
@@ -236,8 +235,7 @@ export function FrequencyPickerCompact({
   onChange,
   disabled = false,
 }: Pick<FrequencyPickerProps, 'value' | 'onChange' | 'disabled'>) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.compactContainer}>
@@ -297,8 +295,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pillText: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
 
   // Cards variant

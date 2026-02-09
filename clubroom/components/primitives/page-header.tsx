@@ -1,11 +1,11 @@
 import { ReactNode } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Components, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Components, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface PageHeaderProps {
   /**
@@ -92,8 +92,7 @@ export function PageHeader({
   right,
   rightAction,
 }: PageHeaderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
 
   const handleBackPress = () => {
@@ -109,13 +108,13 @@ export function PageHeader({
     if (left) return left;
     if (showBack) {
       return (
-        <TouchableOpacity
+        <Pressable
           onPress={handleBackPress}
           style={[styles.backButton, { backgroundColor: palette.surface }]}
           hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
         >
           <Ionicons name="chevron-back" size={20} color={palette.foreground} />
-        </TouchableOpacity>
+        </Pressable>
       );
     }
     return null;
@@ -141,7 +140,7 @@ export function PageHeader({
         {rightContent || (action || actionIcon) ? (
           <View style={styles.rightContainer}>
             {rightContent || (
-              <TouchableOpacity
+              <Pressable
                 style={[
                   styles.actionButton,
                   {
@@ -165,7 +164,7 @@ export function PageHeader({
                     {action}
                   </ThemedText>
                 ) : null}
-              </TouchableOpacity>
+              </Pressable>
             )}
           </View>
         ) : null}

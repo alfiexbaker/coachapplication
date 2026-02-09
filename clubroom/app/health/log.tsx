@@ -16,9 +16,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { InjuryForm } from '@/components/health';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import type { LogInjuryInput } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
@@ -30,8 +30,7 @@ const logger = createLogger('LogInjuryScreen');
  * Log injury screen with multi-step form.
  */
 export default function LogInjuryScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(false);

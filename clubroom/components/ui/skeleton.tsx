@@ -1,13 +1,13 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type DimensionValue, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
-import { Colors, Radii  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 type SkeletonProps = {
   height?: number;
-  width?: number | string;
+  width?: DimensionValue;
   radius?: number;
   style?: StyleProp<ViewStyle>;
 };
@@ -17,8 +17,7 @@ type SkeletonProps = {
  * Keeps implementation minimal so it can be swapped for a fancier shimmer later.
  */
 export function Skeleton({ height = 16, width = '100%', radius = Radii.md, style }: SkeletonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
 
   return (
     <Animated.View
@@ -29,7 +28,7 @@ export function Skeleton({ height = 16, width = '100%', radius = Radii.md, style
         styles.base,
         {
           height,
-          width: width as any,
+          width,
           borderRadius: radius,
           backgroundColor: scheme === 'dark' ? withAlpha(palette.border, 0.33) : withAlpha(palette.border, 0.5),
         },

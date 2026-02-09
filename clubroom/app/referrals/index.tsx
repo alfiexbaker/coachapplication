@@ -22,11 +22,10 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import {
   ReferralCodeCard,
   ReferralStats,
-  ReferralHistory,
-} from '@/components/referrals';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+  ReferralHistory } from '@/components/referrals';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { ReferralCode, Referral, ReferralStats as ReferralStatsType } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
@@ -37,8 +36,7 @@ const logger = createLogger('ReferralsDashboardScreen');
  * Referrals dashboard screen showing code, stats, and history.
  */
 export default function ReferralsDashboardScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State
@@ -122,7 +120,7 @@ export default function ReferralsDashboardScreen() {
           onPress={handleInvitePress}
           style={[styles.inviteButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="share-social-outline" size={20} color={Colors.light.onPrimary} />
+          <Ionicons name="share-social-outline" size={20} color={palette.onPrimary} />
         </Clickable>
       </View>
 
@@ -233,7 +231,7 @@ export default function ReferralsDashboardScreen() {
             {/* CTA Button */}
             <Animated.View entering={FadeInDown.delay(400).springify()}>
               <Button onPress={handleInvitePress} style={styles.ctaButton}>
-                <Ionicons name="share-social-outline" size={20} color={Colors.light.onPrimary} />
+                <Ionicons name="share-social-outline" size={20} color={palette.onPrimary} />
                 Invite Friends
               </Button>
             </Animated.View>
@@ -252,7 +250,7 @@ interface StepItemProps {
   number: number;
   title: string;
   description: string;
-  palette: (typeof Colors)['light'];
+  palette: ReturnType<typeof useTheme>['colors'];
   isLast?: boolean;
 }
 
@@ -285,39 +283,32 @@ function StepItem({ number, title, description, palette, isLast }: StepItemProps
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   inviteButton: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.xl,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingContainer: {
     padding: Spacing.xl,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
 
   // Hero section
   heroSection: {
@@ -325,71 +316,56 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   heroIcon: {
     width: 64,
     height: 64,
     borderRadius: Radii['2xl'],
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   heroTitle: {
     ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   heroText: {
     ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
     textAlign: 'center',
     lineHeight: scaleFont(20),
-    maxWidth: 300,
-  },
+    maxWidth: 300 },
 
   // How it works
   howItWorksCard: {
     padding: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   sectionTitle: {
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-  },
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   stepsContainer: {
-    gap: 0,
-  },
+    gap: 0 },
   stepItem: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   stepLeft: {
     alignItems: 'center',
-    width: 32,
-  },
+    width: 32 },
   stepNumber: {
     width: 28,
     height: 28,
     borderRadius: Radii.lg,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   stepNumberText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   stepLine: {
     width: 2,
     flex: 1,
-    marginVertical: Spacing.xxs,
-  },
+    marginVertical: Spacing.xxs },
   stepContent: {
     flex: 1,
     paddingBottom: Spacing.md,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   stepTitle: {
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-  },
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
   stepDescription: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-  },
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
 
   // View all link
   viewAllLink: {
@@ -397,11 +373,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xxs,
-    paddingVertical: Spacing.sm,
-  },
+    paddingVertical: Spacing.sm },
   viewAllText: {
-    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize),
-  },
+    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize) },
 
   // CTA
   ctaButton: {
@@ -409,6 +383,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    marginTop: Spacing.sm,
-  },
-});
+    marginTop: Spacing.sm } });

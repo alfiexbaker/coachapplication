@@ -8,9 +8,9 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme, ThemeColors } from '@/hooks/useTheme';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -37,7 +37,7 @@ export interface RatingDisplayProps {
   showCount?: boolean;
 }
 
-type Palette = (typeof Colors)['light'];
+type Palette = ThemeColors;
 
 // -----------------------------------------------------------------------------
 // RatingDisplay Component
@@ -48,8 +48,7 @@ export function RatingDisplay({
   reviewCount,
   showCount = true,
 }: RatingDisplayProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.ratingContainer}>
@@ -75,8 +74,7 @@ export interface CompactRatingProps {
 }
 
 export function CompactRating({ rating }: CompactRatingProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.compactRatingContainer}>
@@ -98,8 +96,7 @@ export interface ReviewQuoteProps {
 }
 
 export function ReviewQuote({ quote, author }: ReviewQuoteProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.quoteContainer, { backgroundColor: palette.surfaceSecondary }]}>
@@ -133,8 +130,7 @@ export function CoachCardReviews({
   reviewAuthor,
   variant = 'inline',
 }: CoachCardReviewsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (rating === undefined) {
     return null;

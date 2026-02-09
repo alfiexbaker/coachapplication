@@ -17,14 +17,21 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { ProgressBadge } from '@/components/skills/ProgressBadge';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { skillTreeService } from '@/services/skills';
 import { createLogger } from '@/utils/logger';
 import type { SkillTreeCategory } from '@/constants/types';
 
 const logger = createLogger('SkillsScreen');
+
+// Decorative: badge tier colors (gold/silver/bronze medals) for skill levels
+const BADGE_TIER_COLORS = {
+  gold: '#FFD700',
+  silver: '#C0C0C0',
+  bronze: '#CD7F32',
+} as const;
 
 interface TreeSummary {
   treeId: string;
@@ -38,8 +45,7 @@ interface TreeSummary {
 }
 
 export default function SkillsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [trees, setTrees] = useState<TreeSummary[]>([]);
@@ -190,19 +196,19 @@ export default function SkillsScreen() {
         </ThemedText>
         <View style={styles.infoList}>
           <View style={styles.infoItem}>
-            <View style={[styles.levelDot, { backgroundColor: '#CD7F32' }]} />
+            <View style={[styles.levelDot, { backgroundColor: BADGE_TIER_COLORS.bronze }]} />
             <ThemedText style={[styles.infoItemText, { color: palette.muted }]}>
               Level 1: Foundation skills (100 XP)
             </ThemedText>
           </View>
           <View style={styles.infoItem}>
-            <View style={[styles.levelDot, { backgroundColor: '#C0C0C0' }]} />
+            <View style={[styles.levelDot, { backgroundColor: BADGE_TIER_COLORS.silver }]} />
             <ThemedText style={[styles.infoItemText, { color: palette.muted }]}>
               Level 2: Intermediate skills (250 XP)
             </ThemedText>
           </View>
           <View style={styles.infoItem}>
-            <View style={[styles.levelDot, { backgroundColor: '#FFD700' }]} />
+            <View style={[styles.levelDot, { backgroundColor: BADGE_TIER_COLORS.gold }]} />
             <ThemedText style={[styles.infoItemText, { color: palette.muted }]}>
               Level 3: Advanced skills (400-500 XP)
             </ThemedText>

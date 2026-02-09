@@ -20,8 +20,9 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Shadows } from '@/constants/theme';
-import { CardStyles, LayoutStyles } from '@/constants/styles';
+import { Spacing, Radii, Typography, Shadows } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { createCardStyles, LayoutStyles } from '@/constants/styles';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,6 +55,8 @@ export default function TravelRadiusPicker({
   onChange,
   postcode,
 }: TravelRadiusPickerProps) {
+  const { colors, scheme } = useTheme();
+  const CardStyles = createCardStyles(colors);
   const [unit, setUnit] = useState<DistanceUnit>('miles');
   const [localValue, setLocalValue] = useState(value);
   const [saved, setSaved] = useState(false);
@@ -122,31 +125,31 @@ export default function TravelRadiusPicker({
     : `Within ${displayValue} ${unitLabel}`;
 
   return (
-    <View style={[CardStyles.base, styles.container]}>
+    <View style={[CardStyles.base, Shadows[scheme].card, styles.container]}>
       {/* Header + unit toggle */}
       <View style={LayoutStyles.rowBetween}>
-        <Text style={styles.title}>Travel Radius</Text>
-        <View style={styles.unitToggle}>
+        <Text style={[styles.title, { color: colors.text }]}>Travel Radius</Text>
+        <View style={[styles.unitToggle, { backgroundColor: colors.background }]}>
           <Pressable
-            style={[styles.unitButton, unit === 'miles' ? styles.unitButtonActive : undefined]}
+            style={[styles.unitButton, unit === 'miles' ? { backgroundColor: colors.tint } : undefined]}
             onPress={() => setUnit('miles')}
             accessibilityRole="button"
             accessibilityLabel="Switch to miles"
           >
             <Text
-              style={[styles.unitButtonText, unit === 'miles' ? styles.unitButtonTextActive : undefined]}
+              style={[styles.unitButtonText, { color: colors.muted }, unit === 'miles' ? { color: colors.onPrimary } : undefined]}
             >
               mi
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.unitButton, unit === 'km' ? styles.unitButtonActive : undefined]}
+            style={[styles.unitButton, unit === 'km' ? { backgroundColor: colors.tint } : undefined]}
             onPress={() => setUnit('km')}
             accessibilityRole="button"
             accessibilityLabel="Switch to kilometres"
           >
             <Text
-              style={[styles.unitButtonText, unit === 'km' ? styles.unitButtonTextActive : undefined]}
+              style={[styles.unitButtonText, { color: colors.muted }, unit === 'km' ? { color: colors.onPrimary } : undefined]}
             >
               km
             </Text>
@@ -156,17 +159,17 @@ export default function TravelRadiusPicker({
 
       {/* Large value display */}
       <View style={styles.displayArea}>
-        <View style={styles.radiusCircle}>
-          <Text style={styles.radiusValue}>{displayValue}</Text>
-          <Text style={styles.radiusUnit}>{unitLabel}</Text>
+        <View style={[styles.radiusCircle, { backgroundColor: colors.background }]}>
+          <Text style={[styles.radiusValue, { color: colors.text }]}>{displayValue}</Text>
+          <Text style={[styles.radiusUnit, { color: colors.muted }]}>{unitLabel}</Text>
         </View>
         {postcode ? (
           <View style={styles.postcodeRow}>
-            <Ionicons name="location" size={14} color={Colors.light.tint} />
-            <Text style={styles.locationLabel}>{locationLabel}</Text>
+            <Ionicons name="location" size={14} color={colors.tint} />
+            <Text style={[styles.locationLabel, { color: colors.muted }]}>{locationLabel}</Text>
           </View>
         ) : (
-          <Text style={styles.locationLabel}>{locationLabel}</Text>
+          <Text style={[styles.locationLabel, { color: colors.muted }]}>{locationLabel}</Text>
         )}
       </View>
 
@@ -179,15 +182,15 @@ export default function TravelRadiusPicker({
           step={1}
           value={localValue}
           onValueChange={handleSliderChange}
-          minimumTrackTintColor={Colors.light.tint}
-          maximumTrackTintColor={Colors.light.border}
-          thumbTintColor={Colors.light.tint}
+          minimumTrackTintColor={colors.tint}
+          maximumTrackTintColor={colors.border}
+          thumbTintColor={colors.tint}
           accessibilityLabel={`Travel radius: ${displayValue} ${unitLabel}`}
         />
         <View style={styles.sliderLabels}>
-          <Text style={styles.sliderLabel}>{MIN_RADIUS} mi</Text>
-          <Text style={styles.sliderLabel}>25 mi</Text>
-          <Text style={styles.sliderLabel}>{MAX_RADIUS} mi</Text>
+          <Text style={[styles.sliderLabel, { color: colors.muted }]}>{MIN_RADIUS} mi</Text>
+          <Text style={[styles.sliderLabel, { color: colors.muted }]}>25 mi</Text>
+          <Text style={[styles.sliderLabel, { color: colors.muted }]}>{MAX_RADIUS} mi</Text>
         </View>
       </View>
 
@@ -196,13 +199,21 @@ export default function TravelRadiusPicker({
         {QUICK_VALUES.map((val) => (
           <Pressable
             key={val}
-            style={[styles.quickSetBtn, localValue === val ? styles.quickSetBtnActive : undefined]}
+            style={[
+              styles.quickSetBtn,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              localValue === val ? { backgroundColor: colors.tint, borderColor: colors.tint } : undefined,
+            ]}
             onPress={() => handleQuickSet(val)}
             accessibilityRole="button"
             accessibilityLabel={`Set radius to ${val} miles`}
           >
             <Text
-              style={[styles.quickSetText, localValue === val ? styles.quickSetTextActive : undefined]}
+              style={[
+                styles.quickSetText,
+                { color: colors.text },
+                localValue === val ? { color: colors.surface } : undefined,
+              ]}
             >
               {val} mi
             </Text>
@@ -212,8 +223,8 @@ export default function TravelRadiusPicker({
 
       {/* Helper text */}
       <View style={styles.helperArea}>
-        <Ionicons name="information-circle-outline" size={16} color={Colors.light.muted} />
-        <Text style={styles.helperText}>
+        <Ionicons name="information-circle-outline" size={16} color={colors.muted} />
+        <Text style={[styles.helperText, { color: colors.muted }]}>
           Parents searching for coaches will only see you if they are within your travel
           radius. This does not apply to sessions at your own venue.
         </Text>
@@ -221,9 +232,9 @@ export default function TravelRadiusPicker({
 
       {/* Saved toast */}
       {saved && (
-        <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
-          <Ionicons name="checkmark-circle" size={18} color={Colors.light.success} />
-          <Text style={styles.toastText}>Saved</Text>
+        <Animated.View style={[styles.toast, { backgroundColor: colors.surface }, Shadows[scheme].card, { opacity: toastOpacity }]} pointerEvents="none">
+          <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+          <Text style={[styles.toastText, { color: colors.success }]}>Saved</Text>
         </Animated.View>
       )}
     </View>
@@ -240,13 +251,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography.heading,
-    color: Colors.light.text,
   },
 
   // Unit toggle
   unitToggle: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.background,
     borderRadius: Radii.pill,
     padding: Spacing.micro,
   },
@@ -255,15 +264,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
-  unitButtonActive: {
-    backgroundColor: Colors.light.tint,
-  },
   unitButtonText: {
     ...Typography.caption,
-    color: Colors.light.muted,
-  },
-  unitButtonTextActive: {
-    color: Colors.light.onPrimary,
   },
 
   // Display area
@@ -275,7 +277,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: Radii.pill,
-    backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
@@ -283,11 +284,9 @@ const styles = StyleSheet.create({
   radiusValue: {
     ...Typography.display,
     fontSize: 36,
-    color: Colors.light.text,
   },
   radiusUnit: {
     ...Typography.caption,
-    color: Colors.light.muted,
     marginTop: -4,
   },
   postcodeRow: {
@@ -297,7 +296,6 @@ const styles = StyleSheet.create({
   },
   locationLabel: {
     ...Typography.body,
-    color: Colors.light.muted,
   },
 
   // Slider
@@ -313,7 +311,6 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     ...Typography.caption,
-    color: Colors.light.muted,
   },
 
   // Quick set
@@ -326,21 +323,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: Radii.pill,
-    backgroundColor: Colors.light.surface,
     borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  quickSetBtnActive: {
-    backgroundColor: Colors.light.tint,
-    borderColor: Colors.light.tint,
   },
   quickSetText: {
-    ...Typography.small,
-    fontWeight: '600',
-    color: Colors.light.text,
-  },
-  quickSetTextActive: {
-    color: Colors.light.surface,
+    ...Typography.smallSemiBold,
   },
 
   // Helper
@@ -351,7 +337,6 @@ const styles = StyleSheet.create({
   helperText: {
     flex: 1,
     ...Typography.small,
-    color: Colors.light.muted,
   },
 
   // Toast
@@ -362,14 +347,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
-    backgroundColor: Colors.light.surface,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    ...Shadows.light.card,
   },
   toastText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.success,
   },
 });

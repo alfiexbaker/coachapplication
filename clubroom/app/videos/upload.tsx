@@ -16,8 +16,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { VideoUpload } from '@/components/video/video-upload';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { videoService } from '@/services/video-service';
@@ -32,8 +32,7 @@ const VISIBILITY_OPTIONS: { value: VideoVisibility; label: string; description: 
 ];
 
 export default function VideoUploadScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [videoData, setVideoData] = useState<{
@@ -136,9 +135,7 @@ export default function VideoUploadScreen() {
           ]}
         >
           <ThemedText
-            style={styles.submitText}
-            lightColor={videoData && title.trim() ? Colors.light.onPrimary : palette.muted}
-            darkColor={videoData && title.trim() ? Colors.dark.text : palette.muted}
+            style={[styles.submitText, { color: videoData && title.trim() ? palette.onPrimary : palette.muted }]}
           >
             {uploading ? 'Uploading...' : 'Upload'}
           </ThemedText>

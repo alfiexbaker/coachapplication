@@ -23,14 +23,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography, Shadows, Components  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Shadows, Components, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   schedulingRulesService,
   POLICY_TEMPLATES,
 } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, RefundTier } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -85,8 +85,7 @@ function PresetCard({
   selected: boolean;
   onPress: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
 
   return (
     <Clickable
@@ -122,12 +121,11 @@ function PresetCard({
 }
 
 function TierTable({ tiers }: { tiers: RefundTier[] }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const sorted = [...tiers].sort((a, b) => b.hoursBeforeSession - a.hoursBeforeSession);
 
   return (
-    <View style={[styles.tierTable, { backgroundColor: palette.surface }]}>
+    <View style={[styles.tierTable, Shadows[scheme].card, { backgroundColor: palette.surface }]}>
       {/* Header */}
       <View style={[styles.tierHeaderRow, { backgroundColor: palette.background }]}>
         <ThemedText style={[styles.tierHeaderCell, { flex: 2, color: palette.muted }]}>Cancellation window</ThemedText>
@@ -170,11 +168,10 @@ interface EditableTierRowProps {
 }
 
 function EditableTierRow({ tier, index, onUpdate, onRemove, canRemove }: EditableTierRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
 
   return (
-    <View style={[styles.editableTierRow, { backgroundColor: palette.surface }]}>
+    <View style={[styles.editableTierRow, Shadows[scheme].subtle, { backgroundColor: palette.surface }]}>
       <View style={styles.editableTierFields}>
         <View style={styles.editableField}>
           <ThemedText style={[styles.editableFieldLabel, { color: palette.muted }]}>Hours before</ThemedText>
@@ -232,8 +229,7 @@ interface CancellationPolicyEditorProps {
 }
 
 export default function CancellationPolicyEditor({ onSave, onBack }: CancellationPolicyEditorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
 
@@ -482,7 +478,6 @@ const styles = StyleSheet.create({
   // Tier table
   tierTable: {
     borderRadius: Radii.card,
-    ...Shadows.light.card,
     overflow: 'hidden',
     marginBottom: Spacing.md,
   },
@@ -523,7 +518,6 @@ const styles = StyleSheet.create({
   editableTierRow: {
     borderRadius: Radii.card,
     padding: Spacing.sm,
-    ...Shadows.light.subtle,
   },
   editableTierFields: {
     flexDirection: 'row',

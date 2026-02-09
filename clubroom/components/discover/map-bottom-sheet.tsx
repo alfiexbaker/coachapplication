@@ -20,8 +20,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography, Components  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, Components  , withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import type { MapCoach } from './map-view-placeholder';
 
 // ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ function MiniCoachCard({
   isSelected: boolean;
   onPress: () => void;
   onBookNow: () => void;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }) {
   return (
     <SurfaceCard
@@ -108,7 +108,7 @@ function MiniCoachCard({
             },
           ]}
         >
-          <ThemedText style={miniStyles.bookText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+          <ThemedText style={[miniStyles.bookText, { color: palette.onPrimary }]}>
             Book
           </ThemedText>
         </Pressable>
@@ -186,7 +186,7 @@ function CoachListRow({
   isSelected: boolean;
   onPress: () => void;
   onBookNow: () => void;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }) {
   return (
     <Clickable onPress={onPress} accessibilityLabel={`Select ${coach.fullName}`}>
@@ -229,7 +229,7 @@ function CoachListRow({
               },
             ]}
           >
-            <ThemedText style={listStyles.bookBtnText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+            <ThemedText style={[listStyles.bookBtnText, { color: palette.onPrimary }]}>
               Book Now
             </ThemedText>
           </Pressable>
@@ -304,8 +304,7 @@ export function MapBottomSheet({
   expanded: controlledExpanded,
   onToggleExpand,
 }: MapBottomSheetProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [internalExpanded, setInternalExpanded] = useState(false);
 
   const expanded = controlledExpanded ?? internalExpanded;

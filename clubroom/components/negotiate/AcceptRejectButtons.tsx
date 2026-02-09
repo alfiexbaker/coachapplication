@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AcceptRejectButtonsProps {
   onAccept: () => void;
@@ -29,8 +29,7 @@ export function AcceptRejectButtons({
   showCounterPropose = true,
   variant = 'default',
 }: AcceptRejectButtonsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isCompact = variant === 'compact';
 
@@ -68,6 +67,7 @@ export function AcceptRejectButtons({
           style={[
             styles.buttonText,
             styles.acceptText,
+            { color: palette.onPrimary },
             isCompact ? styles.buttonTextCompact : undefined,
           ]}
         >
@@ -170,9 +170,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   buttonTextCompact: { ...Typography.caption },
-  acceptText: {
-    color: Colors.light.onPrimary,
-  },
+  acceptText: {},
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',

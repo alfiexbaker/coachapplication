@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { walletService } from '@/services/wallet-service';
@@ -42,8 +42,7 @@ export function PurchaseButton({
   disabled = false,
   label,
 }: PurchaseButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [balance, setBalance] = useState<number | null>(null);
@@ -126,15 +125,15 @@ export function PurchaseButton({
         </View>
 
         {/* Top Up Button */}
-        <TouchableOpacity
+        <Pressable
           style={[styles.button, { backgroundColor: palette.tint }]}
           onPress={handleTopUp}
         >
-          <Ionicons name="add-circle-outline" size={20} color={Colors.light.onPrimary} />
-          <ThemedText style={styles.buttonTextWhite}>
+          <Ionicons name="add-circle-outline" size={20} color={palette.onPrimary} />
+          <ThemedText style={[styles.buttonTextWhite, { color: palette.onPrimary }]}>
             Top Up Wallet
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -150,7 +149,7 @@ export function PurchaseButton({
       </View>
 
       {/* Purchase Button */}
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.button,
           { backgroundColor: palette.tint },
@@ -161,18 +160,18 @@ export function PurchaseButton({
       >
         {purchasing ? (
           <>
-            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
-            <ThemedText style={styles.buttonTextWhite}>Processing...</ThemedText>
+            <ActivityIndicator size="small" color={palette.onPrimary} />
+            <ThemedText style={[styles.buttonTextWhite, { color: palette.onPrimary }]}>Processing...</ThemedText>
           </>
         ) : (
           <>
-            <Ionicons name="cart-outline" size={20} color={Colors.light.onPrimary} />
-            <ThemedText style={styles.buttonTextWhite}>
+            <Ionicons name="cart-outline" size={20} color={palette.onPrimary} />
+            <ThemedText style={[styles.buttonTextWhite, { color: palette.onPrimary }]}>
               {label || `Buy for ${packageService.formatPrice(pkg.price, pkg.currency || 'GBP')}`}
             </ThemedText>
           </>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
@@ -198,7 +197,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: { ...Typography.subheading },
-  buttonTextWhite: { ...Typography.subheading, color: Colors.light.onPrimary },
+  buttonTextWhite: { ...Typography.subheading },
   warningBanner: {
     flexDirection: 'row',
     alignItems: 'center',

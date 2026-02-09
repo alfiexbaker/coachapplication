@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { Academy } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AcademyCardProps {
   academy: Academy;
@@ -14,8 +14,7 @@ interface AcademyCardProps {
 }
 
 export function AcademyCard({ academy, onPress, compact = false }: AcademyCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const primaryColor = academy.primaryColor || palette.tint;
 
@@ -107,7 +106,7 @@ export function AcademyCard({ academy, onPress, compact = false }: AcademyCardPr
           </View>
           {academy.rating && (
             <View style={styles.stat}>
-              <Ionicons name="star" size={14} color="#FFB800" />
+              <Ionicons name="star" size={14} color={palette.rating} />
               <ThemedText style={[styles.statText, { color: palette.muted }]}>
                 {academy.rating.average.toFixed(1)}
               </ThemedText>
@@ -173,18 +172,18 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: Radii['2xl'],
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: '#FFFFFF', // Decorative: white border to separate logo from banner
   },
   logoPlaceholder: {
     width: 56,
     height: 56,
     borderRadius: Radii['2xl'],
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: '#FFFFFF', // Decorative: white border to separate logo from banner
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoText: { ...Typography.heading, color: '#fff' },
+  logoText: { ...Typography.heading, color: '#FFFFFF' }, // Decorative: white text on brand-colored background
   titleSection: {
     flex: 1,
     marginTop: 24,
@@ -239,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  compactLogoText: { ...Typography.bodySmallSemiBold, color: '#fff' },
+  compactLogoText: { ...Typography.bodySmallSemiBold, color: '#FFFFFF' }, // Decorative: white text on brand-colored background
   compactInfo: {
     flex: 1,
   },

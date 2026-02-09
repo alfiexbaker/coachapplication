@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CreateSessionInviteStepProps {
   selectedSquadIds: string[];
@@ -20,8 +20,7 @@ function CreateSessionInviteStepInner({
   squadInviteSent,
   onInvitePress,
 }: CreateSessionInviteStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -61,8 +60,8 @@ function CreateSessionInviteStepInner({
               onPress={onInvitePress}
               style={[styles.inviteButton, { backgroundColor: palette.tint }]}
             >
-              <Ionicons name="paper-plane" size={18} color={Colors.light.onPrimary} />
-              <ThemedText style={[styles.inviteButtonText, { color: Colors.light.onPrimary }]}>
+              <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
+              <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>
                 Invite Squad to Session
               </ThemedText>
             </Clickable>

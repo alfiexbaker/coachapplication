@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 import type { ClubEventType, EventTargetAudience } from '@/constants/types';
@@ -38,8 +38,7 @@ function CreateEventReviewStepInner({
   selectedSquadIds,
   price,
 }: CreateEventReviewStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const typeColor = eventService.getEventTypeColor(eventType);
 
   return (
@@ -70,7 +69,7 @@ function CreateEventReviewStepInner({
           </ThemedText>
         ) : null}
 
-        <View style={styles.reviewDivider} />
+        <View style={[styles.reviewDivider, { backgroundColor: palette.border }]} />
 
         <View style={styles.reviewRow}>
           <Ionicons name="calendar-outline" size={18} color={palette.icon} />
@@ -136,7 +135,7 @@ const styles = StyleSheet.create({
   },
   reviewDivider: {
     height: 1,
-    backgroundColor: Colors.light.border,
+    // backgroundColor set inline for dynamic theming
     marginVertical: Spacing.sm,
   },
   reviewRow: {

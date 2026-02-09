@@ -11,8 +11,8 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { SessionTemplate, SessionType } from '@/constants/session-types';
 
 const DURATION_OPTIONS = [30, 45, 60, 90];
@@ -43,8 +43,7 @@ export function SessionTypeModal({
   onDelete,
   existing,
 }: SessionTypeModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<SessionType>('1-to-1');
@@ -161,7 +160,7 @@ export function SessionTypeModal({
                 >
                   <ThemedText style={[
                     styles.segmentText,
-                    { color: type === opt.key ? Colors.light.onPrimary : palette.text },
+                    { color: type === opt.key ? palette.onPrimary : palette.text },
                   ]}>
                     {opt.label}
                   </ThemedText>
@@ -188,7 +187,7 @@ export function SessionTypeModal({
                 >
                   <ThemedText style={[
                     styles.segmentText,
-                    { color: duration === d ? Colors.light.onPrimary : palette.text },
+                    { color: duration === d ? palette.onPrimary : palette.text },
                   ]}>
                     {d}m
                   </ThemedText>
@@ -256,8 +255,8 @@ export function SessionTypeModal({
               { backgroundColor: isValid ? palette.tint : palette.border },
             ]}
           >
-            <Ionicons name="checkmark" size={20} color={Colors.light.onPrimary} />
-            <ThemedText style={styles.saveBtnText}>Save</ThemedText>
+            <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
+            <ThemedText style={[styles.saveBtnText, { color: palette.onPrimary }]}>Save</ThemedText>
           </Clickable>
 
           {/* Delete Button (edit mode only) */}
@@ -379,7 +378,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   saveBtnText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
     fontSize: Typography.body.fontSize,
   },

@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const DAY_BUTTONS: { label: string; short: string; value: number }[] = [
   { label: 'Monday', short: 'Mon', value: 1 },
@@ -37,8 +37,7 @@ function CreateSessionScheduleStepInner({
   recurringUntil,
   onFieldChange,
 }: CreateSessionScheduleStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>

@@ -21,11 +21,11 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { SkillNode } from './SkillNode';
 import { SkillConnection } from './SkillConnection';
 import type { SkillTree, SkillNode as SkillNodeType } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface SkillTreeViewProps {
   tree: SkillTree;
@@ -47,8 +47,7 @@ export function SkillTreeView({
   canUnlockNodes = new Set(),
   animateUnlocks = false,
 }: SkillTreeViewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const scale = useSharedValue(1);

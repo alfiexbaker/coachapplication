@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession, SessionInviteType } from '@/constants/types';
 
 const SESSION_TYPES: { key: GroupSession['sessionType']; label: string; icon: string }[] = [
@@ -32,8 +32,7 @@ interface CreateSessionTypeStepProps {
 }
 
 function CreateSessionTypeStepInner({ sessionType, inviteType, onSessionTypeChange, onInviteTypeChange }: CreateSessionTypeStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -67,7 +66,7 @@ function CreateSessionTypeStepInner({ sessionType, inviteType, onSessionTypeChan
               <Ionicons
                 name={type.icon as keyof typeof Ionicons.glyphMap}
                 size={24}
-                color={sessionType === type.key ? Colors.light.onPrimary : palette.muted}
+                color={sessionType === type.key ? palette.onPrimary : palette.muted}
               />
             </View>
             <ThemedText

@@ -5,8 +5,8 @@ import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 
@@ -18,8 +18,7 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match, isCoach = false, showClub = false, onPress }: MatchCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const matchDate = new Date(match.date);
   const dateLabel = matchDate.toLocaleDateString('en-GB', {

@@ -14,16 +14,15 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('CompareScreen');
 
 export default function DynamicCompareScreen() {
   const { ids } = useLocalSearchParams<{ ids: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Parse coach IDs from comma-separated string
   const coachIds = useMemo(() => ids ? ids.split(',').filter(Boolean) : [], [ids]);
@@ -47,8 +46,7 @@ export default function DynamicCompareScreen() {
       await Share.share({
         message: `Compare these coaches on Clubroom: ${shareUrl}`,
         url: shareUrl,
-        title: 'Coach Comparison',
-      });
+        title: 'Coach Comparison' });
     } catch (error) {
       logger.error('Failed to share', error);
       Alert.alert('Share', `Share this link: ${shareUrl}`);
@@ -63,8 +61,7 @@ export default function DynamicCompareScreen() {
             headerShown: true,
             title: 'Compare Coaches',
             headerStyle: { backgroundColor: palette.background },
-            headerTintColor: palette.text,
-          }}
+            headerTintColor: palette.text }}
         />
         <SafeAreaView
           style={[styles.container, { backgroundColor: palette.background }]}
@@ -87,12 +84,11 @@ export default function DynamicCompareScreen() {
               style={({ pressed }) => [
                 styles.backButton,
                 {
-                  backgroundColor: pressed ? palette.tintPressed : palette.tint,
-                },
+                  backgroundColor: pressed ? palette.tintPressed : palette.tint },
               ]}
             >
-              <Ionicons name="arrow-back" size={18} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
+              <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
+              <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
             </Pressable>
           </View>
         </SafeAreaView>
@@ -108,8 +104,7 @@ export default function DynamicCompareScreen() {
             headerShown: true,
             title: 'Compare Coaches',
             headerStyle: { backgroundColor: palette.background },
-            headerTintColor: palette.text,
-          }}
+            headerTintColor: palette.text }}
         />
         <SafeAreaView
           style={[styles.container, { backgroundColor: palette.background }]}
@@ -132,12 +127,11 @@ export default function DynamicCompareScreen() {
               style={({ pressed }) => [
                 styles.backButton,
                 {
-                  backgroundColor: pressed ? palette.tintPressed : palette.tint,
-                },
+                  backgroundColor: pressed ? palette.tintPressed : palette.tint },
               ]}
             >
-              <Ionicons name="arrow-back" size={18} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
+              <Ionicons name="arrow-back" size={18} color={palette.onPrimary} />
+              <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
             </Pressable>
           </View>
         </SafeAreaView>
@@ -162,8 +156,7 @@ export default function DynamicCompareScreen() {
             >
               <Ionicons name="share-outline" size={22} color={palette.icon} />
             </Pressable>
-          ),
-        }}
+          ) }}
       />
 
       <SafeAreaView
@@ -194,70 +187,55 @@ export default function DynamicCompareScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   headerButton: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
+    paddingVertical: Spacing.xs },
   statusBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   statusInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   statusText: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   badge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   badgeText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   errorState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.lg,
-  },
+    padding: Spacing.lg },
   errorIcon: {
     width: 96,
     height: 96,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   errorTitle: {
     marginBottom: Spacing.xs,
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   errorText: {
     ...Typography.bodySmall,
     textAlign: 'center',
     marginBottom: Spacing.lg,
-    maxWidth: 280,
-  },
+    maxWidth: 280 },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.button,
-  },
+    borderRadius: Radii.button },
   backButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySemiBold,
-  },
-});
+    ...Typography.bodySemiBold } });

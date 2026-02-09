@@ -4,9 +4,8 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+  Pressable,
+  ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,8 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { AnalyticsStatCard, RevenueChart } from '@/components/analytics';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
 import type { CoachAnalytics, CoachAnalyticsPeriod, RevenueDataPoint } from '@/constants/types';
@@ -41,8 +40,7 @@ const PERIOD_OPTIONS: { label: string; value: CoachAnalyticsPeriod }[] = [
  * - Detailed breakdown charts
  */
 export default function RevenueScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const { currentUser } = useAuth();
 
@@ -130,9 +128,9 @@ export default function RevenueScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Pressable onPress={() => router.back()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
             <ThemedText type="title" style={styles.title}>
               Revenue
             </ThemedText>
@@ -145,15 +143,14 @@ export default function RevenueScreen() {
         {/* Period selector */}
         <View style={styles.periodSelector}>
           {PERIOD_OPTIONS.map((option) => (
-            <TouchableOpacity
+            <Pressable
               key={option.value}
               style={[
                 styles.periodButton,
                 {
                   backgroundColor:
                     period === option.value ? palette.tint : 'transparent',
-                  borderColor: period === option.value ? palette.tint : palette.border,
-                },
+                  borderColor: period === option.value ? palette.tint : palette.border },
               ]}
               onPress={() => handlePeriodChange(option.value)}
             >
@@ -161,13 +158,12 @@ export default function RevenueScreen() {
                 style={[
                   styles.periodButtonText,
                   {
-                    color: period === option.value ? Colors.light.onPrimary : palette.text,
-                  },
+                    color: period === option.value ? palette.onPrimary : palette.text },
                 ]}
               >
                 {option.label}
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
 
@@ -176,7 +172,7 @@ export default function RevenueScreen() {
             {/* Main revenue card */}
             <SurfaceCard style={styles.mainCard}>
               <View style={styles.mainCardContent}>
-                <View style={styles.mainCardIcon}>
+                <View style={[styles.mainCardIcon, { backgroundColor: withAlpha(palette.success, 0.13) }]}>
                   <Ionicons name="cash" size={32} color={palette.success} />
                 </View>
                 <ThemedText style={styles.mainCardLabel}>
@@ -194,8 +190,7 @@ export default function RevenueScreen() {
                           ? withAlpha(palette.success, 0.12)
                           : analytics.revenueTrend === 'DOWN'
                           ? withAlpha(palette.error, 0.12)
-                          : withAlpha(palette.muted, 0.12),
-                    },
+                          : withAlpha(palette.muted, 0.12) },
                   ]}
                 >
                   <Ionicons
@@ -224,8 +219,7 @@ export default function RevenueScreen() {
                             ? palette.success
                             : analytics.revenueTrend === 'DOWN'
                             ? palette.error
-                            : palette.muted,
-                      },
+                            : palette.muted },
                     ]}
                   >
                     {analytics.revenueChangePercent >= 0 ? '+' : ''}
@@ -299,14 +293,13 @@ export default function RevenueScreen() {
                             {sessionType.type}
                           </ThemedText>
                         </View>
-                        <View style={styles.breakdownBarContainer}>
+                        <View style={[styles.breakdownBarContainer, { backgroundColor: palette.background }]}>
                           <View
                             style={[
                               styles.breakdownBar,
                               {
                                 width: `${sessionType.percentage}%`,
-                                backgroundColor: barColor,
-                              },
+                                backgroundColor: barColor },
                             ]}
                           />
                         </View>
@@ -366,170 +359,130 @@ export default function RevenueScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['2xl'],
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingText: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   header: {
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   backButton: {
     padding: Spacing.xxs,
-    marginLeft: -4,
-  },
+    marginLeft: -4 },
   title: {
     ...Typography.display,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5 },
   subtitle: {
     ...Typography.body,
     marginTop: Spacing.xxs,
-    marginLeft: 32,
-  },
+    marginLeft: 32 },
   periodSelector: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   periodButton: {
     flex: 1,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   periodButtonText: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   mainCard: {
-    padding: Spacing.lg,
-  },
+    padding: Spacing.lg },
   mainCardContent: {
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   mainCardIcon: {
     width: 64,
     height: 64,
     borderRadius: Radii['2xl'],
-    backgroundColor: '#10b98120',
+    // backgroundColor set dynamically inline
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   mainCardLabel: {
     ...Typography.bodySmallSemiBold,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   mainCardValue: {
     ...Typography.display,
     letterSpacing: -1,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   mainCardTrend: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   mainCardTrendText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   statsGrid: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   breakdownCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   breakdownHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   breakdownTitle: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   breakdownList: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   breakdownRow: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   breakdownInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   breakdownDot: {
     width: 10,
     height: 10,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   breakdownName: {
     ...Typography.bodySmallSemiBold,
-    flex: 1,
-  },
+    flex: 1 },
   breakdownBarContainer: {
     height: 8,
-    backgroundColor: Colors.light.background,
     borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   breakdownBar: {
     height: '100%',
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   breakdownRevenue: {
     ...Typography.bodySmallSemiBold,
-    textAlign: 'right',
-  },
+    textAlign: 'right' },
   insightsCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   insightsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   insightsTitle: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   insightsList: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   insightItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   insightText: {
     ...Typography.bodySmall,
-    flex: 1,
-  },
+    flex: 1 },
   insightBold: {
-    fontWeight: '600',
-  },
-});
+    fontWeight: '600' } });

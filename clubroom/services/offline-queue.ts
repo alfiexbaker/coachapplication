@@ -3,16 +3,23 @@
  *
  * Queues write operations when offline, flushes on reconnect.
  * Queue persists across app restart via AsyncStorage.
+ *
+ * All public methods return Result<T, ServiceError>.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from './api-client';
-import { useConnectionStatus } from '@/hooks/useConnectionStatus';
+import { apiClient, apiFetch } from './api-client';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { createLogger } from '@/utils/logger';
-
 import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { type Result, type ServiceError, ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('OfflineQueue');
+
+/** Maximum age for queued actions before they are purged (24 hours). */
+const QUEUE_ITEM_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/** Guard to prevent concurrent flushes. */
+let _isFlushing = false;
 
 export interface QueuedAction {
   id: string;
@@ -22,101 +29,218 @@ export interface QueuedAction {
   timestamp: number;
 }
 
-export async function addToQueue(action: Omit<QueuedAction, 'id' | 'timestamp'>): Promise<void> {
-  const queue = await getQueue();
-  const newAction: QueuedAction = {
-    ...action,
-    id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    timestamp: Date.now(),
-  };
-  queue.push(newAction);
-  await apiClient.set(STORAGE_KEYS.OFFLINE_QUEUE, queue);
-  logger.info('Action queued for offline sync', { id: newAction.id, path: action.path });
+export interface FlushResult {
+  processed: number;
+  failed: number;
+  remaining: number;
+  failedActions: string[];
 }
 
-export async function getQueue(): Promise<QueuedAction[]> {
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+async function loadQueue(): Promise<QueuedAction[]> {
   try {
     const stored = await apiClient.get<QueuedAction[]>(STORAGE_KEYS.OFFLINE_QUEUE, []);
     return stored.sort((a, b) => a.timestamp - b.timestamp);
   } catch (error) {
     logger.error('Failed to load offline queue', error);
+    return [];
   }
-  return [];
 }
 
-export async function removeFromQueue(actionId: string): Promise<void> {
-  const queue = await getQueue();
-  const filtered = queue.filter(a => a.id !== actionId);
-  await apiClient.set(STORAGE_KEYS.OFFLINE_QUEUE, filtered);
+async function saveQueue(queue: QueuedAction[]): Promise<Result<void, ServiceError>> {
+  try {
+    await apiClient.set(STORAGE_KEYS.OFFLINE_QUEUE, queue);
+    return ok(undefined);
+  } catch (error) {
+    logger.error('Failed to save offline queue', error);
+    return err(storageError('Failed to save offline queue'));
+  }
 }
 
-export async function flushQueue(): Promise<{ processed: number; failed: boolean; error?: string }> {
-  const queue = await getQueue();
-  if (queue.length === 0) return { processed: 0, failed: false };
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
-  logger.info(`Flushing offline queue: ${queue.length} actions`);
-  let processed = 0;
+/**
+ * Add an action to the offline queue for later replay.
+ */
+export async function addToQueue(
+  action: Omit<QueuedAction, 'id' | 'timestamp'>,
+): Promise<Result<QueuedAction, ServiceError>> {
+  try {
+    const queue = await loadQueue();
+    const newAction: QueuedAction = {
+      ...action,
+      id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: Date.now(),
+    };
+    queue.push(newAction);
 
-  for (const action of queue) {
-    try {
-      const response = await fetch(action.path, {
-        method: action.method,
-        headers: { 'Content-Type': 'application/json' },
-        body: action.body ? JSON.stringify(action.body) : undefined,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error('Queue flush failed', { id: action.id, status: response.status });
-        return { processed, failed: true, error: `HTTP ${response.status}: ${errorText}` };
-      }
-
-      await removeFromQueue(action.id);
-      processed++;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Queue flush network error', { id: action.id, error: message });
-      return { processed, failed: true, error: message };
+    const saveResult = await saveQueue(queue);
+    if (!saveResult.success) {
+      return err(saveResult.error);
     }
-  }
 
-  logger.info(`Queue flush complete: ${processed} actions processed`);
-  return { processed, failed: false };
+    logger.info('Action queued for offline sync', { id: newAction.id, path: action.path });
+    return ok(newAction);
+  } catch (error) {
+    logger.error('Failed to add action to queue', error);
+    return err(storageError('Failed to add action to offline queue'));
+  }
 }
 
 /**
- * Hook that auto-flushes the offline queue when reconnecting.
+ * Get all queued actions, sorted oldest-first.
  */
-export function useOfflineQueue() {
-  const { isConnected, wasOffline } = useConnectionStatus();
-  const [isFlushing, setIsFlushing] = useState(false);
-  const [queueSize, setQueueSize] = useState(0);
+export async function getQueue(): Promise<Result<QueuedAction[], ServiceError>> {
+  try {
+    const queue = await loadQueue();
+    return ok(queue);
+  } catch (error) {
+    logger.error('Failed to get offline queue', error);
+    return err(storageError('Failed to load offline queue'));
+  }
+}
 
-  const refreshQueueSize = useCallback(async () => {
-    const queue = await getQueue();
-    setQueueSize(queue.length);
-  }, []);
+/**
+ * Remove a single action from the queue by ID.
+ */
+export async function removeFromQueue(actionId: string): Promise<Result<void, ServiceError>> {
+  try {
+    const queue = await loadQueue();
+    const filtered = queue.filter((a) => a.id !== actionId);
+    return saveQueue(filtered);
+  } catch (error) {
+    logger.error('Failed to remove action from queue', error);
+    return err(storageError('Failed to remove action from offline queue'));
+  }
+}
 
-  useEffect(() => {
-    if (isConnected && wasOffline && !isFlushing) {
-      setIsFlushing(true);
-      flushQueue()
-        .then(result => {
-          if (result.processed > 0) {
-            logger.info(`Auto-flushed ${result.processed} queued actions`);
-          }
-        })
-        .catch(error => logger.error('Auto-flush failed', error))
-        .finally(() => {
-          setIsFlushing(false);
-          refreshQueueSize();
-        });
+/**
+ * Get the current number of queued actions.
+ */
+export async function getQueueSize(): Promise<Result<number, ServiceError>> {
+  try {
+    const queue = await loadQueue();
+    return ok(queue.length);
+  } catch (error) {
+    logger.error('Failed to get queue size', error);
+    return err(storageError('Failed to get queue size'));
+  }
+}
+
+/**
+ * Remove actions older than `maxAgeMs` (defaults to 24 hours).
+ * Returns the number of purged actions.
+ */
+export async function purgeExpired(
+  maxAgeMs: number = QUEUE_ITEM_MAX_AGE_MS,
+): Promise<Result<number, ServiceError>> {
+  try {
+    const queue = await loadQueue();
+    const cutoff = Date.now() - maxAgeMs;
+    const kept = queue.filter((a) => a.timestamp >= cutoff);
+    const purgedCount = queue.length - kept.length;
+
+    if (purgedCount > 0) {
+      const saveResult = await saveQueue(kept);
+      if (!saveResult.success) {
+        return err(saveResult.error);
+      }
+      logger.info(`Purged ${purgedCount} expired queue actions`, { maxAgeMs });
     }
-  }, [isConnected, wasOffline, isFlushing, refreshQueueSize]);
 
-  useEffect(() => {
-    refreshQueueSize();
-  }, [refreshQueueSize]);
+    return ok(purgedCount);
+  } catch (error) {
+    logger.error('Failed to purge expired queue items', error);
+    return err(storageError('Failed to purge expired queue items'));
+  }
+}
 
-  return { isConnected, isFlushing, queueSize, addToQueue, flushQueue, refreshQueueSize };
+/**
+ * Clear the entire queue.
+ */
+export async function clearQueue(): Promise<Result<void, ServiceError>> {
+  try {
+    await apiClient.set(STORAGE_KEYS.OFFLINE_QUEUE, []);
+    logger.info('Offline queue cleared');
+    return ok(undefined);
+  } catch (error) {
+    logger.error('Failed to clear offline queue', error);
+    return err(storageError('Failed to clear offline queue'));
+  }
+}
+
+/**
+ * Flush all queued actions by replaying them via apiFetch.
+ * Processes actions oldest-first. Skips already-flushing state.
+ */
+export async function flushQueue(): Promise<Result<FlushResult, ServiceError>> {
+  if (_isFlushing) {
+    logger.warn('Flush already in progress, skipping');
+    return ok({ processed: 0, failed: 0, remaining: 0, failedActions: [] });
+  }
+
+  _isFlushing = true;
+
+  try {
+    const queue = await loadQueue();
+    if (queue.length === 0) {
+      _isFlushing = false;
+      return ok({ processed: 0, failed: 0, remaining: 0, failedActions: [] });
+    }
+
+    logger.info(`Flushing offline queue: ${queue.length} actions`);
+    let processed = 0;
+    const failedActions: string[] = [];
+
+    for (const action of queue) {
+      try {
+        await apiFetch(action.path, {
+          method: action.method,
+          body: action.body ? JSON.stringify(action.body) : undefined,
+        });
+
+        await removeFromQueue(action.id);
+        processed++;
+      } catch (error) {
+        const message = String(error);
+        logger.error('Queue flush action failed', { id: action.id, error: message });
+        failedActions.push(action.id);
+
+        emitTyped(ServiceEvents.QUEUE_ACTION_FAILED, {
+          actionId: action.id,
+          path: action.path,
+          method: action.method,
+          error: message,
+          willRetry: true,
+        });
+      }
+    }
+
+    const remaining = queue.length - processed;
+    const result: FlushResult = {
+      processed,
+      failed: failedActions.length,
+      remaining,
+      failedActions,
+    };
+
+    emitTyped(ServiceEvents.QUEUE_FLUSHED, {
+      processed: result.processed,
+      failed: result.failed,
+      remaining: result.remaining,
+    });
+
+    logger.info('Queue flush complete', { processed, failed: failedActions.length, remaining });
+    _isFlushing = false;
+    return ok(result);
+  } catch (error) {
+    _isFlushing = false;
+    logger.error('Queue flush failed unexpectedly', error);
+    return err(storageError('Queue flush failed'));
+  }
 }

@@ -4,9 +4,8 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+  Pressable,
+  ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -20,10 +19,9 @@ import {
   RevenueChart,
   PeakHoursHeatmap,
   RetentionCard,
-  CancellationChart,
-} from '@/components/analytics';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+  CancellationChart } from '@/components/analytics';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
 import type { CoachAnalytics, CoachAnalyticsPeriod } from '@/constants/types';
@@ -49,8 +47,7 @@ const PERIOD_OPTIONS: { label: string; value: CoachAnalyticsPeriod }[] = [
  * - Top skills taught
  */
 export default function AnalyticsDashboardScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const { currentUser } = useAuth();
 
@@ -118,9 +115,9 @@ export default function AnalyticsDashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Pressable onPress={() => router.back()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
             <ThemedText type="title" style={styles.title}>
               Analytics
             </ThemedText>
@@ -133,15 +130,14 @@ export default function AnalyticsDashboardScreen() {
         {/* Period selector */}
         <View style={styles.periodSelector}>
           {PERIOD_OPTIONS.map((option) => (
-            <TouchableOpacity
+            <Pressable
               key={option.value}
               style={[
                 styles.periodButton,
                 {
                   backgroundColor:
                     period === option.value ? palette.tint : 'transparent',
-                  borderColor: period === option.value ? palette.tint : palette.border,
-                },
+                  borderColor: period === option.value ? palette.tint : palette.border },
               ]}
               onPress={() => handlePeriodChange(option.value)}
             >
@@ -149,13 +145,12 @@ export default function AnalyticsDashboardScreen() {
                 style={[
                   styles.periodButtonText,
                   {
-                    color: period === option.value ? Colors.light.onPrimary : palette.text,
-                  },
+                    color: period === option.value ? palette.onPrimary : palette.text },
                 ]}
               >
                 {option.label}
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
 
@@ -300,14 +295,13 @@ export default function AnalyticsDashboardScreen() {
                           {sessionType.percentage}%
                         </ThemedText>
                       </View>
-                      <View style={styles.sessionBarContainer}>
+                      <View style={[styles.sessionBarContainer, { backgroundColor: palette.background }]}>
                         <View
                           style={[
                             styles.sessionBar,
                             {
                               width: `${sessionType.percentage}%`,
-                              backgroundColor: palette.tint,
-                            },
+                              backgroundColor: palette.tint },
                           ]}
                         />
                       </View>
@@ -333,161 +327,121 @@ export default function AnalyticsDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['2xl'],
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingText: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   header: {
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   backButton: {
     padding: Spacing.xxs,
-    marginLeft: -4,
-  },
+    marginLeft: -4 },
   title: {
     ...Typography.display,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5 },
   subtitle: {
     ...Typography.body,
     marginTop: Spacing.xxs,
-    marginLeft: 32,
-  },
+    marginLeft: 32 },
   periodSelector: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   periodButton: {
     flex: 1,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   periodButtonText: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   statsGrid: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   skillsCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   skillsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   skillsTitle: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   skillsList: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   skillRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   skillInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   skillRank: {
     ...Typography.bodySmallSemiBold,
-    width: 24,
-  },
+    width: 24 },
   skillName: {
-    ...Typography.bodySemiBold,
-  },
+    ...Typography.bodySemiBold },
   skillStats: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.xxs,
-    marginRight: Spacing.md,
-  },
+    marginRight: Spacing.md },
   skillSessions: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   skillLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   skillRevenue: {
     ...Typography.bodySmallSemiBold,
     width: 60,
-    textAlign: 'right',
-  },
+    textAlign: 'right' },
   sessionCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   sessionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   sessionTitle: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   sessionList: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   sessionRow: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   sessionInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   sessionName: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   sessionPercent: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   sessionBarContainer: {
     height: 8,
-    backgroundColor: Colors.light.background,
     borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   sessionBar: {
     height: '100%',
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   sessionMetrics: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.xxs,
-  },
+    marginTop: Spacing.xxs },
   sessionCount: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   sessionRevenue: {
-    ...Typography.smallSemiBold,
-  },
-});
+    ...Typography.smallSemiBold } });

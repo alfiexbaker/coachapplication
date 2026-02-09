@@ -5,9 +5,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { FamilyMember } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface FamilyMemberCardProps {
   /** Family member data */
@@ -30,8 +30,7 @@ export function FamilyMemberCard({
   showStats = true,
   compact = false,
 }: FamilyMemberCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getInitials = (name: string): string => {
     return name
@@ -124,7 +123,7 @@ export function FamilyMemberCard({
             </ThemedText>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="ribbon-outline" size={16} color="#F59E0B" />
+            <Ionicons name="ribbon-outline" size={16} color={palette.rating} />
             <ThemedText style={styles.statValue}>
               {member.totalBadges || 0}
             </ThemedText>

@@ -20,8 +20,8 @@ import { CoachMarker, ClusterMarker } from './CoachMarker';
 import { CoachCard, type CoachCardData } from '@/components/coach';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { CoachProfile, CoachSearchResult } from '@/constants/types';
 
 /** Map a full CoachProfile to the minimal CoachCardData the unified card expects. */
@@ -75,8 +75,7 @@ export function MapView({
   showUserLocation = true,
   zoomLevel = 1,
 }: MapViewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [expandedCluster, setExpandedCluster] = useState<Cluster | null>(null);
 
@@ -231,7 +230,7 @@ export function MapView({
               },
             ]}
           >
-            <View style={styles.userMarkerInner} />
+            <View style={[styles.userMarkerInner, { backgroundColor: palette.surface }]} />
           </View>
         )}
 
@@ -294,7 +293,7 @@ export function MapView({
             },
           ]}
         >
-          <ThemedText style={styles.searchAreaText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+          <ThemedText style={[styles.searchAreaText, { color: palette.onPrimary }]}>
             Search this area
           </ThemedText>
         </Pressable>
@@ -407,7 +406,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: Radii.xs,
-    backgroundColor: Colors.light.surface,
   },
   searchAreaButton: {
     position: 'absolute',
@@ -416,7 +414,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
-    shadowColor: '#000',
+    shadowColor: '#000000', // Decorative: standard shadow base
     shadowOpacity: 0.15,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
@@ -432,7 +430,7 @@ const styles = StyleSheet.create({
     bottom: Spacing.md,
     borderRadius: Radii.md,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#000000', // Decorative: standard shadow base
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },

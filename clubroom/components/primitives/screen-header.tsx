@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * GLOBAL TYPOGRAPHY STANDARDS - KEEP IT SIMPLE
@@ -55,8 +55,7 @@ export function ScreenHeader({
   rightElement,
   bordered = false,
 }: ScreenHeaderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[
@@ -77,7 +76,7 @@ export function ScreenHeader({
           <View style={styles.rightContainer}>
             {rightElement || (
               action && (
-                <TouchableOpacity
+                <Pressable
                   onPress={action.onPress}
                   style={[styles.actionButton, { backgroundColor: palette.tint }]}
                   hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
@@ -86,9 +85,9 @@ export function ScreenHeader({
                     <Ionicons name={action.icon} size={18} color={palette.onPrimary} />
                   )}
                   {action.label && (
-                    <ThemedText style={styles.actionLabel}>{action.label}</ThemedText>
+                    <ThemedText style={[styles.actionLabel, { color: palette.onPrimary }]}>{action.label}</ThemedText>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               )
             )}
           </View>
@@ -131,7 +130,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
   },
-  actionLabel: { ...Typography.smallSemiBold, color: Colors.light.onPrimary },
+  actionLabel: { ...Typography.smallSemiBold },
 });
 
 // SIMPLE TYPOGRAPHY - Same everywhere

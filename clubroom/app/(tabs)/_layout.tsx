@@ -3,8 +3,8 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Typography, Spacing} from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Typography, Spacing, Shadows} from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth, type UserRole } from '@/hooks/use-auth';
 import { chatThreads } from '@/constants/mock-data';
 import { useNotificationCount } from '@/hooks/use-notifications';
@@ -149,8 +149,7 @@ const ROLE_TAB_CONFIG: Record<UserRole | 'DEFAULT', RoleTabConfig> = {
 };
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const palette = Colors[colorScheme ?? 'light'];
+  const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
   const notificationCount = useNotificationCount();
 
@@ -180,11 +179,7 @@ export default function TabLayout() {
       paddingBottom: 8, // Reduced padding
       paddingTop: 8,
       paddingHorizontal: 16, // More horizontal breathing room
-      shadowColor: '#000000',
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: -2 },
-      elevation: 8, // Subtle shadow instead of border
+      ...Shadows[scheme].card,
     },
     tabBarLabelStyle: {
       ...Typography.caption,

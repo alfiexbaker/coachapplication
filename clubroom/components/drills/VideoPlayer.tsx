@@ -12,8 +12,8 @@ import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
 interface VideoPlayerProps {
@@ -45,8 +45,7 @@ export function VideoPlayer({
   onComplete,
   height = 240,
 }: VideoPlayerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const videoRef = useRef<Video>(null);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
@@ -172,7 +171,7 @@ export function VideoPlayer({
         {/* Loading indicator */}
         {isLoading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={Colors.light.onPrimary} />
+            <ActivityIndicator size="large" color={palette.onPrimary} />
           </View>
         )}
 
@@ -182,7 +181,7 @@ export function VideoPlayer({
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
               size={32}
-              color={Colors.light.onPrimary}
+              color={palette.onPrimary}
             />
           </Clickable>
         )}
@@ -194,17 +193,17 @@ export function VideoPlayer({
             <View style={styles.progressBarContainer}>
               <View style={styles.progressBarBackground}>
                 <View
-                  style={[styles.progressBarFill, { width: `${progress * 100}%` }]}
+                  style={[styles.progressBarFill, { width: `${progress * 100}%`, backgroundColor: palette.onPrimary }]}
                 />
               </View>
             </View>
 
             {/* Time and duration */}
             <View style={styles.timeContainer}>
-              <ThemedText style={styles.timeText}>
+              <ThemedText style={[styles.timeText, { color: palette.onPrimary }]}>
                 {formatTime(currentTime)}
               </ThemedText>
-              <ThemedText style={styles.timeText}>
+              <ThemedText style={[styles.timeText, { color: palette.onPrimary }]}>
                 {formatTime(totalDuration)}
               </ThemedText>
             </View>
@@ -214,7 +213,7 @@ export function VideoPlayer({
         {/* Title overlay */}
         {title && !hasStarted && (
           <View style={styles.titleOverlay}>
-            <ThemedText style={styles.titleText} numberOfLines={1}>
+            <ThemedText style={[styles.titleText, { color: palette.onPrimary }]} numberOfLines={1}>
               {title}
             </ThemedText>
             {duration && (
@@ -243,8 +242,7 @@ export function NoVideoPlaceholder({
   message = 'No video available',
   height = 200,
 }: NoVideoPlaceholderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.noVideoContainer, { height, backgroundColor: palette.surfaceSecondary }]}>
@@ -261,7 +259,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: Radii.md,
     overflow: 'hidden',
-    backgroundColor: '#000',
+    backgroundColor: '#000000', // Decorative: video player black background
   },
   video: {
     width: '100%',
@@ -315,7 +313,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.light.onPrimary,
+    // backgroundColor set inline for dynamic theming
     borderRadius: Radii.xs,
   },
   timeContainer: {
@@ -323,7 +321,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   timeText: {
-    color: Colors.light.onPrimary,
+    // color set inline for dynamic theming
     fontSize: scaleFont(12),
     fontWeight: '500',
   },
@@ -339,7 +337,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titleText: {
-    color: Colors.light.onPrimary,
+    // color set inline for dynamic theming
     fontSize: scaleFont(14),
     fontWeight: '600',
     flex: 1,

@@ -11,8 +11,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService, CreateAcademyInput } from '@/services/academy-service';
 import type { FootballObjective } from '@/constants/types';
@@ -31,8 +31,7 @@ const SPECIALTY_OPTIONS: FootballObjective[] = [
 type WizardStep = 'basics' | 'details' | 'specialties' | 'review';
 
 export default function CreateAcademyScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [step, setStep] = useState<WizardStep>('basics');
@@ -131,7 +130,7 @@ export default function CreateAcademyScreen() {
           <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
             <View style={styles.stepHeader}>
               <View style={[styles.stepIcon, { backgroundColor: palette.tint }]}>
-                <Ionicons name="people" size={28} color={Colors.light.onPrimary} />
+                <Ionicons name="people" size={28} color={palette.onPrimary} />
               </View>
               <ThemedText type="title" style={styles.stepTitle}>
                 Create Your Team
@@ -267,7 +266,7 @@ export default function CreateAcademyScreen() {
                 >
                   {specialties.includes(specialty) && (
                     <View style={[styles.checkIcon, { backgroundColor: palette.tint }]}>
-                      <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />
+                      <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
                     </View>
                   )}
                   <ThemedText

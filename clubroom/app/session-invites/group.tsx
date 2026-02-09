@@ -1,974 +1,117 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
+/**
+ * Group Invite Screen
+ *
+ * Multi-step wizard for coaches to send bulk session invites to individual
+ * athletes, squads, or custom selections.
+ *
+ * Steps: target -> type -> slots -> preview -> confirm
+ */
+
+import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { createLogger } from '@/utils/logger';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
-import { ThemedText } from '@/components/themed-text';
-import { DateTimeField } from '@/components/ui/primitives';
-import { InviteAthleteModal, type Athlete, type Squad } from '@/components/coach/invite-athlete-modal';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { InviteAthleteModal } from '@/components/coach/invite-athlete-modal';
+import { WizardHeader } from '@/components/invite/wizard-header';
+import { WizardStepIndicator } from '@/components/invite/wizard-step-indicator';
+import { WizardFooter } from '@/components/invite/wizard-footer';
+import { GroupTargetStep } from '@/components/invite/group-target-step';
+import { GroupSessionDetailsStep } from '@/components/invite/group-session-details-step';
+import { TimeSlotForm } from '@/components/invite/time-slot-form';
+import { GroupPreviewStep } from '@/components/invite/group-preview-step';
+import { GroupConfirmStep } from '@/components/invite/group-confirm-step';
+import { useGroupInvite, VISIBLE_STEPS } from '@/components/invite/use-group-invite';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
-import { inviteService as sessionInviteService } from '@/services/invite';
-import { rosterService } from '@/services/roster-service';
-import { squadService } from '@/services/squad-service';
-import type { TimeSlot, RosterEntry } from '@/constants/types';
 
-const logger = createLogger('GroupInviteScreen');
-
-const SESSION_TYPES = ['1:1 Coaching', 'Group Session', 'Assessment', 'Trial'];
-const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
-
-type Step = 'target' | 'athletes' | 'type' | 'slots' | 'preview' | 'confirm';
-type TargetType = 'individual' | 'squad' | 'custom';
+const SCROLL_STYLE = { padding: Spacing.lg, paddingTop: 0, paddingBottom: Spacing['2xl'] };
 
 export default function GroupInviteScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors } = useTheme();
   const { currentUser } = useAuth();
-
-  const [step, setStep] = useState<Step>('target');
-  const [targetType, setTargetType] = useState<TargetType | null>(null);
-  const [selectedSquadId, setSelectedSquadId] = useState<string | null>(null);
-  const [selectedAthletes, setSelectedAthletes] = useState<Athlete[]>([]);
-  const [showAthleteModal, setShowAthleteModal] = useState(false);
-  const [sessionType, setSessionType] = useState('');
-  const [focus, setFocus] = useState('');
-  const [proposedSlots, setProposedSlots] = useState<TimeSlot[]>([]);
-  const [notes, setNotes] = useState('');
-  const [price, setPrice] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  // Time slot form
-  const [slotDate, setSlotDate] = useState('');
-  const [slotStartTime, setSlotStartTime] = useState('');
-  const [slotEndTime, setSlotEndTime] = useState('');
-  const [slotLocation, setSlotLocation] = useState('');
-
-  // Roster and squad data
-  const [roster, setRoster] = useState<RosterEntry[]>([]);
-  const [squads, setSquads] = useState<Squad[]>([]);
-  const [, setLoadingRoster] = useState(false);
-
-  const loadRoster = useCallback(async () => {
-    if (!currentUser?.id) return;
-    setLoadingRoster(true);
-    try {
-      const data = await rosterService.getRoster(currentUser.id, { status: 'ACTIVE' });
-      setRoster(data);
-    } catch (error) {
-      logger.error('Failed to load roster', error);
-    } finally {
-      setLoadingRoster(false);
-    }
-  }, [currentUser?.id]);
-
-  const loadSquads = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      // Get coach's club ID - default to 'club_premier' for now
-      const clubId = (currentUser as unknown as Record<string, string>).clubId || 'club_premier';
-      const clubSquads = await squadService.getCoachSquads(currentUser.id, clubId);
-      // Map to Squad format expected by InviteAthleteModal
-      setSquads(clubSquads.map((s) => ({ id: s.id, name: s.name })));
-    } catch (error) {
-      logger.error('Failed to load squads', error);
-    }
-  }, [currentUser]);
-
-  useEffect(() => {
-    loadRoster();
-    loadSquads();
-  }, [loadRoster, loadSquads]);
-
-  // Convert roster entries to Athlete format
-  const rosterAsAthletes: Athlete[] = roster.map((r) => ({
-    id: r.athleteId,
-    name: r.athleteName,
-    parentId: r.parentId,
-    parentName: r.parentName,
-    age: r.athleteAge,
-    skillLevel: r.athleteSkillLevel,
-    photoUrl: r.athletePhotoUrl,
-    squadId: r.tags.find((t) => t.startsWith('squad:'))?.replace('squad:', '') || undefined,
-    squadName: r.tags.find((t) => t.startsWith('squad:'))?.replace('squad:', '') || undefined,
-    tags: r.tags,
-  }));
-
-  const handleTargetSelect = (type: TargetType) => {
-    setTargetType(type);
-    if (type === 'individual' || type === 'custom') {
-      setShowAthleteModal(true);
-    }
-  };
-
-  const handleSquadSelect = (squadId: string) => {
-    setSelectedSquadId(squadId);
-    // Select all athletes in this squad
-    const squadAthletes = rosterAsAthletes.filter((a) => a.squadId === squadId || a.tags?.includes(squadId));
-    setSelectedAthletes(squadAthletes.length > 0 ? squadAthletes : rosterAsAthletes);
-    setStep('type');
-  };
-
-  const handleAthletesSelected = (athletes: Athlete[]) => {
-    setSelectedAthletes(athletes);
-    setShowAthleteModal(false);
-    if (athletes.length > 0) {
-      setStep('type');
-    }
-  };
-
-  const addTimeSlot = () => {
-    if (!slotDate || !slotStartTime || !slotEndTime) {
-      Alert.alert('Missing fields', 'Please fill in date, start time, and end time');
-      return;
-    }
-    const newSlot: TimeSlot = {
-      date: slotDate,
-      startTime: slotStartTime,
-      endTime: slotEndTime,
-      location: slotLocation || undefined,
-    };
-    setProposedSlots([...proposedSlots, newSlot]);
-    setSlotDate('');
-    setSlotStartTime('');
-    setSlotEndTime('');
-    setSlotLocation('');
-  };
-
-  const removeTimeSlot = (index: number) => {
-    setProposedSlots(proposedSlots.filter((_, i) => i !== index));
-  };
-
-  const canProceed = () => {
-    switch (step) {
-      case 'target':
-        return targetType !== null;
-      case 'athletes':
-        return selectedAthletes.length > 0;
-      case 'type':
-        return sessionType && focus;
-      case 'slots':
-        return proposedSlots.length > 0;
-      case 'preview':
-        return true;
-      default:
-        return true;
-    }
-  };
-
-  const nextStep = () => {
-    const steps: Step[] = ['target', 'athletes', 'type', 'slots', 'preview', 'confirm'];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex < steps.length - 1) {
-      // Skip athletes step if we already have athletes selected
-      if (step === 'target' && selectedAthletes.length > 0) {
-        setStep('type');
-      } else {
-        setStep(steps[currentIndex + 1]);
-      }
-    }
-  };
-
-  const prevStep = () => {
-    const steps: Step[] = ['target', 'athletes', 'type', 'slots', 'preview', 'confirm'];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex > 0) {
-      setStep(steps[currentIndex - 1]);
-    } else {
-      router.back();
-    }
-  };
-
-  const submitBulkInvites = async () => {
-    if (!currentUser) return;
-    setLoading(true);
-    try {
-      const groupId = `group_${Date.now()}`;
-
-      // Group athletes by parent for sending invites
-      const parentMap = new Map<string, Athlete[]>();
-      selectedAthletes.forEach((athlete) => {
-        const existing = parentMap.get(athlete.parentId) || [];
-        parentMap.set(athlete.parentId, [...existing, athlete]);
-      });
-
-      // Create bulk invites
-      const inviteInputs = Array.from(parentMap.entries()).map(([parentId, athletes]) => ({
-        coachId: currentUser.id,
-        coachName: currentUser.name || 'Coach',
-        athleteIds: athletes.map((a) => a.id),
-        athleteNames: athletes.map((a) => a.name),
-        parentId,
-        parentName: athletes[0].parentName,
-        proposedSlots,
-        sessionType,
-        focus,
-        notes: notes || undefined,
-        priceUsd: price ? parseFloat(price) : undefined,
-        expiresInDays: 7,
-        groupId,
-      }));
-
-      await sessionInviteService.createBulk(inviteInputs);
-
-      Alert.alert(
-        'Invites Sent',
-        `Successfully sent ${inviteInputs.length} invite${inviteInputs.length !== 1 ? 's' : ''} to ${selectedAthletes.length} athlete${selectedAthletes.length !== 1 ? 's' : ''}.`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    } catch (error) {
-      logger.error('Failed to create bulk invites', error);
-      Alert.alert('Error', 'Failed to send invites. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderStepIndicator = () => {
-    const steps: Step[] = ['target', 'type', 'slots', 'preview', 'confirm'];
-    const currentIndex = steps.indexOf(step);
-
-    return (
-      <View style={styles.stepIndicator}>
-        {steps.map((s, index) => (
-          <View key={s} style={styles.stepItem}>
-            <View
-              style={[
-                styles.stepDot,
-                {
-                  backgroundColor: index <= currentIndex ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              {index < currentIndex && <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />}
-            </View>
-            {index < steps.length - 1 && (
-              <View
-                style={[
-                  styles.stepLine,
-                  { backgroundColor: index < currentIndex ? palette.tint : palette.border },
-                ]}
-              />
-            )}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  const renderTargetStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Who do you want to invite?
-      </ThemedText>
-      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-        Select how you want to choose athletes for this session
-      </ThemedText>
-
-      <View style={styles.targetOptions}>
-        <Clickable
-          onPress={() => handleTargetSelect('individual')}
-          style={[
-            styles.targetCard,
-            {
-              backgroundColor: targetType === 'individual' ? withAlpha(palette.tint, 0.06) : palette.surface,
-              borderColor: targetType === 'individual' ? palette.tint : palette.border,
-            },
-          ]}
-        >
-          <View style={[styles.targetIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <Ionicons name="person" size={24} color={palette.tint} />
-          </View>
-          <View style={styles.targetInfo}>
-            <ThemedText type="defaultSemiBold">Individual Athletes</ThemedText>
-            <ThemedText style={[styles.targetDescription, { color: palette.muted }]}>
-              Pick specific athletes from your roster
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-        </Clickable>
-
-        <Clickable
-          onPress={() => {
-            setTargetType('squad');
-          }}
-          style={[
-            styles.targetCard,
-            {
-              backgroundColor: targetType === 'squad' ? withAlpha(palette.tint, 0.06) : palette.surface,
-              borderColor: targetType === 'squad' ? palette.tint : palette.border,
-            },
-          ]}
-        >
-          <View style={[styles.targetIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <Ionicons name="people" size={24} color={palette.tint} />
-          </View>
-          <View style={styles.targetInfo}>
-            <ThemedText type="defaultSemiBold">Entire Squad</ThemedText>
-            <ThemedText style={[styles.targetDescription, { color: palette.muted }]}>
-              Invite all athletes in a specific group
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-        </Clickable>
-
-        <Clickable
-          onPress={() => handleTargetSelect('custom')}
-          style={[
-            styles.targetCard,
-            {
-              backgroundColor: targetType === 'custom' ? withAlpha(palette.tint, 0.06) : palette.surface,
-              borderColor: targetType === 'custom' ? palette.tint : palette.border,
-            },
-          ]}
-        >
-          <View style={[styles.targetIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-            <Ionicons name="filter" size={24} color={palette.tint} />
-          </View>
-          <View style={styles.targetInfo}>
-            <ThemedText type="defaultSemiBold">Custom Selection</ThemedText>
-            <ThemedText style={[styles.targetDescription, { color: palette.muted }]}>
-              Filter by skill level, age, or other criteria
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-        </Clickable>
-      </View>
-
-      {/* Squad selector when squad type is selected */}
-      {targetType === 'squad' && (
-        <Animated.View entering={FadeInDown.springify()} style={styles.squadSelector}>
-          <ThemedText style={styles.formLabel}>Select a Squad</ThemedText>
-          <View style={styles.squadList}>
-            {squads.map((squad) => (
-              <Clickable
-                key={squad.id}
-                onPress={() => handleSquadSelect(squad.id)}
-                style={[
-                  styles.squadItem,
-                  {
-                    backgroundColor: selectedSquadId === squad.id ? withAlpha(palette.tint, 0.06) : palette.surface,
-                    borderColor: selectedSquadId === squad.id ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                <Ionicons name="people" size={18} color={palette.tint} />
-                <ThemedText style={{ flex: 1 }}>{squad.name}</ThemedText>
-                {selectedSquadId === squad.id && (
-                  <Ionicons name="checkmark-circle" size={20} color={palette.tint} />
-                )}
-              </Clickable>
-            ))}
-          </View>
-        </Animated.View>
-      )}
-    </Animated.View>
-  );
-
-  const renderTypeStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Session Details
-      </ThemedText>
-
-      {/* Selected athletes summary */}
-      <View style={[styles.athletesSummary, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-        <Ionicons name="people" size={18} color={palette.tint} />
-        <ThemedText style={{ color: palette.tint, flex: 1 }}>
-          {selectedAthletes.length} athlete{selectedAthletes.length !== 1 ? 's' : ''} selected
-        </ThemedText>
-        <Clickable onPress={() => setShowAthleteModal(true)}>
-          <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Edit</ThemedText>
-        </Clickable>
-      </View>
-
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Session Type</ThemedText>
-        <View style={styles.optionsRow}>
-          {SESSION_TYPES.map((type) => (
-            <Clickable
-              key={type}
-              onPress={() => setSessionType(type)}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: sessionType === type ? palette.tint : palette.surface,
-                  borderColor: sessionType === type ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <ThemedText
-                style={{ color: sessionType === type ? Colors.light.onPrimary : palette.text, ...Typography.small }}
-              >
-                {type}
-              </ThemedText>
-            </Clickable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Focus Area</ThemedText>
-        <View style={styles.optionsRow}>
-          {FOCUSES.map((f) => (
-            <Clickable
-              key={f}
-              onPress={() => setFocus(f)}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: focus === f ? palette.tint : palette.surface,
-                  borderColor: focus === f ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <ThemedText style={{ color: focus === f ? Colors.light.onPrimary : palette.text, ...Typography.small }}>
-                {f}
-              </ThemedText>
-            </Clickable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Price per Athlete (optional)</ThemedText>
-        <TextInput
-          style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-          placeholder="e.g., 50"
-          placeholderTextColor={palette.muted}
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-        />
-      </View>
-
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Notes for Parents</ThemedText>
-        <TextInput
-          style={[styles.textArea, { color: palette.text, borderColor: palette.border }]}
-          placeholder="e.g., Please bring water and shin guards..."
-          placeholderTextColor={palette.muted}
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          numberOfLines={3}
-        />
-      </View>
-    </Animated.View>
-  );
-
-  const renderSlotsStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Propose Time Slots
-      </ThemedText>
-      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-        Add one or more time options for parents to choose from
-      </ThemedText>
-
-      <SurfaceCard style={styles.addSlotCard}>
-        <View style={styles.slotFormRow}>
-          <DateTimeField
-            mode="date"
-            label="Date"
-            value={slotDate}
-            onChange={setSlotDate}
-          />
-        </View>
-        <View style={styles.slotFormRow}>
-          <DateTimeField
-            mode="time"
-            label="Start"
-            value={slotStartTime}
-            onChange={setSlotStartTime}
-            style={{ flex: 1 }}
-          />
-          <DateTimeField
-            mode="time"
-            label="End"
-            value={slotEndTime}
-            onChange={setSlotEndTime}
-            style={{ flex: 1 }}
-          />
-        </View>
-        <View style={styles.slotFormRow}>
-          <View style={[styles.slotInput, { flex: 1 }]}>
-            <ThemedText style={styles.inputLabel}>Location (optional)</ThemedText>
-            <TextInput
-              style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-              placeholder="e.g., Hackney Marshes"
-              placeholderTextColor={palette.muted}
-              value={slotLocation}
-              onChangeText={setSlotLocation}
-            />
-          </View>
-        </View>
-        <Clickable
-          onPress={addTimeSlot}
-          style={[styles.addSlotButton, { backgroundColor: palette.tint }]}
-        >
-          <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
-          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Add Time Slot</ThemedText>
-        </Clickable>
-      </SurfaceCard>
-
-      {proposedSlots.length > 0 && (
-        <View style={styles.slotsList}>
-          <ThemedText style={styles.formLabel}>Proposed Slots</ThemedText>
-          {proposedSlots.map((slot, index) => (
-            <View
-              key={index}
-              style={[styles.slotItem, { backgroundColor: palette.surface, borderColor: palette.border }]}
-            >
-              <View style={styles.slotInfo}>
-                <ThemedText type="defaultSemiBold">
-                  {new Date(slot.date).toLocaleDateString('en-GB', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </ThemedText>
-                <ThemedText style={{ color: palette.muted }}>
-                  {slot.startTime} - {slot.endTime}
-                  {slot.location && ` at ${slot.location}`}
-                </ThemedText>
-              </View>
-              <Clickable onPress={() => removeTimeSlot(index)}>
-                <Ionicons name="close-circle" size={22} color={palette.error} />
-              </Clickable>
-            </View>
-          ))}
-        </View>
-      )}
-    </Animated.View>
-  );
-
-  const renderPreviewStep = () => {
-    // Group by parent for display
-    const parentMap = new Map<string, Athlete[]>();
-    selectedAthletes.forEach((athlete) => {
-      const existing = parentMap.get(athlete.parentId) || [];
-      parentMap.set(athlete.parentId, [...existing, athlete]);
-    });
-
-    return (
-      <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-        <ThemedText type="subtitle" style={styles.stepTitle}>
-          Preview Invites
-        </ThemedText>
-        <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-          Review before sending. Each parent will receive one invite with their athlete(s).
-        </ThemedText>
-
-        <View style={styles.previewStats}>
-          <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-            <ThemedText type="title" style={{ color: palette.tint }}>
-              {parentMap.size}
-            </ThemedText>
-            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-              Invite{parentMap.size !== 1 ? 's' : ''}
-            </ThemedText>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-            <ThemedText type="title" style={{ color: palette.tint }}>
-              {selectedAthletes.length}
-            </ThemedText>
-            <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-              Athlete{selectedAthletes.length !== 1 ? 's' : ''}
-            </ThemedText>
-          </View>
-        </View>
-
-        <View style={styles.previewList}>
-          {Array.from(parentMap.entries()).map(([parentId, athletes]) => (
-            <View
-              key={parentId}
-              style={[styles.previewItem, { backgroundColor: palette.surface, borderColor: palette.border }]}
-            >
-              <View style={styles.previewHeader}>
-                <Ionicons name="mail-outline" size={16} color={palette.muted} />
-                <ThemedText type="defaultSemiBold" style={{ flex: 1 }}>
-                  {athletes[0].parentName}
-                </ThemedText>
-              </View>
-              <View style={styles.previewAthletes}>
-                {athletes.map((athlete) => (
-                  <View key={athlete.id} style={styles.previewAthlete}>
-                    <View style={[styles.previewDot, { backgroundColor: palette.tint }]} />
-                    <ThemedText style={{ ...Typography.small }}>{athlete.name}</ThemedText>
-                    {athlete.age && (
-                      <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
-                        (Age {athlete.age})
-                      </ThemedText>
-                    )}
-                  </View>
-                ))}
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <SurfaceCard style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Ionicons name="football-outline" size={18} color={palette.muted} />
-            <ThemedText>
-              {sessionType} - {focus}
-            </ThemedText>
-          </View>
-          <View style={styles.summaryRow}>
-            <Ionicons name="calendar-outline" size={18} color={palette.muted} />
-            <ThemedText>{proposedSlots.length} time slot(s) proposed</ThemedText>
-          </View>
-          {price && (
-            <View style={styles.summaryRow}>
-              <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
-              <ThemedText>${price} per athlete</ThemedText>
-            </View>
-          )}
-        </SurfaceCard>
-      </Animated.View>
-    );
-  };
-
-  const renderConfirmStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <View style={styles.confirmContent}>
-        <View style={[styles.confirmIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <Ionicons name="paper-plane" size={48} color={palette.tint} />
-        </View>
-        <ThemedText type="subtitle" style={styles.confirmTitle}>
-          Ready to Send?
-        </ThemedText>
-        <ThemedText style={[styles.confirmText, { color: palette.muted }]}>
-          You are about to send {Array.from(new Set(selectedAthletes.map((a) => a.parentId))).length} invite
-          {Array.from(new Set(selectedAthletes.map((a) => a.parentId))).length !== 1 ? 's' : ''} for{' '}
-          {selectedAthletes.length} athlete{selectedAthletes.length !== 1 ? 's' : ''}.
-        </ThemedText>
-        <ThemedText style={[styles.disclaimer, { color: palette.muted }]}>
-          Parents will receive a notification and have 7 days to respond. You can cancel the
-          invites anytime before they respond.
-        </ThemedText>
-      </View>
-    </Animated.View>
-  );
+  const w = useGroupInvite(currentUser);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
-        <Clickable onPress={prevStep} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
-        <ThemedText type="title">Group Invite</ThemedText>
-        <View style={{ width: 24 }} />
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <WizardHeader title="Group Invite" onBack={w.prevStep} colors={colors} />
+      <WizardStepIndicator steps={VISIBLE_STEPS} currentStep={w.step} colors={colors} />
 
-      {renderStepIndicator()}
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {step === 'target' && renderTargetStep()}
-        {step === 'type' && renderTypeStep()}
-        {step === 'slots' && renderSlotsStep()}
-        {step === 'preview' && renderPreviewStep()}
-        {step === 'confirm' && renderConfirmStep()}
+      <ScrollView contentContainerStyle={SCROLL_STYLE} showsVerticalScrollIndicator={false}>
+        {w.step === 'target' && (
+          <GroupTargetStep
+            targetType={w.targetType}
+            onTargetSelect={w.handleTargetSelect}
+            squads={w.squads}
+            selectedSquadId={w.selectedSquadId}
+            onSquadSelect={w.handleSquadSelect}
+            colors={colors}
+          />
+        )}
+        {w.step === 'type' && (
+          <GroupSessionDetailsStep
+            athleteCount={w.selectedAthletes.length}
+            sessionType={w.sessionType}
+            focus={w.focus}
+            price={w.price}
+            notes={w.notes}
+            onSessionTypeChange={w.setSessionType}
+            onFocusChange={w.setFocus}
+            onPriceChange={w.setPrice}
+            onNotesChange={w.setNotes}
+            onEditAthletes={w.handleEditAthletes}
+            colors={colors}
+          />
+        )}
+        {w.step === 'slots' && (
+          <TimeSlotForm
+            proposedSlots={w.proposedSlots}
+            onAddSlot={w.handleAddSlot}
+            onRemoveSlot={w.handleRemoveSlot}
+            slotDate={w.slotDate}
+            slotStartTime={w.slotStartTime}
+            slotEndTime={w.slotEndTime}
+            slotLocation={w.slotLocation}
+            onSlotDateChange={w.setSlotDate}
+            onSlotStartTimeChange={w.setSlotStartTime}
+            onSlotEndTimeChange={w.setSlotEndTime}
+            onSlotLocationChange={w.setSlotLocation}
+            colors={colors}
+          />
+        )}
+        {w.step === 'preview' && (
+          <GroupPreviewStep
+            selectedAthletes={w.selectedAthletes}
+            sessionType={w.sessionType}
+            focus={w.focus}
+            proposedSlots={w.proposedSlots}
+            price={w.price}
+            colors={colors}
+          />
+        )}
+        {w.step === 'confirm' && (
+          <GroupConfirmStep selectedAthletes={w.selectedAthletes} colors={colors} />
+        )}
       </ScrollView>
 
-      <View style={[styles.footer, { borderTopColor: palette.border }]}>
-        {step === 'confirm' ? (
-          <Clickable
-            onPress={submitBulkInvites}
-            disabled={loading}
-            style={[styles.nextButton, { backgroundColor: palette.tint, opacity: loading ? 0.6 : 1 }]}
-          >
-            <Ionicons name="paper-plane" size={18} color={Colors.light.onPrimary} />
-            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>
-              {loading ? 'Sending...' : `Send ${Array.from(new Set(selectedAthletes.map((a) => a.parentId))).length} Invite${Array.from(new Set(selectedAthletes.map((a) => a.parentId))).length !== 1 ? 's' : ''}`}
-            </ThemedText>
-          </Clickable>
-        ) : (
-          <Clickable
-            onPress={nextStep}
-            disabled={!canProceed()}
-            style={[
-              styles.nextButton,
-              { backgroundColor: palette.tint, opacity: canProceed() ? 1 : 0.5 },
-            ]}
-          >
-            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
-            <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
-          </Clickable>
-        )}
-      </View>
+      <WizardFooter
+        isLastStep={w.step === 'confirm'}
+        canProceed={w.canProceed()}
+        onNext={w.nextStep}
+        actionLabel={w.actionLabel}
+        actionLoading={w.loading}
+        onAction={w.submitBulkInvites}
+        colors={colors}
+      />
 
       <InviteAthleteModal
-        visible={showAthleteModal}
-        onClose={() => setShowAthleteModal(false)}
-        onSelect={handleAthletesSelected}
-        athletes={rosterAsAthletes}
-        squads={squads}
+        visible={w.showAthleteModal}
+        onClose={() => w.setShowAthleteModal(false)}
+        onSelect={w.handleAthletesSelected}
+        athletes={w.rosterAsAthletes}
+        squads={w.squads}
         multiSelect={true}
         title="Select Athletes"
       />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  stepIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stepDot: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepLine: {
-    width: 40,
-    height: 2,
-    marginHorizontal: Spacing.xxs,
-  },
-  content: {
-    padding: Spacing.lg,
-    paddingTop: 0,
-    paddingBottom: Spacing['2xl'],
-  },
-  stepContent: {
-    gap: Spacing.md,
-  },
-  stepTitle: {
-    ...Typography.title,
-  },
-  stepDescription: {
-    ...Typography.bodySmall,
-    marginBottom: Spacing.sm,
-  },
-  targetOptions: {
-    gap: Spacing.sm,
-  },
-  targetCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    gap: Spacing.md,
-  },
-  targetIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  targetInfo: {
-    flex: 1,
-  },
-  targetDescription: {
-    ...Typography.small,
-    marginTop: Spacing.micro,
-  },
-  squadSelector: {
-    marginTop: Spacing.md,
-    gap: Spacing.sm,
-  },
-  squadList: {
-    gap: Spacing.xs,
-  },
-  squadItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.sm,
-  },
-  athletesSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    gap: Spacing.sm,
-  },
-  formSection: {
-    gap: Spacing.xs,
-  },
-  formLabel: {
-    ...Typography.bodySmallSemiBold,
-    marginBottom: Spacing.xxs,
-  },
-  optionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  optionChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  input: {
-    height: 44,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    ...Typography.body,
-  },
-  textArea: {
-    height: 80,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    ...Typography.body,
-    textAlignVertical: 'top',
-  },
-  addSlotCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  slotFormRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  slotInput: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  inputLabel: {
-    ...Typography.caption,
-  },
-  addSlotButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.xs,
-  },
-  slotsList: {
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  slotItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  slotInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  previewStats: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  previewList: {
-    gap: Spacing.sm,
-  },
-  previewItem: {
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.xs,
-  },
-  previewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  previewAthletes: {
-    paddingLeft: Spacing.lg,
-    gap: Spacing.xxs,
-  },
-  previewAthlete: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  previewDot: {
-    width: 6,
-    height: 6,
-    borderRadius: Radii.xs,
-  },
-  summaryCard: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  confirmContent: {
-    alignItems: 'center',
-    paddingVertical: Spacing['2xl'],
-  },
-  confirmIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: Radii['3xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
-  },
-  confirmTitle: {
-    textAlign: 'center',
-    marginBottom: Spacing.sm,
-  },
-  confirmText: {
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  disclaimer: {
-    ...Typography.small,
-    textAlign: 'center',
-    paddingHorizontal: Spacing.lg,
-  },
-  footer: {
-    padding: Spacing.lg,
-    borderTopWidth: 1,
-  },
-  nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-  },
-});

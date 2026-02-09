@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { MedicalInfo, EmergencyContact } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 type EmergencyBannerProps = {
   medical: MedicalInfo;
@@ -27,8 +27,7 @@ export function EmergencyBanner({
   onPressMedical,
   compact = false,
 }: EmergencyBannerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const hasAllergies = medical.allergies.length > 0;
   const hasConditions = medical.conditions.length > 0;
@@ -102,7 +101,7 @@ export function EmergencyBanner({
               <View style={styles.alertRow}>
                 <Ionicons name="alert-circle" size={16} color={palette.error} />
                 <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.alertLabel}>Allergies</ThemedText>
+                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>Allergies</ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.allergies.join(', ')}
                   </ThemedText>
@@ -114,7 +113,7 @@ export function EmergencyBanner({
               <View style={styles.alertRow}>
                 <Ionicons name="medical" size={16} color={palette.warning} />
                 <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.alertLabel}>Conditions</ThemedText>
+                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>Conditions</ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.conditions.join(', ')}
                   </ThemedText>
@@ -126,7 +125,7 @@ export function EmergencyBanner({
               <View style={styles.alertRow}>
                 <Ionicons name="fitness" size={16} color={palette.muted} />
                 <View style={{ flex: 1 }}>
-                  <ThemedText style={styles.alertLabel}>Medications</ThemedText>
+                  <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>Medications</ThemedText>
                   <ThemedText style={{ color: palette.text }}>
                     {medical.medications.join(', ')}
                   </ThemedText>
@@ -142,7 +141,7 @@ export function EmergencyBanner({
           <View style={[styles.contactSection, { borderTopColor: palette.border }]}>
             <Ionicons name="call" size={18} color={palette.tint} />
             <View style={{ flex: 1 }}>
-              <ThemedText style={styles.alertLabel}>Emergency Contact</ThemedText>
+              <ThemedText style={[styles.alertLabel, { color: palette.muted }]}>Emergency Contact</ThemedText>
               <ThemedText style={{ color: palette.text }}>
                 {primaryContact.name} ({primaryContact.relationship})
               </ThemedText>
@@ -168,8 +167,7 @@ export function MedicalAlertPill({
   conditionsCount: number;
   onPress?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (allergiesCount === 0 && conditionsCount === 0) {
     return null;
@@ -201,8 +199,7 @@ export function EmergencyCallButton({
   onPress?: () => void;
   size?: 'small' | 'medium' | 'large';
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const sizeConfig = {
     small: { icon: 16, padding: Spacing.xs },
@@ -225,7 +222,7 @@ export function EmergencyCallButton({
     >
       <Ionicons name="call" size={config.icon} color={palette.onSuccess} />
       {size !== 'small' && (
-        <ThemedText style={styles.callButtonText}>
+        <ThemedText style={[styles.callButtonText, { color: palette.onSuccess }]}>
           Call {contact.name.split(' ')[0]}
         </ThemedText>
       )}
@@ -263,7 +260,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: Spacing.sm,
   },
-  alertLabel: { ...Typography.caption, color: Colors.light.muted,
+  alertLabel: { ...Typography.caption,
     marginBottom: Spacing.micro },
   contactSection: {
     flexDirection: 'row',
@@ -303,5 +300,5 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     borderRadius: Radii.pill,
   },
-  callButtonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onSuccess },
+  callButtonText: { ...Typography.bodySmallSemiBold },
 });

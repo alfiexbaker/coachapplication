@@ -21,10 +21,10 @@ import {
   formatServicePrice,
   resolveCoachAndProfile,
 } from '@/constants/booking-types';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useBookingPersona } from '@/hooks/use-booking-persona';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { hasChildren, isAthlete } from '@/utils/user-helpers';
 import { availabilityService } from '@/services/availability-service';
 import type { DayAvailability, SlotInstance } from '@/constants/booking-types';
@@ -35,8 +35,7 @@ const logger = createLogger('BookCoachScreen');
 const TOTAL_STEPS = { parent: 4, athlete: 3 } as const;
 
 export default function BookCoachScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const params = useLocalSearchParams();
   const coachId = params.coachId as string;
   const { currentUser } = useAuth();
@@ -369,7 +368,7 @@ export default function BookCoachScreen() {
             },
           ]}
         >
-          <ThemedText style={styles.continueButtonText}>
+          <ThemedText style={[styles.continueButtonText, { color: palette.onPrimary }]}>
             {step === 3 ? 'Review Booking' : 'Continue'}
           </ThemedText>
         </Clickable>
@@ -408,7 +407,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
   loadingContainer: {

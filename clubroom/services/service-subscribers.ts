@@ -73,6 +73,16 @@ function getBookingService() {
   return require('@/services/booking-service').bookingService;
 }
 
+function getSquadGroupService() {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  return require('@/services/squad-group-service').squadGroupService;
+}
+
+function getOfflineQueue() {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  return require('@/services/offline-queue');
+}
+
 // ---------------------------------------------------------------------------
 // Subscriber wiring
 // ---------------------------------------------------------------------------
@@ -455,6 +465,313 @@ export function initializeSubscribers(): void {
 
     logger.info('User logged out event processed', {
       userId: data.userId,
+    });
+  });
+
+  // ---------- Invite RSVP events ---------------------------------------------
+
+  subscribe(ServiceEvents.INVITE_RSVP_RESPONDED, (data) => {
+    logger.debug('Handling INVITE_RSVP_RESPONDED', data);
+
+    // Create a feed post for the RSVP response
+    try {
+      const feedService = getSocialFeedService();
+      const statusLabel =
+        data.status === 'going' ? 'is going to' :
+        data.status === 'maybe' ? 'might attend' :
+        "can't make it to";
+      const childDisplay = data.childName ? ` (${data.childName})` : '';
+
+      const feedType = 'PERSONAL' as const;
+      const clubId = '';
+
+      if ((feedType === 'CLUB' || feedType === 'BOTH') && !clubId) {
+        logger.warn('Skipping feed post for INVITE_RSVP_RESPONDED: clubId is required for CLUB or BOTH feed type', {
+          inviteId: data.inviteId,
+          userId: data.userId,
+          feedType,
+        });
+        return;
+      }
+
+      const postResult = feedService.createPost({
+        clubId,
+        authorId: data.userId,
+        authorName: data.userName,
+        title: 'RSVP Update',
+        body: `${data.userName}${childDisplay} ${statusLabel} a session invite.`,
+        postType: 'announcement',
+        feedType: 'PERSONAL',
+      });
+      if (!postResult.success) {
+        logger.error('Feed post creation returned error for INVITE_RSVP_RESPONDED', postResult.error);
+      }
+    } catch (error) {
+      logger.error('Feed post creation failed for INVITE_RSVP_RESPONDED', error);
+    }
+
+    logger.info('Invite RSVP responded event processed', {
+      inviteId: data.inviteId,
+      userId: data.userId,
+      status: data.status,
+    });
+  });
+
+  // ---------- Comment events -------------------------------------------------
+
+  subscribe(ServiceEvents.COMMENT_CREATED, (data) => {
+    logger.debug('Handling COMMENT_CREATED', data);
+
+    logger.info('Comment created event processed', {
+      commentId: data.commentId,
+      postId: data.postId,
+      authorId: data.authorId,
+    });
+  });
+
+  subscribe(ServiceEvents.COMMENT_REPLIED, (data) => {
+    logger.debug('Handling COMMENT_REPLIED', data);
+
+    logger.info('Comment reply event processed', {
+      commentId: data.commentId,
+      parentId: data.parentId,
+      postId: data.postId,
+    });
+  });
+
+  subscribe(ServiceEvents.COMMENT_DELETED, (data) => {
+    logger.debug('Handling COMMENT_DELETED', data);
+
+    logger.info('Comment deleted event processed', {
+      commentId: data.commentId,
+      postId: data.postId,
+    });
+  });
+
+  subscribe(ServiceEvents.COMMENT_LIKED, (data) => {
+    logger.debug('Handling COMMENT_LIKED', data);
+
+    logger.info('Comment liked event processed', {
+      commentId: data.commentId,
+      postId: data.postId,
+      liked: data.liked,
+    });
+  });
+
+  // ---------- Coach feed events -----------------------------------------------
+
+  subscribe(ServiceEvents.COACH_POST_CREATED, (data) => {
+    logger.debug('Handling COACH_POST_CREATED', data);
+
+    // Note: analytics tracking for coach posts is a no-op until a dedicated
+    // tracking method is added to the analytics service (getAthleteAnalytics
+    // is a read method, not a side-effect tracker).
+    logger.debug('COACH_POST_CREATED analytics tracking pending implementation', {
+      coachId: data.coachId,
+      postId: data.postId,
+    });
+
+    logger.info('Coach post created event processed', {
+      postId: data.postId,
+      coachId: data.coachId,
+      feedType: data.feedType,
+      postType: data.postType,
+    });
+  });
+
+  // ---------- Invite booking events ---------------------------------------------
+
+  subscribe(ServiceEvents.INVITE_ACCEPTED, (data) => {
+    logger.debug('Handling INVITE_ACCEPTED', data);
+
+    logger.info('Invite accepted with booking', {
+      inviteId: data.inviteId,
+      bookingId: data.bookingId,
+      coachId: data.coachId,
+      parentId: data.parentId,
+      athleteIds: data.athleteIds,
+      slot: `${data.selectedSlot.date} ${data.selectedSlot.startTime}`,
+    });
+  });
+
+  subscribe(ServiceEvents.INVITE_BOOKING_FAILED, (data) => {
+    logger.debug('Handling INVITE_BOOKING_FAILED', data);
+
+    // Create a notification for the parent about the booking failure
+    try {
+      const notifService = getNotificationService();
+      notifService.create({
+        id: `notif_invite_booking_fail_${data.inviteId}`,
+        type: 'booking',
+        title: 'Booking Failed',
+        body: `We couldn't create the booking for your accepted invite. ${data.reason}`,
+        timeLabel: 'Just now',
+        read: false,
+      });
+    } catch (error) {
+      logger.error('Notification creation failed for INVITE_BOOKING_FAILED', error);
+    }
+
+    logger.info('Invite booking failed event processed', {
+      inviteId: data.inviteId,
+      coachId: data.coachId,
+      parentId: data.parentId,
+      reason: data.reason,
+    });
+  });
+
+  // ---------- Squad group events -----------------------------------------------
+
+  subscribe(ServiceEvents.SQUAD_CREATED, (data) => {
+    logger.debug('Handling SQUAD_CREATED', data);
+
+    // Auto-provision a parent group chat for the new squad
+    try {
+      const squadGroupSvc = getSquadGroupService();
+      squadGroupSvc
+        .getOrCreateSquadGroup(data.squadId, data.createdBy, 'Coach')
+        .catch((error: unknown) => {
+          logger.error('Failed to auto-create squad group', error);
+        });
+    } catch (error) {
+      logger.error('Squad group service unavailable for SQUAD_CREATED', error);
+    }
+
+    logger.info('Squad created event processed', {
+      squadId: data.squadId,
+      clubId: data.clubId,
+    });
+  });
+
+  subscribe(ServiceEvents.SQUAD_DELETED, (data) => {
+    logger.debug('Handling SQUAD_DELETED', data);
+
+    // Delete the associated parent group
+    try {
+      const squadGroupSvc = getSquadGroupService();
+      squadGroupSvc
+        .deleteSquadGroup(data.squadId)
+        .catch((error: unknown) => {
+          logger.error('Failed to delete squad group', error);
+        });
+    } catch (error) {
+      logger.error('Squad group service unavailable for SQUAD_DELETED', error);
+    }
+
+    logger.info('Squad deleted event processed', {
+      squadId: data.squadId,
+      clubId: data.clubId,
+    });
+  });
+
+  subscribe(ServiceEvents.SQUAD_MEMBER_ADDED, (data) => {
+    logger.debug('Handling SQUAD_MEMBER_ADDED', data);
+
+    // Sync member to squad group
+    try {
+      const squadGroupSvc = getSquadGroupService();
+      squadGroupSvc
+        .syncMemberToGroup(data.squadId, data.userId, data.userName)
+        .catch((error: unknown) => {
+          logger.error('Failed to sync member addition to squad group', error);
+        });
+    } catch (error) {
+      logger.error('Squad group service unavailable for SQUAD_MEMBER_ADDED', error);
+    }
+
+    logger.info('Squad member added event processed', {
+      squadId: data.squadId,
+      userId: data.userId,
+    });
+  });
+
+  subscribe(ServiceEvents.SQUAD_MEMBER_REMOVED, (data) => {
+    logger.debug('Handling SQUAD_MEMBER_REMOVED', data);
+
+    // Remove member from squad group
+    try {
+      const squadGroupSvc = getSquadGroupService();
+      squadGroupSvc
+        .syncMemberRemovalFromGroup(data.squadId, data.userId)
+        .catch((error: unknown) => {
+          logger.error('Failed to sync member removal from squad group', error);
+        });
+    } catch (error) {
+      logger.error('Squad group service unavailable for SQUAD_MEMBER_REMOVED', error);
+    }
+
+    logger.info('Squad member removed event processed', {
+      squadId: data.squadId,
+      userId: data.userId,
+    });
+  });
+
+  // ---------- Connection & offline queue events --------------------------------
+
+  subscribe(ServiceEvents.CONNECTION_CHANGED, (data) => {
+    logger.debug('Handling CONNECTION_CHANGED', data);
+
+    if (data.isConnected && data.wasOffline) {
+      // Purge expired queue items when coming back online
+      try {
+        const offlineQueue = getOfflineQueue();
+        offlineQueue
+          .purgeExpired()
+          .then((result: { success: boolean; data?: number }) => {
+            if (result.success && result.data && result.data > 0) {
+              logger.info(`Purged ${result.data} expired queue actions on reconnect`);
+            }
+          })
+          .catch((error: unknown) => {
+            logger.error('Failed to purge expired queue items on reconnect', error);
+          });
+      } catch (error) {
+        logger.error('Offline queue service unavailable for CONNECTION_CHANGED', error);
+      }
+    }
+
+    logger.info('Connection changed event processed', {
+      isConnected: data.isConnected,
+      wasOffline: data.wasOffline,
+    });
+  });
+
+  subscribe(ServiceEvents.QUEUE_FLUSHED, (data) => {
+    logger.debug('Handling QUEUE_FLUSHED', data);
+
+    if (data.failed > 0) {
+      // Create a notification about failed queue items
+      try {
+        const notifService = getNotificationService();
+        notifService.create({
+          id: `notif_queue_flush_fail_${Date.now()}`,
+          type: 'system',
+          title: 'Sync Incomplete',
+          body: `${data.failed} change${data.failed === 1 ? '' : 's'} could not be synced. They will be retried.`,
+          timeLabel: 'Just now',
+          read: false,
+        });
+      } catch (error) {
+        logger.error('Notification creation failed for QUEUE_FLUSHED', error);
+      }
+    }
+
+    logger.info('Queue flushed event processed', {
+      processed: data.processed,
+      failed: data.failed,
+      remaining: data.remaining,
+    });
+  });
+
+  subscribe(ServiceEvents.QUEUE_ACTION_FAILED, (data) => {
+    logger.debug('Handling QUEUE_ACTION_FAILED', data);
+
+    logger.info('Queue action failed event processed', {
+      actionId: data.actionId,
+      path: data.path,
+      method: data.method,
+      error: data.error,
+      willRetry: data.willRetry,
     });
   });
 

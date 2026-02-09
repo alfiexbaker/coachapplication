@@ -14,8 +14,8 @@ import * as Haptics from 'expo-haptics';
 
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha, Shadows } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha, Shadows } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface WeekRow {
   weekDate: string;
@@ -56,7 +56,7 @@ const WeekRowItem = memo(function WeekRowItem({
   isSelected: boolean;
   onToggle: (weekDate: string) => void;
   currency: string;
-  palette: typeof Colors.light;
+  palette: ReturnType<typeof useTheme>['colors'];
 }) {
   const handlePress = useCallback(() => {
     if (!week.available) return;
@@ -177,8 +177,7 @@ export function MultiWeekPicker({
   onToggleWeek,
   currency = '\u00A3',
 }: MultiWeekPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const selectedCount = selectedWeeks.size;
   const totalCost = weeks

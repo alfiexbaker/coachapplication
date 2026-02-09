@@ -7,8 +7,8 @@ import React from 'react';
 import { View, StyleSheet, type ViewStyle } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { Divider } from '@/components/ui/primitives/Divider';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FormSectionProps {
   /** Section title */
@@ -30,8 +30,7 @@ export function FormSection({
   divider = false,
   style,
 }: FormSectionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.container, style]}>

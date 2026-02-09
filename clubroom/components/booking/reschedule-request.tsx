@@ -18,8 +18,8 @@ import * as Haptics from 'expo-haptics';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,7 +94,7 @@ interface TimeComparisonProps {
   dateTime: Date;
   color: string;
   icon: keyof typeof Ionicons.glyphMap;
-  palette: (typeof Colors)['light'];
+  palette: ReturnType<typeof useTheme>['colors'];
 }
 
 function TimeSlot({ label, dateTime, color, icon, palette }: TimeComparisonProps) {
@@ -125,8 +125,7 @@ export function RescheduleRequest({
   onSuggestDifferent,
   onDecline,
 }: RescheduleRequestProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [processing, setProcessing] = useState<RescheduleDecision | null>(null);
   const [showDeclineReason, setShowDeclineReason] = useState(false);
@@ -265,7 +264,7 @@ export function RescheduleRequest({
           ) : (
             <>
               <Ionicons name="checkmark" size={18} color={palette.surface} />
-              <ThemedText style={styles.actionButtonText}>Accept</ThemedText>
+              <ThemedText style={[styles.actionButtonText, { color: palette.surface }]}>Accept</ThemedText>
             </>
           )}
         </Clickable>
@@ -461,7 +460,7 @@ const styles = StyleSheet.create({
   declineButton: {
     borderWidth: 1.5,
   },
-  actionButtonText: { ...Typography.bodySemiBold, color: Colors.light.surface },
+  actionButtonText: { ...Typography.bodySemiBold },
   actionButtonTextDark: { ...Typography.bodySemiBold },
 
   // Disclaimer

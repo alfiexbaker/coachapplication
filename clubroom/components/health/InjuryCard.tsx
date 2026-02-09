@@ -12,9 +12,9 @@ import * as Haptics from 'expo-haptics';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { Injury } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -25,8 +25,7 @@ interface InjuryCardProps {
 }
 
 export function InjuryCard({ injury, onPress, compact = false }: InjuryCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const severityInfo = injuryService.getSeverityInfo(injury.severity);
   const statusInfo = injuryService.getStatusInfo(injury.status);

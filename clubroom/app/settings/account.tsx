@@ -10,16 +10,15 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('AccountSettings');
 
 export default function AccountSettingsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser, logout } = useAuth();
 
   // Edit mode states

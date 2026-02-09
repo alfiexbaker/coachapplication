@@ -9,8 +9,8 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CashPaymentBannerProps {
   amount: number;
@@ -19,8 +19,7 @@ interface CashPaymentBannerProps {
 }
 
 export function CashPaymentBanner({ amount, coachName, sessionDate }: CashPaymentBannerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.banner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>

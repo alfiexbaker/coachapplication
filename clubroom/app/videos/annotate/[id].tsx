@@ -28,8 +28,8 @@ import { AnnotationForm } from '@/components/video/AnnotationForm';
 import { AnnotationTypesSummary } from '@/components/video/AnnotationBadge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService, ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
@@ -40,8 +40,7 @@ type ViewMode = 'timeline' | 'list';
 
 export default function CoachAnnotateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State
@@ -56,8 +55,7 @@ export default function CoachAnnotateScreen() {
   const [annotationStats, setAnnotationStats] = useState({
     total: 0,
     byType: { HIGHLIGHT: 0, IMPROVEMENT: 0, TECHNIQUE: 0, GENERAL: 0 },
-    averagePerMinute: 0,
-  });
+    averagePerMinute: 0 });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _videoRef = useRef<{ seekTo: (time: number) => void } | null>(null);
@@ -134,8 +132,7 @@ export default function CoachAnnotateScreen() {
               logger.error('Failed to delete annotation:', error);
               Alert.alert('Error', 'Failed to delete annotation.');
             }
-          },
-        },
+          } },
       ]
     );
   };
@@ -150,8 +147,7 @@ export default function CoachAnnotateScreen() {
         await videoService.updateAnnotation(video.id, editingAnnotation.id, {
           label: annotation.label,
           note: annotation.note,
-          type: annotation.type,
-        });
+          type: annotation.type });
       } else {
         await videoService.createAnnotation(
           video.id,
@@ -159,8 +155,7 @@ export default function CoachAnnotateScreen() {
             timestamp: annotation.timestamp,
             label: annotation.label,
             note: annotation.note,
-            type: annotation.type,
-          },
+            type: annotation.type },
           currentUser?.id,
           currentUser?.name
         );
@@ -182,8 +177,7 @@ export default function CoachAnnotateScreen() {
 
       await Share.share({
         title: `Annotations: ${video.title}`,
-        message: textSummary,
-      });
+        message: textSummary });
     } catch (error) {
       logger.error('Failed to export:', error);
       Alert.alert('Error', 'Failed to export annotations.');
@@ -208,8 +202,7 @@ export default function CoachAnnotateScreen() {
               logger.error('Failed to clear annotations:', error);
               Alert.alert('Error', 'Failed to clear annotations.');
             }
-          },
-        },
+          } },
       ]
     );
   };
@@ -310,8 +303,8 @@ export default function CoachAnnotateScreen() {
                 onPress={handleAddAnnotation}
                 style={[styles.addButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.addButtonText}>Add at {videoService.formatTimestamp(currentTime)}</ThemedText>
+                <Ionicons name="add" size={20} color={palette.onPrimary} />
+                <ThemedText style={[styles.addButtonText, { color: palette.onPrimary }]}>Add at {videoService.formatTimestamp(currentTime)}</ThemedText>
               </Clickable>
             </View>
 
@@ -383,19 +376,18 @@ export default function CoachAnnotateScreen() {
                 styles.viewModeButton,
                 {
                   backgroundColor: viewMode === 'timeline' ? palette.tint : palette.surface,
-                  borderColor: viewMode === 'timeline' ? palette.tint : palette.border,
-                },
+                  borderColor: viewMode === 'timeline' ? palette.tint : palette.border },
               ]}
             >
               <Ionicons
                 name="git-branch-outline"
                 size={16}
-                color={viewMode === 'timeline' ? Colors.light.onPrimary : palette.text}
+                color={viewMode === 'timeline' ? palette.onPrimary : palette.text}
               />
               <ThemedText
                 style={[
                   styles.viewModeText,
-                  { color: viewMode === 'timeline' ? Colors.light.onPrimary : palette.text },
+                  { color: viewMode === 'timeline' ? palette.onPrimary : palette.text },
                 ]}
               >
                 Timeline
@@ -407,19 +399,18 @@ export default function CoachAnnotateScreen() {
                 styles.viewModeButton,
                 {
                   backgroundColor: viewMode === 'list' ? palette.tint : palette.surface,
-                  borderColor: viewMode === 'list' ? palette.tint : palette.border,
-                },
+                  borderColor: viewMode === 'list' ? palette.tint : palette.border },
               ]}
             >
               <Ionicons
                 name="list-outline"
                 size={16}
-                color={viewMode === 'list' ? Colors.light.onPrimary : palette.text}
+                color={viewMode === 'list' ? palette.onPrimary : palette.text}
               />
               <ThemedText
                 style={[
                   styles.viewModeText,
-                  { color: viewMode === 'list' ? Colors.light.onPrimary : palette.text },
+                  { color: viewMode === 'list' ? palette.onPrimary : palette.text },
                 ]}
               >
                 List
@@ -477,91 +468,72 @@ export default function CoachAnnotateScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerCenter: {
-    flex: 1,
-  },
+    flex: 1 },
   headerActions: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   content: {
     padding: Spacing.lg,
     paddingTop: 0,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.sm,
     borderRadius: Radii.lg,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   toolbarLeft: {
-    flex: 1,
-  },
+    flex: 1 },
   toolbarRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   addButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   quickTypes: {
     flexDirection: 'row',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   quickTypeButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   statsCard: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   statsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   statsInfo: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   statText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   viewModeContainer: {
     flexDirection: 'row',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   viewModeButton: {
     flex: 1,
     flexDirection: 'row',
@@ -570,19 +542,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   viewModeText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   annotationsCard: {
     padding: 0,
-    minHeight: 300,
-  },
+    minHeight: 300 },
   actionsRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
@@ -591,9 +559,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   bottomSpacer: {
-    height: 40,
-  },
-});
+    height: 40 } });

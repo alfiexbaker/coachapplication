@@ -23,10 +23,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FavouriteCoachCard } from '@/components/favourites/FavouriteCoachCard';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { FavouriteCoach } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { favouriteService } from '@/services/favourite-service';
 import { scaleFont } from '@/utils/scale';
@@ -37,8 +37,7 @@ const logger = createLogger('FavouritesScreen');
  * Favourites screen showing saved coaches with quick re-booking.
  */
 export default function FavouritesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State
@@ -151,7 +150,7 @@ export default function FavouritesScreen() {
           <Animated.View entering={FadeInDown.delay(50).springify()}>
             <View style={[styles.statsRow, { backgroundColor: palette.surface, borderColor: palette.border }]}>
               <View style={styles.statItem}>
-                <Ionicons name="heart" size={20} color="#EF4444" />
+                <Ionicons name="heart" size={20} color={palette.error} />
                 <ThemedText type="defaultSemiBold" style={styles.statValue}>
                   {favourites.length}
                 </ThemedText>

@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SelectionTile } from '@/components/primitives/selection-tile';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ServiceListItem {
   id: string;
@@ -22,8 +22,7 @@ interface ServiceSelectionListProps {
 }
 
 export function ServiceSelectionList({ services, selectedServiceId, onSelect }: ServiceSelectionListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>

@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { TimeProposalForm } from '@/components/negotiate/TimeProposalForm';
-import { Colors, Spacing, Radii } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { counterOfferService } from '@/services/counter-offer-service';
 import { bookingService } from '@/services/booking-service';
@@ -29,8 +29,7 @@ interface BookingData {
 
 export default function CounterOfferScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // Determine user role for counter-offer
@@ -217,7 +216,7 @@ export default function CounterOfferScreen() {
             onPress={loadBooking}
             style={[styles.retryButton, { backgroundColor: palette.tint }]}
           >
-            <ThemedText style={styles.retryText}>Try Again</ThemedText>
+            <ThemedText style={[styles.retryText, { color: palette.onPrimary }]}>Try Again</ThemedText>
           </Clickable>
         </View>
       </SafeAreaView>
@@ -298,7 +297,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   retryText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   headerButton: {

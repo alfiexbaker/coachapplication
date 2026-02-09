@@ -6,12 +6,10 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { CreateCodeForm } from '@/components/promo';
 import { Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { PromoCode } from '@/constants/types';
 
 export default function CreatePromoCodeScreen() {
-  useColorScheme();
   const router = useRouter();
   const { currentUser } = useAuth();
 

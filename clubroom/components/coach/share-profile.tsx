@@ -26,8 +26,8 @@ import * as Clipboard from 'expo-clipboard';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,8 +50,7 @@ export function ShareProfile({
   profileUrl,
   onClose,
 }: ShareProfileProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [copied, setCopied] = useState(false);
   const [slug, setSlug] = useState(coachId);

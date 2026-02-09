@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -11,8 +11,8 @@ import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
 import { getClubMembershipForUser, getClubById, getClubSquads } from '@/constants/mock-data';
@@ -34,8 +34,7 @@ function TrainingCard({
   index: number;
   userHasChildrenView: boolean;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const nextDate = groupSessionService.getNextTrainingDate(session);
   const dayName = session.recurringPattern
@@ -142,13 +141,13 @@ function TrainingCard({
             Coach {session.coachName}
           </ThemedText>
           {userHasChildrenView && (
-            <TouchableOpacity
+            <Pressable
               style={[styles.rsvpButton, { backgroundColor: palette.tint }]}
             >
-              <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.caption }}>
+              <ThemedText style={{ color: palette.onPrimary, ...Typography.caption }}>
                 RSVP
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       </SurfaceCard>
@@ -163,8 +162,7 @@ function WeeklyCalendarView({
   sessions: GroupSession[];
   userHasChildrenView: boolean;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Group sessions by day of week
   const sessionsByDay = DAYS.map((_, dayIndex) =>
@@ -185,7 +183,7 @@ function WeeklyCalendarView({
             <View style={styles.dayContent}>
               {daySessions.length > 0 ? (
                 daySessions.map((session) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={session.id}
                     style={[styles.calendarSession, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
                     onPress={() => router.push(Routes.groupSession(session.id))}
@@ -199,7 +197,7 @@ function WeeklyCalendarView({
                     <ThemedText style={{ color: palette.muted, ...Typography.micro }}>
                       {session.recurringPattern?.startTime}
                     </ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))
               ) : (
                 <ThemedText style={{ color: palette.muted, ...Typography.micro, textAlign: 'center' }}>
@@ -215,8 +213,7 @@ function WeeklyCalendarView({
 }
 
 export default function TrainingScheduleScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
@@ -275,14 +272,14 @@ export default function TrainingScheduleScreen() {
             onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
             style={[styles.addButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
+            <Ionicons name="add" size={20} color={palette.onPrimary} />
           </Clickable>
         )}
       </View>
 
       {/* View mode toggle */}
       <View style={[styles.viewToggle, { backgroundColor: palette.surface }]}>
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.toggleOption,
             viewMode === 'list' ? { backgroundColor: palette.tint } : undefined,
@@ -292,15 +289,15 @@ export default function TrainingScheduleScreen() {
           <Ionicons
             name="list"
             size={18}
-            color={viewMode === 'list' ? Colors.light.onPrimary : palette.muted}
+            color={viewMode === 'list' ? palette.onPrimary : palette.muted}
           />
           <ThemedText
-            style={{ color: viewMode === 'list' ? Colors.light.onPrimary : palette.muted, ...Typography.small }}
+            style={{ color: viewMode === 'list' ? palette.onPrimary : palette.muted, ...Typography.small }}
           >
             List
           </ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </Pressable>
+        <Pressable
           style={[
             styles.toggleOption,
             viewMode === 'calendar' ? { backgroundColor: palette.tint } : undefined,
@@ -310,14 +307,14 @@ export default function TrainingScheduleScreen() {
           <Ionicons
             name="calendar"
             size={18}
-            color={viewMode === 'calendar' ? Colors.light.onPrimary : palette.muted}
+            color={viewMode === 'calendar' ? palette.onPrimary : palette.muted}
           />
           <ThemedText
-            style={{ color: viewMode === 'calendar' ? Colors.light.onPrimary : palette.muted, ...Typography.small }}
+            style={{ color: viewMode === 'calendar' ? palette.onPrimary : palette.muted, ...Typography.small }}
           >
             Week
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Squad filter */}
@@ -328,7 +325,7 @@ export default function TrainingScheduleScreen() {
           style={styles.filterScroll}
           contentContainerStyle={styles.filterContainer}
         >
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.filterChip,
               {
@@ -339,13 +336,13 @@ export default function TrainingScheduleScreen() {
             onPress={() => setSelectedSquadId(null)}
           >
             <ThemedText
-              style={{ color: !selectedSquadId ? Colors.light.onPrimary : palette.text, ...Typography.small }}
+              style={{ color: !selectedSquadId ? palette.onPrimary : palette.text, ...Typography.small }}
             >
               All Squads
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
           {squads.map((squad) => (
-            <TouchableOpacity
+            <Pressable
               key={squad.id}
               style={[
                 styles.filterChip,
@@ -357,11 +354,11 @@ export default function TrainingScheduleScreen() {
               onPress={() => setSelectedSquadId(squad.id)}
             >
               <ThemedText
-                style={{ color: selectedSquadId === squad.id ? Colors.light.onPrimary : palette.text, ...Typography.small }}
+                style={{ color: selectedSquadId === squad.id ? palette.onPrimary : palette.text, ...Typography.small }}
               >
                 {squad.name}
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </ScrollView>
       )}

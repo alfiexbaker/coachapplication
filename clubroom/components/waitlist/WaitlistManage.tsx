@@ -5,10 +5,10 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { WaitlistPosition } from './WaitlistPosition';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { waitlistService } from '@/services/waitlist-service';
 import type { WaitlistEntry, WaitlistSummary } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface WaitlistManageProps {
   /** Summary of the session's waitlist */
@@ -39,8 +39,7 @@ export function WaitlistManage({
   onPromote,
   onRemoveEntry,
 }: WaitlistManageProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const hasAutoBookers = summary.autoBookCount > 0;
 

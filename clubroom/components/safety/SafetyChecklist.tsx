@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface SafetyChecklistProps {
   hasEmergencyContact: boolean;
@@ -32,8 +32,7 @@ export function SafetyChecklist({
   hasMedicalInfo,
   onPressIncomplete,
 }: SafetyChecklistProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const items: ChecklistItem[] = [
     {
@@ -184,8 +183,7 @@ export function SafetyStatusIndicator({
   hasEmergencyConsent: boolean;
   onPress?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isComplete = hasEmergencyContact && hasEmergencyConsent;
 
@@ -237,8 +235,7 @@ export function SessionSafetySummary({
   missingInfoCount: number;
   onPress?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const hasMissingInfo = missingInfoCount > 0;
 

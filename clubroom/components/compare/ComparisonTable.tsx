@@ -11,8 +11,8 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
 import type { CoachComparison, ComparisonCriteria } from '@/constants/types';
 import { CoachColumn } from './CoachColumn';
@@ -23,8 +23,7 @@ interface ComparisonTableProps {
 }
 
 export function ComparisonTable({ coachIds, onCoachRemoved }: ComparisonTableProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [coaches, setCoaches] = useState<CoachComparison[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -23,7 +23,8 @@ import { Stack, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Shadows } from '@/constants/theme';
+import { Spacing, Radii, Typography, Shadows } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';
@@ -44,32 +45,33 @@ interface StepperProps {
 }
 
 function Stepper({ label, value, onValueChange, min, max, step, suffix, helperText }: StepperProps) {
+  const { colors } = useTheme();
   const canDecrement = value - step >= min;
   const canIncrement = value + step <= max;
 
   return (
     <View style={styles.rowContainer}>
       <View style={styles.rowLabelArea}>
-        <ThemedText style={styles.rowLabel}>{label}</ThemedText>
-        {helperText ? <ThemedText style={styles.rowHelper}>{helperText}</ThemedText> : null}
+        <ThemedText style={[styles.rowLabel, { color: colors.text }]}>{label}</ThemedText>
+        {helperText ? <ThemedText style={[styles.rowHelper, { color: colors.muted }]}>{helperText}</ThemedText> : null}
       </View>
       <View style={styles.stepperControl}>
         <Pressable
           onPress={() => canDecrement && onValueChange(value - step)}
-          style={[styles.stepperButton, !canDecrement ? styles.stepperButtonDisabled : undefined]}
+          style={[styles.stepperButton, { backgroundColor: colors.background }, !canDecrement ? styles.stepperButtonDisabled : undefined]}
           accessibilityLabel={`Decrease ${label}`}
         >
-          <Ionicons name="remove" size={18} color={canDecrement ? Colors.light.text : Colors.light.border} />
+          <Ionicons name="remove" size={18} color={canDecrement ? colors.text : colors.border} />
         </Pressable>
-        <ThemedText style={styles.stepperValue}>
+        <ThemedText style={[styles.stepperValue, { color: colors.text }]}>
           {value}{suffix}
         </ThemedText>
         <Pressable
           onPress={() => canIncrement && onValueChange(value + step)}
-          style={[styles.stepperButton, !canIncrement ? styles.stepperButtonDisabled : undefined]}
+          style={[styles.stepperButton, { backgroundColor: colors.background }, !canIncrement ? styles.stepperButtonDisabled : undefined]}
           accessibilityLabel={`Increase ${label}`}
         >
-          <Ionicons name="add" size={18} color={canIncrement ? Colors.light.text : Colors.light.border} />
+          <Ionicons name="add" size={18} color={canIncrement ? colors.text : colors.border} />
         </Pressable>
       </View>
     </View>
@@ -84,17 +86,18 @@ interface ToggleRowProps {
 }
 
 function ToggleRow({ label, value, onValueChange, helperText }: ToggleRowProps) {
+  const { colors } = useTheme();
   return (
     <View style={styles.rowContainer}>
       <View style={styles.rowLabelArea}>
-        <ThemedText style={styles.rowLabel}>{label}</ThemedText>
-        {helperText ? <ThemedText style={styles.rowHelper}>{helperText}</ThemedText> : null}
+        <ThemedText style={[styles.rowLabel, { color: colors.text }]}>{label}</ThemedText>
+        {helperText ? <ThemedText style={[styles.rowHelper, { color: colors.muted }]}>{helperText}</ThemedText> : null}
       </View>
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: Colors.light.border, true: Colors.light.success }}
-        thumbColor={Colors.light.surface}
+        trackColor={{ false: colors.border, true: colors.success }}
+        thumbColor={colors.surface}
       />
     </View>
   );
@@ -108,34 +111,41 @@ interface NavigationRowProps {
 }
 
 function NavigationRow({ label, value, onPress, icon }: NavigationRowProps) {
+  const { colors } = useTheme();
   return (
     <Pressable
-      style={({ pressed }) => [styles.rowContainer, pressed && styles.rowPressed]}
+      style={({ pressed }) => [styles.rowContainer, pressed && { backgroundColor: colors.background }]}
       onPress={onPress}
       accessibilityRole="button"
     >
       <View style={styles.rowLabelArea}>
         {icon && (
           <View style={styles.navIconContainer}>
-            <Ionicons name={icon} size={18} color={Colors.light.muted} />
+            <Ionicons name={icon} size={18} color={colors.muted} />
           </View>
         )}
-        <ThemedText style={styles.rowLabel} numberOfLines={1}>{label}</ThemedText>
+        <ThemedText style={[styles.rowLabel, { color: colors.text }]} numberOfLines={1}>{label}</ThemedText>
       </View>
       <View style={styles.navRight}>
-        {value ? <ThemedText style={styles.navValue} numberOfLines={1}>{value}</ThemedText> : null}
-        <Ionicons name="chevron-forward" size={18} color={Colors.light.muted} />
+        {value ? <ThemedText style={[styles.navValue, { color: colors.muted }]} numberOfLines={1}>{value}</ThemedText> : null}
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
       </View>
     </Pressable>
   );
 }
 
 function SectionHeader({ title }: { title: string }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.sectionHeader}>
-      <ThemedText style={styles.sectionHeaderText}>{title}</ThemedText>
+      <ThemedText style={[styles.sectionHeaderText, { color: colors.muted }]}>{title}</ThemedText>
     </View>
   );
+}
+
+function Separator() {
+  const { colors } = useTheme();
+  return <View style={[styles.separator, { backgroundColor: colors.border }]} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +153,7 @@ function SectionHeader({ title }: { title: string }) {
 // ---------------------------------------------------------------------------
 
 export default function CoachingSettingsScreen() {
+  const { colors, scheme } = useTheme();
   const { currentUser } = useAuth();
   const coachId = currentUser?.id ?? '';
 
@@ -219,20 +230,20 @@ export default function CoachingSettingsScreen() {
 
   if (loading || !rules) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ title: 'Coaching Settings' }} />
-        <ActivityIndicator size="large" color={Colors.light.text} />
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: 'Coaching Settings',
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: Colors.light.background },
+          headerStyle: { backgroundColor: colors.background },
         }}
       />
 
@@ -243,7 +254,7 @@ export default function CoachingSettingsScreen() {
       >
         {/* ---- Scheduling ---- */}
         <SectionHeader title="SCHEDULING" />
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
           <Stepper
             label="Buffer between sessions"
             value={rules.bufferMinutesDefault}
@@ -254,7 +265,7 @@ export default function CoachingSettingsScreen() {
             suffix=" min"
             helperText="Time between back-to-back sessions"
           />
-          <View style={styles.separator} />
+          <Separator />
           <Stepper
             label="Minimum notice"
             value={rules.minimumAdvanceBookingHours}
@@ -265,7 +276,7 @@ export default function CoachingSettingsScreen() {
             suffix="h"
             helperText="How far in advance parents must book"
           />
-          <View style={styles.separator} />
+          <Separator />
           <Stepper
             label="Max advance booking"
             value={rules.maxAdvanceBookingDays}
@@ -276,14 +287,14 @@ export default function CoachingSettingsScreen() {
             suffix=" days"
             helperText="How far ahead parents can book"
           />
-          <View style={styles.separator} />
+          <Separator />
           <ToggleRow
             label="Allow same-day bookings"
             value={rules.allowSameDayBookings}
             onValueChange={(v) => update('allowSameDayBookings', v)}
             helperText="Let parents book sessions today"
           />
-          <View style={styles.separator} />
+          <Separator />
           <ToggleRow
             label="Allow rescheduling"
             value={rules.allowRescheduling}
@@ -292,7 +303,7 @@ export default function CoachingSettingsScreen() {
           />
           {rules.allowRescheduling && (
             <>
-              <View style={styles.separator} />
+              <Separator />
               <Stepper
                 label="Reschedule deadline"
                 value={rules.rescheduleDeadlineHours}
@@ -309,7 +320,7 @@ export default function CoachingSettingsScreen() {
 
         {/* ---- Cancellation Policy ---- */}
         <SectionHeader title="CANCELLATION POLICY" />
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
           <NavigationRow
             label="Cancellation policy"
             value="Standard"
@@ -320,20 +331,20 @@ export default function CoachingSettingsScreen() {
 
         {/* ---- Travel & Location ---- */}
         <SectionHeader title="TRAVEL & LOCATION" />
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
           <NavigationRow
             label="Travel radius"
             value={`${currentUser?.postcode ?? 'Set postcode'}`}
             onPress={() => router.push(Routes.SETTINGS_TRAVEL_RADIUS)}
             icon="location-outline"
           />
-          <View style={styles.separator} />
+          <Separator />
           <NavigationRow
             label="Blocked dates"
             onPress={() => router.push(Routes.SETTINGS_BLOCKED_DATES)}
             icon="calendar-outline"
           />
-          <View style={styles.separator} />
+          <Separator />
           <NavigationRow
             label="Smart slot suggestions"
             onPress={() => router.push(Routes.SETTINGS_SMART_SLOTS)}
@@ -346,9 +357,9 @@ export default function CoachingSettingsScreen() {
 
       {/* Saved toast */}
       {showSaved && (
-        <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
-          <Ionicons name="checkmark-circle" size={18} color={Colors.light.success} />
-          <ThemedText style={styles.toastText}>Saved</ThemedText>
+        <Animated.View style={[styles.toast, Shadows[scheme].card, { opacity: toastOpacity, backgroundColor: colors.surface }]} pointerEvents="none">
+          <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+          <ThemedText style={[styles.toastText, { color: colors.success }]}>Saved</ThemedText>
         </Animated.View>
       )}
     </View>
@@ -362,11 +373,9 @@ export default function CoachingSettingsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.light.background,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -386,15 +395,12 @@ const styles = StyleSheet.create({
   },
   sectionHeaderText: {
     ...Typography.caption,
-    color: Colors.light.muted,
     letterSpacing: 0.8,
   },
 
   // Card (section container)
   card: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
-    ...Shadows.light.card,
     overflow: 'hidden',
   },
 
@@ -407,9 +413,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     minHeight: 52,
   },
-  rowPressed: {
-    backgroundColor: Colors.light.background,
-  },
   rowLabelArea: {
     flex: 1,
     flexDirection: 'column',
@@ -417,16 +420,13 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     ...Typography.body,
-    color: Colors.light.text,
   },
   rowHelper: {
     ...Typography.small,
-    color: Colors.light.muted,
     marginTop: Spacing.micro,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.light.border,
     marginLeft: Spacing.sm,
   },
 
@@ -440,7 +440,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: Radii.sm,
-    backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -449,7 +448,6 @@ const styles = StyleSheet.create({
   },
   stepperValue: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
     minWidth: 48,
     textAlign: 'center',
   },
@@ -465,7 +463,6 @@ const styles = StyleSheet.create({
   },
   navValue: {
     ...Typography.small,
-    color: Colors.light.muted,
   },
 
   // Toast
@@ -476,15 +473,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.light.surface,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    ...Shadows.light.card,
   },
   toastText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.success,
   },
 
   bottomSpacer: {

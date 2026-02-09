@@ -1,10 +1,10 @@
 import { View, StyleSheet } from 'react-native';
 import { toDateStr } from '@/utils/format';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
 import type { AvailabilitySlot } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CalendarPickerProps {
   selectedDate?: string;
@@ -19,8 +19,7 @@ export function CalendarPicker({
   availabilityByDate,
   daysToShow = 14,
 }: CalendarPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const days = Array.from({ length: daysToShow }).map((_, idx) => {
     const date = new Date();

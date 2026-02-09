@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, type ViewStyle } from 'react-native';
 import React from 'react';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface ButtonProps {
   onPress: () => void;
@@ -22,8 +22,7 @@ export function Button({
   variant = 'primary',
   accessibilityLabel,
 }: ButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getBackgroundColor = (pressed: boolean) => {
     if (disabled) {

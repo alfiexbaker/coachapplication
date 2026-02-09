@@ -159,7 +159,7 @@ export interface Attachment {
 // PARENT COMMUNITY
 // ============================================================================
 
-export type GroupType = 'CLUB' | 'SESSION' | 'CARPOOL' | 'GENERAL';
+export type GroupType = 'CLUB' | 'SESSION' | 'CARPOOL' | 'GENERAL' | 'SQUAD';
 
 export type GroupMemberRole = 'OWNER' | 'ADMIN' | 'MODERATOR' | 'MEMBER';
 
@@ -188,6 +188,8 @@ export interface ParentGroup {
   clubId?: string;
   /** Associated session ID for SESSION type groups */
   sessionId?: string;
+  /** Associated squad ID for SQUAD type groups */
+  squadId?: string;
   /** Group avatar/icon URL */
   avatarUrl?: string;
   /** Whether group is publicly joinable or invite-only */

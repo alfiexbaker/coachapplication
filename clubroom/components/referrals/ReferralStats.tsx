@@ -11,11 +11,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
 import type { ReferralStats as ReferralStatsType } from '@/constants/types';
+import { useTheme, ThemeColors } from '@/hooks/useTheme';
 
 interface ReferralStatsProps {
   /** Referral statistics to display */
@@ -41,8 +41,7 @@ export function ReferralStats({
   variant = 'default',
   showCard = true,
 }: ReferralStatsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const content = (
     <>
@@ -160,7 +159,7 @@ interface StatItemProps {
   iconColor: string;
   value: string;
   label: string;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }
 
 function StatItem({ icon, iconColor, value, label, palette }: StatItemProps) {
@@ -198,7 +197,7 @@ interface StatCardProps {
   value: string;
   label: string;
   description: string;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
   flex?: boolean;
 }
 

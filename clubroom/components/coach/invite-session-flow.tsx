@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Modal, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Modal, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 import { router } from 'expo-router';
@@ -9,8 +9,8 @@ import * as Haptics from 'expo-haptics';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { InviteAthleteModal, Athlete } from './invite-athlete-modal';
 import { createLogger } from '@/utils/logger';
 
@@ -45,8 +45,7 @@ export function InviteSessionFlow({
   coachId,
   onComplete,
 }: InviteSessionFlowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [step, setStep] = useState<FlowStep>('choice');
   const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
@@ -246,18 +245,18 @@ export function InviteSessionFlow({
           {/* Header */}
           <View style={styles.header}>
             {step !== 'choice' && (
-              <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <Pressable onPress={handleBack} style={styles.backButton}>
                 <Ionicons name="arrow-back" size={24} color={palette.text} />
-              </TouchableOpacity>
+              </Pressable>
             )}
             <ThemedText type="subtitle" style={styles.headerTitle}>
               {step === 'choice' && 'Invite Athletes'}
               {step === 'select-session' && 'Select Session'}
               {step === 'confirm' && 'Confirm Invitation'}
             </ThemedText>
-            <TouchableOpacity onPress={handleClose}>
+            <Pressable onPress={handleClose}>
               <Ionicons name="close" size={24} color={palette.muted} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <ScrollView contentContainerStyle={styles.content}>
@@ -268,7 +267,7 @@ export function InviteSessionFlow({
                   How would you like to invite athletes?
                 </ThemedText>
 
-                <TouchableOpacity
+                <Pressable
                   style={[styles.choiceCard, { backgroundColor: palette.background, borderColor: palette.tint }]}
                   onPress={() => handleChoiceSelect('existing')}
                 >
@@ -284,9 +283,9 @@ export function InviteSessionFlow({
                     </ThemedText>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-                </TouchableOpacity>
+                </Pressable>
 
-                <TouchableOpacity
+                <Pressable
                   style={[styles.choiceCard, { backgroundColor: palette.background, borderColor: palette.success }]}
                   onPress={() => handleChoiceSelect('new')}
                 >
@@ -302,7 +301,7 @@ export function InviteSessionFlow({
                     </ThemedText>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
 
@@ -319,7 +318,7 @@ export function InviteSessionFlow({
                     <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
                       No upcoming sessions found
                     </ThemedText>
-                    <TouchableOpacity
+                    <Pressable
                       style={[styles.createButton, { backgroundColor: palette.tint }]}
                       onPress={() => {
                         setIsNewSession(true);
@@ -327,8 +326,8 @@ export function InviteSessionFlow({
                       }}
                     >
                       <Ionicons name="add" size={18} color={palette.onPrimary} />
-                      <ThemedText style={styles.createButtonText}>Create New Session</ThemedText>
-                    </TouchableOpacity>
+                      <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Create New Session</ThemedText>
+                    </Pressable>
                   </View>
                 ) : (
                   upcomingSessions.map((session) => {
@@ -338,7 +337,7 @@ export function InviteSessionFlow({
                       : null;
 
                     return (
-                      <TouchableOpacity
+                      <Pressable
                         key={session.id}
                         style={[styles.sessionCard, { backgroundColor: palette.background, borderColor: palette.border }]}
                         onPress={() => handleSessionSelect(session)}
@@ -380,7 +379,7 @@ export function InviteSessionFlow({
                         </View>
 
                         <Ionicons name="chevron-forward" size={20} color={palette.muted} />
-                      </TouchableOpacity>
+                      </Pressable>
                     );
                   })
                 )}
@@ -419,20 +418,20 @@ export function InviteSessionFlow({
                   </View>
                 </SurfaceCard>
 
-                <TouchableOpacity
+                <Pressable
                   style={[styles.confirmButton, { backgroundColor: palette.success }]}
                   onPress={handleConfirm}
                 >
                   <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
-                  <ThemedText style={styles.confirmButtonText}>Send Invitations</ThemedText>
-                </TouchableOpacity>
+                  <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>Send Invitations</ThemedText>
+                </Pressable>
 
-                <TouchableOpacity
+                <Pressable
                   style={[styles.changeButton, { borderColor: palette.border }]}
                   onPress={() => setStep('select-athletes')}
                 >
                   <ThemedText style={{ color: palette.tint }}>Change Athletes</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
           </ScrollView>
@@ -555,7 +554,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   createButtonText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 
@@ -583,7 +581,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },
-  confirmButtonText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  confirmButtonText: { ...Typography.subheading },
   changeButton: {
     alignItems: 'center',
     paddingVertical: Spacing.md,

@@ -20,8 +20,8 @@ import Svg, { Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -53,8 +53,7 @@ export function ProgressBadge({
   onPress,
   size = 'medium',
 }: ProgressBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const scale = useSharedValue(1);
   const animatedProgress = useSharedValue(0);
@@ -162,7 +161,7 @@ export function ProgressBadge({
 
         {/* Completion check */}
         {isComplete && (
-          <View style={[styles.completeBadge, { backgroundColor: palette.success }]}>
+          <View style={[styles.completeBadge, { backgroundColor: palette.success, borderColor: palette.surface }]}>
             <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
           </View>
         )}
@@ -231,7 +230,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.light.surface,
   },
   labelContainer: {
     alignItems: 'center',

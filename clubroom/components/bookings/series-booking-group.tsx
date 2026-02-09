@@ -16,8 +16,8 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 
 interface SeriesBookingGroupProps {
@@ -27,7 +27,7 @@ interface SeriesBookingGroupProps {
   onBookingPress?: (booking: BookingSummary) => void;
 }
 
-function getStatusColor(status: BookingSummary['status'], palette: typeof Colors.light): string {
+function getStatusColor(status: BookingSummary['status'], palette: ReturnType<typeof useTheme>['colors']): string {
   switch (status) {
     case 'Confirmed': return palette.success;
     case 'Pending': return palette.warning;
@@ -55,7 +55,7 @@ const SeriesWeekRow = memo(function SeriesWeekRow({
   booking: BookingSummary;
   index: number;
   total: number;
-  palette: typeof Colors.light;
+  palette: ReturnType<typeof useTheme>['colors'];
   onPress?: (booking: BookingSummary) => void;
 }) {
   const { day, time } = formatBookingDate(booking.start);
@@ -96,8 +96,7 @@ export const SeriesBookingGroup = memo(function SeriesBookingGroup({
   coachName,
   onBookingPress,
 }: SeriesBookingGroupProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const toggleExpanded = useCallback(() => {

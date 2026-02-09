@@ -2,8 +2,8 @@ import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { ConsentType } from '@/constants/types';
 import { consentService, type ConsentFilters } from '@/services/consent-service';
 
@@ -20,8 +20,7 @@ interface FilterChipProps {
 }
 
 function FilterChip({ label, icon, isActive, onPress }: FilterChipProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Pressable
@@ -57,8 +56,7 @@ function FilterChip({ label, icon, isActive, onPress }: FilterChipProps) {
 }
 
 export function ConsentFilter({ filters, onFilterChange }: ConsentFilterProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const consentTypes = consentService.getConsentTypes();
 

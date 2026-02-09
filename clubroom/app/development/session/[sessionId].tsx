@@ -9,8 +9,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { MOCK_SESSIONS, getUserById, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
@@ -42,8 +42,7 @@ type SkillRating = { skill: string; rating: number; previousRating?: number };
 
 export default function SessionDetailScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [session, setSession] = useState<Session | null>(null);
@@ -353,7 +352,7 @@ export default function SessionDetailScreen() {
                     <Ionicons
                       name={star <= rating ? 'star' : 'star-outline'}
                       size={36}
-                      color={star <= rating ? '#FFD700' : palette.muted}
+                      color={star <= rating ? palette.rating : palette.muted}
                     />
                   </Clickable>
                 ))}
@@ -415,7 +414,7 @@ export default function SessionDetailScreen() {
                       <ThemedText
                         style={[
                           styles.skillButtonText,
-                          { color: isSelected ? Colors.light.onPrimary : palette.foreground },
+                          { color: isSelected ? palette.onPrimary : palette.foreground },
                         ]}
                       >
                         {skill}
@@ -450,7 +449,7 @@ export default function SessionDetailScreen() {
                           ]}
                         >
                           {num === sr.rating && (
-                            <ThemedText style={styles.skillRatingValue}>{num}</ThemedText>
+                            <ThemedText style={[styles.skillRatingValue, { color: palette.onPrimary }]}>{num}</ThemedText>
                           )}
                         </Clickable>
                       ))}
@@ -589,7 +588,7 @@ export default function SessionDetailScreen() {
                       </ThemedText>
                     </View>
                     <Clickable onPress={() => handleRemoveVideo(index)}>
-                      <Ionicons name="trash-outline" size={20} color={Colors.light.error} />
+                      <Ionicons name="trash-outline" size={20} color={palette.error} />
                     </Clickable>
                   </SurfaceCard>
                 ))}
@@ -626,7 +625,7 @@ export default function SessionDetailScreen() {
                       </ThemedText>
                     </View>
                     <Clickable onPress={() => handleRemoveImage(index)}>
-                      <Ionicons name="trash-outline" size={20} color={Colors.light.error} />
+                      <Ionicons name="trash-outline" size={20} color={palette.error} />
                     </Clickable>
                   </SurfaceCard>
                 ))}
@@ -694,11 +693,11 @@ export default function SessionDetailScreen() {
             ]}
           >
             {saving ? (
-              <ThemedText style={styles.saveButtonText}>Saving...</ThemedText>
+              <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Saving...</ThemedText>
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.saveButtonText}>Save & Submit</ThemedText>
+                <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
+                <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Save & Submit</ThemedText>
               </>
             )}
           </Clickable>
@@ -883,7 +882,6 @@ const styles = StyleSheet.create({
   },
   skillRatingValue: {
     ...Typography.caption,
-    color: Colors.light.onPrimary,
   },
   notesCard: {
     padding: Spacing.md,
@@ -959,6 +957,5 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     ...Typography.subheading,
-    color: Colors.light.onPrimary,
   },
 });

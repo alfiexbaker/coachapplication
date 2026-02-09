@@ -9,8 +9,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { WaitlistManage } from '@/components/waitlist/WaitlistManage';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { waitlistService } from '@/services/waitlist-service';
 import type { WaitlistEntry, WaitlistSummary } from '@/constants/types';
@@ -19,8 +19,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('WaitlistManage');
 
 export default function ManageWaitlistScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [summaries, setSummaries] = useState<WaitlistSummary[]>([]);

@@ -11,7 +11,7 @@
 import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import { createLogger } from '@/utils/logger';
-import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -326,12 +326,14 @@ async function loadFromStorage(): Promise<ChildProfile[]> {
   return childrenCache;
 }
 
-async function saveToStorage(data: ChildProfile[]): Promise<void> {
+async function saveToStorage(data: ChildProfile[]): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.CHILDREN_PROFILES, data);
     childrenCache = data;
+    return ok(undefined);
   } catch (error) {
     logger.error('Failed to save to storage', error);
+    return err(storageError(`Failed to save children profiles: ${String(error)}`));
   }
 }
 
@@ -340,7 +342,7 @@ async function saveToStorage(data: ChildProfile[]): Promise<void> {
 // ============================================================================
 
 function generateId(): string {
-  return `child-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return apiClient.generateId('child');
 }
 
 function calculateAge(dateOfBirth?: string): number | null {
@@ -493,7 +495,7 @@ export const childService = {
 
     const newDisability: Disability = {
       ...disability,
-      id: `dis-${Date.now()}`,
+      id: apiClient.generateId('dis'),
     };
 
     return this.updateChild(childId, {
@@ -522,7 +524,7 @@ export const childService = {
 
     const newSpecialNeed: SpecialNeed = {
       ...specialNeed,
-      id: `sn-${Date.now()}`,
+      id: apiClient.generateId('sn'),
     };
 
     return this.updateChild(childId, {

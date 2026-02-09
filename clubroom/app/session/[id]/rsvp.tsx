@@ -19,7 +19,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { RSVPFlow } from '@/components/session/rsvp-flow';
 import { rsvpService } from '@/services/rsvp-service';
 import type { SessionRsvp } from '@/constants/types';
@@ -42,6 +43,7 @@ interface SessionInfo {
 export default function RSVPScreen() {
   const { id: sessionId, rsvpId } = useLocalSearchParams<{ id: string; rsvpId?: string }>();
   const router = useRouter();
+  const { colors } = useTheme();
 
   const [rsvp, setRsvp] = useState<SessionRsvp | null>(null);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
@@ -137,8 +139,8 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.light.tint} />
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color={colors.tint} />
         </View>
       </>
     );
@@ -149,10 +151,10 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
-        <View style={styles.centerContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.light.muted} />
-          <Text style={styles.errorTitle}>RSVP Not Found</Text>
-          <Text style={styles.errorMessage}>
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.muted} />
+          <Text style={[styles.errorTitle, { color: colors.text }]}>RSVP Not Found</Text>
+          <Text style={[styles.errorMessage, { color: colors.muted }]}>
             This RSVP may have expired or already been handled.
           </Text>
         </View>
@@ -165,19 +167,19 @@ export default function RSVPScreen() {
     const statusConfig = {
       going: {
         icon: 'checkmark-circle' as const,
-        color: Colors.light.success,
+        color: colors.success,
         label: 'Going',
         message: `${rsvp.childName || 'Your child'} is confirmed for this session.`,
       },
       not_going: {
         icon: 'close-circle' as const,
-        color: Colors.light.error,
+        color: colors.error,
         label: 'Not Going',
         message: `${rsvp.childName || 'Your child'} will not attend this session.`,
       },
       maybe: {
         icon: 'help-circle' as const,
-        color: Colors.light.warning,
+        color: colors.warning,
         label: 'Maybe',
         message: `You've marked ${rsvp.childName || 'your child'} as maybe for this session.`,
       },
@@ -188,13 +190,13 @@ export default function RSVPScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'RSVP' }} />
-        <View style={styles.centerContainer}>
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
           <Ionicons name={config.icon} size={64} color={config.color} />
           <Text style={[styles.confirmedTitle, { color: config.color }]}>
             {config.label}
           </Text>
-          <Text style={styles.confirmedMessage}>{config.message}</Text>
-          <Text style={styles.confirmedSession}>{sessionInfo.title}</Text>
+          <Text style={[styles.confirmedMessage, { color: colors.muted }]}>{config.message}</Text>
+          <Text style={[styles.confirmedSession, { color: colors.text }]}>{sessionInfo.title}</Text>
         </View>
       </>
     );
@@ -205,7 +207,7 @@ export default function RSVPScreen() {
     <>
       <Stack.Screen options={{ title: 'RSVP' }} />
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -230,7 +232,6 @@ export default function RSVPScreen() {
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    backgroundColor: Colors.light.background,
   },
   scrollContent: {
     padding: Spacing.sm,
@@ -238,7 +239,6 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.lg,
@@ -246,12 +246,10 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     ...Typography.heading,
-    color: Colors.light.text,
     textAlign: 'center',
   },
   errorMessage: {
     ...Typography.body,
-    color: Colors.light.muted,
     textAlign: 'center',
   },
   confirmedTitle: {
@@ -260,13 +258,11 @@ const styles = StyleSheet.create({
   },
   confirmedMessage: {
     ...Typography.body,
-    color: Colors.light.muted,
     textAlign: 'center',
     maxWidth: 280,
   },
   confirmedSession: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
     textAlign: 'center',
     marginTop: Spacing.xs,
   },

@@ -6,8 +6,8 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import { type Disability, DISABILITY_TYPES } from '@/services/child-service';
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -52,8 +52,7 @@ export interface AddChildMedicalStepProps {
 // ─── Component ──────────────────────────────────────────────────
 
 function AddChildMedicalStepInner(props: AddChildMedicalStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (props.variant === 'special_needs') {
     return <SpecialNeedsContent {...props} palette={palette} />;
@@ -80,7 +79,7 @@ function SpecialNeedsContent({
   onBehavioralNotesChange,
   onAddDisability,
   palette,
-}: AddChildMedicalStepProps & { palette: typeof Colors.light }) {
+}: AddChildMedicalStepProps & { palette: ThemeColors }) {
   return (
     <View style={styles.stepContent}>
       <SurfaceCard style={styles.infoCard}>
@@ -266,7 +265,7 @@ function MedicalContent({
   onMedicationInputChange,
   onAddMedication,
   palette,
-}: AddChildMedicalStepProps & { palette: typeof Colors.light }) {
+}: AddChildMedicalStepProps & { palette: ThemeColors }) {
   return (
     <View style={styles.stepContent}>
       <SurfaceCard style={styles.infoCard}>

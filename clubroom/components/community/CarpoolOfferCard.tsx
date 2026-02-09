@@ -5,10 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import type { CarpoolOffer } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CarpoolOfferCardProps {
   offer: CarpoolOffer;
@@ -36,8 +36,7 @@ function CarpoolOfferCardComponent({
   onManageRequests,
   compact = false,
 }: CarpoolOfferCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isOwnOffer = offer.parentId === currentUserId;
   const seatsLeft = offer.seatsAvailable - offer.seatsTaken;

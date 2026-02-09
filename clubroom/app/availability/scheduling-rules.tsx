@@ -9,8 +9,8 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';
@@ -62,8 +62,7 @@ interface OptionPickerProps<T> {
 }
 
 function OptionPicker<T extends number>({ options, selectedValue, onSelect }: OptionPickerProps<T>) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.optionsGrid}>
@@ -96,7 +95,7 @@ function OptionPicker<T extends number>({ options, selectedValue, onSelect }: Op
             </ThemedText>
             {isSelected && (
               <View style={[styles.checkCircle, { backgroundColor: palette.tint }]}>
-                <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />
+                <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
               </View>
             )}
           </Clickable>
@@ -107,8 +106,7 @@ function OptionPicker<T extends number>({ options, selectedValue, onSelect }: Op
 }
 
 export default function SchedulingRulesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [, setRules] = useState<CoachSchedulingRules | null>(null);
@@ -304,7 +302,7 @@ export default function SchedulingRulesScreen() {
                 updateField(setAllowSameDayBookings)(value);
               }}
               trackColor={{ false: palette.border, true: palette.success }}
-              thumbColor={Colors.light.surface}
+              thumbColor={palette.surface}
             />
           </View>
 
@@ -336,7 +334,7 @@ export default function SchedulingRulesScreen() {
                 updateField(setAllowRescheduling)(value);
               }}
               trackColor={{ false: palette.border, true: palette.tint }}
-              thumbColor={Colors.light.surface}
+              thumbColor={palette.surface}
             />
           </View>
 
@@ -421,8 +419,8 @@ export default function SchedulingRulesScreen() {
             <ThemedText style={styles.saveButtonText}>Saving...</ThemedText>
           ) : (
             <>
-              <Ionicons name="checkmark-circle-outline" size={20} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.saveButtonText}>Save Rules</ThemedText>
+              <Ionicons name="checkmark-circle-outline" size={20} color={palette.onPrimary} />
+              <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Save Rules</ThemedText>
             </>
           )}
         </Clickable>
@@ -592,7 +590,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   saveButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
 });

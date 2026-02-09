@@ -12,8 +12,8 @@ import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Components , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Components , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { CoachComparison, ComparisonCriteria } from '@/constants/types';
 
 interface CoachColumnProps {
@@ -32,8 +32,7 @@ interface ValueCellProps {
 }
 
 function ValueCell({ label, value, isBest, icon, suffix }: ValueCellProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.cell, isBest ? { backgroundColor: withAlpha(palette.success, 0.06) } : undefined]}>
@@ -42,7 +41,7 @@ function ValueCell({ label, value, isBest, icon, suffix }: ValueCellProps) {
         <ThemedText style={[styles.cellLabel, { color: palette.muted }]}>{label}</ThemedText>
         {isBest && (
           <View style={[styles.bestBadge, { backgroundColor: palette.success }]}>
-            <ThemedText style={styles.bestText}>Best</ThemedText>
+            <ThemedText style={[styles.bestText, { color: palette.onPrimary }]}>Best</ThemedText>
           </View>
         )}
       </View>
@@ -55,8 +54,7 @@ function ValueCell({ label, value, isBest, icon, suffix }: ValueCellProps) {
 }
 
 export function CoachColumn({ coach, bestValues, onRemove, onBook }: CoachColumnProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const formatPrice = (min: number, max: number): string => {
     if (min === max) return `$${min}`;
@@ -214,7 +212,7 @@ export function CoachColumn({ coach, bestValues, onRemove, onBook }: CoachColumn
         ]}
       >
         <Ionicons name="calendar" size={18} color={palette.onPrimary} />
-        <ThemedText style={styles.bookButtonText}>Book Session</ThemedText>
+        <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>Book Session</ThemedText>
       </Pressable>
     </View>
   );
@@ -283,7 +281,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.micro,
     borderRadius: Radii.pill,
   },
-  bestText: { ...Typography.micro, color: Colors.light.onPrimary,
+  bestText: { ...Typography.micro,
     textTransform: 'uppercase' },
   tags: {
     flexDirection: 'row',
@@ -306,5 +304,5 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.button,
   },
-  bookButtonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onPrimary },
+  bookButtonText: { ...Typography.bodySmallSemiBold },
 });

@@ -11,8 +11,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   getSessionsForCoach,
@@ -22,6 +21,7 @@ import {
 import type { Session, User, Booking } from '@/constants/app-types';
 import { bookingService } from '@/services/booking-service';
 import { createLogger } from '@/utils/logger';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('CoachDevelopmentScreen');
 
@@ -38,8 +38,7 @@ interface AthleteRosterEntry extends AthleteWithSessions {
 }
 
 export function CoachDevelopmentScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [allSessions, setAllSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);

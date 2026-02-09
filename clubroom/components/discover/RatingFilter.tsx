@@ -9,8 +9,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface RatingDistribution {
   rating: number;
@@ -32,8 +32,7 @@ export function RatingFilter({
   totalCount,
   onChange,
 }: RatingFilterProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getCountForRating = (rating: number): number => {
     // Sum counts for this rating and above

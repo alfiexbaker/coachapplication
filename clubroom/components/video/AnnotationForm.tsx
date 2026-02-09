@@ -12,8 +12,8 @@ import Animated, { FadeIn, FadeOut, SlideInDown } from 'react-native-reanimated'
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { ANNOTATION_TYPE_CONFIG, videoService } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 
@@ -36,8 +36,7 @@ export function AnnotationForm({
   onCancel,
   onTimestampChange,
 }: AnnotationFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [timestamp, setTimestamp] = useState(existingAnnotation?.timestamp ?? currentTimestamp);
   const [label, setLabel] = useState(existingAnnotation?.label ?? '');
@@ -310,7 +309,7 @@ export function AnnotationForm({
           ]}
         >
           <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-          <ThemedText style={styles.saveButtonText}>
+          <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>
             {saving ? 'Saving...' : isEditing ? 'Update' : 'Add'}
           </ThemedText>
         </Clickable>
@@ -454,7 +453,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   saveButtonText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

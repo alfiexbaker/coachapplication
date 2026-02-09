@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Messaging Service Tests
  *
@@ -18,6 +17,11 @@ import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
 // Mock types
+interface MockAttachment {
+  type: string;
+  url: string;
+}
+
 interface ChatMessage {
   id: string;
   threadId: string;
@@ -26,7 +30,7 @@ interface ChatMessage {
   body: string;
   createdAt: string;
   status: 'pending' | 'sent' | 'delivered' | 'seen';
-  attachments?: any[];
+  attachments?: MockAttachment[];
 }
 
 interface ChatThreadSummary {
@@ -40,10 +44,16 @@ interface ChatThreadSummary {
   subtitle?: string;
 }
 
+interface MockMessageNotification {
+  type: string;
+  threadId: string;
+  senderName: string;
+}
+
 // Mock storage
 let mockThreads: ChatThreadSummary[] = [];
 let mockMessages: Record<string, ChatMessage[]> = {};
-let mockNotifications: any[] = [];
+let mockNotifications: MockMessageNotification[] = [];
 let messageIdCounter = 0; // Counter for unique message IDs
 
 // Mock MessagingService for testing
@@ -68,7 +78,7 @@ class MockMessagingService {
     body: string,
     sender: 'parent' | 'coach',
     senderName?: string,
-    attachments: any[] = []
+    attachments: MockAttachment[] = []
   ): Promise<ChatMessage> {
     const timestamp = new Date().toISOString();
     messageIdCounter++;
@@ -504,7 +514,8 @@ describe('MessagingService - Incoming Messages', () => {
 describe('MessagingService - Mark Read', () => {
   test('markThreadRead() sets unread count to 0', async () => {
     const beforeThread = await messagingService.getThread('thread_1');
-    assert.ok(beforeThread?.unreadCount > 0);
+    assert.ok(beforeThread);
+    assert.ok(beforeThread.unreadCount > 0);
 
     await messagingService.markThreadRead('thread_1');
 

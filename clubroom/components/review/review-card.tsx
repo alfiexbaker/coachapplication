@@ -1,8 +1,8 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { RatingStars } from './rating-stars';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ReviewCardProps {
   name: string;
@@ -14,8 +14,7 @@ interface ReviewCardProps {
 }
 
 export function ReviewCard({ name, role, rating, text, date, response }: ReviewCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   return (
     <View style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}>
       <View style={styles.header}>

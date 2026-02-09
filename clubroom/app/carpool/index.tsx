@@ -9,8 +9,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ViewStyle,
-} from 'react-native';
+  ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,9 +21,9 @@ import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { CarpoolOffer } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService, CreateCarpoolOfferParams, RequestCarpoolSeatParams } from '@/services/community-service';
 import { scaleFont } from '@/utils/scale';
@@ -52,12 +51,10 @@ const initialFormState: CreateOfferFormState = {
   pickupTime: '',
   returnOffered: false,
   returnTime: '',
-  notes: '',
-};
+  notes: '' };
 
 export default function CarpoolScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const parentId = currentUser?.id ?? 'parent1';
   const parentName = currentUser?.fullName ?? currentUser?.name ?? 'Parent';
@@ -135,8 +132,7 @@ export default function CarpoolScreen() {
         pickupTime: createForm.pickupTime,
         returnOffered: createForm.returnOffered,
         returnTime: createForm.returnOffered ? createForm.returnTime : undefined,
-        notes: createForm.notes || undefined,
-      };
+        notes: createForm.notes || undefined };
 
       await communityService.createCarpoolOffer(params);
       setShowCreateModal(false);
@@ -174,8 +170,7 @@ export default function CarpoolScreen() {
         parentName,
         childNames: ['Child'], // In real app, would select from children list
         seatsRequested: seatsNum,
-        message: requestMessage || undefined,
-      };
+        message: requestMessage || undefined };
 
       const seatResult = await communityService.requestCarpoolSeat(params);
       if (!seatResult.success) {
@@ -206,8 +201,7 @@ export default function CarpoolScreen() {
       [
         ...pendingRequests.slice(0, 3).map((req) => ({
           text: `${req.parentName} (${req.seatsRequested} seat${req.seatsRequested > 1 ? 's' : ''})`,
-          onPress: () => handleRespondToRequest(offer.id, req.id, req.parentName),
-        })),
+          onPress: () => handleRespondToRequest(offer.id, req.id, req.parentName) })),
         { text: 'Cancel', style: 'cancel' as const },
       ]
     );
@@ -232,8 +226,7 @@ export default function CarpoolScreen() {
             } catch (error) {
               Alert.alert('Error', (error as Error).message);
             }
-          },
-        },
+          } },
         {
           text: 'Decline',
           style: 'destructive',
@@ -249,8 +242,7 @@ export default function CarpoolScreen() {
             } catch (error) {
               Alert.alert('Error', (error as Error).message);
             }
-          },
-        },
+          } },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
@@ -276,8 +268,7 @@ export default function CarpoolScreen() {
             } catch (error) {
               Alert.alert('Error', (error as Error).message);
             }
-          },
-        },
+          } },
       ]
     );
   };
@@ -416,7 +407,7 @@ export default function CarpoolScreen() {
           onPress={() => setShowCreateModal(true)}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
+          <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
       </View>
 
@@ -430,8 +421,7 @@ export default function CarpoolScreen() {
               styles.tab,
               activeTab === tab.key && {
                 borderBottomColor: palette.tint,
-                borderBottomWidth: 2,
-              },
+                borderBottomWidth: 2 },
             ].filter(Boolean) as ViewStyle[]}
           >
             <ThemedText
@@ -448,14 +438,13 @@ export default function CarpoolScreen() {
                   styles.tabBadge,
                   {
                     backgroundColor:
-                      activeTab === tab.key ? palette.tint : palette.surfaceSecondary,
-                  },
+                      activeTab === tab.key ? palette.tint : palette.surfaceSecondary },
                 ]}
               >
                 <ThemedText
                   style={[
                     styles.tabBadgeText,
-                    { color: activeTab === tab.key ? Colors.light.onPrimary : palette.muted },
+                    { color: activeTab === tab.key ? palette.onPrimary : palette.muted },
                   ]}
                 >
                   {tab.count}
@@ -582,8 +571,7 @@ export default function CarpoolScreen() {
                     styles.toggleRow,
                     {
                       backgroundColor: createForm.returnOffered ? withAlpha(palette.tint, 0.09) : palette.surface,
-                      borderColor: createForm.returnOffered ? palette.tint : palette.border,
-                    },
+                      borderColor: createForm.returnOffered ? palette.tint : palette.border },
                   ]}
                   onPress={() =>
                     setCreateForm({ ...createForm, returnOffered: !createForm.returnOffered })
@@ -756,35 +744,29 @@ export default function CarpoolScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    paddingHorizontal: Spacing.lg,
-  },
+    paddingHorizontal: Spacing.lg },
   tab: {
     flex: 1,
     flexDirection: 'row',
@@ -792,139 +774,109 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xxs,
     paddingVertical: Spacing.sm,
-    marginBottom: -1,
-  },
+    marginBottom: -1 },
   tabLabel: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   tabBadge: {
     minWidth: 20,
     height: 20,
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
-  },
+    paddingHorizontal: Spacing.xxs },
   tabBadgeText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   scrollView: {
-    flex: 1,
-  },
+    flex: 1 },
   scrollContent: {
-    flexGrow: 1,
-  },
+    flexGrow: 1 },
   listContainer: {
-    padding: Spacing.lg,
-  },
+    padding: Spacing.lg },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing['3xl'],
-  },
+    paddingVertical: Spacing['3xl'] },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing['3xl'],
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   emptyIcon: {
     width: 96,
     height: 96,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   emptyTitle: {
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   emptyText: {
     textAlign: 'center',
     ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    lineHeight: scaleFont(22),
-  },
+    lineHeight: scaleFont(22) },
   emptyButton: {
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   cancelLink: {
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   cancelLinkText: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
 
   // Modal styles
   modalContainer: {
-    flex: 1,
-  },
+    flex: 1 },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   modalTitle: {
-    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
-  },
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
   modalContent: {
-    flex: 1,
-  },
+    flex: 1 },
   formContent: {
     padding: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   formSection: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   label: {
     ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
-    marginBottom: Spacing.xxs,
-  },
+    marginBottom: Spacing.xxs },
   input: {
     height: 48,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-  },
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   textArea: {
     minHeight: 80,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-  },
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   toggleLabel: {
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-  },
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
   offerSummary: {
     gap: Spacing.xxs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   modalActions: {
     flexDirection: 'row',
     padding: Spacing.lg,
     gap: Spacing.sm,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   modalButton: {
-    flex: 1,
-  },
-});
+    flex: 1 } });

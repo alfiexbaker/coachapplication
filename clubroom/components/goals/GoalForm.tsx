@@ -24,9 +24,9 @@ import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { CategoryBadge } from './CategoryBadge';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { Goal, GoalCategory, CreateGoalInput, UpdateGoalInput } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -56,8 +56,7 @@ interface GoalFormProps {
  * ```
  */
 export function GoalForm({ goal, onSubmit, onCancel, loading = false }: GoalFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const isEditing = Boolean(goal);
 
   // Form state

@@ -10,8 +10,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
@@ -19,33 +19,34 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('GroupSessionsScreen');
 
+// Decorative: group session type category colors
+const SESSION_TYPE_COLORS = {
+  CAMP: '#FF6B35',
+  CLINIC: '#7B68EE',
+  TEAM_TRAINING: '#2E8B57',
+  TRAINING: '#2E8B57',
+  OPEN_SESSION: '#4169E1',
+  TRIAL: '#20B2AA',
+} as const;
+
 type FilterType = 'ALL' | GroupSession['sessionType'];
 
 function SessionCard({
   session,
   index,
-  onPress,
-}: {
+  onPress }: {
   session: GroupSession;
   index: number;
   onPress: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const firstDate = session.schedule[0];
   const isFree = session.pricePerParticipant === 0;
   const spotsLeft = session.maxParticipants - session.currentParticipants;
   const isFull = spotsLeft <= 0;
 
-  const typeColors: Record<GroupSession['sessionType'], string> = {
-    CAMP: '#FF6B35',
-    CLINIC: '#7B68EE',
-    TEAM_TRAINING: '#2E8B57',
-    TRAINING: '#2E8B57',
-    OPEN_SESSION: '#4169E1',
-    TRIAL: '#20B2AA',
-  };
+  const type = SESSION_TYPE_COLORS;
 
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
@@ -60,16 +61,16 @@ function SessionCard({
             <View
               style={[
                 styles.typeBadge,
-                { backgroundColor: typeColors[session.sessionType] },
+                { backgroundColor: type[session.sessionType] },
               ]}
             >
-              <ThemedText style={styles.typeText}>
+              <ThemedText style={[styles.typeText, { color: palette.onPrimary }]}>
                 {groupSessionService.formatSessionType(session.sessionType)}
               </ThemedText>
             </View>
             {isFree && (
               <View style={[styles.freeBadge, { backgroundColor: palette.tint }]}>
-                <ThemedText style={styles.freeText}>FREE</ThemedText>
+                <ThemedText style={[styles.freeText, { color: palette.onPrimary }]}>FREE</ThemedText>
               </View>
             )}
           </View>
@@ -108,8 +109,7 @@ function SessionCard({
                   ? new Date(firstDate.date).toLocaleDateString('en-GB', {
                       weekday: 'short',
                       day: 'numeric',
-                      month: 'short',
-                    })
+                      month: 'short' })
                   : 'Date TBC'}
                 {session.schedule.length > 1 && ` + ${session.schedule.length - 1} more`}
               </ThemedText>
@@ -154,8 +154,7 @@ function SessionCard({
                     ? withAlpha(palette.error, 0.09)
                     : spotsLeft <= 3
                     ? withAlpha(palette.warning, 0.09)
-                    : withAlpha(palette.success, 0.09),
-                },
+                    : withAlpha(palette.success, 0.09) },
               ]}
             >
               <ThemedText
@@ -166,8 +165,7 @@ function SessionCard({
                       ? palette.error
                       : spotsLeft <= 3
                       ? palette.warning
-                      : palette.success,
-                  },
+                      : palette.success },
                 ]}
               >
                 {isFull
@@ -195,8 +193,7 @@ function SessionCard({
 }
 
 export default function GroupSessionsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [sessions, setSessions] = useState<GroupSession[]>([]);
@@ -267,8 +264,7 @@ export default function GroupSessionsScreen() {
             style={[
               styles.filterChip,
               {
-                backgroundColor: filter === f.key ? palette.tint : palette.surface,
-              },
+                backgroundColor: filter === f.key ? palette.tint : palette.surface },
             ]}
           >
             <ThemedText
@@ -315,176 +311,134 @@ export default function GroupSessionsScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    flex: 1,
-  },
+    flex: 1 },
   subtitle: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   createButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   filtersScroll: {
-    flexGrow: 0,
-  },
+    flexGrow: 0 },
   filtersContainer: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   filterChip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: Radii.full,
-  },
+    borderRadius: Radii.full },
   filterText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   content: {
     padding: Spacing.lg,
-    paddingTop: 0,
-  },
+    paddingTop: 0 },
   list: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   sessionCard: {
     padding: 0,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   imageContainer: {
     position: 'relative',
-    height: 160,
-  },
+    height: 160 },
   image: {
     width: '100%',
-    height: '100%',
-  },
+    height: '100%' },
   typeBadge: {
     position: 'absolute',
     top: Spacing.sm,
     left: Spacing.sm,
     paddingHorizontal: 10,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   typeText: {
-    color: Colors.light.onPrimary,
     ...Typography.caption,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   freeBadge: {
     position: 'absolute',
     top: Spacing.sm,
     right: Spacing.sm,
     paddingHorizontal: 8,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   freeText: {
-    color: Colors.light.onPrimary,
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   cardContent: {
     padding: Spacing.md,
-    gap: 8,
-  },
+    gap: 8 },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
+    alignItems: 'flex-start' },
   titleSection: {
     flex: 1,
-    marginRight: Spacing.sm,
-  },
+    marginRight: Spacing.sm },
   title: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   clubName: {
     ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   priceSection: {
-    alignItems: 'flex-end',
-  },
+    alignItems: 'flex-end' },
   price: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   description: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   details: {
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   detailText: {
     ...Typography.caption,
-    flex: 1,
-  },
+    flex: 1 },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: Spacing.xxs,
-  },
+    marginTop: Spacing.xxs },
   coachInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   coachPhoto: {
     width: 20,
     height: 20,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   coachPhotoPlaceholder: {
     width: 20,
     height: 20,
     borderRadius: Radii.md,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   coachName: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   spotsBadge: {
     paddingHorizontal: 8,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   spotsText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   focusRow: {
     flexDirection: 'row',
     gap: Spacing.xxs,
-    marginTop: Spacing.xxs,
-  },
+    marginTop: Spacing.xxs },
   focusTag: {
     paddingHorizontal: 8,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   focusText: {
-    ...Typography.micro,
-  },
-});
+    ...Typography.micro } });

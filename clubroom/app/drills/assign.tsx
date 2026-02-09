@@ -13,8 +13,7 @@ import {
   TextInput,
   Alert,
   KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+  Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -27,9 +26,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { DifficultyBadge } from '@/components/drills';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Drill, RosterEntry } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { rosterService } from '@/services/roster-service';
@@ -48,8 +47,7 @@ interface Athlete {
  * Screen for assigning a drill to an athlete.
  */
 export default function AssignDrillScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { drillId } = useLocalSearchParams<{ drillId?: string }>();
 
@@ -92,8 +90,7 @@ export default function AssignDrillScreen() {
           const athleteList = roster.map((entry: RosterEntry) => ({
             id: entry.athleteId,
             name: entry.athleteName,
-            age: entry.athleteAge,
-          }));
+            age: entry.athleteAge }));
           setAthletes(athleteList);
         }
       } catch (error) {
@@ -155,8 +152,7 @@ export default function AssignDrillScreen() {
           dueDate: dueDate.toISOString(),
           notes: notes.trim() || undefined,
           repetitions: parseInt(repetitions, 10) || 1,
-          priority,
-        }
+          priority }
       );
 
       Alert.alert(
@@ -170,12 +166,10 @@ export default function AssignDrillScreen() {
               setNotes('');
               setRepetitions('1');
               setPriority(2);
-            },
-          },
+            } },
           {
             text: 'Done',
-            onPress: () => router.back(),
-          },
+            onPress: () => router.back() },
         ]
       );
     } catch (error) {
@@ -193,8 +187,7 @@ export default function AssignDrillScreen() {
     return date.toLocaleDateString('en-GB', {
       weekday: 'short',
       day: 'numeric',
-      month: 'short',
-    });
+      month: 'short' });
   };
 
   /**
@@ -324,8 +317,7 @@ export default function AssignDrillScreen() {
                         styles.athleteCard,
                         {
                           backgroundColor: isSelected ? withAlpha(palette.tint, 0.09) : palette.surface,
-                          borderColor: isSelected ? palette.tint : palette.border,
-                        },
+                          borderColor: isSelected ? palette.tint : palette.border },
                       ]}
                     >
                       <View style={[styles.athleteAvatar, { backgroundColor: palette.surfaceSecondary }]}>
@@ -346,7 +338,7 @@ export default function AssignDrillScreen() {
                       )}
                       {isSelected && (
                         <View style={[styles.selectedCheck, { backgroundColor: palette.tint }]}>
-                          <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />
+                          <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
                         </View>
                       )}
                     </Clickable>
@@ -378,14 +370,13 @@ export default function AssignDrillScreen() {
                         styles.dueDateOption,
                         {
                           backgroundColor: isSelected ? palette.tint : palette.surface,
-                          borderColor: isSelected ? palette.tint : palette.border,
-                        },
+                          borderColor: isSelected ? palette.tint : palette.border },
                       ]}
                     >
                       <ThemedText
                         style={[
                           styles.dueDateOptionText,
-                          { color: isSelected ? Colors.light.onPrimary : palette.text },
+                          { color: isSelected ? palette.onPrimary : palette.text },
                         ]}
                       >
                         {option.label}
@@ -424,8 +415,7 @@ export default function AssignDrillScreen() {
                         styles.priorityOption,
                         {
                           backgroundColor: isSelected ? withAlpha(option.color, 0.09) : palette.surface,
-                          borderColor: isSelected ? option.color : palette.border,
-                        },
+                          borderColor: isSelected ? option.color : palette.border },
                       ]}
                     >
                       {option.value === 1 && (
@@ -463,14 +453,13 @@ export default function AssignDrillScreen() {
                         styles.repsOption,
                         {
                           backgroundColor: isSelected ? palette.tint : palette.surface,
-                          borderColor: isSelected ? palette.tint : palette.border,
-                        },
+                          borderColor: isSelected ? palette.tint : palette.border },
                       ]}
                     >
                       <ThemedText
                         style={[
                           styles.repsOptionText,
-                          { color: isSelected ? Colors.light.onPrimary : palette.text },
+                          { color: isSelected ? palette.onPrimary : palette.text },
                         ]}
                       >
                         {reps}
@@ -539,112 +528,89 @@ export default function AssignDrillScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerTitle: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-  },
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
   keyboardView: {
-    flex: 1,
-  },
+    flex: 1 },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
-  },
+    paddingBottom: Spacing['3xl'] },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   noDrillContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.xl,
-  },
+    padding: Spacing.xl },
   drillPreview: {
     padding: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
+    marginBottom: Spacing.lg },
   drillHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   categoryText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   drillTitle: {
     ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   drillMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   metaText: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-  },
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
   section: {
-    marginBottom: Spacing.lg,
-  },
+    marginBottom: Spacing.lg },
   sectionTitle: {
     ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   athleteGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   athleteCard: {
     width: '47%',
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
     alignItems: 'center',
-    position: 'relative',
-  },
+    position: 'relative' },
   athleteAvatar: {
     width: 44,
     height: 44,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   avatarText: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-  },
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
   athleteName: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   athleteAge: {
     ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   selectedCheck: {
     position: 'absolute',
     top: 8,
@@ -653,36 +619,29 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: Radii.md,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   dueDateOptions: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   dueDateOption: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   dueDateOptionText: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   selectedDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: Spacing.xs,
-  },
+    paddingVertical: Spacing.xs },
   selectedDateText: {
-    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize),
-  },
+    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize) },
   priorityOptions: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   priorityOption: {
     flex: 1,
     flexDirection: 'row',
@@ -691,26 +650,21 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
     paddingVertical: Spacing.xs + Spacing.xxs,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   priorityOptionText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   repsOptions: {
     flexDirection: 'row',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   repsOption: {
     width: 48,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   repsOptionText: {
-    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize),
-  },
+    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize) },
   customRepsInput: {
     width: 72,
     height: 44,
@@ -718,19 +672,15 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     paddingHorizontal: Spacing.sm,
     ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   notesInput: {
     height: 100,
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-  },
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
   submitSection: {
-    marginTop: Spacing.md,
-  },
+    marginTop: Spacing.md },
   submitButton: {
     // Full width by default
-  },
-});
+  } });

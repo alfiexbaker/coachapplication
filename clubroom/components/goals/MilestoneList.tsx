@@ -20,9 +20,9 @@ import Animated, {
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii } from '@/constants/theme';
+import { Spacing, Radii } from '@/constants/theme';
 import type { GoalMilestone } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -70,8 +70,7 @@ export function MilestoneList({
   loading = false,
   compact = false,
 }: MilestoneListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -248,8 +247,7 @@ function MilestoneItem({
   editable: boolean;
   loading: boolean;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const scale = useSharedValue(1);
 

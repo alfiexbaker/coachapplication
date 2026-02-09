@@ -5,8 +5,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { SessionPackage } from '@/constants/types';
 import { packageService } from '@/services/package-service';
 
@@ -37,8 +37,7 @@ export function PackageCard({
   showCoach = false,
   compact = false,
 }: PackageCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const pricePerSession = pkg.pricePerSession ?? Math.round((pkg.price / pkg.sessionCount) * 100) / 100;
 
@@ -48,7 +47,7 @@ export function PackageCard({
         {/* Discount Badge */}
         {pkg.discountPercent > 0 && (
           <View style={[styles.discountBadge, { backgroundColor: palette.success }]}>
-            <ThemedText style={styles.discountText}>
+            <ThemedText style={[styles.discountText, { color: palette.onPrimary }]}>
               Save {pkg.discountPercent}%
             </ThemedText>
           </View>
@@ -155,7 +154,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: Radii.md,
     zIndex: 1,
   },
-  discountText: { ...Typography.caption, color: Colors.light.onPrimary,
+  discountText: { ...Typography.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.5 },
   content: {

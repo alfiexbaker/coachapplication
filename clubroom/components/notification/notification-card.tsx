@@ -2,8 +2,8 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { NotificationItem } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
@@ -21,16 +21,18 @@ const ICONS: Record<NotificationItem['type'], string> = {
   community: 'people',
 };
 
-// Color coding for different notification types
-const TYPE_COLORS: Record<NotificationItem['type'], { bg: string; icon: string }> = {
-  booking: { bg: '#E3F2FD', icon: '#1976D2' },
-  message: { bg: '#E8F5E9', icon: '#388E3C' },
-  review: { bg: '#FFF3E0', icon: '#F57C00' },
-  payment: { bg: '#F3E5F5', icon: '#7B1FA2' },
-  reminder: { bg: '#FBE9E7', icon: '#D84315' },
-  badge: { bg: '#FFF8E1', icon: '#FFA000' },
-  community: { bg: '#E0F7FA', icon: '#00838F' },
-};
+// Color coding maps notification types to semantic theme tokens.
+// Each entry returns a function of palette → { bg, icon } so dark mode adapts automatically.
+type PaletteColors = ReturnType<typeof useTheme>['colors'];
+const getTypeColors = (p: PaletteColors): Record<NotificationItem['type'], { bg: string; icon: string }> => ({
+  booking:   { bg: withAlpha(p.info, 0.09),    icon: p.info },
+  message:   { bg: withAlpha(p.success, 0.09), icon: p.success },
+  review:    { bg: withAlpha(p.warning, 0.09), icon: p.warning },
+  payment:   { bg: withAlpha(p.accent, 0.09),  icon: p.accent },
+  reminder:  { bg: withAlpha(p.error, 0.09),   icon: p.error },
+  badge:     { bg: withAlpha(p.warning, 0.09), icon: p.warning },
+  community: { bg: withAlpha(p.info, 0.09),    icon: p.info },
+});
 
 export function NotificationCard({
   item,
@@ -45,10 +47,10 @@ export function NotificationCard({
   onAddToFeed?: () => void;
   showTypeIndicator?: boolean;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const router = useRouter();
   const icon = ICONS[item.type] || 'notifications';
+  const TYPE_COLORS = getTypeColors(palette);
   const typeColor = TYPE_COLORS[item.type] || TYPE_COLORS.booking;
 
   const handlePress = () => {
@@ -84,14 +86,14 @@ export function NotificationCard({
           style={[
             styles.iconContainer,
             {
-              backgroundColor: scheme === 'dark' ? withAlpha(typeColor.icon, 0.12) : typeColor.bg,
+              backgroundColor: typeColor.bg,
             },
           ]}
         >
           <Ionicons
             name={icon as keyof typeof Ionicons.glyphMap}
             size={20}
-            color={scheme === 'dark' ? palette.tint : typeColor.icon}
+            color={typeColor.icon}
           />
         </View>
 

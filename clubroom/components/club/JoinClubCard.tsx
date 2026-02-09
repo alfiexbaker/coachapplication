@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TextInput, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -7,8 +7,8 @@ import { Routes } from '@/navigation/routes';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface JoinClubCardProps {
   isCoach: boolean;
@@ -17,8 +17,7 @@ export interface JoinClubCardProps {
 }
 
 export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [joinCode, setJoinCode] = useState('');
 
   const handleCreateClub = () => {
@@ -52,12 +51,12 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
           autoCapitalize="characters"
           style={[styles.input, { backgroundColor: palette.background, color: palette.text, borderColor: palette.border }]}
         />
-        <TouchableOpacity
+        <Pressable
           style={[styles.primaryButton, { backgroundColor: palette.tint }]}
           onPress={() => onJoin(joinCode)}
         >
-          <ThemedText style={styles.primaryButtonText}>Join</ThemedText>
-        </TouchableOpacity>
+          <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Join</ThemedText>
+        </Pressable>
       </View>
 
       {isCoach && (
@@ -66,13 +65,13 @@ export function JoinClubCard({ isCoach, onJoin, onCreate }: JoinClubCardProps) {
             <Divider />
             <ThemedText style={[styles.dividerText, { backgroundColor: palette.surface, color: palette.muted }]}>or</ThemedText>
           </View>
-          <TouchableOpacity
+          <Pressable
             style={[styles.createButton, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }]}
             onPress={handleCreateClub}
           >
             <Ionicons name="add-circle-outline" size={20} color={palette.tint} />
             <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Create New Club</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </>
       )}
     </SurfaceCard>
@@ -112,7 +111,6 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontWeight: '600',
-    color: Colors.light.onPrimary,
   },
   secondaryButton: {
     paddingVertical: Spacing.sm,

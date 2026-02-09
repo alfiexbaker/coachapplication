@@ -1,0 +1,230 @@
+/**
+ * CreateCodeModal — Modal for generating new invite codes.
+ *
+ * Allows selecting a school, setting custom code text, and max uses.
+ */
+
+import React, { memo, useCallback } from 'react';
+import { Modal, Pressable, StyleSheet, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Row } from '@/components/primitives/row';
+import { Column } from '@/components/primitives/column';
+import { ThemedText } from '@/components/themed-text';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { schools } from '@/constants/mock-data';
+import type { School } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
+
+interface CreateCodeModalProps {
+  visible: boolean;
+  selectedSchool: School | null;
+  newCodeText: string;
+  maxUses: string;
+  onClose: () => void;
+  onSelectSchool: (school: School | null) => void;
+  onChangeCodeText: (text: string) => void;
+  onChangeMaxUses: (uses: string) => void;
+  onGenerate: () => void;
+}
+
+export const CreateCodeModal = memo(function CreateCodeModal({
+  visible,
+  selectedSchool,
+  newCodeText,
+  maxUses,
+  onClose,
+  onSelectSchool,
+  onChangeCodeText,
+  onChangeMaxUses,
+  onGenerate,
+}: CreateCodeModalProps) {
+  const { colors: palette } = useTheme();
+
+  const handleCodeTextChange = useCallback(
+    (text: string) => onChangeCodeText(text.toUpperCase()),
+    [onChangeCodeText]
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView
+        style={[styles.modalContainer, { backgroundColor: palette.background }]}
+        edges={['top']}
+      >
+        <Row
+          justify="between"
+          align="center"
+          padding="lg"
+          style={[styles.modalHeader, { borderBottomColor: withAlpha(palette.border, 0.3) }]}
+        >
+          <ThemedText type="title">Generate Invite Code</ThemedText>
+          <Pressable
+            onPress={onClose}
+            accessibilityLabel="Close modal"
+            accessibilityRole="button"
+            style={styles.closeTarget}
+          >
+            <ThemedText style={[styles.closeButton, { color: palette.muted }]}>Close</ThemedText>
+          </Pressable>
+        </Row>
+
+        <Column gap="lg" padding="lg">
+          <Column gap="sm">
+            <ThemedText style={styles.label}>Select School</ThemedText>
+            {schools.map((school) => (
+              <Pressable
+                key={school.id}
+                onPress={() => onSelectSchool(school)}
+                style={[
+                  styles.schoolOption,
+                  {
+                    backgroundColor:
+                      selectedSchool?.id === school.id ? palette.tint : palette.card,
+                    borderColor: palette.border,
+                  },
+                ]}
+                accessibilityLabel={`Select ${school.name}`}
+                accessibilityRole="button"
+              >
+                <ThemedText
+                  style={[
+                    styles.schoolOptionText,
+                    selectedSchool?.id === school.id && {
+                      ...Typography.bodySemiBold,
+                      color: palette.onPrimary,
+                    },
+                  ]}
+                >
+                  {school.name}
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.schoolOptionSubtext,
+                    {
+                      color: selectedSchool?.id === school.id
+                        ? withAlpha(palette.onPrimary, 0.8)
+                        : palette.muted,
+                    },
+                  ]}
+                >
+                  {school.city}, {school.state} {'\u2022'} {school.activeCoachesCount} coaches
+                </ThemedText>
+              </Pressable>
+            ))}
+          </Column>
+
+          <Column gap="sm">
+            <ThemedText style={styles.label}>
+              Code (optional - leave blank to auto-generate)
+            </ThemedText>
+            <TextInput
+              value={newCodeText}
+              onChangeText={handleCodeTextChange}
+              autoCapitalize="characters"
+              placeholder="MYSCHOOL2024"
+              placeholderTextColor={palette.muted}
+              style={[
+                styles.input,
+                { borderColor: palette.border, backgroundColor: palette.card, color: palette.text },
+              ]}
+              accessibilityLabel="Custom code text"
+            />
+          </Column>
+
+          <Column gap="sm">
+            <ThemedText style={styles.label}>Max Uses</ThemedText>
+            <TextInput
+              value={maxUses}
+              onChangeText={onChangeMaxUses}
+              keyboardType="number-pad"
+              placeholder="20"
+              placeholderTextColor={palette.muted}
+              style={[
+                styles.input,
+                { borderColor: palette.border, backgroundColor: palette.card, color: palette.text },
+              ]}
+              accessibilityLabel="Maximum number of uses"
+            />
+          </Column>
+
+          <Pressable
+            onPress={onGenerate}
+            disabled={!selectedSchool}
+            style={[
+              styles.generateButton,
+              {
+                backgroundColor: selectedSchool ? palette.tint : palette.border,
+                opacity: selectedSchool ? 1 : 0.5,
+              },
+            ]}
+            accessibilityLabel="Generate invite code"
+            accessibilityRole="button"
+          >
+            <ThemedText style={[styles.generateButtonText, { color: palette.onPrimary }]}>
+              Generate Code
+            </ThemedText>
+          </Pressable>
+        </Column>
+      </SafeAreaView>
+    </Modal>
+  );
+});
+
+const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    borderBottomWidth: 1,
+  },
+  closeTarget: {
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  closeButton: {
+    ...Typography.body,
+  },
+  label: {
+    ...Typography.bodySemiBold,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.subheading,
+    minHeight: 44,
+  },
+  schoolOption: {
+    padding: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    gap: Spacing.xxs,
+    minHeight: 44,
+  },
+  schoolOptionText: {
+    ...Typography.body,
+    fontWeight: '500',
+  },
+  schoolOptionSubtext: {
+    ...Typography.caption,
+  },
+  generateButton: {
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    minHeight: 44,
+  },
+  generateButtonText: {
+    ...Typography.subheading,
+  },
+});

@@ -18,7 +18,8 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface CelebrationOverlayRef {
   celebrate: (options?: CelebrationOptions) => void;
@@ -39,6 +40,7 @@ interface CelebrationOverlayProps {
 
 export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationOverlayProps>(
   ({ onComplete }, ref) => {
+    const { colors: palette } = useTheme();
     const confettiRef = useRef<ConfettiCannon>(null);
 
     const visible = useSharedValue(false);
@@ -106,6 +108,7 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
     }));
 
     const icon = options.icon ?? 'ribbon';
+    // Decorative: celebration gold accent
     const iconColor = options.iconColor ?? '#FFD700';
     const title = options.title ?? 'Amazing!';
     const subtitle = options.subtitle;
@@ -121,9 +124,9 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
             </Animated.View>
 
             <Animated.View style={[styles.textContainer, titleStyle]}>
-              <ThemedText style={[styles.title, { color: Colors.light.onPrimary }]}>{title}</ThemedText>
+              <ThemedText style={[styles.title, { color: palette.onPrimary }]}>{title}</ThemedText>
               {subtitle && (
-                <ThemedText style={[styles.subtitle, { color: withAlpha(Colors.light.onPrimary, 0.8) }]}>
+                <ThemedText style={[styles.subtitle, { color: withAlpha(palette.onPrimary, 0.8) }]}>
                   {subtitle}
                 </ThemedText>
               )}
@@ -138,6 +141,7 @@ export const CelebrationOverlay = forwardRef<CelebrationOverlayRef, CelebrationO
             fadeOut
             fallSpeed={3000}
             explosionSpeed={350}
+            // Decorative: celebration confetti colors (not themeable)
             colors={['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8']}
           />
         </Animated.View>
@@ -151,7 +155,7 @@ CelebrationOverlay.displayName = 'CelebrationOverlay';
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15,23,42,0.85)',
+    backgroundColor: 'rgba(15,23,42,0.85)', // Decorative: celebration overlay backdrop (always dark)
     justifyContent: 'center',
     alignItems: 'center',
   },

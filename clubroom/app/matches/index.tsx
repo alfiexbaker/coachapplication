@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { ScrollView, StyleSheet, View, TouchableOpacity, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -10,8 +10,8 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { MatchCard } from '@/components/match/match-card';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
@@ -27,8 +27,7 @@ const FILTERS: { key: MatchFilter; label: string; icon: string }[] = [
 ];
 
 export default function MatchesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [matches, setMatches] = useState<Match[]>([]);
@@ -96,8 +95,7 @@ export default function MatchesScreen() {
     for (const match of matches) {
       const monthYear = new Date(match.date).toLocaleDateString('en-GB', {
         month: 'long',
-        year: 'numeric',
-      });
+        year: 'numeric' });
 
       if (!groups[monthYear]) {
         groups[monthYear] = [];
@@ -112,8 +110,7 @@ export default function MatchesScreen() {
     <>
       <Stack.Screen
         options={{
-          headerShown: false,
-        }}
+          headerShown: false }}
       />
       <PageContainer
         header={
@@ -180,7 +177,7 @@ export default function MatchesScreen() {
             contentContainerStyle={styles.filterContainer}
           >
             {FILTERS.map((f) => (
-              <TouchableOpacity
+              <Pressable
                 key={f.key}
                 style={[
                   styles.filterTab,
@@ -202,7 +199,7 @@ export default function MatchesScreen() {
                 >
                   {f.label}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </ScrollView>
 
@@ -232,13 +229,13 @@ export default function MatchesScreen() {
                     : 'Check back later for scheduled fixtures'}
                 </ThemedText>
                 {isCoach && filter === 'upcoming' && (
-                  <TouchableOpacity
+                  <Pressable
                     style={[styles.createButton, { backgroundColor: palette.tint }]}
                     onPress={() => router.push(Routes.MATCHES_CREATE)}
                   >
-                    <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
-                    <ThemedText style={styles.createButtonText}>Create Match</ThemedText>
-                  </TouchableOpacity>
+                    <Ionicons name="add" size={20} color={palette.onPrimary} />
+                    <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Create Match</ThemedText>
+                  </Pressable>
                 )}
               </View>
             ) : (
@@ -265,44 +262,33 @@ export default function MatchesScreen() {
 
 const styles = StyleSheet.create({
   scrollView: {
-    flex: 1,
-  },
+    flex: 1 },
   scrollContent: {
-    paddingBottom: Spacing.xl * 2,
-  },
+    paddingBottom: Spacing.xl * 2 },
   statsCard: {
     margin: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   statsTitle: {
     textAlign: 'center',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   statsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   statItem: {
     flex: 1,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   statValue: {
-    ...Typography.display,
-  },
+    ...Typography.display },
   statLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   statDivider: {
     width: 1,
-    height: 32,
-  },
+    height: 32 },
   filterScroll: {
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   filterContainer: {
     paddingHorizontal: Spacing.md,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   filterTab: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -310,36 +296,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   filterLabel: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   matchesList: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   monthGroup: {
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   monthHeader: {
     ...Typography.small,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   loadingContainer: {
     alignItems: 'center',
-    padding: Spacing.xl,
-  },
+    padding: Spacing.xl },
   emptyContainer: {
     alignItems: 'center',
     padding: Spacing.xl,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   emptySubtext: {
     textAlign: 'center',
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -347,10 +325,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   createButtonText: {
-    color: Colors.light.onPrimary,
-    fontWeight: '600',
-  },
-});
+    fontWeight: '600' } });

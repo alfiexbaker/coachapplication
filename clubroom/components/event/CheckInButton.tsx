@@ -5,9 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { ClubEvent, EventAttendance, CheckInInput } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
@@ -49,8 +49,7 @@ export function CheckInButton({
   disabled = false,
   currentLocation,
 }: CheckInButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [loading, setLoading] = useState(false);
 
@@ -174,7 +173,7 @@ export function CheckInButton({
           {currentAttendance.guestsCheckedIn > 0 && (
             <View style={[styles.guestsBadge, { backgroundColor: palette.success }]}>
               <Ionicons name="people" size={14} color={palette.onSuccess} />
-              <ThemedText style={styles.guestsBadgeText}>
+              <ThemedText style={[styles.guestsBadgeText, { color: palette.onSuccess }]}>
                 +{currentAttendance.guestsCheckedIn}
               </ThemedText>
             </View>
@@ -214,7 +213,7 @@ export function CheckInButton({
           ) : (
             <>
               <Ionicons name="log-in" size={20} color={palette.onSuccess} />
-              <ThemedText style={styles.buttonText}>Check In</ThemedText>
+              <ThemedText style={[styles.buttonText, { color: palette.onSuccess }]}>Check In</ThemedText>
             </>
           )}
         </View>
@@ -295,7 +294,7 @@ const styles = StyleSheet.create({
   guestsBadgeText: {
     fontSize: scaleFont(12),
     fontWeight: '600',
-    color: Colors.light.onSuccess,
+    // color set inline for dynamic theming
   },
   undoButton: {
     alignSelf: 'flex-start',
@@ -318,7 +317,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: scaleFont(16),
     fontWeight: '600',
-    color: Colors.light.onSuccess,
+    // color set inline for dynamic theming
   },
   locationWarning: {
     flexDirection: 'row',

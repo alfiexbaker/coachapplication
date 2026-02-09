@@ -8,10 +8,10 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing, Typography, Components } from '@/constants/theme';
+import { Spacing, Typography, Components } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { CoachCard, type CoachCardData } from '@/components/coach';
 import { MOCK_DISCOVERY_COACHES } from '@/constants/mock-data';
 
@@ -64,8 +64,7 @@ export function FeaturedSection({
   onSeeAll,
   favouriteIds = [],
 }: FeaturedSectionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const data: CoachCardData[] = coaches ?? MOCK_DISCOVERY_COACHES;
 

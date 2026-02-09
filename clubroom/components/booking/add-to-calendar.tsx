@@ -28,8 +28,9 @@ import {
 } from 'react-native';
 import * as Calendar from 'expo-calendar';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Components , Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Components , Typography , withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -52,7 +53,7 @@ interface AddToCalendarProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function getDefaultCalendarId(): Promise<string | null> {
+async function getDefaultCalendarId(tintColor: string): Promise<string | null> {
   const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
 
   // Try to find the default calendar
@@ -78,7 +79,7 @@ async function getDefaultCalendarId(): Promise<string | null> {
     if (defaultSource) {
       const newCalendarId = await Calendar.createCalendarAsync({
         title: 'Clubroom Sessions',
-        color: Colors.light.tint,
+        color: tintColor, // Calendar API metadata — not a UI color
         entityType: Calendar.EntityTypes.EVENT,
         sourceId: defaultSource.id,
         source: defaultSource,
@@ -104,6 +105,7 @@ async function getDefaultCalendarId(): Promise<string | null> {
 // ---------------------------------------------------------------------------
 
 export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
+  const { colors: palette } = useTheme();
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -124,7 +126,7 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
       }
 
       // Find or create calendar
-      const calendarId = await getDefaultCalendarId();
+      const calendarId = await getDefaultCalendarId(palette.tint);
       if (!calendarId) {
         Alert.alert('Error', 'Could not find a calendar to add the event to.');
         setLoading(false);
@@ -178,22 +180,23 @@ export function AddToCalendar({ booking, onSuccess }: AddToCalendarProps) {
     <Pressable
       style={({ pressed }) => [
         styles.button,
-        added ? styles.buttonAdded : undefined,
-        pressed && !added ? styles.buttonPressed : undefined,
+        { borderColor: added ? palette.success : palette.tint },
+        added ? { backgroundColor: withAlpha(palette.success, 0.06) } : undefined,
+        pressed && !added ? { opacity: 0.8, backgroundColor: withAlpha(palette.tint, 0.03) } : undefined,
       ]}
       onPress={handleAddToCalendar}
       disabled={loading || added}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={Colors.light.tint} />
+        <ActivityIndicator size="small" color={palette.tint} />
       ) : (
         <>
           <Ionicons
             name={added ? 'checkmark-circle' : 'calendar-outline'}
             size={20}
-            color={added ? Colors.light.success : Colors.light.tint}
+            color={added ? palette.success : palette.tint}
           />
-          <ThemedText style={[styles.buttonText, added ? styles.buttonTextAdded : undefined]}>
+          <ThemedText style={[styles.buttonText, { color: added ? palette.success : palette.tint }]}>
             {added ? 'Added to Calendar' : 'Add to Calendar'}
           </ThemedText>
         </>
@@ -215,21 +218,16 @@ const styles = StyleSheet.create({
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,
     borderWidth: 1.5,
-    borderColor: Colors.light.tint,
     backgroundColor: 'transparent',
     paddingHorizontal: Spacing.md,
   },
   buttonPressed: {
     opacity: 0.8,
-    backgroundColor: withAlpha(Colors.light.tint, 0.03),
   },
   buttonAdded: {
-    borderColor: Colors.light.success,
-    backgroundColor: withAlpha(Colors.light.success, 0.06),
   },
-  buttonText: { ...Typography.bodySemiBold, color: Colors.light.tint },
+  buttonText: { ...Typography.bodySemiBold },
   buttonTextAdded: {
-    color: Colors.light.success,
   },
 });
 

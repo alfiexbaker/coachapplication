@@ -6,17 +6,16 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getBookingsForAthlete, getUserProfile, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('ParentKidsScreen');
 
 export function ParentKidsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   if (!currentUser) {

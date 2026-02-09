@@ -22,8 +22,8 @@ import { MapView } from '@/components/discover/MapView';
 import { createLogger } from '@/utils/logger';
 import { FilterBar } from '@/components/discover/FilterBar';
 import { FilterModal } from '@/components/discover/FilterModal';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { discoverService } from '@/services/discover-service';
 import type {
   CoachSearchFilters,
@@ -39,8 +39,7 @@ const DEFAULT_LOCATION = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_RADIUS = 10; // km
 
 export default function MapScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ filters?: string }>();
 

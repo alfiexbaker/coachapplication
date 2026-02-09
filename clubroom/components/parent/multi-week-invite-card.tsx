@@ -16,8 +16,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionInvite, WeekAcceptance } from '@/constants/types';
 import { sessionInviteService } from '@/services/invite/session-invite-service';
 import { createLogger } from '@/utils/logger';
@@ -54,7 +54,7 @@ const WeekToggleRow = memo(function WeekToggleRow({
 }: {
   week: WeekAcceptance;
   onToggle: (weekDate: string) => void;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   const handlePress = useCallback(() => {
     if (Platform.OS !== 'web') {
@@ -103,8 +103,7 @@ export function MultiWeekInviteCard({
   invite,
   onResponded,
 }: MultiWeekInviteCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const initialWeekSlots = invite.weekSlots ?? [];
   const [weekAcceptances, setWeekAcceptances] = useState<WeekAcceptance[]>(initialWeekSlots);

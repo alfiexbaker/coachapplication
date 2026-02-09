@@ -13,11 +13,11 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { availabilityService } from '@/services/availability-service';
 import { toDateStr } from '@/utils/format';
 import type { AvailabilitySlot, TimeSlot } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const MAX_SELECTIONS = 3;
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -78,8 +78,7 @@ export function SlotPicker({
   preSelectedSlots,
   onSelectionChange,
 }: SlotPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -396,6 +395,5 @@ const styles = StyleSheet.create({
   },
   slotBadge: {
     ...Typography.micro,
-    fontWeight: '600',
   },
 });

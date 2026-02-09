@@ -12,8 +12,8 @@ import { CalendarPicker } from '@/components/ui/booking/calendar-picker';
 import { TimeSlotPicker } from '@/components/ui/booking/time-slot-picker';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilitySlot } from '@/constants/types';
@@ -23,8 +23,7 @@ const logger = createLogger('ScheduleScreen');
 export default function ScheduleScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [allSlots, setAllSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -200,8 +199,8 @@ export default function ScheduleScreen() {
           ]}
           disabled={!draft.date || !draft.slot}
         >
-          <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
-          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+          <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
         </Clickable>
       </View>
     </SafeAreaView>

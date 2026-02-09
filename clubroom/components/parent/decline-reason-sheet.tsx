@@ -12,8 +12,8 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 type DeclineReasonCategory = 'schedule_conflict' | 'too_far' | 'price' | 'child_unavailable' | 'other';
 
@@ -49,8 +49,7 @@ export function DeclineReasonSheet({
   onSubmit,
   athleteName,
 }: DeclineReasonSheetProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [selected, setSelected] = useState<DeclineReasonCategory | null>(null);
   const [note, setNote] = useState('');
 
@@ -78,7 +77,7 @@ export function DeclineReasonSheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
-        style={styles.overlay}
+        style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
@@ -177,7 +176,6 @@ export function DeclineReasonSheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: withAlpha('#000000', 0.4),
     justifyContent: 'flex-end',
   },
   sheet: {

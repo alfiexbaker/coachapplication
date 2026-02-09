@@ -3,8 +3,8 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
 /* ---------- Types ---------- */
 
@@ -100,13 +100,12 @@ function getDotColor(type: TimelineEntryType, palette: Palette): string {
   }
 }
 
-type Palette = (typeof Colors)['light'];
+type Palette = ThemeColors;
 
 /* ---------- Component ---------- */
 
 export function ProgressTimeline({ entries }: ProgressTimelineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const grouped = useMemo(() => groupByMonth(entries), [entries]);
 

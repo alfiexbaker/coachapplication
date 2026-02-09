@@ -13,8 +13,8 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface RecurringSessionActionsProps {
   /** Which occurrence this is, e.g. 4 */
@@ -39,8 +39,7 @@ export function RecurringSessionActions({
   isSkipped = false,
   onRestore,
 }: RecurringSessionActionsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleSkip = () => {
     Alert.alert(
@@ -124,8 +123,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   seriesText: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   actionRow: {
     flexDirection: 'row',

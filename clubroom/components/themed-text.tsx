@@ -72,7 +72,8 @@ const styles = StyleSheet.create({
   },
   link: {
     ...Typography.base,
-    color: '#1D4ED8',
+    // Note: link color is overridden at runtime via useThemeColor; this is the light-mode fallback
+    color: '#1D4ED8', // Decorative: link blue (matches colors.info)
   },
   display: {
     ...Typography.display,

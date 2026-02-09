@@ -1,14 +1,14 @@
 import { useMemo, useState, useCallback } from 'react';
-import { StyleSheet, TouchableOpacity, View, Modal, Share, Alert, Image } from 'react-native';
+import { StyleSheet, Pressable, View, Modal, Share, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import * as ImagePicker from 'expo-image-picker';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { Club, ClubMembership } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface ClubHeaderProps {
   club: Club;
@@ -19,8 +19,7 @@ export interface ClubHeaderProps {
 }
 
 export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos }: ClubHeaderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [showMenu, setShowMenu] = useState(false);
 
   const roleLabel = useMemo(() => {
@@ -139,11 +138,10 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
   return (
     <>
       {/* Cover Photo */}
-      <TouchableOpacity
-        activeOpacity={canManage ? 0.8 : 1}
+      <Pressable
         onPress={() => canManage && pickImage('cover')}
         disabled={!canManage}
-        style={styles.coverPhotoContainer}
+        style={({pressed}) => [styles.coverPhotoContainer, canManage && pressed && {opacity: 0.8}]}
       >
         {club.coverPhotoUrl ? (
           <Image
@@ -168,16 +166,15 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
             <Ionicons name="camera-outline" size={14} color={palette.tint} />
           </View>
         )}
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Club Info Row */}
       <View style={styles.clubHeader}>
         {/* Profile Photo / Avatar */}
-        <TouchableOpacity
-          activeOpacity={canManage ? 0.8 : 1}
+        <Pressable
           onPress={() => canManage && pickImage('profile')}
           disabled={!canManage}
-          style={styles.profilePhotoTouchable}
+          style={({pressed}) => [styles.profilePhotoTouchable, canManage && pressed && {opacity: 0.8}]}
         >
           {club.profilePhotoUrl ? (
             <Image
@@ -194,7 +191,7 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
               <Ionicons name="camera" size={10} color={palette.surface} />
             </View>
           )}
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={{ flex: 1 }}>
           <ThemedText type="title" style={{ ...Typography.title }}>{club.name}</ThemedText>
@@ -205,13 +202,13 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
             </ThemedText>
           ) : null}
         </View>
-        <TouchableOpacity
+        <Pressable
           onPress={() => setShowMenu(true)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={[styles.menuButton, { backgroundColor: withAlpha(palette.muted, 0.06) }]}
         >
           <Ionicons name="ellipsis-horizontal" size={20} color={palette.muted} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {/* Menu Modal */}
@@ -221,9 +218,8 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
         animationType="fade"
         onRequestClose={() => setShowMenu(false)}
       >
-        <TouchableOpacity
+        <Pressable
           style={styles.modalOverlay}
-          activeOpacity={1}
           onPress={() => setShowMenu(false)}
         >
           <View
@@ -232,9 +228,9 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
           >
             <View style={styles.menuHeader}>
               <ThemedText type="defaultSemiBold">{club.name}</ThemedText>
-              <TouchableOpacity onPress={() => setShowMenu(false)}>
+              <Pressable onPress={() => setShowMenu(false)}>
                 <Ionicons name="close" size={24} color={palette.muted} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
             {/* Invite Code Display */}
@@ -246,20 +242,20 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
                     {club.inviteCode}
                   </ThemedText>
                 </View>
-                <TouchableOpacity
+                <Pressable
                   style={[styles.copyButton, { backgroundColor: palette.tint }]}
                   onPress={handleShareInvite}
                 >
                   <Ionicons name="share-outline" size={16} color={palette.onPrimary} />
                   <ThemedText style={{ ...Typography.smallSemiBold, color: palette.onPrimary }}>Share</ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
 
             {/* Menu Items */}
             <View style={styles.menuItems}>
               {menuItems.map((item, index) => (
-                <TouchableOpacity
+                <Pressable
                   key={index}
                   style={styles.menuItem}
                   onPress={item.onPress}
@@ -267,11 +263,11 @@ export function ClubHeader({ club, membership, onLeave, onManage, onUpdatePhotos
                   <Ionicons name={item.icon} size={20} color={item.color} />
                   <ThemedText style={{ color: item.color, flex: 1 }}>{item.label}</ThemedText>
                   <Ionicons name="chevron-forward" size={16} color={palette.muted} />
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </View>
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </Modal>
     </>
   );
@@ -296,12 +292,11 @@ export function ClubStatsRow({
   showMembersSection,
   onToggleMembersSection,
 }: ClubStatsRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.statsRow, { borderColor: palette.border }]}>
-      <TouchableOpacity
+      <Pressable
         style={styles.statItem}
         onPress={() => canManageMembers && onToggleMembersSection()}
       >
@@ -316,7 +311,7 @@ export function ClubStatsRow({
             />
           )}
         </View>
-      </TouchableOpacity>
+      </Pressable>
       <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
       <View style={styles.statItem}>
         <ThemedText type="title" style={{ ...Typography.heading }}>{squadCount}</ThemedText>

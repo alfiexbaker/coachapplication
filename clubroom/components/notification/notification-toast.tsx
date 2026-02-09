@@ -5,8 +5,8 @@ import { useRouter, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { Clickable } from '@/components/primitives/clickable';
 import { createLogger } from '@/utils/logger';
 import { ExtendedNotificationItem } from '@/services/notification-service';
@@ -31,8 +31,7 @@ interface ToastState {
 }
 
 export function NotificationToastProvider({ children }: { children: React.ReactNode }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<ToastState>({ notification: null, visible: false });
@@ -162,8 +161,7 @@ export function NotificationToast({
   onPress?: () => void;
   onDismiss?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const icon = ICONS[notification.type] || 'notifications';
 
   return (

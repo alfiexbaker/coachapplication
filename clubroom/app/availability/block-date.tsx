@@ -25,8 +25,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
@@ -43,8 +43,7 @@ const REASON_OPTIONS = [
 ];
 
 export default function BlockDateScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -224,11 +223,11 @@ export default function BlockDateScreen() {
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+            <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
             <>
-              <Ionicons name="close-circle" size={22} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.saveButtonText}>Block This Date</ThemedText>
+              <Ionicons name="close-circle" size={22} color={palette.onPrimary} />
+              <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Block This Date</ThemedText>
             </>
           )}
         </Pressable>
@@ -282,5 +281,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },
-  saveButtonText: { color: Colors.light.onPrimary, ...Typography.heading },
+  saveButtonText: { ...Typography.heading },
 });

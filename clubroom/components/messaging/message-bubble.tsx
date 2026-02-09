@@ -5,9 +5,9 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { ChatMessage } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -17,8 +17,7 @@ interface MessageBubbleProps {
 }
 
 function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   return (
     <View
       style={[styles.attachment, { borderColor: palette.border, backgroundColor: palette.surface }]}
@@ -27,7 +26,7 @@ function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string 
       <IconSymbol name="doc.text" size={20} color={palette.icon} />
       <View style={styles.attachmentCopy}>
         <ThemedText type="defaultSemiBold">{title}</ThemedText>
-        {subtitle ? <ThemedText style={styles.attachmentSubtitle}>{subtitle}</ThemedText> : null}
+        {subtitle ? <ThemedText style={[styles.attachmentSubtitle, { color: palette.muted }]}>{subtitle}</ThemedText> : null}
       </View>
       <IconSymbol name="chevron.right" size={18} color={palette.icon} />
     </View>
@@ -35,8 +34,7 @@ function AttachmentCard({ title, subtitle }: { title: string; subtitle?: string 
 }
 
 function MessageBubbleComponent({ message, isOwnMessage, onLongPress, showSenderLabel }: MessageBubbleProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const bubbleColor = isOwnMessage
     ? scheme === 'dark'
       ? palette.secondary
@@ -141,7 +139,7 @@ const styles = StyleSheet.create({
   },
   attachmentSubtitle: {
     ...Typography.caption,
-    color: Colors.light.muted,
+    // color set inline for dynamic theming
     marginTop: Spacing.micro,
   },
 });

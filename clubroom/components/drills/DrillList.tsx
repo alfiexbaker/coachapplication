@@ -13,10 +13,10 @@ import { AssignmentCard } from './AssignmentCard';
 import { DrillCard } from './DrillCard';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { Drill, AssignedDrill, DrillCategory } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface DrillListProps {
   /** List of drills to display (for library view) */
@@ -62,8 +62,7 @@ export function DrillList({
   emptyActionLabel = 'Create Drill',
   showAssignmentCount = false,
 }: DrillListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Determine which list to render
   const isAssignmentMode = Boolean(assignments);
@@ -156,16 +155,15 @@ interface DrillSectionHeaderProps {
 }
 
 export function DrillSectionHeader({ category, count }: DrillSectionHeaderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
-  // Category info mapping
+  // Decorative: drill category colors for distinct visual identification
   const categoryInfo: Record<DrillCategory, { label: string; icon: string; color: string }> = {
-    WARMUP: { label: 'Warm-up', icon: 'flame', color: '#F59E0B' },
-    TECHNIQUE: { label: 'Technique', icon: 'football', color: '#3B82F6' },
-    FITNESS: { label: 'Fitness', icon: 'fitness', color: '#10B981' },
-    COOLDOWN: { label: 'Cool-down', icon: 'snow', color: '#6366F1' },
-    TACTICAL: { label: 'Tactical', icon: 'bulb', color: '#8B5CF6' },
+    WARMUP: { label: 'Warm-up', icon: 'flame', color: '#F59E0B' },    // Decorative: warmup category
+    TECHNIQUE: { label: 'Technique', icon: 'football', color: '#3B82F6' }, // Decorative: technique category
+    FITNESS: { label: 'Fitness', icon: 'fitness', color: '#10B981' },   // Decorative: fitness category
+    COOLDOWN: { label: 'Cool-down', icon: 'snow', color: '#6366F1' },  // Decorative: cooldown category
+    TACTICAL: { label: 'Tactical', icon: 'bulb', color: '#8B5CF6' },   // Decorative: tactical category
   };
 
   const info = categoryInfo[category];

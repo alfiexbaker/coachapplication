@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 type AlertType = 'allergy' | 'condition' | 'medication' | 'restriction';
 
@@ -25,8 +25,7 @@ export function MedicalAlertBadge({
   onPress,
   size = 'medium',
 }: MedicalAlertBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getConfig = () => {
     switch (type) {
@@ -121,8 +120,7 @@ export function MedicalAlertRow({
   description?: string;
   onPress?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getConfig = () => {
     switch (type) {
@@ -194,8 +192,7 @@ export function AlertSeverityDot({
   level: 'none' | 'low' | 'medium' | 'high';
   size?: number;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getColor = () => {
     switch (level) {
@@ -236,8 +233,7 @@ export function AlertCountBadge({
   count: number;
   type?: 'allergy' | 'condition' | 'medication' | 'total';
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (count === 0) {
     return null;

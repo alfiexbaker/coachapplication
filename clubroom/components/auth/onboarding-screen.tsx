@@ -24,8 +24,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { AccountType, SkillLevel, OnboardingData } from '@/services/auth-service';
 import { createLogger } from '@/utils/logger';
@@ -36,7 +36,7 @@ const logger = createLogger('Onboarding');
 // HELPERS
 // ============================================================================
 
-const getPasswordStrength = (password: string): { level: number; label: string; color: string } => {
+const getPasswordStrength = (password: string, palette: { error: string; warning: string; success: string }): { level: number; label: string; color: string } => {
   let score = 0;
 
   if (password.length >= 6) score++;
@@ -45,10 +45,10 @@ const getPasswordStrength = (password: string): { level: number; label: string; 
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 1) return { level: 1, label: 'Weak', color: Colors.light.error };
-  if (score === 2) return { level: 2, label: 'Fair', color: Colors.light.warning };
-  if (score === 3) return { level: 3, label: 'Good', color: Colors.light.success };
-  return { level: 4, label: 'Strong', color: Colors.light.success };
+  if (score <= 1) return { level: 1, label: 'Weak', color: palette.error };
+  if (score === 2) return { level: 2, label: 'Fair', color: palette.warning };
+  if (score === 3) return { level: 3, label: 'Good', color: palette.success };
+  return { level: 4, label: 'Strong', color: palette.success };
 };
 
 // ============================================================================
@@ -115,8 +115,7 @@ const COACH_SPECIALIZATIONS = [
 // ============================================================================
 
 export default function OnboardingScreen({ onComplete, onBackToLogin }: OnboardingScreenProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { registerFromOnboarding, error: authError } = useAuth();
 
   // Current step
@@ -502,7 +501,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           <View style={styles.strengthContainer}>
             <View style={styles.strengthBars}>
               {[1, 2, 3, 4].map((level) => {
-                const strength = getPasswordStrength(password);
+                const strength = getPasswordStrength(password, palette);
                 const isActive = level <= strength.level;
                 return (
                   <View
@@ -519,8 +518,8 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
                 );
               })}
             </View>
-            <ThemedText style={[styles.strengthLabel, { color: getPasswordStrength(password).color }]}>
-              {getPasswordStrength(password).label}
+            <ThemedText style={[styles.strengthLabel, { color: getPasswordStrength(password, palette).color }]}>
+              {getPasswordStrength(password, palette).label}
             </ThemedText>
           </View>
         )}
@@ -691,7 +690,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           ]}>
             <Animated.View style={[
               styles.toggleKnob,
-              { transform: [{ translateX: hasChildren ? 20 : 0 }] }
+              { backgroundColor: palette.surface, transform: [{ translateX: hasChildren ? 20 : 0 }] }
             ]} />
           </View>
         </Pressable>
@@ -731,7 +730,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
           ]}>
             <Animated.View style={[
               styles.toggleKnob,
-              { transform: [{ translateX: isOrganization ? 20 : 0 }] }
+              { backgroundColor: palette.surface, transform: [{ translateX: isOrganization ? 20 : 0 }] }
             ]} />
           </View>
         </Pressable>
@@ -892,7 +891,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
 
         {/* Footer */}
         {step !== 'complete' && (
-          <View style={styles.footer}>
+          <View style={[styles.footer, { borderTopColor: palette.border }]}>
             <Pressable
               onPress={handleNext}
               disabled={isSubmitting}
@@ -904,7 +903,7 @@ export default function OnboardingScreen({ onComplete, onBackToLogin }: Onboardi
                 },
               ]}
             >
-              <ThemedText style={styles.nextButtonText}>
+              <ThemedText style={[styles.nextButtonText, { color: palette.onPrimary }]}>
                 {step === 'coach-details' || step === 'athlete-details'
                   ? 'Create Account'
                   : 'Continue'}
@@ -1114,7 +1113,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: Radii.md,
-    backgroundColor: Colors.light.surface,
   },
 
   // Specializations
@@ -1195,7 +1193,6 @@ const styles = StyleSheet.create({
   footer: {
     padding: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
   },
   nextButton: {
     flexDirection: 'row',
@@ -1206,8 +1203,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   nextButtonText: {
-    ...Typography.body,
-    fontWeight: '600',
-    color: Colors.light.onPrimary,
+    ...Typography.bodySemiBold,
   },
 });

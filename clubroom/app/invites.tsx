@@ -31,24 +31,25 @@ import { Image } from 'expo-image';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
-import { inviteService as sessionInviteService } from '@/services/invite';
+import { inviteService as sessionInviteService, inviteRsvpService } from '@/services/invite';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
+import { RsvpButtonGroup } from '@/components/invite/rsvp-button-group';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('InvitesScreen');
 
-type TabFilter = 'pending' | 'responded';
+type TabFilter = 'pending' | 'maybe' | 'responded';
 
 export default function InvitesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [invites, setInvites] = useState<SessionInvite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [tabFilter, setTabFilter] = useState<TabFilter>('pending');
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
@@ -59,9 +60,11 @@ export default function InvitesScreen() {
     try {
       const parentInvites = await sessionInviteService.getParentInvites(currentUser.id);
       setInvites(parentInvites);
+      setError(null);
       logger.debug('Loaded invites', { count: parentInvites.length });
-    } catch (error) {
-      logger.error('Failed to load invites', error);
+    } catch (err) {
+      logger.error('Failed to load invites', err);
+      setError('Failed to load invites. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -87,21 +90,35 @@ export default function InvitesScreen() {
     if (tabFilter === 'pending') {
       return invite.status === 'PENDING' && new Date(invite.expiresAt) > new Date();
     }
-    return invite.status !== 'PENDING';
+    if (tabFilter === 'maybe') {
+      return invite.status === 'MAYBE';
+    }
+    return invite.status !== 'PENDING' && invite.status !== 'MAYBE';
   });
 
   const pendingCount = invites.filter(
     i => i.status === 'PENDING' && new Date(i.expiresAt) > new Date()
   ).length;
 
+  const maybeCount = invites.filter(i => i.status === 'MAYBE').length;
+
   const handleAcceptInvite = async (invite: SessionInvite, selectedSlot: TimeSlot) => {
     setRespondingTo(invite.id);
     try {
-      await sessionInviteService.respondToInvite({
+      const result = await sessionInviteService.respondToInvite({
         inviteId: invite.id,
         response: 'ACCEPTED',
         selectedSlot,
       });
+
+      if (!result.success) {
+        Alert.alert(
+          'Booking Failed',
+          result.error?.message ?? 'Could not create the booking. Please try again.',
+        );
+        logger.error('Invite acceptance failed', { inviteId: invite.id, error: result.error?.message });
+        return;
+      }
 
       Alert.alert(
         'Booking Confirmed',
@@ -187,6 +204,29 @@ export default function InvitesScreen() {
     return `Expires ${expires.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
   };
 
+  const handleRsvp = useCallback(async (inviteId: string, rsvpStatus: 'going' | 'maybe' | 'cant_go') => {
+    if (!currentUser) return;
+    try {
+      const result = await inviteRsvpService.respondToInvite(
+        inviteId,
+        currentUser.id,
+        currentUser.fullName || currentUser.username || 'User',
+        rsvpStatus,
+        undefined,
+        undefined,
+        currentUser.avatar,
+      );
+      if (!result.success) {
+        Alert.alert('Error', result.error.message);
+        return;
+      }
+      loadInvites();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to respond. Please try again.');
+      logger.error('Failed to RSVP', error);
+    }
+  }, [currentUser, loadInvites]);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
@@ -197,6 +237,8 @@ export default function InvitesScreen() {
         return { text: 'Counter Sent', color: palette.warning };
       case 'EXPIRED':
         return { text: 'Expired', color: palette.muted };
+      case 'MAYBE':
+        return { text: 'Maybe', color: palette.warning };
       default:
         return { text: 'Pending', color: palette.tint };
     }
@@ -311,32 +353,42 @@ export default function InvitesScreen() {
           )}
         </View>
 
-        {/* Actions for pending invites */}
-        {isPending && !isExpired && (
-          <View style={styles.actions}>
-            <Pressable
-              style={[styles.declineButton, { borderColor: palette.border }]}
-              onPress={() => handleDeclineInvite(invite)}
+        {/* RSVP actions for pending/maybe invites */}
+        {(isPending || invite.status === 'MAYBE') && !isExpired && (
+          <View style={styles.rsvpSection}>
+            <RsvpButtonGroup
+              currentStatus={invite.status === 'MAYBE' ? 'maybe' : undefined}
+              onRespond={(rsvpStatus) => handleRsvp(invite.id, rsvpStatus)}
               disabled={isResponding}
-            >
-              <ThemedText style={[styles.declineText, { color: palette.muted }]}>
-                Decline
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              style={[styles.acceptButton, { backgroundColor: palette.tint }]}
-              onPress={() => showSlotPicker(invite)}
-              disabled={isResponding}
-            >
-              {isResponding ? (
-                <ThemedText style={styles.acceptText}>Booking...</ThemedText>
-              ) : (
-                <>
-                  <Ionicons name="checkmark" size={18} color={Colors.light.onPrimary} />
-                  <ThemedText style={styles.acceptText}>Accept</ThemedText>
-                </>
-              )}
-            </Pressable>
+              compact
+            />
+            {isPending && (
+              <View style={styles.actions}>
+                <Pressable
+                  style={[styles.declineButton, { borderColor: palette.border }]}
+                  onPress={() => handleDeclineInvite(invite)}
+                  disabled={isResponding}
+                >
+                  <ThemedText style={[styles.declineText, { color: palette.muted }]}>
+                    Decline
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  style={[styles.acceptButton, { backgroundColor: palette.tint }]}
+                  onPress={() => showSlotPicker(invite)}
+                  disabled={isResponding}
+                >
+                  {isResponding ? (
+                    <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Booking...</ThemedText>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
+                      <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept</ThemedText>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            )}
           </View>
         )}
 
@@ -391,6 +443,25 @@ export default function InvitesScreen() {
           style={[
             styles.tab,
             {
+              borderColor: tabFilter === 'maybe' ? palette.tint : palette.border,
+              backgroundColor: tabFilter === 'maybe' ? withAlpha(palette.tint, 0.06) : 'transparent',
+            },
+          ]}
+          onPress={() => setTabFilter('maybe')}
+        >
+          <ThemedText
+            style={[
+              styles.tabText,
+              { color: tabFilter === 'maybe' ? palette.tint : palette.muted },
+            ]}
+          >
+            Maybe {maybeCount > 0 && `(${maybeCount})`}
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          style={[
+            styles.tab,
+            {
               borderColor: tabFilter === 'responded' ? palette.tint : palette.border,
               backgroundColor: tabFilter === 'responded' ? withAlpha(palette.tint, 0.06) : 'transparent',
             },
@@ -419,32 +490,51 @@ export default function InvitesScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(palette.muted, 0.06) }]}>
+            <View style={[styles.emptyIcon, { backgroundColor: withAlpha(error ? palette.error : palette.muted, 0.06) }]}>
               <Ionicons
-                name={tabFilter === 'pending' ? 'mail-outline' : 'time-outline'}
+                name={error ? 'alert-circle-outline' : tabFilter === 'pending' ? 'mail-outline' : tabFilter === 'maybe' ? 'help-circle-outline' : 'time-outline'}
                 size={40}
-                color={palette.muted}
+                color={error ? palette.error : palette.muted}
               />
             </View>
             <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
               {loading
                 ? 'Loading invites...'
-                : tabFilter === 'pending'
-                  ? 'No pending invites'
-                  : 'No invite history'}
+                : error
+                  ? 'Something went wrong'
+                  : tabFilter === 'pending'
+                    ? 'No pending invites'
+                    : tabFilter === 'maybe'
+                      ? 'No maybe invites'
+                      : 'No invite history'}
             </ThemedText>
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              {tabFilter === 'pending'
-                ? 'When coaches invite you to sessions, they will appear here'
-                : 'Your responded invites will show here'}
+              {error
+                ? error
+                : tabFilter === 'pending'
+                  ? 'When coaches invite you to sessions, they will appear here'
+                  : tabFilter === 'maybe'
+                    ? 'Invites you marked as "maybe" will appear here'
+                    : 'Your responded invites will show here'}
             </ThemedText>
+            {error && !loading && (
+              <Pressable
+                style={[styles.retryButton, { borderColor: palette.tint }]}
+                onPress={loadInvites}
+              >
+                <Ionicons name="refresh" size={18} color={palette.tint} />
+                <ThemedText style={[styles.retryText, { color: palette.tint }]}>Retry</ThemedText>
+              </Pressable>
+            )}
           </View>
         }
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={ItemSeparator}
       />
     </SafeAreaView>
   );
 }
+
+const ItemSeparator = () => <View style={styles.separator} />;
 
 const styles = StyleSheet.create({
   container: {
@@ -575,6 +665,9 @@ const styles = StyleSheet.create({
   expires: {
     ...Typography.smallSemiBold,
   },
+  rsvpSection: {
+    gap: Spacing.sm,
+  },
   actions: {
     flexDirection: 'row',
     gap: Spacing.sm,
@@ -600,7 +693,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   acceptText: {
-    color: Colors.light.onPrimary,
     ...Typography.bodySemiBold,
   },
   confirmedSlot: {
@@ -639,5 +731,20 @@ const styles = StyleSheet.create({
     ...Typography.bodySmall,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 44,
+    marginTop: Spacing.sm,
+  },
+  retryText: {
+    ...Typography.bodySemiBold,
   },
 });

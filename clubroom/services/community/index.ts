@@ -58,6 +58,9 @@ export const communityService = {
   getRoleWeight: communityGroupService.getRoleWeight.bind(communityGroupService),
   getAssignableRoles: communityGroupService.getAssignableRoles.bind(communityGroupService),
   getRoleBreakdown: communityGroupService.getRoleBreakdown.bind(communityGroupService),
+  addMemberDirect: communityGroupService.addMemberDirect.bind(communityGroupService),
+  removeMemberDirect: communityGroupService.removeMemberDirect.bind(communityGroupService),
+  deleteGroup: communityGroupService.deleteGroup.bind(communityGroupService),
 
   // ==========================================================================
   // GROUP MESSAGING (from communityMessagingService)

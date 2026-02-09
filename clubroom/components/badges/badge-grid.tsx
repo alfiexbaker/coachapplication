@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { BadgeCard } from './badge-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AllBadgeWithProgress } from '@/services/badge-service';
+import { useTheme } from '@/hooks/useTheme';
 
 interface BadgeGridProps {
   badges: AllBadgeWithProgress[];
@@ -52,8 +52,7 @@ export function BadgeGrid({
   columns = 2,
   compact = false,
 }: BadgeGridProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { width } = useWindowDimensions();
 
   // Calculate card width based on columns
@@ -122,8 +121,7 @@ export function BadgeSectionGrid({
   onBadgePress,
   columns = 2,
 }: BadgeSectionGridProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { width } = useWindowDimensions();
 
   // Calculate card width based on columns
@@ -200,8 +198,7 @@ interface BadgeStatsProps {
 }
 
 export function BadgeStats({ totalBadges, unlockedBadges, totalPoints }: BadgeStatsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const progressPercent =
     totalBadges > 0 ? Math.round((unlockedBadges / totalBadges) * 100) : 0;
 

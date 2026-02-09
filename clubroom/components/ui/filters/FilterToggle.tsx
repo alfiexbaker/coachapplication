@@ -8,8 +8,8 @@
 import { View, Switch, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FilterToggleProps {
   /** Toggle label */
@@ -31,8 +31,7 @@ export function FilterToggle({
   onChange,
   disabled = false,
 }: FilterToggleProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>

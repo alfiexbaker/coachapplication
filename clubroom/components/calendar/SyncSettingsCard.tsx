@@ -3,8 +3,8 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, Components, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ReminderOption {
   value: number;
@@ -31,8 +31,7 @@ export function SyncSettingsCard({
   onReminderChange,
   disabled = false,
 }: SyncSettingsCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const selectedOption = REMINDER_OPTIONS.find((opt) => opt.value === reminderMinutes);

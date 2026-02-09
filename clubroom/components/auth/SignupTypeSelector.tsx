@@ -12,8 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export type SignupType = 'player' | 'parent' | 'coach';
 
@@ -56,8 +56,7 @@ export function SignupTypeSelector({
   onClose,
   onSelect,
 }: SignupTypeSelectorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [selectedType, setSelectedType] = useState<SignupType | null>(null);
 
   const handleContinue = () => {

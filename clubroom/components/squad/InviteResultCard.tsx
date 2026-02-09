@@ -17,9 +17,9 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { BulkInviteResult, SquadInvitedMember } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface InviteResultCardProps {
   result: BulkInviteResult;
@@ -42,8 +42,7 @@ export function InviteResultCard({
   onDone,
   showDetails = true,
 }: InviteResultCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [showErrorDetails, setShowErrorDetails] = useState(false);
 
@@ -218,7 +217,7 @@ export function InviteResultCard({
               onPress={onDone}
               style={[styles.primaryButton, { backgroundColor: palette.tint }]}
             >
-              <ThemedText style={styles.primaryButtonText}>Done</ThemedText>
+              <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Done</ThemedText>
             </Clickable>
           )}
         </View>
@@ -236,8 +235,7 @@ interface CompactInviteResultProps {
 }
 
 export function CompactInviteResult({ result, onDismiss }: CompactInviteResultProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isSuccess = result.failed === 0;
 
@@ -372,7 +370,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     minWidth: 100,
   },
-  primaryButtonText: { ...Typography.bodySmallSemiBold, color: Colors.light.onPrimary },
+  primaryButtonText: { ...Typography.bodySmallSemiBold },
   // Compact styles
   compactContainer: {
     flexDirection: 'row',

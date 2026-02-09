@@ -7,8 +7,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { InlineSquadSelector } from '@/components/squad/squad-picker';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 import type { EventTargetAudience, ClubSquad } from '@/constants/types';
 
@@ -41,8 +41,7 @@ function CreateEventAudienceStepInner({
   rsvpRequired,
   onFieldChange,
 }: CreateEventAudienceStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const totalInviteCount = squads
     .filter((s) => selectedSquadIds.includes(s.id))
@@ -166,7 +165,7 @@ function CreateEventAudienceStepInner({
           <View
             style={[
               styles.toggleHandle,
-              { transform: [{ translateX: rsvpRequired ? 18 : Spacing.micro }] },
+              { backgroundColor: palette.surface, transform: [{ translateX: rsvpRequired ? 18 : Spacing.micro }] },
             ]}
           />
         </View>
@@ -273,6 +272,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: Radii.md,
-    backgroundColor: Colors.light.surface,
+    // backgroundColor set inline for dynamic theming
   },
 });

@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   getSessionsForCoach,
@@ -15,8 +15,7 @@ import {
 } from '@/constants/mock-data';
 
 export function CoachAnalyticsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const analytics = useMemo(() => {
@@ -108,7 +107,7 @@ export function CoachAnalyticsScreen() {
             {analytics.sessionsCount > 0 && (
               <View style={styles.change}>
                 <Ionicons name="trending-up" size={14} color={palette.success} />
-                <ThemedText style={styles.changeText}>
+                <ThemedText style={[styles.changeText, { color: palette.muted }]}>
                   This month
                 </ThemedText>
               </View>
@@ -128,7 +127,7 @@ export function CoachAnalyticsScreen() {
             {analytics.activeClients > 0 && (
               <View style={styles.change}>
                 <Ionicons name="person-add" size={14} color={palette.success} />
-                <ThemedText style={styles.changeText}>
+                <ThemedText style={[styles.changeText, { color: palette.muted }]}>
                   Unique athletes
                 </ThemedText>
               </View>
@@ -268,7 +267,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs / 2,
     marginTop: Spacing.xs / 2,
   },
-  changeText: { ...Typography.caption, color: Colors.light.muted },
+  changeText: { ...Typography.caption },
   section: {
     padding: Spacing.lg,
     gap: Spacing.md,

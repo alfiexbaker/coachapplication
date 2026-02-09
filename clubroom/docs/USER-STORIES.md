@@ -1,7 +1,8 @@
-# User Stories — Complete Feature Map (Revised)
+# User Stories — Clubroom Feature Map
 
-> Updated to reflect cash-only MVP, all sprint additions, and codebase verification.
-> Legend: ✅ Built | 🔨 Needs Enhancement | ❌ Missing | 💤 Deferred (Cash MVP) | 🆕 New (from sprint audit)
+> Updated: 2026-02-08
+> Legend: ✅ Built | 🔨 Needs Enhancement | ❌ Missing | 💤 Deferred (Cash MVP)
+> See `ROADMAP.md` for the 5-month execution plan.
 
 ---
 
@@ -17,533 +18,365 @@
 
 ---
 
-## 1. ONBOARDING & AUTHENTICATION
+## Completed Foundational Features (151 stories)
 
-### Coach
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Sign up with email | ✅ | — | Auth flow exists |
-| Set hourly rate | ✅ | — | Profile setup |
-| Add qualifications | ✅ | — | Credentials in profile |
-| Verify identity | ✅ | — | Verification service |
-| Complete background check | ✅ | — | Background check flow |
-| Set coaching specialties | ✅ | — | Skills in profile |
-| Add bio and photo | ✅ | — | Profile editing |
-| Link social media | ✅ | — | Social links |
-| 🆕 Guided first-time onboarding (5 screens, live in <2 min) | ❌ | Sprint 10 | |
-| 🆕 Onboarding checklist (8 items, progress bar) | ❌ | Sprint 5 | |
+<details>
+<summary>Click to expand — all foundational features that are built and working</summary>
 
-### Parent
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Sign up quickly | ✅ | — | Auth flow |
-| Add children | ✅ | — | Children management |
-| Add emergency contacts per child | ✅ | — | Emergency info |
-| Add medical information | ✅ | — | Medical info |
-| Set notification preferences | ✅ | Sprint 5 | Exists (334 lines) — enhance with per-type toggles |
-| 🆕 Guided first-time onboarding (3 screens, to discovery in <1 min) | ❌ | Sprint 10 | |
-| 🆕 Onboarding checklist (6 items) | ❌ | Sprint 5 | |
-| 🆕 Add child skill level + position during creation | ❌ | Sprint 10 | |
+### Onboarding & Auth
+- ✅ Coach: sign up, set rate, qualifications, verify identity, background check, specialties, bio/photo, social links
+- ✅ Parent: sign up, add children, emergency contacts, medical info
+- ✅ Athlete: sign up, book for self
 
-### Athlete
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Sign up and book for myself | ✅ | — | USER role |
-| Set skill level | 🔨 | Sprint 10 | Basic profile exists |
-| Set training goals | ✅ | Sprint 9 | Goals system (434 lines) — enhance |
-| 🆕 Keep personal session journal | ❌ | Sprint 9 | |
+### Discovery
+- ✅ Search coaches near me (postcode), filter by specialty/price/rating, compare side-by-side
+- ✅ Save favourites, see reviews, see verification, message coach before booking
+- ✅ Coach: appear in search, highlight specialties, showcase reviews, set service area
 
----
+### Session Creation (Coach)
+- ✅ Create 1:1 and group sessions, set pricing/duration/location/description/skill focus/age/max participants
+- ✅ Recurring: weekly, bi-weekly, end date, cancel instances, end series, see upcoming
+- ✅ Invites: invite-only sessions, invite specific athletes, bulk invite, accept/decline status, squad invites, propose multiple slots
 
-## 2. COACH DISCOVERY & SEARCH
+### Booking
+- ✅ Book with few taps, select child, book recurring, add note, see total cost, join waitlist
+- ✅ See all bookings, cancel booking, counter-propose times, invite history, pending badge
 
-### Parent/Athlete
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Search for coaches near me | ✅ | Sprint 8 | Postcode search exists — add GPS |
-| Filter by specialty | ✅ | Sprint 8 | Filter modal exists — enhance |
-| Filter by price range | ✅ | Sprint 8 | Price slider exists — enhance |
-| Filter by rating | ✅ | Sprint 8 | Rating filter exists |
-| Filter by availability | 🔨 | Sprint 8 | "Available this week" toggle |
-| See coaches on a map | 🔨 | Sprint 8 | Grid map exists — REWRITE to Airbnb-quality (MAP_EXPERIENCE.md) |
-| Compare coaches side by side | ✅ | — | Comparison tool (492 lines) |
-| Save coaches to favourites | ✅ | Sprint 8 | Favourites exist (296 lines service) — add heart animation, map pins |
-| See coach reviews before booking | ✅ | — | Reviews display |
-| See qualifications and verification | ✅ | — | Verification badges |
-| Message coach before booking | ✅ | — | Messaging |
-| 🆕 See coaches with price on map pins (Airbnb-style) | ❌ | Sprint 8 | MAP_EXPERIENCE.md |
-| 🆕 See featured coaches near me | ❌ | Sprint 8 | |
-| 🆕 See recommended coaches for my child (age/skill match) | ❌ | Sprint 8 | |
-| 🆕 Browse by specialty chips | ❌ | Sprint 8 | |
-| 🆕 Search suggestions (recent + popular) | ❌ | Sprint 8 | |
-| 🆕 Filter by trial available | ❌ | Sprint 8 | |
-| 🆕 See "similar coaches" on coach profile | ❌ | Sprint 7 | |
+### Availability (Coach)
+- ✅ Weekly template, sync Google/Apple Calendar, schedule view
 
-### Coach
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Appear in search results | ✅ | — | Discover service |
-| Highlight specialties | ✅ | — | Profile skills |
-| Showcase reviews and ratings | ✅ | — | Review display |
-| Set service area/locations | ✅ | — | Location settings |
-| 🆕 Shareable public profile page (works without login) | ❌ | Sprint 7 | |
-| 🆕 Shareable booking link + QR code | ❌ | Sprint 7 | |
-| 🆕 Offer trial/taster sessions | ❌ | Sprint 7 | |
+### Post-Session
+- ✅ Add session notes, set drills, award badges, upload/annotate videos, update goals
+- ✅ Parent: leave review, see notes/drills/badges/videos, mark drills complete
+
+### Progress Tracking
+- ✅ Coach: skill progression, set/track goals, session history, skill tracking
+- ✅ Parent/Athlete: skill progression, badges, goals, session history, improvement, drill completion
+
+### Communication
+- ✅ Direct messaging, unread count, image sharing, mute, quiet hours, channel preferences
+
+### Earnings (Coach)
+- ✅ Total earnings, earnings by period, breakdown by session type
+
+### Clubs
+- ✅ Create club, invite coaches, create squads, assign coaches, manage roles, set branding
+- ✅ Coach: see squads, manage roster, create sessions, bulk invite, create events
+- ✅ Member: join with code, see schedule, RSVP events, see members, access drills
+
+### Events & Matches
+- ✅ Create events, set type, track RSVPs, check in, parent RSVP, see upcoming
+- ✅ Create fixtures, invite players, select lineup, record results, mark availability, see selection
+
+### Video & Content
+- ✅ Upload/annotate/share videos, drill library, assign drills, view/mark complete
+
+### Family Dashboard
+- ✅ Multiple children, child switcher, unified calendar, all children progress, family sharing (726 lines)
+
+### Safety & Trust
+- ✅ Email/phone verification, ID verification, background check, credentials, verification badges
+- ✅ See verification status, emergency contacts, medical info, consent forms, injury tracking
+
+### Social
+- ✅ Follow coaches, social feed, post updates, share achievements, join groups, interactions
+
+### Referrals
+- ✅ Refer friends, share code, track stats, see who referred
+
+</details>
 
 ---
 
-## 3. SESSION CREATION & MANAGEMENT (COACH)
+## CRITICAL PATH (Must Fix Before Launch)
 
-### Creating Sessions
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Create 1:1 sessions | ✅ | — | Session wizard (1241 lines) |
-| Create group sessions | ✅ | — | Group sessions (898 lines) |
-| Set pricing in GBP | ✅ | — | Price field (display-only for cash) |
-| Set duration | ✅ | — | Duration field |
-| Set location | ✅ | — | Location field |
-| Add description | ✅ | — | Description field |
-| Set skill focus | ✅ | — | Skill selection |
-| Set age restrictions | ✅ | — | Age min/max |
-| Set max participants | ✅ | — | Max participants |
-| 🆕 Use session plan template | ❌ | Sprint 9 | |
-
-### Recurring Sessions
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Create weekly recurring | ✅ | — | Weekly recurrence |
-| Create bi-weekly recurring | ✅ | — | Biweekly option |
-| Set end date | ✅ | — | End date field |
-| Cancel individual instances | ✅ | — | Instance cancellation |
-| End entire series | ✅ | — | End series action |
-| See all upcoming instances | ✅ | — | Instance list |
-
-### Session Invites
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Create invite-only sessions | ✅ | — | Invite mode |
-| Invite specific athletes | ✅ | — | Athlete selection |
-| Bulk invite roster | ✅ | — | Bulk invite |
-| See accept/decline status | ✅ | — | Invite status |
-| Send invites to squads | ✅ | — | Squad invites |
-| Propose multiple time slots | ✅ | — | Proposed slots |
-
-### Managing Sessions
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| See all upcoming sessions | ✅ | — | Bookings list |
-| See who's registered | ✅ | — | Registrations |
-| Cancel session and notify | 🔨 | Sprint 3 | Cancel exists (544 lines) — add notifications |
-| Reschedule session | 🔨 | Sprint 3 | Basic edit — add proper flow |
-| Manage waitlist | ✅ | — | Waitlist service (298 lines) |
-| Set open/invite only | ✅ | — | Session visibility |
-| 🆕 See RSVP count for group sessions | ❌ | Sprint 2 | |
-| 🆕 Send RSVP reminder to non-responders | ❌ | Sprint 2 | |
+| # | Item | Sprint | Status | Impact |
+|---|------|--------|--------|--------|
+| 1 | ~~Invite -> Booking bug~~ | 1 | ✅ | Fixed (Sprint 1B) |
+| 2 | ~~Offline banner + action queue~~ | 1 | ✅ | Built (Sprint 1C) |
+| 3 | **Session completion checklist** (attendance -> notes -> badges -> done) | 2 | 🔨 | Coach workflow broken |
+| 4 | **RSVP for group sessions** (going/can't/maybe) | 2 | ❌ | Spond-beater feature |
+| 5 | **Cancellation policy display** (before booking + on cancel) | 3 | ❌ | Trust |
+| 6 | **Push notification infrastructure** | 6 | ❌ | Engagement |
+| 7 | **Safety reporting full flow** | 5 | 🔨 | Safety |
+| 8 | ~~Coach onboarding~~ (5 screens, live in <2 min) | 10 | ✅ | Built (Sprint 10A) |
 
 ---
 
-## 4. BOOKING & PAYMENT
+## Sprint 1: Critical Fixes ✅ COMPLETE
 
-### Booking Flow
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Book with a few taps | ✅ | — | Quick book |
-| Select which child attends | ✅ | — | Child selector |
-| Book multiple weeks of recurring | ✅ | — | Weeks selector |
-| Add note for coach | ✅ | — | Notes field |
-| See total cost before confirming | ✅ | — | Review screen (price display-only, cash) |
-| Join waitlist if full | ✅ | — | Waitlist join |
-| 🆕 See cancellation policy before booking | ❌ | Sprint 3 | |
-| 🆕 See "Pay £X cash at the session" reminder | ❌ | Sprint 3 | |
-| 🆕 Add booking to phone calendar | ❌ | Sprint 2 | |
-| 🆕 Get directions to venue | ❌ | Sprint 10 | |
-
-### Receiving Invites
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Receive session invites | ✅ | — | Invites inbox |
-| See pending invites | ✅ | — | Pending tab |
-| Accept invite and pick time | 🔨 | Sprint 1 | **BUG: accept logs to console, doesn't create booking** |
-| Decline an invite | ✅ | Sprint 2 | Add decline with reason |
-| Counter-propose times | ✅ | — | Counter offer |
-| See invite history | ✅ | — | History tab |
-| Badge for pending invites | ✅ | — | Badge in nav |
-| 🆕 RSVP for group sessions (going/can't/maybe) | ❌ | Sprint 2 | Spond-beater |
-
-### Payments (DEFERRED — Cash Only MVP)
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Pay with credit/debit card | 💤 | — | DEFERRED — cash only |
-| Save payment methods | 💤 | — | DEFERRED |
-| Use wallet balance | 💤 | — | DEFERRED |
-| Apply promo code | 💤 | — | DEFERRED |
-| Purchase session packages | 💤 | — | RETHINK as session bundles |
-| See payment history | 💤 | — | DEFERRED |
-| Download invoices | 💤 | — | DEFERRED |
-| Request refund | 💤 | — | N/A — cash only |
-
-### Managing Bookings
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| See all upcoming bookings | ✅ | — | Bookings list |
-| Cancel a booking | ✅ | Sprint 3 | 544 lines exist — enhance with policy |
-| Reschedule a booking | 🔨 | Sprint 3 | Needs improvement |
-| Know cancellation policy | 🔨 | Sprint 3 | Policy editor exists — add display on booking |
-| Be notified when coach cancels | 🔨 | Sprint 6 | Needs notification infra |
+| Story | Status | Notes |
+|-------|--------|-------|
+| Accept invite and create booking | ✅ | Fixed (Sprint 1B — invite→booking + counter-offer→booking) |
+| Offline banner + action queue | ✅ | Built (Sprint 1C — offline banner + action queue) |
+| Standardised API client (all services same pattern) | ✅ | Built (Sprint 1A — 59 services migrated) |
 
 ---
 
-## 5. AVAILABILITY & CALENDAR (COACH)
+## Sprint 2: Session Completion + RSVP
 
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Set weekly availability template | ✅ | — | Availability templates |
-| Block specific dates | ✅ | Sprint 3 | 285 lines exist — enhance |
-| Different availability per location | 🔨 | — | Basic support |
-| Sync with Google Calendar | ✅ | — | Calendar sync (371 lines) |
-| Sync with Apple Calendar | ✅ | — | Calendar sync |
-| See schedule at a glance | ✅ | — | Schedule view (863 lines) |
-| Buffer time between sessions | 🔨 | Sprint 3 | Scheduling rules (602 lines exist) — enhance |
-| Minimum booking notice | 🔨 | Sprint 3 | Same |
-| 🆕 Maximum advance booking | ❌ | Sprint 3 | |
-| 🆕 Same-day booking toggle | ❌ | Sprint 3 | |
-| 🆕 Smart slot suggestions based on booking patterns | ❌ | Sprint 3 | |
-| 🆕 "Copy last week's schedule" quick action | ❌ | Sprint 3 | |
-
----
-
-## 6. POST-SESSION & FEEDBACK
-
-### Coach Actions
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Mark attendance | 🔨 | Sprint 2 | Session complete (669 lines exists) — enhance |
-| Add session notes per athlete | ✅ | — | Session notes service |
-| Rate athlete effort/progress | 🔨 | Sprint 2 | Basic in notes — enhance |
-| Set homework/drills | ✅ | — | Drill assignments (736 lines) |
-| Award badges | ✅ | Sprint 10 | Badge service — add celebration trigger |
-| Upload session videos | ✅ | — | Video service |
-| Annotate videos | ✅ | — | Annotation service |
-| Update goals based on progress | ✅ | Sprint 9 | Goal service — enhance |
-| 🆕 Mark no-show with categorisation | ❌ | Sprint 3 | |
-| 🆕 Session completion checklist (attendance → notes → badges → done) | 🔨 | Sprint 2 | 669 lines exist — complete the flow |
-
-### Parent/Athlete Actions
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Rate session with coach | ✅ | Sprint 2 | Review service — trigger after completion |
-| Leave written review | ✅ | — | Review form |
-| See child's session notes | ✅ | — | Notes view |
-| See drills assigned | ✅ | — | Drill view |
-| See badges earned | ✅ | Sprint 10 | Badge display — add celebration |
-| Watch annotated videos | ✅ | — | Video player |
-| Report a problem | ✅ | Sprint 5 | Report exists — enhance with safety reporting |
+| Story | Status | Notes |
+|-------|--------|-------|
+| Session completion checklist (attendance -> notes -> badges -> done) | 🔨 | 1073 lines exist, flow incomplete — needs decomposition, event emission, notifications |
+| Emit SESSION_COMPLETED event on completion submit | ❌ | Sprint 2 — handleComplete() never emits event, blocking earnings/analytics/badges |
+| Trigger parent notification on session completion | ❌ | Sprint 2 — notificationTriggers.sessionCompleted() exists but never called |
+| Trigger review prompt after session completion | ❌ | Sprint 2 — notificationTriggers.reviewPrompt() exists but never wired |
+| Create structured AttendanceRecord per athlete on completion | ❌ | Sprint 2 — types exist in session-types.ts, never persisted |
+| Decompose complete.tsx into sub-components (<300 lines) | ❌ | Sprint 2 — 1073 lines, needs 4 step components extracted |
+| Error state with retry on completion screen | ❌ | Sprint 2 — load failure shows "not found" with no retry |
+| Group session completion updates individual bookings | ❌ | Sprint 2 — only session offering status updated, not per-athlete bookings |
+| RSVP for group sessions (going/can't/maybe) | ❌ | |
+| RSVP count on group sessions | ❌ | |
+| RSVP reminder to non-responders | ❌ | |
+| Mark attendance enhancement | 🔨 | Per-athlete effort rating, no-show category |
+| Rate athlete effort/progress enhancement | 🔨 | Individual effort per athlete (not just group-level) |
+| Rate session with coach (trigger after completion) | ✅ | Needs trigger wiring from completion flow |
+| Decline invite with reason | ✅ | Needs enhancement |
+| Add booking to phone calendar | ❌ | |
 
 ---
 
-## 7. PROGRESS TRACKING & DEVELOPMENT
+## Sprint 3: Schedule, Cancellation & Smart Features
 
-### Coach View
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| See skill progression | ✅ | Sprint 9 | Skill trees — add radar chart |
-| Set goals for athletes | ✅ | Sprint 9 | Goal service (672 lines) — enhance |
-| Track goal progress | ✅ | Sprint 9 | Progress service |
-| See session history | ✅ | — | History view |
-| See skills worked on | ✅ | — | Skill tracking |
-| Compare to benchmarks | 🔨 | Sprint 9 | Basic analytics — enhance |
-| 🆕 Assign from session plan templates | ❌ | Sprint 9 | |
-| 🆕 Create video challenges for players | ❌ | Sprint 9 | |
-
-### Parent/Athlete View
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| See skill progression | ✅ | Sprint 9 | Add radar chart overlay |
-| See all badges | ✅ | — | Badge collection |
-| See goals and progress | ✅ | Sprint 9 | Enhance |
-| See session history and notes | ✅ | — | History view |
-| See improvement over time | ✅ | Sprint 9 | Add timeline |
-| Track own progress (athlete) | ✅ | Sprint 9 | Enhance (731 lines) |
-| Complete assigned drills | ✅ | — | Drill completion |
-| 🆕 Monthly progress report (shareable) | ❌ | Sprint 9 | |
-| 🆕 Personal session journal with mood/energy (athlete) | ❌ | Sprint 9 | |
-| 🆕 Goal setting with age-based suggestions | ❌ | Sprint 9 | |
-| 🆕 Submit video challenge attempts | ❌ | Sprint 9 | |
+| Story | Status | Notes |
+|-------|--------|-------|
+| Cancellation policy display (before booking + on cancel) | ❌ | Policy editor exists (344 lines) |
+| "Pay cash at session" reminder | ❌ | |
+| Cancel session with notifications | 🔨 | 544 lines exist |
+| Reschedule session proper flow | 🔨 | |
+| Maximum advance booking setting | ❌ | |
+| Same-day booking toggle | ❌ | |
+| Buffer time / minimum notice enhancement | 🔨 | 602 lines exist |
+| Smart slot suggestions | ❌ | Based on booking patterns |
+| "Copy last week's schedule" | ❌ | |
+| Mark no-show with categorisation | ❌ | |
+| Block specific dates enhancement | ✅ | 285 lines, needs polish |
+| "Your busiest day is Saturday" insights | ❌ | |
 
 ---
 
-## 8. COMMUNICATION & MESSAGING
+## Sprint 4: Club Hub & Social
 
-### Direct Messaging
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Message coach directly | ✅ | — | Messaging service |
-| Coach messages parents/athletes | ✅ | — | Messaging service |
-| See unread message count | ✅ | — | Badge count |
-| Share images in chat | ✅ | — | Attachments |
-| Push notifications for messages | 🔨 | Sprint 6 | Needs notification infra |
-| Mute notifications from specific coaches | ✅ | — | Mute feature |
-| 🆕 Squad group chat (all parents + coaches) | ❌ | Sprint 4 | Spond-beater |
-| 🆕 Pin announcements in group chat | ❌ | Sprint 4 | |
-| 🆕 Bulk message all parents in squad/club | ❌ | Sprint 4 | |
+### 4A: Comment System
+| Story | Status | Notes |
+|-------|--------|-------|
+| Comment on feed posts (all roles) | ❌ | Facebook-style threaded |
+| Reply to comments (single-level threading) | ❌ | |
+| Like individual comments | ❌ | |
+| Delete comments (author + post owner + admin) | ❌ | |
+| Comment notifications (in-app) | ❌ | |
+| Inline comment preview on feed cards | ❌ | |
+| Comment service with persistent storage | ❌ | |
+| Post detail modal rewrite for ClubFeedPost | ❌ | |
 
-### Notifications
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Booking confirmation notifications | 🔨 | Sprint 6 | Notification service exists — needs push infra |
-| Session reminder notifications | 🔨 | Sprint 10 | 24h + 1h with directions |
-| Cancellation notifications | 🔨 | Sprint 6 | Basic |
-| New booking notifications (coach) | 🔨 | Sprint 6 | Basic |
-| Coach cancellation notifications | 🔨 | Sprint 6 | Basic |
-| New badge notifications | 🔨 | Sprint 6 | Basic |
-| Quiet hours | ✅ | — | Quiet hours selector |
-| Channel preferences (push/email) | ✅ | Sprint 5 | Enhance |
-| 🆕 In-app notification centre with bell icon | 🔨 | Sprint 6 | 378 lines exist — enhance |
-| 🆕 Deep link from notification tap to relevant screen | ❌ | Sprint 6 | |
-| 🆕 Per-type notification toggles | 🔨 | Sprint 5 | 334 lines exist — enhance |
+### 4B: Squad Auto-Group Chat
+| Story | Status | Notes |
+|-------|--------|-------|
+| Squad auto-create group chat on creation | ❌ | Auto-provision ParentGroup |
+| Auto-sync squad group on member add/remove | ❌ | Event-driven |
+| Coach message whole squad from squad screen | ❌ | |
+| Parent auto-join squad group when child added | ❌ | |
+| Parent auto-leave when last child removed | ❌ | |
 
----
+### 4C: Coach Posts & Personal Feed
+| Story | Status | Notes |
+|-------|--------|-------|
+| Coach post composer (Personal/Club/Squad) | ❌ | |
+| createCoachPost() service method | ❌ | |
+| COACH_POST_CREATED event | ❌ | |
+| Coach personal feed on profile (real data) | ❌ | |
+| ProfilePostCard adapts to ClubFeedPost | ❌ | |
+| "What's on your mind?" compose prompt | ❌ | |
+| Parent sees coach personal posts in feed | ❌ | |
+| Club-less coach composer parity | ❌ | |
 
-## 9. EARNINGS & BUSINESS (COACH)
-
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| See total earnings | ✅ | Sprint 7 | Earnings (903 lines) — enhance with projections |
-| See pending vs available balance | 🔨 | Sprint 7 | Rethink for cash (display-only tracking) |
-| See earnings by time period | ✅ | Sprint 7 | Period filters |
-| See breakdown by session type | ✅ | Sprint 7 | Analytics |
-| Withdraw to bank | 💤 | — | DEFERRED — cash only |
-| Withdraw to PayPal | 💤 | — | DEFERRED |
-| See withdrawal history | 💤 | — | DEFERRED |
-| Understand platform fees | 💤 | — | DEFERRED |
-| Create session packages | 💤 | — | RETHINK as bundles |
-| Create promo codes | 💤 | — | DEFERRED |
-| See referral earnings | 💤 | — | DEFERRED (keep referral tracking, remove money) |
-| 🆕 Earnings projections (confirmed + pending + projected) | ❌ | Sprint 7 | |
-| 🆕 Trial session conversion tracking | ❌ | Sprint 7 | |
-| 🆕 "Your busiest day is Saturday" insights | ❌ | Sprint 3 | Smart slot suggestions |
+### 4 General
+| Story | Status | Notes |
+|-------|--------|-------|
+| Club dashboard with stats + quick actions | ❌ | |
+| Club calendar aggregating all squads | ❌ | |
+| Club announcements with RSVP | ❌ | |
+| Set club branding enhancement | 🔨 | 467 lines exist |
+| See club announcements enhancement | 🔨 | |
+| See other squad members enhancement | 🔨 | |
+| Pin announcements in group chat | ❌ | |
+| Bulk message all parents in squad/club | ❌ | |
+| Record match results (auto-post to feed) | ✅ | |
 
 ---
 
-## 10. CLUB & SQUAD MANAGEMENT
+## Sprint 5: Invite UX Revolution + Safety + Polish
 
-### Club Admin
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Create a club | ✅ | — | Club service |
-| Invite coaches | ✅ | — | Invite members (629 lines) |
-| Create squads | ✅ | — | Squad service |
-| Assign coaches to squads | ✅ | — | Squad management |
-| Manage member roles | ✅ | — | Role management |
-| Set club branding | 🔨 | Sprint 4 | Academy branding (467 lines) — extend to clubs |
-| See club-wide analytics | 🔨 | Sprint 7 | Basic analytics |
-| Manage club subscription | 💤 | — | DEFERRED |
-| 🆕 Club dashboard with stats, results, quick actions | ❌ | Sprint 4 | |
-| 🆕 Club calendar aggregating all squads | ❌ | Sprint 4 | |
-| 🆕 Club announcements with RSVP | ❌ | Sprint 4 | |
+### Invite Experience
+| Story | Status | Notes |
+|-------|--------|-------|
+| Cover images on invites (Facebook Events style) | ❌ | Coach uploads hero image |
+| Shareable invite link (WhatsApp/SMS) | ❌ | Native share sheet + deep link |
+| Quick 1-tap RSVP from invite list | ❌ | No navigation needed |
+| "Maybe" RSVP option on session invites | ❌ | |
+| Social proof on invite cards (attendee count + avatars) | ❌ | "5 going" + face stack |
+| Attendee list modal ("See who's going") | ❌ | Grouped: Going/Maybe/Can't Go |
+| Location map preview + "Get Directions" | ❌ | Static map + native maps link |
+| RSVP counts on sent invites (coach view) | ❌ | |
+| Pin "Upcoming Events" carousel in Club Hub | ❌ | Horizontal scroll, 7-day window |
+| Show invite activity in Club Hub feed | ❌ | "Sarah accepted" activity posts |
+| Event cards with cover images in Club Hub | ❌ | Rich cards with hero + RSVP count |
 
-### Club Coach
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| See assigned squads | ✅ | — | Squad view |
-| Manage squad roster | ✅ | — | Roster service |
-| Create sessions for squad | ✅ | — | Squad sessions |
-| Bulk invite squad | ✅ | — | Bulk invites |
-| Track squad progress | ✅ | Sprint 9 | Enhance with radar |
-| Create club events | ✅ | — | Event service (885 lines) |
+### Safety & Compliance
+| Story | Status | Notes |
+|-------|--------|-------|
+| Report safety concerns (full flow) | 🔨 | Basic exists |
+| Block a user | ❌ | |
+| Report inappropriate messages | ❌ | |
+| Admin review queue for reports | ❌ | |
+| Delete account (GDPR) | ❌ | |
+| Data export (GDPR) | ❌ | |
 
-### Club Member
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Join club with code | ✅ | — | Join with code |
-| See club announcements | 🔨 | Sprint 4 | Club feed exists — add announcements |
-| See squad schedule | ✅ | — | Squad schedule |
-| RSVP to club events | ✅ | — | Event RSVP (588 lines) |
-| See other squad members | 🔨 | Sprint 4 | Basic roster view |
-| Access club drills | ✅ | — | Drill library |
-| 🆕 Squad group chat | ❌ | Sprint 4 | |
-
----
-
-## 11. EVENTS & MATCHES
-
-### Events
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Create club events | ✅ | — | Event service |
-| Set event type (tournament, social) | ✅ | — | Event types |
-| Track RSVPs | ✅ | — | RSVP tracking |
-| Check in attendees | ✅ | — | Attendance tracking |
-| Parent RSVP for child | ✅ | — | RSVP flow |
-| See upcoming events | ✅ | — | Event list |
-
-### Matches
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Create match fixtures | ✅ | — | Match service (874 lines) |
-| Invite players | ✅ | — | Match invites |
-| Select lineup | ✅ | — | Lineup selector |
-| Record results | ✅ | Sprint 4 | Auto-post to club feed |
-| Mark availability | ✅ | — | Availability response |
-| See if child is selected | ✅ | — | Selection notification |
+### Polish & Quality
+| Story | Status | Notes |
+|-------|--------|-------|
+| Loading skeletons on every screen | 🔨 | 59-line skeleton — expand |
+| Error states with retry on every screen | ❌ | Only 10/185 screens have error state |
+| Contextual empty states with CTA on every screen | ❌ | |
+| Accessibility (WCAG AA, screen readers, 44pt) | ❌ | |
+| Notification preferences per-type toggles | 🔨 | 334 lines exist |
+| Family sharing verification | ✅ | 726 lines — needs testing |
+| Onboarding checklist coach (8 items) | ✅ | Built (Sprint 5B) |
+| Onboarding checklist parent (6 items) | ✅ | Built (Sprint 5B) |
 
 ---
 
-## 12. VIDEO & CONTENT
+## Sprint 6: Notifications & Infrastructure
 
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Upload session videos | ✅ | — | Video service |
-| Annotate videos | ✅ | — | Annotation service (594 lines) |
-| Share videos with athletes | ✅ | — | Video sharing |
-| Create drill library | ✅ | Sprint 9 | Drill service (440 lines) — expand to 30+ |
-| Assign drills | ✅ | — | Drill assignment (736 lines) |
-| View child's videos | ✅ | — | Video player |
-| See annotations | ✅ | — | Annotation display |
-| Mark drills complete | ✅ | — | Completion tracking |
-| 🆕 Video challenges (coach posts, players submit) | ❌ | Sprint 9 | |
-| 🆕 Challenge leaderboard | ❌ | Sprint 9 | |
-
----
-
-## 13. FAMILY DASHBOARD (PARENT)
-
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Manage multiple children | ✅ | — | Children management (779 lines) |
-| Switch between children | ✅ | — | Child switcher |
-| Unified calendar for all children | ✅ | — | Family calendar (352 lines) |
-| See total spending | 💤 | — | RETHINK for cash — show session count instead |
-| See spending by child | 💤 | — | Same |
-| See all children's progress | ✅ | — | Family overview (432 lines) |
-| Share access with partner/spouse | ✅ | Sprint 5 | **726 lines exist!** Verify it works |
+| Story | Status | Notes |
+|-------|--------|-------|
+| Push notification infrastructure | ❌ | |
+| Deep link from notification to screen | ❌ | |
+| Booking confirmation notifications | 🔨 | Service exists, needs push |
+| Cancellation notifications | 🔨 | |
+| New booking notifications (coach) | 🔨 | |
+| Coach cancellation notifications | 🔨 | |
+| New badge notifications | 🔨 | |
+| In-app notification centre (bell icon) | 🔨 | 378 lines exist |
+| Be notified when coach cancels | 🔨 | |
+| Push notifications for messages | 🔨 | |
+| Mock -> real API toggle via env var | ✅ | Built (Sprint 6B — API contracts + mock toggle) |
+| JWT auth with token refresh | ✅ | Built (Sprint 6A — JWT auth + demo mode + refresh) |
+| Deep linking for all shareable content | ❌ | |
 
 ---
 
-## 14. SAFETY & TRUST
+## Sprint 7: Coach Business & Profiles
 
-### Coach Verification
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Verify email and phone | ✅ | — | Verification service |
-| Submit ID verification | ✅ | — | ID verification (334 lines) |
-| Complete background check | ✅ | — | Background check (357 lines) |
-| Upload credentials | ✅ | — | Credentials (490 lines) |
-| Show verification badges | ✅ | — | Badge display |
-
-### Safety Features
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| See coach verification status | ✅ | — | Verification display |
-| Set emergency contacts | ✅ | — | Emergency info |
-| Provide medical information | ✅ | — | Medical info |
-| Manage consent forms | ✅ | — | Consent service |
-| Track injuries/health | ✅ | — | Injury service (1420 lines total) |
-| Report safety concerns | 🔨 | Sprint 5 | Basic reporting — enhance with full flow |
-| 🆕 Block a user | ❌ | Sprint 5 | |
-| 🆕 Report inappropriate messages | ❌ | Sprint 5 | |
-| 🆕 Admin review queue for reports | ❌ | Sprint 5 | |
+| Story | Status | Notes |
+|-------|--------|-------|
+| Shareable public coach profile (works without login) | ❌ | |
+| Shareable booking link + QR code | ❌ | |
+| Offer trial/taster sessions | ❌ | |
+| "Similar coaches" on coach profile | ❌ | |
+| Earnings projections (confirmed + pending + projected) | ❌ | |
+| Trial session conversion tracking | ❌ | |
+| See pending vs available balance | 🔨 | Rethink for cash |
+| See club-wide analytics | 🔨 | Basic exists |
 
 ---
 
-## 15. SOCIAL & COMMUNITY
+## Sprint 8: Discovery Revolution
 
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Follow coaches | ✅ | — | Follow service |
-| See social feed | ✅ | Sprint 4 | Feed (1030 lines) — add rich cards |
-| Post updates (coach) | ✅ | — | Coach posts |
-| Share achievements | ✅ | Sprint 10 | Post types — add shareable images |
-| Join community groups | ✅ | — | Community (523 lines) |
-| Interact with posts (like, comment) | 🔨 | — | Basic interactions |
-
----
-
-## 16. REFERRALS & GROWTH
-
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| Refer friends | ✅ | — | Referral service — keep but remove money |
-| Share referral code | ✅ | — | Referral code (402 lines) |
-| Track referral stats | ✅ | — | Referral stats — remove money display |
-| See who referred | ✅ | — | Referral list |
+| Story | Status | Notes |
+|-------|--------|-------|
+| Coaches on map with price pins (Airbnb-style) | ❌ | MAP_EXPERIENCE.md spec |
+| Featured coaches near me | ❌ | |
+| Recommended coaches for child (age/skill match) | ❌ | |
+| Browse by specialty chips | ❌ | |
+| Search suggestions (recent + popular) | ❌ | |
+| Filter by trial available | ❌ | |
+| Filter by availability ("Available this week") | 🔨 | Toggle exists |
+| Favourites heart animation + map pins | ✅ | 296 lines, needs polish |
+| Map rewrite to Airbnb-quality | 🔨 | Grid map exists |
+| GPS-based search (not just postcode) | ✅ | Needs enhancement |
 
 ---
 
-## 17. APP EXPERIENCE & DELIGHT (🆕 from Sprint Audit)
+## Sprint 9: Progress & Development (Deferred to Post-Launch)
 
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| 🆕 Confetti celebration on badge earned | ❌ | Sprint 10 | |
-| 🆕 Celebration on goal completed | ❌ | Sprint 10 | |
-| 🆕 Coach milestone celebrations (10/25/50/100 sessions) | ❌ | Sprint 10 | |
-| 🆕 One-tap match RSVP from notification | ❌ | Sprint 10 | |
-| 🆕 One-tap invite accept from notification | ❌ | Sprint 10 | |
-| 🆕 Session reminders 24h + 1h before with directions | ❌ | Sprint 10 | |
-| 🆕 Coach "I'm on my way" status | ❌ | Sprint 10 | |
-| 🆕 Micro-interactions (haptics, press states, animations) | ❌ | Sprint 10 | |
-| 🆕 Shareable achievement cards (organic marketing) | ❌ | Sprint 10 | |
-| 🆕 Loading skeletons on every screen (not spinners) | 🔨 | Sprint 5 | Skeleton component (59 lines) — expand |
-| 🆕 Error states with retry on every screen | ❌ | Sprint 5 | |
-| 🆕 Contextual empty states with CTA on every screen | ❌ | Sprint 5 | |
-| 🆕 Offline banner + action queue | ❌ | Sprint 1 | |
-| 🆕 Deep linking for all shareable content | ❌ | Sprint 6 | |
-
----
-
-## 18. INFRASTRUCTURE (🆕)
-
-| Story | Status | Sprint | Notes |
-|-------|--------|--------|-------|
-| 🆕 Standardised API client (all 46 services use same pattern) | ❌ | Sprint 1 | |
-| 🆕 Mock ↔ real API toggle via env var | ❌ | Sprint 6 | |
-| 🆕 JWT auth with token refresh | ❌ | Sprint 6 | |
-| 🆕 Push notification infrastructure | ❌ | Sprint 6 | |
-| 🆕 Accessibility (WCAG AA, screen readers, 44pt targets) | ❌ | Sprint 5 | |
-| 🆕 Delete account (GDPR compliance) | ❌ | Sprint 5 | |
-| 🆕 Data export (GDPR compliance) | ❌ | Sprint 5 | |
+| Story | Status | Notes |
+|-------|--------|-------|
+| Session plan templates | ❌ | |
+| Video challenges (coach posts, players submit) | ❌ | |
+| Challenge leaderboard | ❌ | |
+| Monthly progress report (shareable) | ❌ | |
+| Personal session journal with mood/energy | ❌ | |
+| Goal setting with age-based suggestions | ❌ | |
+| Submit video challenge attempts | ❌ | |
+| Assign from session plan templates | ❌ | |
+| Create video challenges for players | ❌ | |
+| Skill progression radar chart | ✅ | Needs enhancement |
+| Set/track goals enhancement | ✅ | 672 lines |
+| Compare to benchmarks | 🔨 | |
+| Set training goals enhancement | ✅ | 434 lines |
+| Set skill level | 🔨 | |
 
 ---
 
-## STORY COUNT SUMMARY
+## Sprint 10: Delight & Onboarding
 
-| Category | ✅ Built | 🔨 Enhance | ❌ Missing | 💤 Deferred | 🆕 New |
-|----------|---------|-----------|----------|-----------|--------|
-| Onboarding | 10 | 1 | 4 | 0 | 4 |
-| Discovery | 11 | 2 | 7 | 0 | 7 |
-| Sessions | 19 | 2 | 2 | 0 | 2 |
-| Booking | 10 | 2 | 5 | 8 | 5 |
-| Availability | 6 | 2 | 4 | 0 | 4 |
-| Post-Session | 12 | 3 | 2 | 0 | 2 |
-| Progress | 14 | 1 | 5 | 0 | 5 |
-| Messaging | 8 | 4 | 5 | 0 | 5 |
-| Earnings | 4 | 1 | 3 | 7 | 3 |
-| Clubs | 17 | 3 | 4 | 1 | 4 |
-| Events/Matches | 12 | 0 | 0 | 0 | 0 |
-| Video | 8 | 0 | 2 | 0 | 2 |
-| Family | 4 | 0 | 0 | 2 | 0 |
-| Safety | 8 | 1 | 3 | 0 | 3 |
-| Social | 4 | 1 | 0 | 0 | 0 |
-| Referrals | 4 | 0 | 0 | 0 | 0 |
-| Delight | 0 | 1 | 13 | 0 | 14 |
-| Infrastructure | 0 | 0 | 7 | 0 | 7 |
-| **TOTAL** | **151** | **24** | **66** | **18** | **67** |
-
-**151 stories built, 24 need enhancement, 66 to build, 18 deferred for cash MVP, 67 brand new stories added from sprint audit.**
+| Story | Status | Notes |
+|-------|--------|-------|
+| Guided coach onboarding (5 screens, live in <2 min) | ✅ | Built (Sprint 10A) |
+| Guided parent onboarding (3 screens, discovery in <1 min) | ✅ | Built (Sprint 10A) |
+| Confetti celebration on badge earned | ❌ | |
+| Celebration on goal completed | ❌ | |
+| Coach milestone celebrations (10/25/50/100 sessions) | ❌ | |
+| One-tap match RSVP from notification | ❌ | |
+| One-tap invite accept from notification | ❌ | |
+| Session reminders 24h + 1h with directions | ❌ | |
+| Coach "I'm on my way" status | ❌ | |
+| Micro-interactions (haptics, press states, animations) | ❌ | |
+| Shareable achievement cards (organic marketing) | ❌ | |
+| Add child skill level + position during creation | ❌ | |
+| Award badges celebration trigger | ✅ | Needs celebration UI |
+| See badges earned celebration | ✅ | Needs celebration UI |
+| Share achievements (shareable images) | ✅ | Needs enhancement |
+| Get directions to venue | ❌ | |
+| Set notification preferences enhancement | ✅ | 334 lines |
 
 ---
 
-## CRITICAL PATH (Must Work Perfectly Before Launch)
+## Deferred (Cash MVP)
 
-1. ❌ Invite → Booking bug fix (Sprint 1)
-2. ❌ Session completion flow enhancement (Sprint 2)
-3. ❌ RSVP for group sessions (Sprint 2)
-4. ❌ Cancellation policy display (Sprint 3)
-5. ❌ Map that works (Sprint 8)
-6. ❌ Push notifications (Sprint 6)
-7. ❌ Safety reporting (Sprint 5)
-8. ❌ Coach onboarding (Sprint 10)
+| Story | Notes |
+|-------|-------|
+| Pay with credit/debit card | Cash only |
+| Save payment methods | Cash only |
+| Use wallet balance | Cash only |
+| Apply promo code | Cash only |
+| Purchase session packages | Rethink as bundles |
+| See payment history | Cash only |
+| Download invoices | Cash only |
+| Request refund | N/A |
+| Withdraw to bank/PayPal | Cash only |
+| See withdrawal history | Cash only |
+| Understand platform fees | Cash only |
+| Create promo codes | Cash only |
+| See referral earnings | Keep tracking, remove money |
+| Manage club subscription | Cash only |
+| See total spending | Show session count instead |
+| See spending by child | Same |
+| Create session packages | Rethink as bundles |
 
 ---
 
-*Last updated: February 2026 — Post sprint audit*
+## Story Count Summary
+
+| Status | Count |
+|--------|-------|
+| ✅ Built (foundational) | 151 |
+| 🔨 Needs Enhancement | 24 |
+| ❌ Missing (to build) | 100 |
+| 💤 Deferred (Cash MVP) | 18 |
+| **Total** | **293** |
+
+---
+
+*Last updated: 2026-02-08 — Post deep audit + sprint consolidation*

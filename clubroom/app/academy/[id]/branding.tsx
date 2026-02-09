@@ -9,14 +9,15 @@ import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha, Shadows } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService, UpdateBrandingInput } from '@/services/academy-service';
 import type { Academy, AcademyMembership } from '@/constants/types';
 
 const logger = createLogger('AcademyBrandingScreen');
 
+// Decorative: user-selectable brand color presets (not themeable)
 const COLOR_OPTIONS = [
   '#1E40AF', // Blue
   '#7C3AED', // Purple
@@ -26,12 +27,11 @@ const COLOR_OPTIONS = [
   '#0891B2', // Cyan
   '#4F46E5', // Indigo
   '#0F172A', // Slate
-];
+] as const;
 
 export default function AcademyBrandingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
 
   const [academy, setAcademy] = useState<Academy | null>(null);
@@ -42,8 +42,8 @@ export default function AcademyBrandingScreen() {
   // Form state
   const [logoUrl, setLogoUrl] = useState('');
   const [bannerUrl, setBannerUrl] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#1E40AF');
-  const [secondaryColor, setSecondaryColor] = useState('#60A5FA');
+  const [primaryColor, setPrimaryColor] = useState('#1E40AF'); // Decorative: default brand preset
+  const [secondaryColor, setSecondaryColor] = useState('#60A5FA'); // Decorative: default brand preset
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [website, setWebsite] = useState('');
@@ -61,8 +61,8 @@ export default function AcademyBrandingScreen() {
       if (academyData) {
         setLogoUrl(academyData.logoUrl || '');
         setBannerUrl(academyData.bannerUrl || '');
-        setPrimaryColor(academyData.primaryColor || '#1E40AF');
-        setSecondaryColor(academyData.secondaryColor || '#60A5FA');
+        setPrimaryColor(academyData.primaryColor || '#1E40AF'); // Decorative: default brand preset
+        setSecondaryColor(academyData.secondaryColor || '#60A5FA'); // Decorative: default brand preset
         setEmail(academyData.email || '');
         setPhone(academyData.phone || '');
         setWebsite(academyData.website || '');
@@ -154,16 +154,16 @@ export default function AcademyBrandingScreen() {
             </View>
             <View style={styles.previewLogoContainer}>
               {logoUrl ? (
-                <Image source={{ uri: logoUrl }} style={styles.previewLogo} />
+                <Image source={{ uri: logoUrl }} style={[styles.previewLogo, { borderColor: palette.onPrimary }]} />
               ) : (
-                <View style={[styles.previewLogoPlaceholder, { backgroundColor: secondaryColor }]}>
-                  <ThemedText style={styles.previewLogoText}>
+                <View style={[styles.previewLogoPlaceholder, { backgroundColor: secondaryColor, borderColor: palette.onPrimary }]}>
+                  <ThemedText style={[styles.previewLogoText, { color: palette.onPrimary }]}>
                     {academy.name.slice(0, 2).toUpperCase()}
                   </ThemedText>
                 </View>
               )}
             </View>
-            <ThemedText style={styles.previewName}>{academy.name}</ThemedText>
+            <ThemedText style={[styles.previewName, { color: palette.onPrimary }]}>{academy.name}</ThemedText>
           </View>
         </View>
 
@@ -184,6 +184,7 @@ export default function AcademyBrandingScreen() {
                     styles.colorOption,
                     { backgroundColor: color },
                     primaryColor === color && styles.colorSelected,
+                    primaryColor === color && { borderColor: palette.onPrimary, ...Shadows[scheme].card },
                   ].filter(Boolean) as ViewStyle[]}
                 >
                   {primaryColor === color && (
@@ -205,6 +206,7 @@ export default function AcademyBrandingScreen() {
                     styles.colorOption,
                     { backgroundColor: color },
                     secondaryColor === color && styles.colorSelected,
+                    secondaryColor === color && { borderColor: palette.onPrimary, ...Shadows[scheme].card },
                   ].filter(Boolean) as ViewStyle[]}
                 >
                   {secondaryColor === color && (
@@ -378,23 +380,19 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: Radii['2xl'],
     borderWidth: 3,
-    borderColor: Colors.light.onPrimary,
   },
   previewLogoPlaceholder: {
     width: 60,
     height: 60,
     borderRadius: Radii['2xl'],
     borderWidth: 3,
-    borderColor: Colors.light.onPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   previewLogoText: {
-    color: Colors.light.onPrimary,
     ...Typography.heading,
   },
   previewName: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
     marginTop: Spacing.xs,
   },
@@ -421,12 +419,6 @@ const styles = StyleSheet.create({
   },
   colorSelected: {
     borderWidth: 3,
-    borderColor: Colors.light.onPrimary,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
   inputGroup: {
     gap: Spacing.xs,

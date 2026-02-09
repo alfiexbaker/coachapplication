@@ -8,9 +8,9 @@ import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing, Typography, Components } from '@/constants/theme';
+import { Radii, Spacing, Typography, Components } from '@/constants/theme';
 import { RecurringBooking, RecurringBookingStatus } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import {
   getDayName,
   getFrequencyLabel,
@@ -38,7 +38,7 @@ interface RecurringCardProps {
 /**
  * Get status color based on recurring booking status
  */
-function getStatusColor(status: RecurringBookingStatus, palette: typeof Colors.light): string {
+function getStatusColor(status: RecurringBookingStatus, palette: ThemeColors): string {
   switch (status) {
     case 'ACTIVE':
       return palette.success;
@@ -95,8 +95,7 @@ export function RecurringCard({
   onPress,
   loading = false,
 }: RecurringCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const statusColor = getStatusColor(recurring.status, palette);
   const statusIcon = getStatusIcon(recurring.status);
 
@@ -525,8 +524,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    ...Typography.body,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   statLabel: {
     ...Typography.caption,
@@ -556,8 +554,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   actionButtonText: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   modalOverlay: {
     flex: 1,

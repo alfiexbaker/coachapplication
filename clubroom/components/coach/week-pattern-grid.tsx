@@ -20,11 +20,11 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('WeekPatternGrid');
 
@@ -79,8 +79,7 @@ export function WeekPatternGrid({
   onSetupComplete,
   onTimeOffPress,
 }: WeekPatternGridProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const todayDow = new Date().getDay();
 
   // Week navigator state

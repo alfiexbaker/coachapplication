@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -46,8 +46,7 @@ function ProfileQuickActionsInner({
   onGoLiveToggle,
   onSignOut,
 }: ProfileQuickActionsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <>
@@ -77,7 +76,7 @@ function ProfileQuickActionsInner({
               value={isLive}
               onValueChange={onGoLiveToggle}
               trackColor={{ false: palette.border, true: palette.success }}
-              thumbColor={Colors.light.surface}
+              thumbColor={palette.surface}
               disabled={liveLoading}
             />
           </View>

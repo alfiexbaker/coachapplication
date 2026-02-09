@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,8 +46,7 @@ export function ReviewResponse({
   maxCharacters = DEFAULT_MAX_CHARS,
   onPostReply,
 }: ReviewResponseProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [replyText, setReplyText] = useState('');
   const hasExistingReply = typeof existingReply === 'string' && existingReply.length > 0;

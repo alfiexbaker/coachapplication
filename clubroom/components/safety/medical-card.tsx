@@ -5,9 +5,9 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Badge } from '@/components/primitives/badge';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { MedicalInfo, EmergencyContact } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 type MedicalCardProps = {
   athleteName: string;
@@ -31,8 +31,7 @@ export function MedicalCard({
   onPressContacts,
   showContacts = true,
 }: MedicalCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const hasAllergies = medical.allergies.length > 0;
   const hasConditions = medical.conditions.length > 0;
@@ -87,7 +86,7 @@ export function MedicalCard({
                 <Ionicons name="alert-circle" size={14} color={palette.error} />
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText style={styles.infoLabel}>Allergies</ThemedText>
+                <ThemedText style={[styles.infoLabel, { color: palette.muted }]}>Allergies</ThemedText>
                 <ThemedText style={styles.infoValue}>{medical.allergies.join(', ')}</ThemedText>
               </View>
             </View>
@@ -99,7 +98,7 @@ export function MedicalCard({
                 <Ionicons name="fitness" size={14} color={palette.warning} />
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText style={styles.infoLabel}>Conditions</ThemedText>
+                <ThemedText style={[styles.infoLabel, { color: palette.muted }]}>Conditions</ThemedText>
                 <ThemedText style={styles.infoValue}>{medical.conditions.join(', ')}</ThemedText>
               </View>
             </View>
@@ -111,7 +110,7 @@ export function MedicalCard({
                 <Ionicons name="medkit" size={14} color={palette.tint} />
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText style={styles.infoLabel}>Medications</ThemedText>
+                <ThemedText style={[styles.infoLabel, { color: palette.muted }]}>Medications</ThemedText>
                 <ThemedText style={styles.infoValue}>{medical.medications.join(', ')}</ThemedText>
               </View>
             </View>
@@ -123,7 +122,7 @@ export function MedicalCard({
                 <Ionicons name="ban" size={14} color={palette.muted} />
               </View>
               <View style={{ flex: 1 }}>
-                <ThemedText style={styles.infoLabel}>Restrictions</ThemedText>
+                <ThemedText style={[styles.infoLabel, { color: palette.muted }]}>Restrictions</ThemedText>
                 <ThemedText style={styles.infoValue}>{medical.restrictions.join(', ')}</ThemedText>
               </View>
             </View>
@@ -147,7 +146,7 @@ export function MedicalCard({
             <Ionicons name="call" size={14} color={palette.success} />
           </View>
           <View style={{ flex: 1 }}>
-            <ThemedText style={styles.infoLabel}>Emergency Contact</ThemedText>
+            <ThemedText style={[styles.infoLabel, { color: palette.muted }]}>Emergency Contact</ThemedText>
             <ThemedText style={styles.infoValue}>
               {primaryContact.name} - {primaryContact.phone}
             </ThemedText>
@@ -181,8 +180,7 @@ export function MedicalSummaryRow({
   medical: MedicalInfo;
   onPress?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const hasAlerts =
     medical.allergies.length > 0 ||
@@ -250,8 +248,7 @@ export function MedicalInfoEmptyState({
 }: {
   onAddPress?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.emptyCard}>
@@ -316,7 +313,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: Spacing.micro,
   },
-  infoLabel: { ...Typography.caption, color: Colors.light.muted,
+  infoLabel: { ...Typography.caption,
     marginBottom: 1 },
   infoValue: { ...Typography.bodySmall },
   notesBox: {

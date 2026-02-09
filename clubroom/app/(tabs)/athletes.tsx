@@ -15,8 +15,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { AthleteCard } from '@/components/roster/athlete-card';
-import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService } from '@/services/roster-service';
 import { bookingService } from '@/services/booking-service';
@@ -29,8 +29,7 @@ const logger = createLogger('AthletesScreen');
 type FilterType = 'all' | 'active' | 'needs_attention';
 
 export default function AthletesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [roster, setRoster] = useState<RosterEntry[]>([]);
@@ -136,7 +135,7 @@ export default function AthletesScreen() {
             <ThemedText
               style={[
                 styles.filterText,
-                { color: filter === f.id ? Colors.light.onPrimary : palette.text },
+                { color: filter === f.id ? palette.onPrimary : palette.text },
               ]}
             >
               {f.label}
@@ -151,7 +150,7 @@ export default function AthletesScreen() {
                 <ThemedText
                   style={[
                     styles.filterCountText,
-                    { color: filter === f.id ? Colors.light.onPrimary : palette.muted },
+                    { color: filter === f.id ? palette.onPrimary : palette.muted },
                   ]}
                 >
                   {f.count}

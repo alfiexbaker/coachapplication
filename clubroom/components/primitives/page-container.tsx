@@ -2,8 +2,8 @@ import { PropsWithChildren, ReactNode } from 'react';
 import { View, StyleSheet, ScrollView, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface PageContainerProps extends PropsWithChildren {
   /**
@@ -92,8 +92,7 @@ export function PageContainer({
   gap = Spacing.md,
   showsScrollIndicator = false,
 }: PageContainerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const containerStyle = [
     styles.container,

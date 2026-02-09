@@ -13,8 +13,8 @@ import { CreateEventDetailsStep } from '@/components/event/create-event-details-
 import { CreateEventScheduleStep } from '@/components/event/create-event-schedule-step';
 import { CreateEventAudienceStep } from '@/components/event/create-event-audience-step';
 import { CreateEventReviewStep } from '@/components/event/create-event-review-step';
-import { Colors, Spacing, Radii } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService, CreateEventInput } from '@/services/event-service';
 import { squadService } from '@/services/squad-service';
@@ -93,8 +93,7 @@ const STEPS: WizardStep[] = ['type', 'details', 'schedule', 'audience', 'review'
 // ---------------------------------------------------------------------------
 
 export default function CreateEventScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [form, dispatch] = useReducer(eventFormReducer, initialState);

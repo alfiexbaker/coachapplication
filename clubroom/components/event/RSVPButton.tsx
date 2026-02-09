@@ -4,11 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { RSVPStatus, ClubEvent, EventRSVP } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface RSVPButtonProps {
   event: ClubEvent;
@@ -25,8 +25,7 @@ export function RSVPButton({
   disabled = false,
   compact = false,
 }: RSVPButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [loading, setLoading] = useState<RSVPStatus | null>(null);
 

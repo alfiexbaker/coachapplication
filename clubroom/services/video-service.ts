@@ -26,7 +26,7 @@
 import { apiClient } from './api-client';
 import { api } from '@/constants/config';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType, AnnotatedVideo, AnnotationExport } from '@/constants/types';
-import { type Result, type ServiceError, ok, err, notFound } from '@/types/result';
+import { type Result, type ServiceError, ok, err, notFound, storageError } from '@/types/result';
 import { createLogger } from '@/utils/logger';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
@@ -154,11 +154,13 @@ async function loadFromStorage(): Promise<SessionVideo[]> {
   return [...MOCK_VIDEOS];
 }
 
-async function saveToStorage(videos: SessionVideo[]): Promise<void> {
+async function saveToStorage(videos: SessionVideo[]): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.SESSION_VIDEOS, videos);
+    return ok(undefined);
   } catch (error) {
     logger.error('Failed to save to storage', error);
+    return err(storageError(`Failed to save session videos: ${String(error)}`));
   }
 }
 
@@ -254,7 +256,7 @@ export const videoService = {
   async getUploadUrl(fileName: string, fileType: string): Promise<{ uploadUrl: string; videoUrl: string }> {
     if (USE_MOCK) {
       // In mock mode, return fake URLs
-      const videoId = `vid_${Date.now()}`;
+      const videoId = apiClient.generateId('vid');
       return {
         uploadUrl: `https://mock-upload.example.com/upload/${videoId}`,
         videoUrl: `https://example.com/videos/${videoId}.mp4`,
@@ -274,7 +276,7 @@ export const videoService = {
    */
   async createVideo(input: CreateVideoInput, videoUrl: string, thumbnailUrl: string, duration: number, fileSize: number): Promise<SessionVideo> {
     const newVideo: SessionVideo = {
-      id: `vid_${Date.now()}`,
+      id: apiClient.generateId('vid'),
       coachId: input.coachId,
       coachName: input.coachName,
       athleteIds: input.athleteIds,
@@ -322,7 +324,7 @@ export const videoService = {
     note?: string
   ): Promise<VideoAnnotation> {
     const annotation: VideoAnnotation = {
-      id: `ann_${Date.now()}`,
+      id: apiClient.generateId('ann'),
       timestamp,
       label,
       type,

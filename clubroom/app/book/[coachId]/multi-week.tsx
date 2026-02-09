@@ -19,8 +19,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { MultiWeekPicker, type WeekRow } from '@/components/bookings/multi-week-picker';
 import { MultiWeekConfirmation } from '@/components/bookings/multi-week-confirmation';
-import { Colors, Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography, Radii, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { availabilityService } from '@/services/availability-service';
 import { multiWeekBookingService } from '@/services/multi-week-booking-service';
 import { useAuth } from '@/hooks/use-auth';
@@ -34,8 +34,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export default function MultiWeekScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { currentUser } = useAuth();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

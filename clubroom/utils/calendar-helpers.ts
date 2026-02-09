@@ -7,7 +7,6 @@
 
 import { Platform } from 'react-native';
 import * as Calendar from 'expo-calendar';
-import { Colors } from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,7 +29,7 @@ export interface CalendarBookingInfo {
  * Find the best writable calendar, or create one if necessary.
  * Returns the calendar ID, or null if no suitable calendar was found.
  */
-export async function getDefaultCalendarId(): Promise<string | null> {
+export async function getDefaultCalendarId(calendarColor?: string): Promise<string | null> {
   const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
 
   // Try to find the default calendar
@@ -56,7 +55,7 @@ export async function getDefaultCalendarId(): Promise<string | null> {
     if (defaultSource) {
       const newCalendarId = await Calendar.createCalendarAsync({
         title: 'Clubroom Sessions',
-        color: Colors.light.tint,
+        color: calendarColor ?? '#6366F1',
         entityType: Calendar.EntityTypes.EVENT,
         sourceId: defaultSource.id,
         source: defaultSource,

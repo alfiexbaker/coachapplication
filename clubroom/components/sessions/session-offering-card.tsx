@@ -3,10 +3,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { SessionOffering } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface SessionOfferingCardProps {
   offering: SessionOffering;
@@ -21,8 +21,7 @@ export function SessionOfferingCard({
   showCoach = false,
   showCapacity = true
 }: SessionOfferingCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const registeredCount = offering.registrations.filter(r => r.status === 'confirmed').length;
   const isFull = registeredCount >= offering.maxParticipants;
@@ -145,14 +144,9 @@ export function SessionOfferingCard({
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: 16,
-    padding: 20,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: Spacing.sm,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
   },
   header: {
     gap: 10,

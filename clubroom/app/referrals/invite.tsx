@@ -19,9 +19,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ShareButton } from '@/components/referrals';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { ReferralCode } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
@@ -32,8 +32,7 @@ const logger = createLogger('ReferralInviteScreen');
  * Screen for sharing referral codes with multiple options.
  */
 export default function ReferralInviteScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State
@@ -224,7 +223,7 @@ export default function ReferralInviteScreen() {
                 <ShareOption
                   icon="chatbubble"
                   label="Message"
-                  color="#34C759"
+                  color={palette.success}
                   code={referralCode.code}
                   userName={userName}
                   creditAmount={creditAmount}
@@ -232,7 +231,7 @@ export default function ReferralInviteScreen() {
                 <ShareOption
                   icon="mail"
                   label="Email"
-                  color="#FF9500"
+                  color={palette.warning}
                   code={referralCode.code}
                   userName={userName}
                   creditAmount={creditAmount}
@@ -296,7 +295,7 @@ interface ShareOptionProps {
 }
 
 function ShareOption({ icon, label, color, code, userName, creditAmount }: ShareOptionProps) {
-  useColorScheme();
+  useTheme();
 
   // All options trigger the native share sheet for now
   // Could be customized to open specific apps if needed

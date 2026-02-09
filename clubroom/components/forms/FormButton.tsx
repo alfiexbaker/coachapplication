@@ -5,7 +5,7 @@
 
 import React from 'react';
 import {
-  TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   StyleSheet,
   View,
@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Spacing, Radii, Borders, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Borders, Components, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost' | 'outline';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -58,8 +58,7 @@ export function FormButton({
   style,
   accessibilityLabel,
 }: FormButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isDisabled = disabled || loading;
 
@@ -162,19 +161,19 @@ export function FormButton({
   const sizeStyles = getSizeStyles();
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
-      style={[
+      style={({ pressed }) => [
         styles.container,
         sizeStyles.container,
         variantStyles.container,
         fullWidth ? styles.fullWidth : undefined,
         isDisabled ? styles.disabled : undefined,
+        pressed && { opacity: 0.7 },
         style,
       ]}
     >
@@ -213,7 +212,7 @@ export function FormButton({
           )}
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

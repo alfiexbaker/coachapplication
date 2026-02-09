@@ -13,9 +13,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import type { Challenge, ChallengeSubmission } from '@/services/challenge-service';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,8 +62,7 @@ export function ChallengeCard({
   onSubmitAttempt,
   onPlayDemo,
 }: ChallengeCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const expired = isExpired(challenge.deadline);
   const completedCount = submissions.length;
 

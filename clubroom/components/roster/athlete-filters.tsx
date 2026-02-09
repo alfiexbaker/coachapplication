@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { RosterFilters } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AthleteFiltersProps {
   filters: RosterFilters;
@@ -16,11 +16,12 @@ interface AthleteFiltersProps {
   onClear: () => void;
 }
 
+// Decorative: status indicator colors for distinct visual identification
 const STATUS_OPTIONS: { key: RosterEntry['status']; label: string; color: string }[] = [
-  { key: 'ACTIVE', label: 'Active', color: '#16A34A' },
-  { key: 'PAUSED', label: 'Paused', color: '#CA8A04' },
-  { key: 'GRADUATED', label: 'Graduated', color: '#2563EB' },
-  { key: 'INACTIVE', label: 'Inactive', color: '#6B7280' },
+  { key: 'ACTIVE', label: 'Active', color: '#16A34A' },     // Decorative: active status
+  { key: 'PAUSED', label: 'Paused', color: '#CA8A04' },     // Decorative: paused status
+  { key: 'GRADUATED', label: 'Graduated', color: '#2563EB' }, // Decorative: graduated status
+  { key: 'INACTIVE', label: 'Inactive', color: '#6B7280' },  // Decorative: inactive status
 ];
 
 const SKILL_LEVELS: { key: RosterEntry['athleteSkillLevel']; label: string }[] = [
@@ -35,8 +36,7 @@ export function AthleteFilters({
   onFilterChange,
   onClear,
 }: AthleteFiltersProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const toggleStatus = (status: RosterEntry['status']) => {
     onFilterChange({
@@ -136,7 +136,7 @@ export function AthleteFilters({
               <ThemedText
                 style={[
                   styles.chipText,
-                  { color: filters.skillLevel === level.key ? '#fff' : palette.text },
+                  { color: filters.skillLevel === level.key ? palette.onPrimary : palette.text },
                 ]}
               >
                 {level.label}
@@ -165,11 +165,11 @@ export function AthleteFilters({
                   ]}
                 >
                   <ThemedText
-                    style={[styles.tagText, { color: isSelected ? '#fff' : palette.text }]}
+                    style={[styles.tagText, { color: isSelected ? palette.onPrimary : palette.text }]}
                   >
                     {tag}
                   </ThemedText>
-                  {isSelected && <Ionicons name="checkmark" size={12} color="#fff" />}
+                  {isSelected && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
                 </Clickable>
               );
             })}

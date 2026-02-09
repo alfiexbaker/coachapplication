@@ -1,13 +1,13 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { AggregatedFeedPost } from '@/services/social-feed-service';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -18,8 +18,7 @@ export interface SessionAnnouncementCardProps {
 // ─── Component ──────────────────────────────────────────────────
 
 function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const priceLabel = (() => {
     if (post.sessionPrice == null || post.sessionPrice === 0) return 'Free';
@@ -98,16 +97,15 @@ function SessionAnnouncementCardInner({ post }: SessionAnnouncementCardProps) {
       </View>
 
       {/* Book Now CTA */}
-      <TouchableOpacity
+      <Pressable
         style={[styles.bookNowButton, { backgroundColor: palette.tint }]}
         onPress={handleBookNow}
-        activeOpacity={0.8}
       >
         <Ionicons name="flash" size={16} color={palette.onPrimary} />
         <ThemedText style={[styles.bookNowText, { color: palette.onPrimary }]}>
           Book Now
         </ThemedText>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }

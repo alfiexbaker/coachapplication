@@ -9,8 +9,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('BlockDateModal');
 
@@ -77,8 +77,7 @@ export function BlockDateModal({
   onBlock,
   preselectedDate,
 }: BlockDateModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [mode, setMode] = useState<'single' | 'range' | 'holiday'>('single');
   const [startDate, setStartDate] = useState<Date>(new Date());

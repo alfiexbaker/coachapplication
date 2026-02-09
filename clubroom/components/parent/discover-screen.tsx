@@ -17,8 +17,7 @@ import { apiClient } from '@/services/api-client';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   getAllCoachesWithProfiles,
@@ -35,6 +34,7 @@ import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { AvailabilitySlot, SessionInvite, Club } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('ParentDiscoverScreen');
 
@@ -42,8 +42,7 @@ const logger = createLogger('ParentDiscoverScreen');
 const nextAvailableCache: Record<string, { slot: AvailabilitySlot | null; timestamp: number }> = {};
 
 export function ParentDiscoverScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [postcode, setPostcode] = useState('');
   const [nextAvailableSlots, setNextAvailableSlots] = useState<Record<string, AvailabilitySlot | null>>({});
@@ -365,7 +364,7 @@ export function ParentDiscoverScreen() {
                     ]}
                   >
                     <View style={[styles.clubHubItemIcon, { backgroundColor: palette.tint }]}>
-                      <ThemedText style={styles.clubHubItemIconText}>
+                      <ThemedText style={[styles.clubHubItemIconText, { color: palette.surface }]}>
                         {club.badge?.slice(0, 2) || club.name.slice(0, 2).toUpperCase()}
                       </ThemedText>
                     </View>
@@ -908,7 +907,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  clubHubItemIconText: { ...Typography.caption, color: Colors.light.surface },
+  clubHubItemIconText: { ...Typography.caption },
   clubHubJoinSection: {
     borderTopWidth: 1,
     paddingTop: Spacing.md,

@@ -15,8 +15,8 @@ import Animated, { FadeInRight } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography, Components  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, Components  , withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import type { CoachCardData } from '@/components/coach';
 
 // ---------------------------------------------------------------------------
@@ -120,7 +120,7 @@ function FeaturedCard({
 }: {
   coach: CoachCardData;
   index: number;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
   isFavourited: boolean;
   onPress: () => void;
   onBookNow: () => void;
@@ -163,7 +163,7 @@ function FeaturedCard({
           {/* Trial badge */}
           {coach.trialAvailable && (
             <View style={[cardStyles.trialPill, { backgroundColor: palette.success }]}>
-              <ThemedText style={cardStyles.trialText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+              <ThemedText style={[cardStyles.trialText, { color: palette.onPrimary }]}>
                 FREE TRIAL
               </ThemedText>
             </View>
@@ -205,7 +205,7 @@ function FeaturedCard({
                 },
               ]}
             >
-              <ThemedText style={cardStyles.bookBtnText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+              <ThemedText style={[cardStyles.bookBtnText, { color: palette.onPrimary }]}>
                 Book Now
               </ThemedText>
             </Pressable>
@@ -330,8 +330,7 @@ export function FeaturedCoaches({
   favouriteIds = [],
   onToggleFavourite,
 }: FeaturedCoachesProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const scrollIndexRef = useRef(0);
 

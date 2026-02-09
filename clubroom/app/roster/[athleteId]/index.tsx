@@ -14,8 +14,8 @@ import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { AthleteNotes } from '@/components/roster/athlete-notes';
 import { MedicalAlertBadge } from '@/components/safety/MedicalAlertBadge';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService } from '@/services/roster-service';
 import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-service';
@@ -36,8 +36,7 @@ const FOCUS_OPTIONS: FootballObjective[] = [
 
 export default function AthleteDetailScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [entry, setEntry] = useState<RosterEntry | null>(null);
@@ -301,7 +300,7 @@ export default function AthleteDetailScreen() {
             </View>
             {entry.averageRating && (
               <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-                <Ionicons name="star" size={20} color="#FFB800" />
+                <Ionicons name="star" size={20} color={palette.rating} />
                 <ThemedText type="heading">{entry.averageRating.toFixed(1)}</ThemedText>
                 <ThemedText style={[styles.statLabel, { color: palette.muted }]}>Avg Rating</ThemedText>
               </View>

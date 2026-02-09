@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { EventRSVP, EventAttendance } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -24,8 +24,7 @@ export function AttendeeCard({
   showCheckInStatus = false,
   compact = false,
 }: AttendeeCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Use attendance data if available, otherwise fall back to RSVP
   const userName = attendance?.userName || rsvp?.userName || 'Unknown';
@@ -119,7 +118,7 @@ export function AttendeeCard({
           )}
           {/* Check-in indicator */}
           {showCheckInStatus && isCheckedIn && (
-            <View style={[styles.checkInBadge, { backgroundColor: palette.success }]}>
+            <View style={[styles.checkInBadge, { backgroundColor: palette.success, borderColor: palette.surface }]}>
               <Ionicons name="checkmark" size={10} color={palette.onSuccess} />
             </View>
           )}
@@ -248,7 +247,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.light.surface,
+    // borderColor set inline for dynamic theming
   },
   info: {
     flex: 1,

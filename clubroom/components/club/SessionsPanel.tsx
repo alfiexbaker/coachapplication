@@ -1,14 +1,14 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface SessionsPanelProps {
   sessions: GroupSession[];
@@ -18,8 +18,7 @@ export interface SessionsPanelProps {
 }
 
 export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSquad }: SessionsPanelProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleCreateSession = () => {
     if (onCreateSession) {
@@ -46,27 +45,27 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
         </View>
         {isCoach && (
           <View style={styles.trainingHeaderButtons}>
-            <TouchableOpacity
+            <Pressable
               style={styles.manageAllLink}
               onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}
             >
               <ThemedText style={{ ...Typography.smallSemiBold, color: palette.tint }}>Manage All</ThemedText>
               <Ionicons name="chevron-forward" size={14} color={palette.tint} />
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[styles.inviteSquadButton, { borderColor: palette.tint }]}
               onPress={handleInviteSquad}
             >
               <Ionicons name="people" size={14} color={palette.tint} />
               <ThemedText style={ { color: palette.tint, ...Typography.caption }}>Invite Squad</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[styles.addTrainingButton, { backgroundColor: palette.tint }]}
               onPress={handleCreateSession}
             >
               <Ionicons name="add" size={16} color={palette.onPrimary} />
               <ThemedText style={ { color: palette.onPrimary, ...Typography.caption }}>Add</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         )}
       </View>
@@ -79,7 +78,7 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
               ? groupSessionService.formatDayOfWeek(session.recurringPattern.dayOfWeek)
               : '';
             return (
-              <TouchableOpacity
+              <Pressable
                 key={session.id}
                 style={[styles.trainingItem, { borderColor: palette.border }]}
                 onPress={() => router.push(Routes.groupSession(session.id))}
@@ -126,11 +125,11 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
                     </ThemedText>
                   )}
                 </View>
-              </TouchableOpacity>
+              </Pressable>
             );
           })}
           {sessions.length > 3 && (
-            <TouchableOpacity
+            <Pressable
               style={styles.viewAllButton}
               onPress={() => router.push(Routes.CLUB_TRAINING_SCHEDULE)}
             >
@@ -138,7 +137,7 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
                 View all {sessions.length} training sessions
               </ThemedText>
               <Ionicons name="chevron-forward" size={16} color={palette.tint} />
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       ) : (
@@ -148,14 +147,14 @@ export function SessionsPanel({ sessions, isCoach, onCreateSession, onInviteSqua
             No training sessions scheduled
           </ThemedText>
           {isCoach && (
-            <TouchableOpacity
+            <Pressable
               style={[styles.createTrainingButton, { borderColor: palette.tint }]}
               onPress={handleCreateSession}
             >
               <ThemedText style={ { color: palette.tint, ...Typography.smallSemiBold }}>
                 Schedule Training
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       )}

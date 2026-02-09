@@ -13,8 +13,8 @@ import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { WaitlistBanner } from '@/components/group/waitlist-banner';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
 import { hasChildren } from '@/utils/user-helpers';
@@ -22,10 +22,19 @@ import type { GroupSession, GroupRegistration } from '@/constants/types';
 
 const logger = createLogger('GroupSessionDetailScreen');
 
+// Decorative: group session type category colors
+const SESSION_TYPE_COLORS = {
+  CAMP: '#FF6B35',
+  CLINIC: '#7B68EE',
+  TEAM_TRAINING: '#2E8B57',
+  TRAINING: '#2E8B57',
+  OPEN_SESSION: '#4169E1',
+  TRIAL: '#20B2AA',
+} as const;
+
 export default function GroupSessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [session, setSession] = useState<GroupSession | null>(null);
@@ -99,8 +108,7 @@ export default function GroupSessionDetailScreen() {
           } catch (error) {
             logger.error('Failed to cancel:', error);
           }
-        },
-      },
+        } },
     ]);
   };
 
@@ -137,14 +145,7 @@ export default function GroupSessionDetailScreen() {
   const _firstDate = session.schedule[0];
   const isFree = session.pricePerParticipant === 0;
 
-  const typeColors: Record<GroupSession['sessionType'], string> = {
-    CAMP: '#FF6B35',
-    CLINIC: '#7B68EE',
-    TEAM_TRAINING: '#2E8B57',
-    TRAINING: '#2E8B57',
-    OPEN_SESSION: '#4169E1',
-    TRIAL: '#20B2AA',
-  };
+  const type = SESSION_TYPE_COLORS;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
@@ -154,27 +155,27 @@ export default function GroupSessionDetailScreen() {
           {session.imageUrl ? (
             <Image source={{ uri: session.imageUrl }} style={styles.image} />
           ) : (
-            <View style={[styles.imagePlaceholder, { backgroundColor: typeColors[session.sessionType] }]}>
-              <Ionicons name="calendar" size={48} color="rgba(255,255,255,0.6)" />
+            <View style={[styles.imagePlaceholder, { backgroundColor: type[session.sessionType] }]}>
+              <Ionicons name="calendar" size={48} color="rgba(255,255,255,0.6)" />{/* Decorative: semi-transparent icon on colored bg */}
             </View>
           )}
           <View style={styles.imageOverlay} />
           <Clickable
             onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+            style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]} // Decorative: overlay button scrim
           >
-            <Ionicons name="arrow-back" size={22} color={Colors.light.onPrimary} />
+            <Ionicons name="arrow-back" size={22} color={palette.onPrimary} />
           </Clickable>
           {isCoach && (
             <Clickable
               onPress={() => router.push(Routes.groupSessionRoster(id))}
-              style={[styles.rosterButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+              style={[styles.rosterButton, { backgroundColor: 'rgba(0,0,0,0.4)' }]} // Decorative: overlay button scrim
             >
-              <Ionicons name="people" size={20} color={Colors.light.onPrimary} />
+              <Ionicons name="people" size={20} color={palette.onPrimary} />
             </Clickable>
           )}
-          <View style={[styles.typeBadge, { backgroundColor: typeColors[session.sessionType] }]}>
-            <ThemedText style={styles.typeText}>
+          <View style={[styles.typeBadge, { backgroundColor: type[session.sessionType] }]}>
+            <ThemedText style={[styles.typeText, { color: palette.onPrimary }]}>
               {groupSessionService.formatSessionType(session.sessionType)}
             </ThemedText>
           </View>
@@ -216,8 +217,7 @@ export default function GroupSessionDetailScreen() {
                   ? withAlpha(palette.error, 0.09)
                   : spotsLeft <= 3
                   ? withAlpha(palette.warning, 0.09)
-                  : withAlpha(palette.success, 0.09),
-              },
+                  : withAlpha(palette.success, 0.09) },
             ]}
           >
             <Ionicons
@@ -228,8 +228,7 @@ export default function GroupSessionDetailScreen() {
             <ThemedText
               style={{
                 color: isFull ? palette.error : spotsLeft <= 3 ? palette.warning : palette.success,
-                fontWeight: '600',
-              }}
+                fontWeight: '600' }}
             >
               {isFull
                 ? `Full - ${session.waitlistCount} on waitlist`
@@ -263,8 +262,7 @@ export default function GroupSessionDetailScreen() {
                       {new Date(sched.date).toLocaleDateString('en-GB', {
                         weekday: 'long',
                         day: 'numeric',
-                        month: 'long',
-                      })}
+                        month: 'long' })}
                     </ThemedText>
                     <ThemedText style={[styles.scheduleTime, { color: palette.muted }]}>
                       {sched.startTime} - {sched.endTime}
@@ -403,33 +401,27 @@ export default function GroupSessionDetailScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   imageContainer: {
     position: 'relative',
-    height: 220,
-  },
+    height: 220 },
   image: {
     width: '100%',
-    height: '100%',
-  },
+    height: '100%' },
   imagePlaceholder: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
+    backgroundColor: 'rgba(0,0,0,0.2)' }, // Decorative: image darkening overlay
   backButton: {
     position: 'absolute',
     top: Spacing.md,
@@ -438,8 +430,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   rosterButton: {
     position: 'absolute',
     top: Spacing.md,
@@ -448,44 +439,34 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   typeBadge: {
     position: 'absolute',
     bottom: Spacing.md,
     left: Spacing.md,
     paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   typeText: {
-    color: Colors.light.onPrimary,
     ...Typography.caption,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   titleSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
+    alignItems: 'flex-start' },
   clubName: {
     ...Typography.small,
-    marginTop: Spacing.xxs,
-  },
+    marginTop: Spacing.xxs },
   priceSection: {
-    alignItems: 'flex-end',
-  },
+    alignItems: 'flex-end' },
   price: {
-    ...Typography.display,
-  },
+    ...Typography.display },
   priceNote: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   capacityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -493,82 +474,65 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
-    alignSelf: 'flex-start',
-  },
+    alignSelf: 'flex-start' },
   card: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   description: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   scheduleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   scheduleIcon: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   scheduleTime: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   coachPhoto: {
     width: 48,
     height: 48,
-    borderRadius: Radii.xl,
-  },
+    borderRadius: Radii.xl },
   coachPhotoPlaceholder: {
     width: 48,
     height: 48,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   messageButton: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   requirementRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   focusSection: {
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   focusTitle: {
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   focusRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   focusTag: {
     paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   focusText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   coachActions: {
     gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
+    marginTop: Spacing.md },
   coachActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -576,11 +540,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   bottomSpacer: {
-    height: 100,
-  },
+    height: 100 },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -590,9 +552,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.lg,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   footerNote: {
-    ...Typography.caption,
-  },
-});
+    ...Typography.caption } });

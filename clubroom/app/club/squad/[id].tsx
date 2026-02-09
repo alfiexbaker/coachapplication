@@ -6,20 +6,23 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubService, type ClubMember } from '@/services/club-service';
+import { squadGroupService } from '@/services/squad-group-service';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 import { clubSquads as fallbackSquads } from '@/constants/mock-data';
 import type { ClubSquad } from '@/constants/types';
 import { apiClient } from '@/services/api-client';
@@ -30,8 +33,7 @@ const logger = createLogger('SquadDetail');
 
 export default function SquadDetailScreen() {
   const { id: squadId } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 
@@ -46,6 +48,33 @@ export default function SquadDetailScreen() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<ClubMember | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [openingGroupChat, setOpeningGroupChat] = useState(false);
+
+  const handleGroupChat = useCallback(async () => {
+    if (!squadId || openingGroupChat) return;
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setOpeningGroupChat(true);
+    try {
+      const result = await squadGroupService.getOrCreateSquadGroup(
+        squadId,
+        currentUser?.id ?? 'coach1',
+        currentUser?.fullName ?? currentUser?.name ?? 'Coach',
+      );
+      if (result.success) {
+        router.push(Routes.communityGroup(result.data.id));
+      } else {
+        showToast('Failed to open group chat', 'error');
+        logger.error('Failed to open squad group chat', result.error);
+      }
+    } catch (error) {
+      showToast('Failed to open group chat', 'error');
+      logger.error('Error opening squad group chat', error);
+    } finally {
+      setOpeningGroupChat(false);
+    }
+  }, [squadId, openingGroupChat, currentUser, showToast]);
 
   const loadData = useCallback(async () => {
     if (!squadId) {
@@ -165,8 +194,16 @@ export default function SquadDetailScreen() {
       const storedSquads = await apiClient.get<ClubSquad[]>(STORAGE_KEYS.CLUB_SQUADS, []);
       // Also include fallback squads so we filter from the combined set
       const allSquads = storedSquads.length > 0 ? storedSquads : [...fallbackSquads];
+      const deletedSquad = allSquads.find((s) => s.id === squadId);
       const filtered = allSquads.filter((s) => s.id !== squadId);
       await apiClient.set(STORAGE_KEYS.CLUB_SQUADS, filtered);
+
+      // Emit SQUAD_DELETED to trigger group cleanup via event bus
+      emitTyped(ServiceEvents.SQUAD_DELETED, {
+        squadId,
+        clubId: deletedSquad?.clubId ?? '',
+      });
+
       showToast('Squad deleted', 'success');
       logger.action('DeleteSquad', { squadId });
       router.back();
@@ -186,6 +223,7 @@ export default function SquadDetailScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
         <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={palette.tint} />
           <ThemedText style={{ color: palette.muted }}>Loading squad...</ThemedText>
         </View>
       </SafeAreaView>
@@ -232,6 +270,7 @@ export default function SquadDetailScreen() {
         </Clickable>
       </View>
 
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Squad Info Card */}
         <SurfaceCard style={styles.infoCard}>
@@ -427,11 +466,38 @@ export default function SquadDetailScreen() {
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           <Clickable
+            style={[
+              styles.groupChatButton,
+              {
+                backgroundColor: withAlpha(palette.tint, 0.06),
+                borderColor: palette.border,
+              },
+            ]}
+            onPress={handleGroupChat}
+            disabled={openingGroupChat}
+          >
+            {openingGroupChat ? (
+              <>
+                <ActivityIndicator size="small" color={palette.tint} />
+                <ThemedText style={{ color: palette.tint, ...Typography.bodySemiBold }}>
+                  Opening...
+                </ThemedText>
+              </>
+            ) : (
+              <>
+                <Ionicons name="chatbubbles-outline" size={18} color={palette.tint} />
+                <ThemedText style={{ color: palette.tint, ...Typography.bodySemiBold }}>
+                  Group Chat
+                </ThemedText>
+              </>
+            )}
+          </Clickable>
+          <Clickable
             style={[styles.quickActionButton, { backgroundColor: palette.tint }]}
             onPress={handleInviteSquad}
           >
             <Ionicons name="paper-plane-outline" size={18} color={palette.surface} />
-            <ThemedText style={{ color: palette.surface, fontWeight: '600' }}>
+            <ThemedText style={{ color: palette.surface, ...Typography.bodySemiBold }}>
               Send Squad Invite
             </ThemedText>
           </Clickable>
@@ -501,6 +567,7 @@ export default function SquadDetailScreen() {
           </View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -595,7 +662,7 @@ const styles = StyleSheet.create({
   statItem: {
     flex: 1,
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xxs,
   },
   tagsRow: {
     flexDirection: 'row',
@@ -604,7 +671,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   membersCard: {
@@ -618,9 +685,9 @@ const styles = StyleSheet.create({
   addMemberButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs / 2,
+    gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs / 2,
+    paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
   },
   emptyState: {
@@ -629,7 +696,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   membersList: {
-    gap: Spacing.xs / 2,
+    gap: Spacing.xxs,
   },
   memberRow: {
     flexDirection: 'row',
@@ -670,6 +737,16 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     gap: Spacing.sm,
+  },
+  groupChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    minHeight: 48,
+    paddingVertical: Spacing.md,
+    borderRadius: Radii.md,
+    borderWidth: 1,
   },
   quickActionButton: {
     flexDirection: 'row',

@@ -14,10 +14,7 @@ import Animated, {
   withDelay,
   Easing,
 } from 'react-native-reanimated';
-import Svg, { Line, Path } from 'react-native-svg';
-
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import Svg, { Line, Path } from 'react-native-svg';import { useTheme } from '@/hooks/useTheme';
 
 const AnimatedLine = Animated.createAnimatedComponent(Line);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -48,8 +45,7 @@ export function SkillConnection({
   containerWidth,
   containerHeight,
 }: SkillConnectionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const animationProgress = useSharedValue(0);
 

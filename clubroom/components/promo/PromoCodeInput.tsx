@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   View,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -10,10 +10,10 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCodeValidationResult } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PromoCodeInputProps {
   /** User ID for validation */
@@ -37,8 +37,7 @@ export function PromoCodeInput({
   disabled = false,
   placeholder = 'Enter promo code',
 }: PromoCodeInputProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [code, setCode] = useState('');
   const [validationState, setValidationState] = useState<ValidationState>('idle');
@@ -155,7 +154,7 @@ export function PromoCodeInput({
           onSubmitEditing={isValid ? handleRedeem : handleValidate}
         />
         {code.length > 0 && !isLoading && (
-          <TouchableOpacity
+          <Pressable
             onPress={() => {
               setCode('');
               setValidationState('idle');
@@ -165,7 +164,7 @@ export function PromoCodeInput({
             style={styles.clearButton}
           >
             <Ionicons name="close-circle" size={18} color={palette.muted} />
-          </TouchableOpacity>
+          </Pressable>
         )}
         {isLoading && (
           <ActivityIndicator size="small" color={palette.tint} style={styles.clearButton} />
@@ -192,7 +191,7 @@ export function PromoCodeInput({
       )}
 
       {/* Action button */}
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.actionButton,
           {
@@ -212,12 +211,12 @@ export function PromoCodeInput({
               size={20}
               color={palette.onPrimary}
             />
-            <ThemedText style={styles.buttonText}>
+            <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
               {isValid ? 'Redeem Code' : 'Apply Code'}
             </ThemedText>
           </>
         )}
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Loading state messages */}
       {validationState === 'validating' && (
@@ -277,7 +276,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     marginTop: Spacing.xs,
   },
-  buttonText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  buttonText: { ...Typography.subheading },
   loadingMessage: {
     alignItems: 'center',
     paddingVertical: Spacing.xs,

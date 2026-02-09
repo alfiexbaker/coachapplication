@@ -17,8 +17,8 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha, Shadows } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
 
@@ -43,8 +43,7 @@ export function AnnotationMarker({
   showTooltip = false,
   size = 'medium',
 }: AnnotationMarkerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const [tooltipVisible, setTooltipVisible] = useState(false);
 
   const typeConfig = ANNOTATION_TYPE_CONFIG[annotation.type];
@@ -94,6 +93,7 @@ export function AnnotationMarker({
             {
               backgroundColor: palette.surface,
               borderColor: typeConfig.color,
+              ...Shadows[scheme].subtle,
             },
           ]}
         >
@@ -132,6 +132,7 @@ export function AnnotationMarker({
             backgroundColor: typeConfig.color,
             borderColor: isActive ? palette.onPrimary : 'transparent',
             borderWidth: isActive ? 2 : 0,
+            ...Shadows[scheme].subtle,
           },
         ]}
       >
@@ -161,6 +162,7 @@ interface CompactMarkerProps {
 }
 
 export function CompactAnnotationMarker({ type, onPress }: CompactMarkerProps) {
+  const { colors: palette } = useTheme();
   const typeConfig = ANNOTATION_TYPE_CONFIG[type];
 
   return (
@@ -168,7 +170,7 @@ export function CompactAnnotationMarker({ type, onPress }: CompactMarkerProps) {
       onPress={onPress}
       style={[styles.compactMarker, { backgroundColor: typeConfig.color }]}
     >
-      <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={10} color={Colors.light.onPrimary} />
+      <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={10} color={palette.onPrimary} />
     </Pressable>
   );
 }
@@ -182,11 +184,6 @@ const styles = StyleSheet.create({
   marker: {
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
   activeLine: {
     position: 'absolute',
@@ -204,11 +201,6 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
   },
   tooltipHeader: {
     flexDirection: 'row',

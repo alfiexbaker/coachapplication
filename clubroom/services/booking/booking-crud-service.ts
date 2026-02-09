@@ -65,6 +65,7 @@ export interface CreateBookingParams {
   price?: number; // Base price per athlete
   notes?: string;
   sessionInviteId?: string; // Link to session invite if created from one
+  skipAvailabilityValidation?: boolean; // Skip slot validation (used by invite acceptance flow)
 }
 
 class BookingCrudService {
@@ -109,9 +110,15 @@ class BookingCrudService {
   }
 
   /** Save all bookings to storage and invalidate cache. */
-  private async saveToStorage(bookings: Booking[]): Promise<void> {
-    await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
-    this.invalidateCache();
+  private async saveToStorage(bookings: Booking[]): Promise<Result<void, ServiceError>> {
+    try {
+      await apiClient.set(STORAGE_KEYS.BOOKINGS, bookings);
+      this.invalidateCache();
+      return ok(undefined);
+    } catch (error) {
+      logger.error('Failed to save bookings to storage', error);
+      return err(storageError(`Failed to save bookings: ${String(error)}`));
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -294,10 +301,12 @@ class BookingCrudService {
     const date = scheduledAt.split('T')[0];
     const time = scheduledAt.split('T')[1]?.substring(0, 5) || '10:00';
 
-    // Validate against availability
-    const validation = await this.validateBooking(coachId, date, time, duration);
-    if (!validation.valid) {
-      return err(validationError(validation.reason || 'Booking validation failed'));
+    // Validate against availability (skip when booking is created from an accepted invite)
+    if (!params.skipAvailabilityValidation) {
+      const validation = await this.validateBooking(coachId, date, time, duration);
+      if (!validation.valid) {
+        return err(validationError(validation.reason || 'Booking validation failed'));
+      }
     }
 
     // Calculate total price (base price * number of athletes)
@@ -307,7 +316,7 @@ class BookingCrudService {
 
     // Create the booking
     const newBooking = {
-      id: `booking-${Date.now()}`,
+      id: apiClient.generateId('booking'),
       coachId,
       coachName,
       athleteIds,
@@ -381,7 +390,7 @@ class BookingCrudService {
 
     // Notification for coach: New booking received
     await notificationService.create({
-      id: `notif-coach-${Date.now()}`,
+      id: apiClient.generateId('notif-coach'),
       type: 'booking',
       title: 'New Booking Request',
       body: `${bookedByName} has booked a ${booking.service} session for ${booking.athleteName} on ${formattedDate} at ${formattedTime}.`,
@@ -391,7 +400,7 @@ class BookingCrudService {
 
     // Notification for parent: Booking confirmed
     await notificationService.create({
-      id: `notif-parent-${Date.now() + 1}`,
+      id: apiClient.generateId('notif-parent'),
       type: 'booking',
       title: 'Booking Confirmed',
       body: `Your session with Coach ${booking.coachName} for ${booking.athleteName} is confirmed for ${formattedDate} at ${formattedTime}.`,
@@ -421,7 +430,7 @@ class BookingCrudService {
     // Create booking through the centralized createBooking method
     // Note: We use saveBookingDirect to bypass validation for draft flow (legacy compatibility)
     const booking = {
-      id: `draft_${Date.now()}`,
+      id: apiClient.generateId('draft'),
       coachId: draft.coachId,
       coachName: draft.coachName,
       athleteIds: draft.childIds || [draft.athleteId!],

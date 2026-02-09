@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { ConsentGrid } from './ConsentGrid';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { AthleteConsent } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
 
@@ -20,8 +20,7 @@ export function ConsentCard({
   onPress,
   showDetails = false,
 }: ConsentCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const { granted, total } = consentService.getConsentCount(athleteConsent);
   const percentage = consentService.getConsentPercentage(athleteConsent);

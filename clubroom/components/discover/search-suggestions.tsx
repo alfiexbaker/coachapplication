@@ -10,12 +10,12 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { Spacing, Radii, Typography, Components } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { Clickable } from '@/components/primitives/clickable';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -73,7 +73,7 @@ function SectionHeader({
   actionLabel,
 }: {
   title: string;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
   onAction?: () => void;
   actionLabel?: string;
 }) {
@@ -103,8 +103,7 @@ const headerStyles = StyleSheet.create({
     ...Typography.subheading,
   },
   action: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
 });
 
@@ -115,7 +114,7 @@ function SuggestionRow({
 }: {
   suggestion: SearchSuggestion;
   onPress: () => void;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }) {
   const iconName = getIconForType(suggestion.type);
 
@@ -197,8 +196,7 @@ export function SearchSuggestions({
   onClearRecent,
   visible = true,
 }: SearchSuggestionsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (!visible) return null;
 

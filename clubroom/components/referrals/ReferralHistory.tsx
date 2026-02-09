@@ -10,11 +10,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
 import type { Referral } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ReferralHistoryProps {
   /** List of referrals to display */
@@ -51,8 +51,7 @@ export function ReferralHistory({
   title = 'Referral History',
   showEmptyState = true,
 }: ReferralHistoryProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const displayReferrals = maxItems ? referrals.slice(0, maxItems) : referrals;
 
@@ -130,8 +129,7 @@ interface ReferralHistoryItemProps {
 }
 
 export function ReferralHistoryItem({ referral, onPress, isLast }: ReferralHistoryItemProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const { label: statusLabel, color: statusColor } = referralService.getStatusInfo(referral.status);
   const formattedDate = referralService.formatDate(referral.createdAt);
@@ -146,7 +144,7 @@ export function ReferralHistoryItem({ referral, onPress, isLast }: ReferralHisto
 
   return (
     <SurfaceCard
-      style={[styles.item, !isLast && styles.itemWithBorder]}
+      style={[styles.item, !isLast && styles.itemWithBorder, !isLast && { borderBottomColor: palette.border }]}
       onPress={onPress}
       tactile={Boolean(onPress)}
     >
@@ -213,8 +211,7 @@ export function ReferralHistoryItem({ referral, onPress, isLast }: ReferralHisto
 // ============================================================================
 
 export function ReferralHistorySkeleton() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.card}>
@@ -222,7 +219,7 @@ export function ReferralHistorySkeleton() {
         <View style={[styles.skeletonTitle, { backgroundColor: palette.border }]} />
       </View>
       {[1, 2, 3].map((i) => (
-        <View key={i} style={[styles.item, i < 3 && styles.itemWithBorder]}>
+        <View key={i} style={[styles.item, i < 3 && styles.itemWithBorder, i < 3 && { borderBottomColor: palette.border }]}>
           <View style={styles.itemContent}>
             <View style={[styles.avatar, { backgroundColor: palette.border }]} />
             <View style={styles.itemDetails}>
@@ -273,7 +270,6 @@ const styles = StyleSheet.create({
   },
   itemWithBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.light.border,
   },
   itemContent: {
     flexDirection: 'row',

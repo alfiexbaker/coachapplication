@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import type { GroupMember, GroupMemberRole } from '@/constants/types';
 
 // ---------------------------------------------------------------------------
@@ -26,7 +26,7 @@ const ROLE_DESCRIPTIONS: Record<GroupMemberRole, string> = {
   MEMBER: 'Standard group member',
 };
 
-function getRoleBadgeColor(role: GroupMemberRole, palette: typeof Colors.light) {
+function getRoleBadgeColor(role: GroupMemberRole, palette: ThemeColors) {
   switch (role) {
     case 'OWNER':
       return { bg: withAlpha(palette.warning, 0.12), text: palette.warning };
@@ -62,8 +62,7 @@ function GroupRolePickerInner({
   assignableRoles,
   onRoleChange,
 }: GroupRolePickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Modal

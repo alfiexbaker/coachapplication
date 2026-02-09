@@ -3,10 +3,10 @@ import { StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { calendarService } from '@/services/calendar-service';
 import type { Booking } from '@/constants/app-types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface CalendarExportButtonProps {
   /** Single booking to export */
@@ -37,8 +37,7 @@ export function CalendarExportButton({
   onExportError,
   disabled = false,
 }: CalendarExportButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [isExporting, setIsExporting] = useState(false);
   const handleExport = async () => {
     if (disabled || isExporting) return;
@@ -126,7 +125,7 @@ export function CalendarExportButton({
   const buttonLabel = label ?? (bookings?.length ? 'Export All' : 'Add to Calendar');
   const backgroundColor =
     variant === 'primary' ? palette.accent : withAlpha(palette.accent, 0.09);
-  const textColor = variant === 'primary' ? Colors.light.onPrimary : palette.accent;
+  const textColor = variant === 'primary' ? palette.onPrimary : palette.accent;
 
   return (
     <Pressable

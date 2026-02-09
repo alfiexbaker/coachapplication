@@ -3,9 +3,9 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { ClubEvent } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -16,8 +16,7 @@ interface EventCardProps {
 }
 
 export function EventCard({ event, onPress, compact = false }: EventCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const typeColor = eventService.getEventTypeColor(event.eventType);
   const typeIcon = eventService.getEventTypeIcon(event.eventType);
@@ -125,7 +124,7 @@ export function EventCard({ event, onPress, compact = false }: EventCardProps) {
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { borderTopColor: palette.border }]}>
           {/* Attendance info */}
           <View style={styles.attendanceInfo}>
             <Ionicons name="people-outline" size={16} color={palette.muted} />
@@ -243,7 +242,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    // borderTopColor set inline for dynamic theming
   },
   attendanceInfo: {
     flexDirection: 'row',

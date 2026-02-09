@@ -3,10 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { TierNames } from '@/constants/progression';
 import type { AllBadgeWithProgress, BadgeType } from '@/services/badge-service';
+import { useTheme } from '@/hooks/useTheme';
 
 interface BadgeCardProps {
   badge: AllBadgeWithProgress;
@@ -31,17 +31,17 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export function BadgeCard({ badge, onPress, compact = false }: BadgeCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
+  // Decorative: metallic tier colors (gold/silver/bronze)
   const getTierColor = (tier?: 1 | 2 | 3) => {
     switch (tier) {
       case 3:
-        return '#FFD700'; // Gold
+        return '#FFD700'; // Decorative: gold tier
       case 2:
-        return '#C0C0C0'; // Silver
+        return '#C0C0C0'; // Decorative: silver tier
       case 1:
-        return '#CD7F32'; // Bronze
+        return '#CD7F32'; // Decorative: bronze tier
       default:
         return palette.tint;
     }

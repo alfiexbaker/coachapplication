@@ -1,8 +1,8 @@
 import { PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface ChipProps extends PressableProps {
   active?: boolean;
@@ -15,8 +15,7 @@ export interface ChipProps extends PressableProps {
 export function Chip({ active, selected, dense, label, children, style, ...props }: PropsWithChildren<ChipProps>) {
   // Support both 'active' and 'selected' props
   const isActive = active ?? selected ?? false;
-  const scheme = useColorScheme() ?? 'light';
-  const baseColor = Colors[scheme];
+  const { colors: baseColor } = useTheme();
 
   return (
     <Pressable

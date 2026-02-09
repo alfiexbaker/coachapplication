@@ -7,9 +7,9 @@ import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withTiming } from '
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('VideoUpload');
 
@@ -32,8 +32,7 @@ export function VideoUpload({
   maxDurationSeconds = 600, // 10 minutes
   maxFileSizeMB = 500, // 500 MB
 }: VideoUploadProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [selectedVideo, setSelectedVideo] = useState<{
     uri: string;

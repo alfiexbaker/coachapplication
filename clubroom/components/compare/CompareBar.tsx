@@ -13,8 +13,8 @@ import { Routes } from '@/navigation/routes';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Shadows , Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Shadows , Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
 
 interface CompareBarProps {
@@ -31,8 +31,7 @@ export function CompareBar({
   onCountChange,
   bottomOffset = 100,
 }: CompareBarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const shadows = Shadows[scheme];
 
   const [count, setCount] = useState(0);
@@ -100,10 +99,10 @@ export function CompareBar({
         {/* Info section */}
         <View style={styles.info}>
           <View style={styles.countBadge}>
-            <ThemedText style={styles.countText}>{count}</ThemedText>
+            <ThemedText style={[styles.countText, { color: palette.onPrimary }]}>{count}</ThemedText>
           </View>
           <View style={styles.textContainer}>
-            <ThemedText style={styles.title}>
+            <ThemedText style={[styles.title, { color: palette.onPrimary }]}>
               {count === 1 ? '1 Coach' : `${count} Coaches`}
             </ThemedText>
             <ThemedText style={styles.subtitle}>
@@ -177,11 +176,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  countText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  countText: { ...Typography.subheading },
   textContainer: {
     flex: 1,
   },
-  title: { ...Typography.bodySemiBold, color: Colors.light.onPrimary },
+  title: { ...Typography.bodySemiBold },
   subtitle: { ...Typography.caption, color: 'rgba(255,255,255,0.7)',
     marginTop: 1 },
   actions: {

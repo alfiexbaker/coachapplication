@@ -3,8 +3,8 @@ import { Modal, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,8 +30,7 @@ type Props = {
 };
 
 export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [filters, setFilters] = useState<CoachFilters>(initialFilters);
 
   const toggleSelection = (key: 'sessionTypes' | 'specialties', value: string) => {
@@ -134,7 +133,7 @@ export function FilterPanel({ visible, initialFilters, onClose, onApply }: Props
               ]}
             >
               <Ionicons name="options" color={palette.onPrimary} size={18} />
-              <ThemedText style={styles.applyLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.text}>Apply filters</ThemedText>
+              <ThemedText style={[styles.applyLabel, { color: palette.onPrimary }]}>Apply filters</ThemedText>
             </Clickable>
             <Clickable onPress={onClose} style={styles.dismiss}>
               <ThemedText style={{ color: palette.muted }}>Close</ThemedText>
@@ -168,8 +167,7 @@ function PillRow({
   singleSelect?: boolean;
   onToggle: (value: string) => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.pillRow}>

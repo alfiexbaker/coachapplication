@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { createLogger } from '@/utils/logger';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SocialLinks as SocialLinksType, SocialPlatform } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('SocialLinks');
 
@@ -20,43 +20,43 @@ interface SocialLinkConfig {
 const SOCIAL_PLATFORMS: Record<SocialPlatform, SocialLinkConfig> = {
   instagram: {
     icon: 'logo-instagram',
-    color: '#E4405F',
+    color: '#E4405F', // Brand: Instagram official color
     label: 'Instagram',
     getUrl: (value) => value.startsWith('http') ? value : `https://instagram.com/${value.replace('@', '')}`,
   },
   twitter: {
     icon: 'logo-twitter',
-    color: '#1DA1F2',
+    color: '#1DA1F2', // Brand: X/Twitter official color
     label: 'X / Twitter',
     getUrl: (value) => value.startsWith('http') ? value : `https://x.com/${value.replace('@', '')}`,
   },
   facebook: {
     icon: 'logo-facebook',
-    color: '#1877F2',
+    color: '#1877F2', // Brand: Facebook official color
     label: 'Facebook',
     getUrl: (value) => value.startsWith('http') ? value : `https://facebook.com/${value}`,
   },
   linkedin: {
     icon: 'logo-linkedin',
-    color: '#0A66C2',
+    color: '#0A66C2', // Brand: LinkedIn official color
     label: 'LinkedIn',
     getUrl: (value) => value.startsWith('http') ? value : `https://linkedin.com/in/${value}`,
   },
   youtube: {
     icon: 'logo-youtube',
-    color: '#FF0000',
+    color: '#FF0000', // Brand: YouTube official color
     label: 'YouTube',
     getUrl: (value) => value.startsWith('http') ? value : `https://youtube.com/@${value.replace('@', '')}`,
   },
   tiktok: {
     icon: 'logo-tiktok',
-    color: '#000000',
+    color: '#000000', // Brand: TikTok official color
     label: 'TikTok',
     getUrl: (value) => value.startsWith('http') ? value : `https://tiktok.com/@${value.replace('@', '')}`,
   },
   website: {
     icon: 'globe-outline',
-    color: '#6366F1',
+    color: '#6366F1', // Brand: generic website accent color
     label: 'Website',
     getUrl: (value) => value.startsWith('http') ? value : `https://${value}`,
   },
@@ -75,8 +75,7 @@ export function SocialLinks({
   size = 'md',
   variant = 'icons',
 }: SocialLinksProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (!socialLinks) return null;
 

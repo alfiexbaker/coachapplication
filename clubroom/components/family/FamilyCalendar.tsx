@@ -6,9 +6,9 @@ import { toDateStr } from '@/utils/format';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { FamilyCalendarEvent, FamilyMember } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface FamilyCalendarProps {
   /** Calendar events */
@@ -46,8 +46,7 @@ export function FamilyCalendar({
   selectedChildId = null,
   onChildFilterChange,
 }: FamilyCalendarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
 

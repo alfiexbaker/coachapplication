@@ -9,8 +9,8 @@ import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Components, Borders , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components, Borders, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FilterChipProps {
   /** Chip label text */
@@ -44,8 +44,7 @@ export function FilterChip({
   disabled = false,
   count,
 }: FilterChipProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const iconSize = size === 'sm' ? 14 : Components.icon.sm;
   const height = size === 'sm' ? 32 : Components.button.height;

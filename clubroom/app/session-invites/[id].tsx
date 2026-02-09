@@ -1,1065 +1,195 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+/** Session Invite Detail — shows invite details with status, slots, and response actions. */
+
+import { useState, useCallback, useMemo } from 'react';
+import { ScrollView, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-
 import { createLogger } from '@/utils/logger';
-import { SurfaceCard } from '@/components/primitives/surface-card';
+import { useScreen } from '@/hooks/use-screen';
+import { useAuth } from '@/hooks/use-auth';
+import { ok, err, serviceError } from '@/types/result';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/screen-states';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { Row } from '@/components/primitives';
+import { SurfaceCard } from '@/components/primitives/surface-card';
+import { CoverImageHero } from '@/components/invite/cover-image-hero';
+import { AvatarStack } from '@/components/invite/avatar-stack';
+import { AttendeeListModal } from '@/components/invite/attendee-list-modal';
+import { LocationMapPreview } from '@/components/invite/location-map-preview';
 import { PaymentModal } from '@/components/payment/payment-modal';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/hooks/use-auth';
-import { inviteService as sessionInviteService } from '@/services/invite';
-import type { SessionInvite, SessionInviteType, TimeSlot } from '@/constants/types';
+import { InviteStatusBanner } from '@/components/invite/invite-status-banner';
+import { InvitePersonCard } from '@/components/invite/invite-person-card';
+import { InviteDetailsCard } from '@/components/invite/invite-details-card';
+import { InviteTypeCard } from '@/components/invite/invite-type-card';
+import { InviteSlotList } from '@/components/invite/invite-slot-list';
+import { InviteCounterPropose } from '@/components/invite/invite-counter-propose';
+import { InviteCounterDisplay } from '@/components/invite/invite-counter-display';
+import { InviteActionBar } from '@/components/invite/invite-action-bar';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { inviteService as sessionInviteService, inviteRsvpService, inviteShareService } from '@/services/invite';
+import { ServiceEvents } from '@/services/event-bus';
+import type { TimeSlot, InviteRsvpResponse } from '@/constants/types';
 
 const logger = createLogger('SessionInviteDetailScreen');
 
 export default function SessionInviteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
   const { currentUser } = useAuth();
+  const { data: invite, status, error, refreshing, onRefresh, retry, colors, scheme } = useScreen({
+    load: async () => {
+      if (!id) return err(serviceError('VALIDATION', 'Missing invite ID'));
+      const data = await sessionInviteService.getInvite(id);
+      return data ? ok(data) : err(serviceError('NOT_FOUND', 'Invite not found'));
+    },
+    deps: [id],
+    events: [ServiceEvents.INVITE_ACCEPTED, ServiceEvents.INVITE_BOOKING_FAILED],
+  });
 
-  const [invite, setInvite] = useState<SessionInvite | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [responding, setResponding] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-
-  // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-
-  // Counter-propose state
   const [showCounterPropose, setShowCounterPropose] = useState(false);
-  const [counterSlots, setCounterSlots] = useState<TimeSlot[]>([]);
-  const [counterNote, setCounterNote] = useState('');
-  const [newSlotDate, setNewSlotDate] = useState('');
-  const [newSlotStartTime, setNewSlotStartTime] = useState('');
-  const [newSlotEndTime, setNewSlotEndTime] = useState('');
-  const [newSlotLocation, setNewSlotLocation] = useState('');
+  const [showAttendeeModal, setShowAttendeeModal] = useState(false);
+  const [responding, setResponding] = useState(false);
+  const [rsvpResponses, setRsvpResponses] = useState<InviteRsvpResponse[]>([]);
+  const [rsvpCounts, setRsvpCounts] = useState({ going: 0, maybe: 0, cantGo: 0 });
+  const [currentRsvpStatus, setCurrentRsvpStatus] = useState<'going' | 'maybe' | 'cant_go' | null>(null);
 
   const isCoach = currentUser?.role === 'COACH';
   const isOwner = invite?.coachId === currentUser?.id;
   const isRecipient = invite?.parentId === currentUser?.id;
+  const derivedStatus = useMemo(() => {
+    if (!invite) return 'PENDING';
+    return new Date(invite.expiresAt) < new Date() && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
+  }, [invite]);
+  const canRespond = derivedStatus === 'PENDING' && isRecipient;
 
-  const loadInvite = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const data = await sessionInviteService.getInvite(id);
-      setInvite(data);
-    } catch (error) {
-      logger.error('Failed to load invite', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  const invitationMessage = useMemo(() => {
+    if (!invite) return '';
+    const first = invite.coachName.split(' ')[0];
+    const ath = invite.athleteNames.length === 1 ? invite.athleteNames[0] : `${invite.athleteNames.length} athletes`;
+    return invite.clubName ? `Coach ${first} has invited ${ath} to ${invite.clubName}` : `Coach ${first} has invited ${ath} to a ${invite.sessionType.toLowerCase()}`;
+  }, [invite]);
 
-  useEffect(() => {
-    loadInvite();
-  }, [loadInvite]);
-
-  const handleAccept = async () => {
-    if (!invite || selectedSlot === null) {
-      Alert.alert('Select a time', 'Please select one of the proposed time slots');
-      return;
-    }
-
-    // If there's a price, show payment modal first
-    if (invite.priceUsd && invite.priceUsd > 0) {
-      setShowPaymentModal(true);
-      return;
-    }
-
-    // No price - accept directly
-    await confirmAcceptance();
-  };
-
-  const confirmAcceptance = async () => {
+  const confirmAcceptance = useCallback(async () => {
     if (!invite || selectedSlot === null) return;
-
     setResponding(true);
     try {
-      await sessionInviteService.respondToInvite({
-        inviteId: invite.id,
-        response: 'ACCEPTED',
-        selectedSlot: invite.proposedSlots[selectedSlot],
-      });
+      const result = await sessionInviteService.respondToInvite({ inviteId: invite.id, response: 'ACCEPTED', selectedSlot: invite.proposedSlots[selectedSlot] });
       setShowPaymentModal(false);
-      Alert.alert('Accepted!', 'The session has been confirmed.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (error) {
-      logger.error('Failed to accept invite', error);
-      Alert.alert('Error', 'Failed to accept invite. Please try again.');
-    } finally {
-      setResponding(false);
-    }
-  };
+      if (!result.success) { Alert.alert('Booking Failed', result.error?.message ?? 'Could not create the booking.'); return; }
+      Alert.alert('Accepted!', 'The session has been confirmed.', [{ text: 'OK', onPress: () => router.back() }]);
+    } catch (e) { logger.error('Failed to accept invite', e); Alert.alert('Error', 'Failed to accept invite.'); }
+    finally { setResponding(false); }
+  }, [invite, selectedSlot]);
 
-  const handleDecline = () => {
+  const handleAccept = useCallback(async () => {
+    if (!invite || selectedSlot === null) { Alert.alert('Select a time', 'Please select one of the proposed time slots'); return; }
+    if (invite.priceUsd && invite.priceUsd > 0) { setShowPaymentModal(true); return; }
+    await confirmAcceptance();
+  }, [invite, selectedSlot, confirmAcceptance]);
+
+  const handleDecline = useCallback(() => {
     Alert.alert('Decline Invite', 'Are you sure you want to decline this session invite?', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Decline',
-        style: 'destructive',
-        onPress: async () => {
-          if (!invite) return;
-          setResponding(true);
-          try {
-            await sessionInviteService.respondToInvite({
-              inviteId: invite.id,
-              response: 'DECLINED',
-            });
-            Alert.alert('Declined', 'The invite has been declined.', [
-              { text: 'OK', onPress: () => router.back() },
-            ]);
-          } catch (error) {
-            logger.error('Failed to decline invite', error);
-          } finally {
-            setResponding(false);
-          }
-        },
-      },
+      { text: 'Decline', style: 'destructive', onPress: async () => {
+        if (!invite) return;
+        setResponding(true);
+        try { await sessionInviteService.respondToInvite({ inviteId: invite.id, response: 'DECLINED' }); Alert.alert('Declined', 'The invite has been declined.', [{ text: 'OK', onPress: () => router.back() }]); }
+        catch (e) { logger.error('Failed to decline invite', e); } finally { setResponding(false); }
+      }},
     ]);
-  };
+  }, [invite]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     Alert.alert('Cancel Invite', 'Are you sure you want to cancel this invite?', [
       { text: 'No', style: 'cancel' },
-      {
-        text: 'Yes, Cancel',
-        style: 'destructive',
-        onPress: async () => {
-          if (!invite) return;
-          try {
-            await sessionInviteService.cancelInvite(invite.id);
-            Alert.alert('Cancelled', 'The invite has been cancelled.', [
-              { text: 'OK', onPress: () => router.back() },
-            ]);
-          } catch (error) {
-            logger.error('Failed to cancel invite', error);
-          }
-        },
-      },
+      { text: 'Yes, Cancel', style: 'destructive', onPress: async () => {
+        if (!invite) return;
+        try { await sessionInviteService.cancelInvite(invite.id); Alert.alert('Cancelled', 'The invite has been cancelled.', [{ text: 'OK', onPress: () => router.back() }]); }
+        catch (e) { logger.error('Failed to cancel invite', e); }
+      }},
     ]);
-  };
+  }, [invite]);
 
-  const addCounterSlot = () => {
-    if (!newSlotDate || !newSlotStartTime || !newSlotEndTime) {
-      Alert.alert('Missing Info', 'Please fill in date, start time, and end time');
-      return;
-    }
-
-    const newSlot: TimeSlot = {
-      date: newSlotDate,
-      startTime: newSlotStartTime,
-      endTime: newSlotEndTime,
-      location: newSlotLocation || undefined,
-    };
-
-    setCounterSlots([...counterSlots, newSlot]);
-    setNewSlotDate('');
-    setNewSlotStartTime('');
-    setNewSlotEndTime('');
-    setNewSlotLocation('');
-  };
-
-  const removeCounterSlot = (index: number) => {
-    setCounterSlots(counterSlots.filter((_, i) => i !== index));
-  };
-
-  const handleCounterPropose = async () => {
-    if (!invite || counterSlots.length === 0) {
-      Alert.alert('Add Times', 'Please add at least one alternative time slot');
-      return;
-    }
-
-    setResponding(true);
-    try {
-      await sessionInviteService.respondToInvite({
-        inviteId: invite.id,
-        response: 'COUNTERED',
-        counterProposal: counterSlots,
-        counterNote: counterNote || undefined,
-      });
-      Alert.alert(
-        'Counter Proposal Sent',
-        'Your alternative times have been sent to the coach. They will review and respond.',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    } catch (error) {
-      logger.error('Failed to send counter proposal', error);
-      Alert.alert('Error', 'Failed to send counter proposal. Please try again.');
-    } finally {
-      setResponding(false);
-    }
-  };
-
-  const handleAcceptCounter = async (slot: TimeSlot) => {
+  const handleCounterPropose = useCallback(async (slots: TimeSlot[], note: string) => {
     if (!invite) return;
     setResponding(true);
-    try {
-      await sessionInviteService.acceptCounterProposal(invite.id, slot);
-      Alert.alert('Accepted!', 'The session has been confirmed with the proposed time.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (error) {
-      logger.error('Failed to accept counter proposal', error);
-      Alert.alert('Error', 'Failed to accept counter proposal. Please try again.');
-    } finally {
-      setResponding(false);
-    }
-  };
+    try { await sessionInviteService.respondToInvite({ inviteId: invite.id, response: 'COUNTERED', counterProposal: slots, counterNote: note || undefined }); Alert.alert('Counter Proposal Sent', 'Your alternative times have been sent to the coach.', [{ text: 'OK', onPress: () => router.back() }]); }
+    catch (e) { logger.error('Failed to send counter proposal', e); Alert.alert('Error', 'Failed to send counter proposal.'); }
+    finally { setResponding(false); }
+  }, [invite]);
 
-  const statusColors: Record<string, { bg: string; text: string }> = {
-    PENDING: { bg: withAlpha(palette.warning, 0.12), text: palette.warning },
-    ACCEPTED: { bg: withAlpha(palette.success, 0.12), text: palette.success },
-    DECLINED: { bg: withAlpha(palette.error, 0.12), text: palette.error },
-    EXPIRED: { bg: palette.background, text: palette.muted },
-    COUNTERED: { bg: withAlpha(palette.info, 0.12), text: palette.info },
-  };
+  const handleAcceptCounter = useCallback(async (slot: TimeSlot) => {
+    if (!invite) return;
+    setResponding(true);
+    try { const result = await sessionInviteService.acceptCounterProposal(invite.id, slot); if (!result.success) { Alert.alert('Booking Failed', result.error?.message ?? 'Could not create the booking.'); return; } Alert.alert('Accepted!', 'The session has been confirmed with the proposed time.', [{ text: 'OK', onPress: () => router.back() }]); }
+    catch (e) { logger.error('Failed to accept counter proposal', e); Alert.alert('Error', 'Failed to accept counter proposal.'); }
+    finally { setResponding(false); }
+  }, [invite]);
 
-  if (loading || !invite) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-        <View style={styles.header}>
-          <Clickable onPress={() => router.back()} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={palette.text} />
-          </Clickable>
-          <ThemedText type="title">Loading...</ThemedText>
-          <View style={{ width: 24 }} />
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const handleShare = useCallback(async () => {
+    if (!invite) return;
+    const s = invite.proposedSlots[0];
+    const d = s ? new Date(s.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+    await inviteShareService.shareInvite(invite.id, invite.coachName, invite.sessionType, d);
+  }, [invite]);
 
-  const isExpired = new Date(invite.expiresAt) < new Date();
-  const status = isExpired && invite.status === 'PENDING' ? 'EXPIRED' : invite.status;
-  const statusConfig = statusColors[status] || statusColors.PENDING;
-  const canRespond = status === 'PENDING' && isRecipient;
+  const handleRsvp = useCallback(async (rs: 'going' | 'maybe' | 'cant_go') => {
+    if (!invite || !currentUser) return;
+    await inviteRsvpService.respondToInvite(invite.id, currentUser.id, currentUser.fullName || currentUser.username || 'User', rs, undefined, undefined, currentUser.avatar);
+    setCurrentRsvpStatus(rs);
+  }, [invite, currentUser]);
 
-  // Build invitation message
-  const coachFirstName = invite.coachName.split(' ')[0];
-  const athleteDisplay = invite.athleteNames.length === 1
-    ? invite.athleteNames[0]
-    : `${invite.athleteNames.length} athletes`;
-  const invitationMessage = invite.clubName
-    ? `Coach ${coachFirstName} has invited ${athleteDisplay} to ${invite.clubName}`
-    : `Coach ${coachFirstName} has invited ${athleteDisplay} to a ${invite.sessionType.toLowerCase()}`;
+  const handleSelectSlot = useCallback((i: number) => setSelectedSlot(i), []);
+  const handleShowCounter = useCallback(() => setShowCounterPropose(true), []);
+
+  if (status === 'loading') return <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top']}><LoadingState variant="detail" /></SafeAreaView>;
+  if (status === 'error') return <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top']}><ErrorState message={error?.message ?? 'Failed to load invite'} onRetry={retry} /></SafeAreaView>;
+  if (status === 'empty' || !invite) return <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top']}><EmptyState icon="mail-outline" title="Invite Not Found" message="This invite could not be found. It may have been cancelled or removed." /></SafeAreaView>;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
-        <Clickable onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
-        </Clickable>
+    <SafeAreaView style={[s.root, { backgroundColor: colors.background }]} edges={['top']}>
+      <Row gap="md" align="center" justify="between" paddingH="lg" paddingV="md">
+        <Clickable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Go back"><Ionicons name="arrow-back" size={24} color={colors.text} /></Clickable>
         <ThemedText type="title">Session Invite</ThemedText>
-        {isOwner && status === 'PENDING' && (
-          <Clickable onPress={handleCancel} hitSlop={8}>
-            <Ionicons name="trash-outline" size={22} color={palette.error} />
-          </Clickable>
-        )}
-        {!isOwner && <View style={{ width: 24 }} />}
-      </View>
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* Status Banner */}
-        <Animated.View
-          entering={FadeInDown.springify()}
-          style={[styles.statusBanner, { backgroundColor: statusConfig.bg }]}
-        >
-          <Ionicons
-            name={
-              status === 'ACCEPTED'
-                ? 'checkmark-circle'
-                : status === 'DECLINED'
-                ? 'close-circle'
-                : status === 'EXPIRED'
-                ? 'time'
-                : 'hourglass'
-            }
-            size={20}
-            color={statusConfig.text}
-          />
-          <ThemedText style={[styles.statusText, { color: statusConfig.text }]}>
-            {status === 'PENDING'
-              ? 'Awaiting Response'
-              : status === 'ACCEPTED'
-              ? 'Session Confirmed'
-              : status === 'DECLINED'
-              ? 'Invite Declined'
-              : status === 'EXPIRED'
-              ? 'Invite Expired'
-              : 'Counter Proposal Sent'}
-          </ThemedText>
-        </Animated.View>
-
-        {/* Invitation Message */}
-        {!isCoach && (
-          <Animated.View entering={FadeInDown.delay(50).springify()}>
-            <View style={[styles.invitationBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-              <Ionicons name="mail-outline" size={20} color={palette.tint} />
-              <ThemedText style={[styles.invitationText, { color: palette.text }]}>
-                {invitationMessage}
-              </ThemedText>
-            </View>
-          </Animated.View>
-        )}
-
-        {/* Coach/Parent Info */}
-        <Animated.View entering={FadeInDown.delay(100).springify()}>
-          <SurfaceCard style={styles.infoCard}>
-            <View style={styles.personRow}>
-              <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-                <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                  {isCoach
-                    ? invite.athleteNames[0]?.charAt(0) || 'A'
-                    : invite.coachName
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')}
-                </ThemedText>
-              </View>
-              <View style={styles.personInfo}>
-                <ThemedText style={[styles.roleLabel, { color: palette.muted }]}>
-                  {isCoach ? 'Athletes' : 'Coach'}
-                </ThemedText>
-                <ThemedText type="subtitle">
-                  {isCoach ? invite.athleteNames.join(', ') : `Coach ${invite.coachName}`}
-                </ThemedText>
-                {invite.clubName && !isCoach && (
-                  <ThemedText style={[styles.clubName, { color: palette.tint }]}>
-                    {invite.clubName}
-                  </ThemedText>
-                )}
-                {isCoach && (
-                  <ThemedText style={[styles.roleLabel, { color: palette.muted }]}>
-                    Parent: {invite.parentName}
-                  </ThemedText>
-                )}
-              </View>
-            </View>
-          </SurfaceCard>
-        </Animated.View>
-
-        {/* Session Details */}
-        <Animated.View entering={FadeInDown.delay(150).springify()}>
-          <SurfaceCard style={styles.detailsCard}>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              Session Details
-            </ThemedText>
-
-            <View style={styles.detailRow}>
-              <Ionicons name="football-outline" size={18} color={palette.muted} />
-              <View style={styles.detailContent}>
-                <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Type & Focus</ThemedText>
-                <ThemedText>
-                  {invite.sessionType} - {invite.focus}
-                </ThemedText>
-              </View>
-            </View>
-
-            {invite.priceUsd && (
-              <View style={styles.detailRow}>
-                <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
-                <View style={styles.detailContent}>
-                  <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Price</ThemedText>
-                  <ThemedText>${invite.priceUsd}</ThemedText>
-                </View>
-              </View>
-            )}
-
-            {invite.notes && (
-              <View style={styles.detailRow}>
-                <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
-                <View style={styles.detailContent}>
-                  <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Notes</ThemedText>
-                  <ThemedText>{invite.notes}</ThemedText>
-                </View>
-              </View>
-            )}
-          </SurfaceCard>
-        </Animated.View>
-
-        {/* Invite Type Info */}
-        <Animated.View entering={FadeInDown.delay(175).springify()}>
-          {(() => {
-            const inviteTypeCfg: Record<
-              SessionInviteType,
-              { label: string; icon: string; bg: string; textColor: string; description: string }
-            > = {
-              OPEN: {
-                label: 'Open Session',
-                icon: 'globe-outline',
-                bg: withAlpha(palette.success, 0.09),
-                textColor: palette.success,
-                description: 'This session is visible to all parents when browsing.',
-              },
-              CLOSED: {
-                label: 'Invite Only',
-                icon: 'lock-closed-outline',
-                bg: withAlpha(palette.warning, 0.09),
-                textColor: palette.warning,
-                description: 'Only explicitly invited parents can view and book.',
-              },
-              SQUAD_ONLY: {
-                label: 'Squad Only',
-                icon: 'people-outline',
-                bg: withAlpha(palette.info, 0.09),
-                textColor: palette.info,
-                description: 'Only squad members can view and book this session.',
-              },
-            };
-            const currentType = invite.inviteType || 'OPEN';
-            const cfg = inviteTypeCfg[currentType];
-
-            return (
-              <SurfaceCard style={styles.detailsCard}>
-                <View style={styles.detailRow}>
-                  <View style={[styles.inviteTypeIconWrap, { backgroundColor: cfg.bg }]}>
-                    <Ionicons name={cfg.icon as keyof typeof Ionicons.glyphMap} size={18} color={cfg.textColor} />
-                  </View>
-                  <View style={styles.detailContent}>
-                    <ThemedText style={{ color: palette.muted, ...Typography.caption }}>Invite Type</ThemedText>
-                    <ThemedText type="defaultSemiBold" style={{ color: cfg.textColor }}>
-                      {cfg.label}
-                    </ThemedText>
-                    <ThemedText style={{ color: palette.muted, ...Typography.small, marginTop: Spacing.micro }}>
-                      {cfg.description}
-                    </ThemedText>
-                  </View>
-                </View>
-
-                {/* Invite Players action for CLOSED type - coach only */}
-                {currentType === 'CLOSED' && isOwner && (
-                  <Clickable
-                    onPress={() =>
-                      router.push(Routes.SESSION_INVITES_CREATE)
-                    }
-                    style={[styles.invitePlayersButton, { backgroundColor: palette.tint }]}
-                  >
-                    <Ionicons name="person-add-outline" size={16} color={palette.onPrimary} />
-                    <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySmallSemiBold }}>
-                      Invite Players
-                    </ThemedText>
-                  </Clickable>
-                )}
-
-                {/* Squad info for SQUAD_ONLY type */}
-                {currentType === 'SQUAD_ONLY' && invite.squadIds && invite.squadIds.length > 0 && (
-                  <View style={styles.squadAccessSection}>
-                    <ThemedText style={{ color: palette.muted, ...Typography.caption, marginBottom: Spacing.xxs }}>
-                      Squad Access
-                    </ThemedText>
-                    {invite.squadIds.map((squadId) => (
-                      <View key={squadId} style={[styles.squadAccessBadge, { backgroundColor: withAlpha(palette.info, 0.06) }]}>
-                        <Ionicons name="people" size={14} color={palette.info} />
-                        <ThemedText style={{ color: palette.info, ...Typography.small }}>
-                          {squadId}
-                        </ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </SurfaceCard>
-            );
-          })()}
-        </Animated.View>
-
-        {/* Time Slots */}
-        <Animated.View entering={FadeInDown.delay(200).springify()}>
-          <SurfaceCard style={styles.slotsCard}>
-            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-              {canRespond ? 'Select a Time Slot' : 'Proposed Times'}
-            </ThemedText>
-
-            {invite.proposedSlots.map((slot, index) => {
-              const isSelected = selectedSlot === index;
-              const slotDate = new Date(slot.date);
-
-              return (
-                <Clickable
-                  key={index}
-                  onPress={() => canRespond && setSelectedSlot(index)}
-                  disabled={!canRespond}
-                  accessibilityLabel={`Time slot ${index + 1}: ${slot.startTime} to ${slot.endTime}`}
-                  style={[
-                    styles.slotItem,
-                    {
-                      backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
-                      borderColor: isSelected ? palette.tint : palette.border,
-                    },
-                  ]}
-                >
-                  <View style={styles.slotDate}>
-                    <ThemedText style={[styles.slotDay, { color: palette.tint }]}>
-                      {slotDate.toLocaleDateString('en-GB', { weekday: 'short' })}
-                    </ThemedText>
-                    <ThemedText type="heading">{slotDate.getDate()}</ThemedText>
-                    <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
-                      {slotDate.toLocaleDateString('en-GB', { month: 'short' })}
-                    </ThemedText>
-                  </View>
-
-                  <View style={styles.slotDetails}>
-                    <ThemedText type="defaultSemiBold">
-                      {slot.startTime} - {slot.endTime}
-                    </ThemedText>
-                    {slot.location && (
-                      <View style={styles.locationRow}>
-                        <Ionicons name="location-outline" size={14} color={palette.muted} />
-                        <ThemedText style={{ color: palette.muted, ...Typography.small }}>
-                          {slot.location}
-                        </ThemedText>
-                      </View>
-                    )}
-                  </View>
-
-                  {canRespond && (
-                    <View
-                      style={[
-                        styles.radioButton,
-                        {
-                          backgroundColor: isSelected ? palette.tint : 'transparent',
-                          borderColor: isSelected ? palette.tint : palette.border,
-                        },
-                      ]}
-                    >
-                      {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
-                    </View>
-                  )}
-                </Clickable>
-              );
-            })}
-          </SurfaceCard>
-        </Animated.View>
-
-        {/* Counter Proposal Section (for parent) */}
-        {canRespond && showCounterPropose && (
-          <Animated.View entering={FadeInDown.delay(250).springify()}>
-            <SurfaceCard style={styles.counterProposeCard}>
-              <View style={styles.counterHeader}>
-                <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                  Propose Alternative Times
-                </ThemedText>
-                <Clickable onPress={() => setShowCounterPropose(false)}>
-                  <Ionicons name="close" size={20} color={palette.muted} />
-                </Clickable>
-              </View>
-              <ThemedText style={[styles.counterDescription, { color: palette.muted }]}>
-                Add one or more times that work better for you
-              </ThemedText>
-
-              {/* Counter slots list */}
-              {counterSlots.map((slot, index) => (
-                <View
-                  key={index}
-                  style={[styles.counterSlotItem, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }]}
-                >
-                  <View style={styles.slotDetails}>
-                    <ThemedText type="defaultSemiBold">
-                      {new Date(slot.date).toLocaleDateString('en-GB', {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </ThemedText>
-                    <ThemedText style={{ color: palette.muted }}>
-                      {slot.startTime} - {slot.endTime}
-                    </ThemedText>
-                  </View>
-                  <Clickable onPress={() => removeCounterSlot(index)}>
-                    <Ionicons name="trash-outline" size={18} color={palette.error} />
-                  </Clickable>
-                </View>
-              ))}
-
-              {/* Add new slot form */}
-              <View style={styles.counterFormSection}>
-                <View style={styles.counterFormRow}>
-                  <View style={styles.counterFormInput}>
-                    <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Date</ThemedText>
-                    <TextInput
-                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                      placeholder="YYYY-MM-DD"
-                      placeholderTextColor={palette.muted}
-                      value={newSlotDate}
-                      onChangeText={setNewSlotDate}
-                    />
-                  </View>
-                </View>
-                <View style={styles.counterFormRow}>
-                  <View style={styles.counterFormInput}>
-                    <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Start</ThemedText>
-                    <TextInput
-                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                      placeholder="10:00"
-                      placeholderTextColor={palette.muted}
-                      value={newSlotStartTime}
-                      onChangeText={setNewSlotStartTime}
-                    />
-                  </View>
-                  <View style={styles.counterFormInput}>
-                    <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>End</ThemedText>
-                    <TextInput
-                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                      placeholder="11:00"
-                      placeholderTextColor={palette.muted}
-                      value={newSlotEndTime}
-                      onChangeText={setNewSlotEndTime}
-                    />
-                  </View>
-                </View>
-                <View style={styles.counterFormRow}>
-                  <View style={[styles.counterFormInput, { flex: 1 }]}>
-                    <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Location (optional)</ThemedText>
-                    <TextInput
-                      style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-                      placeholder="e.g., Local Park"
-                      placeholderTextColor={palette.muted}
-                      value={newSlotLocation}
-                      onChangeText={setNewSlotLocation}
-                    />
-                  </View>
-                </View>
-                <Clickable
-                  onPress={addCounterSlot}
-                  style={[styles.addSlotButton, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
-                >
-                  <Ionicons name="add" size={16} color={palette.tint} />
-                  <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Add Time Slot</ThemedText>
-                </Clickable>
-              </View>
-
-              {/* Note to coach */}
-              <View style={styles.counterFormSection}>
-                <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Note to coach (optional)</ThemedText>
-                <TextInput
-                  style={[styles.textArea, { color: palette.text, borderColor: palette.border }]}
-                  placeholder="Let the coach know why you're suggesting alternative times..."
-                  placeholderTextColor={palette.muted}
-                  value={counterNote}
-                  onChangeText={setCounterNote}
-                  multiline
-                  numberOfLines={3}
-                />
-              </View>
-            </SurfaceCard>
-          </Animated.View>
-        )}
-
-        {/* Counter Proposal Display (for coach when status is COUNTERED) */}
-        {status === 'COUNTERED' && isOwner && invite.counterProposal && (
-          <Animated.View entering={FadeInDown.delay(250).springify()}>
-            <SurfaceCard style={styles.counterProposeCard}>
-              <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                Counter Proposal from Parent
-              </ThemedText>
-              {invite.counterNote && (
-                <ThemedText style={[styles.counterNote, { color: palette.muted }]}>
-                  &quot;{invite.counterNote}&quot;
-                </ThemedText>
-              )}
-              {invite.counterProposal.map((slot, index) => (
-                <Clickable
-                  key={index}
-                  onPress={() =>
-                    Alert.alert('Accept This Time?', `Confirm session for ${new Date(slot.date).toLocaleDateString('en-GB', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                    })} at ${slot.startTime}?`, [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Accept', onPress: () => handleAcceptCounter(slot) },
-                    ])
-                  }
-                  style={[styles.counterSlotSelectable, { backgroundColor: palette.surface, borderColor: palette.border }]}
-                >
-                  <View style={styles.slotDetails}>
-                    <ThemedText type="defaultSemiBold">
-                      {new Date(slot.date).toLocaleDateString('en-GB', {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                      })}
-                    </ThemedText>
-                    <ThemedText style={{ color: palette.muted }}>
-                      {slot.startTime} - {slot.endTime}
-                    </ThemedText>
-                  </View>
-                  <View style={[styles.acceptCounterButton, { backgroundColor: palette.tint }]}>
-                    <ThemedText style={{ color: palette.onPrimary, ...Typography.caption }}>Accept</ThemedText>
-                  </View>
-                </Clickable>
-              ))}
-            </SurfaceCard>
-          </Animated.View>
-        )}
-
-        {/* Expiry Info */}
-        {status === 'PENDING' && (
-          <Animated.View entering={FadeInDown.delay(300).springify()}>
-            <View style={[styles.expiryBanner, { backgroundColor: withAlpha(palette.warning, 0.06) }]}>
-              <Ionicons name="time-outline" size={16} color={palette.warning} />
-              <ThemedText style={{ color: palette.warning, ...Typography.small }}>
-                Expires {new Date(invite.expiresAt).toLocaleDateString('en-GB', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </ThemedText>
-            </View>
-          </Animated.View>
-        )}
-      </ScrollView>
+        <Row gap="sm" align="center">
+          <Clickable onPress={handleShare} hitSlop={8} accessibilityLabel="Share invite"><Ionicons name="share-outline" size={22} color={colors.text} /></Clickable>
+          {isOwner && derivedStatus === 'PENDING' && <Clickable onPress={handleCancel} hitSlop={8} accessibilityLabel="Cancel invite"><Ionicons name="trash-outline" size={22} color={colors.error} /></Clickable>}
+        </Row>
+      </Row>
+      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {invite.coverImageUrl && <CoverImageHero imageUrl={invite.coverImageUrl} sessionType={invite.sessionType} height={240} />}
+          <InviteStatusBanner status={derivedStatus as 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED' | 'MAYBE'} colors={colors} />
+          {!isCoach && <Animated.View entering={FadeInDown.delay(50).springify()}><Row gap="sm" align="center" style={[s.msg, { backgroundColor: withAlpha(colors.tint, 0.06) }]}><Ionicons name="mail-outline" size={20} color={colors.tint} /><ThemedText style={[s.msgTxt, { color: colors.text }]}>{invitationMessage}</ThemedText></Row></Animated.View>}
+          <InvitePersonCard invite={invite} isCoach={!!isCoach} colors={colors} />
+          <InviteDetailsCard invite={invite} colors={colors} />
+          {invite.proposedSlots[0]?.location && <Animated.View entering={FadeInDown.delay(160).springify()}><LocationMapPreview location={invite.proposedSlots[0].location} coordinates={invite.locationCoordinates} /></Animated.View>}
+          {(rsvpCounts.going > 0 || rsvpCounts.maybe > 0) && <Animated.View entering={FadeInDown.delay(170).springify()}><SurfaceCard style={s.att}><AvatarStack attendees={rsvpResponses.filter((r) => r.status === 'going').map((r) => ({ id: r.userId, name: r.userName, photoUrl: r.userPhotoUrl }))} goingCount={rsvpCounts.going} maxVisible={5} onPress={() => setShowAttendeeModal(true)} /></SurfaceCard></Animated.View>}
+          <InviteTypeCard inviteType={invite.inviteType || 'OPEN'} squadIds={invite.squadIds} isOwner={!!isOwner} colors={colors} onInvitePlayers={() => router.push(Routes.SESSION_INVITES_CREATE)} />
+          <InviteSlotList slots={invite.proposedSlots} selectedSlot={selectedSlot} canRespond={canRespond} colors={colors} onSelectSlot={handleSelectSlot} />
+          {canRespond && showCounterPropose && <InviteCounterPropose colors={colors} onClose={() => setShowCounterPropose(false)} onSubmit={handleCounterPropose} responding={responding} />}
+          {derivedStatus === 'COUNTERED' && isOwner && invite.counterProposal && <InviteCounterDisplay counterProposal={invite.counterProposal} counterNote={invite.counterNote} colors={colors} onAcceptCounter={handleAcceptCounter} />}
+          {derivedStatus === 'PENDING' && <Animated.View entering={FadeInDown.delay(300).springify()}><Row gap="xs" align="center" justify="center" style={[s.exp, { backgroundColor: withAlpha(colors.warning, 0.06) }]}><Ionicons name="time-outline" size={16} color={colors.warning} /><ThemedText style={{ color: colors.warning, ...Typography.small }}>Expires {new Date(invite.expiresAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</ThemedText></Row></Animated.View>}
+        </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Action Buttons */}
-      {canRespond && !showCounterPropose && (
-        <View style={[styles.footer, { borderTopColor: palette.border }]}>
-          <Clickable
-            onPress={handleDecline}
-            disabled={responding}
-            accessibilityLabel="Decline"
-            style={[styles.declineButton, { borderColor: palette.border }]}
-          >
-            <ThemedText style={{ fontWeight: '600' }}>Decline</ThemedText>
-          </Clickable>
-          <Clickable
-            onPress={() => setShowCounterPropose(true)}
-            accessibilityLabel="Counter"
-            style={[styles.counterButton, { borderColor: palette.tint }]}
-          >
-            <ThemedText style={{ color: palette.tint, fontWeight: '600' }}>Counter</ThemedText>
-          </Clickable>
-          <Clickable
-            onPress={handleAccept}
-            disabled={responding || selectedSlot === null}
-            accessibilityLabel="Accept"
-            style={[
-              styles.acceptButton,
-              {
-                backgroundColor: palette.tint,
-                opacity: responding || selectedSlot === null ? 0.5 : 1,
-              },
-            ]}
-          >
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              {responding ? 'Accepting...' : 'Accept'}
-            </ThemedText>
-          </Clickable>
-        </View>
-      )}
-
-      {/* Counter propose footer */}
-      {canRespond && showCounterPropose && (
-        <View style={[styles.footer, { borderTopColor: palette.border }]}>
-          <Clickable
-            onPress={() => setShowCounterPropose(false)}
-            style={[styles.declineButton, { borderColor: palette.border }]}
-          >
-            <ThemedText style={{ fontWeight: '600' }}>Cancel</ThemedText>
-          </Clickable>
-          <Clickable
-            onPress={handleCounterPropose}
-            disabled={responding || counterSlots.length === 0}
-            style={[
-              styles.acceptButton,
-              {
-                backgroundColor: palette.tint,
-                opacity: responding || counterSlots.length === 0 ? 0.5 : 1,
-                flex: 2,
-              },
-            ]}
-          >
-            <Ionicons name="swap-horizontal" size={18} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              {responding ? 'Sending...' : 'Send Counter Proposal'}
-            </ThemedText>
-          </Clickable>
-        </View>
-      )}
-
-      {/* Payment Modal */}
-      <PaymentModal
-        visible={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
-        onPaymentComplete={confirmAcceptance}
-        invite={invite}
-        selectedSlot={selectedSlot !== null ? invite.proposedSlots[selectedSlot] : null}
-      />
+      <InviteActionBar canRespond={canRespond} isOwner={!!isOwner} status={derivedStatus} showCounterPropose={showCounterPropose} responding={responding} selectedSlot={selectedSlot} currentRsvpStatus={currentRsvpStatus} colors={colors} onAccept={handleAccept} onDecline={handleDecline} onShowCounter={handleShowCounter} onRsvp={handleRsvp} />
+      <AttendeeListModal visible={showAttendeeModal} onClose={() => setShowAttendeeModal(false)} responses={rsvpResponses} counts={rsvpCounts} />
+      <PaymentModal visible={showPaymentModal} onClose={() => setShowPaymentModal(false)} onPaymentComplete={confirmAcceptance} invite={invite} selectedSlot={selectedSlot !== null ? invite.proposedSlots[selectedSlot] : null} />
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  content: {
-    padding: Spacing.lg,
-    paddingTop: 0,
-    gap: Spacing.md,
-  },
-  statusBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  statusText: {
-    ...Typography.bodySemiBold,
-  },
-  invitationBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  invitationText: {
-    ...Typography.subheading,
-    flex: 1,
-    lineHeight: 22,
-  },
-  clubName: {
-    ...Typography.bodySmallSemiBold,
-    marginTop: Spacing.micro,
-  },
-  infoCard: {
-    padding: Spacing.md,
-  },
-  personRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: Radii['2xl'],
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    ...Typography.title,
-  },
-  personInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  roleLabel: {
-    ...Typography.caption,
-  },
-  detailsCard: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  sectionTitle: {
-    marginBottom: Spacing.xs,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
-  },
-  detailContent: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  slotsCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  slotItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    gap: Spacing.md,
-  },
-  slotDate: {
-    alignItems: 'center',
-    width: 50,
-  },
-  slotDay: {
-    ...Typography.caption,
-    textTransform: 'uppercase',
-  },
-  slotDetails: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  radioButton: {
-    width: 22,
-    height: 22,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  expiryBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  footer: {
-    flexDirection: 'row',
-    padding: Spacing.lg,
-    gap: Spacing.md,
-    borderTopWidth: 1,
-  },
-  declineButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  counterButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
-  acceptButton: {
-    flex: 2,
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radii.md,
-  },
-  // Counter-propose styles
-  counterProposeCard: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  counterHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  counterDescription: {
-    ...Typography.small,
-    marginTop: -Spacing.sm,
-  },
-  counterSlotItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.md,
-  },
-  counterSlotSelectable: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.md,
-  },
-  counterFormSection: {
-    gap: Spacing.sm,
-  },
-  counterFormRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  counterFormInput: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  inputLabel: {
-    ...Typography.caption,
-  },
-  input: {
-    height: 44,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    ...Typography.body,
-  },
-  textArea: {
-    height: 80,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    ...Typography.body,
-    textAlignVertical: 'top',
-  },
-  addSlotButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-  },
-  counterNote: {
-    ...Typography.small,
-    fontStyle: 'italic',
-  },
-  acceptCounterButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radii.sm,
-  },
-  inviteTypeIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  invitePlayersButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.xs,
-  },
-  squadAccessSection: {
-    marginTop: Spacing.xs,
-  },
-  squadAccessBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-    marginBottom: Spacing.xxs,
-  },
+const s = StyleSheet.create({
+  root: { flex: 1 },
+  flex: { flex: 1 },
+  scroll: { padding: Spacing.lg, paddingTop: 0, gap: Spacing.md },
+  msg: { padding: Spacing.md, borderRadius: Radii.md },
+  msgTxt: { ...Typography.subheading, flex: 1, lineHeight: 22 },
+  att: { padding: Spacing.md },
+  exp: { padding: Spacing.md, borderRadius: Radii.md },
 });

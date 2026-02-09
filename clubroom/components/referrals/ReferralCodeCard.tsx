@@ -15,11 +15,11 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { ShareButton } from './ShareButton';
-import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, withAlpha } from '@/constants/theme';
 import { referralService } from '@/services/referral-service';
 import { scaleFont } from '@/utils/scale';
 import type { ReferralCode } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ReferralCodeCardProps {
   /** The referral code to display */
@@ -50,8 +50,7 @@ export function ReferralCodeCard({
   onShare,
   variant = 'default',
 }: ReferralCodeCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {

@@ -12,10 +12,10 @@ import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AnnotationPanelProps {
   annotations: VideoAnnotation[];
@@ -36,8 +36,7 @@ export function AnnotationPanel({
   isEditable = false,
   title = 'Annotations',
 }: AnnotationPanelProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<VideoAnnotationType[]>([]);

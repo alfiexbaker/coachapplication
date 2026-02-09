@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Session Completed Event Tests — Post-Session Completion Flow
  *
@@ -16,7 +15,10 @@
 import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 
-import { eventBus, ServiceEvents, emitTyped, onTyped } from '../../services/event-bus';
+import { eventBus, ServiceEvents, emitTyped, onTyped, EventPayloads } from '../../services/event-bus';
+
+// Type alias for SESSION_COMPLETED event payload
+type SessionCompletedPayload = EventPayloads[typeof ServiceEvents.SESSION_COMPLETED];
 
 // ============================================================================
 // SETUP
@@ -50,9 +52,9 @@ describe('ServiceEvents.SESSION_COMPLETED', () => {
 
 describe('EventBus SESSION_COMPLETED emission', () => {
   test('emits SESSION_COMPLETED event and handler receives payload', () => {
-    let received: any = null;
+    let received: SessionCompletedPayload | null = null;
 
-    eventBus.on(ServiceEvents.SESSION_COMPLETED, (data: any) => {
+    eventBus.on(ServiceEvents.SESSION_COMPLETED, (data: SessionCompletedPayload) => {
       received = data;
     });
 
@@ -73,9 +75,9 @@ describe('EventBus SESSION_COMPLETED emission', () => {
   });
 
   test('emits SESSION_COMPLETED with optional bookingId undefined (session offering)', () => {
-    let received: any = null;
+    let received: SessionCompletedPayload | null = null;
 
-    eventBus.on(ServiceEvents.SESSION_COMPLETED, (data: any) => {
+    eventBus.on(ServiceEvents.SESSION_COMPLETED, (data: SessionCompletedPayload) => {
       received = data;
     });
 
@@ -185,7 +187,7 @@ describe('EventBus SESSION_COMPLETED emission', () => {
 
 describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
   test('emitTyped emits SESSION_COMPLETED with typed payload', () => {
-    let received: any = null;
+    let received: SessionCompletedPayload | null = null;
 
     onTyped(ServiceEvents.SESSION_COMPLETED, (data) => {
       received = data;
@@ -234,7 +236,7 @@ describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
   });
 
   test('SESSION_COMPLETED payload includes optional fields', () => {
-    let received: any = null;
+    let received: SessionCompletedPayload | null = null;
 
     onTyped(ServiceEvents.SESSION_COMPLETED, (data) => {
       received = data;
@@ -257,7 +259,7 @@ describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
   });
 
   test('SESSION_COMPLETED payload works with minimal required fields', () => {
-    let received: any = null;
+    let received: SessionCompletedPayload | null = null;
 
     onTyped(ServiceEvents.SESSION_COMPLETED, (data) => {
       received = data;
@@ -285,7 +287,7 @@ describe('emitTyped / onTyped for SESSION_COMPLETED', () => {
 describe('Session Completion Flow — event emission pattern', () => {
   test('simulates completion flow: emit SESSION_COMPLETED with booking context', () => {
     // This simulates what handleComplete() does in complete.tsx
-    const events: any[] = [];
+    const events: SessionCompletedPayload[] = [];
 
     onTyped(ServiceEvents.SESSION_COMPLETED, (data) => {
       events.push(data);
@@ -315,7 +317,7 @@ describe('Session Completion Flow — event emission pattern', () => {
   });
 
   test('simulates completion flow: emit SESSION_COMPLETED for session offering (no bookingId)', () => {
-    const events: any[] = [];
+    const events: SessionCompletedPayload[] = [];
 
     onTyped(ServiceEvents.SESSION_COMPLETED, (data) => {
       events.push(data);

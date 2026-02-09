@@ -1,10 +1,10 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface MatchResultData {
   id: string;
@@ -27,10 +27,11 @@ export interface MatchResultCardProps {
   onPress?: () => void;
 }
 
+// Decorative: match result indicator colors (win/draw/loss)
 const RESULT_COLORS: Record<MatchResultData['result'], string> = {
-  W: '#1C8C5E',
-  D: '#6B7280',
-  L: '#C03E47',
+  W: '#1C8C5E', // Decorative: win (green)
+  D: '#6B7280', // Decorative: draw (neutral gray)
+  L: '#C03E47', // Decorative: loss (red)
 };
 
 const RESULT_LABELS: Record<MatchResultData['result'], string> = {
@@ -40,8 +41,7 @@ const RESULT_LABELS: Record<MatchResultData['result'], string> = {
 };
 
 export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResultCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const resultColor = RESULT_COLORS[data.result];
 
@@ -101,14 +101,14 @@ export function MatchResultCard({ data, onLike, onComment, onPress }: MatchResul
 
       {/* Footer: likes + comments */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerAction} onPress={onLike}>
+        <Pressable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerAction} onPress={onComment}>
+        </Pressable>
+        <Pressable style={styles.footerAction} onPress={onComment}>
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </SurfaceCard>
   );
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   },
   resultPillText: {
     ...Typography.micro,
-    color: '#FFFFFF',
+    color: '#FFFFFF', // Decorative: white text on result-colored pill
   },
   potmRow: {
     flexDirection: 'row',
@@ -178,8 +178,7 @@ const styles = StyleSheet.create({
     ...Typography.small,
   },
   potmName: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   footer: {
     flexDirection: 'row',

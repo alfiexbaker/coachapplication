@@ -26,9 +26,9 @@ import {
   DrillFeedbackCard,
   DrillCompletionSection,
 } from '@/components/drills';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { AssignedDrill } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 import { createLogger } from '@/utils/logger';
@@ -39,8 +39,7 @@ const logger = createLogger('DrillDetailScreen');
  * Drill detail screen showing full assignment information and video.
  */
 export default function DrillDetailScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   // State

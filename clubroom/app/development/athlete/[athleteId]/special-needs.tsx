@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
-import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { getUserById } from '@/constants/mock-data';
 import { childService, type ChildProfile } from '@/services/child-service';
 import { createLogger } from '@/utils/logger';
@@ -16,8 +16,7 @@ const logger = createLogger('SpecialNeedsScreen');
 
 export default function SpecialNeedsScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,9 +62,9 @@ export default function SpecialNeedsScreen() {
       gap={Spacing.md}
       header={
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-          </TouchableOpacity>
+          </Pressable>
           <ThemedText type="title" style={styles.headerTitle}>
             Special Needs
           </ThemedText>

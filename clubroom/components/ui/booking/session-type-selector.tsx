@@ -1,8 +1,8 @@
 import { View, StyleSheet } from 'react-native';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface SessionTypeOption {
   id: string;
@@ -18,8 +18,7 @@ export function SessionTypeSelector({
   selected?: string;
   onSelect: (id: string) => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const options: SessionTypeOption[] = [
     { id: '1-on-1', title: '1-on-1', price: '£90', description: '60 mins, personalised focus' },
     { id: 'small-group', title: 'Small Group', price: '£60 pp', description: 'Max 4 players' },

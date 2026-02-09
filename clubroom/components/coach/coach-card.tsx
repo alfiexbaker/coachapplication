@@ -18,11 +18,10 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Colors, Spacing, Radii, Components , Typography } from '@/constants/theme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // Import subcomponents
 import { CoachAvatar, CoachNameRow } from './coach-card-header';
@@ -30,6 +29,7 @@ import { RatingDisplay, CompactRating, ReviewQuote } from './coach-card-reviews'
 import { DistanceDisplay, LocationDisplay, MetaRow, NextAvailableDisplay } from './coach-card-availability';
 import { SpecialtyTags, FocusBadge, PriceDisplay, InlinePrice, formatPrice } from './coach-card-services';
 import { FavouriteButton, InlineFavouriteIcon, BookButton, ActionRow } from './coach-card-cta';
+import { useTheme, ThemeColors } from '@/hooks/useTheme';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -86,7 +86,7 @@ interface FavouriteVariantProps extends BaseCoachCardProps {
 
 export type CoachCardProps = CompactVariantProps | DiscoveryVariantProps | FavouriteVariantProps;
 
-type Palette = (typeof Colors)['light'];
+type Palette = ThemeColors;
 
 // -----------------------------------------------------------------------------
 // Compact Variant
@@ -98,8 +98,7 @@ function CompactCard({
   onPress,
   index = 0,
 }: CompactVariantProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const primaryFocus = coach.footballFocuses?.[0] || coach.specialties?.[0];
   const priceStr = formatPrice(coach.pricePerHour, coach.priceMin, coach.priceMax);
 
@@ -194,8 +193,7 @@ function DiscoveryCard({
   isFavourited = false,
   index = 0,
 }: DiscoveryVariantProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [favourited, setFavourited] = useState(isFavourited);
 
   const handleFavourite = () => {
@@ -298,8 +296,7 @@ function FavouriteCard({
   isFavourite = true,
   index = 0,
 }: FavouriteVariantProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleBook = useCallback(() => {
     onBook?.(coach.id);
@@ -407,8 +404,7 @@ const favouriteStyles = StyleSheet.create({
 // -----------------------------------------------------------------------------
 
 export function CoachCard(props: CoachCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const variant = props.variant || 'compact';
 
   switch (variant) {

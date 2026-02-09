@@ -14,15 +14,14 @@ import { ThemedText } from '@/components/themed-text';
 import { FamilyMemberCard } from '@/components/family/FamilyMemberCard';
 import { UpcomingSessionsList } from '@/components/family/UpcomingSessionsList';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   familyService,
   type FamilyMember,
   type FamilyCalendarEvent,
-  type FamilyOverview,
-} from '@/services/family';
+  type FamilyOverview } from '@/services/family';
 
 const logger = createLogger('FamilyDashboardScreen');
 
@@ -31,8 +30,7 @@ const logger = createLogger('FamilyDashboardScreen');
  * Shows all children, upcoming sessions, and quick access to calendar and spending
  */
 export default function FamilyDashboardScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -143,7 +141,7 @@ export default function FamilyDashboardScreen() {
             style={[styles.quickActionCard, { backgroundColor: withAlpha(palette.tint, 0.06) }]}
           >
             <View style={[styles.quickActionIcon, { backgroundColor: palette.tint }]}>
-              <Ionicons name="calendar" size={24} color={Colors.light.onPrimary} />
+              <Ionicons name="calendar" size={24} color={palette.onPrimary} />
             </View>
             <View style={styles.quickActionText}>
               <ThemedText type="defaultSemiBold">Family Calendar</ThemedText>
@@ -159,7 +157,7 @@ export default function FamilyDashboardScreen() {
             style={[styles.quickActionCard, { backgroundColor: withAlpha(palette.success, 0.06) }]}
           >
             <View style={[styles.quickActionIcon, { backgroundColor: palette.success }]}>
-              <Ionicons name="wallet" size={24} color={Colors.light.onPrimary} />
+              <Ionicons name="wallet" size={24} color={palette.onPrimary} />
             </View>
             <View style={styles.quickActionText}>
               <ThemedText type="defaultSemiBold">Spending Overview</ThemedText>
@@ -270,8 +268,7 @@ export default function FamilyDashboardScreen() {
                     {new Date(overview.nextSession.start).toLocaleDateString('en-GB', {
                       weekday: 'short',
                       day: 'numeric',
-                      month: 'short',
-                    })}
+                      month: 'short' })}
                   </ThemedText>
                 </View>
                 <View style={styles.nextSessionMetaItem}>
@@ -279,8 +276,7 @@ export default function FamilyDashboardScreen() {
                   <ThemedText style={[styles.nextSessionMetaText, { color: palette.muted }]}>
                     {new Date(overview.nextSession.start).toLocaleTimeString('en-GB', {
                       hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                      minute: '2-digit' })}
                   </ThemedText>
                 </View>
               </View>
@@ -295,8 +291,8 @@ export default function FamilyDashboardScreen() {
           onPress={() => router.push(Routes.MORE)}
           style={[styles.ctaButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add-circle" size={20} color={Colors.light.onPrimary} />
-          <ThemedText style={styles.ctaButtonText}>Book New Session</ThemedText>
+          <Ionicons name="add-circle" size={20} color={palette.onPrimary} />
+          <ThemedText style={[styles.ctaButtonText, { color: palette.onPrimary }]}>Book New Session</ThemedText>
         </Clickable>
       </Animated.View>
     </PageContainer>
@@ -308,112 +304,84 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingText: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   statsRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   statCard: {
     flex: 1,
     alignItems: 'center',
     padding: Spacing.md,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   statValue: {
-    ...Typography.display,
-  },
+    ...Typography.display },
   statLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   quickActions: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   quickActionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   quickActionIcon: {
     width: 48,
     height: 48,
     borderRadius: Radii.md,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   quickActionText: {
     flex: 1,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   quickActionSubtext: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   section: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   sectionTitle: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   sectionCount: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   membersList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   nextSessionCard: {
     padding: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   nextSessionHeader: {
-    flexDirection: 'row',
-  },
+    flexDirection: 'row' },
   nextSessionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   nextSessionBadgeText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   nextSessionTitle: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   nextSessionMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   nextSessionMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   nextSessionMetaText: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-  },
+    borderRadius: Radii.lg },
   ctaButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.subheading,
-  },
-});
+    ...Typography.subheading } });

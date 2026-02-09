@@ -17,9 +17,9 @@ import { ThemedText } from '@/components/themed-text';
 import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { GoalForm } from '@/components/goals';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import type { Goal, CreateGoalInput, UpdateGoalInput, GoalCreator } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
@@ -31,8 +31,7 @@ const logger = createLogger('CreateGoalScreen');
  * Screen for creating or editing a goal.
  */
 export default function CreateGoalScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const params = useLocalSearchParams<{ editId?: string }>();
   const editId = params.editId;
@@ -159,7 +158,7 @@ function Header({
 }: {
   title: string;
   onBack: () => void;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }) {
   return (
     <Clickable onPress={onBack} style={styles.header} hitSlop={8}>

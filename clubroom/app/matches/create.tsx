@@ -3,13 +3,12 @@ import {
   ScrollView,
   StyleSheet,
   View,
-  TouchableOpacity,
+  Pressable,
   TextInput,
   Alert,
   Switch,
   KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+  Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -20,8 +19,8 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { MatchType, ClubSquad } from '@/constants/types';
 import { matchService } from '@/services/match-service';
@@ -43,8 +42,7 @@ const DEFAULT_CLUB_ID = 'club_lions';
 type Step = 'details' | 'schedule' | 'squad' | 'review';
 
 export default function CreateMatchScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [step, setStep] = useState<Step>('details');
@@ -175,8 +173,7 @@ export default function CreateMatchScreen() {
           coachId: currentUser?.id || 'coach_1',
           coachName: currentUser?.fullName || currentUser?.username || 'Coach',
           matchType,
-          notes: notes || undefined,
-        });
+          notes: notes || undefined });
 
         Alert.alert(
           'Match Created!',
@@ -184,12 +181,10 @@ export default function CreateMatchScreen() {
           [
             {
               text: 'View Match',
-              onPress: () => router.replace(Routes.match(result.match.id)),
-            },
+              onPress: () => router.replace(Routes.match(result.match.id)) },
             {
               text: 'Done',
-              onPress: () => router.back(),
-            },
+              onPress: () => router.back() },
           ]
         );
       } else {
@@ -211,8 +206,7 @@ export default function CreateMatchScreen() {
           venue,
           address: address || undefined,
           maxPlayers: parseInt(maxPlayers, 10) || 14,
-          notes: notes || undefined,
-        });
+          notes: notes || undefined });
 
         Alert.alert(
           'Match Created!',
@@ -220,12 +214,10 @@ export default function CreateMatchScreen() {
           [
             {
               text: 'View Match',
-              onPress: () => router.replace(Routes.match(match.id)),
-            },
+              onPress: () => router.replace(Routes.match(match.id)) },
             {
               text: 'Done',
-              onPress: () => router.back(),
-            },
+              onPress: () => router.back() },
           ]
         );
       }
@@ -249,7 +241,7 @@ export default function CreateMatchScreen() {
             const isSelected = matchType === t.type;
             const color = matchService.getMatchTypeColor(t.type);
             return (
-              <TouchableOpacity
+              <Pressable
                 key={t.type}
                 style={[
                   styles.typeButton,
@@ -271,7 +263,7 @@ export default function CreateMatchScreen() {
                 >
                   {t.label}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             );
           })}
         </View>
@@ -293,7 +285,7 @@ export default function CreateMatchScreen() {
       <View style={styles.fieldGroup}>
         <ThemedText style={[styles.fieldLabel, { color: palette.muted }]}>Location</ThemedText>
         <View style={styles.toggleRow}>
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.toggleButton,
               { borderColor: isHome ? palette.tint : palette.border },
@@ -303,8 +295,8 @@ export default function CreateMatchScreen() {
           >
             <Ionicons name="home" size={18} color={isHome ? palette.tint : palette.muted} />
             <ThemedText style={{ color: isHome ? palette.tint : palette.text }}>Home</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={[
               styles.toggleButton,
               { borderColor: !isHome ? palette.tint : palette.border },
@@ -314,7 +306,7 @@ export default function CreateMatchScreen() {
           >
             <Ionicons name="airplane" size={18} color={!isHome ? palette.tint : palette.muted} />
             <ThemedText style={{ color: !isHome ? palette.tint : palette.text }}>Away</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
 
@@ -420,7 +412,7 @@ export default function CreateMatchScreen() {
         {squads.map((squad) => {
           const isSelected = selectedSquadId === squad.id;
           return (
-            <TouchableOpacity
+            <Pressable
               key={squad.id}
               style={[
                 styles.squadCard,
@@ -452,7 +444,7 @@ export default function CreateMatchScreen() {
                   <View style={[styles.emptyCheck, { borderColor: palette.border }]} />
                 )}
               </View>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
         {squads.length === 0 && (
@@ -557,8 +549,7 @@ export default function CreateMatchScreen() {
     <>
       <Stack.Screen
         options={{
-          headerShown: false,
-        }}
+          headerShown: false }}
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -603,28 +594,28 @@ export default function CreateMatchScreen() {
           {/* Footer buttons */}
           <View style={[styles.footer, { borderTopColor: palette.border }]}>
             {step === 'review' ? (
-              <TouchableOpacity
+              <Pressable
                 style={[styles.primaryButton, { backgroundColor: palette.tint }]}
                 onPress={handleSubmit}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
-                  <ThemedText style={styles.primaryButtonText}>Creating...</ThemedText>
+                  <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Creating...</ThemedText>
                 ) : (
                   <>
-                    <Ionicons name="checkmark-circle" size={20} color={Colors.light.onPrimary} />
-                    <ThemedText style={styles.primaryButtonText}>Create Match</ThemedText>
+                    <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
+                    <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Create Match</ThemedText>
                   </>
                 )}
-              </TouchableOpacity>
+              </Pressable>
             ) : (
-              <TouchableOpacity
+              <Pressable
                 style={[styles.primaryButton, { backgroundColor: palette.tint }]}
                 onPress={handleNext}
               >
-                <ThemedText style={styles.primaryButtonText}>Continue</ThemedText>
-                <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
-              </TouchableOpacity>
+                <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>Continue</ThemedText>
+                <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+              </Pressable>
             )}
           </View>
         </PageContainer>
@@ -638,55 +629,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: Spacing.xs,
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   progressDot: {
     width: 32,
     height: 4,
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   scrollView: {
-    flex: 1,
-  },
+    flex: 1 },
   scrollContent: {
     padding: Spacing.md,
-    paddingBottom: Spacing.xl * 2,
-  },
+    paddingBottom: Spacing.xl * 2 },
   stepContent: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   stepTitle: {
     ...Typography.heading,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   fieldGroup: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   fieldLabel: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   input: {
     borderRadius: Radii.md,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    ...Typography.body,
-  },
+    ...Typography.body },
   smallInput: {
-    width: 100,
-  },
+    width: 100 },
   textArea: {
     minHeight: 80,
-    textAlignVertical: 'top',
-  },
+    textAlignVertical: 'top' },
   helpText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   typeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   typeButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -694,15 +672,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   typeLabel: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   toggleRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   toggleButton: {
     flex: 1,
     flexDirection: 'row',
@@ -711,143 +686,111 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   squadList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   squadCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   squadIcon: {
     width: 48,
     height: 48,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   squadInfo: {
     flex: 1,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   squadMeta: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   squadMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   ageChip: {
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   stepSubtitle: {
     textAlign: 'center',
     ...Typography.bodySmall,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   emptySquads: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   squadCheck: {},
   emptyCheck: {
     width: 24,
     height: 24,
     borderRadius: Radii.md,
-    borderWidth: 2,
-  },
+    borderWidth: 2 },
   autoInviteRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: Spacing.md,
     marginTop: Spacing.md,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   autoInviteInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   autoInviteDesc: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   reviewCard: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   reviewHeader: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   typeBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   typeBadgeText: {
     ...Typography.caption,
-    textTransform: 'uppercase',
-  },
+    textTransform: 'uppercase' },
   homeAwayBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   homeAwayText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   reviewTitle: {
-    ...Typography.title,
-  },
+    ...Typography.title },
   reviewDetails: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   reviewRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   notesBox: {
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   notesLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   notesText: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   inviteInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   footer: {
     padding: Spacing.md,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   primaryButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.subheading,
-  },
-});
+    ...Typography.subheading } });

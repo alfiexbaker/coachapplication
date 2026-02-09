@@ -7,21 +7,19 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FilterModal } from '@/components/discover/FilterModal';
 import { createLogger } from '@/utils/logger';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { discoverService } from '@/services/discover-service';
 import type { CoachSearchFilters, FilterOptions } from '@/constants/types';
 
 const logger = createLogger('FiltersScreen');
 
 export default function FiltersScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
     filters?: string;
@@ -79,7 +77,7 @@ export default function FiltersScreen() {
       router.replace({
         pathname: returnTo,
         params: { appliedFilters: filtersParam },
-      } as any);
+      } as Href);
     },
     [router, params.returnTo]
   );

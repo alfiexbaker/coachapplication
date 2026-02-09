@@ -59,6 +59,7 @@ const MOCKS = {
     ScrollView: 'ScrollView',
     Image: 'Image',
     Alert: { alert: () => {} },
+    Share: { share: async () => ({ action: 'sharedAction' }) },
     Dimensions: { get: () => ({ width: 375, height: 812 }) },
   },
 
@@ -99,6 +100,15 @@ const MOCKS = {
   'expo-clipboard': {
     setStringAsync: async () => {},
     getStringAsync: async () => '',
+  },
+
+  // NetInfo — used by useConnectionStatus and offline-queue
+  '@react-native-community/netinfo': {
+    __esModule: true,
+    default: {
+      addEventListener: () => () => {},
+      fetch: async () => ({ isConnected: true, isInternetReachable: true }),
+    },
   },
   'expo-linking': {
     openURL: async () => {},

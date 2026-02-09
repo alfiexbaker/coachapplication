@@ -3,11 +3,11 @@
  *
  * Persistent top banner when the user is offline.
  * Animated slide-down/slide-up with Reanimated.
- * Shows brief "Back online" flash on reconnect.
+ * Shows queue count, sync progress, flush result, and retry.
  */
 
-import { useEffect } from 'react';
-import { StyleSheet } from 'react-native';
+import { useEffect, useCallback } from 'react';
+import { StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,20 +15,21 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Typography, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
+import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 export function OfflineBanner() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors } = useTheme();
   const { isConnected, showReconnected } = useConnectionStatus();
+  const { queueSize, isFlushing, lastFlushResult, manualFlush } = useOfflineQueue();
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(-100);
 
-  const showBanner = !isConnected || showReconnected;
+  const showBanner = !isConnected || showReconnected || isFlushing;
 
   useEffect(() => {
     if (showBanner) {
@@ -42,18 +43,46 @@ export function OfflineBanner() {
     transform: [{ translateY: translateY.value }],
   }));
 
-  const backgroundColor = showReconnected
-    ? withAlpha(palette.success, 0.09)
-    : withAlpha(palette.warning, 0.09);
+  const handleRetry = useCallback(() => {
+    void manualFlush();
+  }, [manualFlush]);
 
-  const textColor = showReconnected
-    ? palette.success
-    : palette.warning;
+  // Determine banner state
+  const hasFailedActions = lastFlushResult !== null && lastFlushResult.failed > 0;
 
-  const iconName = showReconnected ? 'wifi' : 'wifi-outline';
-  const message = showReconnected
-    ? 'Back online'
-    : "You're offline. Changes will sync when you reconnect.";
+  let backgroundColor: string;
+  let textColor: string;
+  let iconName: keyof typeof Ionicons.glyphMap;
+  let message: string;
+
+  if (isFlushing) {
+    backgroundColor = withAlpha(colors.tint, 0.09);
+    textColor = colors.tint;
+    iconName = 'sync';
+    message = 'Syncing changes...';
+  } else if (showReconnected && !hasFailedActions) {
+    backgroundColor = withAlpha(colors.success, 0.09);
+    textColor = colors.success;
+    iconName = 'wifi';
+    message =
+      lastFlushResult && lastFlushResult.processed > 0
+        ? `Back online. ${lastFlushResult.processed} change${lastFlushResult.processed === 1 ? '' : 's'} synced`
+        : 'Back online';
+  } else if (hasFailedActions) {
+    backgroundColor = withAlpha(colors.error, 0.09);
+    textColor = colors.error;
+    iconName = 'alert-circle';
+    message = `${lastFlushResult.failed} change${lastFlushResult.failed === 1 ? '' : 's'} failed to sync`;
+  } else {
+    // Offline state
+    backgroundColor = withAlpha(colors.warning, 0.09);
+    textColor = colors.warning;
+    iconName = 'wifi-outline';
+    message =
+      queueSize > 0
+        ? `You're offline. ${queueSize} change${queueSize === 1 ? '' : 's'} saved`
+        : "You're offline. Changes will sync when you reconnect.";
+  }
 
   return (
     <Animated.View
@@ -62,14 +91,31 @@ export function OfflineBanner() {
         animatedStyle,
         { paddingTop: insets.top + Spacing.xs, backgroundColor },
       ]}
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
     >
-      <Ionicons
-        name={iconName as keyof typeof Ionicons.glyphMap}
-        size={16}
-        color={textColor}
-        style={styles.icon}
-      />
+      {isFlushing ? (
+        <ActivityIndicator size="small" color={textColor} style={styles.icon} />
+      ) : (
+        <Ionicons
+          name={iconName}
+          size={16}
+          color={textColor}
+          style={styles.icon}
+        />
+      )}
       <ThemedText style={[styles.text, { color: textColor }]}>{message}</ThemedText>
+      {hasFailedActions && isConnected && (
+        <Pressable
+          onPress={handleRetry}
+          style={styles.retryButton}
+          accessibilityLabel="Retry syncing failed changes"
+          accessibilityRole="button"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ThemedText style={[styles.retryText, { color: textColor }]}>Retry</ThemedText>
+        </Pressable>
+      )}
     </Animated.View>
   );
 }
@@ -91,7 +137,16 @@ const styles = StyleSheet.create({
     marginRight: Spacing.xs,
   },
   text: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
+  },
+  retryButton: {
+    marginLeft: Spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
+  retryText: {
+    ...Typography.smallSemiBold,
+    textDecorationLine: 'underline',
   },
 });

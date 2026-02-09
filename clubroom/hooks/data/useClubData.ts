@@ -125,7 +125,7 @@ export function useClubData(
       setError(null);
 
       // Build promises array based on options
-      const promises: Promise<any>[] = [];
+      const promises: Promise<unknown>[] = [];
       const promiseKeys: string[] = [];
 
       // Always fetch members for basic club info
@@ -148,7 +148,7 @@ export function useClubData(
       const results = await Promise.all(promises);
 
       // Map results by key
-      const resultMap: Record<string, any> = {};
+      const resultMap: Record<string, unknown> = {};
       promiseKeys.forEach((key, index) => {
         resultMap[key] = results[index];
       });

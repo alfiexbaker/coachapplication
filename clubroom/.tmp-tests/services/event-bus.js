@@ -146,10 +146,32 @@ exports.ServiceEvents = {
     // Achievement events
     BADGE_EARNED: 'achievement:badge_earned',
     STREAK_MILESTONE: 'achievement:streak_milestone',
+    // Invite RSVP events
+    INVITE_RSVP_RESPONDED: 'invite:rsvp:responded',
+    INVITE_SHARED: 'invite:shared',
+    // Squad events
+    SQUAD_CREATED: 'squad:created',
+    SQUAD_DELETED: 'squad:deleted',
+    SQUAD_MEMBER_ADDED: 'squad:member:added',
+    SQUAD_MEMBER_REMOVED: 'squad:member:removed',
+    // Comment events
+    COMMENT_CREATED: 'comment:created',
+    COMMENT_DELETED: 'comment:deleted',
+    COMMENT_LIKED: 'comment:liked',
+    COMMENT_REPLIED: 'comment:replied',
+    // Invite booking events
+    INVITE_ACCEPTED: 'invite:accepted',
+    INVITE_BOOKING_FAILED: 'invite:booking_failed',
+    // Coach feed events
+    COACH_POST_CREATED: 'coach:post:created',
     // Sync events
     SYNC_STARTED: 'sync:started',
     SYNC_COMPLETED: 'sync:completed',
     SYNC_FAILED: 'sync:failed',
+    // Connection & offline queue events
+    CONNECTION_CHANGED: 'connection:changed',
+    QUEUE_FLUSHED: 'queue:flushed',
+    QUEUE_ACTION_FAILED: 'queue:action_failed',
 };
 /**
  * Type-safe event emitter helper.

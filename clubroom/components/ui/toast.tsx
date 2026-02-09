@@ -3,8 +3,8 @@ import { StyleSheet, View, Text, Pressable } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha, Shadows } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // Tab bar height constant for proper positioning
 const TAB_BAR_HEIGHT = 60;
@@ -113,8 +113,7 @@ function Toast({
   action?: { label: string; onPress: () => void };
   onActionPress?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const toneColor = tone === 'success' ? palette.success : tone === 'error' ? palette.error : tone === 'warning' ? palette.warning : palette.text;
 
@@ -133,7 +132,7 @@ function Toast({
       <View
         style={[
           styles.toast,
-          { backgroundColor: scheme === 'dark' ? palette.surface : palette.onPrimary, borderColor: withAlpha(toneColor, 0.33) },
+          { backgroundColor: scheme === 'dark' ? palette.surface : palette.onPrimary, borderColor: withAlpha(toneColor, 0.33), ...Shadows[scheme].card },
         ]}
       >
         <Text style={[styles.message, { color: toneColor }]}>{message}</Text>
@@ -142,7 +141,7 @@ function Toast({
             onPress={onActionPress}
             style={({ pressed }) => [
               styles.actionButton,
-              { backgroundColor: `${palette.tint}${pressed ? '30' : '15'}` },
+              { backgroundColor: withAlpha(palette.tint, pressed ? 0.19 : 0.08) },
             ]}
           >
             <Text style={[styles.actionText, { color: palette.tint }]}>{action.label}</Text>
@@ -170,11 +169,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
   },
   message: { ...Typography.bodySemiBold, flex: 1 },
   actionButton: {

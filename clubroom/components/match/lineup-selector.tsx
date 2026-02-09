@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { StyleSheet, View, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, Pressable, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 
@@ -26,8 +26,7 @@ interface SelectedPlayer extends MatchPlayer {
 }
 
 export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelectorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const availablePlayers = useMemo(() =>
     match.selectedPlayers.filter(p => p.status === 'AVAILABLE'),
@@ -109,7 +108,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
     const statusColor = matchService.getPlayerStatusColor(player.status);
 
     return (
-      <TouchableOpacity
+      <Pressable
         key={player.athleteId}
         style={[
           styles.playerRow,
@@ -148,14 +147,14 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
           )}
           {isReserve && (
             <View style={[styles.checkCircle, { backgroundColor: palette.warning }]}>
-              <ThemedText style={styles.reserveText}>R</ThemedText>
+              <ThemedText style={[styles.reserveText, { color: palette.onPrimary }]}>R</ThemedText>
             </View>
           )}
           {!isSelected && !isReserve && (
             <View style={[styles.emptyCircle, { borderColor: palette.border }]} />
           )}
         </View>
-      </TouchableOpacity>
+      </Pressable>
     );
   };
 
@@ -264,7 +263,7 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
 
       {/* Submit button */}
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.submitButton,
             { backgroundColor: palette.tint },
@@ -274,16 +273,16 @@ export function LineupSelector({ match, onSetLineup, isLoading }: LineupSelector
           disabled={isLoading || selectedForLineup.length === 0}
         >
           {isLoading ? (
-            <ThemedText style={styles.submitText}>Setting Lineup...</ThemedText>
+            <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>Setting Lineup...</ThemedText>
           ) : (
             <>
               <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
-              <ThemedText style={styles.submitText}>
+              <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
                 Confirm Lineup ({selectedForLineup.length} players, {reserves.length} reserves)
               </ThemedText>
             </>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
@@ -367,7 +366,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reserveText: { ...Typography.caption, color: Colors.light.onPrimary },
+  reserveText: { ...Typography.caption },
   emptyCircle: {
     width: 24,
     height: 24,
@@ -389,5 +388,5 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-  submitText: { ...Typography.bodySemiBold, color: Colors.light.onPrimary },
+  submitText: { ...Typography.bodySemiBold },
 });

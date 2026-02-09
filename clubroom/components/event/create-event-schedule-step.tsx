@@ -3,9 +3,9 @@ import { View, StyleSheet, TextInput } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CreateEventScheduleStepProps {
   date: string;
@@ -22,8 +22,7 @@ function CreateEventScheduleStepInner({
   rsvpDeadline,
   onFieldChange,
 }: CreateEventScheduleStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>

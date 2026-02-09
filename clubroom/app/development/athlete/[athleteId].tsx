@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,8 +10,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { StatCard } from '@/components/primitives/stat-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { getUserById, getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -25,8 +25,7 @@ const logger = createLogger('AthleteDetailScreen');
 
 export default function AthleteDetailScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,9 +152,9 @@ export default function AthleteDetailScreen() {
   // Calculate level badge based on total sessions
   const getLevel = () => {
     const count = sessions.length;
-    if (count >= 20) return { name: 'Gold', icon: 'trophy-outline' as const, color: '#FFD700' };
-    if (count >= 10) return { name: 'Silver', icon: 'medal-outline' as const, color: '#C0C0C0' };
-    return { name: 'Bronze', icon: 'ribbon-outline' as const, color: '#CD7F32' };
+    if (count >= 20) return { name: 'Gold', icon: 'trophy-outline' as const, color: '#FFD700' }; // Decorative: gold tier
+    if (count >= 10) return { name: 'Silver', icon: 'medal-outline' as const, color: '#C0C0C0' }; // Decorative: silver tier
+    return { name: 'Bronze', icon: 'ribbon-outline' as const, color: '#CD7F32' }; // Decorative: bronze tier
   };
 
   const trend = getProgressTrend();
@@ -163,7 +162,7 @@ export default function AthleteDetailScreen() {
 
   const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
   const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
-  const trendColor = trend === 'improving' ? Colors.light.success : trend === 'declining' ? Colors.light.error : palette.muted;
+  const trendColor = trend === 'improving' ? palette.success : trend === 'declining' ? palette.error : palette.muted;
   const selectedSessionLabel = selectedSession
     ? `${selectedSession.nextFocusAreas?.[0] ?? 'Coaching session'} · ${formatDate(selectedSession.completedAt)}`
     : undefined;
@@ -186,12 +185,12 @@ export default function AthleteDetailScreen() {
         gap={Spacing.lg}
         header={
           <View style={styles.header}>
-            <TouchableOpacity
+            <Pressable
               onPress={() => router.back()}
               style={styles.backButton}
             >
               <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-            </TouchableOpacity>
+            </Pressable>
             <ThemedText type="title" style={styles.headerTitle}>
               Athlete Progress
             </ThemedText>
@@ -239,7 +238,7 @@ export default function AthleteDetailScreen() {
             </View>
           </View>
           <View style={styles.heroButtons}>
-            <TouchableOpacity
+            <Pressable
               style={[styles.ctaButton, { backgroundColor: palette.tint }]}
               onPress={async () => {
                 logger.press('LogSession');
@@ -276,9 +275,9 @@ export default function AthleteDetailScreen() {
                 }
               }}
             >
-              <ThemedText style={styles.ctaText}>Log Session</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
+              <ThemedText style={[styles.ctaText, { color: palette.onPrimary }]}>Log Session</ThemedText>
+            </Pressable>
+            <Pressable
               style={[styles.awardBadgeButton, { borderColor: palette.warning, backgroundColor: withAlpha(palette.warning, 0.09) }]}
               onPress={() => {
                 logger.press('AwardBadgeFromProfile', { athleteId });
@@ -287,7 +286,7 @@ export default function AthleteDetailScreen() {
             >
               <Ionicons name="ribbon" size={14} color={palette.warning} />
               <ThemedText style={[styles.awardBadgeText, { color: palette.warning }]}>Award Badge</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
@@ -362,7 +361,7 @@ export default function AthleteDetailScreen() {
             ]}>
               <ThemedText style={[
                 styles.counterText,
-                { color: (childProfile?.disabilities.length ?? 0) > 0 ? Colors.light.onPrimary : palette.muted }
+                { color: (childProfile?.disabilities.length ?? 0) > 0 ? palette.onPrimary : palette.muted }
               ]}>
                 {childProfile?.disabilities.length ?? 0}
               </ThemedText>
@@ -377,7 +376,7 @@ export default function AthleteDetailScreen() {
             ]}>
               <ThemedText style={[
                 styles.counterText,
-                { color: (childProfile?.allergies.length ?? 0) > 0 ? Colors.light.onPrimary : palette.muted }
+                { color: (childProfile?.allergies.length ?? 0) > 0 ? palette.onPrimary : palette.muted }
               ]}>
                 {childProfile?.allergies.length ?? 0}
               </ThemedText>
@@ -455,7 +454,7 @@ export default function AthleteDetailScreen() {
                         {cat.label}
                       </ThemedText>
                       <View style={[styles.categoryCountBadge, { backgroundColor: palette.tint }]}>
-                        <ThemedText style={styles.categoryCountText}>
+                        <ThemedText style={[styles.categoryCountText, { color: palette.onPrimary }]}>
                           {cat.badgeCount}
                         </ThemedText>
                       </View>
@@ -503,7 +502,7 @@ export default function AthleteDetailScreen() {
                   </ThemedText>
                   {needsNotes && (
                     <View style={[styles.needsNotesBadge, { backgroundColor: palette.error }]}>
-                      <ThemedText style={styles.needsNotesText}>Needs Notes</ThemedText>
+                      <ThemedText style={[styles.needsNotesText, { color: palette.onPrimary }]}>Needs Notes</ThemedText>
                     </View>
                   )}
                 </View>
@@ -702,7 +701,6 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     ...Typography.small,
-    color: Colors.light.onPrimary,
   },
   heroButtons: {
     flexDirection: 'row',
@@ -787,7 +785,6 @@ const styles = StyleSheet.create({
   },
   needsNotesText: {
     ...Typography.micro,
-    color: Colors.light.onPrimary,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -922,7 +919,6 @@ const styles = StyleSheet.create({
   },
   categoryCountText: {
     ...Typography.micro,
-    color: Colors.light.onPrimary,
   },
 
   // Special Needs Summary Card
@@ -973,7 +969,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingTop: Spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    borderTopColor: 'rgba(0,0,0,0.05)', // Decorative: subtle separator
   },
   previewTag: {
     paddingHorizontal: Spacing.xs,

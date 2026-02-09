@@ -6,8 +6,8 @@ import { toDateStr } from '@/utils/format';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { TimeSlot } from '@/constants/types';
 
 interface TimeProposalFormProps {
@@ -74,8 +74,7 @@ export function TimeProposalForm({
   isLoading = false,
   submitLabel = 'Send Proposal',
 }: TimeProposalFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [selectedDate, setSelectedDate] = useState<string>(originalTime.date);
   const [selectedTime, setSelectedTime] = useState<string>(originalTime.startTime);
@@ -339,11 +338,11 @@ export function TimeProposalForm({
         >
           <View style={styles.submitButtonContent}>
             {isLoading ? (
-              <ThemedText style={styles.submitButtonText}>Sending...</ThemedText>
+              <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>Sending...</ThemedText>
             ) : (
               <>
                 <Ionicons name="send" size={16} color={palette.onPrimary} />
-                <ThemedText style={styles.submitButtonText}>{submitLabel}</ThemedText>
+                <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>{submitLabel}</ThemedText>
               </>
             )}
           </View>
@@ -375,8 +374,7 @@ const styles = StyleSheet.create({
     ...Typography.sm,
   },
   originalTimeValue: {
-    ...Typography.body,
-    fontWeight: '600',
+    ...Typography.bodySemiBold,
   },
   locationRow: {
     flexDirection: 'row',
@@ -485,5 +483,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  submitButtonText: { ...Typography.bodySemiBold, color: Colors.light.onPrimary },
+  submitButtonText: { ...Typography.bodySemiBold },
 });

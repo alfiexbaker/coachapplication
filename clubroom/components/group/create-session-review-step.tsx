@@ -4,8 +4,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
 import type { GroupSession, FootballObjective, SessionInviteType } from '@/constants/types';
 
@@ -48,8 +48,7 @@ function CreateSessionReviewStepInner({
   recurringDayOfWeek,
   recurringUntil,
 }: CreateSessionReviewStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>

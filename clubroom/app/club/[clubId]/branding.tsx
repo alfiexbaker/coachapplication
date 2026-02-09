@@ -7,8 +7,8 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
 import { BrandingEditor } from '@/components/club/branding-editor';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { clubService, type ClubBranding } from '@/services/club-service';
 import { createLogger } from '@/utils/logger';
 
@@ -16,8 +16,7 @@ const logger = createLogger('BrandingScreen');
 
 export default function BrandingScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
 
   const [, setBranding] = useState<ClubBranding | null>(null);
@@ -127,9 +126,9 @@ export default function BrandingScreen() {
           }}
         >
           {saving ? (
-            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+            <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
-            <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.bodySemiBold }}>
+            <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySemiBold }}>
               Save Changes
             </ThemedText>
           )}

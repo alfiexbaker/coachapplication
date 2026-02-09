@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
@@ -35,8 +35,7 @@ export function DownloadButton({
   onDownloadStart,
   onDownloadComplete,
 }: DownloadButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
 
@@ -125,7 +124,7 @@ export function DownloadButton({
   if (variant === 'icon') {
     return (
       <View style={styles.iconContainer}>
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.iconButton,
             { backgroundColor: palette.surface, borderColor: palette.border },
@@ -138,9 +137,9 @@ export function DownloadButton({
           ) : (
             <Ionicons name="download-outline" size={getIconSize()} color={palette.tint} />
           )}
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.iconButton,
             { backgroundColor: palette.surface, borderColor: palette.border },
@@ -153,7 +152,7 @@ export function DownloadButton({
           ) : (
             <Ionicons name="share-outline" size={getIconSize()} color={palette.tint} />
           )}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -164,7 +163,7 @@ export function DownloadButton({
   return (
     <View style={styles.buttonContainer}>
       {/* Download Button */}
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.button,
           getButtonSize(),
@@ -177,7 +176,7 @@ export function DownloadButton({
         ]}
         onPress={handleDownload}
         disabled={downloading || sharing}
-        activeOpacity={0.8}
+
       >
         {downloading ? (
           <ActivityIndicator
@@ -204,10 +203,10 @@ export function DownloadButton({
             </ThemedText>
           </>
         )}
-      </TouchableOpacity>
+      </Pressable>
 
       {/* Share Button */}
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.button,
           getButtonSize(),
@@ -220,7 +219,7 @@ export function DownloadButton({
         ]}
         onPress={handleShare}
         disabled={downloading || sharing}
-        activeOpacity={0.8}
+
       >
         {sharing ? (
           <ActivityIndicator size="small" color={palette.tint} />
@@ -240,7 +239,7 @@ export function DownloadButton({
             </ThemedText>
           </>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
@@ -255,8 +254,7 @@ interface SingleButtonProps {
 }
 
 export function DownloadOnlyButton({ invoice, size = 'medium' }: SingleButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -282,7 +280,7 @@ export function DownloadOnlyButton({ invoice, size = 'medium' }: SingleButtonPro
   const iconSize = size === 'small' ? 16 : size === 'large' ? 24 : 20;
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[styles.singleButton, { backgroundColor: palette.tint }]}
       onPress={handleDownload}
       disabled={downloading}
@@ -292,13 +290,12 @@ export function DownloadOnlyButton({ invoice, size = 'medium' }: SingleButtonPro
       ) : (
         <Ionicons name="download-outline" size={iconSize} color={palette.onPrimary} />
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 export function ShareOnlyButton({ invoice, size = 'medium' }: SingleButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [sharing, setSharing] = useState(false);
 
   const handleShare = async () => {
@@ -318,7 +315,7 @@ export function ShareOnlyButton({ invoice, size = 'medium' }: SingleButtonProps)
   const iconSize = size === 'small' ? 16 : size === 'large' ? 24 : 20;
 
   return (
-    <TouchableOpacity
+    <Pressable
       style={[
         styles.singleButton,
         { backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 },
@@ -331,7 +328,7 @@ export function ShareOnlyButton({ invoice, size = 'medium' }: SingleButtonProps)
       ) : (
         <Ionicons name="share-outline" size={iconSize} color={palette.text} />
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

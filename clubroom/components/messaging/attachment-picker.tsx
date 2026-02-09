@@ -6,8 +6,8 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import type { Attachment } from '@/constants/types';
 
@@ -26,7 +26,7 @@ const PICKER_OPTIONS: {
   icon: string;
   label: string;
   description: string;
-  color: string;
+  colorKey: 'success' | 'info' | 'error' | 'warning';
   types: ('IMAGE' | 'VIDEO' | 'DOCUMENT')[];
 }[] = [
   {
@@ -34,7 +34,7 @@ const PICKER_OPTIONS: {
     icon: 'image',
     label: 'Photo',
     description: 'Choose from gallery',
-    color: '#4CAF50',
+    colorKey: 'success',
     types: ['IMAGE'],
   },
   {
@@ -42,7 +42,7 @@ const PICKER_OPTIONS: {
     icon: 'camera',
     label: 'Camera',
     description: 'Take a photo',
-    color: '#2196F3',
+    colorKey: 'info',
     types: ['IMAGE'],
   },
   {
@@ -50,7 +50,7 @@ const PICKER_OPTIONS: {
     icon: 'videocam',
     label: 'Video',
     description: 'Record or select',
-    color: '#E91E63',
+    colorKey: 'error',
     types: ['VIDEO'],
   },
   {
@@ -58,7 +58,7 @@ const PICKER_OPTIONS: {
     icon: 'document',
     label: 'Document',
     description: 'PDF, DOC, etc.',
-    color: '#FF9800',
+    colorKey: 'warning',
     types: ['DOCUMENT'],
   },
 ];
@@ -70,8 +70,7 @@ export function AttachmentPicker({
   allowMultiple = true,
   allowedTypes = ['IMAGE', 'VIDEO', 'DOCUMENT'],
 }: AttachmentPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const availableOptions = PICKER_OPTIONS.filter((opt) =>
     opt.types.some((t) => allowedTypes.includes(t))
@@ -222,14 +221,16 @@ export function AttachmentPicker({
           </ThemedText>
 
           <View style={styles.optionsGrid}>
-            {availableOptions.map((option) => (
+            {availableOptions.map((option) => {
+              const optionColor = palette[option.colorKey];
+              return (
               <Clickable
                 key={option.key}
                 onPress={() => handleOptionPress(option.key)}
                 style={[styles.option, { backgroundColor: palette.surface }]}
               >
-                <View style={[styles.iconCircle, { backgroundColor: withAlpha(option.color, 0.09) }]}>
-                  <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={28} color={option.color} />
+                <View style={[styles.iconCircle, { backgroundColor: withAlpha(optionColor, 0.09) }]}>
+                  <Ionicons name={option.icon as keyof typeof Ionicons.glyphMap} size={28} color={optionColor} />
                 </View>
                 <ThemedText type="defaultSemiBold" style={styles.optionLabel}>
                   {option.label}
@@ -238,7 +239,8 @@ export function AttachmentPicker({
                   {option.description}
                 </ThemedText>
               </Clickable>
-            ))}
+              );
+            })}
           </View>
 
           <Clickable
@@ -265,8 +267,7 @@ export function AttachmentPreview({
   onRemove,
   compact = false,
 }: AttachmentPreviewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getIcon = () => {
     switch (attachment.type) {

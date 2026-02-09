@@ -12,14 +12,14 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Modal, Platform, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Modal, Platform, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { QuietHours } from '@/constants/types';
 
 export interface QuietHoursSelectorProps {
@@ -68,8 +68,7 @@ export function QuietHoursSelector({
   disabled = false,
   loading = false,
 }: QuietHoursSelectorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
@@ -181,6 +180,7 @@ export function QuietHoursSelector({
             style={[
               styles.toggleThumb,
               {
+                backgroundColor: palette.surface,
                 transform: [{ translateX: value.enabled ? 20 : 0 }],
               },
             ]}
@@ -248,22 +248,22 @@ export function QuietHoursSelector({
         <Modal transparent animationType="slide" visible>
           <View style={styles.modalOverlay}>
             <View style={[styles.pickerContainer, { backgroundColor: palette.card }]}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={handleCancelPicker}>
+              <View style={[styles.pickerHeader, { borderBottomColor: palette.border }]}>
+                <Pressable onPress={handleCancelPicker}>
                   <ThemedText style={[styles.pickerButton, { color: palette.muted }]}>
                     Cancel
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
                 <ThemedText type="defaultSemiBold">
                   {showStartPicker ? 'Start Time' : 'End Time'}
                 </ThemedText>
-                <TouchableOpacity
+                <Pressable
                   onPress={showStartPicker ? handleConfirmStartTime : handleConfirmEndTime}
                 >
                   <ThemedText style={[styles.pickerButton, { color: palette.accent }]}>
                     Done
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
               <DateTimePicker
                 value={tempTime || parseTimeToDate(showStartPicker ? value.startTime : value.endTime)}
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: Radii.md,
-    backgroundColor: Colors.light.surface,
+    // backgroundColor set inline for dynamic theming
   },
   timeSection: {
     paddingHorizontal: Spacing.md,
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.light.border,
+    // borderBottomColor set inline for dynamic theming
   },
   pickerButton: { ...Typography.subheading },
 });

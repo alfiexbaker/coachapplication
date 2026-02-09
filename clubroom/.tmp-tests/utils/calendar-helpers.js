@@ -44,7 +44,6 @@ exports.buildCalendarTitle = buildCalendarTitle;
 exports.buildCalendarNotes = buildCalendarNotes;
 const react_native_1 = require("react-native");
 const Calendar = __importStar(require("expo-calendar"));
-const theme_1 = require("@/constants/theme");
 // ---------------------------------------------------------------------------
 // getDefaultCalendarId
 // ---------------------------------------------------------------------------
@@ -52,7 +51,7 @@ const theme_1 = require("@/constants/theme");
  * Find the best writable calendar, or create one if necessary.
  * Returns the calendar ID, or null if no suitable calendar was found.
  */
-async function getDefaultCalendarId() {
+async function getDefaultCalendarId(calendarColor) {
     const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
     // Try to find the default calendar
     const defaultCalendar = calendars.find((cal) => cal.isPrimary);
@@ -71,7 +70,7 @@ async function getDefaultCalendarId() {
         if (defaultSource) {
             const newCalendarId = await Calendar.createCalendarAsync({
                 title: 'Clubroom Sessions',
-                color: theme_1.Colors.light.tint,
+                color: calendarColor ?? '#6366F1',
                 entityType: Calendar.EntityTypes.EVENT,
                 sourceId: defaultSource.id,
                 source: defaultSource,

@@ -13,8 +13,8 @@ import * as Haptics from 'expo-haptics';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { WeekRow } from './multi-week-picker';
 
 interface MultiWeekConfirmationProps {
@@ -51,7 +51,7 @@ const WeekSummaryRow = memo(function WeekSummaryRow({
 }: {
   week: WeekRow;
   currency: string;
-  palette: typeof Colors.light;
+  palette: ReturnType<typeof useTheme>['colors'];
 }) {
   return (
     <View style={[styles.weekSummaryRow, { borderBottomColor: palette.border }]}>
@@ -80,8 +80,7 @@ export function MultiWeekConfirmation({
   onConfirm,
   onCancel,
 }: MultiWeekConfirmationProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const totalCost = selectedWeeks.reduce((sum, w) => sum + w.price, 0);
 

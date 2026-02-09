@@ -3,7 +3,7 @@ import {
   StyleSheet,
   View,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,8 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { packageService, CreatePackageParams } from '@/services/package-service';
 import type { SessionPackage, FootballObjective } from '@/constants/types';
@@ -60,8 +60,7 @@ export function CreatePackageForm({
   onCancel,
   editPackage,
 }: CreatePackageFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const isEditing = !!editPackage;
@@ -225,7 +224,7 @@ export function CreatePackageForm({
           </ThemedText>
           <View style={styles.optionsRow}>
             {SESSION_COUNT_OPTIONS.map((count) => (
-              <TouchableOpacity
+              <Pressable
                 key={count}
                 style={[
                   styles.optionButton,
@@ -244,7 +243,7 @@ export function CreatePackageForm({
                 >
                   {count}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -331,7 +330,7 @@ export function CreatePackageForm({
           </ThemedText>
           <View style={styles.optionsRow}>
             {VALIDITY_OPTIONS.map((option) => (
-              <TouchableOpacity
+              <Pressable
                 key={option.days}
                 style={[
                   styles.optionButton,
@@ -350,7 +349,7 @@ export function CreatePackageForm({
                 >
                   {option.label}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -364,7 +363,7 @@ export function CreatePackageForm({
             {FOCUS_OPTIONS.map((focus) => {
               const isSelected = selectedFocus.includes(focus);
               return (
-                <TouchableOpacity
+                <Pressable
                   key={focus}
                   style={[
                     styles.focusChip,
@@ -381,7 +380,7 @@ export function CreatePackageForm({
                   >
                     {focus}
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
@@ -394,15 +393,15 @@ export function CreatePackageForm({
       {/* Submit Buttons */}
       <View style={[styles.footer, { backgroundColor: palette.background }]}>
         {onCancel && (
-          <TouchableOpacity
+          <Pressable
             style={[styles.cancelButton, { borderColor: palette.border }]}
             onPress={onCancel}
             disabled={submitting}
           >
             <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         )}
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.submitButton,
             { backgroundColor: palette.tint },
@@ -412,16 +411,16 @@ export function CreatePackageForm({
           disabled={submitting}
         >
           {submitting ? (
-            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+            <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
             <>
-              <Ionicons name={isEditing ? 'save-outline' : 'add-circle-outline'} size={20} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.submitButtonText}>
+              <Ionicons name={isEditing ? 'save-outline' : 'add-circle-outline'} size={20} color={palette.onPrimary} />
+              <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>
                 {isEditing ? 'Save Changes' : 'Create Package'}
               </ThemedText>
             </>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -535,7 +534,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
   },
-  submitButtonText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  submitButtonText: { ...Typography.subheading },
   buttonDisabled: {
     opacity: 0.6,
   },

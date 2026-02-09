@@ -1,11 +1,10 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Colors, Radii, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export function TypingIndicator() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: palette.surface, borderColor: palette.border }]}>

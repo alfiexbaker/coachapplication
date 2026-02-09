@@ -25,8 +25,8 @@ import {
   MutedCoachesList,
 } from '@/components/notification';
 import { notificationService } from '@/services/notification-service';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import type {
@@ -39,8 +39,7 @@ import type {
 const logger = createLogger('NotificationPreferences');
 
 export default function NotificationPreferencesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [preferences, setPreferences] = useState<EnhancedNotificationPreferences | null>(null);

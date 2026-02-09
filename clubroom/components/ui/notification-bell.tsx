@@ -9,11 +9,11 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
-import { Colors, Radii , Typography, Spacing} from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Typography, Spacing } from '@/constants/theme';
 import { useNotificationCount } from '@/hooks/use-notifications';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
+import { useTheme } from '@/hooks/useTheme';
 
 interface NotificationBellProps {
   size?: number;
@@ -21,8 +21,7 @@ interface NotificationBellProps {
 }
 
 export function NotificationBell({ size = 24, color }: NotificationBellProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const unreadCount = useNotificationCount();
 

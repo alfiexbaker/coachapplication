@@ -16,12 +16,12 @@ import * as Haptics from 'expo-haptics';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityOverride } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('TimeOffSheet');
 
@@ -68,8 +68,7 @@ export function TimeOffSheet({
   existingOverride,
   onSaved,
 }: TimeOffSheetProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [mode, setMode] = useState<'single' | 'range'>('single');
   const [startDate, setStartDate] = useState<Date>(new Date());

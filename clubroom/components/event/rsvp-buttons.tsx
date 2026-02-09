@@ -5,9 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { RSVPStatus, EventAttendee, ClubEvent } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -19,8 +19,7 @@ interface RSVPButtonsProps {
 }
 
 export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RSVPButtonsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [loading, setLoading] = useState<RSVPStatus | null>(null);
   const [showGuestModal, setShowGuestModal] = useState(false);
@@ -132,7 +131,7 @@ export function RSVPButtons({ event, currentRSVP, onRSVP, disabled = false }: RS
     <View style={styles.container}>
       {/* Current RSVP status */}
       {currentRSVP && (
-        <View style={styles.currentStatus}>
+        <View style={[styles.currentStatus, { borderBottomColor: palette.border }]}>
           <ThemedText style={[styles.currentStatusLabel, { color: palette.muted }]}>
             Your response:
           </ThemedText>
@@ -308,7 +307,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
+    // borderBottomColor set inline for dynamic theming
   },
   currentStatusLabel: {
     fontSize: scaleFont(13),

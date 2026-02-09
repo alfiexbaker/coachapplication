@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { RevenueDataPoint, TrendDirection } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -42,8 +42,7 @@ export function RevenueChart({
   currencySymbol = '\u00A3',
   onPress,
 }: RevenueChartProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const maxAmount = Math.max(...data.map((d) => d.amount), 1);
   const barWidth = data.length > 0 ? (SCREEN_WIDTH - Spacing.lg * 4) / data.length - 4 : 30;

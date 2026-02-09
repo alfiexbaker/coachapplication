@@ -2,8 +2,8 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { Consent, ConsentType } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
 
@@ -21,8 +21,7 @@ interface ConsentItemProps {
 }
 
 function ConsentItem({ type, granted, compact, showLabel }: ConsentItemProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const iconName = consentService.getConsentIcon(type);
   const label = consentService.getConsentLabel(type);

@@ -7,10 +7,10 @@ import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate } from '@/constants/types';
 import type { SessionTemplate } from '@/constants/session-types';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('RecurringTemplateModal');
 
@@ -63,8 +63,7 @@ export function RecurringTemplateModal({
   onCheckLocationDrift,
   onUpdateBookingLocations,
 }: RecurringTemplateModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Multi-day selection (when adding new)
   const [selectedDays, setSelectedDays] = useState<number[]>([1]); // Default to Monday

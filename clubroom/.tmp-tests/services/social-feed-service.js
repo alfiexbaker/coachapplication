@@ -4,7 +4,9 @@ exports.socialFeedService = exports.clubFeedService = void 0;
 const result_1 = require("@/types/result");
 const mock_data_1 = require("@/constants/mock-data");
 const logger_1 = require("@/utils/logger");
+const event_bus_1 = require("@/services/event-bus");
 const notification_service_1 = require("./notification-service");
+// FeedFilter imported from @/constants/types (defined in club-types.ts)
 // Mock club member list (in production, this would come from the database)
 const MOCK_CLUB_MEMBERS = {
     club_bradwell: ['parent_1', 'parent_2', 'parent_3'],
@@ -375,6 +377,60 @@ class ClubFeedService {
             coachId: input.coachId,
         });
         return post;
+    }
+    /**
+     * Create a post from a coach's personal feed.
+     * Defaults feedType to PERSONAL. Emits COACH_POST_CREATED event.
+     */
+    createCoachPost(input) {
+        const body = input.body.trim();
+        if (!body && !input.imageUrl) {
+            return (0, result_1.err)((0, result_1.validationError)('Post must have content or an image'));
+        }
+        const feedType = input.feedType || 'PERSONAL';
+        // Resolve clubId: use provided or fall back to coach's first club
+        const clubs = (0, mock_data_1.getUserClubs)(input.coachId);
+        const clubId = input.clubId || clubs[0]?.id || '';
+        // Validate clubId is present when required by feed type
+        if ((feedType === 'CLUB' || feedType === 'BOTH') && !clubId) {
+            return (0, result_1.err)((0, result_1.validationError)('Club ID is required for CLUB or BOTH feed type'));
+        }
+        const audienceLabel = feedType === 'PERSONAL'
+            ? 'Personal Feed'
+            : feedType === 'BOTH'
+                ? 'Personal + Club'
+                : 'Club-wide';
+        const post = (0, mock_data_1.addClubFeedPost)({
+            clubId,
+            title: input.title || (input.postType === 'photo' ? 'Photo' : 'Update'),
+            body,
+            audience: 'club',
+            audienceLabel,
+            authorName: input.coachName,
+            authorId: input.coachId,
+            postAs: 'self',
+            postType: input.postType || 'general',
+            feedType,
+            imageUrl: input.imageUrl,
+            eventDate: input.eventDate,
+            eventLocation: input.eventLocation,
+        });
+        this.logger.info('coach_post_created', {
+            postId: post.id,
+            coachId: input.coachId,
+            postType: post.postType,
+            feedType,
+        });
+        // Emit typed event for cross-service consumption
+        (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.COACH_POST_CREATED, {
+            postId: post.id,
+            coachId: input.coachId,
+            coachName: input.coachName,
+            feedType,
+            postType: post.postType || 'general',
+            clubId: clubId || undefined,
+        });
+        return (0, result_1.ok)(post);
     }
 }
 exports.clubFeedService = new ClubFeedService();

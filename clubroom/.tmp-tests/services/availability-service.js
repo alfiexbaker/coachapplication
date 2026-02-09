@@ -21,6 +21,7 @@ const invite_hold_service_1 = require("./invite-hold-service");
 const session_template_service_1 = require("./session-template-service");
 const logger_1 = require("@/utils/logger");
 const format_1 = require("@/utils/format");
+const result_1 = require("@/types/result");
 const logger = (0, logger_1.createLogger)('AvailabilityService');
 const USE_MOCK = config_1.api.useMock;
 // Helper to load existing bookings from storage
@@ -184,9 +185,11 @@ async function loadTemplates() {
 async function saveTemplates(templates) {
     try {
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AVAILABILITY_TEMPLATES, templates);
+        return (0, result_1.ok)(undefined);
     }
     catch (error) {
         logger.error('Failed to save templates', error);
+        return (0, result_1.err)((0, result_1.storageError)(`Failed to save templates: ${String(error)}`));
     }
 }
 async function loadOverrides() {
@@ -203,9 +206,11 @@ async function loadOverrides() {
 async function saveOverrides(overrides) {
     try {
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.AVAILABILITY_OVERRIDES, overrides);
+        return (0, result_1.ok)(undefined);
     }
     catch (error) {
         logger.error('Failed to save overrides', error);
+        return (0, result_1.err)((0, result_1.storageError)(`Failed to save overrides: ${String(error)}`));
     }
 }
 exports.availabilityService = {
@@ -226,7 +231,7 @@ exports.availabilityService = {
     async saveTemplate(template) {
         const savedTemplate = {
             ...template,
-            id: template.id || `tmpl_${Date.now()}`,
+            id: template.id || api_client_1.apiClient.generateId('tmpl'),
         };
         if (USE_MOCK) {
             templatesCache = await loadTemplates();
@@ -292,7 +297,7 @@ exports.availabilityService = {
     async saveOverride(override) {
         const savedOverride = {
             ...override,
-            id: override.id || `ovr_${Date.now()}`,
+            id: override.id || api_client_1.apiClient.generateId('ovr'),
         };
         if (USE_MOCK) {
             overridesCache = await loadOverrides();
@@ -599,7 +604,7 @@ exports.availabilityService = {
      * from the override's date through repeatUntil, all sharing the same repeatGroupId.
      */
     async saveRepeatedOverride(override) {
-        const groupId = `rpg_${Date.now()}`;
+        const groupId = api_client_1.apiClient.generateId('rpg');
         const startDate = new Date(override.date + 'T00:00:00');
         const endDate = new Date(override.repeatUntil + 'T00:00:00');
         const results = [];
@@ -610,7 +615,7 @@ exports.availabilityService = {
             const saved = await this.saveOverride({
                 ...override,
                 date: dateStr,
-                id: `ovr_${Date.now()}_${index}`,
+                id: api_client_1.apiClient.generateId(`ovr_${index}`),
                 repeatGroupId: groupId,
                 repeatDayOfWeek: current.getDay(),
                 repeatUntil: override.repeatUntil,

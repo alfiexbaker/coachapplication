@@ -522,6 +522,75 @@ class CommunityGroupService {
         return breakdown;
     }
     /**
+     * Add a member directly to a group without invitation flow.
+     * Used by automated processes (e.g. squad group auto-sync).
+     */
+    async addMemberDirect(groupId, parentId, parentName, role = 'MEMBER') {
+        const allGroups = await this.getAllGroups();
+        const group = allGroups.find((g) => g.id === groupId);
+        if (!group) {
+            return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
+        }
+        // Already a member — no-op success
+        if (group.members.some((m) => m.parentId === parentId)) {
+            return (0, result_1.ok)(group);
+        }
+        // Check max members limit
+        if (group.maxMembers && group.members.length >= group.maxMembers) {
+            return (0, result_1.err)((0, result_1.validationError)('Group is full'));
+        }
+        const newMember = {
+            parentId,
+            parentName,
+            role,
+            joinedAt: new Date().toISOString(),
+        };
+        group.members.push(newMember);
+        group.updatedAt = new Date().toISOString();
+        this.inMemoryGroups = allGroups;
+        await this.persistGroups();
+        logger.info('member_added_direct', { groupId, parentId, role });
+        return (0, result_1.ok)(group);
+    }
+    /**
+     * Remove a member directly from a group (no permission checks).
+     * Used by automated processes (e.g. squad group auto-sync).
+     */
+    async removeMemberDirect(groupId, parentId) {
+        const allGroups = await this.getAllGroups();
+        const group = allGroups.find((g) => g.id === groupId);
+        if (!group) {
+            return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
+        }
+        const memberIndex = group.members.findIndex((m) => m.parentId === parentId);
+        if (memberIndex === -1) {
+            // Not a member — no-op success
+            return (0, result_1.ok)(undefined);
+        }
+        group.members.splice(memberIndex, 1);
+        group.updatedAt = new Date().toISOString();
+        this.inMemoryGroups = allGroups;
+        await this.persistGroups();
+        logger.info('member_removed_direct', { groupId, parentId });
+        return (0, result_1.ok)(undefined);
+    }
+    /**
+     * Delete a group entirely.
+     * Used when a squad is deleted — removes its associated group.
+     */
+    async deleteGroup(groupId) {
+        const allGroups = await this.getAllGroups();
+        const groupIndex = allGroups.findIndex((g) => g.id === groupId);
+        if (groupIndex === -1) {
+            return (0, result_1.err)((0, result_1.notFound)('Group', groupId));
+        }
+        allGroups.splice(groupIndex, 1);
+        this.inMemoryGroups = allGroups;
+        await this.persistGroups();
+        logger.info('group_deleted', { groupId });
+        return (0, result_1.ok)(undefined);
+    }
+    /**
      * Persist groups to storage
      */
     async persistGroups() {

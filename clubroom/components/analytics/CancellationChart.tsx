@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { CancellationStats, CancellationReason } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const REASON_LABELS: Record<CancellationReason, string> = {
   CLIENT_REQUEST: 'Client Request',
@@ -51,8 +51,7 @@ export function CancellationChart({
   onPress,
   currencySymbol = '\u00A3',
 }: CancellationChartProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getCancellationRateColor = (rate: number): string => {
     if (rate <= 5) return palette.success;
@@ -125,7 +124,7 @@ export function CancellationChart({
                     {REASON_LABELS[reason.reason]}
                   </ThemedText>
                 </View>
-                <View style={styles.reasonBarContainer}>
+                <View style={[styles.reasonBarContainer, { backgroundColor: palette.border }]}>
                   <View
                     style={[
                       styles.reasonBar,
@@ -233,7 +232,6 @@ const styles = StyleSheet.create({
   reasonBarContainer: {
     flex: 1,
     height: 8,
-    backgroundColor: Colors.light.border,
     borderRadius: Radii.xs,
     overflow: 'hidden',
   },

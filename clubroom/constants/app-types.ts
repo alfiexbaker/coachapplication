@@ -174,6 +174,15 @@ export interface Comment {
   content: string;
   likes: string[]; // User IDs who liked
   createdAt: string;
+  updatedAt?: string;
+
+  // Threading support
+  parentId?: string; // If set, this is a reply to another comment (1-level deep)
+  replyCount?: number; // Number of direct replies (top-level comments only)
+
+  // Soft-delete
+  isDeleted?: boolean;
+  deletedAt?: string;
 }
 
 // Reviews

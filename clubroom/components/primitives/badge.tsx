@@ -19,9 +19,9 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -78,8 +78,7 @@ export function Badge({
   size = 'md',
   icon,
 }: BadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const sizeConfig = SIZE_CONFIG[size];
 
   // Get tone color

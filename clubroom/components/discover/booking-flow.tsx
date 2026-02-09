@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
 import { CoachProfile } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import {
   formatFullDate,
   formatMonthDay,
@@ -161,8 +161,7 @@ const bookingSteps = [
 ];
 
 export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const availability = useMemo(() => buildAvailability(), []);
   const [selectedDayId, setSelectedDayId] = useState(availability[0]?.id);
   const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>(availability[0]?.slots[0]?.id);
@@ -375,7 +374,7 @@ export function BookingFlowPreview({ coach }: BookingFlowPreviewProps) {
             },
           ]}
           disabled={!selectedSlot}>
-          <ThemedText style={styles.ctaLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+          <ThemedText style={[styles.ctaLabel, { color: palette.onPrimary }]}>
             {selectedSlot ? 'Continue to payment' : 'Pick a slot to continue'}
           </ThemedText>
         </Pressable>

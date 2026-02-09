@@ -4,8 +4,8 @@ import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PackageCard } from './PackageCard';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { SessionPackage } from '@/constants/types';
 
 /**
@@ -53,8 +53,7 @@ export function PackageList({
   compact = false,
   filter,
 }: PackageListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Apply filter if provided
   const filteredPackages = filter ? packages.filter(filter) : packages;

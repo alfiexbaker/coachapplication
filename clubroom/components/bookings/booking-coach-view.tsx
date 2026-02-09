@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { BookingSummary } from '@/constants/types';
 
 interface BookingCoachViewProps {
@@ -25,8 +25,7 @@ function BookingCoachViewInner({
   onRefund,
   onCancelBooking,
 }: BookingCoachViewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (booking.status === 'Completed') {
     const objectives = (booking as BookingSummary & { objectives?: string[] }).objectives || [];
@@ -50,9 +49,7 @@ function BookingCoachViewInner({
         >
           <Ionicons name="create" size={20} color={palette.onPrimary} />
           <ThemedText
-            style={styles.primaryButtonText}
-            lightColor={Colors.light.onPrimary}
-            darkColor={Colors.dark.onPrimary}
+            style={[styles.primaryButtonText, { color: palette.onPrimary }]}
           >
             Add Session Feedback
           </ThemedText>
@@ -73,9 +70,7 @@ function BookingCoachViewInner({
       >
         <Ionicons name="chatbubble" size={20} color={palette.onPrimary} />
         <ThemedText
-          style={styles.primaryButtonText}
-          lightColor={Colors.light.onPrimary}
-          darkColor={Colors.dark.onPrimary}
+          style={[styles.primaryButtonText, { color: palette.onPrimary }]}
         >
           Message Client
         </ThemedText>

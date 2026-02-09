@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SelectionTile } from '@/components/primitives/selection-tile';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
 import type { User } from '@/constants/app-types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ChildSelectionGridProps {
   childrenOptions: User[];
@@ -14,8 +14,7 @@ interface ChildSelectionGridProps {
 }
 
 export function ChildSelectionGrid({ childrenOptions, selectedChildIds, onToggle }: ChildSelectionGridProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>

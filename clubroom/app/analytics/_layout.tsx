@@ -1,7 +1,6 @@
 import { Stack } from 'expo-router';
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Analytics Stack Layout
@@ -10,8 +9,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
  * All screens use headerShown: false as they have custom headers.
  */
 export default function AnalyticsLayout() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Stack

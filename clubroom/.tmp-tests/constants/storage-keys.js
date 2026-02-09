@@ -157,6 +157,10 @@ exports.STORAGE_KEYS = {
     FOLLOW_REQUESTS: 'follow_requests',
     /** User's favorite coaches/content */
     FAVOURITES: 'favourites',
+    /** Coach personal feed posts (keyed by coachId) */
+    COACH_FEED_POSTS: 'clubroom.coach_feed_posts',
+    /** Threaded comments on feed posts */
+    COMMENTS: 'clubroom.comments',
     // ============================================================================
     // FAMILY DOMAIN
     // ============================================================================
@@ -181,6 +185,8 @@ exports.STORAGE_KEYS = {
     CLUB_SQUADS: 'club_squads',
     /** Squad membership data */
     SQUAD_MEMBERS: 'squad_members',
+    /** Squad-to-group mapping (squadId -> groupId) */
+    SQUAD_GROUP_MAP: 'clubroom.squad_group_map',
     /** Academy/club organizations */
     ACADEMIES: 'academies',
     /** Academy membership records */
@@ -213,6 +219,10 @@ exports.STORAGE_KEYS = {
     SQUAD_SESSION_INVITES: 'squad_session_invites',
     /** History of squad invites */
     SQUAD_INVITE_HISTORY: 'squad_invite_history',
+    /** Invite RSVP responses (Going/Maybe/Can't Go) */
+    INVITE_RSVPS: 'clubroom.invite_rsvps',
+    /** Shareable invite deep links */
+    INVITE_SHARE_LINKS: 'clubroom.invite_share_links',
     /** Pending club invites for coaches */
     PENDING_CLUB_INVITES: 'pending_club_invites',
     // ============================================================================
@@ -290,6 +300,8 @@ exports.STORAGE_KEYS = {
     // ============================================================================
     /** Session sharing preferences (per session, key is suffixed with _sessionId) */
     SESSION_SHARING: 'session_sharing',
+    /** Session attendance records (per session, key is suffixed with _sessionId) */
+    SESSION_ATTENDANCE: 'session_attendance',
 };
 /**
  * Known storage key conflicts/duplicates.

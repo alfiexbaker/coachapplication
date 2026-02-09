@@ -9,13 +9,20 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { BadgeSectionGrid, BadgeStats } from '@/components/badges/badge-grid';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { badgeService, AllBadgeWithProgress } from '@/services/badge-service';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('BadgesScreen');
+
+// Decorative: badge tier colors (gold/silver/bronze medals)
+const BADGE_TIER_COLORS = {
+  gold: '#FFD700',
+  silver: '#C0C0C0',
+  bronze: '#CD7F32',
+} as const;
 
 type FilterTab = 'all' | 'unlocked' | 'locked' | 'in-progress';
 
@@ -39,8 +46,7 @@ const SECTION_ORDER = [
 ];
 
 export default function AllBadgesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [allBadges, setAllBadges] = useState<AllBadgeWithProgress[]>([]);
@@ -272,19 +278,19 @@ export default function AllBadgesScreen() {
         </ThemedText>
         <View style={styles.legendRow}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#CD7F32' }]} />
+            <View style={[styles.legendDot, { backgroundColor: BADGE_TIER_COLORS.bronze }]} />
             <ThemedText style={[styles.legendText, { color: palette.muted }]}>
               Bronze (10 pts)
             </ThemedText>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#C0C0C0' }]} />
+            <View style={[styles.legendDot, { backgroundColor: BADGE_TIER_COLORS.silver }]} />
             <ThemedText style={[styles.legendText, { color: palette.muted }]}>
               Silver (25 pts)
             </ThemedText>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#FFD700' }]} />
+            <View style={[styles.legendDot, { backgroundColor: BADGE_TIER_COLORS.gold }]} />
             <ThemedText style={[styles.legendText, { color: palette.muted }]}>
               Gold (50 pts)
             </ThemedText>

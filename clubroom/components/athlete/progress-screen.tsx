@@ -9,8 +9,7 @@ import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimat
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { getSessionsForAthlete, getUserById, formatDate } from '@/constants/mock-data';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
@@ -20,14 +19,14 @@ import { SkillRadar } from '@/components/analytics/skill-radar';
 import { SkillsSummary, SkillCategoryGroup } from '@/components/analytics/skill-progress-bar';
 import { EmptyMetrics } from '@/components/analytics/enhanced-stats';
 import { GoalProgress, GoalsSummary } from '@/components/analytics/goal-progress';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('AthleteProgressScreen');
 
 type TabType = 'progress' | 'badges' | 'goals';
 
 export function AthleteProgressScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('progress');
@@ -85,16 +84,16 @@ export function AthleteProgressScreen() {
   // Calculate level badge based on total sessions
   const getLevel = () => {
     const count = sessions.length;
-    if (count >= 20) return { name: 'Gold', icon: 'trophy' as const, color: '#FFD700' };
-    if (count >= 10) return { name: 'Silver', icon: 'medal' as const, color: '#C0C0C0' };
-    return { name: 'Bronze', icon: 'ribbon' as const, color: '#CD7F32' };
+    if (count >= 20) return { name: 'Gold', icon: 'trophy' as const, color: '#FFD700' }; // Decorative: gold tier
+    if (count >= 10) return { name: 'Silver', icon: 'medal' as const, color: '#C0C0C0' }; // Decorative: silver tier
+    return { name: 'Bronze', icon: 'ribbon' as const, color: '#CD7F32' }; // Decorative: bronze tier
   };
 
   const trend = getProgressTrend();
   const level = getLevel();
 
   const trendText = trend === 'improving' ? 'Improving' : trend === 'declining' ? 'Needs Focus' : 'Steady';
-  const trendColor = trend === 'improving' ? Colors.light.success : trend === 'declining' ? Colors.light.error : palette.muted;
+  const trendColor = trend === 'improving' ? palette.success : trend === 'declining' ? palette.error : palette.muted;
   const trendIcon = trend === 'improving' ? 'trending-up' : trend === 'declining' ? 'trending-down' : 'pulse';
 
   // Sort sessions by date (newest first)
@@ -181,7 +180,7 @@ export function AthleteProgressScreen() {
                 <ThemedText type="defaultSemiBold" style={styles.quickStatValue}>
                   {avgRating}
                 </ThemedText>
-                <Ionicons name="star" size={14} color={Colors.light.warning} />
+                <Ionicons name="star" size={14} color={palette.warning} />
               </View>
               <ThemedText style={[styles.quickStatLabel, { color: palette.muted }]}>
                 Avg Rating
@@ -320,7 +319,7 @@ export function AthleteProgressScreen() {
                               </View>
                               <View style={styles.ratingBadge}>
                                 <ThemedText style={styles.ratingValue}>{session.performanceRating}</ThemedText>
-                                <Ionicons name="star" size={14} color={Colors.light.warning} />
+                                <Ionicons name="star" size={14} color={palette.warning} />
                               </View>
                             </View>
 
@@ -387,9 +386,9 @@ export function AthleteProgressScreen() {
               {/* Badge Categories */}
               <View style={styles.badgeCategoryRow}>
                 {[
-                  { label: 'Leadership', count: awards.filter(a => a.badgeCategory === 'leadership').length, color: '#8B5CF6' },
-                  { label: 'Technique', count: awards.filter(a => a.badgeCategory === 'technique').length, color: '#10B981' },
-                  { label: 'Mindset', count: awards.filter(a => a.badgeCategory === 'mindset').length, color: '#F59E0B' },
+                  { label: 'Leadership', count: awards.filter(a => a.badgeCategory === 'leadership').length, color: '#8B5CF6' }, // Decorative: leadership category
+                  { label: 'Technique', count: awards.filter(a => a.badgeCategory === 'technique').length, color: '#10B981' }, // Decorative: technique category
+                  { label: 'Mindset', count: awards.filter(a => a.badgeCategory === 'mindset').length, color: '#F59E0B' }, // Decorative: mindset category
                 ].map((cat) => (
                   <View key={cat.label} style={styles.badgeCategoryItem}>
                     <View style={[styles.badgeCategoryDot, { backgroundColor: cat.color }]} />
@@ -424,7 +423,7 @@ export function AthleteProgressScreen() {
                         />
                         {award.badgeTier && (
                           <View style={[styles.badgeTierIndicator, { backgroundColor: getTierColor(award.badgeTier) }]}>
-                            <ThemedText style={styles.badgeTierText}>{award.badgeTier}</ThemedText>
+                            <ThemedText style={[styles.badgeTierText, { color: palette.onPrimary }]}>{award.badgeTier}</ThemedText>
                           </View>
                         )}
                       </View>
@@ -613,16 +612,19 @@ function getMockGoals(athleteId: string): Goal[] {
   ];
 }
 
+// Decorative: categorical badge colors for distinct visual identification
+const BADGE_CATEGORY_COLORS: Record<string, string> = {
+  leadership: '#8B5CF6',
+  consistency: '#3B82F6',
+  technique: '#10B981',
+  mindset: '#F59E0B',
+  teamwork: '#EC4899',
+  resilience: '#EF4444',
+};
+const BADGE_DEFAULT_COLOR = '#6366F1'; // Decorative: fallback badge color
+
 function getBadgeColor(category?: string): string {
-  const colors: Record<string, string> = {
-    leadership: '#8B5CF6',
-    consistency: '#3B82F6',
-    technique: '#10B981',
-    mindset: '#F59E0B',
-    teamwork: '#EC4899',
-    resilience: '#EF4444',
-  };
-  return colors[category || ''] || '#6366F1';
+  return BADGE_CATEGORY_COLORS[category || ''] || BADGE_DEFAULT_COLOR;
 }
 
 function getBadgeIcon(category?: string): keyof typeof Ionicons.glyphMap {
@@ -637,10 +639,13 @@ function getBadgeIcon(category?: string): keyof typeof Ionicons.glyphMap {
   return icons[category || ''] || 'ribbon';
 }
 
+// Decorative: metallic tier colors (gold/silver/bronze)
+const TIER_COLORS = { GOLD: '#FFD700', SILVER: '#C0C0C0', BRONZE: '#CD7F32' };
+
 function getTierColor(tier?: number): string {
-  if (tier === 3) return '#FFD700';
-  if (tier === 2) return '#C0C0C0';
-  return '#CD7F32';
+  if (tier === 3) return TIER_COLORS.GOLD;
+  if (tier === 2) return TIER_COLORS.SILVER;
+  return TIER_COLORS.BRONZE;
 }
 
 const styles = StyleSheet.create({
@@ -893,7 +898,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeTierText: { ...Typography.micro, color: Colors.light.onPrimary },
+  badgeTierText: { ...Typography.micro },
   badgeContent: {
     flex: 1,
     gap: Spacing.xxs,

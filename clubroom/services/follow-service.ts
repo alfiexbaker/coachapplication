@@ -25,6 +25,8 @@ import type { Follow, FollowRequest, NotificationItem } from '@/constants/types'
 import { notificationService } from './notification-service';
 import { coachService } from './coach-service';
 import { createLogger } from '@/utils/logger';
+import type { Result, ServiceError } from '@/types/result';
+import { ok, err, storageError } from '@/types/result';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -85,11 +87,13 @@ async function loadFollows(): Promise<Follow[]> {
   return [...MOCK_FOLLOWS];
 }
 
-async function saveFollows(follows: Follow[]): Promise<void> {
+async function saveFollows(follows: Follow[]): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.FOLLOWS, follows);
+    return ok(undefined);
   } catch (error) {
     logger.error('Failed to save follows', error);
+    return err(storageError(`Failed to save follows: ${String(error)}`));
   }
 }
 
@@ -105,11 +109,13 @@ async function loadRequests(): Promise<FollowRequest[]> {
   return [];
 }
 
-async function saveRequests(requests: FollowRequest[]): Promise<void> {
+async function saveRequests(requests: FollowRequest[]): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.FOLLOW_REQUESTS, requests);
+    return ok(undefined);
   } catch (error) {
     logger.error('Failed to save requests', error);
+    return err(storageError(`Failed to save follow requests: ${String(error)}`));
   }
 }
 
@@ -145,7 +151,7 @@ export const followService = {
     }
 
     const newFollow: Follow = {
-      id: `follow_${Date.now()}`,
+      id: apiClient.generateId('follow'),
       followerId: input.followerId,
       followerName: input.followerName,
       followerType: input.followerType,
@@ -164,7 +170,7 @@ export const followService = {
 
     // Notify the followed user
     const notification: NotificationItem = {
-      id: `notif_follow_${Date.now()}`,
+      id: apiClient.generateId('notif_follow'),
       type: 'badge', // Using badge type for follow notifications
       title: 'New Follower',
       body: `${input.followerName} started following you`,
@@ -333,7 +339,7 @@ export const followService = {
     }
 
     const request: FollowRequest = {
-      id: `request_${Date.now()}`,
+      id: apiClient.generateId('request'),
       requesterId: input.requesterId,
       requesterName: input.requesterName,
       requesterAvatar: input.requesterAvatar,
@@ -349,7 +355,7 @@ export const followService = {
 
     // Notify target user
     await notificationService.create({
-      id: `notif_request_${Date.now()}`,
+      id: apiClient.generateId('notif_request'),
       type: 'badge',
       title: 'Follow Request',
       body: `${input.requesterName} wants to follow you`,
@@ -403,7 +409,7 @@ export const followService = {
 
       // Notify requester
       await notificationService.create({
-        id: `notif_accepted_${Date.now()}`,
+        id: apiClient.generateId('notif_accepted'),
         type: 'badge',
         title: 'Follow Request Accepted',
         body: `${request.targetName} accepted your follow request`,

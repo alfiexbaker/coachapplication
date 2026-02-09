@@ -20,8 +20,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { CounterOfferCard } from '@/components/negotiate/CounterOfferCard';
 import { NegotiationTimeline } from '@/components/negotiate/NegotiationTimeline';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { counterOfferService } from '@/services/counter-offer-service';
 import { createLogger } from '@/utils/logger';
@@ -31,8 +31,7 @@ const logger = createLogger('NegotiateScreen');
 
 export default function NegotiateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const currentUserId = currentUser?.id || '';
@@ -213,7 +212,7 @@ export default function NegotiateScreen() {
             onPress={loadData}
             style={[styles.retryButton, { backgroundColor: palette.tint }]}
           >
-            <ThemedText style={styles.retryText}>Try Again</ThemedText>
+            <ThemedText style={[styles.retryText, { color: palette.onPrimary }]}>Try Again</ThemedText>
           </Clickable>
         </View>
       </SafeAreaView>
@@ -245,8 +244,8 @@ export default function NegotiateScreen() {
           </ThemedText>
           <Button onPress={handleNewProposal} style={styles.proposalButton}>
             <View style={styles.proposalButtonContent}>
-              <Ionicons name="time-outline" size={18} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.proposalButtonText}>
+              <Ionicons name="time-outline" size={18} color={palette.onPrimary} />
+              <ThemedText style={[styles.proposalButtonText, { color: palette.onPrimary }]}>
                 Propose New Time
               </ThemedText>
             </View>
@@ -332,8 +331,8 @@ export default function NegotiateScreen() {
           <View style={styles.actionSection}>
             <Button onPress={handleNewProposal}>
               <View style={styles.proposalButtonContent}>
-                <Ionicons name="swap-horizontal" size={18} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.proposalButtonText}>
+                <Ionicons name="swap-horizontal" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.proposalButtonText, { color: palette.onPrimary }]}>
                   Propose Different Time
                 </ThemedText>
               </View>
@@ -385,7 +384,7 @@ export default function NegotiateScreen() {
                 onPress={handleRejectConfirm}
                 style={[styles.modalConfirmButton, { backgroundColor: palette.error }]}
               >
-                <ThemedText style={styles.modalConfirmText}>Decline</ThemedText>
+                <ThemedText style={[styles.modalConfirmText, { color: palette.onPrimary }]}>Decline</ThemedText>
               </Clickable>
             </View>
           </Pressable>
@@ -435,7 +434,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
   },
   retryText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   emptyContainer: {
@@ -461,7 +459,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   proposalButtonText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   headerButton: {
@@ -540,7 +537,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   modalConfirmText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

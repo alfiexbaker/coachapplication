@@ -12,8 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Chip } from '@/components/primitives/chip';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type {
   CoachSearchFilters,
   FootballObjective,
@@ -117,8 +117,7 @@ export function FilterBar({
   totalResults,
   activeFilterCount,
 }: FilterBarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const scrollRef = useRef<ScrollView>(null);
 
   const handleQuickFilterToggle = (quickFilter: QuickFilter) => {
@@ -182,7 +181,7 @@ export function FilterBar({
           </ThemedText>
           {activeFilterCount > 0 && (
             <View style={[styles.badge, { backgroundColor: palette.tint }]}>
-              <ThemedText style={styles.badgeText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+              <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>
                 {activeFilterCount}
               </ThemedText>
             </View>

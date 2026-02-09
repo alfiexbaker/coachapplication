@@ -2,8 +2,8 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii , Typography, Spacing, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii , Typography, Spacing, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface WaitlistPositionProps {
   /** Position in the waitlist (1 = first in line) */
@@ -25,8 +25,7 @@ export function WaitlistPosition({
   showOrdinal = false,
   compact = false,
 }: WaitlistPositionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Determine color based on position
   const getPositionColor = () => {
@@ -94,7 +93,7 @@ export function WaitlistPosition({
 
       {position === 1 && (
         <View style={[styles.nextBadge, { backgroundColor: color }]}>
-          <ThemedText style={styles.nextBadgeText}>Next</ThemedText>
+          <ThemedText style={[styles.nextBadgeText, { color: palette.onPrimary }]}>Next</ThemedText>
         </View>
       )}
     </View>
@@ -136,7 +135,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.micro,
     borderRadius: Radii.sm,
   },
-  nextBadgeText: { ...Typography.micro, color: Colors.light.onPrimary,
+  nextBadgeText: { ...Typography.micro, /* color set inline for dynamic theming */
     textTransform: 'uppercase',
     letterSpacing: 0.5 },
   compactContainer: {

@@ -15,6 +15,7 @@ import { api } from '@/constants/config';
 import type { ClubSquad, SquadMember } from '@/constants/types';
 import { clubSquads } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
+import { emitTyped, ServiceEvents } from './event-bus';
 
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 
@@ -281,6 +282,14 @@ export const squadService = {
       custom.push(newSquad);
       await saveCustomSquads(custom);
       logger.info('Squad created', { squadId: newSquad.id, name: newSquad.name });
+
+      emitTyped(ServiceEvents.SQUAD_CREATED, {
+        squadId: newSquad.id,
+        clubId: newSquad.clubId,
+        squadName: newSquad.name,
+        createdBy: newSquad.primaryCoach,
+      });
+
       return newSquad;
     }
 
@@ -289,7 +298,16 @@ export const squadService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newSquad),
     });
-    return response.json();
+    const created: ClubSquad = await response.json();
+
+    emitTyped(ServiceEvents.SQUAD_CREATED, {
+      squadId: created.id,
+      clubId: created.clubId,
+      squadName: created.name,
+      createdBy: created.primaryCoach,
+    });
+
+    return created;
   },
 
   /**

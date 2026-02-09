@@ -28,8 +28,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { availabilityService } from '@/services/availability-service';
 import type { AvailabilityTemplate, AvailabilityOverride, AvailabilitySlot } from '@/constants/types';
@@ -56,8 +56,7 @@ interface CalendarDay {
 }
 
 export default function AvailabilityCalendarScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());

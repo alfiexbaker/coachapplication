@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -8,17 +8,25 @@ import { PageContainer } from '@/components/primitives/page-container';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { getUserById, formatDate } from '@/constants/mock-data';
 import { badgeService } from '@/services/badge-service';
 import { TierNames, CategoryInfo, ProgressionLevel } from '@/constants/progression';
 import type { BadgeAward, BadgeCategory } from '@/constants/types';
 
+// Decorative: badge tier colors (gold/silver/bronze medals)
+const BADGE_TIER_COLORS = {
+  gold: '#FFD700',
+  silver: '#C0C0C0',
+  bronze: '#CD7F32',
+  // Decorative: amber fallback for badges without a tier
+  default: '#F59E0B',
+} as const;
+
 export default function ChildBadgesScreen() {
   const { childId, highlightBadge } = useLocalSearchParams<{ childId: string; highlightBadge?: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [awards, setAwards] = useState<BadgeAward[]>([]);
   const [progressionData, setProgressionData] = useState<{
@@ -66,10 +74,10 @@ export default function ChildBadgesScreen() {
 
   const getTierColor = (tier?: 1 | 2 | 3) => {
     switch (tier) {
-      case 3: return '#FFD700'; // Gold
-      case 2: return '#C0C0C0'; // Silver
-      case 1: return '#CD7F32'; // Bronze
-      default: return '#F59E0B';
+      case 3: return BADGE_TIER_COLORS.gold;
+      case 2: return BADGE_TIER_COLORS.silver;
+      case 1: return BADGE_TIER_COLORS.bronze;
+      default: return BADGE_TIER_COLORS.default;
     }
   };
 
@@ -81,8 +89,7 @@ export default function ChildBadgesScreen() {
       technique: 'football',
       mindset: 'bulb',
       teamwork: 'hand-left',
-      resilience: 'fitness',
-    };
+      resilience: 'fitness' };
     return icons[category];
   };
 
@@ -104,9 +111,9 @@ export default function ChildBadgesScreen() {
     <PageContainer gap={Spacing.md}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={palette.foreground} />
-        </TouchableOpacity>
+        </Pressable>
         <View style={styles.headerContent}>
           <ThemedText type="title" style={styles.headerTitle}>
             {child.name}&apos;s Badges
@@ -151,8 +158,7 @@ export default function ChildBadgesScreen() {
                       styles.progressFill,
                       {
                         backgroundColor: palette.tint,
-                        width: `${progressionData.progressPercent}%`,
-                      },
+                        width: `${progressionData.progressPercent}%` },
                     ]}
                   />
                 </View>
@@ -203,7 +209,7 @@ export default function ChildBadgesScreen() {
                       </ThemedText>
                       {isRecent(award.awardedAt) && (
                         <View style={[styles.recentPill, { backgroundColor: palette.warning }]}>
-                          <ThemedText style={styles.recentPillText}>Recent</ThemedText>
+                          <ThemedText style={[styles.recentPillText, { color: palette.onPrimary }]}>Recent</ThemedText>
                         </View>
                       )}
                     </View>
@@ -278,7 +284,7 @@ export default function ChildBadgesScreen() {
                     style={[styles.shareButton, { backgroundColor: palette.tint }]}
                   >
                     <Ionicons name="share-social" size={16} color={palette.onPrimary} />
-                    <ThemedText style={styles.shareButtonText}>Share to Feed</ThemedText>
+                    <ThemedText style={[styles.shareButtonText, { color: palette.onPrimary }]}>Share to Feed</ThemedText>
                   </Clickable>
                 )}
                 {award.shared && (
@@ -302,222 +308,168 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   backButton: {
-    padding: Spacing.xs,
-  },
+    padding: Spacing.xs },
   headerContent: {
     flex: 1,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   headerTitle: {
-    ...Typography.title,
-  },
+    ...Typography.title },
   headerSubtitle: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   levelCard: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   levelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   levelBadge: {
     width: 56,
     height: 56,
     borderRadius: Radii['2xl'],
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   levelInfo: {
     flex: 1,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   levelName: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   levelPoints: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   progressSection: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   progressLabel: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   progressValue: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   progressBar: {
     height: 8,
     borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   progressFill: {
     height: '100%',
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   emptyCard: {
-    padding: Spacing.xl,
-  },
+    padding: Spacing.xl },
   emptyContent: {
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   emptyTitle: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   emptyText: {
     ...Typography.bodySmall,
     textAlign: 'center',
-    maxWidth: 280,
-  },
+    maxWidth: 280 },
   badgeList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   badgeCard: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   badgeHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   badgeIcon: {
     width: 48,
     height: 48,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   badgeInfo: {
     flex: 1,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   badgeTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
+    flexWrap: 'wrap' },
   badgeLabel: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   recentPill: {
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   recentPillText: {
-    color: Colors.light.onPrimary,
-    ...Typography.micro,
-  },
+    ...Typography.micro },
   badgeMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
+    flexWrap: 'wrap' },
   tierPill: {
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   tierText: {
-    ...Typography.micro,
-  },
+    ...Typography.micro },
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   categoryText: {
-    ...Typography.micro,
-  },
+    ...Typography.micro },
   pointsText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   reasonSection: {
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   reasonLabel: {
     ...Typography.caption,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   reasonText: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   noteSection: {
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   noteLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   noteLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   noteText: {
     ...Typography.bodySmall,
-    fontStyle: 'italic',
-  },
+    fontStyle: 'italic' },
   badgeFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   coachInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   coachText: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   dateText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   shareButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   sharedIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   sharedText: {
-    ...Typography.smallSemiBold,
-  },
-});
+    ...Typography.smallSemiBold } });

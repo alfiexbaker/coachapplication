@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { DayAvailability, SlotInstance, ServiceType } from '@/constants/booking-types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AvailabilityPickerProps {
   availability: DayAvailability[];
@@ -24,8 +24,7 @@ export function AvailabilityPicker({
   onSelectDay,
   onSelectSlot,
 }: AvailabilityPickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const selectedDay = availability.find((entry) => entry.id === selectedDayId);
 
   return (
@@ -88,8 +87,7 @@ export function AvailabilityPicker({
 }
 
 function SlotRow({ slot, selected, onPress }: { slot: SlotInstance; selected: boolean; onPress: () => void }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const timeString = slot.start.toLocaleTimeString('en-GB', {
     hour: 'numeric',
     minute: '2-digit',

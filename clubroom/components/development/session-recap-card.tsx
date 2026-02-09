@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
 /* ---------- Types ---------- */
 
@@ -53,7 +53,7 @@ const starStyles = StyleSheet.create({
   row: { flexDirection: 'row', gap: Spacing.micro },
 });
 
-type Palette = (typeof Colors)['light'];
+type Palette = ThemeColors;
 
 /* ---------- Component ---------- */
 
@@ -62,8 +62,7 @@ export function SessionRecapCard({
   onShareWithFamily,
   onSave,
 }: SessionRecapCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.card}>

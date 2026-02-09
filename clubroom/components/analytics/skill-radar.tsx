@@ -5,23 +5,23 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillProgress } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const RADAR_SIZE = Math.min(SCREEN_WIDTH - Spacing.lg * 4, 260);
 const CENTER = RADAR_SIZE / 2;
 const RADIUS = RADAR_SIZE / 2 - 45;
 
-// Skill level color scheme
+// Decorative: skill level categorical colors (not themeable)
 const SKILL_COLORS = {
-  beginner: '#F59E0B',
-  developing: '#3B82F6',
-  proficient: '#10B981',
-  advanced: '#8B5CF6',
-  expert: '#EC4899',
-};
+  beginner: '#F59E0B',   // Amber
+  developing: '#3B82F6', // Blue
+  proficient: '#10B981', // Emerald
+  advanced: '#8B5CF6',   // Violet
+  expert: '#EC4899',     // Pink
+} as const;
 
 const getSkillColor = (level: number) => {
   if (level < 20) return SKILL_COLORS.beginner;
@@ -56,8 +56,7 @@ export function SkillRadar({
   comparisonLabel = 'Average',
   showDetailedList = true,
 }: SkillRadarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [selectedSkill, setSelectedSkill] = useState<SkillProgress | null>(null);
   const [viewMode, setViewMode] = useState<'radar' | 'list'>('radar');
 
@@ -290,8 +289,13 @@ export function SkillRadar({
                         width: isSelected ? 16 : 12,
                         height: isSelected ? 16 : 12,
                         backgroundColor: skillColor,
-                        borderColor: Colors.light.surface,
+                        borderColor: palette.surface,
                         borderWidth: 2,
+                        shadowColor: palette.text,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 3,
+                        elevation: 2,
                       },
                     ]}
                   />
@@ -435,7 +439,7 @@ export function SkillRadar({
       )}
 
       {/* Level Legend */}
-      <View style={styles.levelLegend}>
+      <View style={[styles.levelLegend, { borderTopColor: palette.border }]}>
         <ThemedText style={[styles.levelLegendTitle, { color: palette.muted }]}>Skill Levels:</ThemedText>
         <View style={styles.levelLegendItems}>
           {[
@@ -550,11 +554,6 @@ const styles = StyleSheet.create({
   dataPoint: {
     position: 'absolute',
     borderRadius: Radii.pill,
-    shadowColor: Colors.light.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   comparisonPoint: {
     position: 'absolute',
@@ -687,7 +686,6 @@ const styles = StyleSheet.create({
   levelLegend: {
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
     gap: Spacing.xs,
   },
   levelLegendTitle: { ...Typography.micro },

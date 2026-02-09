@@ -24,8 +24,8 @@ import { DateTimeField } from '@/components/ui/primitives';
 import { SquadMemberSelect } from '@/components/squad/SquadMemberSelect';
 import { BulkInviteButton } from '@/components/squad/BulkInviteButton';
 import { InviteResultCard } from '@/components/squad/InviteResultCard';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { inviteService as squadBulkInviteService } from '@/services/invite';
 import { squadService } from '@/services/squad-service';
@@ -35,8 +35,7 @@ import type {
   TimeSlot,
   BulkInviteResult,
   SquadSessionInvite,
-  SquadInviteHistoryEntry,
-} from '@/constants/types';
+  SquadInviteHistoryEntry } from '@/constants/types';
 
 const logger = createLogger('SquadInviteScreen');
 
@@ -46,8 +45,7 @@ const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping'
 type ViewMode = 'form' | 'sending' | 'result';
 
 export default function SquadInviteScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { id: squadId } = useLocalSearchParams<{ id: string }>();
 
@@ -123,8 +121,7 @@ export default function SquadInviteScreen() {
       date: slotDate,
       startTime: slotStartTime,
       endTime: slotEndTime,
-      location: slotLocation || undefined,
-    };
+      location: slotLocation || undefined };
     setProposedSlots((prev) => [...prev, newSlot]);
     setSlotDate('');
     setSlotStartTime('');
@@ -172,8 +169,7 @@ export default function SquadInviteScreen() {
         focus,
         notes: notes || undefined,
         priceUsd: price ? parseFloat(price) : undefined,
-        expiresInDays: 7,
-      });
+        expiresInDays: 7 });
 
       if (!result.success) {
         logger.error('Failed to send bulk invites:', result.error);
@@ -332,12 +328,11 @@ export default function SquadInviteScreen() {
                     styles.optionChip,
                     {
                       backgroundColor: sessionType === type ? palette.tint : palette.surface,
-                      borderColor: sessionType === type ? palette.tint : palette.border,
-                    },
+                      borderColor: sessionType === type ? palette.tint : palette.border },
                   ]}
                 >
                   <ThemedText
-                    style={{ color: sessionType === type ? Colors.light.onPrimary : palette.text, ...Typography.caption }}
+                    style={{ color: sessionType === type ? palette.onPrimary : palette.text, ...Typography.caption }}
                   >
                     {type}
                   </ThemedText>
@@ -357,11 +352,10 @@ export default function SquadInviteScreen() {
                     styles.optionChip,
                     {
                       backgroundColor: focus === f ? palette.tint : palette.surface,
-                      borderColor: focus === f ? palette.tint : palette.border,
-                    },
+                      borderColor: focus === f ? palette.tint : palette.border },
                   ]}
                 >
-                  <ThemedText style={{ color: focus === f ? Colors.light.onPrimary : palette.text, ...Typography.caption }}>
+                  <ThemedText style={{ color: focus === f ? palette.onPrimary : palette.text, ...Typography.caption }}>
                     {f}
                   </ThemedText>
                 </Clickable>
@@ -416,7 +410,7 @@ export default function SquadInviteScreen() {
                 onPress={addTimeSlot}
                 style={[styles.addButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
+                <Ionicons name="add" size={20} color={palette.onPrimary} />
               </Clickable>
             </View>
           </SurfaceCard>
@@ -433,8 +427,7 @@ export default function SquadInviteScreen() {
                       {new Date(slot.date).toLocaleDateString('en-GB', {
                         weekday: 'short',
                         day: 'numeric',
-                        month: 'short',
-                      })}
+                        month: 'short' })}
                     </ThemedText>
                     <ThemedText style={{ color: palette.muted, ...Typography.caption }}>
                       {slot.startTime} - {slot.endTime}
@@ -483,33 +476,28 @@ export default function SquadInviteScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   errorContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.xl,
-  },
+    padding: Spacing.xl },
   backButton: {
     marginTop: Spacing.lg,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   squadBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -517,109 +505,85 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   squadBannerIcon: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   squadBannerInfo: {
     flex: 1,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   squadBannerMeta: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   content: {
     padding: Spacing.lg,
     paddingTop: 0,
-    paddingBottom: Spacing.xl,
-  },
+    paddingBottom: Spacing.xl },
   section: {
     marginBottom: Spacing.lg,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionTitle: {
     ...Typography.body,
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   historyCard: {
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
     marginRight: Spacing.sm,
     minWidth: 160,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   historyMeta: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   historyDate: {
-    ...Typography.micro,
-  },
+    ...Typography.micro },
   formRow: {
     gap: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   formLabel: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   input: {
     height: 42,
     borderWidth: 1,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   optionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   optionChip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   slotFormCard: {
     padding: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   slotFormRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   slotInput: {
-    flex: 1,
-  },
+    flex: 1 },
   addButton: {
     width: 42,
     height: 42,
     borderRadius: Radii.md,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   slotsList: {
     gap: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   slotItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   slotInfo: {
     flex: 1,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   footer: {
     padding: Spacing.lg,
-    borderTopWidth: 1,
-  },
-});
+    borderTopWidth: 1 } });

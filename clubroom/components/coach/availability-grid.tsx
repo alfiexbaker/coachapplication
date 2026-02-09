@@ -5,9 +5,9 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -28,8 +28,7 @@ export function AvailabilityGrid({
   selectedDay,
   onDaySelect,
 }: AvailabilityGridProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Calculate which cells have availability
   const getSlotStatus = useCallback(
@@ -194,8 +193,7 @@ export function DayScheduleView({
   onDeleteTemplate,
   onAddTemplate,
 }: DayScheduleViewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const dayTemplates = templates.filter((t) => t.dayOfWeek === dayOfWeek);
 

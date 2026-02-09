@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AcademyMembership } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface StaffRolePickerProps {
   selectedRole: AcademyMembership['role'];
@@ -50,16 +50,16 @@ export function StaffRolePicker({
   onSelectRole,
   excludeOwner = true,
 }: StaffRolePickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
+  // Decorative: role-specific colors for visual role differentiation
   const roleColors: Record<AcademyMembership['role'], string> = {
-    OWNER: '#7C3AED',
-    ADMIN: '#0284C7',
-    HEAD_COACH: '#059669',
+    OWNER: '#7C3AED',      // Decorative: owner role
+    ADMIN: '#0284C7',      // Decorative: admin role
+    HEAD_COACH: '#059669', // Decorative: head coach role
     COACH: palette.tint,
-    ASSISTANT: '#6B7280',
-    MEMBER: '#9CA3AF',
+    ASSISTANT: '#6B7280',  // Decorative: assistant role
+    MEMBER: '#9CA3AF',     // Decorative: member role
   };
 
   const availableRoles = excludeOwner
@@ -107,7 +107,7 @@ export function StaffRolePicker({
                 },
               ]}
             >
-              {isSelected && <Ionicons name="checkmark" size={12} color="#fff" />}
+              {isSelected && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
             </View>
           </Clickable>
         );

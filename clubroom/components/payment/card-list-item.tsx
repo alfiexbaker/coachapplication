@@ -1,9 +1,9 @@
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PaymentCard {
   brand?: string;
@@ -12,8 +12,7 @@ interface PaymentCard {
 }
 
 export function CardListItem({ card, onDelete }: { card: PaymentCard; onDelete?: () => void }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   return (
     <View style={[styles.card, { borderColor: palette.border }]}> 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>

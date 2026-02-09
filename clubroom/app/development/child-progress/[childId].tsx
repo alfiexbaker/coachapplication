@@ -8,8 +8,8 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getUserById, formatDate } from '@/constants/mock-data';
 import { progressService, AthleteProgress, SessionFeedback } from '@/services/progress-service';
@@ -21,8 +21,7 @@ const logger = createLogger('ChildProgressScreen');
 
 export default function ChildProgressScreen() {
   const { childId } = useLocalSearchParams<{ childId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   useAuth();
 
   const [loading, setLoading] = useState(true);

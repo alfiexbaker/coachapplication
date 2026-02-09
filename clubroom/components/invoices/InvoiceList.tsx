@@ -4,7 +4,6 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  TouchableOpacity,
   Modal,
   Pressable,
 } from 'react-native';
@@ -13,8 +12,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { InvoiceCard } from './InvoiceCard';
-import { Colors, Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { Invoice, InvoiceStatus, InvoiceFilter } from '@/constants/types';
 
 // ============================================================================
@@ -43,12 +42,13 @@ interface FilterOption {
 // CONSTANTS
 // ============================================================================
 
+// Decorative: invoice status indicator colors for visual filtering
 const FILTER_OPTIONS: FilterOption[] = [
-  { value: 'ALL', label: 'All', color: '#6B7280' },
-  { value: 'DRAFT', label: 'Draft', color: '#6B7280' },
-  { value: 'SENT', label: 'Sent', color: '#2563EB' },
-  { value: 'PAID', label: 'Paid', color: '#059669' },
-  { value: 'VOID', label: 'Voided', color: '#DC2626' },
+  { value: 'ALL', label: 'All', color: '#6B7280' },     // Decorative: neutral
+  { value: 'DRAFT', label: 'Draft', color: '#6B7280' },  // Decorative: draft status
+  { value: 'SENT', label: 'Sent', color: '#2563EB' },    // Decorative: sent status
+  { value: 'PAID', label: 'Paid', color: '#059669' },    // Decorative: paid status
+  { value: 'VOID', label: 'Voided', color: '#DC2626' },  // Decorative: voided status
 ];
 
 // ============================================================================
@@ -66,8 +66,7 @@ export function InvoiceList({
   emptyMessage = 'No invoices found',
   ListHeaderComponent,
 }: InvoiceListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [selectedStatus, setSelectedStatus] = useState<InvoiceStatus | 'ALL'>('ALL');
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [dateRange, setDateRange] = useState<{ from?: string; to?: string }>({});
@@ -117,21 +116,21 @@ export function InvoiceList({
         {emptyMessage}
       </ThemedText>
       {selectedStatus !== 'ALL' && (
-        <TouchableOpacity
+        <Pressable
           style={[styles.clearFilterButton, { borderColor: palette.border }]}
           onPress={() => handleStatusFilter('ALL')}
         >
           <ThemedText style={[styles.clearFilterText, { color: palette.tint }]}>
             Clear filters
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );
 
   const renderFilterPill = useCallback(
     ({ item }: { item: FilterOption }) => (
-      <TouchableOpacity
+      <Pressable
         style={[
           styles.filterPill,
           {
@@ -156,7 +155,7 @@ export function InvoiceList({
         >
           {item.label}
         </ThemedText>
-      </TouchableOpacity>
+      </Pressable>
     ),
     [selectedStatus, palette, handleStatusFilter]
   );
@@ -179,7 +178,7 @@ export function InvoiceList({
         />
 
         {/* Date Range Filter */}
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.dateFilterButton,
             {
@@ -195,11 +194,11 @@ export function InvoiceList({
             color={dateRange.from || dateRange.to ? palette.tint : palette.muted}
           />
           {(dateRange.from || dateRange.to) && (
-            <TouchableOpacity onPress={handleDateFilterClear} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+            <Pressable onPress={handleDateFilterClear} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
               <Ionicons name="close-circle" size={16} color={palette.tint} />
-            </TouchableOpacity>
+            </Pressable>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   };
@@ -242,12 +241,12 @@ export function InvoiceList({
         <View style={[styles.modalContainer, { backgroundColor: palette.background }]}>
           <View style={styles.modalHeader}>
             <ThemedText type="title">Filter by Date</ThemedText>
-            <TouchableOpacity
+            <Pressable
               style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}
               onPress={() => setShowDateFilter(false)}
             >
               <Ionicons name="close" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <View style={styles.modalContent}>
@@ -285,12 +284,12 @@ export function InvoiceList({
               </Pressable>
             ))}
 
-            <TouchableOpacity
+            <Pressable
               style={[styles.clearButton, { borderColor: palette.border }]}
               onPress={handleDateFilterClear}
             >
               <ThemedText style={{ color: palette.error }}>Clear date filter</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>

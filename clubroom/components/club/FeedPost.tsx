@@ -1,12 +1,12 @@
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ClubFeedPost } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FeedPostProps {
   post: ClubFeedPost;
@@ -15,8 +15,7 @@ export interface FeedPostProps {
 }
 
 export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const initials = post.postAs === 'club'
     ? 'CL'
     : (post.authorName?.slice(0, 2).toUpperCase() || 'ME');
@@ -63,7 +62,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
           </ThemedText>
         </View>
         {canPin && (
-          <TouchableOpacity
+          <Pressable
             onPress={() => onPinToggle?.(post.id)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -72,7 +71,7 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
               size={18}
               color={post.isPinned ? palette.tint : palette.muted}
             />
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
@@ -132,17 +131,17 @@ export function FeedPost({ post, canPin, onPinToggle }: FeedPostProps) {
 
       {/* Post actions */}
       <View style={styles.feedFooter}>
-        <TouchableOpacity style={styles.actionButton}>
+        <Pressable style={styles.actionButton}>
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
           <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.reactionCount ?? 0}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        </Pressable>
+        <Pressable style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
           <ThemedText style={{ ...Typography.small, color: palette.muted }}>{post.commentCount ?? 0}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        </Pressable>
+        <Pressable style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </SurfaceCard>
   );

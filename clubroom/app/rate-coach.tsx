@@ -10,8 +10,8 @@ import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { RatingStars } from '@/components/review/rating-stars';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Booking } from '@/constants/app-types';
 import type { SessionOffering } from '@/constants/session-types';
@@ -44,8 +44,7 @@ interface CoachToRate {
 }
 
 export default function RateCoachScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [coaches, setCoaches] = useState<CoachToRate[]>([]);
@@ -324,7 +323,7 @@ export default function RateCoachScreen() {
                     },
                   ]}
                 >
-                  <ThemedText style={[styles.chipText, { color: isSelected ? Colors.light.onPrimary : palette.text }]}>
+                  <ThemedText style={[styles.chipText, { color: isSelected ? palette.onPrimary : palette.text }]}>
                     {label}
                   </ThemedText>
                 </Clickable>
@@ -345,8 +344,8 @@ export default function RateCoachScreen() {
             },
           ]}
         >
-          <Ionicons name="star" size={20} color={Colors.light.onPrimary} />
-          <ThemedText style={styles.submitText}>
+          <Ionicons name="star" size={20} color={palette.onPrimary} />
+          <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
             {submitting ? 'Submitting...' : 'Submit Rating'}
           </ThemedText>
         </Clickable>
@@ -485,7 +484,6 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   submitText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
 });

@@ -10,8 +10,7 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ChildSwitcher } from '@/components/ChildSwitcher';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { hasChildren } from '@/utils/user-helpers';
@@ -20,12 +19,12 @@ import { badgeService } from '@/services/badge-service';
 import { socialFeedService } from '@/services/social-feed-service';
 import { progressService } from '@/services/progress-service';
 import type { BadgeAward, Club } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('UserHomeScreen');
 
 export function UserHomeScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [refreshing, setRefreshing] = useState(false);

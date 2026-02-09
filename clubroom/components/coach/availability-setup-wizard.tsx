@@ -14,8 +14,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { availabilityService } from '@/services/availability-service';
 import { createLogger } from '@/utils/logger';
 import type { SessionTemplate } from '@/constants/session-types';
@@ -52,8 +52,7 @@ interface DayHours {
 }
 
 export function AvailabilitySetupWizard({ coachId, onComplete, existingTemplates, title, sessionTemplates }: AvailabilitySetupWizardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isEditMode = (existingTemplates?.length ?? 0) > 0;
 
@@ -292,7 +291,7 @@ export function AvailabilitySetupWizard({ coachId, onComplete, existingTemplates
               <ThemedText
                 style={[
                   styles.dayCellText,
-                  { color: selectedDays[index] ? Colors.light.onPrimary : palette.text },
+                  { color: selectedDays[index] ? palette.onPrimary : palette.text },
                 ]}
               >
                 {day}
@@ -308,10 +307,10 @@ export function AvailabilitySetupWizard({ coachId, onComplete, existingTemplates
             { backgroundColor: selectedCount > 0 ? palette.tint : palette.border },
           ]}
         >
-          <ThemedText style={[styles.nextBtnText, { color: Colors.light.onPrimary }]}>
+          <ThemedText style={[styles.nextBtnText, { color: palette.onPrimary }]}>
             Continue ({selectedCount} day{selectedCount !== 1 ? 's' : ''})
           </ThemedText>
-          <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
+          <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
         </Clickable>
       </SurfaceCard>
     );
@@ -559,10 +558,10 @@ export function AvailabilitySetupWizard({ coachId, onComplete, existingTemplates
             onPress={() => setStep(3)}
             style={[styles.nextBtn, { backgroundColor: palette.tint, flex: 1 }]}
           >
-            <ThemedText style={[styles.nextBtnText, { color: Colors.light.onPrimary }]}>
+            <ThemedText style={[styles.nextBtnText, { color: palette.onPrimary }]}>
               Review
             </ThemedText>
-            <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
+            <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
           </Clickable>
         </View>
       </SurfaceCard>
@@ -640,8 +639,8 @@ export function AvailabilitySetupWizard({ coachId, onComplete, existingTemplates
           onPress={handleConfirm}
           style={[styles.nextBtn, { backgroundColor: palette.success, flex: 1, opacity: saving ? 0.6 : 1 }]}
         >
-          <Ionicons name="checkmark" size={20} color={Colors.light.onPrimary} />
-          <ThemedText style={[styles.nextBtnText, { color: Colors.light.onPrimary }]}>
+          <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
+          <ThemedText style={[styles.nextBtnText, { color: palette.onPrimary }]}>
             {saving ? 'Saving...' : 'Confirm'}
           </ThemedText>
         </Clickable>
@@ -734,7 +733,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF', // Decorative: white toggle thumb on colored track
   },
   toggleLabel: {
     ...Typography.body,

@@ -29,8 +29,8 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
 import { createLogger } from '@/utils/logger';
@@ -50,8 +50,7 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
 
 export default function CoachProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [coach, setCoach] = useState<Coach | null>(null);
@@ -401,10 +400,10 @@ export default function CoachProfileScreen() {
           {/* Profile Avatar */}
           <View style={styles.avatarContainer}>
             {coach.profilePhotoUrl ? (
-              <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} />
+              <Image source={{ uri: coach.profilePhotoUrl }} style={[styles.avatar, { borderColor: palette.onPrimary }]} />
             ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: palette.tint }]}>
-                <ThemedText style={styles.avatarText}>
+              <View style={[styles.avatarPlaceholder, { backgroundColor: palette.tint, borderColor: palette.onPrimary }]}>
+                <ThemedText style={[styles.avatarText, { color: palette.onPrimary }]}>
                   {coach.name.split(' ').map((n) => n[0]).join('')}
                 </ThemedText>
               </View>
@@ -601,19 +600,16 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: Radii.pill,
     borderWidth: 4,
-    borderColor: Colors.light.onPrimary,
   },
   avatarPlaceholder: {
     width: 100,
     height: 100,
     borderRadius: Radii.pill,
     borderWidth: 4,
-    borderColor: Colors.light.onPrimary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: Colors.light.onPrimary,
     ...Typography.display,
   },
   profileInfo: {

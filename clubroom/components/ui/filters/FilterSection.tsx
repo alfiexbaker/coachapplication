@@ -9,8 +9,8 @@ import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Divider } from '@/components/ui/primitives/Divider';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FilterSectionProps {
   /** Section title */
@@ -29,8 +29,7 @@ export function FilterSection({
   children,
   divider = false,
 }: FilterSectionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>

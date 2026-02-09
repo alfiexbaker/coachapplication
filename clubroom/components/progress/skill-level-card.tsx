@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillLevel } from '@/services/progress-service';
+import { useTheme } from '@/hooks/useTheme';
 
 // Skill level labels based on 1-10 scale
 const getSkillLevelLabel = (level: number): { label: string; description: string } => {
@@ -42,8 +42,7 @@ type SkillLevelCardProps = {
 };
 
 export function SkillLevelCard({ skill, showHistory = false, compact = false, showUpdatedBy = false }: SkillLevelCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getTrendIcon = () => {
     switch (skill.trend) {
@@ -237,8 +236,7 @@ type SkillLevelGridProps = {
 };
 
 export function SkillLevelGrid({ skills, compact = false, groupByCategory = false, showUpdatedBy = false }: SkillLevelGridProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (skills.length === 0) {
     return null;

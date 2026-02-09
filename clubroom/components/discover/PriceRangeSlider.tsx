@@ -15,8 +15,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PriceRangeSliderProps {
   min: number;
@@ -41,8 +41,7 @@ export function PriceRangeSlider({
   onChange,
   formatValue = (v) => `$${v}`,
 }: PriceRangeSliderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [sliderWidth, setSliderWidth] = useState(0);
 
   // Convert value to position
@@ -234,7 +233,7 @@ const styles = StyleSheet.create({
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
     borderWidth: 2,
-    shadowColor: '#000',
+    shadowColor: '#000000', // Decorative: standard shadow base
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },

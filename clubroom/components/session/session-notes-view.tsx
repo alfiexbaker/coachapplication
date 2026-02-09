@@ -1,7 +1,7 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 function formatValue(value?: string, fallback: string = 'Not captured yet') {
   if (!value) return fallback;
@@ -30,8 +30,7 @@ export function SessionNotesView({
   attendance: string;
   updatedAt?: string;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   return (
     <View style={{ gap: Spacing.sm }}>
       <NoteBlock label="Summary" value={formatValue(summary)} />
@@ -56,8 +55,7 @@ export function SessionNotesView({
 }
 
 function NoteBlock({ label, value }: { label: string; value: string }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   return (
     <View style={styles.block}>
       <ThemedText style={{ color: palette.muted, fontWeight: '600' }}>{label}</ThemedText>

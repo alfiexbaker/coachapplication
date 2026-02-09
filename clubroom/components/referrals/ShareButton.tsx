@@ -12,10 +12,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii} from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import { referralService } from '@/services/referral-service';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('ShareButton');
 
@@ -74,8 +74,7 @@ export function ShareButton({
   label = 'Invite Friends',
   disabled = false,
 }: ShareButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleShare = useCallback(async () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -198,8 +197,7 @@ interface SharePreviewProps {
 }
 
 export function SharePreview({ code, userName, creditAmount }: SharePreviewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Generate share content (used for display purposes)
   referralService.getShareMessage(code, userName, creditAmount);

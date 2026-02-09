@@ -22,8 +22,8 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 
-import { Colors, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -59,10 +59,9 @@ export function FavouriteButton({
   inactiveColor,
   coachName,
 }: FavouriteButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
-  const heartColor = activeColor ?? '#EF4444'; // Red
+  const heartColor = activeColor ?? palette.error;
   const emptyColor = inactiveColor ?? palette.muted;
 
   // Animation values

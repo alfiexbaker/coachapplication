@@ -8,9 +8,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('PaymentModal');
 
@@ -29,8 +29,7 @@ export function PaymentModal({
   invite,
   selectedSlot,
 }: PaymentModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [processing, setProcessing] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'review' | 'processing' | 'success'>('review');
@@ -241,7 +240,7 @@ export function PaymentModal({
                 style={[styles.payButton, { backgroundColor: palette.tint }]}
               >
                 <Ionicons name="lock-closed" size={18} color={palette.onPrimary} />
-                <ThemedText style={styles.payButtonText}>
+                <ThemedText style={[styles.payButtonText, { color: palette.onPrimary }]}>
                   Pay £{total.toFixed(2)}
                 </ThemedText>
               </Clickable>
@@ -365,7 +364,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
   },
-  payButtonText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  payButtonText: { ...Typography.subheading },
   termsText: { ...Typography.caption, textAlign: 'center' },
   // Processing states
   processingContainer: {

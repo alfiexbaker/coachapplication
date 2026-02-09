@@ -4,14 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
 import { MOCK_USERS } from '@/constants/mock-data';
 import { hasChildren } from '@/utils/user-helpers';
+import { useTheme } from '@/hooks/useTheme';
 
 export function AdminUsersScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const userCounts = {
     coaches: MOCK_USERS.filter((u) => u.role === 'COACH').length,

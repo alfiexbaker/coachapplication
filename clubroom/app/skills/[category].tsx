@@ -25,8 +25,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SkillTreeView } from '@/components/skills/SkillTreeView';
 import { SkillNode as SkillNodeComponent } from '@/components/skills/SkillNode';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { skillTreeService } from '@/services/skills';
 import { createLogger } from '@/utils/logger';
@@ -35,8 +35,7 @@ import type { SkillTree, SkillNode, SkillTreeCategory } from '@/constants/types'
 const logger = createLogger('SkillTreeDetailScreen');
 
 export default function SkillTreeDetailScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { category } = useLocalSearchParams<{ category: string }>();
 

@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import LoginScreen from '@/components/auth/login-screen';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { createLogger } from '@/utils/logger';
@@ -30,7 +30,7 @@ export const unstable_settings = {
 };
 
 function RootNavigation() {
-  const colorScheme = useColorScheme();
+  const { scheme: colorScheme } = useTheme();
   const { isAuthenticated, currentUser } = useAuth();
   const notificationResponseSubscription = useRef<{ remove: () => void } | null>(null);
 

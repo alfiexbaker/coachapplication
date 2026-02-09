@@ -1,8 +1,8 @@
 import { View, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export function BookingStepper({
   step,
@@ -13,8 +13,7 @@ export function BookingStepper({
   totalSteps: number;
   isParent: boolean;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.wrapper}>

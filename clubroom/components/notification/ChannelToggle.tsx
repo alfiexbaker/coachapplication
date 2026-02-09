@@ -16,8 +16,8 @@ import { View, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { NotificationChannel } from '@/constants/types';
 
 export interface ChannelConfig {
@@ -75,8 +75,7 @@ export function ChannelToggle({
   disabled = false,
   loading = false,
 }: ChannelToggleProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}>

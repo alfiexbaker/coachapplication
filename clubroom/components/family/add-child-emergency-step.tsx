@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -51,8 +51,7 @@ function AddChildEmergencyStepInner({
   onSecondaryNameChange,
   onSecondaryPhoneChange,
 }: AddChildEmergencyStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.stepContent}>
@@ -147,8 +146,7 @@ function AddChildConsentsStepInner({
   onSocialMediaConsentChange,
   onEmergencyTreatmentConsentChange,
 }: AddChildConsentsStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const consentItems = [
     {
@@ -210,7 +208,7 @@ function AddChildConsentsStepInner({
             <View
               style={[
                 styles.toggleKnob,
-                { transform: [{ translateX: item.value ? 18 : 2 }] },
+                { backgroundColor: palette.onPrimary, transform: [{ translateX: item.value ? 18 : 2 }] },
               ]}
             />
           </View>
@@ -272,7 +270,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: Radii.full,
-    backgroundColor: Colors.light.onPrimary,
+    // backgroundColor set inline for dynamic theming
   },
 });
 

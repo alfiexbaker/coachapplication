@@ -2,8 +2,8 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii , Typography, Spacing, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii , Typography, Spacing, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { ConsentType } from '@/constants/types';
 import { consentService } from '@/services/consent-service';
 
@@ -26,8 +26,7 @@ export function ConsentBadge({
   showLabel = false,
   size = 'md',
 }: ConsentBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const config = SIZE_CONFIG[size];
 
   const iconName = consentService.getConsentIcon(type);

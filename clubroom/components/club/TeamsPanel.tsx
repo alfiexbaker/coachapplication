@@ -5,9 +5,9 @@ import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { ClubSquad } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface TeamsPanelProps {
   squads: ClubSquad[];
@@ -16,8 +16,7 @@ interface TeamsPanelProps {
 }
 
 export function TeamsPanel({ squads, isCoach, clubId }: TeamsPanelProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (squads.length === 0 && !isCoach) {
     return null;

@@ -10,8 +10,8 @@ import { SyncSettingsCard } from '@/components/calendar/SyncSettingsCard';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { calendarService } from '@/services/calendar-service';
 import { bookingService } from '@/services/booking-service';
@@ -21,8 +21,7 @@ import type { CalendarSyncSettings, CalendarProvider } from '@/constants/types';
 const logger = createLogger('CalendarSyncSettings');
 
 export default function CalendarSyncScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -267,13 +266,13 @@ export default function CalendarSyncScreen() {
             >
               {isExporting ? (
                 <View style={styles.exportButtonContent}>
-                  <ActivityIndicator size="small" color={Colors.light.onPrimary} />
-                  <ThemedText style={styles.exportButtonText}>Exporting...</ThemedText>
+                  <ActivityIndicator size="small" color={palette.onPrimary} />
+                  <ThemedText style={[styles.exportButtonText, { color: palette.onPrimary }]}>Exporting...</ThemedText>
                 </View>
               ) : (
                 <View style={styles.exportButtonContent}>
-                  <Ionicons name="download-outline" size={20} color={Colors.light.onPrimary} />
-                  <ThemedText style={styles.exportButtonText}>Export All Sessions</ThemedText>
+                  <Ionicons name="download-outline" size={20} color={palette.onPrimary} />
+                  <ThemedText style={[styles.exportButtonText, { color: palette.onPrimary }]}>Export All Sessions</ThemedText>
                 </View>
               )}
             </Button>
@@ -346,7 +345,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   exportButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
   lastSyncContainer: {

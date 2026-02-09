@@ -18,8 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { BookingSummary } from '@/constants/types';
 import { formatPrice } from '@/constants/styles';
@@ -50,8 +50,7 @@ export function UnifiedBookingCard({
   showActions = false,
 }: UnifiedBookingCardProps) {
   const { currentUser } = useAuth();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const extendedBooking = booking as ExtendedBooking;
 
   const isCoach = currentUser?.role === 'COACH';
@@ -147,7 +146,7 @@ export function UnifiedBookingCard({
           </View>
 
           {/* Meta rows */}
-          <View style={styles.metaSection}>
+          <View style={[styles.metaSection, { borderTopColor: palette.border }]}>
             <View style={styles.metaRow}>
               <Ionicons name="calendar-outline" size={16} color={palette.muted} />
               <ThemedText style={styles.metaText}>{full}</ThemedText>
@@ -190,7 +189,7 @@ export function UnifiedBookingCard({
 
           {/* Actions */}
           {showActions && booking.status === 'Completed' && (
-            <View style={styles.actionsRow}>
+            <View style={[styles.actionsRow, { borderTopColor: palette.border }]}>
               <Clickable
                 style={[styles.actionButton, { borderColor: palette.tint }]}
                 onPress={() => router.push(Routes.review(booking.id))}
@@ -368,7 +367,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingTop: Spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
   },
   metaRow: {
     flexDirection: 'row',
@@ -385,7 +383,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingTop: Spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
   },
   actionButton: {
     flex: 1,

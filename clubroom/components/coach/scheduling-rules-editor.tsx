@@ -24,8 +24,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CoachSchedulingRules } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -48,7 +48,7 @@ interface StepperConfig {
   label: string;
   helper: string;
   icon: keyof typeof Ionicons.glyphMap;
-  iconBg: string;
+  iconBgKey: 'tint' | 'warning' | 'success';
   step: number;
   min: number;
   max: number;
@@ -71,7 +71,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Buffer Between Sessions',
     helper: 'Break time between back-to-back bookings',
     icon: 'pause-outline',
-    iconBg: Colors.light.tint,
+    iconBgKey: 'tint',
     step: 5,
     min: 0,
     max: 60,
@@ -82,7 +82,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Minimum Advance Booking',
     helper: 'How much notice athletes must give when booking',
     icon: 'time-outline',
-    iconBg: Colors.light.warning,
+    iconBgKey: 'warning',
     step: 1,
     min: 0,
     max: 72,
@@ -101,7 +101,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Max Advance Booking',
     helper: 'How far ahead athletes can book sessions',
     icon: 'calendar-outline',
-    iconBg: Colors.light.success,
+    iconBgKey: 'success',
     step: 7,
     min: 7,
     max: 90,
@@ -115,7 +115,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Reschedule Deadline',
     helper: 'Minimum notice to reschedule a booking',
     icon: 'swap-horizontal-outline',
-    iconBg: Colors.light.tint,
+    iconBgKey: 'tint',
     step: 1,
     min: 1,
     max: 48,
@@ -133,7 +133,7 @@ const STEPPER_FIELDS: StepperConfig[] = [
     label: 'Max Concurrent Sessions',
     helper: 'Maximum sessions running at the same time',
     icon: 'people-outline',
-    iconBg: Colors.light.tint,
+    iconBgKey: 'tint',
     step: 1,
     min: 1,
     max: 5,
@@ -149,12 +149,13 @@ interface StepperRowProps {
   config: StepperConfig;
   value: number;
   onChange: (newValue: number) => void;
-  palette: (typeof Colors)['light'];
+  palette: ReturnType<typeof useTheme>['colors'];
 }
 
 function StepperRow({ config, value, onChange, palette }: StepperRowProps) {
   const atMin = value <= config.min;
   const atMax = value >= config.max;
+  const iconBg = palette[config.iconBgKey];
 
   const handleDecrement = () => {
     if (atMin) return;
@@ -171,8 +172,8 @@ function StepperRow({ config, value, onChange, palette }: StepperRowProps) {
   return (
     <View style={styles.stepperRow}>
       <View style={styles.stepperInfo}>
-        <View style={[styles.stepperIcon, { backgroundColor: withAlpha(config.iconBg, 0.07) }]}>
-          <Ionicons name={config.icon} size={18} color={config.iconBg} />
+        <View style={[styles.stepperIcon, { backgroundColor: withAlpha(iconBg, 0.07) }]}>
+          <Ionicons name={config.icon} size={18} color={iconBg} />
         </View>
         <View style={styles.stepperLabels}>
           <ThemedText type="defaultSemiBold" style={styles.stepperLabel}>
@@ -218,8 +219,7 @@ function StepperRow({ config, value, onChange, palette }: StepperRowProps) {
 // ---------------------------------------------------------------------------
 
 export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEditorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [rules, setRules] = useState<CoachSchedulingRules | null>(null);
@@ -351,8 +351,8 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
             toastAnimatedStyle,
           ]}
         >
-          <Ionicons name="checkmark-circle" size={16} color={Colors.light.onSuccess} />
-          <ThemedText style={styles.toastText}>Saved</ThemedText>
+          <Ionicons name="checkmark-circle" size={16} color={palette.onSuccess} />
+          <ThemedText style={[styles.toastText, { color: palette.onSuccess }]}>Saved</ThemedText>
         </Animated.View>
       )}
 
@@ -400,7 +400,7 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
             value={rules.allowSameDayBookings}
             onValueChange={(v) => handleToggle('allowSameDayBookings', v)}
             trackColor={{ false: palette.border, true: palette.success }}
-            thumbColor={Colors.light.surface}
+            thumbColor={palette.surface}
           />
         </View>
 
@@ -425,7 +425,7 @@ export function SchedulingRulesEditor({ coachId, onSaved }: SchedulingRulesEdito
             value={rules.allowRescheduling}
             onValueChange={(v) => handleToggle('allowRescheduling', v)}
             trackColor={{ false: palette.border, true: palette.tint }}
-            thumbColor={Colors.light.surface}
+            thumbColor={palette.surface}
           />
         </View>
       </SurfaceCard>
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     zIndex: 10,
   },
-  toastText: { ...Typography.smallSemiBold, color: Colors.light.onSuccess },
+  toastText: { ...Typography.smallSemiBold },
 
   // Info banner
   infoBanner: {

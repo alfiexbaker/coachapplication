@@ -7,7 +7,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,8 +30,8 @@ import {
   togglePinPost,
   getAllClubMembershipsForUser,
 } from '@/constants/mock-data';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Club, ClubFeedPost, ClubMembership, ClubSquad, SessionOffering, ClubInvite, ClubEvent } from '@/constants/types';
 import { clubService, type ClubMember, type MemberRemovalReason } from '@/services/club-service';
@@ -58,8 +58,7 @@ function FeedPost({
   canPin?: boolean;
   onPinToggle?: (postId: string) => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const initials =
     post.postAs === 'club' ? 'CL' : post.authorName?.slice(0, 2).toUpperCase() || 'ME';
 
@@ -112,7 +111,7 @@ function FeedPost({
           </ThemedText>
         </View>
         {canPin && (
-          <TouchableOpacity
+          <Pressable
             onPress={() => onPinToggle?.(post.id)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -121,7 +120,7 @@ function FeedPost({
               size={18}
               color={post.isPinned ? palette.tint : palette.muted}
             />
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
@@ -182,17 +181,17 @@ function FeedPost({
 
       {/* Post actions */}
       <View style={styles.feedFooter}>
-        <TouchableOpacity style={styles.actionButton}>
+        <Pressable style={styles.actionButton}>
           <Ionicons name="heart-outline" size={18} color={palette.muted} />
           <ThemedText style={{ color: palette.muted, ...Typography.small }}>{post.reactionCount ?? 0}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        </Pressable>
+        <Pressable style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
           <ThemedText style={{ color: palette.muted, ...Typography.small }}>{post.commentCount ?? 0}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
+        </Pressable>
+        <Pressable style={styles.actionButton}>
           <Ionicons name="share-outline" size={18} color={palette.muted} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </SurfaceCard>
   );
@@ -209,8 +208,7 @@ function MemberRow({
   onRemove?: () => void;
   onPress?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const roleColor = clubService.getRoleColor(member.role);
   const initials = member.userName.slice(0, 2).toUpperCase();
@@ -246,11 +244,11 @@ function MemberRow({
   };
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
       onLongPress={handleLongPress}
       delayLongPress={500}
-      activeOpacity={0.7}
+      style={({ pressed }) => pressed && { opacity: 0.7 }}
     >
       <View style={[styles.memberRow, { borderColor: palette.border }]}>
         <View style={[styles.memberAvatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
@@ -265,14 +263,13 @@ function MemberRow({
         {member.status === 'pending' && <Chip>Pending</Chip>}
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 export default function ClubDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showUndoToast, showToast } = useToast();
 
@@ -469,12 +466,12 @@ export default function ClubDetailScreen() {
             <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
               Club not found
             </ThemedText>
-            <TouchableOpacity
+            <Pressable
               style={[styles.backButton, { backgroundColor: palette.tint }]}
               onPress={() => router.back()}
             >
-              <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Go Back</ThemedText>
-            </TouchableOpacity>
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Go Back</ThemedText>
+            </Pressable>
           </View>
         </View>
       </>
@@ -519,7 +516,7 @@ export default function ClubDetailScreen() {
 
           {/* Quick stats */}
           <View style={[styles.statsRow, { borderColor: palette.border }]}>
-            <TouchableOpacity
+            <Pressable
               style={styles.statItem}
               onPress={() => canRemoveMembers && setShowMembersSection(!showMembersSection)}
             >
@@ -536,7 +533,7 @@ export default function ClubDetailScreen() {
                   />
                 )}
               </View>
-            </TouchableOpacity>
+            </Pressable>
             <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
             <View style={styles.statItem}>
               <ThemedText type="title" style={{ ...Typography.heading }}>
@@ -602,14 +599,14 @@ export default function ClubDetailScreen() {
                     Upcoming Events
                   </ThemedText>
                 </View>
-                <TouchableOpacity
+                <Pressable
                   onPress={() => router.push(Routes.EVENTS)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <ThemedText style={{ color: palette.tint, ...Typography.bodySmallSemiBold }}>
                     See All
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
               {upcomingEvents.slice(0, 2).map((event) => (
                 <EventCard
@@ -628,23 +625,23 @@ export default function ClubDetailScreen() {
           {canCreatePosts && (
             <View style={styles.createPostContainer}>
               <View style={styles.actionButtonsRow}>
-                <TouchableOpacity
+                <Pressable
                   style={[styles.actionButtonSplit, { backgroundColor: palette.tint }]}
                   onPress={() =>
                     router.push(Routes.MODAL_CREATE_CLUB_POST)
                   }
                 >
-                  <Ionicons name="create-outline" size={18} color={Colors.light.onPrimary} />
-                  <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.smallSemiBold }}>New Post</ThemedText>
-                </TouchableOpacity>
+                  <Ionicons name="create-outline" size={18} color={palette.onPrimary} />
+                  <ThemedText style={{ color: palette.onPrimary, ...Typography.smallSemiBold }}>New Post</ThemedText>
+                </Pressable>
                 {canManagePosts && (
-                  <TouchableOpacity
+                  <Pressable
                     style={[styles.actionButtonSplit, { backgroundColor: palette.success }]}
                     onPress={() => router.push(Routes.EVENTS_CREATE)}
                   >
-                    <Ionicons name="calendar-outline" size={18} color={Colors.light.onPrimary} />
-                    <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.smallSemiBold }}>Create Event</ThemedText>
-                  </TouchableOpacity>
+                    <Ionicons name="calendar-outline" size={18} color={palette.onPrimary} />
+                    <ThemedText style={{ color: palette.onPrimary, ...Typography.smallSemiBold }}>Create Event</ThemedText>
+                  </Pressable>
                 )}
               </View>
             </View>
@@ -658,7 +655,7 @@ export default function ClubDetailScreen() {
             contentContainerStyle={styles.filterContainer}
           >
             {FEED_FILTERS.map((filter) => (
-              <TouchableOpacity
+              <Pressable
                 key={filter.key}
                 style={[
                   styles.filterTab,
@@ -690,10 +687,10 @@ export default function ClubDetailScreen() {
                       { backgroundColor: feedFilter === filter.key ? palette.tint : palette.muted },
                     ]}
                   >
-                    <ThemedText style={styles.filterCountText}>{filterCounts[filter.key]}</ThemedText>
+                    <ThemedText style={[styles.filterCountText, { color: palette.onPrimary }]}>{filterCounts[filter.key]}</ThemedText>
                   </View>
                 )}
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </ScrollView>
 
@@ -841,7 +838,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterCountText: {
-    color: Colors.light.onPrimary,
     ...Typography.caption,
   },
   feedSection: {

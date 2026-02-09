@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Booking Service Tests
  *
@@ -78,10 +77,27 @@ interface BookingDraft {
   objectives?: string[];
 }
 
+// Mock notification and slot types
+interface MockAvailableSlot {
+  coachId: string;
+  date: string;
+  startTime: string;
+  isAvailable: boolean;
+}
+
+interface MockBookingNotification {
+  type: string;
+  bookingId?: string;
+  coachId?: string;
+  cancelledBy?: 'coach' | 'parent';
+  date?: string;
+  recipientId?: string;
+}
+
 // Mock storage
 let mockBookings: Booking[] = [];
-let mockAvailableSlots: any[] = [];
-let mockNotifications: any[] = [];
+let mockAvailableSlots: MockAvailableSlot[] = [];
+let mockNotifications: MockBookingNotification[] = [];
 
 // Mock BookingService implementation for testing
 class MockBookingService {

@@ -13,14 +13,13 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ConsentCard } from '@/components/consent/ConsentCard';
 import { ConsentFilter } from '@/components/consent/ConsentFilter';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   consentService,
   type ConsentFilters,
-  CONSENT_TYPE_LABELS,
-} from '@/services/consent-service';
+  CONSENT_TYPE_LABELS } from '@/services/consent-service';
 import type { AthleteConsent, ConsentSummary, ConsentType } from '@/constants/types';
 
 const logger = createLogger('ConsentsScreen');
@@ -54,8 +53,7 @@ interface StatCardProps {
 }
 
 function StatCard({ label, granted, denied, icon, isActive, onPress }: StatCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const total = granted + denied;
   const percentage = total > 0 ? Math.round((granted / total) * 100) : 0;
 
@@ -66,8 +64,7 @@ function StatCard({ label, granted, denied, icon, isActive, onPress }: StatCardP
         styles.statCard,
         {
           backgroundColor: isActive ? withAlpha(palette.tint, 0.06) : palette.surface,
-          borderColor: isActive ? palette.tint : palette.border,
-        },
+          borderColor: isActive ? palette.tint : palette.border },
       ]}
     >
       <View style={styles.statHeader}>
@@ -101,8 +98,7 @@ function StatCard({ label, granted, denied, icon, isActive, onPress }: StatCardP
 }
 
 export default function ConsentsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [consents, setConsents] = useState<AthleteConsent[]>([]);
@@ -122,8 +118,7 @@ export default function ConsentsScreen() {
       const [consentsData, summaryData] = await Promise.all([
         consentService.getRosterConsents(coachId, {
           ...filters,
-          search: searchQuery,
-        }),
+          search: searchQuery }),
         consentService.getConsentSummary(coachId),
       ]);
       setConsents(consentsData);
@@ -255,18 +250,17 @@ export default function ConsentsScreen() {
             styles.filterButton,
             {
               backgroundColor:
-                activeFiltersCount > 0 ? palette.tint : palette.surface,
-            },
+                activeFiltersCount > 0 ? palette.tint : palette.surface },
           ]}
         >
           <Ionicons
             name="options-outline"
             size={20}
-            color={activeFiltersCount > 0 ? Colors.light.onPrimary : palette.text}
+            color={activeFiltersCount > 0 ? palette.onPrimary : palette.text}
           />
           {activeFiltersCount > 0 && (
-            <View style={styles.filterBadge}>
-              <ThemedText style={styles.filterBadgeText}>
+            <View style={[styles.filterBadge, { backgroundColor: palette.surface }]}>
+              <ThemedText style={[styles.filterBadgeText, { color: palette.text }]}>
                 {activeFiltersCount}
               </ThemedText>
             </View>
@@ -330,64 +324,51 @@ export default function ConsentsScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    flex: 1,
-  },
+    flex: 1 },
   subtitle: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   statsContainer: {
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   statsRow: {
     flexDirection: 'row',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   statCard: {
     flex: 1,
     padding: Spacing.sm,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   statHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   statLabel: {
     ...Typography.caption,
-    flex: 1,
-  },
+    flex: 1 },
   statNumbers: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   statPercentage: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   statDetail: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   searchSection: {
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
@@ -395,20 +376,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     height: 44,
     borderRadius: Radii.md,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   searchInput: {
     flex: 1,
-    ...Typography.body,
-  },
+    ...Typography.body },
   filterButton: {
     width: 44,
     height: 44,
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
+    position: 'relative' },
   filterBadge: {
     position: 'absolute',
     top: 4,
@@ -416,41 +394,29 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: Radii.sm,
-    backgroundColor: Colors.light.surface,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   filterBadgeText: {
-    ...Typography.micro,
-    color: Colors.light.text,
-  },
+    ...Typography.micro },
   filtersContainer: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
+    paddingBottom: Spacing.xl },
   separator: {
-    height: Spacing.sm,
-  },
+    height: Spacing.sm },
   loadingContainer: {
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   skeletonCard: {
     padding: Spacing.md,
     borderRadius: Radii.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   skeletonHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   skeletonInfo: {
     flex: 1,
-    gap: Spacing.xs,
-  },
-});
+    gap: Spacing.xs } });

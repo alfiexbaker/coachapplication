@@ -171,9 +171,11 @@ async function loadFromStorage() {
 async function saveToStorage(matches) {
     try {
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.MATCHES, matches);
+        return (0, result_1.ok)(undefined);
     }
     catch (error) {
         logger.error('Failed to save to storage', error);
+        return (0, result_1.err)((0, result_1.storageError)(`Failed to save matches: ${String(error)}`));
     }
 }
 exports.matchService = {
@@ -238,7 +240,7 @@ exports.matchService = {
      */
     async createMatch(input) {
         const newMatch = {
-            id: `match_${Date.now()}`,
+            id: api_client_1.apiClient.generateId('match'),
             clubId: input.clubId,
             clubName: input.clubName,
             squadId: input.squadId,
@@ -319,7 +321,7 @@ exports.matchService = {
                     });
                     // Create notification for parent
                     const notification = {
-                        id: `notif_match_${Date.now()}_${player.athleteId}`,
+                        id: api_client_1.apiClient.generateId(`notif_match_${player.athleteId}`),
                         type: 'booking',
                         title: 'Match Invite',
                         body: `${player.athleteName} has been invited to play: ${match.title} on ${formatMatchDate(match.date)} at ${match.kickoffTime}`,
@@ -369,7 +371,7 @@ exports.matchService = {
             // Create notification for coach
             const player = match.selectedPlayers[playerIndex];
             const notification = {
-                id: `notif_${Date.now()}`,
+                id: api_client_1.apiClient.generateId('notif'),
                 type: 'booking',
                 title: input.status === 'AVAILABLE' ? 'Player Available' : 'Player Unavailable',
                 body: `${player.athleteName} is ${input.status.toLowerCase()} for ${match.title}${input.note ? `: "${input.note}"` : ''}`,
@@ -412,7 +414,7 @@ exports.matchService = {
                     };
                     // Send notification to parent
                     const notification = {
-                        id: `notif_lineup_${Date.now()}_${player.athleteId}`,
+                        id: api_client_1.apiClient.generateId(`notif_lineup_${player.athleteId}`),
                         type: 'booking',
                         title: lineupPlayer.isReserve ? 'Reserve Selection' : 'Match Selection',
                         body: lineupPlayer.isReserve
@@ -506,7 +508,7 @@ exports.matchService = {
             // Notify all players
             for (const player of match.selectedPlayers) {
                 const notification = {
-                    id: `notif_cancel_${Date.now()}_${player.athleteId}`,
+                    id: api_client_1.apiClient.generateId(`notif_cancel_${player.athleteId}`),
                     type: 'booking',
                     title: 'Match Cancelled',
                     body: `${match.title} on ${formatMatchDate(match.date)} has been cancelled.`,

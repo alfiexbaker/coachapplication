@@ -6,9 +6,8 @@ import { useRouter, type Href } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Typography, Radii} from '@/constants/theme';
-import { CardStyles } from '@/constants/styles';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography, Radii} from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ============================================================================
 // TYPES
@@ -57,8 +56,7 @@ export function CoachOnboardingChecklist({
   isLive,
 }: CoachOnboardingChecklistProps) {
   const router = useRouter();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [isDismissed, setIsDismissed] = useState<boolean>(true);
 
   const dismissKey = `${DISMISS_KEY_PREFIX}${coachId}`;
@@ -223,7 +221,8 @@ export function CoachOnboardingChecklist({
 
 const styles = StyleSheet.create({
   container: {
-    ...CardStyles.base,
+    borderRadius: Radii.card,
+    padding: Spacing.sm,
     gap: Spacing.sm,
   },
   header: {

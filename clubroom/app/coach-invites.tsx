@@ -29,8 +29,8 @@ import { apiClient } from '@/services/api-client';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getClubById } from '@/constants/mock-data';
 import type { ClubRole } from '@/constants/types';
@@ -63,8 +63,7 @@ const ROLE_LABELS: Record<ClubRole, string> = {
 };
 
 export default function CoachInvitesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const params = useLocalSearchParams<{ code?: string; clubId?: string; clubName?: string; role?: string }>();
 
@@ -272,11 +271,11 @@ export default function CoachInvitesScreen() {
             disabled={isResponding}
           >
             {isResponding ? (
-              <ThemedText style={styles.acceptText}>Joining...</ThemedText>
+              <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Joining...</ThemedText>
             ) : (
               <>
-                <Ionicons name="checkmark" size={18} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.acceptText}>Accept & Join</ThemedText>
+                <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.acceptText, { color: palette.onPrimary }]}>Accept & Join</ThemedText>
               </>
             )}
           </Pressable>
@@ -318,8 +317,8 @@ export default function CoachInvitesScreen() {
               style={[styles.goToClubHubButton, { backgroundColor: palette.tint }]}
               onPress={() => router.push(Routes.CLUB_HUB)}
             >
-              <Ionicons name="people" size={18} color={Colors.light.onPrimary} />
-              <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Go to Club Hub</ThemedText>
+              <Ionicons name="people" size={18} color={palette.onPrimary} />
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Go to Club Hub</ThemedText>
             </Pressable>
           </View>
         }
@@ -406,7 +405,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   acceptText: {
-    color: Colors.light.onPrimary,
     ...Typography.bodySemiBold,
   },
   separator: {

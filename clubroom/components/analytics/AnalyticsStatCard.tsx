@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import type { TrendDirection } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface AnalyticsStatCardProps {
   /** Label for the stat */
@@ -49,8 +49,7 @@ export function AnalyticsStatCard({
   isCurrency = false,
   currencySymbol = '\u00A3',
 }: AnalyticsStatCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getTrendColor = (): string => {
     if (!trend) return palette.muted;

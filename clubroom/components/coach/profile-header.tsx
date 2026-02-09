@@ -12,8 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -70,8 +70,7 @@ function ProfileHeaderInner({
   isLoggedIn,
   onFollowToggle,
 }: ProfileHeaderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <>
@@ -87,9 +86,9 @@ function ProfileHeaderInner({
       {/* Profile Info */}
       <View style={styles.profileHeader}>
         <View style={styles.avatarContainer}>
-          <Image source={{ uri: coach.profilePhotoUrl }} style={styles.avatar} />
+          <Image source={{ uri: coach.profilePhotoUrl }} style={[styles.avatar, { borderColor: palette.surface }]} />
           {userRole === 'Coach' && (
-            <Clickable style={[styles.editAvatarButton, { backgroundColor: palette.tint }]}>
+            <Clickable style={[styles.editAvatarButton, { backgroundColor: palette.tint, borderColor: palette.surface }]}>
               <Ionicons name="camera" size={16} color={palette.surface} />
             </Clickable>
           )}
@@ -247,7 +246,6 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: Radii.full,
     borderWidth: 4,
-    borderColor: Colors.light.surface,
   },
   editAvatarButton: {
     position: 'absolute',
@@ -259,7 +257,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.light.surface,
   },
   profileInfo: {
     gap: Spacing.xs,

@@ -15,8 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { formatGBP, getChildrenForParent } from '@/constants/mock-data';
 import { bookingService } from '@/services/booking-service';
@@ -24,8 +24,7 @@ import { notificationService } from '@/services/notification-service';
 import { hasChildren } from '@/utils/user-helpers';
 
 export default function ConfirmBookingScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const params = useLocalSearchParams();
 
@@ -418,11 +417,11 @@ export default function ConfirmBookingScreen() {
         >
           {isProcessing ? (
             <View style={styles.processingContainer}>
-              <ActivityIndicator color={Colors.light.onPrimary} />
-              <ThemedText style={styles.confirmButtonText}>Processing...</ThemedText>
+              <ActivityIndicator color={palette.onPrimary} />
+              <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>Processing...</ThemedText>
             </View>
           ) : (
-            <ThemedText style={styles.confirmButtonText}>
+            <ThemedText style={[styles.confirmButtonText, { color: palette.onPrimary }]}>
               Confirm & Pay {formatGBP(price * athletesInfo.length)}
             </ThemedText>
           )}
@@ -590,7 +589,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
   processingContainer: {

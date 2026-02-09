@@ -10,8 +10,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { WaitlistCard } from '@/components/waitlist/WaitlistCard';
-import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { waitlistService } from '@/services/waitlist-service';
 import { createLogger } from '@/utils/logger';
@@ -20,8 +20,7 @@ import type { WaitlistEntry } from '@/constants/types';
 const logger = createLogger('WaitlistScreen');
 
 export default function WaitlistScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);

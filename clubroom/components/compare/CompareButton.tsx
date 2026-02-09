@@ -11,8 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
 
 interface CompareButtonProps {
@@ -28,8 +28,7 @@ export function CompareButton({
   variant = 'icon',
   onStateChange,
 }: CompareButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [isInComparison, setIsInComparison] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

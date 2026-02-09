@@ -3,7 +3,7 @@ import {
   View,
   StyleSheet,
   ActivityIndicator,
-  TouchableOpacity,
+  Pressable,
   Alert,
   Modal,
   TextInput,
@@ -16,8 +16,8 @@ import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoicePreview, DownloadButton } from '@/components/invoices';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { invoiceService } from '@/services/invoice-service';
 import { Invoice } from '@/constants/types';
@@ -36,8 +36,7 @@ type _IoniconsName = keyof typeof Ionicons.glyphMap;
 // ============================================================================
 
 export default function InvoiceDetailScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
 
@@ -163,12 +162,12 @@ export default function InvoiceDetailScreen() {
           <ThemedText style={[styles.errorText, { color: palette.muted }]}>
             Invoice not found
           </ThemedText>
-          <TouchableOpacity
+          <Pressable
             style={[styles.backButton, { backgroundColor: palette.tint }]}
             onPress={() => router.back()}
           >
-            <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
-          </TouchableOpacity>
+            <ThemedText style={[styles.backButtonText, { color: palette.onPrimary }]}>Go Back</ThemedText>
+          </Pressable>
         </View>
       </PageContainer>
     );
@@ -206,32 +205,32 @@ export default function InvoiceDetailScreen() {
 
             {/* Coach-only actions */}
             {canSend && (
-              <TouchableOpacity
+              <Pressable
                 style={[styles.actionButton, { backgroundColor: palette.tint }]}
                 onPress={() => setShowSendModal(true)}
               >
-                <Ionicons name="paper-plane-outline" size={18} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.actionButtonText}>Send</ThemedText>
-              </TouchableOpacity>
+                <Ionicons name="paper-plane-outline" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.actionButtonText, { color: palette.onPrimary }]}>Send</ThemedText>
+              </Pressable>
             )}
 
             {canMarkPaid && (
-              <TouchableOpacity
+              <Pressable
                 style={[styles.actionButton, { backgroundColor: palette.success }]}
                 onPress={handleMarkPaid}
               >
-                <Ionicons name="checkmark-circle-outline" size={18} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.actionButtonText}>Mark Paid</ThemedText>
-              </TouchableOpacity>
+                <Ionicons name="checkmark-circle-outline" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.actionButtonText, { color: palette.onPrimary }]}>Mark Paid</ThemedText>
+              </Pressable>
             )}
 
             {canVoid && isCoach && (
-              <TouchableOpacity
+              <Pressable
                 style={[styles.voidButton, { borderColor: palette.error }]}
                 onPress={handleVoidInvoice}
               >
                 <Ionicons name="close-circle-outline" size={18} color={palette.error} />
-              </TouchableOpacity>
+              </Pressable>
             )}
           </View>
         )}
@@ -247,12 +246,12 @@ export default function InvoiceDetailScreen() {
         <View style={[styles.modalContainer, { backgroundColor: palette.background }]}>
           <View style={styles.modalHeader}>
             <ThemedText type="title">Send Invoice</ThemedText>
-            <TouchableOpacity
+            <Pressable
               style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}
               onPress={() => setShowSendModal(false)}
             >
               <Ionicons name="close" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <View style={styles.modalContent}>
@@ -277,7 +276,7 @@ export default function InvoiceDetailScreen() {
               onChangeText={setSendEmail}
             />
 
-            <TouchableOpacity
+            <Pressable
               style={[
                 styles.sendButton,
                 {
@@ -289,14 +288,14 @@ export default function InvoiceDetailScreen() {
               disabled={!sendEmail.trim() || actionLoading}
             >
               {actionLoading ? (
-                <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+                <ActivityIndicator size="small" color={palette.onPrimary} />
               ) : (
                 <>
-                  <Ionicons name="paper-plane" size={18} color={Colors.light.onPrimary} />
-                  <ThemedText style={styles.sendButtonText}>Send Invoice</ThemedText>
+                  <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
+                  <ThemedText style={[styles.sendButtonText, { color: palette.onPrimary }]}>Send Invoice</ThemedText>
                 </>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -334,7 +333,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   backButtonText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   actionBar: {
@@ -355,7 +353,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   actionButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.bodySmallSemiBold,
   },
   voidButton: {
@@ -410,7 +407,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   sendButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
 });

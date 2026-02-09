@@ -5,10 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { ParentGroupCard } from './ParentGroupCard';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
-import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { ParentGroup } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface GroupListProps {
   groups: ParentGroup[];
@@ -37,8 +37,7 @@ function GroupListComponent({
   showCreateButton = true,
   ListHeaderComponent,
 }: GroupListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const renderItem: ListRenderItem<ParentGroup> = useCallback(
     ({ item }) => (

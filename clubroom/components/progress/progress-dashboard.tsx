@@ -5,12 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { SkillLevelGrid } from './skill-level-card';
 import { FeedbackList } from './session-feedback-card';
 import type { AthleteProgress } from '@/services/progress-service';
 import type { Goal } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 type ProgressDashboardProps = {
   progress: AthleteProgress;
@@ -29,8 +29,7 @@ function OverviewCard({
   progress: AthleteProgress;
   viewerRole: 'coach' | 'parent' | 'athlete';
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getTrendIcon = () => {
     switch (progress.overallTrend) {
@@ -127,8 +126,7 @@ function GoalsSection({
   goals: Goal[];
   onViewGoal?: (goal: Goal) => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (goals.length === 0) {
     return (
@@ -187,8 +185,7 @@ function BadgesSection({
   badges: AthleteProgress['recentBadges'];
   onViewAll?: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (badges.length === 0) {
     return (
@@ -246,8 +243,7 @@ export function ProgressDashboard({
   onViewGoal,
   onViewBadges,
 }: ProgressDashboardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -338,8 +334,7 @@ export function ParentProgressSummary({
   athleteName,
   onViewDetails,
 }: ParentProgressViewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getTrendInfo = () => {
     switch (progress.overallTrend) {
@@ -387,13 +382,13 @@ export function ParentProgressSummary({
           </ThemedText>
         </View>
         <View style={styles.parentStat}>
-          <Ionicons name="ribbon" size={14} color="#F59E0B" />
+          <Ionicons name="ribbon" size={14} color={palette.warning} />
           <ThemedText style={[styles.parentStatText, { color: palette.muted }]}>
             {progress.totalBadges} badges
           </ThemedText>
         </View>
         <View style={styles.parentStat}>
-          <Ionicons name="star" size={14} color="#F59E0B" />
+          <Ionicons name="star" size={14} color={palette.rating} />
           <ThemedText style={[styles.parentStatText, { color: palette.muted }]}>
             {progress.averagePerformance.toFixed(1)} avg
           </ThemedText>

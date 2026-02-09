@@ -2,9 +2,9 @@ import { View, StyleSheet, Pressable, type StyleProp, type ViewStyle } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing} from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 // Web-compatible clickable wrapper using Pressable
 type ClickableProps = {
@@ -31,8 +31,7 @@ export interface CoachTabNavigationProps {
 }
 
 export function CoachTabNavigation({ activeTab, onTabChange }: CoachTabNavigationProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.tabContainer}>

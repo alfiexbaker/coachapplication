@@ -10,8 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { createLogger } from '@/utils/logger';
@@ -64,8 +64,7 @@ interface AvailabilityTutorialProps {
 }
 
 export function AvailabilityTutorial({ visible, onComplete }: AvailabilityTutorialProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new RNAnimated.Value(1)).current;
   const slideAnim = useRef(new RNAnimated.Value(0)).current;
@@ -216,14 +215,14 @@ export function AvailabilityTutorial({ visible, onComplete }: AvailabilityTutori
               onPress={handleNext}
               style={[styles.nextButton, { backgroundColor: palette.tint }]}
             >
-              <ThemedText style={styles.nextButtonText}>
+              <ThemedText style={[styles.nextButtonText, { color: palette.onPrimary }]}>
                 {isLastStep ? 'Get Started' : 'Next'}
               </ThemedText>
               {!isLastStep && (
-                <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
+                <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
               )}
               {isLastStep && (
-                <Ionicons name="checkmark" size={18} color={Colors.light.onPrimary} />
+                <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
               )}
             </Clickable>
           </View>
@@ -356,7 +355,6 @@ const styles = StyleSheet.create({
     maxWidth: SCREEN_WIDTH * 0.45,
   },
   nextButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.bodySmallSemiBold,
   },
 });

@@ -16,9 +16,9 @@ import * as Haptics from 'expo-haptics';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { DrillForm } from '@/components/drills';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import type { CreateDrillInput } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
@@ -30,8 +30,7 @@ const logger = createLogger('CreateDrillScreen');
  * Screen for creating a new drill in the coach's library.
  */
 export default function CreateDrillScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,18 +56,15 @@ export default function CreateDrillScreen() {
             onPress: () => {
               // Reset form by navigating to same page
               router.replace(Routes.DRILLS_CREATE);
-            },
-          },
+            } },
           {
             text: 'Assign Now',
             onPress: () => {
               router.replace(Routes.drillsAssignWith(newDrill.id));
-            },
-          },
+            } },
           {
             text: 'Done',
-            onPress: () => router.back(),
-          },
+            onPress: () => router.back() },
         ]);
       } catch (error) {
         logger.error('Failed to create drill:', error);
@@ -91,15 +87,14 @@ export default function CreateDrillScreen() {
       {
         text: 'Discard',
         style: 'destructive',
-        onPress: () => router.back(),
-      },
+        onPress: () => router.back() },
     ]);
   }, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: palette.border }]}>
         <Clickable onPress={handleCancel} hitSlop={8}>
           <Ionicons name="close" size={24} color={palette.text} />
         </Clickable>
@@ -122,18 +117,13 @@ export default function CreateDrillScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
+    borderBottomWidth: 1 },
   headerTitle: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-  },
-});
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) } });

@@ -1,4 +1,4 @@
-import { Platform, ActionSheetIOS, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, ActionSheetIOS, Alert, StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -6,9 +6,9 @@ import { Routes } from '@/navigation/routes';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { clubService, type ClubMember } from '@/services/club-service';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface MemberRowProps {
   member: ClubMember;
@@ -18,8 +18,7 @@ export interface MemberRowProps {
 }
 
 export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const roleColor = clubService.getRoleColor(member.role);
   const initials = member.userName.slice(0, 2).toUpperCase();
@@ -59,11 +58,11 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
   };
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={onPress}
       onLongPress={handleLongPress}
       delayLongPress={500}
-      activeOpacity={0.7}
+      style={({pressed}) => [pressed && {opacity: 0.7}]}
     >
       <View style={[styles.memberRow, { borderColor: palette.border }]}>
         <View style={[styles.memberAvatar, { backgroundColor: withAlpha(roleColor, 0.09) }]}>
@@ -80,7 +79,7 @@ export function MemberRow({ member, canRemove, onRemove, onPress }: MemberRowPro
         )}
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -92,8 +91,7 @@ export interface MembersPanelProps {
 }
 
 export function MembersPanel({ members, canRemoveMembers, onRemoveMember, clubId }: MembersPanelProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.membersCard}>

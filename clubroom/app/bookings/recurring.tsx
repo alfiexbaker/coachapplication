@@ -9,10 +9,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { RecurringList } from '@/components/recurring';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { RecurringBooking } from '@/constants/types';
 import { recurringBookingService } from '@/services/recurring-booking-service';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 
@@ -23,8 +23,7 @@ const logger = createLogger('RecurringBookingsScreen');
  * with the ability to pause, resume, or cancel them.
  */
 export default function RecurringBookingsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [bookings, setBookings] = useState<RecurringBooking[]>([]);

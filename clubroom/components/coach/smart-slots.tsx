@@ -24,7 +24,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Divider } from '@/components/ui/primitives/Divider';
-import { Colors, Spacing, Radii, Typography, Shadows , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -205,17 +206,17 @@ const MOCK_STATS = {
 // Heatmap helpers
 // ---------------------------------------------------------------------------
 
-function getHeatColor(rate: number): string {
-  if (rate === 0) return Colors.light.background;
-  if (rate < 0.3) return withAlpha(Colors.light.success, 0.12);
-  if (rate < 0.6) return withAlpha(Colors.light.success, 0.31);
-  if (rate < 0.8) return withAlpha(Colors.light.success, 0.5);
-  return withAlpha(Colors.light.success, 0.8);
+function getHeatColor(rate: number, colors: ThemeColors): string {
+  if (rate === 0) return colors.background;
+  if (rate < 0.3) return withAlpha(colors.success, 0.12);
+  if (rate < 0.6) return withAlpha(colors.success, 0.31);
+  if (rate < 0.8) return withAlpha(colors.success, 0.5);
+  return withAlpha(colors.success, 0.8);
 }
 
-function getHeatTextColor(rate: number): string {
-  if (rate >= 0.6) return Colors.light.surface;
-  return Colors.light.muted;
+function getHeatTextColor(rate: number, colors: ThemeColors): string {
+  if (rate >= 0.6) return colors.surface;
+  return colors.muted;
 }
 
 // ---------------------------------------------------------------------------
@@ -223,16 +224,17 @@ function getHeatTextColor(rate: number): string {
 // ---------------------------------------------------------------------------
 
 function HeatmapGrid({ data }: { data: DayHeatmapData[] }) {
+  const { colors, scheme } = useTheme();
   const timeLabels = data[0]?.slots.map((s) => s.time) ?? [];
 
   return (
-    <View style={heatStyles.container}>
+    <View style={[heatStyles.container, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
       {/* Time header */}
       <View style={heatStyles.headerRow}>
         <View style={heatStyles.dayLabelCell} />
         {timeLabels.map((t) => (
           <View key={t} style={heatStyles.timeCell}>
-            <Text style={heatStyles.timeLabel}>{t}</Text>
+            <Text style={[heatStyles.timeLabel, { color: colors.muted }]}>{t}</Text>
           </View>
         ))}
       </View>
@@ -241,16 +243,16 @@ function HeatmapGrid({ data }: { data: DayHeatmapData[] }) {
       {data.map((dayData) => (
         <View key={dayData.day} style={heatStyles.dayRow}>
           <View style={heatStyles.dayLabelCell}>
-            <Text style={heatStyles.dayLabel}>{dayData.shortDay}</Text>
+            <Text style={[heatStyles.dayLabel, { color: colors.muted }]}>{dayData.shortDay}</Text>
           </View>
           {dayData.slots.map((slot) => (
             <View
               key={`${dayData.day}-${slot.time}`}
-              style={[heatStyles.heatCell, { backgroundColor: getHeatColor(slot.bookingRate) }]}
+              style={[heatStyles.heatCell, { backgroundColor: getHeatColor(slot.bookingRate, colors) }]}
             >
               {slot.bookingRate > 0 && (
                 <Text
-                  style={[heatStyles.heatText, { color: getHeatTextColor(slot.bookingRate) }]}
+                  style={[heatStyles.heatText, { color: getHeatTextColor(slot.bookingRate, colors) }]}
                 >
                   {Math.round(slot.bookingRate * 100)}
                 </Text>
@@ -262,14 +264,14 @@ function HeatmapGrid({ data }: { data: DayHeatmapData[] }) {
 
       {/* Legend */}
       <View style={heatStyles.legend}>
-        <Text style={heatStyles.legendLabel}>Less busy</Text>
+        <Text style={[heatStyles.legendLabel, { color: colors.muted }]}>Less busy</Text>
         {[0.1, 0.3, 0.6, 0.8, 0.95].map((rate) => (
           <View
             key={rate}
-            style={[heatStyles.legendSwatch, { backgroundColor: getHeatColor(rate) }]}
+            style={[heatStyles.legendSwatch, { backgroundColor: getHeatColor(rate, colors) }]}
           />
         ))}
-        <Text style={heatStyles.legendLabel}>More busy</Text>
+        <Text style={[heatStyles.legendLabel, { color: colors.muted }]}>More busy</Text>
       </View>
     </View>
   );
@@ -277,10 +279,8 @@ function HeatmapGrid({ data }: { data: DayHeatmapData[] }) {
 
 const heatStyles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
-    ...Shadows.light.card,
   },
   headerRow: {
     flexDirection: 'row',
@@ -297,7 +297,6 @@ const heatStyles = StyleSheet.create({
   timeLabel: {
     ...Typography.caption,
     fontSize: 10,
-    color: Colors.light.muted,
   },
   dayRow: {
     flexDirection: 'row',
@@ -305,7 +304,6 @@ const heatStyles = StyleSheet.create({
   },
   dayLabel: {
     ...Typography.caption,
-    color: Colors.light.muted,
   },
   heatCell: {
     flex: 1,
@@ -326,7 +324,6 @@ const heatStyles = StyleSheet.create({
   legendLabel: {
     ...Typography.caption,
     fontSize: 10,
-    color: Colors.light.muted,
   },
   legendSwatch: {
     width: 16,
@@ -346,18 +343,19 @@ function SuggestionCard({
   suggestion: SlotSuggestion;
   onAction: (suggestion: SlotSuggestion) => void;
 }) {
+  const { colors, scheme } = useTheme();
   const isAdd = suggestion.type === 'add';
   const iconName: keyof typeof Ionicons.glyphMap = isAdd ? 'trending-up' : 'trending-down';
-  const iconColor = isAdd ? Colors.light.success : Colors.light.warning;
+  const iconColor = isAdd ? colors.success : colors.warning;
 
   return (
-    <View style={suggStyles.card}>
+    <View style={[suggStyles.card, { backgroundColor: colors.surface }, Shadows[scheme].subtle]}>
       <View style={suggStyles.cardHeader}>
         <View style={[suggStyles.iconCircle, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
           <Ionicons name={iconName} size={18} color={iconColor} />
         </View>
         <View style={suggStyles.cardHeaderText}>
-          <Text style={suggStyles.cardTitle}>
+          <Text style={[suggStyles.cardTitle, { color: colors.text }]}>
             {suggestion.day} {suggestion.time}
           </Text>
           <View style={[suggStyles.metricBadge, { backgroundColor: withAlpha(iconColor, 0.09) }]}>
@@ -365,21 +363,21 @@ function SuggestionCard({
           </View>
         </View>
       </View>
-      <Text style={suggStyles.cardDescription}>{suggestion.description}</Text>
+      <Text style={[suggStyles.cardDescription, { color: colors.muted }]}>{suggestion.description}</Text>
       <Pressable
         style={[
           suggStyles.actionButton,
-          { backgroundColor: isAdd ? Colors.light.tint : Colors.light.surface },
-          !isAdd && { borderWidth: 1, borderColor: Colors.light.border },
+          { backgroundColor: isAdd ? colors.tint : colors.surface },
+          !isAdd && { borderWidth: 1, borderColor: colors.border },
         ]}
         onPress={() => onAction(suggestion)}
       >
         <Ionicons
           name={isAdd ? 'add' : 'remove'}
           size={16}
-          color={isAdd ? Colors.light.onPrimary : Colors.light.muted}
+          color={isAdd ? colors.onPrimary : colors.muted}
         />
-        <Text style={[suggStyles.actionButtonText, { color: isAdd ? Colors.light.onPrimary : Colors.light.muted }]}>
+        <Text style={[suggStyles.actionButtonText, { color: isAdd ? colors.onPrimary : colors.muted }]}>
           {isAdd ? 'Add slot' : 'Remove slot'}
         </Text>
       </Pressable>
@@ -389,10 +387,8 @@ function SuggestionCard({
 
 const suggStyles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
-    ...Shadows.light.subtle,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -415,7 +411,6 @@ const suggStyles = StyleSheet.create({
   },
   cardTitle: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
   },
   metricBadge: {
     paddingHorizontal: 8,
@@ -428,7 +423,6 @@ const suggStyles = StyleSheet.create({
   },
   cardDescription: {
     ...Typography.small,
-    color: Colors.light.muted,
     marginBottom: Spacing.sm,
   },
   actionButton: {
@@ -452,21 +446,22 @@ const suggStyles = StyleSheet.create({
 // ---------------------------------------------------------------------------
 
 function StatsSummary() {
+  const { colors, scheme } = useTheme();
   return (
-    <View style={statStyles.container}>
+    <View style={[statStyles.container, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
       <View style={statStyles.stat}>
-        <Text style={statStyles.statValue}>{MOCK_STATS.totalSessionsLastMonth}</Text>
-        <Text style={statStyles.statLabel}>Sessions (30d)</Text>
+        <Text style={[statStyles.statValue, { color: colors.text }]}>{MOCK_STATS.totalSessionsLastMonth}</Text>
+        <Text style={[statStyles.statLabel, { color: colors.muted }]}>Sessions (30d)</Text>
       </View>
       <Divider vertical />
       <View style={statStyles.stat}>
-        <Text style={statStyles.statValue}>{Math.round(MOCK_STATS.averageBookingRate * 100)}%</Text>
-        <Text style={statStyles.statLabel}>Fill rate</Text>
+        <Text style={[statStyles.statValue, { color: colors.text }]}>{Math.round(MOCK_STATS.averageBookingRate * 100)}%</Text>
+        <Text style={[statStyles.statLabel, { color: colors.muted }]}>Fill rate</Text>
       </View>
       <Divider vertical />
       <View style={statStyles.stat}>
-        <Text style={statStyles.statValue}>{MOCK_STATS.waitlistCount}</Text>
-        <Text style={statStyles.statLabel}>On waitlist</Text>
+        <Text style={[statStyles.statValue, { color: colors.text }]}>{MOCK_STATS.waitlistCount}</Text>
+        <Text style={[statStyles.statLabel, { color: colors.muted }]}>On waitlist</Text>
       </View>
     </View>
   );
@@ -475,10 +470,8 @@ function StatsSummary() {
 const statStyles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
-    ...Shadows.light.card,
   },
   stat: {
     flex: 1,
@@ -486,11 +479,9 @@ const statStyles = StyleSheet.create({
   },
   statValue: {
     ...Typography.title,
-    color: Colors.light.text,
   },
   statLabel: {
     ...Typography.caption,
-    color: Colors.light.muted,
     marginTop: Spacing.micro,
   },
 });
@@ -505,6 +496,7 @@ export default function SmartSlots({
   onRemoveSlot,
   onCopyLastWeek,
 }: SmartSlotsProps) {
+  const { colors, scheme } = useTheme();
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   const suggestions = useMemo(
@@ -554,14 +546,14 @@ export default function SmartSlots({
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View style={styles.headerArea}>
-        <Text style={styles.headerTitle}>Smart Slots</Text>
-        <Text style={styles.headerSubtitle}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Smart Slots</Text>
+        <Text style={[styles.headerSubtitle, { color: colors.muted }]}>
           Insights from your booking patterns to help optimise your availability.
         </Text>
       </View>
@@ -570,22 +562,22 @@ export default function SmartSlots({
       <StatsSummary />
 
       {/* Heatmap */}
-      <Text style={styles.sectionTitle}>Booking heatmap</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>Booking heatmap</Text>
       <HeatmapGrid data={MOCK_HEATMAP} />
 
       {/* Quick action: Copy last week */}
-      <Pressable style={styles.copyWeekButton} onPress={handleCopyLastWeek}>
-        <Ionicons name="copy-outline" size={18} color={Colors.light.tint} />
-        <Text style={styles.copyWeekText}>Copy last week&apos;s schedule</Text>
-        <Ionicons name="chevron-forward" size={16} color={Colors.light.muted} />
+      <Pressable style={[styles.copyWeekButton, { backgroundColor: colors.surface }, Shadows[scheme].subtle]} onPress={handleCopyLastWeek}>
+        <Ionicons name="copy-outline" size={18} color={colors.tint} />
+        <Text style={[styles.copyWeekText, { color: colors.tint }]}>Copy last week&apos;s schedule</Text>
+        <Ionicons name="chevron-forward" size={16} color={colors.muted} />
       </Pressable>
 
       {/* Add suggestions */}
       {addSuggestions.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
-            <Ionicons name="bulb-outline" size={18} color={Colors.light.success} />
-            <Text style={styles.sectionTitle}>Popular slots to add</Text>
+            <Ionicons name="bulb-outline" size={18} color={colors.success} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Popular slots to add</Text>
           </View>
           <View style={styles.suggestionsContainer}>
             {addSuggestions.map((s) => (
@@ -599,8 +591,8 @@ export default function SmartSlots({
       {removeSuggestions.length > 0 && (
         <>
           <View style={styles.sectionHeader}>
-            <Ionicons name="analytics-outline" size={18} color={Colors.light.warning} />
-            <Text style={styles.sectionTitle}>Low-demand slots</Text>
+            <Ionicons name="analytics-outline" size={18} color={colors.warning} />
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Low-demand slots</Text>
           </View>
           <View style={styles.suggestionsContainer}>
             {removeSuggestions.map((s) => (
@@ -622,7 +614,6 @@ export default function SmartSlots({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
   },
   contentContainer: {
     paddingHorizontal: Spacing.sm,
@@ -636,18 +627,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...Typography.title,
-    color: Colors.light.text,
     marginBottom: Spacing.xxs,
   },
   headerSubtitle: {
     ...Typography.body,
-    color: Colors.light.muted,
   },
 
   // Sections
   sectionTitle: {
     ...Typography.heading,
-    color: Colors.light.text,
     marginTop: Spacing.md,
     marginBottom: Spacing.xs,
     paddingHorizontal: Spacing.xs,
@@ -666,17 +654,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 14,
     marginTop: Spacing.md,
-    ...Shadows.light.subtle,
   },
   copyWeekText: {
     flex: 1,
     ...Typography.bodySemiBold,
-    color: Colors.light.tint,
   },
 
   // Suggestions

@@ -19,9 +19,9 @@ import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { DrillList } from '@/components/drills';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AssignedDrill, DrillAssignmentStats } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
@@ -35,8 +35,7 @@ const logger = createLogger('DrillsDashboardScreen');
  * Drills dashboard screen for athletes showing assigned drills.
  */
 export default function DrillsDashboardScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State
@@ -195,7 +194,7 @@ export default function DrillsDashboardScreen() {
                 {/* Streak */}
                 <View style={styles.statItem}>
                   <View style={styles.streakContainer}>
-                    <Ionicons name="flame" size={16} color="#F59E0B" />
+                    <Ionicons name="flame" size={16} color={palette.warning} />
                     <ThemedText type="title" style={styles.statValue}>
                       {stats.currentStreak}
                     </ThemedText>
@@ -207,7 +206,7 @@ export default function DrillsDashboardScreen() {
               </View>
 
               {/* Completion rate progress bar */}
-              <View style={styles.progressSection}>
+              <View style={[styles.progressSection, { borderTopColor: palette.border }]}>
                 <View style={styles.progressHeader}>
                   <ThemedText style={[styles.progressLabel, { color: palette.muted }]}>
                     Completion Rate
@@ -246,14 +245,13 @@ export default function DrillsDashboardScreen() {
                   styles.tab,
                   {
                     backgroundColor: activeTab === tab ? palette.tint : 'transparent',
-                    borderColor: activeTab === tab ? palette.tint : palette.border,
-                  },
+                    borderColor: activeTab === tab ? palette.tint : palette.border },
                 ]}
               >
                 <ThemedText
                   style={[
                     styles.tabText,
-                    { color: activeTab === tab ? Colors.light.onPrimary : palette.text },
+                    { color: activeTab === tab ? palette.onPrimary : palette.text },
                   ]}
                 >
                   {tab === 'pending' ? 'To Do' : tab === 'completed' ? 'Done' : 'All'}
@@ -262,14 +260,13 @@ export default function DrillsDashboardScreen() {
                   style={[
                     styles.tabBadge,
                     {
-                      backgroundColor: activeTab === tab ? 'rgba(255,255,255,0.2)' : palette.surfaceSecondary,
-                    },
+                      backgroundColor: activeTab === tab ? withAlpha(palette.onPrimary, 0.2) : palette.surfaceSecondary },
                   ]}
                 >
                   <ThemedText
                     style={[
                       styles.tabBadgeText,
-                      { color: activeTab === tab ? Colors.light.onPrimary : palette.muted },
+                      { color: activeTab === tab ? palette.onPrimary : palette.muted },
                     ]}
                   >
                     {count}
@@ -310,88 +307,68 @@ export default function DrillsDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
+    paddingBottom: Spacing.xl },
   statsCard: {
     padding: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   statItem: {
     alignItems: 'center',
-    flex: 1,
-  },
+    flex: 1 },
   statValue: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   statLabel: {
     ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   statDivider: {
     width: 1,
-    height: 32,
-  },
+    height: 32 },
   streakContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   progressSection: {
     marginTop: Spacing.md,
     paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-  },
+    borderTopWidth: 1 },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   progressLabel: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-  },
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
   progressValue: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   progressBarBg: {
     height: 8,
     borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   progressBarFill: {
     height: '100%',
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   tabRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   tab: {
     flex: 1,
     flexDirection: 'row',
@@ -400,23 +377,17 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 10,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   tabText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   tabBadge: {
     minWidth: 20,
     height: 20,
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
-  },
+    paddingHorizontal: Spacing.xxs },
   tabBadgeText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   listSection: {
-    flex: 1,
-  },
-});
+    flex: 1 } });

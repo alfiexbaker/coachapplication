@@ -4,9 +4,8 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+  Pressable,
+  ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,8 +14,8 @@ import { ThemedText } from '@/components/themed-text';
 import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { AnalyticsStatCard, RetentionCard, CancellationChart } from '@/components/analytics';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { coachAnalyticsService } from '@/services/analytics-service';
 import type { RetentionMetrics, CancellationStats } from '@/constants/types';
@@ -34,8 +33,7 @@ const logger = createLogger('RetentionScreen');
  * - Recommendations for improvement
  */
 export default function RetentionScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const { currentUser } = useAuth();
 
@@ -109,9 +107,9 @@ export default function RetentionScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.titleRow}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Pressable onPress={() => router.back()} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
             <ThemedText type="title" style={styles.title}>
               Client Retention
             </ThemedText>
@@ -198,7 +196,7 @@ export default function RetentionScreen() {
               <View style={styles.funnelSteps}>
                 <View style={styles.funnelStep}>
                   <View style={[styles.funnelBar, { width: '100%', backgroundColor: withAlpha(palette.tint, 0.38) }]}>
-                    <ThemedText style={styles.funnelBarText}>
+                    <ThemedText style={[styles.funnelBarText, { color: palette.onPrimary }]}>
                       {retention.totalActiveClients + retention.clientsLost} Total
                     </ThemedText>
                   </View>
@@ -209,11 +207,10 @@ export default function RetentionScreen() {
                       styles.funnelBar,
                       {
                         width: `${(retention.totalActiveClients / (retention.totalActiveClients + retention.clientsLost)) * 100}%`,
-                        backgroundColor: withAlpha(palette.tint, 0.5),
-                      },
+                        backgroundColor: withAlpha(palette.tint, 0.5) },
                     ]}
                   >
-                    <ThemedText style={styles.funnelBarText}>
+                    <ThemedText style={[styles.funnelBarText, { color: palette.onPrimary }]}>
                       {retention.totalActiveClients} Active
                     </ThemedText>
                   </View>
@@ -224,11 +221,10 @@ export default function RetentionScreen() {
                       styles.funnelBar,
                       {
                         width: `${(retention.returningClients / (retention.totalActiveClients + retention.clientsLost)) * 100}%`,
-                        backgroundColor: withAlpha(palette.success, 0.5),
-                      },
+                        backgroundColor: withAlpha(palette.success, 0.5) },
                     ]}
                   >
-                    <ThemedText style={styles.funnelBarText}>
+                    <ThemedText style={[styles.funnelBarText, { color: palette.onPrimary }]}>
                       {retention.returningClients} Returning
                     </ThemedText>
                   </View>
@@ -313,139 +309,105 @@ export default function RetentionScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['2xl'],
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingText: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   header: {
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   backButton: {
     padding: Spacing.xxs,
-    marginLeft: -4,
-  },
+    marginLeft: -4 },
   title: {
     ...Typography.display,
-    letterSpacing: -0.5,
-  },
+    letterSpacing: -0.5 },
   subtitle: {
     ...Typography.body,
     marginTop: Spacing.xxs,
-    marginLeft: 32,
-  },
+    marginLeft: 32 },
   statusCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   statusContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   statusIcon: {
     width: 56,
     height: 56,
     borderRadius: Radii['2xl'],
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   statusInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   statusLabel: {
     ...Typography.bodySmallSemiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: Spacing.xxs,
-  },
+    marginBottom: Spacing.xxs },
   statusValue: {
-    ...Typography.title,
-  },
+    ...Typography.title },
   statsGrid: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   funnelCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   funnelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   funnelTitle: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   funnelSteps: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   funnelStep: {
-    height: 36,
-  },
+    height: 36 },
   funnelBar: {
     height: '100%',
     borderRadius: Radii.sm,
     justifyContent: 'center',
     paddingHorizontal: Spacing.sm,
-    minWidth: 80,
-  },
+    minWidth: 80 },
   funnelBarText: {
-    ...Typography.smallSemiBold,
-    color: Colors.light.onPrimary,
-  },
+    ...Typography.smallSemiBold },
   recommendationsCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   recommendationsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   recommendationsTitle: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   recommendationsList: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   recommendationItem: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   recommendationIcon: {
     width: 32,
     height: 32,
     borderRadius: Radii.lg,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   recommendationContent: {
-    flex: 1,
-  },
+    flex: 1 },
   recommendationText: {
     ...Typography.bodySmallSemiBold,
-    marginBottom: Spacing.micro,
-  },
+    marginBottom: Spacing.micro },
   recommendationSub: {
-    ...Typography.small,
-  },
-});
+    ...Typography.small } });

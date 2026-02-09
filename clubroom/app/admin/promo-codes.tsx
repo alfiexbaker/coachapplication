@@ -5,7 +5,7 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
-  TouchableOpacity,
+  Pressable,
   Modal,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -20,8 +20,8 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { PromoCodeCard, CodeUsageList, CodeUsageSummary } from '@/components/promo';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { promoService } from '@/services/promo-service';
 import type { PromoCode, PromoCodeUsage, PromoCodeStats } from '@/constants/types';
@@ -31,8 +31,7 @@ const logger = createLogger('AdminPromoCodesScreen');
 type FilterType = 'all' | 'active' | 'expired' | 'exhausted' | 'inactive';
 
 export default function AdminPromoCodesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   useAuth();
 
@@ -172,7 +171,7 @@ export default function AdminPromoCodesScreen() {
     <Animated.View entering={FadeInDown.delay(100).springify()}>
       <View style={styles.filterContainer}>
         {(['all', 'active', 'expired', 'exhausted', 'inactive'] as FilterType[]).map((f) => (
-          <TouchableOpacity
+          <Pressable
             key={f}
             style={[
               styles.filterButton,
@@ -186,12 +185,12 @@ export default function AdminPromoCodesScreen() {
             <ThemedText
               style={[
                 styles.filterText,
-                { color: filter === f ? Colors.light.onPrimary : palette.text },
+                { color: filter === f ? palette.onPrimary : palette.text },
               ]}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
     </Animated.View>
@@ -221,13 +220,13 @@ export default function AdminPromoCodesScreen() {
           : `No promo codes match the "${filter}" filter`}
       </ThemedText>
       {filter === 'all' && (
-        <TouchableOpacity
+        <Pressable
           style={[styles.createButtonSmall, { backgroundColor: palette.tint }]}
           onPress={handleCreateCode}
         >
-          <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
-          <ThemedText style={styles.createButtonSmallText}>Create Code</ThemedText>
-        </TouchableOpacity>
+          <Ionicons name="add" size={18} color={palette.onPrimary} />
+          <ThemedText style={[styles.createButtonSmallText, { color: palette.onPrimary }]}>Create Code</ThemedText>
+        </Pressable>
       )}
     </View>
   );
@@ -269,13 +268,13 @@ export default function AdminPromoCodesScreen() {
           subtitle="Manage promotional codes"
           showBack
           right={
-            <TouchableOpacity
+            <Pressable
               style={[styles.createButton, { backgroundColor: palette.tint }]}
               onPress={handleCreateCode}
             >
-              <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.createButtonText}>New</ThemedText>
-            </TouchableOpacity>
+              <Ionicons name="add" size={20} color={palette.onPrimary} />
+              <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>New</ThemedText>
+            </Pressable>
           }
         />
       }
@@ -321,12 +320,12 @@ export default function AdminPromoCodesScreen() {
                 </ThemedText>
               )}
             </View>
-            <TouchableOpacity
+            <Pressable
               style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}
               onPress={() => setUsageModalVisible(false)}
             >
               <Ionicons name="close" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <View style={styles.modalContent}>
@@ -421,7 +420,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
   },
   createButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.bodySmallSemiBold,
   },
   emptyContainer: {
@@ -456,7 +454,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   createButtonSmallText: {
-    color: Colors.light.onPrimary,
     ...Typography.bodySmallSemiBold,
   },
   modalContainer: {

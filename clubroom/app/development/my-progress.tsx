@@ -9,8 +9,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Chip } from '@/components/primitives/chip';
 import { ProgressDashboard, SkillLevelGrid, FeedbackList } from '@/components/progress';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService, AthleteProgress, SessionFeedback } from '@/services/progress-service';
 import { badgeService } from '@/services/badge-service';
@@ -20,8 +20,7 @@ import type { BadgeAward } from '@/constants/types';
 const logger = createLogger('MyProgressScreen');
 
 export default function MyProgressScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -323,7 +322,7 @@ export default function MyProgressScreen() {
                     onPress={handleCreateGoal}
                     style={[styles.goalFormBtn, { backgroundColor: palette.tint }]}
                   >
-                    <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Create</ThemedText>
+                    <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Create</ThemedText>
                   </Clickable>
                 </View>
               </SurfaceCard>

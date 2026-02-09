@@ -14,13 +14,12 @@ import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
 import { ComparisonTable } from '@/components/compare/ComparisonTable';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { comparisonService } from '@/services/comparison-service';
 
 export default function CompareScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [coachCount, setCoachCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -68,8 +67,7 @@ export default function CompareScreen() {
                   Clear All
                 </ThemedText>
               </Pressable>
-            ) : null,
-        }}
+            ) : null }}
       />
 
       <SafeAreaView
@@ -97,8 +95,7 @@ export default function CompareScreen() {
                 styles.addMoreButton,
                 {
                   backgroundColor: pressed ? palette.surfaceSecondary : 'transparent',
-                  borderColor: palette.border,
-                },
+                  borderColor: palette.border },
               ]}
             >
               <Ionicons name="add" size={16} color={palette.tint} />
@@ -131,12 +128,11 @@ export default function CompareScreen() {
               style={({ pressed }) => [
                 styles.browseButton,
                 {
-                  backgroundColor: pressed ? palette.tintPressed : palette.tint,
-                },
+                  backgroundColor: pressed ? palette.tintPressed : palette.tint },
               ]}
             >
-              <Ionicons name="search" size={18} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.browseButtonText}>Browse Coaches</ThemedText>
+              <Ionicons name="search" size={18} color={palette.onPrimary} />
+              <ThemedText style={[styles.browseButtonText, { color: palette.onPrimary }]}>Browse Coaches</ThemedText>
             </Pressable>
           </View>
         )}
@@ -147,31 +143,25 @@ export default function CompareScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   headerButton: {
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
+    paddingVertical: Spacing.xs },
   headerButtonText: {
-    ...Typography.bodySemiBold,
-  },
+    ...Typography.bodySemiBold },
   statusBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   statusInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   statusText: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   addMoreButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -179,45 +169,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   addMoreText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: Spacing.lg,
-  },
+    padding: Spacing.lg },
   emptyIcon: {
     width: 96,
     height: 96,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   emptyTitle: {
     marginBottom: Spacing.xs,
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   emptyText: {
     ...Typography.bodySmall,
     textAlign: 'center',
     marginBottom: Spacing.lg,
-    maxWidth: 280,
-  },
+    maxWidth: 280 },
   browseButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.button,
-  },
+    borderRadius: Radii.button },
   browseButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySemiBold,
-  },
-});
+    ...Typography.bodySemiBold } });

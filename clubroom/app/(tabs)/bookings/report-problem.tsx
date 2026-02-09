@@ -8,8 +8,8 @@ import { apiClient } from '@/services/api-client';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('ReportProblem');
@@ -30,8 +30,7 @@ const problemCategories: ProblemCategory[] = [
 ];
 
 export default function ReportProblemScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { bookingId } = useLocalSearchParams<{ bookingId?: string }>();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -167,7 +166,7 @@ export default function ReportProblemScreen() {
             (!selectedCategory || !description.trim() || submitting) && { opacity: 0.5 },
             pressed && { opacity: 0.8 },
           ]}>
-          <ThemedText style={styles.submitText} lightColor={Colors.light.onPrimary} darkColor={Colors.dark.text}>
+          <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
             {submitting ? 'Submitting...' : 'Submit Report'}
           </ThemedText>
         </Pressable>

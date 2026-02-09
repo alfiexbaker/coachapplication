@@ -118,7 +118,7 @@ export class ErrorBoundary extends Component<Props, State> {
               ]}
               onPress={this.resetError}
             >
-              <Text style={styles.buttonText}>Try Again</Text>
+              <Text style={[styles.buttonText, { color: palette.onPrimary }]}>Try Again</Text>
             </Pressable>
           </ScrollView>
         </SafeAreaView>
@@ -171,5 +171,5 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     marginTop: Spacing.lg,
   },
-  buttonText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  buttonText: { ...Typography.subheading },
 });

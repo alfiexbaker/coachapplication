@@ -7,9 +7,9 @@
 
 import { StyleSheet, View } from 'react-native';
 
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme, ThemeColors } from '@/hooks/useTheme';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -47,7 +47,7 @@ export interface FocusBadgeProps {
   focus: string;
 }
 
-type Palette = (typeof Colors)['light'];
+type Palette = ThemeColors;
 
 // -----------------------------------------------------------------------------
 // Utility Functions
@@ -72,8 +72,7 @@ export function formatPrice(
 // -----------------------------------------------------------------------------
 
 export function SpecialtyTags({ specialties }: SpecialtyTagsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (!specialties || specialties.length === 0) {
     return null;
@@ -100,8 +99,7 @@ export function SpecialtyTags({ specialties }: SpecialtyTagsProps) {
 // -----------------------------------------------------------------------------
 
 export function FocusBadge({ focus }: FocusBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.focusBadge, { backgroundColor: palette.surfaceSecondary }]}>
@@ -124,8 +122,7 @@ export function PriceDisplay({
   labelText = 'per session',
   size = 'md',
 }: PriceDisplayProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const priceStr = formatPrice(pricePerHour, priceMin, priceMax);
 
@@ -170,8 +167,7 @@ export function InlinePrice({
   priceMax,
   suffix = '/session',
 }: InlinePriceProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const priceStr = formatPrice(pricePerHour, priceMin, priceMax);
 
@@ -203,8 +199,7 @@ export function CoachCardServices({
   priceMax,
   variant = 'tags',
 }: CoachCardServicesProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const tags = specialties || footballFocuses || [];
   const primaryFocus = tags[0];

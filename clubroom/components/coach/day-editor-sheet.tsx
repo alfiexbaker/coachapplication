@@ -25,10 +25,10 @@ import * as Haptics from 'expo-haptics';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives/DateTimeField';
-import { Colors, Spacing, Radii, Typography, withAlpha, Components } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha, Components } from '@/constants/theme';
 import type { AvailabilityTemplate, AvailabilityOverride, CoachVenue } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('DayEditorSheet');
 
@@ -92,8 +92,7 @@ export function DayEditorSheet({
   onAddVenue,
   coachId,
 }: DayEditorSheetProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const dayName = DAYS_FULL[dayOfWeek];
 
@@ -694,7 +693,6 @@ const styles = StyleSheet.create({
   },
   editingBadgeText: {
     ...Typography.micro,
-    fontWeight: '600',
   },
   // Scope
   scopeRow: {

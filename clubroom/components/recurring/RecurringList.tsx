@@ -5,9 +5,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RecurringCard } from './RecurringCard';
-import { Colors, Spacing, Typography, Radii } from '@/constants/theme';
+import { Spacing, Typography, Radii } from '@/constants/theme';
 import { RecurringBooking, RecurringBookingStatus } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Filter options for recurring bookings list
@@ -58,8 +58,7 @@ function FilterChip({
   onPress: () => void;
   count?: number;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Pressable
@@ -119,8 +118,7 @@ export function RecurringList({
   emptyMessage = 'You don\'t have any recurring bookings yet. Subscribe to a weekly or monthly session slot to get started.',
   showFilters = true,
 }: RecurringListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [activeFilter, setActiveFilter] = useState<FilterOption>('ALL');
 
   // Calculate counts for each filter
@@ -363,8 +361,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.xs,
   },
   filterChipText: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   filterChipBadge: {
     paddingHorizontal: Spacing.xxs,

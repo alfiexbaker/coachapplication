@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { Invoice } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
 
@@ -40,8 +40,7 @@ function formatTime(dateString: string): string {
 // ============================================================================
 
 export function InvoicePreview({ invoice }: InvoicePreviewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const statusColor = invoiceService.getStatusColor(invoice.status);
 
   return (

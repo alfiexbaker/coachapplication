@@ -1,13 +1,13 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { ClubFeedPost } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface EventCardProps {
   event: ClubFeedPost;
@@ -15,8 +15,7 @@ export interface EventCardProps {
 }
 
 export function EventCard({ event, onPress }: EventCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -28,10 +27,9 @@ export function EventCard({ event, onPress }: EventCardProps) {
   };
 
   return (
-    <TouchableOpacity
-      style={[styles.eventCard, { borderColor: palette.border }]}
+    <Pressable
+      style={({pressed}) => [styles.eventCard, { borderColor: palette.border }, pressed && {opacity: 0.7}]}
       onPress={onPress}
-      activeOpacity={0.7}
     >
       <View style={styles.eventCardHeader}>
         <View style={[styles.eventIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
@@ -64,7 +62,7 @@ export function EventCard({ event, onPress }: EventCardProps) {
           </ThemedText>
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -76,8 +74,7 @@ export interface EventsPanelProps {
 }
 
 export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPanelProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleCreateEvent = () => {
     if (onCreateEvent) {
@@ -102,13 +99,13 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
           <ThemedText type="defaultSemiBold">Club Events</ThemedText>
         </View>
         {isCoach && (
-          <TouchableOpacity
+          <Pressable
             style={[styles.addEventButton, { backgroundColor: palette.tint }]}
             onPress={handleCreateEvent}
           >
             <Ionicons name="add" size={16} color={palette.onPrimary} />
             <ThemedText style={{ ...Typography.caption, color: palette.onPrimary }}>Add</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
@@ -122,7 +119,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
             />
           ))}
           {eventPosts.length > 3 && (
-            <TouchableOpacity
+            <Pressable
               style={styles.viewAllButton}
               onPress={() => router.push(Routes.EVENTS)}
             >
@@ -130,7 +127,7 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
                 View all {eventPosts.length} events
               </ThemedText>
               <Ionicons name="chevron-forward" size={16} color={palette.tint} />
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       ) : (
@@ -140,14 +137,14 @@ export function EventsPanel({ events, isCoach, clubId, onCreateEvent }: EventsPa
             No upcoming events
           </ThemedText>
           {isCoach && (
-            <TouchableOpacity
+            <Pressable
               style={[styles.createEventButton, { borderColor: palette.tint }]}
               onPress={handleCreateEvent}
             >
               <ThemedText style={ { color: palette.tint, ...Typography.smallSemiBold }}>
                 Create Event
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
       )}

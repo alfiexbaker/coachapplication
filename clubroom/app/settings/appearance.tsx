@@ -8,8 +8,8 @@ import { SettingsRow, SettingsToggleRow, SettingsSection } from '@/components/se
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useThemePreferences } from '@/hooks/theme-provider';
 import { createLogger } from '@/utils/logger';
 
@@ -27,8 +27,7 @@ interface ThemeCardProps {
 }
 
 function ThemeCard({ label, value, selected, onSelect, icon, description }: ThemeCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Clickable onPress={onSelect}>
@@ -45,7 +44,7 @@ function ThemeCard({ label, value, selected, onSelect, icon, description }: Them
         <ThemedText style={[styles.themeDescription, { color: palette.muted }]}>{description}</ThemedText>
         {selected && (
           <View style={[styles.selectedBadge, { backgroundColor: palette.accent }]}>
-            <Ionicons name="checkmark" size={14} color={Colors.light.onPrimary} />
+            <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
           </View>
         )}
       </SurfaceCard>
@@ -54,8 +53,7 @@ function ThemeCard({ label, value, selected, onSelect, icon, description }: Them
 }
 
 export default function AppearanceSettingsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { colorScheme, setColorScheme } = useThemePreferences();
 
   // Theme selection
@@ -183,7 +181,7 @@ export default function AppearanceSettingsScreen() {
           <SurfaceCard style={styles.previewCard}>
             <View style={styles.previewHeader}>
               <View style={[styles.previewAvatar, { backgroundColor: palette.accent }]}>
-                <Ionicons name="person" size={20} color={Colors.light.onPrimary} />
+                <Ionicons name="person" size={20} color={palette.onPrimary} />
               </View>
               <View style={styles.previewText}>
                 <ThemedText type="defaultSemiBold">Sample Card Title</ThemedText>
@@ -193,7 +191,7 @@ export default function AppearanceSettingsScreen() {
               </View>
             </View>
             <View style={[styles.previewButton, { backgroundColor: palette.accent }]}>
-              <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>
+              <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>
                 Sample Button
               </ThemedText>
             </View>

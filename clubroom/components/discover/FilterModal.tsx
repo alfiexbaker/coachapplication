@@ -22,8 +22,8 @@ import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { PriceRangeSlider } from './PriceRangeSlider';
 import { RatingFilter } from './RatingFilter';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type {
   CoachSearchFilters,
   FilterOptions,
@@ -63,8 +63,7 @@ export function FilterModal({
   onApply,
   resultCount,
 }: FilterModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Local state for draft filters
   const [draftFilters, setDraftFilters] = useState<CoachSearchFilters>(filters);

@@ -13,6 +13,20 @@ import assert from 'node:assert';
 import test, { describe, beforeEach } from 'node:test';
 import Module from 'node:module';
 
+// Type for accessing Node.js Module internals (private API used for mocking)
+interface ModuleInternal {
+  filename: string;
+  loaded: boolean;
+  exports: unknown;
+}
+
+interface ModuleConstructor {
+  _cache: Record<string, ModuleInternal>;
+  _resolveFilename: (request: string, parent: unknown, isMain: boolean, options: unknown) => string;
+}
+
+const ModuleInternals = Module as unknown as ModuleConstructor;
+
 // ---------------------------------------------------------------------------
 // Mocks — we override the expo-calendar mock and set up service stubs
 // before importing the module under test.
@@ -53,11 +67,11 @@ const calendarMock = {
 };
 
 // Patch the module cache before the import resolves
-const calMod = new Module('expo-calendar');
-(calMod as any).filename = 'expo-calendar';
-(calMod as any).loaded = true;
+const calMod = new Module('expo-calendar') as unknown as ModuleInternal;
+calMod.filename = 'expo-calendar';
+calMod.loaded = true;
 calMod.exports = calendarMock;
-(Module as any)._cache['expo-calendar'] = calMod;
+ModuleInternals._cache['expo-calendar'] = calMod;
 
 // ---------------------------------------------------------------------------
 // Mock booking service & calendar service (lazy loaded via require)
@@ -107,30 +121,30 @@ const calendarServiceMock = {
 // translates @/services/booking-service -> .tmp-tests/services/booking-service,
 // we'll hook into _resolveFilename to catch those and return our mock module names.
 
-const origResolve = (Module as any)._resolveFilename;
+const origResolve = ModuleInternals._resolveFilename;
 const mockModuleMap: Record<string, unknown> = {};
 
 function registerServiceMock(pathSuffix: string, mockExports: unknown): void {
   const fakeName = `__mock__${pathSuffix}`;
   mockModuleMap[pathSuffix] = fakeName;
 
-  const mod = new Module(fakeName);
-  (mod as any).filename = fakeName;
-  (mod as any).loaded = true;
+  const mod = new Module(fakeName) as unknown as ModuleInternal;
+  mod.filename = fakeName;
+  mod.loaded = true;
   mod.exports = mockExports;
-  (Module as any)._cache[fakeName] = mod;
+  ModuleInternals._cache[fakeName] = mod;
 }
 
 registerServiceMock('services/booking-service', bookingServiceMock);
 registerServiceMock('services/calendar-service', calendarServiceMock);
 
 // Patch resolve to intercept .tmp-tests/services/* paths
-const prevResolve = (Module as any)._resolveFilename;
-(Module as any)._resolveFilename = function (request: string, parent: any, isMain: boolean, options: any) {
+const prevResolve = ModuleInternals._resolveFilename;
+ModuleInternals._resolveFilename = function (request: string, parent: unknown, isMain: boolean, options: unknown) {
   // Check if request ends with a known mock path
   for (const [suffix, fakeName] of Object.entries(mockModuleMap)) {
     if (request.endsWith(suffix) || request.endsWith(suffix + '.js') || request.endsWith(suffix + '/index')) {
-      return fakeName;
+      return fakeName as string;
     }
   }
   return prevResolve.call(this, request, parent, isMain, options);

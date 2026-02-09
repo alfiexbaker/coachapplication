@@ -10,12 +10,15 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { analyticsService, type AnalyticsPeriod } from '@/services/analytics-service';
 import type { AthleteAnalytics, Goal, SkillProgress } from '@/constants/types';
 
 const logger = createLogger('AthleteAnalyticsScreen');
+
+// Decorative: analytics accent color for improvement/rank stats
+const ANALYTICS_ACCENT_COLOR = '#7B68EE';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -25,8 +28,7 @@ function StatCard({
   value,
   suffix,
   color,
-  index,
-}: {
+  index }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string | number;
@@ -34,8 +36,7 @@ function StatCard({
   color: string;
   index: number;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Animated.View
@@ -56,13 +57,11 @@ function StatCard({
 
 function SkillBar({
   skill,
-  index,
-}: {
+  index }: {
   skill: SkillProgress;
   index: number;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const changeColor =
     skill.changePercent > 0 ? palette.success : skill.changePercent < 0 ? palette.error : palette.muted;
@@ -98,8 +97,7 @@ function SkillBar({
                   ? palette.success
                   : skill.currentLevel >= 50
                   ? palette.warning
-                  : palette.tint,
-            },
+                  : palette.tint },
           ]}
         />
       </View>
@@ -118,14 +116,12 @@ function SkillBar({
 function GoalCard({
   goal,
   index,
-  onComplete,
-}: {
+  onComplete }: {
   goal: Goal;
   index: number;
   onComplete: (milestoneId: string) => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const completedMilestones = goal.milestones.filter((m) => m.isCompleted).length;
   const totalMilestones = goal.milestones.length;
@@ -143,8 +139,7 @@ function GoalCard({
                 Target: {new Date(goal.targetDate).toLocaleDateString('en-GB', {
                   day: 'numeric',
                   month: 'short',
-                  year: 'numeric',
-                })}
+                  year: 'numeric' })}
               </ThemedText>
             )}
           </View>
@@ -167,8 +162,7 @@ function GoalCard({
               styles.progressBarFill,
               {
                 width: `${goal.progress}%`,
-                backgroundColor: goal.progress === 100 ? palette.success : palette.tint,
-              },
+                backgroundColor: goal.progress === 100 ? palette.success : palette.tint },
             ]}
           />
         </View>
@@ -186,11 +180,10 @@ function GoalCard({
                   styles.milestoneCheck,
                   {
                     backgroundColor: milestone.isCompleted ? palette.success : palette.surface,
-                    borderColor: milestone.isCompleted ? palette.success : palette.border,
-                  },
+                    borderColor: milestone.isCompleted ? palette.success : palette.border },
                 ]}
               >
-                {milestone.isCompleted && <Ionicons name="checkmark" size={12} color={Colors.light.onPrimary} />}
+                {milestone.isCompleted && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
               </View>
               <ThemedText
                 style={[
@@ -231,8 +224,7 @@ function GoalCard({
 
 export default function AthleteAnalyticsScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [analytics, setAnalytics] = useState<AthleteAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -299,8 +291,7 @@ export default function AthleteAnalyticsScreen() {
             try {
               await Share.share({
                 message: `Check out ${analytics.athleteName}'s progress! ${analytics.totalSessions} sessions completed with an average rating of ${analytics.averageSessionRating.toFixed(1)}/5.`,
-                title: `${analytics.athleteName} Progress Report`,
-              });
+                title: `${analytics.athleteName} Progress Report` });
             } catch {
               Alert.alert('Error', 'Failed to share progress report.');
             }
@@ -326,7 +317,7 @@ export default function AthleteAnalyticsScreen() {
             ]}
           >
             <ThemedText
-              style={[styles.periodText, { color: period === p.key ? Colors.light.onPrimary : palette.text }]}
+              style={[styles.periodText, { color: period === p.key ? palette.onPrimary : palette.text }]}
             >
               {p.label}
             </ThemedText>
@@ -349,7 +340,7 @@ export default function AthleteAnalyticsScreen() {
             label="Avg Rating"
             value={analytics.averageSessionRating.toFixed(1)}
             suffix="/5"
-            color="#FFB800"
+            color={palette.rating}
             index={1}
           />
           <StatCard
@@ -365,7 +356,7 @@ export default function AthleteAnalyticsScreen() {
             label="Improvement"
             value={`+${analytics.improvementRate.toFixed(1)}`}
             suffix="%"
-            color="#7B68EE"
+            color={ANALYTICS_ACCENT_COLOR}
             index={3}
           />
         </View>
@@ -393,7 +384,7 @@ export default function AthleteAnalyticsScreen() {
               </View>
               <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
               <View style={styles.summaryItem}>
-                <ThemedText type="heading" style={[styles.summaryValue, { color: '#7B68EE' }]}>
+                <ThemedText type="heading" style={[styles.summaryValue, { color: ANALYTICS_ACCENT_COLOR }]}>
                   Top {100 - analytics.percentileRank}%
                 </ThemedText>
                 <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>
@@ -465,8 +456,7 @@ export default function AthleteAnalyticsScreen() {
                     <ThemedText style={[styles.completedDate, { color: palette.muted }]}>
                       Completed {new Date(goal.updatedAt).toLocaleDateString('en-GB', {
                         day: 'numeric',
-                        month: 'short',
-                      })}
+                        month: 'short' })}
                     </ThemedText>
                   </View>
                 </View>
@@ -483,269 +473,205 @@ export default function AthleteAnalyticsScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    flex: 1,
-  },
+    flex: 1 },
   subtitle: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   periodsScroll: {
-    flexGrow: 0,
-  },
+    flexGrow: 0 },
   periodsContainer: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   periodChip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: Radii.full,
-  },
+    borderRadius: Radii.full },
   periodText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   content: {
     padding: Spacing.lg,
-    paddingTop: 0,
-  },
+    paddingTop: 0 },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   statCard: {
     width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.sm) / 2,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   statIcon: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   statValue: {
-    ...Typography.display,
-  },
+    ...Typography.display },
   statSuffix: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   statLabel: {
     ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   summaryCard: {
-    marginBottom: Spacing.lg,
-  },
+    marginBottom: Spacing.lg },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-  },
+    justifyContent: 'space-around' },
   summaryItem: {
     alignItems: 'center',
-    flex: 1,
-  },
+    flex: 1 },
   summaryValue: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   summaryLabel: {
     ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   summaryDivider: {
     width: 1,
-    height: 32,
-  },
+    height: 32 },
   section: {
-    marginBottom: Spacing.lg,
-  },
+    marginBottom: Spacing.lg },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   sectionMeta: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   seeAllButton: {
     paddingVertical: Spacing.xxs,
-    paddingHorizontal: 8,
-  },
+    paddingHorizontal: 8 },
   seeAllText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   skillsList: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   skillItem: {
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   skillHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   skillName: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   skillChange: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   changeText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   skillBarBg: {
     height: 8,
     borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   skillBarFill: {
     height: '100%',
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   skillMeta: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   skillCategory: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   skillLevel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   goalsList: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   goalCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   goalHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   goalTitleSection: {
     flex: 1,
-    marginRight: Spacing.sm,
-  },
+    marginRight: Spacing.sm },
   goalTitle: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   goalDate: {
     ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   progressCircle: {
     width: 44,
     height: 44,
     borderRadius: Radii.xl,
     borderWidth: 3,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   progressText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   goalDescription: {
     ...Typography.small,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   progressBarBg: {
     height: 6,
     borderRadius: Radii.xs,
     overflow: 'hidden',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   progressBarFill: {
     height: '100%',
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   milestones: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   milestone: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-  },
+    paddingVertical: Spacing.xxs },
   milestoneCheck: {
     width: 20,
     height: 20,
     borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   milestoneText: {
     ...Typography.small,
-    flex: 1,
-  },
+    flex: 1 },
   goalFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
-  },
+    paddingTop: Spacing.sm },
   milestoneCount: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   creatorBadge: {
     paddingHorizontal: 8,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   creatorText: {
-    ...Typography.micro,
-  },
+    ...Typography.micro },
   completedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: 8,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   completedText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   completedGoalCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   completedGoalContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   completedGoalText: {
-    flex: 1,
-  },
+    flex: 1 },
   completedDate: {
     ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   bottomSpacer: {
-    height: 40,
-  },
-});
+    height: 40 } });

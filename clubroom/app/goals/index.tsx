@@ -23,9 +23,9 @@ import {
   GoalCard,
   ProgressRing,
 } from '@/components/goals';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Goal, GoalCategory } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
@@ -38,8 +38,7 @@ type TabFilter = 'active' | 'completed' | 'all';
  * Goals dashboard screen showing goal statistics and lists.
  */
 export default function GoalsDashboardScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State
@@ -146,7 +145,7 @@ export default function GoalsDashboardScreen() {
           onPress={handleCreateGoal}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
+          <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
       </View>
 
@@ -167,7 +166,7 @@ export default function GoalsDashboardScreen() {
                   Avg Progress
                 </ThemedText>
               </View>
-              <View style={styles.statDivider} />
+              <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
               <View style={styles.statItem}>
                 <ThemedText type="title" style={styles.statValue}>
                   {stats.active}
@@ -176,7 +175,7 @@ export default function GoalsDashboardScreen() {
                   Active
                 </ThemedText>
               </View>
-              <View style={styles.statDivider} />
+              <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
               <View style={styles.statItem}>
                 <ThemedText type="title" style={[styles.statValue, { color: palette.success }]}>
                   {stats.completed}
@@ -206,7 +205,7 @@ export default function GoalsDashboardScreen() {
               <ThemedText
                 style={[
                   styles.tabText,
-                  { color: activeTab === tab ? Colors.light.onPrimary : palette.text },
+                  { color: activeTab === tab ? palette.onPrimary : palette.text },
                 ]}
               >
                 {tab === 'active' ? 'Active' : tab === 'completed' ? 'Completed' : 'All'}
@@ -358,7 +357,6 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: Colors.light.border,
   },
   tabRow: {
     flexDirection: 'row',

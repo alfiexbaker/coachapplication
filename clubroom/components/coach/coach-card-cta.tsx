@@ -8,11 +8,11 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -53,7 +53,7 @@ export interface BookButtonProps {
   variant?: 'primary' | 'compact';
 }
 
-type Palette = (typeof Colors)['light'];
+type Palette = ReturnType<typeof useTheme>['colors'];
 
 // -----------------------------------------------------------------------------
 // FavouriteButton Component
@@ -65,8 +65,7 @@ export function FavouriteButton({
   loading = false,
   size = 'md',
 }: FavouriteButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const iconSize = size === 'lg'
     ? Components.icon.lg
@@ -115,8 +114,7 @@ export function InlineFavouriteIcon({
   loading = false,
   size = 20,
 }: InlineFavouriteIconProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Clickable
@@ -143,8 +141,7 @@ export function BookButton({
   label = 'Book Now',
   variant = 'primary',
 }: BookButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (variant === 'compact') {
     return (
@@ -161,9 +158,7 @@ export function BookButton({
         ]}
       >
         <ThemedText
-          style={styles.bookButtonText}
-          lightColor={Colors.light.onPrimary}
-          darkColor={Colors.dark.onPrimary}
+          style={[styles.bookButtonText, { color: palette.onPrimary }]}
         >
           {label}
         </ThemedText>
@@ -204,8 +199,7 @@ export function ActionRow({
   onBookNow,
   showBookButton = true,
 }: ActionRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.actionRow}>
@@ -246,8 +240,7 @@ export function CoachCardCTA({
   bookButtonLabel = 'Book Now',
   buttonVariant = 'primary',
 }: CoachCardCTAProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (!showBookButton || !onBookNow) {
     return null;

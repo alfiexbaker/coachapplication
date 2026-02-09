@@ -8,18 +8,18 @@ import Animated, {
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillProgress } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
-// Color constants for skill levels
+// Decorative: skill level categorical colors (not themeable)
 const SKILL_LEVEL_COLORS = {
   beginner: '#F59E0B',    // Amber
   developing: '#3B82F6',  // Blue
   proficient: '#10B981',  // Emerald
   advanced: '#8B5CF6',    // Violet
   expert: '#EC4899',      // Pink
-};
+} as const;
 
 const getSkillLevelInfo = (level: number) => {
   if (level < 20) return { label: 'Beginner', color: SKILL_LEVEL_COLORS.beginner };
@@ -42,8 +42,7 @@ export function SkillProgressBar({
   compact = false,
   delay = 0,
 }: SkillProgressBarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const levelInfo = getSkillLevelInfo(skill.currentLevel);
@@ -222,8 +221,7 @@ export function SkillCategoryGroup({
   skills,
   initialExpanded = true,
 }: SkillCategoryGroupProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [expanded, setExpanded] = useState(initialExpanded);
 
   // Calculate category average
@@ -281,7 +279,7 @@ export function SkillCategoryGroup({
       </Pressable>
 
       {expanded && (
-        <Animated.View entering={FadeIn} style={styles.categorySkills}>
+        <Animated.View entering={FadeIn} style={[styles.categorySkills, { borderTopColor: palette.border }]}>
           {skills.map((skill, index) => (
             <SkillProgressBar
               key={skill.skillName}
@@ -319,8 +317,7 @@ interface SkillsSummaryProps {
 }
 
 export function SkillsSummary({ skills }: SkillsSummaryProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (skills.length === 0) {
     return (
@@ -587,7 +584,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingTop: Spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    // borderTopColor set dynamically via inline style
     marginTop: Spacing.xs,
   },
 

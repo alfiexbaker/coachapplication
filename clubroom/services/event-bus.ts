@@ -169,10 +169,38 @@ export const ServiceEvents = {
   BADGE_EARNED: 'achievement:badge_earned',
   STREAK_MILESTONE: 'achievement:streak_milestone',
 
+  // Invite RSVP events
+  INVITE_RSVP_RESPONDED: 'invite:rsvp:responded',
+  INVITE_SHARED: 'invite:shared',
+
+  // Squad events
+  SQUAD_CREATED: 'squad:created',
+  SQUAD_DELETED: 'squad:deleted',
+  SQUAD_MEMBER_ADDED: 'squad:member:added',
+  SQUAD_MEMBER_REMOVED: 'squad:member:removed',
+
+  // Comment events
+  COMMENT_CREATED: 'comment:created',
+  COMMENT_DELETED: 'comment:deleted',
+  COMMENT_LIKED: 'comment:liked',
+  COMMENT_REPLIED: 'comment:replied',
+
+  // Invite booking events
+  INVITE_ACCEPTED: 'invite:accepted',
+  INVITE_BOOKING_FAILED: 'invite:booking_failed',
+
+  // Coach feed events
+  COACH_POST_CREATED: 'coach:post:created',
+
   // Sync events
   SYNC_STARTED: 'sync:started',
   SYNC_COMPLETED: 'sync:completed',
   SYNC_FAILED: 'sync:failed',
+
+  // Connection & offline queue events
+  CONNECTION_CHANGED: 'connection:changed',
+  QUEUE_FLUSHED: 'queue:flushed',
+  QUEUE_ACTION_FAILED: 'queue:action_failed',
 } as const;
 
 export type ServiceEventType = (typeof ServiceEvents)[keyof typeof ServiceEvents];
@@ -433,6 +461,21 @@ export interface EventPayloads {
     milestoneLabel?: string;
   };
 
+  // Invite RSVP events
+  [ServiceEvents.INVITE_RSVP_RESPONDED]: {
+    inviteId: string;
+    responseId: string;
+    userId: string;
+    userName: string;
+    status: 'going' | 'maybe' | 'cant_go';
+    childName?: string;
+  };
+  [ServiceEvents.INVITE_SHARED]: {
+    inviteId: string;
+    sharedBy: string;
+    shareLink: string;
+  };
+
   // Sync events
   [ServiceEvents.SYNC_STARTED]: {
     scope: string;
@@ -447,6 +490,105 @@ export interface EventPayloads {
     scope: string;
     userId?: string;
     error: string;
+  };
+
+  // Connection & offline queue events
+  [ServiceEvents.CONNECTION_CHANGED]: {
+    isConnected: boolean;
+    wasOffline: boolean;
+  };
+  [ServiceEvents.QUEUE_FLUSHED]: {
+    processed: number;
+    failed: number;
+    remaining: number;
+  };
+  [ServiceEvents.QUEUE_ACTION_FAILED]: {
+    actionId: string;
+    path: string;
+    method: string;
+    error: string;
+    willRetry: boolean;
+  };
+
+  // Squad events
+  [ServiceEvents.SQUAD_CREATED]: {
+    squadId: string;
+    clubId: string;
+    squadName: string;
+    createdBy: string;
+  };
+  [ServiceEvents.SQUAD_DELETED]: {
+    squadId: string;
+    clubId: string;
+  };
+  [ServiceEvents.SQUAD_MEMBER_ADDED]: {
+    squadId: string;
+    clubId: string;
+    userId: string;
+    userName: string;
+  };
+  [ServiceEvents.SQUAD_MEMBER_REMOVED]: {
+    squadId: string;
+    clubId: string;
+    userId: string;
+    userName: string;
+  };
+
+  // Comment events
+  [ServiceEvents.COMMENT_CREATED]: {
+    commentId: string;
+    postId: string;
+    authorId: string;
+    authorName: string;
+  };
+  [ServiceEvents.COMMENT_DELETED]: {
+    commentId: string;
+    postId: string;
+    authorId: string;
+  };
+  [ServiceEvents.COMMENT_LIKED]: {
+    commentId: string;
+    postId: string;
+    userId: string;
+    liked: boolean;
+  };
+  [ServiceEvents.COMMENT_REPLIED]: {
+    commentId: string;
+    parentId: string;
+    postId: string;
+    authorId: string;
+    authorName: string;
+  };
+
+  // Coach feed events
+  [ServiceEvents.COACH_POST_CREATED]: {
+    postId: string;
+    coachId: string;
+    coachName: string;
+    feedType: 'PERSONAL' | 'CLUB' | 'BOTH';
+    postType: string;
+    clubId?: string;
+  };
+
+  // Invite booking events
+  [ServiceEvents.INVITE_ACCEPTED]: {
+    inviteId: string;
+    bookingId: string;
+    coachId: string;
+    parentId: string;
+    athleteIds: string[];
+    selectedSlot: {
+      date: string;
+      startTime: string;
+      endTime: string;
+      location?: string;
+    };
+  };
+  [ServiceEvents.INVITE_BOOKING_FAILED]: {
+    inviteId: string;
+    coachId: string;
+    parentId: string;
+    reason: string;
   };
 }
 

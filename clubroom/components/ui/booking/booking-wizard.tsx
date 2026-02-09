@@ -1,11 +1,10 @@
 import { View, StyleSheet } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export function BookingWizardHeader({ title, subtitle, step }: { title: string; subtitle: string; step: number }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   return (
     <View style={{ gap: Spacing.sm }}>
       <ThemedText type="title" style={{ ...Typography.display }}>
@@ -28,8 +27,7 @@ export function BookingWizardHeader({ title, subtitle, step }: { title: string; 
 }
 
 export function SummaryRow({ label, value }: { label: string; value: string }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   return (
     <View style={styles.summaryRow}>
       <ThemedText style={[styles.summaryLabel, { color: palette.muted }]}>{label}</ThemedText>

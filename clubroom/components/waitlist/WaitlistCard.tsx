@@ -6,10 +6,10 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { WaitlistPosition } from './WaitlistPosition';
-import { Colors, Spacing, Radii, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { waitlistService } from '@/services/waitlist-service';
 import type { WaitlistEntry } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface WaitlistCardProps {
   /** The waitlist entry to display */
@@ -21,8 +21,7 @@ interface WaitlistCardProps {
 }
 
 export function WaitlistCard({ entry, onLeave, onToggleAutoBook }: WaitlistCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleLeave = () => {
     Alert.alert(

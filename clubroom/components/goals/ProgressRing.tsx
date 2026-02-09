@@ -16,8 +16,7 @@ import Animated, {
 import Svg, { Circle, G } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -64,8 +63,7 @@ export function ProgressRing({
   label,
   fontSize,
 }: ProgressRingProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Clamp progress between 0 and 100
   const clampedProgress = Math.max(0, Math.min(100, progress));

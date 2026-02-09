@@ -55,6 +55,9 @@ exports.communityService = {
     getRoleWeight: community_group_service_2.communityGroupService.getRoleWeight.bind(community_group_service_2.communityGroupService),
     getAssignableRoles: community_group_service_2.communityGroupService.getAssignableRoles.bind(community_group_service_2.communityGroupService),
     getRoleBreakdown: community_group_service_2.communityGroupService.getRoleBreakdown.bind(community_group_service_2.communityGroupService),
+    addMemberDirect: community_group_service_2.communityGroupService.addMemberDirect.bind(community_group_service_2.communityGroupService),
+    removeMemberDirect: community_group_service_2.communityGroupService.removeMemberDirect.bind(community_group_service_2.communityGroupService),
+    deleteGroup: community_group_service_2.communityGroupService.deleteGroup.bind(community_group_service_2.communityGroupService),
     // ==========================================================================
     // GROUP MESSAGING (from communityMessagingService)
     // ==========================================================================

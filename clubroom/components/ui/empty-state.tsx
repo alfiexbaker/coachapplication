@@ -3,9 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
+import { useTheme } from '@/hooks/useTheme';
 
 type EmptyStateProps = {
   icon?: string;
@@ -16,8 +16,7 @@ type EmptyStateProps = {
 };
 
 export function EmptyState({ icon = 'information-circle', title, message, actionLabel, onPressAction }: EmptyStateProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -39,7 +38,7 @@ export function EmptyState({ icon = 'information-circle', title, message, action
             },
           ]}
         >
-          <ThemedText style={styles.actionLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.text}>
+          <ThemedText style={styles.actionLabel} lightColor={palette.onPrimary} darkColor={palette.onPrimary}>
             {actionLabel}
           </ThemedText>
         </Clickable>
@@ -73,7 +72,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   actionLabel: {
-    fontWeight: '700',
+    ...Typography.bodySemiBold,
     letterSpacing: 0.2,
   },
 });

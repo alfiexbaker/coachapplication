@@ -16,8 +16,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { ClubSquad, TimeSlot } from '@/constants/types';
 import { squadService } from '@/services/squad-service';
@@ -25,6 +24,7 @@ import {
   inviteService as bulkInviteService,
   type SquadInvitePreview,
 } from '@/services/invite';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('SquadInviteModal');
 
@@ -92,8 +92,7 @@ export function SquadInviteModal({
   preSelectedSquadIds = [],
   multiSelect = true,
 }: SquadInviteModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [step, setStep] = useState<Step>('squads');
   const [squads, setSquads] = useState<ClubSquad[]>([]);

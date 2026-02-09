@@ -16,6 +16,7 @@ const api_client_1 = require("./api-client");
 const config_1 = require("@/constants/config");
 const mock_data_1 = require("@/constants/mock-data");
 const logger_1 = require("@/utils/logger");
+const event_bus_1 = require("./event-bus");
 const storage_keys_1 = require("@/constants/storage-keys");
 const logger = (0, logger_1.createLogger)('SquadService');
 const USE_MOCK = config_1.api.useMock;
@@ -263,6 +264,12 @@ exports.squadService = {
             custom.push(newSquad);
             await saveCustomSquads(custom);
             logger.info('Squad created', { squadId: newSquad.id, name: newSquad.name });
+            (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.SQUAD_CREATED, {
+                squadId: newSquad.id,
+                clubId: newSquad.clubId,
+                squadName: newSquad.name,
+                createdBy: newSquad.primaryCoach,
+            });
             return newSquad;
         }
         const response = await fetch('/api/squads', {
@@ -270,7 +277,14 @@ exports.squadService = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newSquad),
         });
-        return response.json();
+        const created = await response.json();
+        (0, event_bus_1.emitTyped)(event_bus_1.ServiceEvents.SQUAD_CREATED, {
+            squadId: created.id,
+            clubId: created.clubId,
+            squadName: created.name,
+            createdBy: created.primaryCoach,
+        });
+        return created;
     },
     /**
      * Get all members of a squad

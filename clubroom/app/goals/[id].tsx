@@ -41,9 +41,9 @@ import {
   MilestoneList,
   CategoryBadge,
 } from '@/components/goals';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { Goal, GoalStatus } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
@@ -54,8 +54,7 @@ const logger = createLogger('GoalDetailScreen');
  * Goal details screen showing progress, milestones, and actions.
  */
 export default function GoalDetailScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -336,7 +335,7 @@ export default function GoalDetailScreen() {
                 </View>
               </View>
 
-              <View style={styles.metaDivider} />
+              <View style={[styles.metaDivider, { backgroundColor: palette.border }]} />
 
               <View style={styles.metaItem}>
                 <Ionicons
@@ -357,7 +356,7 @@ export default function GoalDetailScreen() {
                 </View>
               </View>
 
-              <View style={styles.metaDivider} />
+              <View style={[styles.metaDivider, { backgroundColor: palette.border }]} />
 
               <View style={styles.metaItem}>
                 <Ionicons
@@ -415,8 +414,8 @@ export default function GoalDetailScreen() {
                   style={[styles.actionButton, { backgroundColor: palette.success }]}
                 >
                   <View style={styles.buttonContent}>
-                    <Ionicons name="checkmark-circle-outline" size={18} color={Colors.light.onPrimary} />
-                    <ThemedText style={[styles.buttonText, { color: Colors.light.onPrimary }]}>
+                    <Ionicons name="checkmark-circle-outline" size={18} color={palette.onPrimary} />
+                    <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
                       Complete Goal
                     </ThemedText>
                   </View>
@@ -431,8 +430,8 @@ export default function GoalDetailScreen() {
                   style={styles.actionButton}
                 >
                   <View style={styles.buttonContent}>
-                    <Ionicons name="play-outline" size={18} color={Colors.light.onPrimary} />
-                    <ThemedText style={[styles.buttonText, { color: Colors.light.onPrimary }]}>
+                    <Ionicons name="play-outline" size={18} color={palette.onPrimary} />
+                    <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>
                       Resume Goal
                     </ThemedText>
                   </View>
@@ -474,7 +473,7 @@ export default function GoalDetailScreen() {
         )}
 
         {/* Created info */}
-        <View style={styles.createdInfo}>
+        <View style={[styles.createdInfo, { borderTopColor: palette.border }]}>
           <ThemedText style={[styles.createdText, { color: palette.muted }]}>
             Created by {goal.createdBy.toLowerCase()} on{' '}
             {new Date(goal.createdAt).toLocaleDateString('en-GB', {
@@ -494,9 +493,9 @@ export default function GoalDetailScreen() {
             exiting={FadeOut}
             style={[styles.celebrationOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
           >
-            <Animated.View style={[styles.celebrationContent, celebrationStyle]}>
+            <Animated.View style={[styles.celebrationContent, { backgroundColor: palette.surface }, celebrationStyle]}>
               <View style={[styles.celebrationIcon, { backgroundColor: palette.success }]}>
-                <Ionicons name="trophy" size={48} color={Colors.light.onPrimary} />
+                <Ionicons name="trophy" size={48} color={palette.onPrimary} />
               </View>
               <ThemedText type="title" style={styles.celebrationTitle}>
                 Goal Achieved!
@@ -587,7 +586,6 @@ const styles = StyleSheet.create({
   metaDivider: {
     width: 1,
     height: 32,
-    backgroundColor: Colors.light.border,
     marginHorizontal: Spacing.sm,
   },
   section: {
@@ -636,7 +634,6 @@ const styles = StyleSheet.create({
   createdInfo: {
     paddingTop: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
     marginTop: Spacing.md,
   },
   createdText: {
@@ -652,7 +649,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.xl,
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.xl,
     marginHorizontal: Spacing.xl,
   },

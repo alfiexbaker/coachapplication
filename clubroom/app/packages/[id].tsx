@@ -11,8 +11,8 @@ import { createLogger } from '@/utils/logger';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PurchaseButton } from '@/components/packages/PurchaseButton';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { packageService } from '@/services/package-service';
@@ -24,8 +24,7 @@ const logger = createLogger('PackageDetailScreen');
  * Package detail screen - view package details and purchase
  */
 export default function PackageDetailScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
@@ -132,7 +131,7 @@ export default function PackageDetailScreen() {
             {/* Discount Badge */}
             {pkg.discountPercent > 0 && (
               <View style={[styles.discountBadge, { backgroundColor: palette.success }]}>
-                <ThemedText style={styles.discountText}>
+                <ThemedText style={[styles.discountText, { color: palette.onPrimary }]}>
                   Save {pkg.discountPercent}%
                 </ThemedText>
               </View>
@@ -260,7 +259,7 @@ export default function PackageDetailScreen() {
             <View style={styles.howItWorks}>
               <View style={styles.step}>
                 <View style={[styles.stepNumber, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={styles.stepNumberText}>1</ThemedText>
+                  <ThemedText style={[styles.stepNumberText, { color: palette.onPrimary }]}>1</ThemedText>
                 </View>
                 <ThemedText style={styles.stepText}>
                   Purchase this package using your wallet balance
@@ -268,7 +267,7 @@ export default function PackageDetailScreen() {
               </View>
               <View style={styles.step}>
                 <View style={[styles.stepNumber, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={styles.stepNumberText}>2</ThemedText>
+                  <ThemedText style={[styles.stepNumberText, { color: palette.onPrimary }]}>2</ThemedText>
                 </View>
                 <ThemedText style={styles.stepText}>
                   Book sessions with this coach as usual
@@ -276,7 +275,7 @@ export default function PackageDetailScreen() {
               </View>
               <View style={styles.step}>
                 <View style={[styles.stepNumber, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={styles.stepNumberText}>3</ThemedText>
+                  <ThemedText style={[styles.stepNumberText, { color: palette.onPrimary }]}>3</ThemedText>
                 </View>
                 <ThemedText style={styles.stepText}>
                   Sessions are deducted from your package automatically
@@ -321,37 +320,30 @@ export default function PackageDetailScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerTitleText: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingText: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   content: {
     padding: Spacing.lg,
     paddingTop: 0,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   mainCard: {
     padding: 0,
     overflow: 'hidden',
-    position: 'relative',
-  },
+    position: 'relative' },
   discountBadge: {
     position: 'absolute',
     top: 0,
@@ -359,117 +351,89 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 8,
     borderBottomLeftRadius: Radii.md,
-    zIndex: 1,
-  },
+    zIndex: 1 },
   discountText: {
-    color: Colors.light.onPrimary,
     ...Typography.caption,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   mainContent: {
     padding: Spacing.lg,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   packageName: {
     ...Typography.display,
-    paddingRight: Spacing.xl,
-  },
+    paddingRight: Spacing.xl },
   coachRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   coachName: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   priceSection: {
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   priceLabel: {
     ...Typography.caption,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   price: {
-    ...Typography.display,
-  },
+    ...Typography.display },
   sectionCard: {
     padding: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionTitle: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   description: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   detailsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    flex: 1,
-  },
+    flex: 1 },
   detailIcon: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   detailContent: {
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   detailValue: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   detailLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   focusRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   focusTag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   focusText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   howItWorks: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   step: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   stepNumber: {
     width: 28,
     height: 28,
     borderRadius: Radii.lg,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   stepNumberText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   stepText: {
     flex: 1,
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -479,18 +443,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingBottom: Spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-  },
+    borderTopColor: 'rgba(0,0,0,0.1)' },
   inactiveBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   inactiveText: {
     flex: 1,
-    ...Typography.bodySmallSemiBold,
-  },
-});
+    ...Typography.bodySmallSemiBold } });

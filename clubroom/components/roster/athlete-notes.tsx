@@ -6,9 +6,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import type { RosterNote } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface AthleteNotesProps {
   notes: RosterNote[];
@@ -17,8 +17,7 @@ interface AthleteNotesProps {
 }
 
 export function AthleteNotes({ notes, onAddNote, onDeleteNote }: AthleteNotesProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [showInput, setShowInput] = useState(false);
   const [newNote, setNewNote] = useState('');

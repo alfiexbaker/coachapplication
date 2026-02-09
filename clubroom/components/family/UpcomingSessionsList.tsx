@@ -5,9 +5,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { FamilyCalendarEvent } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface UpcomingSessionsListProps {
   /** List of upcoming sessions */
@@ -36,8 +36,7 @@ export function UpcomingSessionsList({
   showHeader = true,
   title = 'Upcoming Sessions',
 }: UpcomingSessionsListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const displaySessions = sessions.slice(0, limit);
   const hasMore = sessions.length > limit;

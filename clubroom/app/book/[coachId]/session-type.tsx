@@ -8,15 +8,14 @@ import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { SessionTypeSelector } from '@/components/ui/booking/session-type-selector';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 
 export default function SessionTypeScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]} edges={['top']}>
@@ -70,8 +69,8 @@ export default function SessionTypeScreen() {
           onPress={() => router.push(Routes.bookSchedule(coachId))}
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="arrow-forward" size={18} color={Colors.light.onPrimary} />
-          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
+          <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
+          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
         </Clickable>
       </View>
     </SafeAreaView>

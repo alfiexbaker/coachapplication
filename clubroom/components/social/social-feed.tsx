@@ -1,20 +1,19 @@
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Social feed redirect component.
  * This component redirects users to the Feed tab for aggregated social content.
  */
 export function SocialFeed() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -28,13 +27,13 @@ export function SocialFeed() {
         <ThemedText style={[styles.description, { color: palette.muted }]}>
           See updates from all your clubs in one place. Announcements, photos, and events from every club you are part of.
         </ThemedText>
-        <TouchableOpacity
+        <Pressable
           style={[styles.button, { backgroundColor: palette.tint }]}
           onPress={() => router.push(Routes.FEED)}
         >
-          <ThemedText style={styles.buttonText}>Go to Feed</ThemedText>
+          <ThemedText style={[styles.buttonText, { color: palette.onPrimary }]}>Go to Feed</ThemedText>
           <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-        </TouchableOpacity>
+        </Pressable>
       </SurfaceCard>
     </View>
   );
@@ -74,7 +73,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   buttonText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
 });

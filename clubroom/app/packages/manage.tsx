@@ -4,10 +4,9 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-  TouchableOpacity,
+  Pressable,
   Modal,
-  Alert,
-} from 'react-native';
+  Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,8 +18,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CreatePackageForm } from '@/components/packages/CreatePackageForm';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/components/ui/toast';
 import { packageService } from '@/services/package-service';
@@ -32,8 +31,7 @@ const logger = createLogger('ManagePackagesScreen');
  * Coach package management screen - create, edit, and delete packages
  */
 export default function ManagePackagesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 
@@ -46,8 +44,7 @@ export default function ManagePackagesScreen() {
     totalPackagesSold: 0,
     totalRevenue: 0,
     activePackages: 0,
-    sessionsRedeemed: 0,
-  });
+    sessionsRedeemed: 0 });
 
   const loadData = useCallback(async () => {
     if (!currentUser?.id) return;
@@ -129,8 +126,7 @@ export default function ManagePackagesScreen() {
             } catch {
               showToast('Failed to delete package', 'error');
             }
-          },
-        },
+          } },
       ]
     );
   };
@@ -155,7 +151,7 @@ export default function ManagePackagesScreen() {
           }}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
+          <Ionicons name="add" size={20} color={palette.onPrimary} />
         </Clickable>
       </View>
 
@@ -252,8 +248,7 @@ export default function ManagePackagesScreen() {
                         style={[
                           styles.statusBadge,
                           {
-                            backgroundColor: pkg.isActive ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09),
-                          },
+                            backgroundColor: pkg.isActive ? withAlpha(palette.success, 0.09) : withAlpha(palette.error, 0.09) },
                         ]}
                       >
                         <ThemedText
@@ -269,7 +264,7 @@ export default function ManagePackagesScreen() {
 
                     {/* Actions */}
                     <View style={styles.packageActions}>
-                      <TouchableOpacity
+                      <Pressable
                         style={[styles.actionButton, { borderColor: palette.border }]}
                         onPress={() => handleEditPackage(pkg)}
                       >
@@ -277,9 +272,9 @@ export default function ManagePackagesScreen() {
                         <ThemedText style={[styles.actionText, { color: palette.tint }]}>
                           Edit
                         </ThemedText>
-                      </TouchableOpacity>
+                      </Pressable>
 
-                      <TouchableOpacity
+                      <Pressable
                         style={[styles.actionButton, { borderColor: palette.border }]}
                         onPress={() => handleToggleActive(pkg)}
                       >
@@ -296,14 +291,14 @@ export default function ManagePackagesScreen() {
                         >
                           {pkg.isActive ? 'Deactivate' : 'Activate'}
                         </ThemedText>
-                      </TouchableOpacity>
+                      </Pressable>
 
-                      <TouchableOpacity
+                      <Pressable
                         style={[styles.actionButton, { borderColor: palette.border }]}
                         onPress={() => handleDeletePackage(pkg)}
                       >
                         <Ionicons name="trash-outline" size={18} color={palette.error} />
-                      </TouchableOpacity>
+                      </Pressable>
                     </View>
                   </SurfaceCard>
                 </Animated.View>
@@ -328,7 +323,7 @@ export default function ManagePackagesScreen() {
             <ThemedText type="title" style={styles.modalTitle}>
               {editingPackage ? 'Edit Package' : 'Create Package'}
             </ThemedText>
-            <TouchableOpacity
+            <Pressable
               style={[styles.closeButton, { backgroundColor: palette.surfaceSecondary }]}
               onPress={() => {
                 setShowCreateModal(false);
@@ -336,7 +331,7 @@ export default function ManagePackagesScreen() {
               }}
             >
               <Ionicons name="close" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           <CreatePackageForm
@@ -356,108 +351,83 @@ export default function ManagePackagesScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    flex: 1,
-  },
+    flex: 1 },
   subtitle: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   addButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   content: {
     padding: Spacing.lg,
     paddingTop: 0,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   statsCard: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   statsTitle: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   statsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
+    justifyContent: 'space-around' },
   statItem: {
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   statValue: {
-    ...Typography.title,
-  },
+    ...Typography.title },
   statLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   section: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   sectionTitle: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   packageList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   packageCard: {
     padding: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   packageHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
+    alignItems: 'flex-start' },
   packageInfo: {
     flex: 1,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   packageName: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   packageMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   packageMetaText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   dot: {
     width: 3,
     height: 3,
-    borderRadius: 1.5,
-  },
+    borderRadius: 1.5 },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   statusText: {
     ...Typography.caption,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5 },
   packageActions: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -465,29 +435,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   actionText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   modalContainer: {
-    flex: 1,
-  },
+    flex: 1 },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.md,
-    paddingTop: Spacing.lg,
-  },
+    paddingTop: Spacing.lg },
   modalTitle: {
-    ...Typography.title,
-  },
+    ...Typography.title },
   closeButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+    justifyContent: 'center' } });

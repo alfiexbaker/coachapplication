@@ -3,8 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 type AchievementBadgeProps = {
   icon?: string;
@@ -13,8 +13,7 @@ type AchievementBadgeProps = {
 };
 
 export function AchievementBadge({ icon = 'trophy', label, description }: AchievementBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.container, { borderColor: palette.border, backgroundColor: palette.surface }]}> 

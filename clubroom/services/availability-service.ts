@@ -21,6 +21,8 @@ import { inviteHoldService } from './invite-hold-service';
 import { sessionTemplateService } from './session-template-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
+import type { Result, ServiceError } from '@/types/result';
+import { ok, err, storageError } from '@/types/result';
 
 const logger = createLogger('AvailabilityService');
 const USE_MOCK = api.useMock;
@@ -185,12 +187,13 @@ async function loadTemplates(): Promise<AvailabilityTemplate[]> {
   return [...MOCK_TEMPLATES];
 }
 
-async function saveTemplates(templates: AvailabilityTemplate[]): Promise<void> {
+async function saveTemplates(templates: AvailabilityTemplate[]): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.AVAILABILITY_TEMPLATES, templates);
+    return ok(undefined);
   } catch (error) {
     logger.error('Failed to save templates', error);
-    throw error;
+    return err(storageError(`Failed to save templates: ${String(error)}`));
   }
 }
 
@@ -204,12 +207,13 @@ async function loadOverrides(): Promise<AvailabilityOverride[]> {
   return [...MOCK_OVERRIDES];
 }
 
-async function saveOverrides(overrides: AvailabilityOverride[]): Promise<void> {
+async function saveOverrides(overrides: AvailabilityOverride[]): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.AVAILABILITY_OVERRIDES, overrides);
+    return ok(undefined);
   } catch (error) {
     logger.error('Failed to save overrides', error);
-    throw error;
+    return err(storageError(`Failed to save overrides: ${String(error)}`));
   }
 }
 
@@ -233,7 +237,7 @@ export const availabilityService = {
   async saveTemplate(template: Omit<AvailabilityTemplate, 'id'> & { id?: string }): Promise<AvailabilityTemplate> {
     const savedTemplate: AvailabilityTemplate = {
       ...template,
-      id: template.id || `tmpl_${Date.now()}`,
+      id: template.id || apiClient.generateId('tmpl'),
     };
 
     if (USE_MOCK) {
@@ -308,7 +312,7 @@ export const availabilityService = {
   async saveOverride(override: Omit<AvailabilityOverride, 'id'> & { id?: string }): Promise<AvailabilityOverride> {
     const savedOverride: AvailabilityOverride = {
       ...override,
-      id: override.id || `ovr_${Date.now()}`,
+      id: override.id || apiClient.generateId('ovr'),
     };
 
     if (USE_MOCK) {
@@ -693,7 +697,7 @@ export const availabilityService = {
   async saveRepeatedOverride(
     override: Omit<AvailabilityOverride, 'id'> & { repeatUntil: string }
   ): Promise<AvailabilityOverride[]> {
-    const groupId = `rpg_${Date.now()}`;
+    const groupId = apiClient.generateId('rpg');
     const startDate = new Date(override.date + 'T00:00:00');
     const endDate = new Date(override.repeatUntil + 'T00:00:00');
     const results: AvailabilityOverride[] = [];
@@ -706,7 +710,7 @@ export const availabilityService = {
       const saved = await this.saveOverride({
         ...override,
         date: dateStr,
-        id: `ovr_${Date.now()}_${index}`,
+        id: apiClient.generateId(`ovr_${index}`),
         repeatGroupId: groupId,
         repeatDayOfWeek: current.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6,
         repeatUntil: override.repeatUntil,

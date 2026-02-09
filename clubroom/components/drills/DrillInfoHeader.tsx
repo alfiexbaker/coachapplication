@@ -11,10 +11,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { DifficultyBadge } from '@/components/drills/DifficultyBadge';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { scaleFont } from '@/utils/scale';
 import type { AssignedDrill, Drill } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -50,8 +50,7 @@ function DrillInfoHeaderInner({
   formattedDueDate,
   formattedDuration,
 }: DrillInfoHeaderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View>

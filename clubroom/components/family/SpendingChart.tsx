@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { FamilySpending } from '@/constants/types';
 
 interface SpendingChartProps {
@@ -31,8 +31,7 @@ export function SpendingChart({
   showMonthly = true,
   monthsToShow = 6,
 }: SpendingChartProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const currencySymbol = currency === 'GBP' ? '\u00A3' : '$';
 
@@ -134,7 +133,7 @@ export function SpendingChart({
           </ThemedText>
 
           {/* Progress Bar Visualization */}
-          <View style={styles.progressBarContainer}>
+          <View style={[styles.progressBarContainer, { backgroundColor: palette.border }]}>
             {childPercentages.map((child) => (
               <View
                 key={child.childId}
@@ -280,7 +279,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: Radii.xs,
     overflow: 'hidden',
-    backgroundColor: Colors.light.border,
+    // backgroundColor set inline for dynamic theming
   },
   progressBarSegment: {
     height: '100%',

@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Components, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Components, Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 
 import { Confetti } from './confetti';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface BadgeCelebrationProps {
   visible: boolean;
@@ -26,8 +26,7 @@ export function BadgeCelebration({
   onShareWithFamily,
   onClose,
 }: BadgeCelebrationProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const autoDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -109,8 +108,8 @@ export function BadgeCelebration({
                 onPress={onShareWithFamily}
                 style={[styles.primaryButton, { backgroundColor: palette.tint }]}
               >
-                <Ionicons name="share-outline" size={Components.icon.md} color="#FFFFFF" />
-                <ThemedText style={[Typography.bodySemiBold, { color: '#FFFFFF' }]}>
+                <Ionicons name="share-outline" size={Components.icon.md} color={palette.onPrimary} />
+                <ThemedText style={[Typography.bodySemiBold, { color: palette.onPrimary }]}>
                   Share with Family
                 </ThemedText>
               </Clickable>

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   View,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Switch,
   ActivityIndicator,
@@ -16,10 +16,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCode, CreatePromoCodeParams } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CreateCodeFormProps {
   /** Admin user ID */
@@ -44,8 +44,7 @@ export function CreateCodeForm({
   onError,
   onCancel,
 }: CreateCodeFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Form state
   const [code, setCode] = useState('');
@@ -229,12 +228,12 @@ export function CreateCodeForm({
                 maxLength={20}
               />
             </View>
-            <TouchableOpacity
+            <Pressable
               style={[styles.generateButton, { backgroundColor: palette.tint }]}
               onPress={generateRandomCode}
             >
               <Ionicons name="shuffle" size={20} color={palette.onPrimary} />
-            </TouchableOpacity>
+            </Pressable>
           </View>
           {codeError && (
             <ThemedText style={[styles.errorText, { color: palette.error }]}>
@@ -251,7 +250,7 @@ export function CreateCodeForm({
           <ThemedText style={styles.label}>Credit Amount (GBP)</ThemedText>
           <View style={styles.presetRow}>
             {PRESET_AMOUNTS.map((amount) => (
-              <TouchableOpacity
+              <Pressable
                 key={amount}
                 style={[
                   styles.presetButton,
@@ -270,7 +269,7 @@ export function CreateCodeForm({
                 >
                   {'\u00A3'}{amount}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
           <View
@@ -296,7 +295,7 @@ export function CreateCodeForm({
           <ThemedText style={styles.label}>Maximum Uses</ThemedText>
           <View style={styles.presetRow}>
             {PRESET_MAX_USES.map((uses) => (
-              <TouchableOpacity
+              <Pressable
                 key={uses}
                 style={[
                   styles.presetButton,
@@ -315,7 +314,7 @@ export function CreateCodeForm({
                 >
                   {uses}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
           <View
@@ -395,7 +394,7 @@ export function CreateCodeForm({
           {hasExpiry && (
             <>
               <Divider spacing={Spacing.xs} />
-              <TouchableOpacity
+              <Pressable
                 style={styles.datePickerButton}
                 onPress={() => setShowDatePicker(true)}
               >
@@ -408,7 +407,7 @@ export function CreateCodeForm({
                   })}
                 </ThemedText>
                 <Ionicons name="chevron-forward" size={16} color={palette.muted} />
-              </TouchableOpacity>
+              </Pressable>
             </>
           )}
         </SurfaceCard>
@@ -437,15 +436,15 @@ export function CreateCodeForm({
       {/* Action buttons */}
       <View style={[styles.footer, { borderTopColor: palette.border }]}>
         {onCancel && (
-          <TouchableOpacity
+          <Pressable
             style={[styles.cancelButton, { borderColor: palette.border }]}
             onPress={onCancel}
             disabled={submitting}
           >
             <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         )}
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.submitButton,
             { backgroundColor: palette.tint, opacity: submitting ? 0.6 : 1 },
@@ -459,10 +458,10 @@ export function CreateCodeForm({
           ) : (
             <>
               <Ionicons name="add-circle-outline" size={20} color={palette.onPrimary} />
-              <ThemedText style={styles.submitButtonText}>Create Code</ThemedText>
+              <ThemedText style={[styles.submitButtonText, { color: palette.onPrimary }]}>Create Code</ThemedText>
             </>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </KeyboardAvoidingView>
   );
@@ -588,5 +587,5 @@ const styles = StyleSheet.create({
   submitButtonFull: {
     flex: 1,
   },
-  submitButtonText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  submitButtonText: { ...Typography.subheading },
 });

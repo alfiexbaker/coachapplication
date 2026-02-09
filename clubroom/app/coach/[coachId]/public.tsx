@@ -32,8 +32,8 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ShareProfile } from '@/components/coach/share-profile';
-import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { coachService, type Coach, type PublicReview } from '@/services/coach-service';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -103,18 +103,18 @@ const MOCK_SESSION_TYPES: SessionType[] = [
 // Helper: render star rating
 // ---------------------------------------------------------------------------
 
-function renderStars(rating: number) {
+function renderStars(rating: number, starColor: string) {
   const stars = [];
   const fullStars = Math.floor(rating);
   const hasHalf = rating % 1 >= 0.5;
 
   for (let i = 0; i < 5; i++) {
     if (i < fullStars) {
-      stars.push(<Ionicons key={i} name="star" size={14} color="#FFB800" />);
+      stars.push(<Ionicons key={i} name="star" size={14} color={starColor} />);
     } else if (i === fullStars && hasHalf) {
-      stars.push(<Ionicons key={i} name="star-half" size={14} color="#FFB800" />);
+      stars.push(<Ionicons key={i} name="star-half" size={14} color={starColor} />);
     } else {
-      stars.push(<Ionicons key={i} name="star-outline" size={14} color="#FFB800" />);
+      stars.push(<Ionicons key={i} name="star-outline" size={14} color={starColor} />);
     }
   }
   return stars;
@@ -126,8 +126,7 @@ function renderStars(rating: number) {
 
 export default function PublicCoachProfileScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [coach, setCoach] = useState<Coach | null>(null);
   const [reviews, setReviews] = useState<PublicReview[]>([]);
@@ -415,7 +414,7 @@ export default function PublicCoachProfileScreen() {
         <ThemedText style={[styles.ratingNumber, { color: palette.text }]}>
           {coach.rating.toFixed(1)}
         </ThemedText>
-        <View style={styles.starsRow}>{renderStars(coach.rating)}</View>
+        <View style={styles.starsRow}>{renderStars(coach.rating, palette.rating)}</View>
         <ThemedText style={[Typography.small, { color: palette.muted, marginTop: Spacing.xs }]}>
           {coach.reviewCount} review{coach.reviewCount !== 1 ? 's' : ''}
         </ThemedText>
@@ -436,7 +435,7 @@ export default function PublicCoachProfileScreen() {
                   <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
                     {review.reviewerName}
                   </ThemedText>
-                  <View style={styles.starsRow}>{renderStars(review.rating)}</View>
+                  <View style={styles.starsRow}>{renderStars(review.rating, palette.rating)}</View>
                 </View>
                 <ThemedText style={[Typography.caption, { color: palette.muted }]}>
                   {new Date(review.createdAt).toLocaleDateString('en-GB', {
@@ -498,16 +497,16 @@ export default function PublicCoachProfileScreen() {
           <View style={styles.headerButtons}>
             <Clickable
               onPress={() => router.back()}
-              style={[styles.headerBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+              style={[styles.headerBtn, { backgroundColor: withAlpha(palette.text, 0.4) }]}
             >
-              <Ionicons name="arrow-back" size={Components.icon.lg} color={Colors.light.onPrimary} />
+              <Ionicons name="arrow-back" size={Components.icon.lg} color={palette.onPrimary} />
             </Clickable>
 
             <Clickable
               onPress={() => setShowShareSheet(true)}
-              style={[styles.headerBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
+              style={[styles.headerBtn, { backgroundColor: withAlpha(palette.text, 0.4) }]}
             >
-              <Ionicons name="share-outline" size={Components.icon.lg} color={Colors.light.onPrimary} />
+              <Ionicons name="share-outline" size={Components.icon.lg} color={palette.onPrimary} />
             </Clickable>
           </View>
 
@@ -517,7 +516,7 @@ export default function PublicCoachProfileScreen() {
               <Image source={{ uri: coach.profilePhotoUrl }} style={[styles.avatar, { borderColor: palette.surface }]} />
             ) : (
               <View style={[styles.avatarPlaceholder, { backgroundColor: palette.tint, borderColor: palette.surface }]}>
-                <ThemedText style={styles.avatarInitials}>
+                <ThemedText style={[styles.avatarInitials, { color: palette.onPrimary }]}>
                   {coach.name.split(' ').map((n) => n[0]).join('')}
                 </ThemedText>
               </View>
@@ -541,7 +540,7 @@ export default function PublicCoachProfileScreen() {
 
           {/* Rating */}
           <View style={styles.ratingRow}>
-            <View style={styles.starsRow}>{renderStars(coach.rating)}</View>
+            <View style={styles.starsRow}>{renderStars(coach.rating, palette.rating)}</View>
             <ThemedText style={[Typography.bodySemiBold, { color: palette.text }]}>
               {coach.rating.toFixed(1)}
             </ThemedText>
@@ -733,7 +732,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitials: {
-    color: Colors.light.onPrimary,
     ...Typography.display,
   },
 

@@ -11,9 +11,9 @@ import { Image, StyleSheet, View } from 'react-native';
 import { DifficultyBadge } from './DifficultyBadge';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Components , withAlpha } from '@/constants/theme';
 import type { Drill } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -37,8 +37,7 @@ export function DrillCard({
   compact = false,
   showAssignmentCount = false,
 }: DrillCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const categoryInfo = drillService.getCategoryInfo(drill.category);
   const hasVideo = Boolean(drill.videoUrl);
@@ -80,12 +79,12 @@ export function DrillCard({
           {hasVideo && (
             <View style={styles.playOverlay}>
               <View style={styles.playButton}>
-                <Ionicons name="play" size={24} color={Colors.light.onPrimary} />
+                <Ionicons name="play" size={24} color={palette.onPrimary} />
               </View>
             </View>
           )}
           <View style={styles.durationOverlay}>
-            <ThemedText style={styles.durationText}>
+            <ThemedText style={[styles.durationText, { color: palette.onPrimary }]}>
               {drillService.formatDuration(drill.duration)}
             </ThemedText>
           </View>
@@ -126,7 +125,7 @@ export function DrillCard({
         </ThemedText>
 
         {/* Footer with meta info */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { borderTopColor: palette.border }]}>
           <View style={styles.metaRow}>
             {!drill.thumbnailUrl && (
               <View style={styles.metaItem}>
@@ -201,7 +200,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   durationText: {
-    color: Colors.light.onPrimary,
+    // color set inline for dynamic theming
     fontSize: scaleFont(12),
     fontWeight: '600',
   },
@@ -256,7 +255,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    // borderTopColor set inline for dynamic theming
   },
   metaRow: {
     flexDirection: 'row',

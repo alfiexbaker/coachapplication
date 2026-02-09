@@ -10,8 +10,8 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { VerificationBadge } from '@/components/verification/verification-badge';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { VerificationStatus, VerificationItem } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
 
@@ -28,8 +28,7 @@ type VerificationItemRowProps = {
 };
 
 function VerificationItemRow({ icon, title, description, item, onPress }: VerificationItemRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getStatusIcon = () => {
     switch (item.status) {
@@ -70,8 +69,7 @@ function VerificationItemRow({ icon, title, description, item, onPress }: Verifi
 }
 
 export default function VerificationHubScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -115,7 +113,7 @@ export default function VerificationHubScreen() {
             onPress={loadStatus}
             style={[styles.retryButton, { backgroundColor: palette.tint }]}
           >
-            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Retry</ThemedText>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Retry</ThemedText>
           </Clickable>
         </View>
       </SafeAreaView>
@@ -156,8 +154,7 @@ export default function VerificationHubScreen() {
                 styles.progressBarFill,
                 {
                   backgroundColor: palette.success,
-                  width: `${progress}%`,
-                },
+                  width: `${progress}%` },
               ]}
             />
           </View>
@@ -290,90 +287,69 @@ export default function VerificationHubScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-  },
+    flex: 1 },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   retryButton: {
     marginTop: Spacing.md,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    borderRadius: Radii.button,
-  },
+    borderRadius: Radii.button },
   header: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   progressCard: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   progressBarBg: {
     height: 8,
     borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   progressBarFill: {
     height: '100%',
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   levelLabel: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   section: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionTitle: {
-    marginLeft: Spacing.xs,
-  },
+    marginLeft: Spacing.xs },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
+    paddingVertical: Spacing.sm },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   itemContent: {
     flex: 1,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   itemDescription: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   itemStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   divider: {
     height: 1,
-    marginLeft: 52,
-  },
+    marginLeft: 52 },
   infoBox: {
     flexDirection: 'row',
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-  },
+    backgroundColor: 'rgba(0, 0, 0, 0.02)' },
   infoText: {
     flex: 1,
-    ...Typography.small,
-  },
-});
+    ...Typography.small } });

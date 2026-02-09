@@ -10,8 +10,8 @@ import Animated, { FadeIn, FadeInDown, FadeInRight } from 'react-native-reanimat
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getChildrenForParent, getSessionsForAthlete, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
@@ -27,8 +27,7 @@ const logger = createLogger('ParentDevelopmentScreen');
 type TabType = 'progress' | 'badges' | 'goals';
 
 export function ParentDevelopmentScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // Get data before hooks (all hooks must be called unconditionally)
@@ -622,7 +621,7 @@ export function ParentDevelopmentScreen() {
 
 // Helper functions
 /** Badge category → palette semantic color mapping. */
-const BADGE_CATEGORY_COLORS: Record<string, (p: typeof Colors.light) => string> = {
+const BADGE_CATEGORY_COLORS: Record<string, (p: ThemeColors) => string> = {
   leadership: (p) => p.accent,
   consistency: (p) => p.info,
   technique: (p) => p.success,
@@ -631,7 +630,7 @@ const BADGE_CATEGORY_COLORS: Record<string, (p: typeof Colors.light) => string> 
   resilience: (p) => p.destructive,
 };
 
-function getBadgeColor(category: string | undefined, palette: typeof Colors.light): string {
+function getBadgeColor(category: string | undefined, palette: ThemeColors): string {
   const getter = BADGE_CATEGORY_COLORS[category || ''];
   return getter ? getter(palette) : palette.tint;
 }

@@ -13,9 +13,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ProgressRing, CompactProgressRing } from './ProgressRing';
 import { CategoryBadge } from './CategoryBadge';
 import { MilestoneList } from './MilestoneList';
-import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Components , withAlpha } from '@/constants/theme';
 import type { Goal } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { progressService } from '@/services/progress-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -46,8 +46,7 @@ export function GoalCard({
   variant = 'default',
   showMilestones = false,
 }: GoalCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const { label: statusLabel, color: statusColor } = progressService.getStatusInfo(goal.status);
   const { color: categoryColor } = progressService.getCategoryInfo(goal.category);

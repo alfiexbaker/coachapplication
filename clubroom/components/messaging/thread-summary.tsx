@@ -4,17 +4,16 @@ import { Chip } from '@/components/primitives/chip';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors, Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography  , withAlpha } from '@/constants/theme';
 import { ChatThreadSummary } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ThreadSummaryProps {
   thread: ChatThreadSummary;
 }
 
 export function ThreadSummary({ thread }: ThreadSummaryProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const displayName = thread.title || thread.coachName;
   const subtitle = thread.subtitle || thread.serviceName;
   const isGroup = thread.kind === 'group';
@@ -45,7 +44,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
         </View>
         {thread.unreadCount ? (
           <View style={[styles.badge, { backgroundColor: palette.tint }]}>
-            <ThemedText style={styles.badgeLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+            <ThemedText style={[styles.badgeLabel, { color: palette.onPrimary }]}>
               {thread.unreadCount}
             </ThemedText>
           </View>
@@ -82,7 +81,7 @@ export function ThreadSummary({ thread }: ThreadSummaryProps) {
           <ThemedText>{thread.memberCount} members</ThemedText>
           {typeof thread.unreadMentions === 'number' && thread.unreadMentions > 0 ? (
             <View style={[styles.badge, { backgroundColor: palette.secondary }]}>
-              <ThemedText style={styles.badgeLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>@{thread.unreadMentions}</ThemedText>
+              <ThemedText style={[styles.badgeLabel, { color: palette.onPrimary }]}>@{thread.unreadMentions}</ThemedText>
             </View>
           ) : null}
         </View>

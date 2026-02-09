@@ -15,3 +15,9 @@ export { StatCard, type StatCardProps } from './stat-card';
 export { PageHeader, type PageHeaderProps } from './page-header';
 export { SectionHeader, type SectionHeaderProps } from './section-header';
 export { ScreenHeader, type ScreenHeaderProps, SCREEN_TYPOGRAPHY } from './screen-header';
+
+// Layout primitives
+export { Row, type RowProps } from './row';
+export { Column, type ColumnProps } from './column';
+export { Spacer, type SpacerProps } from './spacer';
+export { Center, type CenterProps } from './center';

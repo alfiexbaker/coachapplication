@@ -5,9 +5,9 @@ import Animated, { FadeInRight } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { Goal, GoalMilestone } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface GoalProgressProps {
   goal: Goal;
@@ -22,8 +22,7 @@ export function GoalProgress({
   onCompleteMilestone,
   expanded = false,
 }: GoalProgressProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const completedMilestones = goal.milestones.filter((m) => m.isCompleted).length;
   const totalMilestones = goal.milestones.length;
@@ -182,8 +181,7 @@ interface MilestoneItemProps {
 }
 
 function MilestoneItem({ milestone, onComplete, disabled }: MilestoneItemProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Clickable
@@ -200,7 +198,7 @@ function MilestoneItem({ milestone, onComplete, disabled }: MilestoneItemProps) 
           },
         ]}
       >
-        {milestone.isCompleted && <Ionicons name="checkmark" size={12} color="#fff" />}
+        {milestone.isCompleted && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
       </View>
 
       <View style={styles.milestoneContent}>
@@ -237,8 +235,7 @@ interface GoalsSummaryProps {
 }
 
 export function GoalsSummary({ activeGoals, completedGoals, onViewAll }: GoalsSummaryProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.summaryCard}>

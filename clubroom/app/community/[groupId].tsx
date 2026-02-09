@@ -9,9 +9,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { GroupChatSection } from '@/components/community/group-chat-section';
 import { GroupMembersModal } from '@/components/community/group-members-modal';
 import { GroupRolePicker } from '@/components/community/group-role-picker';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import type { ParentGroup, GroupMessage, GroupMember, GroupMemberRole } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { communityService } from '@/services/community-service';
 import { communityGroupService } from '@/services/community/community-group-service';
@@ -22,8 +22,7 @@ const logger = createLogger('GroupChatScreen');
 
 export default function GroupChatScreen() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const parentId = currentUser?.id ?? 'parent1';
   const parentName = currentUser?.fullName ?? currentUser?.name ?? 'Parent';
@@ -76,6 +75,7 @@ export default function GroupChatScreen() {
       await loadData();
     } catch (error) {
       logger.error('Failed to send message:', error);
+      Alert.alert('Send Failed', 'Could not send your message. Please try again.');
       setInputValue(messageText);
     } finally {
       setSending(false);
@@ -94,10 +94,11 @@ export default function GroupChatScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            await communityService.leaveGroup(groupId!, parentId);
+            if (!groupId) return;
+            await communityService.leaveGroup(groupId, parentId);
             router.back();
           } catch (error) {
-            Alert.alert('Error', (error as Error).message);
+            Alert.alert('Error', String(error));
           }
         },
       },
@@ -148,7 +149,7 @@ export default function GroupChatScreen() {
       setSelectedMember(null);
       await loadData();
     } catch (error) {
-      Alert.alert('Error', (error as Error).message);
+      Alert.alert('Error', String(error));
     }
   };
 
@@ -198,9 +199,15 @@ export default function GroupChatScreen() {
             {group.members.length} members{roleBreakdown ? ` \u00B7 ${renderRoleBreakdown()}` : ''}
           </ThemedText>
         </Clickable>
-        <Clickable onPress={handleLeaveGroup} style={styles.moreButton}>
-          <Ionicons name="exit-outline" size={22} color={palette.error} />
-        </Clickable>
+        {group.type === 'SQUAD' ? (
+          <Clickable onPress={() => setShowMembersModal(true)} style={styles.moreButton}>
+            <Ionicons name="information-circle-outline" size={22} color={palette.tint} />
+          </Clickable>
+        ) : (
+          <Clickable onPress={handleLeaveGroup} style={styles.moreButton}>
+            <Ionicons name="exit-outline" size={22} color={palette.error} />
+          </Clickable>
+        )}
       </View>
 
       {/* Chat */}

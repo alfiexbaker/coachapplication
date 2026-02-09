@@ -14,8 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface BulkInviteButtonProps {
   selectedCount: number;
@@ -44,8 +44,7 @@ export function BulkInviteButton({
   showIcon = true,
   fullWidth = true,
 }: BulkInviteButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isDisabled = disabled || loading || selectedCount === 0;
 
@@ -76,7 +75,7 @@ export function BulkInviteButton({
         return {
           backgroundColor: palette.tint,
           borderColor: palette.tint,
-          textColor: Colors.light.onPrimary,
+          textColor: palette.onPrimary,
         };
     }
   };
@@ -185,8 +184,7 @@ export function CompactBulkInviteButton({
   loading = false,
   disabled = false,
 }: CompactBulkInviteButtonProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isDisabled = disabled || loading || selectedCount === 0;
 
@@ -207,7 +205,7 @@ export function CompactBulkInviteButton({
       ) : (
         <>
           <Ionicons name="paper-plane" size={16} color={palette.onPrimary} />
-          <ThemedText style={styles.compactButtonText}>
+          <ThemedText style={[styles.compactButtonText, { color: palette.onPrimary }]}>
             Invite {selectedCount}
           </ThemedText>
         </>
@@ -252,5 +250,5 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.md,
   },
-  compactButtonText: { ...Typography.smallSemiBold, color: Colors.light.onPrimary },
+  compactButtonText: { ...Typography.smallSemiBold },
 });

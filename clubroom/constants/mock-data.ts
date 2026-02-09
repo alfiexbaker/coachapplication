@@ -34,6 +34,7 @@ import type {
   Club,
   ClubMembership,
   ClubFeedPost,
+  FeedFilter,
   ClubInvite,
   ClubSquad,
   SessionOffering,
@@ -2963,10 +2964,10 @@ export function getPersonalFeedForCoach(coachId: string): ClubFeedPost[] {
  */
 export function getCombinedFeedForParent(
   parentId: string,
-  filter?: string
+  filter?: FeedFilter
 ): AggregatedFeedPost[] {
   // 1. Get normal club posts the user already sees
-  const clubPosts = getAggregatedFeed(parentId, filter as any);
+  const clubPosts = getAggregatedFeed(parentId, filter);
 
   // 2. Get personal posts from their coaches
   const coachIds = getCoachesForParent(parentId);
@@ -3026,7 +3027,7 @@ export type AggregatedFeedPost = ClubFeedPost & {
 
 export function getAggregatedFeed(
   userId: string,
-  filter?: 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match' | 'session_announcement'
+  filter?: FeedFilter
 ): AggregatedFeedPost[] {
   const memberships = getAllClubMembershipsForUser(userId);
   const clubIds = memberships.map((m) => m.clubId);
@@ -3056,7 +3057,7 @@ export function getClubSquads(clubId: string): ClubSquad[] {
   return clubSquads.filter((squad) => squad.clubId === clubId);
 }
 
-export function getClubFeed(clubId: string, filter?: 'all' | 'announcement' | 'photo' | 'event' | 'achievement' | 'session' | 'match' | 'session_announcement'): ClubFeedPost[] {
+export function getClubFeed(clubId: string, filter?: FeedFilter): ClubFeedPost[] {
   let posts = clubFeedPosts.filter((post) => post.clubId === clubId);
 
   if (filter && filter !== 'all') {
@@ -3133,6 +3134,10 @@ export function getPinnedPosts(clubId: string): ClubFeedPost[] {
 
 export function getAnnouncements(clubId: string): ClubFeedPost[] {
   return clubFeedPosts.filter((post) => post.clubId === clubId && post.postType === 'announcement');
+}
+
+export function getClubFeedPostById(postId: string): ClubFeedPost | undefined {
+  return clubFeedPosts.find((p) => p.id === postId);
 }
 
 export function getClubSessions(clubId: string): SessionOffering[] {

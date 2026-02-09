@@ -75,7 +75,7 @@ export { ApiError };
 let _isRefreshing = false;
 let _refreshPromise: Promise<void> | null = null;
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   // Rate limiting
   await rateLimiter.waitForSlot();
   rateLimiter.recordRequest();

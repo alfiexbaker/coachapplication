@@ -149,9 +149,11 @@ async function loadFromStorage() {
 async function saveToStorage(videos) {
     try {
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.SESSION_VIDEOS, videos);
+        return (0, result_1.ok)(undefined);
     }
     catch (error) {
         logger.error('Failed to save to storage', error);
+        return (0, result_1.err)((0, result_1.storageError)(`Failed to save session videos: ${String(error)}`));
     }
 }
 exports.videoService = {
@@ -207,7 +209,7 @@ exports.videoService = {
     async getUploadUrl(fileName, fileType) {
         if (USE_MOCK) {
             // In mock mode, return fake URLs
-            const videoId = `vid_${Date.now()}`;
+            const videoId = api_client_1.apiClient.generateId('vid');
             return {
                 uploadUrl: `https://mock-upload.example.com/upload/${videoId}`,
                 videoUrl: `https://example.com/videos/${videoId}.mp4`,
@@ -225,7 +227,7 @@ exports.videoService = {
      */
     async createVideo(input, videoUrl, thumbnailUrl, duration, fileSize) {
         const newVideo = {
-            id: `vid_${Date.now()}`,
+            id: api_client_1.apiClient.generateId('vid'),
             coachId: input.coachId,
             coachName: input.coachName,
             athleteIds: input.athleteIds,
@@ -264,7 +266,7 @@ exports.videoService = {
      */
     async addAnnotation(videoId, timestamp, label, type, note) {
         const annotation = {
-            id: `ann_${Date.now()}`,
+            id: api_client_1.apiClient.generateId('ann'),
             timestamp,
             label,
             type,

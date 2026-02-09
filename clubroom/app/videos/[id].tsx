@@ -12,8 +12,8 @@ import { Chip } from '@/components/primitives/chip';
 import { ThemedText } from '@/components/themed-text';
 import { VideoPlayer, AnnotationTimeline } from '@/components/video/video-player';
 import { AddAnnotationModal, QuickAnnotationBar } from '@/components/video/video-annotation';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
 import type { SessionVideo, VideoAnnotation, VideoAnnotationType } from '@/constants/types';
@@ -22,8 +22,7 @@ const logger = createLogger('VideoDetailScreen');
 
 export default function VideoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [video, setVideo] = useState<SessionVideo | null>(null);

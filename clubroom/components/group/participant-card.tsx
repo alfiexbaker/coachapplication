@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { GroupRegistration } from '@/constants/types';
 
 interface ParticipantCardProps {
@@ -21,8 +21,7 @@ export function ParticipantCard({
   onCancel,
   onMessage,
 }: ParticipantCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const statusColors: Record<GroupRegistration['status'], { bg: string; text: string }> = {
     REGISTERED: { bg: withAlpha(palette.success, 0.09), text: palette.success },

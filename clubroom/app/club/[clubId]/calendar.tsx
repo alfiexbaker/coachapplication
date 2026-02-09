@@ -13,8 +13,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import {
   clubService,
   type CalendarEvent,
@@ -44,7 +44,7 @@ function formatDateKey(year: number, month: number, day: number): string {
   return toDateStr(new Date(year, month, day));
 }
 
-function getEventColor(type: CalendarEventType, palette: typeof Colors.light): string {
+function getEventColor(type: CalendarEventType, palette: ThemeColors): string {
   switch (type) {
     case 'session':
       return palette.tint;
@@ -82,7 +82,7 @@ function DayCell({
   isSelected: boolean;
   events: CalendarEvent[];
   onPress: () => void;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   if (day === null) {
     return <View style={styles.dayCell} />;
@@ -108,7 +108,7 @@ function DayCell({
       <ThemedText
         style={{
           ...Typography.body,
-          color: isSelected ? Colors.light.onPrimary : isToday ? palette.tint : palette.foreground,
+          color: isSelected ? palette.onPrimary : isToday ? palette.tint : palette.foreground,
           fontWeight: isToday || isSelected ? '600' : '400',
         }}
       >
@@ -118,7 +118,7 @@ function DayCell({
         {uniqueTypes.slice(0, 3).map((type) => (
           <EventDot
             key={type}
-            color={isSelected ? Colors.light.onPrimary : getEventColor(type, palette)}
+            color={isSelected ? palette.onPrimary : getEventColor(type, palette)}
           />
         ))}
       </View>
@@ -135,7 +135,7 @@ function EventListItem({
   palette,
 }: {
   event: CalendarEvent;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   const typeColor = getEventColor(event.type, palette);
   const typeLabel = event.type.charAt(0).toUpperCase() + event.type.slice(1);
@@ -197,7 +197,7 @@ function SquadFilter({
   squads: { id: string; name: string }[];
   selected: string | null;
   onSelect: (id: string | null) => void;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   return (
     <ScrollView
@@ -220,7 +220,7 @@ function SquadFilter({
         <ThemedText
           style={{
             ...Typography.caption,
-            color: selected === null ? Colors.light.onPrimary : palette.muted,
+            color: selected === null ? palette.onPrimary : palette.muted,
           }}
         >
           All
@@ -243,7 +243,7 @@ function SquadFilter({
           <ThemedText
             style={{
               ...Typography.caption,
-              color: selected === squad.id ? Colors.light.onPrimary : palette.muted,
+              color: selected === squad.id ? palette.onPrimary : palette.muted,
             }}
           >
             {squad.name}
@@ -260,8 +260,7 @@ function SquadFilter({
 
 export default function CalendarScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());

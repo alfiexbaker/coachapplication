@@ -25,7 +25,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '@/services/api-client';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
-import { Colors, Spacing, Radii, Typography, Shadows, Components  , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, Shadows, Components, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { Booking } from '@/constants/app-types';
@@ -143,6 +144,7 @@ interface MiniCalendarProps {
 }
 
 function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }: MiniCalendarProps) {
+  const { colors, scheme } = useTheme();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -201,17 +203,17 @@ function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }
   }
 
   return (
-    <View style={calStyles.container}>
+    <View style={[calStyles.container, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
       {/* Month nav */}
       <View style={calStyles.header}>
         <Pressable onPress={prevMonth} hitSlop={12}>
-          <Ionicons name="chevron-back" size={20} color={Colors.light.text} />
+          <Ionicons name="chevron-back" size={20} color={colors.text} />
         </Pressable>
-        <Text style={calStyles.monthTitle}>
+        <Text style={[calStyles.monthTitle, { color: colors.text }]}>
           {MONTH_NAMES[viewMonth]} {viewYear}
         </Text>
         <Pressable onPress={nextMonth} hitSlop={12}>
-          <Ionicons name="chevron-forward" size={20} color={Colors.light.text} />
+          <Ionicons name="chevron-forward" size={20} color={colors.text} />
         </Pressable>
       </View>
 
@@ -219,7 +221,7 @@ function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }
       <View style={calStyles.weekRow}>
         {WEEKDAY_HEADERS.map((d) => (
           <View key={d} style={calStyles.weekCell}>
-            <Text style={calStyles.weekText}>{d}</Text>
+            <Text style={[calStyles.weekText, { color: colors.muted }]}>{d}</Text>
           </View>
         ))}
       </View>
@@ -241,8 +243,8 @@ function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }
               key={dateStr}
               style={[
                 calStyles.dayCell,
-                isSelected ? calStyles.dayCellSelected : undefined,
-                isBlocked && !isSelected ? calStyles.dayCellBlocked : undefined,
+                isSelected ? { backgroundColor: colors.tint } : undefined,
+                isBlocked && !isSelected ? { backgroundColor: withAlpha(colors.error, 0.09) } : undefined,
               ]}
               onPress={() => !isPast && onSelectDate(dateStr)}
               disabled={isPast}
@@ -250,10 +252,11 @@ function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }
               <Text
                 style={[
                   calStyles.dayText,
-                  isPast ? calStyles.dayTextPast : undefined,
-                  isToday ? calStyles.dayTextToday : undefined,
-                  isSelected ? calStyles.dayTextSelected : undefined,
-                  isBlocked && !isSelected ? calStyles.dayTextBlocked : undefined,
+                  { color: colors.text },
+                  isPast ? { color: colors.border } : undefined,
+                  isToday ? { fontWeight: '700', color: colors.tint } : undefined,
+                  isSelected ? { color: colors.surface, fontWeight: '600' } : undefined,
+                  isBlocked && !isSelected ? { color: colors.error } : undefined,
                 ]}
               >
                 {dayNum}
@@ -268,10 +271,8 @@ function MiniCalendar({ selectedStart, selectedEnd, onSelectDate, blockedDates }
 
 const calStyles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
-    ...Shadows.light.card,
   },
   header: {
     flexDirection: 'row',
@@ -281,7 +282,6 @@ const calStyles = StyleSheet.create({
   },
   monthTitle: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
   },
   weekRow: {
     flexDirection: 'row',
@@ -294,7 +294,6 @@ const calStyles = StyleSheet.create({
   },
   weekText: {
     ...Typography.caption,
-    color: Colors.light.muted,
   },
   daysGrid: {
     flexDirection: 'row',
@@ -307,29 +306,8 @@ const calStyles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: Radii.sm,
   },
-  dayCellSelected: {
-    backgroundColor: Colors.light.tint,
-  },
-  dayCellBlocked: {
-    backgroundColor: withAlpha(Colors.light.error, 0.09),
-  },
   dayText: {
     ...Typography.body,
-    color: Colors.light.text,
-  },
-  dayTextPast: {
-    color: Colors.light.border,
-  },
-  dayTextToday: {
-    fontWeight: '700',
-    color: Colors.light.tint,
-  },
-  dayTextSelected: {
-    color: Colors.light.surface,
-    fontWeight: '600',
-  },
-  dayTextBlocked: {
-    color: Colors.light.error,
   },
 });
 
@@ -338,15 +316,16 @@ const calStyles = StyleSheet.create({
 // ---------------------------------------------------------------------------
 
 function BookingWarningBanner({ count, dates }: { count: number; dates: string[] }) {
+  const { colors } = useTheme();
   if (count === 0) return null;
   return (
-    <View style={styles.bookingWarning}>
-      <Ionicons name="warning-outline" size={18} color={Colors.light.warning} />
+    <View style={[styles.bookingWarning, { backgroundColor: withAlpha(colors.warning, 0.08), borderColor: withAlpha(colors.warning, 0.19) }]}>
+      <Ionicons name="warning-outline" size={18} color={colors.warning} />
       <View style={styles.bookingWarningContent}>
-        <Text style={styles.bookingWarningTitle}>
+        <Text style={[styles.bookingWarningTitle, { color: colors.warning }]}>
           {count} booking{count > 1 ? 's' : ''} in this range
         </Text>
-        <Text style={styles.bookingWarningText}>
+        <Text style={[styles.bookingWarningText, { color: colors.muted }]}>
           You have existing bookings on {dates.slice(0, 3).map(formatDate).join(', ')}
           {dates.length > 3 ? ` and ${dates.length - 3} more` : ''}.
           Blocking these dates will not automatically cancel them.
@@ -361,6 +340,7 @@ function BookingWarningBanner({ count, dates }: { count: number; dates: string[]
 // ---------------------------------------------------------------------------
 
 export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEditorProps) {
+  const { colors, scheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [blockedDates, setBlockedDates] = useState<BlockedDateRange[]>([]);
   const [selectedStart, setSelectedStart] = useState<string | null>(null);
@@ -515,8 +495,8 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.light.text} />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.text} />
       </View>
     );
   }
@@ -533,7 +513,7 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
@@ -552,38 +532,38 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
 
       {/* Selection area */}
       {hasSelection && (
-        <View style={styles.selectionArea}>
+        <View style={[styles.selectionArea, { backgroundColor: colors.surface }, Shadows[scheme].subtle]}>
           <View style={styles.selectionInfo}>
-            <Ionicons name="calendar" size={16} color={Colors.light.tint} />
-            <Text style={styles.selectionLabel}>{selectionLabel}</Text>
+            <Ionicons name="calendar" size={16} color={colors.tint} />
+            <Text style={[styles.selectionLabel, { color: colors.text }]}>{selectionLabel}</Text>
           </View>
           <TextInput
-            style={styles.reasonInput}
+            style={[styles.reasonInput, { borderColor: colors.border, color: colors.text }]}
             value={reason}
             onChangeText={setReason}
             placeholder="Reason (optional)"
-            placeholderTextColor={Colors.light.border}
+            placeholderTextColor={colors.border}
           />
-          <Pressable style={styles.blockButton} onPress={handleAddBlock}>
-            <Ionicons name="close-circle" size={18} color={Colors.light.surface} />
-            <Text style={styles.blockButtonText}>Block these dates</Text>
+          <Pressable style={[styles.blockButton, { backgroundColor: colors.error }]} onPress={handleAddBlock}>
+            <Ionicons name="close-circle" size={18} color={colors.surface} />
+            <Text style={[styles.blockButtonText, { color: colors.surface }]}>Block these dates</Text>
           </Pressable>
         </View>
       )}
 
       {/* Quick actions */}
       <View style={styles.quickActions}>
-        <Pressable style={styles.quickAction} onPress={handleBlockThisWeek}>
-          <Ionicons name="today-outline" size={18} color={Colors.light.tint} />
-          <Text style={styles.quickActionText}>Block this week</Text>
+        <Pressable style={[styles.quickAction, { backgroundColor: colors.surface }, Shadows[scheme].subtle]} onPress={handleBlockThisWeek}>
+          <Ionicons name="today-outline" size={18} color={colors.tint} />
+          <Text style={[styles.quickActionText, { color: colors.tint }]}>Block this week</Text>
         </Pressable>
       </View>
 
       {/* Blocked dates list */}
       {blockedDates.length > 0 && (
         <>
-          <Text style={styles.listTitle}>Blocked dates</Text>
-          <View style={styles.listCard}>
+          <Text style={[styles.listTitle, { color: colors.text }]}>Blocked dates</Text>
+          <View style={[styles.listCard, { backgroundColor: colors.surface }, Shadows[scheme].card]}>
             {blockedDates.map((block, idx) => {
               const isLast = idx === blockedDates.length - 1;
               const isPast = block.endDate < toDateStr(new Date());
@@ -591,14 +571,14 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
               return (
                 <View
                   key={block.id}
-                  style={[styles.listItem, !isLast ? styles.listItemBorder : undefined]}
+                  style={[styles.listItem, !isLast ? [styles.listItemBorder, { borderBottomColor: colors.border }] : undefined]}
                 >
                   <View style={styles.listItemInfo}>
-                    <Text style={[styles.listItemDate, isPast && styles.listItemDatePast]}>
+                    <Text style={[styles.listItemDate, { color: colors.text }, isPast && { color: colors.muted }]}>
                       {formatDateRange(block.startDate, block.endDate)}
                     </Text>
                     {block.reason ? (
-                      <Text style={styles.listItemReason}>{block.reason}</Text>
+                      <Text style={[styles.listItemReason, { color: colors.muted }]}>{block.reason}</Text>
                     ) : null}
                   </View>
                   <Pressable
@@ -606,7 +586,7 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
                     hitSlop={12}
                     style={styles.removeBtn}
                   >
-                    <Ionicons name="trash-outline" size={18} color={Colors.light.error} />
+                    <Ionicons name="trash-outline" size={18} color={colors.error} />
                   </Pressable>
                 </View>
               );
@@ -617,9 +597,9 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
 
       {blockedDates.length === 0 && !hasSelection && (
         <View style={styles.emptyState}>
-          <Ionicons name="calendar-outline" size={40} color={Colors.light.border} />
-          <Text style={styles.emptyTitle}>No blocked dates</Text>
-          <Text style={styles.emptySubtitle}>
+          <Ionicons name="calendar-outline" size={40} color={colors.border} />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>No blocked dates</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
             Tap dates on the calendar to block off periods when you are unavailable.
           </Text>
         </View>
@@ -637,7 +617,6 @@ export default function BlockedDatesEditor({ coachId, onUpdate }: BlockedDatesEd
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
   },
   contentContainer: {
     paddingHorizontal: Spacing.sm,
@@ -645,7 +624,6 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -654,12 +632,10 @@ const styles = StyleSheet.create({
   bookingWarning: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    backgroundColor: withAlpha(Colors.light.warning, 0.08),
     borderRadius: Radii.card,
     padding: Spacing.sm,
     marginTop: Spacing.sm,
     borderWidth: 1,
-    borderColor: withAlpha(Colors.light.warning, 0.19),
   },
   bookingWarningContent: {
     flex: 1,
@@ -667,20 +643,16 @@ const styles = StyleSheet.create({
   },
   bookingWarningTitle: {
     ...Typography.bodySemiBold,
-    color: Colors.light.warning,
   },
   bookingWarningText: {
     ...Typography.small,
-    color: Colors.light.muted,
   },
 
   // Selection area
   selectionArea: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
     marginTop: Spacing.sm,
-    ...Shadows.light.subtle,
   },
   selectionInfo: {
     flexDirection: 'row',
@@ -690,16 +662,13 @@ const styles = StyleSheet.create({
   },
   selectionLabel: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
   },
   reasonInput: {
     height: 40,
     borderRadius: Radii.sm,
     borderWidth: 1,
-    borderColor: Colors.light.border,
     paddingHorizontal: Spacing.xs,
     ...Typography.body,
-    color: Colors.light.text,
     marginBottom: Spacing.xs,
   },
   blockButton: {
@@ -709,11 +678,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,
-    backgroundColor: Colors.light.error,
   },
   blockButtonText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.surface,
   },
 
   // Quick actions
@@ -725,28 +692,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 14,
-    ...Shadows.light.subtle,
   },
   quickActionText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.tint,
   },
 
   // List
   listTitle: {
     ...Typography.heading,
-    color: Colors.light.text,
     marginBottom: Spacing.xs,
     paddingHorizontal: Spacing.xs,
   },
   listCard: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
-    ...Shadows.light.card,
     overflow: 'hidden',
   },
   listItem: {
@@ -757,21 +718,15 @@ const styles = StyleSheet.create({
   },
   listItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.light.border,
   },
   listItemInfo: {
     flex: 1,
   },
   listItemDate: {
     ...Typography.body,
-    color: Colors.light.text,
-  },
-  listItemDatePast: {
-    color: Colors.light.muted,
   },
   listItemReason: {
     ...Typography.small,
-    color: Colors.light.muted,
     marginTop: Spacing.micro,
   },
   removeBtn: {
@@ -786,13 +741,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...Typography.heading,
-    color: Colors.light.text,
     marginTop: Spacing.sm,
     marginBottom: Spacing.xxs,
   },
   emptySubtitle: {
     ...Typography.body,
-    color: Colors.light.muted,
     textAlign: 'center',
   },
 

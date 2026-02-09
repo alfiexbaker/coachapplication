@@ -17,9 +17,9 @@ import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { BodyPartSelector } from './BodyPartSelector';
 import { SeverityPicker } from './SeverityPicker';
-import { Colors, Spacing, Radii  , withAlpha } from '@/constants/theme';
+import { Spacing, Radii  , withAlpha } from '@/constants/theme';
 import type { BodyPart, InjurySeverity, LogInjuryInput } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -32,8 +32,7 @@ interface InjuryFormProps {
 type FormStep = 'body_part' | 'severity' | 'details';
 
 export function InjuryForm({ onSubmit, onCancel, loading = false }: InjuryFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Form state
   const [step, setStep] = useState<FormStep>('body_part');

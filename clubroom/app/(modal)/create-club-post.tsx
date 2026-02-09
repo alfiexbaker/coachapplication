@@ -1,23 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   Image,
   ScrollView,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Shadows, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubFeedService } from '@/services/social-feed-service';
 import { getClubById, getClubMembershipForUser, clubSquads } from '@/constants/mock-data';
@@ -38,8 +40,7 @@ const POST_TYPES: PostTypeOption[] = [
 ];
 
 export default function CreateClubPostScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const { currentUser } = useAuth();
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
 
@@ -94,47 +95,84 @@ export default function CreateClubPostScreen() {
     setImageUri(null);
   };
 
-  const handlePost = () => {
+  const [isPosting, setIsPosting] = useState(false);
+
+  const handlePost = useCallback(async () => {
     if (!body.trim() && !imageUri) return;
     if (!currentUser || !clubId) return;
 
-    // Determine audience
-    const audience = audienceType === 'squad' && selectedSquadId ? 'squad' : 'club';
-    const finalAudienceLabel = audienceType === 'squad' && selectedSquad
-      ? selectedSquad.name
-      : 'Club-wide';
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
 
-    clubFeedService.createPost({
-      clubId,
-      authorId: currentUser.id,
-      authorName: postAs === 'club' && club ? club.name : (currentUser.fullName || currentUser.username || 'Unknown'),
-      title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
-      body: body.trim(),
-      postType,
-      postAs,
-      feedType,
-      audience,
-      audienceLabel: finalAudienceLabel,
-      squadId: audienceType === 'squad' ? selectedSquadId || undefined : undefined,
-      imageUrl: imageUri || undefined,
-      eventDate: eventDate?.toISOString(),
-      eventLocation: eventLocation.trim() || undefined,
-    });
+    setIsPosting(true);
 
-    router.back();
-  };
+    try {
+      // Use createCoachPost for coach posts with PERSONAL or BOTH feedType
+      if (isCoach && (feedType === 'PERSONAL' || feedType === 'BOTH')) {
+        const result = await clubFeedService.createCoachPost({
+          coachId: currentUser.id,
+          coachName: currentUser.fullName || currentUser.username || 'Unknown',
+          title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
+          body: body.trim(),
+          postType,
+          feedType,
+          imageUrl: imageUri || undefined,
+          eventDate: eventDate?.toISOString(),
+          eventLocation: eventLocation.trim() || undefined,
+          clubId,
+          clubName: club?.name,
+        });
 
-  const canPost = (body.trim().length > 0 || imageUri !== null) && clubId;
+        if (result.success && Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      } else {
+        // Determine audience
+        const audience = audienceType === 'squad' && selectedSquadId ? 'squad' : 'club';
+        const finalAudienceLabel = audienceType === 'squad' && selectedSquad
+          ? selectedSquad.name
+          : 'Club-wide';
+
+        await clubFeedService.createPost({
+          clubId,
+          authorId: currentUser.id,
+          authorName: postAs === 'club' && club ? club.name : (currentUser.fullName || currentUser.username || 'Unknown'),
+          title: title.trim() || (postType === 'photo' ? 'Photo' : 'Update'),
+          body: body.trim(),
+          postType,
+          postAs,
+          feedType,
+          audience,
+          audienceLabel: finalAudienceLabel,
+          squadId: audienceType === 'squad' ? selectedSquadId || undefined : undefined,
+          imageUrl: imageUri || undefined,
+          eventDate: eventDate?.toISOString(),
+          eventLocation: eventLocation.trim() || undefined,
+        });
+
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }
+
+      router.back();
+    } finally {
+      setIsPosting(false);
+    }
+  }, [body, imageUri, currentUser, clubId, isCoach, feedType, title, postType, eventDate, eventLocation, club, audienceType, selectedSquadId, selectedSquad, postAs]);
+
+  const canPost = (body.trim().length > 0 || imageUri !== null) && clubId && !isPosting;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: palette.border }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <Pressable onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="close" size={24} color={palette.foreground} />
-        </TouchableOpacity>
+        </Pressable>
         <ThemedText type="defaultSemiBold">New Post</ThemedText>
-        <TouchableOpacity
+        <Pressable
           onPress={handlePost}
           disabled={!canPost}
           style={[
@@ -145,13 +183,17 @@ export default function CreateClubPostScreen() {
             },
           ]}
         >
-          <ThemedText style={styles.postButtonText}>Post</ThemedText>
-        </TouchableOpacity>
+          {isPosting ? (
+            <ActivityIndicator size="small" color={palette.onPrimary} />
+          ) : (
+            <ThemedText style={[styles.postButtonText, { color: palette.onPrimary }]}>Post</ThemedText>
+          )}
+        </Pressable>
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           style={styles.scrollView}
@@ -162,7 +204,7 @@ export default function CreateClubPostScreen() {
           {club && (
             <View style={[styles.clubIndicator, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
               <View style={[styles.clubBadge, { backgroundColor: palette.tint }]}>
-                <ThemedText style={styles.clubBadgeText}>{club.name.slice(0, 2).toUpperCase()}</ThemedText>
+                <ThemedText style={[styles.clubBadgeText, { color: palette.onPrimary }]}>{club.name.slice(0, 2).toUpperCase()}</ThemedText>
               </View>
               <View style={{ flex: 1 }}>
                 <ThemedText type="defaultSemiBold">{club.name}</ThemedText>
@@ -178,7 +220,7 @@ export default function CreateClubPostScreen() {
             <View style={styles.section}>
               <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
               <View style={styles.feedTypeSelector}>
-                <TouchableOpacity
+                <Pressable
                   style={[
                     styles.feedTypeOption,
                     { borderColor: feedType === 'PERSONAL' ? palette.success : palette.border },
@@ -194,9 +236,9 @@ export default function CreateClubPostScreen() {
                   <ThemedText style={{ color: feedType === 'PERSONAL' ? palette.success : palette.text, ...Typography.smallSemiBold }}>
                     My Personal Feed
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
                 {club && (
-                  <TouchableOpacity
+                  <Pressable
                     style={[
                       styles.feedTypeOption,
                       { borderColor: feedType === 'CLUB' ? palette.tint : palette.border },
@@ -215,10 +257,10 @@ export default function CreateClubPostScreen() {
                     >
                       {club.name}
                     </ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
                 {club && (
-                  <TouchableOpacity
+                  <Pressable
                     style={[
                       styles.feedTypeOption,
                       { borderColor: feedType === 'BOTH' ? palette.warning : palette.border },
@@ -234,7 +276,7 @@ export default function CreateClubPostScreen() {
                     <ThemedText style={{ color: feedType === 'BOTH' ? palette.warning : palette.text, ...Typography.smallSemiBold }}>
                       Both
                     </ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
               </View>
             </View>
@@ -245,7 +287,7 @@ export default function CreateClubPostScreen() {
             <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post Type</ThemedText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.typeSelector}>
               {POST_TYPES.map((type) => (
-                <TouchableOpacity
+                <Pressable
                   key={type.key}
                   style={[
                     styles.typeOption,
@@ -267,7 +309,7 @@ export default function CreateClubPostScreen() {
                   >
                     {type.label}
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               ))}
             </ScrollView>
           </View>
@@ -277,7 +319,7 @@ export default function CreateClubPostScreen() {
             <View style={styles.section}>
               <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post As</ThemedText>
               <View style={styles.postAsSelector}>
-                <TouchableOpacity
+                <Pressable
                   style={[
                     styles.postAsOption,
                     { borderColor: postAs === 'self' ? palette.tint : palette.border },
@@ -293,8 +335,8 @@ export default function CreateClubPostScreen() {
                   <ThemedText style={{ color: postAs === 'self' ? palette.tint : palette.text }}>
                     Yourself
                   </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </Pressable>
+                <Pressable
                   style={[
                     styles.postAsOption,
                     { borderColor: postAs === 'club' ? palette.tint : palette.border },
@@ -310,7 +352,7 @@ export default function CreateClubPostScreen() {
                   <ThemedText style={{ color: postAs === 'club' ? palette.tint : palette.text }}>
                     Club
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
             </View>
           )}
@@ -320,7 +362,7 @@ export default function CreateClubPostScreen() {
             <View style={styles.section}>
               <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Post To</ThemedText>
               <View style={styles.audienceSelector}>
-                <TouchableOpacity
+                <Pressable
                   style={[
                     styles.audienceOption,
                     { borderColor: audienceType === 'club' ? palette.tint : palette.border },
@@ -339,8 +381,8 @@ export default function CreateClubPostScreen() {
                   <ThemedText style={{ color: audienceType === 'club' ? palette.tint : palette.text }}>
                     All Members
                   </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </Pressable>
+                <Pressable
                   style={[
                     styles.audienceOption,
                     { borderColor: audienceType === 'squad' ? palette.tint : palette.border },
@@ -356,7 +398,7 @@ export default function CreateClubPostScreen() {
                   <ThemedText style={{ color: audienceType === 'squad' ? palette.tint : palette.text }}>
                     Specific Group
                   </ThemedText>
-                </TouchableOpacity>
+                </Pressable>
               </View>
 
               {/* Squad selector when targeting a group */}
@@ -364,7 +406,7 @@ export default function CreateClubPostScreen() {
                 <View style={styles.squadSelector}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.squadList}>
                     {availableSquads.map((squad) => (
-                      <TouchableOpacity
+                      <Pressable
                         key={squad.id}
                         style={[
                           styles.squadOption,
@@ -376,7 +418,7 @@ export default function CreateClubPostScreen() {
                         onPress={() => setSelectedSquadId(squad.id)}
                       >
                         <View style={[styles.squadBadge, { backgroundColor: selectedSquadId === squad.id ? palette.success : palette.muted }]}>
-                          <ThemedText style={{ color: Colors.light.onPrimary, ...Typography.micro }}>
+                          <ThemedText style={{ color: palette.onPrimary, ...Typography.micro }}>
                             {squad.name.slice(0, 2).toUpperCase()}
                           </ThemedText>
                         </View>
@@ -387,7 +429,7 @@ export default function CreateClubPostScreen() {
                         {selectedSquadId === squad.id && (
                           <Ionicons name="checkmark-circle" size={18} color={palette.success} />
                         )}
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </ScrollView>
                 </View>
@@ -425,12 +467,12 @@ export default function CreateClubPostScreen() {
           {imageUri && (
             <View style={styles.imageSection}>
               <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-              <TouchableOpacity
-                style={[styles.removeImageButton, { backgroundColor: palette.background }]}
+              <Pressable
+                style={[styles.removeImageButton, { backgroundColor: palette.background, ...Shadows[scheme].subtle }]}
                 onPress={removeImage}
               >
                 <Ionicons name="close" size={16} color={palette.foreground} />
-              </TouchableOpacity>
+              </Pressable>
             </View>
           )}
 
@@ -439,7 +481,7 @@ export default function CreateClubPostScreen() {
             <View style={[styles.eventSection, { borderColor: palette.border }]}>
               <ThemedText style={[styles.sectionLabel, { color: palette.muted }]}>Event Details</ThemedText>
 
-              <TouchableOpacity
+              <Pressable
                 style={[styles.eventField, { borderColor: palette.border }]}
                 onPress={() => setShowDatePicker(true)}
               >
@@ -449,7 +491,7 @@ export default function CreateClubPostScreen() {
                     ? eventDate.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' })
                     : 'Select date'}
                 </ThemedText>
-              </TouchableOpacity>
+              </Pressable>
 
               {showDatePicker && (
                 <DateTimePicker
@@ -482,7 +524,7 @@ export default function CreateClubPostScreen() {
           {/* Character count */}
           {body.length > 0 && (
             <View style={styles.charCountContainer}>
-              <ThemedText style={[styles.charCount, { color: body.length > 500 ? palette.error : palette.muted }]}>
+              <ThemedText style={[styles.charCount, { color: body.length > 450 ? palette.error : palette.muted }]}>
                 {body.length}/500
               </ThemedText>
             </View>
@@ -492,21 +534,21 @@ export default function CreateClubPostScreen() {
 
       {/* Footer toolbar */}
       <View style={[styles.toolbar, { borderTopColor: palette.border, backgroundColor: palette.background }]}>
-        <TouchableOpacity style={styles.toolbarButton} onPress={pickImage}>
+        <Pressable style={styles.toolbarButton} onPress={pickImage}>
           <Ionicons name="image-outline" size={22} color={palette.tint} />
-        </TouchableOpacity>
-        <TouchableOpacity
+        </Pressable>
+        <Pressable
           style={styles.toolbarButton}
           onPress={() => setPostType('event')}
         >
           <Ionicons name="calendar-outline" size={22} color={postType === 'event' ? palette.tint : palette.muted} />
-        </TouchableOpacity>
-        <TouchableOpacity
+        </Pressable>
+        <Pressable
           style={styles.toolbarButton}
           onPress={() => setPostType('announcement')}
         >
           <Ionicons name="megaphone-outline" size={22} color={postType === 'announcement' ? palette.tint : palette.muted} />
-        </TouchableOpacity>
+        </Pressable>
         <View style={styles.toolbarSpacer} />
       </View>
     </SafeAreaView>
@@ -530,10 +572,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     minWidth: 64,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   postButtonText: {
     ...Typography.bodySmallSemiBold,
-    color: Colors.light.onPrimary,
     textAlign: 'center',
   },
   scrollView: {
@@ -559,7 +603,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   clubBadgeText: {
-    color: Colors.light.onPrimary,
     ...Typography.bodySmallSemiBold,
   },
   section: {
@@ -645,10 +688,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
   },
   eventSection: {
     marginHorizontal: Spacing.md,
@@ -687,8 +726,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
   },
   toolbarButton: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: Radii.xl,
     justifyContent: 'center',
     alignItems: 'center',

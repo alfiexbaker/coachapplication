@@ -22,8 +22,8 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { SessionDetailModal } from '@/components/sessions/session-detail-modal';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { SessionOffering, FootballObjective } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -47,8 +47,7 @@ const TYPE_FILTERS = [
 ];
 
 export default function DiscoverSessionsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [offerings, setOfferings] = useState<SessionOffering[]>([]);
@@ -283,7 +282,7 @@ export default function DiscoverSessionsScreen() {
               <ThemedText
                 style={[
                   styles.filterText,
-                  { color: typeFilter === item.value ? Colors.light.onPrimary : palette.text },
+                  { color: typeFilter === item.value ? palette.onPrimary : palette.text },
                 ]}
               >
                 {item.label}
@@ -314,7 +313,7 @@ export default function DiscoverSessionsScreen() {
               <ThemedText
                 style={[
                   styles.filterText,
-                  { color: skillFilter === item.value ? Colors.light.onPrimary : palette.text },
+                  { color: skillFilter === item.value ? palette.onPrimary : palette.text },
                 ]}
               >
                 {item.label}

@@ -37,8 +37,8 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageHeader } from '@/components/primitives/page-header';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import { bookingService } from '@/services/booking-service';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy, RefundCalculation, RefundTier, Booking } from '@/constants/types';
@@ -78,10 +78,10 @@ type FlowStep = 'details' | 'reschedule_suggest' | 'confirm';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getTierColour(tier: RefundTier, palette: (typeof Colors)['light']): string {
+function getTierColour(tier: RefundTier, palette: ThemeColors): string {
   if (tier.refundPercentage === 100) return palette.success;
   if (tier.refundPercentage >= 50) return palette.warning;
-  if (tier.refundPercentage > 0) return '#D97706'; // amber
+  if (tier.refundPercentage > 0) return palette.warning; // amber
   return palette.error;
 }
 
@@ -112,8 +112,7 @@ function formatSessionDate(d: Date): string {
 export default function CancelBookingScreen() {
   const { id, mode } = useLocalSearchParams<{ id: string; mode?: 'coach' | 'parent' }>();
   const isCoach = mode === 'coach';
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Flow state
   const [step, setStep] = useState<FlowStep>('details');
@@ -335,8 +334,8 @@ export default function CancelBookingScreen() {
             onPress={handleOpenCounterOffer}
             style={[styles.primaryButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="calendar" size={20} color={Colors.light.onPrimary} />
-            <ThemedText style={styles.primaryButtonText}>
+            <Ionicons name="calendar" size={20} color={palette.onPrimary} />
+            <ThemedText style={[styles.primaryButtonText, { color: palette.onPrimary }]}>
               Propose a New Time
             </ThemedText>
           </Clickable>
@@ -521,7 +520,7 @@ export default function CancelBookingScreen() {
                         </ThemedText>
                         {isActive && (
                           <View style={[styles.tierActiveBadge, { backgroundColor: tierColor }]}>
-                            <ThemedText style={styles.tierActiveText}>Current</ThemedText>
+                            <ThemedText style={[styles.tierActiveText, { color: palette.onPrimary }]}>Current</ThemedText>
                           </View>
                         )}
                       </View>
@@ -640,7 +639,7 @@ export default function CancelBookingScreen() {
                 setNotifyWaitlist(v);
               }}
               trackColor={{ false: palette.border, true: palette.success }}
-              thumbColor={Colors.light.surface}
+              thumbColor={palette.surface}
             />
           </View>
         </SurfaceCard>
@@ -685,11 +684,11 @@ export default function CancelBookingScreen() {
             ]}
           >
             {processing ? (
-              <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+              <ActivityIndicator size="small" color={palette.onPrimary} />
             ) : (
               <>
-                <Ionicons name="close-circle" size={20} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.cancelButtonText}>
+                <Ionicons name="close-circle" size={20} color={palette.onPrimary} />
+                <ThemedText style={[styles.cancelButtonText, { color: palette.onPrimary }]}>
                   {isCoach ? 'Cancel Session' : 'Confirm Cancellation'}
                 </ThemedText>
               </>
@@ -862,7 +861,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   tierActiveText: {
-    color: Colors.light.onPrimary,
     ...Typography.micro,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1025,7 +1023,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
   },
   primaryButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
   outlineButton: {
@@ -1065,7 +1062,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
   },
   cancelButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
 });

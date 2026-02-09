@@ -12,18 +12,26 @@ import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StaffRolePicker } from '@/components/academy/staff-role-picker';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { academyService } from '@/services/academy-service';
 import type { Academy, AcademyMembership, AcademyPermission } from '@/constants/types';
 
 const logger = createLogger('AcademyStaffScreen');
 
+// Decorative: staff role hierarchy colors
+const ROLE_COLORS = {
+  OWNER: '#7C3AED',
+  ADMIN: '#0284C7',
+  HEAD_COACH: '#059669',
+  ASSISTANT: '#6B7280',
+  MEMBER: '#9CA3AF',
+} as const;
+
 export default function AcademyStaffScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [academy, setAcademy] = useState<Academy | null>(null);
@@ -151,12 +159,8 @@ export default function AcademyStaffScreen() {
   };
 
   const roleColors: Record<AcademyMembership['role'], string> = {
-    OWNER: '#7C3AED',
-    ADMIN: '#0284C7',
-    HEAD_COACH: '#059669',
+    ...ROLE_COLORS,
     COACH: palette.tint,
-    ASSISTANT: '#6B7280',
-    MEMBER: '#9CA3AF',
   };
 
   if (loading) {
@@ -193,7 +197,7 @@ export default function AcademyStaffScreen() {
             }}
             style={[styles.inviteButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="person-add" size={18} color={Colors.light.onPrimary} />
+            <Ionicons name="person-add" size={18} color={palette.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -388,7 +392,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)', // Decorative: modal backdrop scrim
     justifyContent: 'flex-end',
   },
   modalContent: {

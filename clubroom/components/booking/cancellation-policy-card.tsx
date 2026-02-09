@@ -16,8 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { CancellationPolicy } from '@/constants/types';
 
 // Enable LayoutAnimation on Android
@@ -30,15 +30,14 @@ interface CancellationPolicyCardProps {
   policy?: CancellationPolicy;
 }
 
-function getDotColor(refundPercentage: number, palette: typeof Colors.light): string {
+function getDotColor(refundPercentage: number, palette: ReturnType<typeof useTheme>['colors']): string {
   if (refundPercentage >= 100) return palette.success;
   if (refundPercentage > 0) return palette.warning;
   return palette.error;
 }
 
 export function CancellationPolicyCard({ coachId: _coachId, policy }: CancellationPolicyCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   if (!policy) {

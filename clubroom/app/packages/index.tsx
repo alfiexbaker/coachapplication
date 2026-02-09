@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Routes } from '@/navigation/routes';
@@ -12,8 +12,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PackageList } from '@/components/packages/PackageList';
 import { MyPackages } from '@/components/packages/MyPackages';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { packageService } from '@/services/package-service';
 import type { SessionPackage } from '@/constants/types';
@@ -26,8 +26,7 @@ type TabType = 'browse' | 'my-packages';
  * Main packages screen - browse available packages or view purchased packages
  */
 export default function PackagesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabType>('browse');
@@ -83,7 +82,7 @@ export default function PackagesScreen() {
             onPress={() => router.push(Routes.PACKAGES_MANAGE)}
             style={[styles.manageButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="settings-outline" size={18} color={Colors.light.onPrimary} />
+            <Ionicons name="settings-outline" size={18} color={palette.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -91,7 +90,7 @@ export default function PackagesScreen() {
       {/* Tab Navigation - Only for non-coaches */}
       {!isCoach && (
         <View style={styles.tabContainer}>
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.tab,
               activeTab === 'browse' && [styles.tabActive, { borderColor: palette.tint }],
@@ -111,9 +110,9 @@ export default function PackagesScreen() {
             >
               Browse
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
 
-          <TouchableOpacity
+          <Pressable
             style={[
               styles.tab,
               activeTab === 'my-packages' && [styles.tabActive, { borderColor: palette.tint }],
@@ -133,7 +132,7 @@ export default function PackagesScreen() {
             >
               My Packages
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
 
@@ -191,35 +190,29 @@ export default function PackagesScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    flex: 1,
-  },
+    flex: 1 },
   subtitle: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   manageButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   tabContainer: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   tab: {
     flex: 1,
     flexDirection: 'row',
@@ -229,40 +222,30 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: Radii.lg,
     borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
+    borderColor: 'transparent' },
   tabActive: {
-    backgroundColor: 'rgba(0,0,0,0.02)',
-  },
+    backgroundColor: 'rgba(0,0,0,0.02)' },
   tabText: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   content: {
     padding: Spacing.lg,
     paddingTop: 0,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.md,
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   infoIcon: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   infoContent: {
     flex: 1,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   infoTitle: {
-    ...Typography.body,
-  },
+    ...Typography.body },
   infoText: {
-    ...Typography.small,
-  },
-});
+    ...Typography.small } });

@@ -12,9 +12,9 @@ import { DifficultyBadge } from './DifficultyBadge';
 import { Clickable } from '@/components/primitives/clickable';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Components , withAlpha } from '@/constants/theme';
 import type { AssignedDrill } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -38,8 +38,7 @@ export function AssignmentCard({
   onComplete,
   compact = false,
 }: AssignmentCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const { drill } = assignment;
   const isOverdue = drillService.isOverdue(assignment);
@@ -77,7 +76,7 @@ export function AssignmentCard({
           onPress={onComplete}
           style={[
             styles.checkbox,
-            assignment.isCompleted ? styles.checkboxCompleted : undefined,
+            assignment.isCompleted ? [styles.checkboxCompleted, { backgroundColor: palette.success, borderColor: palette.success }] : undefined,
             { borderColor: assignment.isCompleted ? palette.success : palette.border },
           ].filter(Boolean) as ViewStyle[]}
           hitSlop={8}
@@ -142,13 +141,13 @@ export function AssignmentCard({
             <Image source={{ uri: drill.thumbnailUrl }} style={styles.thumbnail} />
             {assignment.isCompleted && (
               <View style={styles.completedOverlay}>
-                <Ionicons name="checkmark-circle" size={48} color={Colors.light.onPrimary} />
+                <Ionicons name="checkmark-circle" size={48} color={palette.onPrimary} />
               </View>
             )}
             {hasVideo && !assignment.isCompleted && (
               <View style={styles.playOverlay}>
                 <View style={styles.playButton}>
-                  <Ionicons name="play" size={20} color={Colors.light.onPrimary} />
+                  <Ionicons name="play" size={20} color={palette.onPrimary} />
                 </View>
               </View>
             )}
@@ -200,7 +199,7 @@ export function AssignmentCard({
           )}
 
           {/* Footer with due date and actions */}
-          <View style={styles.footer}>
+          <View style={[styles.footer, { borderTopColor: palette.border }]}>
             <View style={styles.dueDateContainer}>
               <Ionicons
                 name={assignment.isCompleted ? 'checkmark-circle' : 'calendar-outline'}
@@ -242,7 +241,7 @@ export function AssignmentCard({
               style={[styles.completeButton, { backgroundColor: palette.tint }]}
             >
               <Ionicons name="checkmark" size={18} color={palette.onPrimary} />
-              <ThemedText style={styles.completeButtonText}>Mark Complete</ThemedText>
+              <ThemedText style={[styles.completeButtonText, { color: palette.onPrimary }]}>Mark Complete</ThemedText>
             </Clickable>
           )}
         </View>
@@ -356,7 +355,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    // borderTopColor set inline for dynamic theming
   },
   dueDateContainer: {
     flexDirection: 'row',
@@ -404,7 +403,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   completeButtonText: {
-    color: Colors.light.onPrimary,
+    // color set inline for dynamic theming
     fontSize: scaleFont(15),
     fontWeight: '600',
   },
@@ -426,8 +425,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxCompleted: {
-    backgroundColor: Colors.light.success,
-    borderColor: Colors.light.success,
+    // backgroundColor and borderColor set inline for dynamic theming
   },
   compactContent: {
     flex: 1,

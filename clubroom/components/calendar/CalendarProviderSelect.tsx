@@ -3,9 +3,9 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { CalendarProvider } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ProviderOption {
   id: CalendarProvider;
@@ -19,19 +19,19 @@ const PROVIDERS: ProviderOption[] = [
     id: 'APPLE',
     label: 'Apple Calendar',
     icon: 'logo-apple',
-    color: '#000000',
+    color: '#000000', // Brand: Apple official color
   },
   {
     id: 'GOOGLE',
     label: 'Google Calendar',
     icon: 'logo-google',
-    color: '#4285F4',
+    color: '#4285F4', // Brand: Google official color
   },
   {
     id: 'OUTLOOK',
     label: 'Outlook',
     icon: 'mail',
-    color: '#0078D4',
+    color: '#0078D4', // Brand: Microsoft Outlook official color
   },
 ];
 
@@ -46,8 +46,7 @@ export function CalendarProviderSelect({
   onProviderChange,
   disabled = false,
 }: CalendarProviderSelectProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
 
   return (
     <View style={styles.container}>
@@ -80,7 +79,7 @@ export function CalendarProviderSelect({
               <Ionicons
                 name={provider.icon}
                 size={24}
-                color={scheme === 'dark' ? '#FFFFFF' : provider.color}
+                color={scheme === 'dark' ? palette.onPrimary : provider.color}
               />
             </View>
             <ThemedText
@@ -93,7 +92,7 @@ export function CalendarProviderSelect({
             </ThemedText>
             {isSelected && (
               <View style={[styles.checkmark, { backgroundColor: palette.accent }]}>
-                <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
               </View>
             )}
           </Pressable>

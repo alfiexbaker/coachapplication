@@ -12,8 +12,7 @@ import {
   ScrollView,
   RefreshControl,
   TextInput,
-  Alert,
-} from 'react-native';
+  Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,9 +25,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { RecoveryTimeline } from '@/components/health';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Injury } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
@@ -40,8 +39,7 @@ const logger = createLogger('InjuryDetailScreen');
  * Injury detail screen showing full injury information and recovery timeline.
  */
 export default function InjuryDetailScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -138,8 +136,7 @@ export default function InjuryDetailScreen() {
             } finally {
               setSaving(false);
             }
-          },
-        },
+          } },
       ]
     );
   }, [injury]);
@@ -266,8 +263,7 @@ export default function InjuryDetailScreen() {
                     {
                       backgroundColor: palette.background,
                       borderColor: palette.border,
-                      color: palette.text,
-                    },
+                      color: palette.text },
                   ]}
                   value={noteText}
                   onChangeText={setNoteText}
@@ -334,8 +330,8 @@ export default function InjuryDetailScreen() {
               style={[styles.healedButton, { backgroundColor: palette.success }]}
             >
               <View style={styles.buttonContent}>
-                <Ionicons name="checkmark-circle-outline" size={20} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.healedButtonText}>Mark as Healed</ThemedText>
+                <Ionicons name="checkmark-circle-outline" size={20} color={palette.onPrimary} />
+                <ThemedText style={[styles.healedButtonText, { color: palette.onPrimary }]}>Mark as Healed</ThemedText>
               </View>
             </Button>
           </Animated.View>
@@ -347,132 +343,100 @@ export default function InjuryDetailScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.pill,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   statusText: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
+    paddingBottom: Spacing.xl },
   loadingState: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   errorState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   summaryCard: {
-    marginBottom: Spacing.lg,
-  },
+    marginBottom: Spacing.lg },
   summaryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   severityBadge: {
     paddingHorizontal: 8,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   severityText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   description: {
     ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   metaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   metaText: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-  },
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
   addNoteSection: {
-    marginTop: Spacing.lg,
-  },
+    marginTop: Spacing.lg },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   addNoteCard: {
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   addNoteTitle: {
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   noteInput: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
     ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     minHeight: 80,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   progressSection: {
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   progressLabel: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-  },
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
   progressValue: {
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-  },
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   slider: {
     width: '100%',
-    height: 40,
-  },
+    height: 40 },
   addNoteButtons: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   addNoteButton: {
-    flex: 1,
-  },
+    flex: 1 },
   actionsSection: {
-    marginTop: Spacing.lg,
-  },
+    marginTop: Spacing.lg },
   healedButton: {
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   healedButtonText: {
-    color: Colors.light.onPrimary,
-    fontWeight: '600',
-  },
-});
+    fontWeight: '600' } });

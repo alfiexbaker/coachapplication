@@ -11,16 +11,18 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SessionTemplate, SessionType } from '@/constants/session-types';
+import { useTheme } from '@/hooks/useTheme';
 
-const TYPE_META: Record<SessionType, { color: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  '1-to-1': { color: '#4F86F7', icon: 'person-outline' },
-  'small-group': { color: '#34C759', icon: 'people-outline' },
-  'clinic': { color: '#FF9500', icon: 'fitness-outline' },
-  'assessment': { color: '#AF52DE', icon: 'clipboard-outline' },
-};
+// Session type colors — resolved from theme at render time via getTypeMeta()
+type ThemePalette = ReturnType<typeof useTheme>['colors'];
+const getTypeMeta = (p: ThemePalette): Record<SessionType, { color: string; icon: keyof typeof Ionicons.glyphMap }> => ({
+  '1-to-1': { color: p.info, icon: 'person-outline' },
+  'small-group': { color: p.success, icon: 'people-outline' },
+  'clinic': { color: p.warning, icon: 'fitness-outline' },
+  'assessment': { color: p.accent, icon: 'clipboard-outline' },
+});
 
 interface SessionTypeChipsProps {
   templates: SessionTemplate[];
@@ -30,8 +32,8 @@ interface SessionTypeChipsProps {
 }
 
 export function SessionTypeChips({ templates, onPress, onAdd, selectedId }: SessionTypeChipsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
+  const TYPE_META = getTypeMeta(palette);
 
   const hapticTap = () => {
     if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

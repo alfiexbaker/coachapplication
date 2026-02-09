@@ -17,8 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type {
   NotificationType,
   NotificationCategory,
@@ -106,8 +106,7 @@ function CategorySection({
   disabled = false,
   loading = false,
 }: CategorySectionProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const handleToggleExpand = useCallback(() => {

@@ -8,8 +8,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import {
   clubService,
   type DashboardStats,
@@ -29,7 +29,7 @@ function StatCard({
   label: string;
   value: number;
   icon: keyof typeof Ionicons.glyphMap;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   return (
     <SurfaceCard style={styles.statCard} tactile={false}>
@@ -53,7 +53,7 @@ function OutcomeBadge({
   palette,
 }: {
   outcome: 'W' | 'D' | 'L';
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   const config = {
     W: { bg: palette.success, label: 'W' },
@@ -68,7 +68,7 @@ function OutcomeBadge({
         { backgroundColor: config.bg },
       ]}
     >
-      <ThemedText style={styles.outcomeBadgeText}>{config.label}</ThemedText>
+      <ThemedText style={[styles.outcomeBadgeText, { color: palette.onPrimary }]}>{config.label}</ThemedText>
     </View>
   );
 }
@@ -82,7 +82,7 @@ function ResultRow({
   palette,
 }: {
   result: MatchResult;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   const formattedDate = new Date(result.date).toLocaleDateString('en-GB', {
     day: 'numeric',
@@ -120,7 +120,7 @@ function QuickAction({
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   return (
     <Clickable
@@ -152,8 +152,7 @@ function QuickAction({
 
 export default function DashboardScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -325,7 +324,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   outcomeBadgeText: {
-    color: Colors.light.onPrimary,
     ...Typography.caption,
   },
   quickActionsSection: {

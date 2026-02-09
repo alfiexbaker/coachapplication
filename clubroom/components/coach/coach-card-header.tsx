@@ -9,9 +9,9 @@ import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -34,7 +34,7 @@ export interface CoachCardHeaderProps {
   rightContent?: React.ReactNode;
 }
 
-type Palette = (typeof Colors)['light'];
+type Palette = ReturnType<typeof useTheme>['colors'];
 
 // -----------------------------------------------------------------------------
 // Component
@@ -49,8 +49,7 @@ export function CoachCardHeader({
   layout = 'inline',
   rightContent,
 }: CoachCardHeaderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const avatarDimension = avatarSize === 'lg' ? Components.avatar.lg : Components.avatar.md;
 
@@ -68,7 +67,7 @@ export function CoachCardHeader({
         />
         {trialAvailable && (
           <View style={[styles.trialBadge, { backgroundColor: palette.success }]}>
-            <ThemedText style={styles.trialText} lightColor={Colors.light.onSuccess} darkColor={Colors.dark.onSuccess}>
+            <ThemedText style={[styles.trialText, { color: palette.onSuccess }]}>
               TRIAL
             </ThemedText>
           </View>
@@ -117,8 +116,7 @@ export function CoachAvatar({
   trialAvailable = false,
   size = 'lg',
 }: CoachAvatarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const avatarDimension = size === 'lg' ? Components.avatar.lg : Components.avatar.md;
 
@@ -134,7 +132,7 @@ export function CoachAvatar({
       />
       {trialAvailable && (
         <View style={[styles.trialBadge, { backgroundColor: palette.success }]}>
-          <ThemedText style={styles.trialText} lightColor={Colors.light.onSuccess} darkColor={Colors.dark.onSuccess}>
+          <ThemedText style={[styles.trialText, { color: palette.onSuccess }]}>
             TRIAL
           </ThemedText>
         </View>
@@ -158,8 +156,7 @@ export function CoachNameRow({
   verified = false,
   rightContent,
 }: CoachNameRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.nameRowSpaceBetween}>

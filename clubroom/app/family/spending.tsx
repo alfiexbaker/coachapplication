@@ -11,9 +11,9 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SpendingChart } from '@/components/family/SpendingChart';
-import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { familyService, type FamilySpending, type FamilyMember } from '@/services/family';
 
@@ -26,8 +26,7 @@ type DateRangeFilter = '1m' | '3m' | '6m' | '1y' | 'all';
  * Includes charts, trends, and detailed per-child breakdown
  */
 export default function FamilySpendingScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -160,8 +159,7 @@ export default function FamilySpendingScreen() {
                           ? palette.error
                           : spendingSummary.trend === 'down'
                           ? palette.success
-                          : palette.muted,
-                    },
+                          : palette.muted },
                   ]}
                 >
                   {spendingSummary.trendPercent}% vs last month
@@ -203,7 +201,7 @@ export default function FamilySpendingScreen() {
               <ThemedText
                 style={[
                   styles.filterChipText,
-                  dateFilter === filter ? { color: Colors.light.onPrimary } : undefined,
+                  dateFilter === filter ? { color: palette.onPrimary } : undefined,
                 ]}
               >
                 {filter === '1m'
@@ -252,8 +250,7 @@ export default function FamilySpendingScreen() {
                   colorCode: s.colorCode,
                   month: mb.month,
                   amount: mb.amount,
-                  sessionCount: mb.sessionCount,
-                }))
+                  sessionCount: mb.sessionCount }))
               )
               .slice(0, 5)
               .map((item, index) => (
@@ -314,8 +311,8 @@ export default function FamilySpendingScreen() {
             onPress={() => router.push(Routes.WALLET)}
             style={[styles.actionButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="wallet" size={20} color={Colors.light.onPrimary} />
-            <ThemedText style={styles.actionButtonText}>Top Up Wallet</ThemedText>
+            <Ionicons name="wallet" size={20} color={palette.onPrimary} />
+            <ThemedText style={[styles.actionButtonText, { color: palette.onPrimary }]}>Top Up Wallet</ThemedText>
           </Clickable>
           <Clickable
             onPress={() => router.push(Routes.FAMILY_CALENDAR)}
@@ -337,127 +334,96 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingText: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   comparisonRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   comparisonCard: {
     flex: 1,
     padding: Spacing.md,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   comparisonLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   comparisonValue: {
-    ...Typography.display,
-  },
+    ...Typography.display },
   comparisonSubtext: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   trendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   trendText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   filterRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    paddingVertical: Spacing.xs,
-  },
+    paddingVertical: Spacing.xs },
   filterChip: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   filterChipText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   sectionTitle: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   viewAllText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   transactionsCard: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   transactionsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   transactionsList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   transactionItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
-  },
+    paddingVertical: Spacing.xs },
   transactionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   transactionDot: {
     width: 10,
     height: 10,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   transactionInfo: {
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   transactionName: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   transactionMeta: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   transactionAmount: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   tipsCard: {
     padding: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   tipsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   tipsTitle: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   tipsText: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   tipsButton: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1.5,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   tipsButtonText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   quickActions: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
@@ -465,12 +431,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
-    borderRadius: Radii.lg,
-  },
+    borderRadius: Radii.lg },
   actionButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySemiBold,
-  },
+    ...Typography.bodySemiBold },
   actionButtonSecondary: {
     flex: 1,
     flexDirection: 'row',
@@ -479,9 +442,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: Radii.lg,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   actionButtonTextSecondary: {
-    ...Typography.bodySemiBold,
-  },
-});
+    ...Typography.bodySemiBold } });

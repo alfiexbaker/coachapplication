@@ -8,8 +8,8 @@ import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Components, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { getSessionsForCoach, formatDate } from '@/constants/mock-data';
 import type { Session } from '@/constants/app-types';
@@ -97,8 +97,7 @@ const TABS: { key: BadgeCategory; label: string; icon: keyof typeof Ionicons.gly
 const getSessionLabel = (session: Session) => session.nextFocusAreas?.[0] ?? 'Coaching session';
 
 export default function BadgesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { sessionId: sessionIdParam } = useLocalSearchParams<{ sessionId?: string }>();
 
@@ -339,7 +338,7 @@ export default function BadgesScreen() {
                       style={[styles.awardButton, { backgroundColor: palette.tint }]}
                       onPress={() => openAwardModal(badge)}
                     >
-                      <ThemedText style={styles.awardButtonText}>Award badge</ThemedText>
+                      <ThemedText style={[styles.awardButtonText, { color: palette.onPrimary }]}>Award badge</ThemedText>
                     </Clickable>
                   </View>
                 ) : null}
@@ -529,7 +528,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   awardButtonText: {
-    color: Colors.light.onPrimary,
     fontWeight: '700',
   },
 });

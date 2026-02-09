@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { RatingStars } from '@/components/review/rating-stars';
 import { SessionNoteFields } from '@/services/progress-service';
+import { useTheme } from '@/hooks/useTheme';
 
 const FOCUS_OPTIONS = ['Passing', 'Shooting', 'Dribbling', 'Defending', 'Conditioning'];
 const ATTENDANCE = ['Present', 'Late', 'No-show'];
@@ -21,8 +21,7 @@ export function SessionNotesForm({
   initialValues?: Partial<SessionNoteFields>;
   submitting?: boolean;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [summary, setSummary] = useState(initialValues?.summary ?? '');
   const [focus, setFocus] = useState<string[]>(initialValues?.focus ?? []);
   const [improvements, setImprovements] = useState(initialValues?.improvements ?? '');

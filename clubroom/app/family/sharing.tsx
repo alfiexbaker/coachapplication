@@ -21,8 +21,7 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
-  Modal,
-} from 'react-native';
+  Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,19 +29,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { PageHeader } from '@/components/primitives/page-header';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   familyService,
-  RELATIONSHIP_OPTIONS,
-} from '@/services/family';
+  RELATIONSHIP_OPTIONS } from '@/services/family';
 import type {
   FamilyAccount,
   FamilyGuardian,
   GuardianPermission,
-  GuardianRole,
-} from '@/constants/types';
+  GuardianRole } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('FamilySharing');
@@ -50,21 +47,16 @@ const logger = createLogger('FamilySharing');
 const ROLE_INFO: Record<GuardianRole, { label: string; description: string }> = {
   PRIMARY: {
     label: 'Primary',
-    description: 'Full access with admin controls',
-  },
+    description: 'Full access with admin controls' },
   GUARDIAN: {
     label: 'Guardian',
-    description: 'Can view and book sessions',
-  },
+    description: 'Can view and book sessions' },
   VIEWER: {
     label: 'Viewer',
-    description: 'View-only access',
-  },
-};
+    description: 'View-only access' } };
 
 export default function FamilySharingScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -170,8 +162,7 @@ export default function FamilySharingScreen() {
             } catch (error: unknown) {
               Alert.alert('Error', error instanceof Error ? error.message : 'Failed to remove guardian');
             }
-          },
-        },
+          } },
       ]
     );
   };
@@ -194,8 +185,7 @@ export default function FamilySharingScreen() {
             } catch (error: unknown) {
               Alert.alert('Error', error instanceof Error ? error.message : 'Failed to cancel invitation');
             }
-          },
-        },
+          } },
       ]
     );
   };
@@ -345,8 +335,8 @@ export default function FamilySharingScreen() {
           style={[styles.inviteButton, { backgroundColor: palette.tint }]}
           onPress={() => setShowInviteModal(true)}
         >
-          <Ionicons name="person-add" size={22} color={Colors.light.onPrimary} />
-          <ThemedText style={styles.inviteButtonText}>Invite Family Member</ThemedText>
+          <Ionicons name="person-add" size={22} color={palette.onPrimary} />
+          <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>Invite Family Member</ThemedText>
         </Pressable>
       </ScrollView>
 
@@ -404,8 +394,7 @@ export default function FamilySharingScreen() {
                       styles.relationshipOption,
                       {
                         borderColor: inviteRelationship === rel ? palette.tint : palette.border,
-                        backgroundColor: inviteRelationship === rel ? withAlpha(palette.tint, 0.06) : 'transparent',
-                      }
+                        backgroundColor: inviteRelationship === rel ? withAlpha(palette.tint, 0.06) : 'transparent' }
                     ]}
                     onPress={() => setInviteRelationship(rel)}
                   >
@@ -429,8 +418,7 @@ export default function FamilySharingScreen() {
                     styles.roleOption,
                     {
                       borderColor: inviteRole === role ? palette.tint : palette.border,
-                      backgroundColor: inviteRole === role ? withAlpha(palette.tint, 0.06) : 'transparent',
-                    }
+                      backgroundColor: inviteRole === role ? withAlpha(palette.tint, 0.06) : 'transparent' }
                   ]}
                   onPress={() => setInviteRole(role)}
                 >
@@ -478,11 +466,11 @@ export default function FamilySharingScreen() {
               disabled={inviting}
             >
               {inviting ? (
-                <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+                <ActivityIndicator size="small" color={palette.onPrimary} />
               ) : (
                 <>
-                  <Ionicons name="send" size={20} color={Colors.light.onPrimary} />
-                  <ThemedText style={styles.sendButtonText}>Send Invitation</ThemedText>
+                  <Ionicons name="send" size={20} color={palette.onPrimary} />
+                  <ThemedText style={[styles.sendButtonText, { color: palette.onPrimary }]}>Send Invitation</ThemedText>
                 </>
               )}
             </Pressable>
@@ -495,121 +483,94 @@ export default function FamilySharingScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   content: {
-    flex: 1,
-  },
+    flex: 1 },
   contentInner: {
     padding: Spacing.md,
     paddingBottom: Spacing.xl * 2,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   introCard: {
     padding: Spacing.lg,
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   introIcon: {
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   introTitle: {
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   introText: {
     textAlign: 'center',
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   section: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   count: {
     marginLeft: 'auto',
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   guardianCard: {
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   guardianHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   avatarText: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   guardianInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   guardianMeta: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   primaryBadge: {
     paddingHorizontal: 10,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   primaryBadgeText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   removeButton: {
-    padding: Spacing.xxs,
-  },
+    padding: Spacing.xxs },
   permissionIcons: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginLeft: 56,
-  },
+    marginLeft: 56 },
   permissionCount: {
     ...Typography.caption,
-    marginLeft: Spacing.xs,
-  },
+    marginLeft: Spacing.xs },
   inviteCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   inviteInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   inviteMeta: {
     ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   cancelInviteButton: {
     paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: Spacing.xxs,
     borderRadius: Radii.sm,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   cancelInviteText: {
-    ...Typography.smallSemiBold,
-  },
+    ...Typography.smallSemiBold },
   inviteButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -617,103 +578,80 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   inviteButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   // Modal styles
   modal: {
-    flex: 1,
-  },
+    flex: 1 },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.md,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   modalClose: {
-    padding: Spacing.xxs,
-  },
+    padding: Spacing.xxs },
   modalContent: {
-    flex: 1,
-  },
+    flex: 1 },
   modalInner: {
     padding: Spacing.md,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   formGroup: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.md,
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   textArea: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.md,
     ...Typography.subheading,
     minHeight: 80,
-    textAlignVertical: 'top',
-  },
+    textAlignVertical: 'top' },
   relationshipOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   relationshipOption: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   roleOption: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   radioOuter: {
     width: 22,
     height: 22,
     borderRadius: Radii.md,
     borderWidth: 2,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   radioInner: {
     width: 12,
     height: 12,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   roleInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   roleDesc: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   modalFooter: {
     padding: Spacing.md,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   sendButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   sendButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.heading,
-  },
-});
+    ...Typography.heading } });

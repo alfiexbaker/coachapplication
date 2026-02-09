@@ -1,11 +1,11 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface AnnouncementData {
   id: string;
@@ -31,8 +31,7 @@ export interface AnnouncementCardProps {
 }
 
 export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: AnnouncementCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -65,9 +64,9 @@ export function AnnouncementCard({ data, onDismiss, onRsvp, onPress }: Announcem
         </View>
 
         {onDismiss ? (
-          <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Pressable onPress={onDismiss} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={Components.icon.md} color={palette.muted} />
-          </TouchableOpacity>
+          </Pressable>
         ) : null}
       </View>
 

@@ -14,9 +14,9 @@ import { GoalCard } from './GoalCard';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { Goal, GoalStatus, GoalCategory } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
 interface GoalListProps {
@@ -80,8 +80,7 @@ export function GoalList({
   ListHeaderComponent,
   contentContainerStyle,
 }: GoalListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Filter goals
   let filteredGoals = goals;
@@ -195,8 +194,7 @@ export function GoalListSkeleton({
   count?: number;
   variant?: 'default' | 'compact' | 'featured';
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const skeletonHeight = {
     default: 140,
@@ -247,8 +245,7 @@ export function GoalSectionHeader({
   icon?: string;
   color?: string;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.sectionHeader}>

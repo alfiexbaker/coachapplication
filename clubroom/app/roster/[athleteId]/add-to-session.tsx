@@ -10,8 +10,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { groupSessionService } from '@/services/group-session-service';
 import { rosterService } from '@/services/roster-service';
@@ -22,8 +22,7 @@ const logger = createLogger('AddToSession');
 
 export default function AddToSessionScreen() {
   const { athleteId, athleteName } = useLocalSearchParams<{ athleteId: string; athleteName: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [sessions, setSessions] = useState<GroupSession[]>([]);
@@ -148,8 +147,8 @@ export default function AddToSessionScreen() {
               onPress={() => handleAddToSession(session)}
               disabled={isAdding}
             >
-              <Ionicons name={isAdding ? 'hourglass' : 'add'} size={16} color={Colors.light.onPrimary} />
-              <ThemedText style={styles.addButtonText}>
+              <Ionicons name={isAdding ? 'hourglass' : 'add'} size={16} color={palette.onPrimary} />
+              <ThemedText style={[styles.addButtonText, { color: palette.onPrimary }]}>
                 {isAdding ? 'Adding...' : 'Add'}
               </ThemedText>
             </Pressable>
@@ -172,8 +171,8 @@ export default function AddToSessionScreen() {
         style={[styles.createButton, { backgroundColor: palette.tint }]}
         onPress={() => router.push(Routes.GROUP_SESSIONS_CREATE)}
       >
-        <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
-        <ThemedText style={styles.createButtonText}>Create Session</ThemedText>
+        <Ionicons name="add" size={18} color={palette.onPrimary} />
+        <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Create Session</ThemedText>
       </Pressable>
     </View>
   );
@@ -208,90 +207,71 @@ export default function AddToSessionScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   headerCenter: {
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   athleteLabel: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   listContent: {
     padding: Spacing.lg,
     gap: Spacing.md,
-    flexGrow: 1,
-  },
+    flexGrow: 1 },
   sessionCard: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   sessionHeader: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   typeIcon: {
     width: 44,
     height: 44,
     borderRadius: Radii.md,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   sessionInfo: {
     flex: 1,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   sessionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   metaText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   sessionFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   spotsBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   spotsText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   addButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
+    paddingHorizontal: Spacing.xl },
   emptyText: {
     textAlign: 'center',
     marginTop: Spacing.xs,
-    lineHeight: 20,
-  },
+    lineHeight: 20 },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,10 +279,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: Radii.pill,
-    marginTop: Spacing.lg,
-  },
+    marginTop: Spacing.lg },
   createButtonText: {
-    color: Colors.light.onPrimary,
-    fontWeight: '600',
-  },
-});
+    fontWeight: '600' } });

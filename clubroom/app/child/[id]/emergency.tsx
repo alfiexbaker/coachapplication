@@ -10,8 +10,8 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Badge } from '@/components/primitives/badge';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { EmergencyInfo, EmergencyContact } from '@/constants/types';
 import { safetyService } from '@/services/safety-service';
 import { createLogger } from '@/utils/logger';
@@ -26,8 +26,7 @@ type ContactCardProps = {
 };
 
 function ContactCard({ contact, onEdit, onDelete, onSetPrimary }: ContactCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.contactCard}>
@@ -95,8 +94,7 @@ type ContactFormProps = {
 };
 
 function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [name, setName] = useState(contact?.name ?? '');
   const [relationship, setRelationship] = useState(contact?.relationship ?? '');
   const [phone, setPhone] = useState(contact?.phone ?? '');
@@ -112,8 +110,7 @@ function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
       phone: phone.trim(),
       email: email.trim() || undefined,
       canPickup,
-      isPrimary,
-    });
+      isPrimary });
   };
 
   const isValid = name.trim() && relationship.trim() && phone.trim();
@@ -194,9 +191,8 @@ function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
               style={[
                 styles.toggleKnob,
                 {
-                  backgroundColor: Colors.light.surface,
-                  transform: [{ translateX: canPickup ? 18 : 2 }],
-                },
+                  backgroundColor: palette.surface,
+                  transform: [{ translateX: canPickup ? 18 : 2 }] },
               ]}
             />
           </View>
@@ -222,9 +218,8 @@ function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
                 style={[
                   styles.toggleKnob,
                   {
-                    backgroundColor: Colors.light.surface,
-                    transform: [{ translateX: isPrimary ? 18 : 2 }],
-                  },
+                    backgroundColor: palette.surface,
+                    transform: [{ translateX: isPrimary ? 18 : 2 }] },
                 ]}
               />
             </View>
@@ -241,8 +236,7 @@ function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
 
 export default function EmergencyContactsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [info, setInfo] = useState<EmergencyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -333,7 +327,7 @@ export default function EmergencyContactsScreen() {
               onPress={() => setShowForm(true)}
               style={[styles.addButton, { backgroundColor: palette.tint }]}
             >
-              <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
+              <Ionicons name="add" size={20} color={palette.onPrimary} />
             </Clickable>
           )}
         </View>
@@ -389,137 +383,109 @@ export default function EmergencyContactsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-  },
+    flex: 1 },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   backButton: {
     padding: Spacing.xs,
-    marginLeft: -Spacing.xs,
-  },
+    marginLeft: -Spacing.xs },
   addButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   contactsList: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   contactCard: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   contactHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   contactAvatar: {
     width: 44,
     height: 44,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   contactNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   contactDetails: {
     gap: Spacing.xs,
-    marginLeft: 56,
-  },
+    marginLeft: 56 },
   contactDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   contactFlags: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    marginLeft: 56,
-  },
+    marginLeft: 56 },
   flagBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingVertical: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   contactActions: {
     flexDirection: 'row',
     borderTopWidth: 1,
     marginTop: Spacing.xs,
-    paddingTop: Spacing.sm,
-  },
+    paddingTop: Spacing.sm },
   contactActionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   formCard: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   formHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   fieldContainer: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   fieldLabel: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    ...Typography.body,
-  },
+    ...Typography.body },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
+    paddingVertical: Spacing.sm },
   toggle: {
     width: 48,
     height: 28,
     borderRadius: Radii.lg,
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   toggleKnob: {
     width: 24,
     height: 24,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   infoBox: {
     flexDirection: 'row',
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-  },
+    backgroundColor: 'rgba(0, 0, 0, 0.02)' },
   infoText: {
     flex: 1,
-    ...Typography.small,
-  },
-});
+    ...Typography.small } });

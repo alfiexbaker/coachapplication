@@ -17,13 +17,14 @@ import {
   Animated,
   StyleSheet,
   View,
-  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
+import { Spacing, Radii, Typography, Components } from '@/constants/theme';
 import { ButtonStyles } from '@/constants/styles';
 import { ThemedText } from '@/components/themed-text';
+import { Clickable } from '@/components/primitives/clickable';
+import { useTheme } from '@/hooks/useTheme';
 
 // Re-export EmptyState for convenience (single source of truth)
 export { EmptyState } from './empty-state';
@@ -53,11 +54,15 @@ function ShimmerBlock({
   height,
   borderRadius = Radii.sm,
   style,
+  baseColor,
+  highlightColor,
 }: {
   width: number | string;
   height: number;
   borderRadius?: number;
   style?: object;
+  baseColor: string;
+  highlightColor: string;
 }) {
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
@@ -75,11 +80,7 @@ function ShimmerBlock({
 
   const backgroundColor = shimmerAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [
-      Colors.light.border,   // #E5E7EB base
-      Colors.light.background, // #F7F8FB highlight (canvas)
-      Colors.light.border,   // #E5E7EB base
-    ],
+    outputRange: [baseColor, highlightColor, baseColor],
   });
 
   return (
@@ -98,10 +99,19 @@ function ShimmerBlock({
 }
 
 // ============================================================================
+// SKELETON TYPES
+// ============================================================================
+
+interface SkeletonColors {
+  baseColor: string;
+  highlightColor: string;
+}
+
+// ============================================================================
 // LIST VARIANT: 5 rows with circle avatar + 2 text lines
 // ============================================================================
 
-function ListSkeleton() {
+function ListSkeleton({ baseColor, highlightColor }: SkeletonColors) {
   return (
     <View style={skeletonStyles.listContainer}>
       {Array.from({ length: 5 }).map((_, i) => (
@@ -110,10 +120,12 @@ function ListSkeleton() {
             width={Components.avatar.sm}
             height={Components.avatar.sm}
             borderRadius={Components.avatar.sm / 2}
+            baseColor={baseColor}
+            highlightColor={highlightColor}
           />
           <View style={skeletonStyles.listTextGroup}>
-            <ShimmerBlock width="70%" height={14} />
-            <ShimmerBlock width="45%" height={12} />
+            <ShimmerBlock width="70%" height={14} baseColor={baseColor} highlightColor={highlightColor} />
+            <ShimmerBlock width="45%" height={12} baseColor={baseColor} highlightColor={highlightColor} />
           </View>
         </View>
       ))}
@@ -125,15 +137,15 @@ function ListSkeleton() {
 // CARD VARIANT: 3 card rectangles with text placeholders
 // ============================================================================
 
-function CardSkeleton() {
+function CardSkeleton({ baseColor, highlightColor }: SkeletonColors) {
   return (
     <View style={skeletonStyles.cardContainer}>
       {Array.from({ length: 3 }).map((_, i) => (
         <View key={i} style={skeletonStyles.card}>
-          <ShimmerBlock width="100%" height={120} borderRadius={Radii.card} />
+          <ShimmerBlock width="100%" height={120} borderRadius={Radii.card} baseColor={baseColor} highlightColor={highlightColor} />
           <View style={skeletonStyles.cardTextGroup}>
-            <ShimmerBlock width="60%" height={14} />
-            <ShimmerBlock width="80%" height={12} />
+            <ShimmerBlock width="60%" height={14} baseColor={baseColor} highlightColor={highlightColor} />
+            <ShimmerBlock width="80%" height={12} baseColor={baseColor} highlightColor={highlightColor} />
           </View>
         </View>
       ))}
@@ -145,14 +157,16 @@ function CardSkeleton() {
 // DETAIL VARIANT: hero rect + title line + 4 body lines
 // ============================================================================
 
-function DetailSkeleton() {
+function DetailSkeleton({ baseColor, highlightColor }: SkeletonColors) {
   return (
     <View style={skeletonStyles.detailContainer}>
-      <ShimmerBlock width="100%" height={200} borderRadius={Radii.card} />
+      <ShimmerBlock width="100%" height={200} borderRadius={Radii.card} baseColor={baseColor} highlightColor={highlightColor} />
       <ShimmerBlock
         width="50%"
         height={20}
         style={skeletonStyles.detailTitleSpacing}
+        baseColor={baseColor}
+        highlightColor={highlightColor}
       />
       {Array.from({ length: 4 }).map((_, i) => (
         <ShimmerBlock
@@ -160,6 +174,8 @@ function DetailSkeleton() {
           width={i === 3 ? '65%' : '100%'}
           height={14}
           style={skeletonStyles.detailLineSpacing}
+          baseColor={baseColor}
+          highlightColor={highlightColor}
         />
       ))}
     </View>
@@ -170,16 +186,18 @@ function DetailSkeleton() {
 // FORM VARIANT: 4 label + input pairs
 // ============================================================================
 
-function FormSkeleton() {
+function FormSkeleton({ baseColor, highlightColor }: SkeletonColors) {
   return (
     <View style={skeletonStyles.formContainer}>
       {Array.from({ length: 4 }).map((_, i) => (
         <View key={i} style={skeletonStyles.formField}>
-          <ShimmerBlock width={100} height={12} />
+          <ShimmerBlock width={100} height={12} baseColor={baseColor} highlightColor={highlightColor} />
           <ShimmerBlock
             width="100%"
             height={Components.input.height}
             borderRadius={Radii.md}
+            baseColor={baseColor}
+            highlightColor={highlightColor}
           />
         </View>
       ))}
@@ -191,15 +209,15 @@ function FormSkeleton() {
 // CALENDAR VARIANT: month header + 7x5 grid of small squares
 // ============================================================================
 
-function CalendarSkeleton() {
+function CalendarSkeleton({ baseColor, highlightColor }: SkeletonColors) {
   const cellSize = 36;
 
   return (
     <View style={skeletonStyles.calendarContainer}>
-      <ShimmerBlock width={160} height={18} style={skeletonStyles.calendarHeader} />
+      <ShimmerBlock width={160} height={18} style={skeletonStyles.calendarHeader} baseColor={baseColor} highlightColor={highlightColor} />
       <View style={skeletonStyles.calendarGrid}>
         {Array.from({ length: 7 }).map((_, dayIndex) => (
-          <ShimmerBlock key={`header-${dayIndex}`} width={cellSize} height={14} />
+          <ShimmerBlock key={`header-${dayIndex}`} width={cellSize} height={14} baseColor={baseColor} highlightColor={highlightColor} />
         ))}
         {Array.from({ length: 35 }).map((_, i) => (
           <ShimmerBlock
@@ -207,6 +225,8 @@ function CalendarSkeleton() {
             width={cellSize}
             height={cellSize}
             borderRadius={Radii.sm}
+            baseColor={baseColor}
+            highlightColor={highlightColor}
           />
         ))}
       </View>
@@ -218,7 +238,7 @@ function CalendarSkeleton() {
 // LOADING STATE
 // ============================================================================
 
-const VARIANT_MAP: Record<LoadingVariant, React.FC> = {
+const VARIANT_MAP: Record<LoadingVariant, React.FC<SkeletonColors>> = {
   list: ListSkeleton,
   card: CardSkeleton,
   detail: DetailSkeleton,
@@ -227,10 +247,11 @@ const VARIANT_MAP: Record<LoadingVariant, React.FC> = {
 };
 
 export function LoadingState({ variant }: LoadingStateProps) {
+  const { colors } = useTheme();
   const VariantComponent = VARIANT_MAP[variant];
   return (
     <View style={loadingStyles.container}>
-      <VariantComponent />
+      <VariantComponent baseColor={colors.border} highlightColor={colors.background} />
     </View>
   );
 }
@@ -240,24 +261,29 @@ export function LoadingState({ variant }: LoadingStateProps) {
 // ============================================================================
 
 export function ErrorState({ message, onRetry, title }: ErrorStateProps) {
+  const { colors } = useTheme();
+
   return (
     <View style={errorStyles.container}>
       <Ionicons
         name="alert-circle-outline"
         size={48}
-        color={Colors.light.error}
+        color={colors.error}
       />
-      <ThemedText style={errorStyles.title}>
+      <ThemedText style={[errorStyles.title, { color: colors.text }]}>
         {title ?? 'Something went wrong'}
       </ThemedText>
-      <ThemedText style={errorStyles.message}>{message}</ThemedText>
-      <TouchableOpacity
-        style={errorStyles.retryButton}
+      <ThemedText style={[errorStyles.message, { color: colors.muted }]}>
+        {message}
+      </ThemedText>
+      <Clickable
         onPress={onRetry}
-        activeOpacity={0.8}
+        style={errorStyles.retryButton}
+        accessibilityLabel="Try again"
+        accessibilityRole="button"
       >
         <ThemedText style={errorStyles.retryButtonText}>Try again</ThemedText>
-      </TouchableOpacity>
+      </Clickable>
     </View>
   );
 }
@@ -354,14 +380,11 @@ const errorStyles = StyleSheet.create({
   },
   title: {
     ...Typography.heading,
-    color: Colors.light.text,
     textAlign: 'center',
   },
   message: {
     ...Typography.body,
-    color: Colors.light.muted,
     textAlign: 'center',
-    lineHeight: 22,
   },
   retryButton: {
     ...ButtonStyles.primary,

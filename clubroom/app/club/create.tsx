@@ -9,8 +9,8 @@ import { apiClient } from '@/services/api-client';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Club, ClubMembership } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -24,8 +24,7 @@ function generateInviteCode(name: string): string {
 }
 
 export default function CreateClubScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [name, setName] = useState('');
@@ -272,11 +271,11 @@ export default function CreateClubScreen() {
             disabled={!isValid || isSubmitting}
           >
             {isSubmitting ? (
-              <ThemedText style={styles.createButtonText}>Creating...</ThemedText>
+              <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Creating...</ThemedText>
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.createButtonText}>Create Club</ThemedText>
+                <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
+                <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Create Club</ThemedText>
               </>
             )}
           </Clickable>
@@ -418,7 +417,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   createButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
 });

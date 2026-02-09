@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { CoachProfile, User } from '@/constants/app-types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CoachSummaryCardProps {
   coach: User;
@@ -13,8 +13,7 @@ interface CoachSummaryCardProps {
 }
 
 export function CoachSummaryCard({ coach, coachProfile }: CoachSummaryCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.card}>
@@ -29,7 +28,7 @@ export function CoachSummaryCard({ coach, coachProfile }: CoachSummaryCardProps)
             {coach.name}
           </ThemedText>
           <View style={styles.meta}>
-            <Ionicons name="star" size={14} color="#fbbf24" />
+            <Ionicons name="star" size={14} color={palette.rating} />
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {coachProfile.rating.toFixed(1)} ({coachProfile.totalReviews} reviews)
             </ThemedText>

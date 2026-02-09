@@ -6,9 +6,9 @@ import * as Haptics from 'expo-haptics';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { AvailabilityTemplate, AvailabilityOverride } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7am to 7pm
@@ -32,8 +32,7 @@ export function AvailabilityWeekGrid({
   onSlotPress,
   onSlotLongPress,
 }: AvailabilityWeekGridProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const todayIndex = new Date().getDay();
 
   // Build lookup for quick cell checks

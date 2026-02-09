@@ -14,11 +14,11 @@ import { StyleSheet, View, FlatList, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import type { FavouriteCoach } from '@/constants/types';
 import { EmptyState } from '@/components/ui/empty-state';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FavouriteCoachCard } from './FavouriteCoachCard';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FavouritesListProps {
   /** List of favourite coaches */
@@ -43,8 +43,7 @@ export function FavouritesList({
   onToggleFavourite,
   togglingFavouriteId,
 }: FavouritesListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 

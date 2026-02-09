@@ -13,8 +13,8 @@ import * as Haptics from 'expo-haptics';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { DateTimeField } from '@/components/ui/primitives';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const LOCATION_OPTIONS: { id: string; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'hyde_park', label: 'Hyde Park', icon: 'leaf-outline' },
@@ -45,8 +45,7 @@ export function AdjustDayModal({
   templateEndTime,
   templateLocation,
 }: AdjustDayModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -73,7 +72,7 @@ export function AdjustDayModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        style={styles.overlay}
+        style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
@@ -193,7 +192,7 @@ export function AdjustDayModal({
             ]}
           >
             <Ionicons name="checkmark" size={20} color={palette.onPrimary} />
-            <ThemedText style={styles.saveBtnText}>Save Override</ThemedText>
+            <ThemedText style={[styles.saveBtnText, { color: palette.onPrimary }]}>Save Override</ThemedText>
           </Clickable>
         </View>
       </KeyboardAvoidingView>
@@ -204,7 +203,6 @@ export function AdjustDayModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   sheet: {
@@ -257,7 +255,6 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     ...Typography.bodySemiBold,
-    color: '#FFFFFF',
   },
   locationSection: {
     gap: Spacing.sm,

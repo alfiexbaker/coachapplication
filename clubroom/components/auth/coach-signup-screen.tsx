@@ -13,8 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const inviteCodes = [
   {
@@ -44,8 +44,7 @@ export interface CoachSignupData {
 }
 
 export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: CoachSignupScreenProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [inviteCode, setInviteCode] = useState('');
   const [inviteValidated, setInviteValidated] = useState(false);
@@ -193,9 +192,7 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
                     disabled={!inviteCode || inviteValidated}
                     onPress={validateInviteCode}>
                     <ThemedText
-                      style={styles.validateButtonText}
-                      lightColor={Colors.light.onPrimary}
-                      darkColor={Colors.light.text}>
+                      style={[styles.validateButtonText, { color: palette.onPrimary }]}>
                       {inviteValidated ? 'Verified' : 'Verify'}
                     </ThemedText>
                   </Pressable>
@@ -300,7 +297,7 @@ export default function CoachSignupScreen({ onSignupComplete, onBackToLogin }: C
                   ]}
                   disabled={!isFormValid}
                   onPress={handleSubmit}>
-                  <ThemedText style={styles.buttonLabel} lightColor={Colors.light.onPrimary} darkColor={Colors.light.text}>
+                  <ThemedText style={[styles.buttonLabel, { color: palette.onPrimary }]}>
                     Create Coach Account
                   </ThemedText>
                 </Pressable>

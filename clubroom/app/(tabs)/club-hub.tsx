@@ -1,614 +1,205 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+/**
+ * ClubHubScreen — Club feed, admin actions, members, matches, sessions.
+ *
+ * Data loading + state management lives in useClubHub hook.
+ * Sub-components: ClubAdminActions, ClubFeedFilters, ClubNoMembership,
+ * ClubFeedListHeader (composed list header above feed posts).
+ */
+
+import { useCallback, memo } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { PageContainer } from '@/components/primitives/page-container';
 import { ScreenHeader } from '@/components/primitives/screen-header';
-import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { RemovalConfirmationModal } from '@/components/roster/removal-confirmation-modal';
-import { useToast } from '@/components/ui/toast';
-import { ClubHeader, ClubStatsRow } from '@/components/club/ClubHeader';
-import { MembersPanel } from '@/components/club/MembersPanel';
-import { SessionsPanel } from '@/components/club/SessionsPanel';
-import { MatchesPanel } from '@/components/club/MatchesPanel';
-import { TeamsPanel } from '@/components/club/TeamsPanel';
 import { FeedPost } from '@/components/club/FeedPost';
-import { JoinClubCard } from '@/components/club/JoinClubCard';
-import {
-  clubInvites,
-  getClubById,
-  getClubFeed,
-  getClubInvites,
-  getClubMembershipForUser,
-  getClubSquads,
-  togglePinPost,
-} from '@/constants/mock-data';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/hooks/use-auth';
-import type { Club, ClubFeedPost, ClubInvite, ClubMembership, ClubSquad, Match, GroupSession } from '@/constants/types';
-import { clubService, type ClubMember, type MemberRemovalReason, type ClubMemberRemovalRecord } from '@/services/club-service';
-import { groupSessionService } from '@/services/group-session-service';
-import { matchService } from '@/services/match-service';
-import { onTyped, ServiceEvents } from '@/services/event-bus';
-import { createLogger } from '@/utils/logger';
+import { ClubFeedListHeader } from '@/components/club/club-feed-list-header';
+import { ClubNoMembership } from '@/components/club/club-no-membership';
+import { LoadingScreen } from '@/components/ui/primitives/LoadingScreen';
+import { StatusBanner } from '@/components/ui/primitives/StatusBanner';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { useClubHub } from '@/hooks/use-club-hub';
+import type { ClubFeedPost } from '@/constants/types';
+import type { MemberRemovalReason } from '@/services/club-service';
 
-const logger = createLogger('ClubHub');
-
-type FeedFilter = 'all' | 'announcement' | 'photo' | 'event';
-
-const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = [
-  { key: 'all', label: 'All', icon: 'grid-outline' },
-  { key: 'announcement', label: 'Announcements', icon: 'megaphone-outline' },
-  { key: 'photo', label: 'Photos', icon: 'images-outline' },
-  { key: 'event', label: 'Events', icon: 'calendar-outline' },
-];
+const HEADER_PROPS = { title: 'Club Hub', subtitle: 'Your clubs and communities' } as const;
 
 export default function ClubHubScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
-  const { currentUser } = useAuth();
-  const { showUndoToast, showToast } = useToast();
+  const { colors } = useTheme();
+  const hub = useClubHub();
 
-  const [membership, setMembership] = useState<ClubMembership | undefined>(() =>
-    currentUser ? getClubMembershipForUser(currentUser.id) : undefined,
+  const feedKeyExtractor = useCallback((item: ClubFeedPost) => item.id, []);
+
+  const renderFeedPost = useCallback(
+    ({ item }: { item: ClubFeedPost }) => (
+      <View style={styles.feedPostItem}>
+        <FeedPost post={item} canPin={hub.canManagePosts} onPinToggle={hub.handlePinToggle} />
+      </View>
+    ),
+    [hub.canManagePosts, hub.handlePinToggle],
   );
-  const [club, setClub] = useState<Club | undefined>(() =>
-    membership ? getClubById(membership.clubId) : undefined,
+
+  const handleCreatePost = useCallback(() => router.push(Routes.MODAL_CREATE_CLUB_POST), []);
+
+  const toggleMembers = useCallback(() => {
+    hub.setShowMembersSection(!hub.showMembersSection);
+  }, [hub.showMembersSection, hub.setShowMembersSection]);
+
+  const handleConfirmRemoval = useCallback(
+    (reason: string, customReason?: string) => {
+      hub.handleConfirmMemberRemoval(reason as MemberRemovalReason, customReason);
+    },
+    [hub.handleConfirmMemberRemoval],
   );
-  const [feed, setFeed] = useState<ClubFeedPost[]>([]);
-  const [feedFilter, setFeedFilter] = useState<FeedFilter>('all');
-  const [squads] = useState<ClubSquad[]>(membership ? getClubSquads(membership.clubId) : []);
-  const [invites] = useState<ClubInvite[]>(membership ? getClubInvites(membership.clubId) : []);
-  const [trainingSessions, setTrainingSessions] = useState<GroupSession[]>([]);
-  const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
 
-  // Member management state
-  const [members, setMembers] = useState<ClubMember[]>([]);
-  const [showMembersSection, setShowMembersSection] = useState(false);
-  const [selectedMemberForRemoval, setSelectedMemberForRemoval] = useState<ClubMember | null>(null);
-  const [showMemberRemovalModal, setShowMemberRemovalModal] = useState(false);
-  const [isRemovingMember, setIsRemovingMember] = useState(false);
-  const lastMemberRemovalRef = useRef<ClubMemberRemovalRecord | null>(null);
+  // ─── No membership ────────────────────────────────────────────
+  if (!hub.membership) {
+    return (
+      <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
+        <ClubNoMembership isCoach={hub.isCoach} onJoin={hub.handleJoinWithCode} />
+      </PageContainer>
+    );
+  }
 
-  // Check if user can manage posts (pin, etc.) - coaches only
-  const canManagePosts = membership && ['OWNER', 'HEAD_COACH', 'ADMIN', 'COACH'].includes(membership.role);
+  // ─── Loading ───────────────────────────────────────────────────
+  if (hub.initialLoading) {
+    return (
+      <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
+        <LoadingScreen title="Loading club..." />
+      </PageContainer>
+    );
+  }
 
-  // All members can create posts
-  const canCreatePosts = !!membership;
+  // ─── Error ─────────────────────────────────────────────────────
+  if (hub.loadError) {
+    return (
+      <PageContainer header={<ScreenHeader {...HEADER_PROPS} />} gap={0} horizontalSpacing={0}>
+        <View style={styles.errorContainer}>
+          <StatusBanner variant="error" message={hub.loadError} />
+          <Pressable
+            style={[styles.retryButton, { borderColor: colors.tint }]}
+            onPress={hub.loadAllData}
+            accessibilityLabel="Retry loading club data"
+          >
+            <Ionicons name="refresh" size={18} color={colors.tint} />
+            <ThemedText style={{ color: colors.tint, ...Typography.bodySemiBold }}>Retry</ThemedText>
+          </Pressable>
+        </View>
+      </PageContainer>
+    );
+  }
 
-  // Check if user can remove members
-  const canRemoveMembers = membership && clubService.canRemoveMembers(membership.role);
-
-  // Load and refresh feed
-  const loadFeed = useCallback(() => {
-    if (membership?.clubId) {
-      const posts = getClubFeed(membership.clubId, feedFilter === 'all' ? undefined : feedFilter);
-      setFeed(posts);
-    } else {
-      setFeed([]);
-    }
-  }, [membership?.clubId, feedFilter]);
-
-  // Load members
-  const loadMembers = useCallback(async () => {
-    if (membership?.clubId) {
-      try {
-        const memberList = await clubService.getMembers(membership.clubId);
-        setMembers(memberList);
-      } catch (error) {
-        logger.error('Failed to load members:', error);
-      }
-    }
-  }, [membership?.clubId]);
-
-  // Load training sessions
-  const loadTrainingSessions = useCallback(async () => {
-    if (membership?.clubId) {
-      try {
-        const sessions = await groupSessionService.getClubTrainingSessions(membership.clubId);
-        setTrainingSessions(sessions);
-      } catch (error) {
-        logger.error('Failed to load training sessions:', error);
-      }
-    }
-  }, [membership?.clubId]);
-
-  // Load upcoming matches
-  const loadUpcomingMatches = useCallback(async () => {
-    if (membership?.clubId) {
-      try {
-        const matches = await matchService.getUpcomingMatches(membership.clubId);
-        setUpcomingMatches(matches.slice(0, 3)); // Show max 3 upcoming
-      } catch (error) {
-        logger.error('Failed to load upcoming matches:', error);
-      }
-    }
-  }, [membership?.clubId]);
-
-  useEffect(() => {
-    loadFeed();
-    loadMembers();
-    loadTrainingSessions();
-    loadUpcomingMatches();
-  }, [loadFeed, loadMembers, loadTrainingSessions, loadUpcomingMatches]);
-
-  // React to event bus events so the hub updates in real-time when
-  // new group sessions are published (affects training schedule panel).
-  useEffect(() => {
-    const unsubSessionPublished = onTyped(ServiceEvents.OPEN_SESSION_PUBLISHED, () => {
-      loadTrainingSessions();
-      loadFeed();
-    });
-    return () => {
-      unsubSessionPublished();
-    };
-  }, [loadTrainingSessions, loadFeed]);
-
-  // Handle member removal
-  const handleRemoveMember = (member: ClubMember) => {
-    if (!clubService.canBeRemoved(member.role)) {
-      Alert.alert('Cannot remove owner', 'The club owner cannot be removed.');
-      return;
-    }
-    setSelectedMemberForRemoval(member);
-    setShowMemberRemovalModal(true);
-  };
-
-  const handleConfirmMemberRemoval = async (reason: MemberRemovalReason, customReason?: string) => {
-    if (!selectedMemberForRemoval || !membership?.clubId || !currentUser) return;
-
-    setIsRemovingMember(true);
-    try {
-      const result = await clubService.removeMember(
-        membership.clubId,
-        selectedMemberForRemoval.userId,
-        reason,
-        { id: currentUser.id, name: currentUser.fullName || currentUser.username || 'Coach' },
-        { customReason }
-      );
-
-      if (!result.success) {
-        showToast(result.error.message, 'error');
-        return;
-      }
-
-      const removalRecord = result.data;
-      lastMemberRemovalRef.current = removalRecord;
-      setShowMemberRemovalModal(false);
-      setSelectedMemberForRemoval(null);
-
-      // Reload members
-      await loadMembers();
-
-      // Show undo toast
-      showUndoToast(
-        `${removalRecord.userName} removed from club`,
-        async () => {
-          try {
-            const undoResult = await clubService.undoRemoval(membership.clubId, removalRecord.id);
-            if (!undoResult.success) {
-              showToast(undoResult.error.message, 'error');
-              return;
-            }
-            await loadMembers();
-            showToast('Member restored', 'success');
-          } catch (error) {
-            logger.error('Failed to undo removal:', error);
-            showToast('Failed to restore member', 'error');
-          }
-        }
-      );
-    } catch (error) {
-      logger.error('Failed to remove member:', error);
-      showToast('Failed to remove member', 'error');
-    } finally {
-      setIsRemovingMember(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!membership?.clubId) {
-      setClub(undefined);
-      setFeed([]);
-      return;
-    }
-    setClub(getClubById(membership.clubId));
-  }, [membership?.clubId]);
-
-  const handlePinToggle = useCallback((postId: string) => {
-    if (!currentUser) return;
-    togglePinPost(postId, currentUser.id);
-    loadFeed();
-  }, [currentUser, loadFeed]);
-
-  const handleJoinWithCode = (code: string) => {
-    const trimmedCode = code.trim().toUpperCase();
-    if (!trimmedCode) {
-      Alert.alert('Enter invite code', 'Paste the club code shared with you.');
-      return;
-    }
-    const invite = clubInvites.find((item) => item.code.toUpperCase() === trimmedCode);
-    if (!invite) {
-      Alert.alert('Code not found', 'Check the code or request a new one from the club admin.');
-      return;
-    }
-
-    // For coaches, redirect to invite acceptance screen for confirmation
-    const userIsCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-    if (userIsCoach) {
-      router.push(Routes.coachInvitesWith({
-        code: invite.code,
-        clubId: invite.clubId,
-        clubName: invite.clubName,
-        role: invite.role,
-      }));
-      return;
-    }
-
-    // For regular users, join directly
-    const newMembership: ClubMembership = {
-      clubId: invite.clubId,
-      userId: currentUser?.id || 'guest',
-      role: invite.role,
-      status: 'active',
-      joinSource: 'invite',
-      inviteCode: invite.code,
-      canPostAsClub: invite.role === 'OWNER' || invite.role === 'ADMIN',
-    };
-    setMembership(newMembership);
-    Alert.alert('Joined club', `You are now part of ${invite.clubName}`);
-  };
-
-  const handleLeaveClub = () => {
-    Alert.alert('Club options', 'What would you like to do?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Leave club',
-        style: 'destructive',
-        onPress: () => {
-          setMembership(undefined);
-          setClub(undefined);
-          setFeed([]);
-        },
-      },
-    ]);
-  };
-
-  const isCoach = currentUser?.role === 'COACH' || currentUser?.role === 'ADMIN';
-
-  // Get counts for filter badges
-  // Note: feed is intentionally included to recompute when feed changes (e.g., after pin toggle)
-  const filterCounts = useMemo(() => {
-    if (!membership?.clubId) return {};
-    const allPosts = getClubFeed(membership.clubId);
-    return {
-      all: allPosts.length,
-      announcement: allPosts.filter(p => p.postType === 'announcement').length,
-      photo: allPosts.filter(p => p.postType === 'photo').length,
-      event: allPosts.filter(p => p.postType === 'event').length,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- feed triggers recomputation when posts are modified
-  }, [membership?.clubId, feed]);
+  // ─── Success ───────────────────────────────────────────────────
+  if (!hub.club) return null;
 
   return (
     <PageContainer
       header={
         <ScreenHeader
-          title="Club Hub"
-          subtitle="Your clubs and communities"
-          action={canCreatePosts ? {
-            icon: 'add',
-            label: 'New Post',
-            onPress: () => router.push(Routes.MODAL_CREATE_CLUB_POST)
-          } : undefined}
+          {...HEADER_PROPS}
+          action={
+            hub.canCreatePosts
+              ? { icon: 'add', label: 'New Post', onPress: handleCreatePost }
+              : undefined
+          }
         />
       }
       gap={0}
       horizontalSpacing={0}
     >
-      {membership && club ? (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Club header */}
-          <View style={styles.section}>
-            <ClubHeader club={club} membership={membership} onLeave={handleLeaveClub} />
-          </View>
-
-          {/* Admin Quick Actions */}
-          {isCoach && (
-            <View style={styles.adminActions}>
-              <Clickable
-                onPress={() => router.push(Routes.CLUB_SETTINGS)}
-                accessibilityLabel="Settings"
-                style={[styles.adminActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
-              >
-                <Ionicons name="settings-outline" size={22} color={palette.tint} />
-                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Settings</ThemedText>
-              </Clickable>
-              <Clickable
-                onPress={() => router.push(Routes.clubDashboard(membership.clubId))}
-                accessibilityLabel="Dashboard"
-                style={[styles.adminActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
-              >
-                <Ionicons name="bar-chart-outline" size={22} color={palette.tint} />
-                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Dashboard</ThemedText>
-              </Clickable>
-              <Clickable
-                onPress={() => router.push(Routes.clubCalendar(membership.clubId))}
-                accessibilityLabel="Calendar"
-                style={[styles.adminActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
-              >
-                <Ionicons name="calendar-outline" size={22} color={palette.tint} />
-                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Calendar</ThemedText>
-              </Clickable>
-              <Clickable
-                onPress={() => router.push(Routes.clubBranding(membership.clubId))}
-                accessibilityLabel="Branding"
-                style={[styles.adminActionCard, { backgroundColor: palette.surface, borderColor: palette.border }]}
-              >
-                <Ionicons name="color-palette-outline" size={22} color={palette.tint} />
-                <ThemedText style={{ ...Typography.caption, color: palette.muted }}>Branding</ThemedText>
-              </Clickable>
-            </View>
-          )}
-
-          {/* Quick stats */}
-          <ClubStatsRow
-            memberCount={members.length || club.memberCount}
-            squadCount={squads.length}
-            sessionCount={trainingSessions.length}
-            inviteCount={invites.length}
-            canManageMembers={!!canRemoveMembers}
-            showMembersSection={showMembersSection}
-            onToggleMembersSection={() => setShowMembersSection(!showMembersSection)}
+      <FlatList<ClubFeedPost>
+        data={hub.feed}
+        keyExtractor={feedKeyExtractor}
+        renderItem={renderFeedPost}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={<ClubFeedListHeader hub={hub} onToggleMembers={toggleMembers} />}
+        ListEmptyComponent={
+          <FeedEmptyState
+            feedFilter={hub.feedFilter}
+            canCreatePosts={hub.canCreatePosts}
+            onCreatePost={handleCreatePost}
           />
-
-          {/* Teams Section */}
-          <TeamsPanel
-            squads={squads}
-            isCoach={isCoach}
-            clubId={membership?.clubId}
-          />
-
-          {/* Training Schedule Section */}
-          <SessionsPanel
-            sessions={trainingSessions}
-            isCoach={isCoach}
-          />
-
-          {/* Upcoming Matches Section */}
-          <MatchesPanel
-            matches={upcomingMatches}
-            isCoach={isCoach}
-          />
-
-          {/* Members section */}
-          {(showMembersSection || isCoach) && canRemoveMembers && (
-            <MembersPanel
-              members={members}
-              canRemoveMembers={!!canRemoveMembers}
-              onRemoveMember={handleRemoveMember}
-              clubId={membership.clubId}
-            />
-          )}
-
-          {/* Feed filter tabs */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterScroll}
-            contentContainerStyle={styles.filterContainer}
-          >
-            {FEED_FILTERS.map((filter) => (
-              <TouchableOpacity
-                key={filter.key}
-                style={[
-                  styles.filterTab,
-                  feedFilter === filter.key ? { backgroundColor: withAlpha(palette.tint, 0.09), borderColor: palette.tint } : undefined,
-                  { borderColor: palette.border }
-                ]}
-                onPress={() => setFeedFilter(filter.key)}
-              >
-                <Ionicons
-                  name={filter.icon as keyof typeof Ionicons.glyphMap}
-                  size={16}
-                  color={feedFilter === filter.key ? palette.tint : palette.muted}
-                />
-                <ThemedText
-                  style={[
-                    styles.filterLabel,
-                    { color: feedFilter === filter.key ? palette.tint : palette.muted }
-                  ]}
-                >
-                  {filter.label}
-                </ThemedText>
-                {(filterCounts[filter.key] ?? 0) > 0 && (
-                  <View style={[
-                    styles.filterCount,
-                    { backgroundColor: feedFilter === filter.key ? palette.tint : palette.muted }
-                  ]}>
-                    <ThemedText style={styles.filterCountText}>{filterCounts[filter.key]}</ThemedText>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Feed posts */}
-          <View style={styles.feedSection}>
-            {feed.length > 0 ? (
-              feed.map((post) => (
-                <FeedPost
-                  key={post.id}
-                  post={post}
-                  canPin={canManagePosts}
-                  onPinToggle={handlePinToggle}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyFeed}>
-                <Ionicons name="newspaper-outline" size={48} color={palette.muted} />
-                <ThemedText style={{ color: palette.muted, textAlign: 'center' }}>
-                  {feedFilter === 'all'
-                    ? 'No posts yet. Be the first to share!'
-                    : `No ${feedFilter} posts yet.`}
-                </ThemedText>
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, styles.centeredContent]}
-        >
-          <JoinClubCard
-            isCoach={isCoach}
-            onJoin={handleJoinWithCode}
-          />
-
-          <SurfaceCard style={styles.benefitsCard}>
-            <ThemedText type="defaultSemiBold" style={{ marginBottom: Spacing.sm }}>
-              {isCoach ? 'Why create a club?' : 'Why join a club?'}
-            </ThemedText>
-            <View style={styles.benefitsList}>
-              {isCoach ? (
-                <>
-                  <View style={styles.benefitItem}>
-                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
-                    <ThemedText style={{ flex: 1 }}>Share updates and announcements with your community</ThemedText>
-                  </View>
-                  <View style={styles.benefitItem}>
-                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
-                    <ThemedText style={{ flex: 1 }}>Organize squads and manage private sessions</ThemedText>
-                  </View>
-                  <View style={styles.benefitItem}>
-                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
-                    <ThemedText style={{ flex: 1 }}>Post photos and celebrate achievements</ThemedText>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <View style={styles.benefitItem}>
-                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
-                    <ThemedText style={{ flex: 1 }}>Stay updated with club news and events</ThemedText>
-                  </View>
-                  <View style={styles.benefitItem}>
-                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
-                    <ThemedText style={{ flex: 1 }}>Access exclusive sessions and content</ThemedText>
-                  </View>
-                  <View style={styles.benefitItem}>
-                    <Ionicons name="checkmark-circle" size={18} color={palette.tint} />
-                    <ThemedText style={{ flex: 1 }}>Connect with coaches and other families</ThemedText>
-                  </View>
-                </>
-              )}
-            </View>
-          </SurfaceCard>
-        </ScrollView>
-      )}
-
-      {/* Member Removal Modal */}
+        }
+      />
       <RemovalConfirmationModal
-        visible={showMemberRemovalModal}
-        onClose={() => {
-          setShowMemberRemovalModal(false);
-          setSelectedMemberForRemoval(null);
-        }}
-        onConfirm={(reason, customReason) => handleConfirmMemberRemoval(reason as MemberRemovalReason, customReason)}
+        visible={hub.showMemberRemovalModal}
+        onClose={hub.dismissRemovalModal}
+        onConfirm={handleConfirmRemoval}
         type="member"
-        name={selectedMemberForRemoval?.userName || ''}
-        isLoading={isRemovingMember}
+        name={hub.selectedMemberForRemoval?.userName || ''}
+        isLoading={hub.isRemovingMember}
       />
     </PageContainer>
   );
 }
 
+// ─── Feed empty state ──────────────────────────────────────────────
+
+interface FeedEmptyStateProps {
+  feedFilter: string;
+  canCreatePosts: boolean;
+  onCreatePost: () => void;
+}
+
+const FeedEmptyState = memo(function FeedEmptyState({
+  feedFilter,
+  canCreatePosts,
+  onCreatePost,
+}: FeedEmptyStateProps) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.emptyFeed}>
+      <Ionicons name="newspaper-outline" size={48} color={colors.muted} />
+      <ThemedText style={{ color: colors.muted, textAlign: 'center' }}>
+        {feedFilter === 'all' ? 'No posts yet. Be the first to share!' : `No ${feedFilter} posts yet.`}
+      </ThemedText>
+      {canCreatePosts && feedFilter === 'all' && (
+        <Pressable
+          style={[styles.emptyFeedCta, { backgroundColor: colors.tint }]}
+          onPress={onCreatePost}
+          accessibilityLabel="Create first post"
+        >
+          <Ionicons name="add" size={18} color={colors.onPrimary} />
+          <ThemedText style={{ color: colors.onPrimary, ...Typography.bodySemiBold }}>Create Post</ThemedText>
+        </Pressable>
+      )}
+    </View>
+  );
+});
+
+// ─── Styles ────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: Spacing.xl * 2,
-  },
-  centeredContent: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  section: {
-    padding: Spacing.md,
-  },
-  adminActions: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  adminActionCard: {
-    flex: 1,
-    height: 72,
-    borderRadius: Radii.card,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xxs,
-  },
-  filterScroll: {
-    marginTop: Spacing.sm,
-  },
-  filterContainer: {
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.xs,
-  },
-  filterTab: {
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: Spacing.xl * 2 },
+  feedPostItem: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
+  emptyFeed: { alignItems: 'center', padding: Spacing.xl, gap: Spacing.md },
+  emptyFeedCta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Radii.pill,
-    borderWidth: 1,
+    marginTop: Spacing.sm,
+    minHeight: 44,
   },
-  filterLabel: {
-    ...Typography.smallSemiBold,
-  },
-  filterCount: {
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.md,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  filterCountText: {
-    color: Colors.light.onPrimary,
-    ...Typography.caption,
-  },
-  feedSection: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  emptyFeed: {
-    alignItems: 'center',
-    padding: Spacing.xl,
-    gap: Spacing.md,
-  },
-  benefitsCard: {
-    gap: Spacing.xs,
-  },
-  benefitsList: {
-    gap: Spacing.sm,
-  },
-  benefitItem: {
+  errorContainer: { flex: 1, padding: Spacing.md, gap: Spacing.md, justifyContent: 'center' },
+  retryButton: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    minHeight: 44,
   },
 });

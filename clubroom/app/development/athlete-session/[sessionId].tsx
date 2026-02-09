@@ -6,8 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { MOCK_SESSIONS, formatDate } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
 
@@ -15,8 +15,7 @@ const logger = createLogger('AthleteSessionDetailScreen');
 
 export default function AthleteSessionDetailScreen() {
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const session = MOCK_SESSIONS.find(s => s.id === sessionId);
 
@@ -79,7 +78,7 @@ export default function AthleteSessionDetailScreen() {
                   key={star}
                   name={star <= session.performanceRating ? 'star' : 'star-outline'}
                   size={40}
-                  color={star <= session.performanceRating ? '#FFD700' : palette.muted}
+                  color={star <= session.performanceRating ? palette.rating : palette.muted}
                 />
               ))}
             </View>

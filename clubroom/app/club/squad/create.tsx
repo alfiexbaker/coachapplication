@@ -9,8 +9,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { ClubSquad } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
@@ -37,8 +37,7 @@ const AGE_GROUP_OPTIONS = [
 
 export default function CreateSquadScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 
@@ -152,7 +151,7 @@ export default function CreateSquadScreen() {
                   <ThemedText
                     style={[
                       styles.optionText,
-                      { color: selectedAgeGroup === option.value ? Colors.light.onPrimary : palette.text },
+                      { color: selectedAgeGroup === option.value ? palette.onPrimary : palette.text },
                     ]}
                   >
                     {option.label}
@@ -286,11 +285,11 @@ export default function CreateSquadScreen() {
             disabled={!isValid || isSubmitting}
           >
             {isSubmitting ? (
-              <ThemedText style={styles.createButtonText}>Creating...</ThemedText>
+              <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Creating...</ThemedText>
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.createButtonText}>Create Squad</ThemedText>
+                <Ionicons name="checkmark-circle" size={20} color={palette.onPrimary} />
+                <ThemedText style={[styles.createButtonText, { color: palette.onPrimary }]}>Create Squad</ThemedText>
               </>
             )}
           </Clickable>
@@ -429,7 +428,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   createButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
 });

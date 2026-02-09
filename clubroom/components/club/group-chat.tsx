@@ -5,15 +5,15 @@ import {
   Platform,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,8 +52,7 @@ export function GroupChat({
   onAttachPhoto,
   onDismissPinned,
 }: GroupChatProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList<GroupChatMessage>>(null);
@@ -129,9 +128,9 @@ export function GroupChat({
             </ThemedText>
           </View>
           {onDismissPinned ? (
-            <TouchableOpacity onPress={onDismissPinned} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Pressable onPress={onDismissPinned} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={Components.icon.md} color={palette.muted} />
-            </TouchableOpacity>
+            </Pressable>
           ) : null}
         </View>
       ) : null}
@@ -139,7 +138,7 @@ export function GroupChat({
       {/* Unread count badge */}
       {unreadCount > 0 ? (
         <View style={[styles.unreadBadge, { backgroundColor: palette.tint }]}>
-          <ThemedText style={styles.unreadText}>
+          <ThemedText style={[styles.unreadText, { color: palette.onPrimary }]}>
             {unreadCount} new message{unreadCount !== 1 ? 's' : ''}
           </ThemedText>
         </View>
@@ -158,13 +157,13 @@ export function GroupChat({
 
       {/* Input bar */}
       <View style={[styles.inputBar, { backgroundColor: palette.surface, borderTopColor: palette.border }]}>
-        <TouchableOpacity
+        <Pressable
           style={styles.attachButton}
           onPress={onAttachPhoto}
           accessibilityLabel="Attach photo"
         >
           <Ionicons name="image-outline" size={Components.icon.lg} color={palette.muted} />
-        </TouchableOpacity>
+        </Pressable>
 
         <TextInput
           style={[
@@ -238,7 +237,6 @@ const styles = StyleSheet.create({
   },
   unreadText: {
     ...Typography.caption,
-    color: Colors.light.onPrimary,
   },
   listContent: {
     paddingHorizontal: Spacing.sm,

@@ -133,6 +133,7 @@ export type {
   SquadInviteHistoryEntry,
   ClubInvite,
   ClubPostType,
+  FeedFilter,
   FeedType,
   ClubFeedPost,
   AcademyPermission,
@@ -207,6 +208,7 @@ export type {
   BookingSeries,
   WeekAcceptance,
   CoachVenue,
+  InviteRsvpResponse,
 } from './session-types';
 
 // ============================================================================

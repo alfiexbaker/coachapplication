@@ -7,8 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+  Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,10 +16,10 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { ClubEvent, EventRSVP, RSVPStatus } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
@@ -28,8 +27,7 @@ import { scaleFont } from '@/utils/scale';
 const logger = createLogger('EventRSVPScreen');
 
 export default function EventRSVPScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
@@ -94,8 +92,7 @@ export default function EventRSVPScreen() {
         userRole: isCoach ? 'COACH' : 'PARENT',
         status: selectedStatus,
         guestCount: selectedStatus === 'GOING' ? guestCount : 0,
-        note: note.trim() || undefined,
-      });
+        note: note.trim() || undefined });
 
       Alert.alert(
         'RSVP Submitted',
@@ -190,7 +187,7 @@ export default function EventRSVPScreen() {
 
             {/* Capacity indicator */}
             {event.maxAttendees && (
-              <View style={styles.capacitySection}>
+              <View style={[styles.capacitySection, { borderTopColor: palette.border }]}>
                 <View style={styles.capacityHeader}>
                   <ThemedText style={[styles.capacityLabel, { color: palette.muted }]}>
                     Spots remaining
@@ -210,8 +207,7 @@ export default function EventRSVPScreen() {
                       styles.capacityFill,
                       {
                         backgroundColor: isFull ? palette.error : palette.success,
-                        width: `${Math.min(100, ((going + totalGuests) / event.maxAttendees) * 100)}%`,
-                      },
+                        width: `${Math.min(100, ((going + totalGuests) / event.maxAttendees) * 100)}%` },
                     ]}
                   />
                 </View>
@@ -287,19 +283,18 @@ export default function EventRSVPScreen() {
                           {
                             backgroundColor: isSelected ? color : 'transparent',
                             borderColor: isSelected ? color : palette.border,
-                            opacity: isDisabled ? 0.5 : 1,
-                          },
+                            opacity: isDisabled ? 0.5 : 1 },
                         ]}
                       >
                         <Ionicons
                           name={eventService.getRSVPStatusIcon(status) as keyof typeof Ionicons.glyphMap}
                           size={24}
-                          color={isSelected ? Colors.light.onPrimary : color}
+                          color={isSelected ? palette.onPrimary : color}
                         />
                         <ThemedText
                           style={[
                             styles.statusOptionText,
-                            { color: isSelected ? Colors.light.onPrimary : palette.text },
+                            { color: isSelected ? palette.onPrimary : palette.text },
                           ]}
                         >
                           {eventService.formatRSVPStatus(status)}
@@ -354,8 +349,7 @@ export default function EventRSVPScreen() {
                     {
                       backgroundColor: palette.surface,
                       borderColor: palette.border,
-                      color: palette.text,
-                    },
+                      color: palette.text },
                   ]}
                   placeholder="Any dietary requirements, questions, etc."
                   placeholderTextColor={palette.muted}
@@ -379,7 +373,7 @@ export default function EventRSVPScreen() {
               style={styles.submitButton}
             >
               {submitting ? (
-                <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+                <ActivityIndicator size="small" color={palette.onPrimary} />
               ) : currentRSVP ? (
                 'Update Response'
               ) : (
@@ -395,191 +389,148 @@ export default function EventRSVPScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   flex: {
-    flex: 1,
-  },
+    flex: 1 },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   errorContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   errorText: {
     ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-  },
+    borderBottomWidth: 1 },
   backButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   headerTitle: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-  },
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
   headerSpacer: {
-    width: 40,
-  },
+    width: 40 },
   scrollContent: {
     padding: Spacing.lg,
     gap: Spacing.lg,
-    paddingBottom: 100,
-  },
+    paddingBottom: 100 },
   eventCard: {
     padding: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   eventInfo: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   eventTitle: {
-    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize),
-  },
+    ...Typography.heading, fontSize: scaleFont(Typography.heading.fontSize) },
   eventDetails: {
     gap: Spacing.xxs,
-    marginTop: Spacing.xxs,
-  },
+    marginTop: Spacing.xxs },
   eventDetailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   eventDetailText: {
-    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-  },
+    ...Typography.small, fontSize: scaleFont(Typography.small.fontSize) },
   capacitySection: {
     paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
-  },
+    borderTopWidth: 1 },
   capacityHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: Spacing.xxs,
-  },
+    marginBottom: Spacing.xxs },
   capacityLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   capacityValue: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   capacityBar: {
     height: 6,
     borderRadius: Radii.xs,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   capacityFill: {
     height: '100%',
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   warningBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   warningText: {
     ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-    flex: 1,
-  },
+    flex: 1 },
   currentRSVPBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   currentRSVPInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   currentRSVPLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   currentRSVPStatus: {
-    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize),
-  },
+    ...Typography.bodySemiBold, fontSize: scaleFont(Typography.bodySemiBold.fontSize) },
   section: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionTitle: {
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-  },
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
   sectionSubtitle: {
     ...Typography.small, fontSize: scaleFont(Typography.small.fontSize),
-    marginTop: -4,
-  },
+    marginTop: -4 },
   statusOptions: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   statusOption: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   statusOptionText: {
-    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize),
-  },
+    ...Typography.subheading, fontSize: scaleFont(Typography.subheading.fontSize) },
   guestCounter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   counterButton: {
     width: 48,
     height: 48,
     borderRadius: Radii.md,
     borderWidth: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   counterValue: {
     width: 80,
     height: 48,
     borderRadius: Radii.md,
     borderWidth: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   counterValueText: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   noteInput: {
     borderWidth: 1,
     borderRadius: Radii.md,
     padding: Spacing.md,
     ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    minHeight: 100,
-  },
+    minHeight: 100 },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     padding: Spacing.lg,
-    borderTopWidth: 1,
-  },
+    borderTopWidth: 1 },
   submitButton: {
-    paddingVertical: 14,
-  },
-});
+    paddingVertical: 14 } });

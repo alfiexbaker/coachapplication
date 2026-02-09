@@ -17,6 +17,8 @@ export { squadInviteService } from './squad-invite-service';
 export { bulkInviteService } from './bulk-invite-service';
 export { matchInviteService } from './match-invite-service';
 export { eventInviteService } from './event-invite-service';
+export { inviteRsvpService } from './invite-rsvp-service';
+export { inviteShareService } from './invite-share-service';
 
 // Re-export types
 export type {

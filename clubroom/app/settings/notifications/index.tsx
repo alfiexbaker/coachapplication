@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SettingsToggleRow, SettingsSection } from '@/components/settings';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { createLogger } from '@/utils/logger';
 import { hasChildren } from '@/utils/user-helpers';
@@ -16,8 +16,7 @@ import { hasChildren } from '@/utils/user-helpers';
 const logger = createLogger('NotificationSettings');
 
 export default function NotificationSettingsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // Push notification settings

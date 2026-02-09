@@ -16,8 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { AnnotationMarker, CompactAnnotationMarker } from './AnnotationMarker';
-import { Colors, Spacing, Radii , Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography  , withAlpha, Shadows } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { ANNOTATION_TYPE_CONFIG } from '@/services/video-service';
 import type { VideoAnnotation } from '@/constants/types';
 
@@ -44,8 +44,7 @@ export function TimelineBar({
   showLabels = true,
   interactive = true,
 }: TimelineBarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
 
   const [timelineWidth, setTimelineWidth] = useState(SCREEN_WIDTH - Spacing.lg * 2);
 
@@ -179,7 +178,7 @@ export function TimelineBar({
                 style={[styles.groupedMarkers, { left: `${group.position}%` }]}
               >
                 <View style={[styles.groupBadge, { backgroundColor: palette.tint }]}>
-                  <ThemedText style={styles.groupCount}>
+                  <ThemedText style={[styles.groupCount, { color: palette.onPrimary }]}>
                     {group.annotations.length}
                   </ThemedText>
                 </View>
@@ -203,6 +202,7 @@ export function TimelineBar({
               {
                 left: `${progressPercentage}%`,
                 backgroundColor: palette.tint,
+                ...Shadows[scheme].subtle,
               },
             ]}
           />
@@ -225,7 +225,7 @@ export function TimelineBar({
             size={12}
             color={palette.onPrimary}
           />
-          <ThemedText style={styles.activeLabel} numberOfLines={1}>
+          <ThemedText style={[styles.activeLabel, { color: palette.onPrimary }]} numberOfLines={1}>
             {activeAnnotation.label}
           </ThemedText>
         </Clickable>
@@ -250,8 +250,7 @@ export function CompactTimeline({
   annotations,
   onSeek,
 }: CompactTimelineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -315,11 +314,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
     top: -5,
     marginLeft: -2,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
   groupedMarkers: {
     position: 'absolute',
@@ -334,7 +328,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.micro,
   },
-  groupCount: { ...Typography.micro, color: Colors.light.onPrimary },
+  groupCount: { ...Typography.micro },
   groupStack: {
     flexDirection: 'row',
     gap: -6,
@@ -348,7 +342,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.sm,
     gap: Spacing.xxs,
   },
-  activeLabel: { ...Typography.caption, color: Colors.light.onPrimary,
+  activeLabel: { ...Typography.caption,
     maxWidth: 150 },
   compactContainer: {
     height: 4,

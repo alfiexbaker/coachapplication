@@ -8,8 +8,8 @@ import { ReviewForm } from '@/components/review/review-form';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useState, useEffect, useCallback } from 'react';
 import { createLogger } from '@/utils/logger';
 import type { Booking } from '@/constants/app-types';
@@ -46,8 +46,7 @@ export default function ReviewScreen() {
     rating: number;
     text: string;
   } | null>(null);
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Load booking info
   const loadBooking = useCallback(async () => {

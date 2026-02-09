@@ -10,8 +10,8 @@ import { createLogger } from '@/utils/logger';
 import { PageHeader } from '@/components/primitives/page-header';
 import { ThemedText } from '@/components/themed-text';
 import { InvoiceList } from '@/components/invoices';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { invoiceService } from '@/services/invoice-service';
 import { Invoice, InvoiceSummary, InvoiceFilter } from '@/constants/types';
@@ -23,8 +23,7 @@ const logger = createLogger('InvoicesScreen');
 // ============================================================================
 
 export default function InvoicesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);

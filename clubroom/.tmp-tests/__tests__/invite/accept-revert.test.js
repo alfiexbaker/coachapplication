@@ -1,5 +1,4 @@
 "use strict";
-// @ts-nocheck
 /**
  * Accept Revert Tests
  *
@@ -49,9 +48,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_test_1 = __importStar(require("node:test"));
-// ============================================================================
-// MOCK INFRASTRUCTURE
-// ============================================================================
 let invitesCache = [];
 let mockNotifications = [];
 let bookingCreateResult = {

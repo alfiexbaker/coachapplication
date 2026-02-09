@@ -1,12 +1,12 @@
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { Invoice, InvoiceStatus } from '@/constants/types';
 import { invoiceService } from '@/services/invoice-service';
 
@@ -75,8 +75,7 @@ function formatShortDate(dateString: string): string {
 // ============================================================================
 
 export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const statusColor = invoiceService.getStatusColor(invoice.status);
 
   const handlePress = () => {
@@ -89,10 +88,9 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
 
   if (compact) {
     return (
-      <TouchableOpacity
+      <Pressable
         style={[styles.compactContainer, { borderBottomColor: palette.border }]}
         onPress={handlePress}
-        activeOpacity={0.7}
       >
         <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
         <View style={styles.compactContent}>
@@ -114,7 +112,7 @@ export function InvoiceCard({ invoice, compact = false, onPress }: InvoiceCardPr
           </View>
         </View>
         <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 

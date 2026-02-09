@@ -21,9 +21,9 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillNode as SkillNodeType } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -58,8 +58,7 @@ export function SkillNode({
   canUnlock = false,
   animateUnlock = false,
 }: SkillNodeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const scale = useSharedValue(1);
   const unlockAnimation = useSharedValue(0);

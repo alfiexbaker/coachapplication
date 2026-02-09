@@ -14,8 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -70,7 +70,7 @@ function MoodSelector({
 }: {
   selected: number;
   onSelect: (v: number) => void;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }) {
   return (
     <View style={styles.moodRow}>
@@ -118,7 +118,7 @@ function StarRating({
 }: {
   value: number;
   onChange: (v: number) => void;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }) {
   return (
     <View style={styles.starRow}>
@@ -144,8 +144,7 @@ function StarRating({
 // ---------------------------------------------------------------------------
 
 export function SessionJournal({ coachNotes, pastEntries, onSave }: SessionJournalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [personalNotes, setPersonalNotes] = useState('');
   const [mood, setMood] = useState(3);

@@ -17,8 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { MutedCoach } from '@/constants/types';
 
 export interface MutedCoachesListProps {
@@ -73,8 +73,7 @@ function MutedCoachRow({
   loading = false,
   isLast,
 }: MutedCoachRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleUnmute = () => {
     Alert.alert(
@@ -139,8 +138,7 @@ export function MutedCoachesList({
   disabled = false,
   loading = false,
 }: MutedCoachesListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: palette.card, borderColor: palette.border }]}>
@@ -159,7 +157,7 @@ export function MutedCoachesList({
         </View>
         {mutedCoaches.length > 0 && (
           <View style={[styles.badge, { backgroundColor: palette.muted }]}>
-            <ThemedText style={styles.badgeText}>{mutedCoaches.length}</ThemedText>
+            <ThemedText style={[styles.badgeText, { color: palette.onPrimary }]}>{mutedCoaches.length}</ThemedText>
           </View>
         )}
       </View>
@@ -226,7 +224,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
   },
-  badgeText: { ...Typography.caption, color: Colors.light.onPrimary },
+  badgeText: { ...Typography.caption, /* color set inline for dynamic theming */ },
   list: {
     borderTopWidth: StyleSheet.hairlineWidth,
   },

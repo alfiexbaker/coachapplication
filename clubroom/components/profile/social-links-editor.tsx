@@ -3,10 +3,10 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { SocialLinks as SocialLinksType, SocialPlatform } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { SOCIAL_PLATFORMS } from './social-links';
+import { useTheme } from '@/hooks/useTheme';
 
 type SocialLinksEditorProps = {
   socialLinks: SocialLinksType;
@@ -34,8 +34,7 @@ const PLATFORM_PLACEHOLDERS: Record<SocialPlatform, string> = {
 };
 
 export function SocialLinksEditor({ socialLinks, onChange }: SocialLinksEditorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleChange = (platform: SocialPlatform, value: string) => {
     onChange({

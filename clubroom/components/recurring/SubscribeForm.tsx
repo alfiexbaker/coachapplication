@@ -17,10 +17,10 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { FrequencyPicker } from './FrequencyPicker';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { RecurrenceFrequency, CreateRecurringBookingParams } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getDayName, getFrequencyLabel } from '@/services/recurring-booking-service';
+import { useTheme } from '@/hooks/useTheme';
 
 /**
  * Coach information for the form
@@ -123,8 +123,7 @@ export function SubscribeForm({
   submitting = false,
   defaultValues,
 }: SubscribeFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Form state
   const [dayOfWeek, setDayOfWeek] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(
@@ -566,7 +565,7 @@ export function SubscribeForm({
             </View>
           )}
           {monthlyEstimate !== null && (
-            <View style={[styles.summaryRow, styles.summaryTotal]}>
+            <View style={[styles.summaryRow, styles.summaryTotal, { borderTopColor: palette.border }]}>
               <ThemedText style={{ color: palette.muted }}>Est. Monthly Cost</ThemedText>
               <ThemedText type="subtitle" style={{ color: palette.tint }}>
                 ${monthlyEstimate}
@@ -665,8 +664,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayLabel: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   timeSelector: {
     flexDirection: 'row',
@@ -707,8 +705,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   durationText: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   textInput: {
     borderWidth: 1,
@@ -750,7 +747,6 @@ const styles = StyleSheet.create({
   summaryTotal: {
     paddingTop: Spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.light.border,
     marginTop: Spacing.xs,
   },
   footer: {

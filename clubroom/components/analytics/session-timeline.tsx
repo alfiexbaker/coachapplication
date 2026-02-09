@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface SessionEvent {
   id: string;
@@ -24,6 +24,7 @@ interface SessionTimelineProps {
   maxItems?: number;
 }
 
+// Decorative: categorical timeline event colors (not themeable)
 const EVENT_ICONS: Record<SessionEvent['type'], { icon: string; color: string }> = {
   SESSION: { icon: 'football', color: '#4CAF50' },
   GOAL_SET: { icon: 'flag', color: '#2196F3' },
@@ -31,7 +32,7 @@ const EVENT_ICONS: Record<SessionEvent['type'], { icon: string; color: string }>
   MILESTONE: { icon: 'checkmark-circle', color: '#9C27B0' },
   VIDEO: { icon: 'videocam', color: '#E91E63' },
   ASSESSMENT: { icon: 'clipboard', color: '#00BCD4' },
-};
+} as const;
 
 export function SessionTimeline({
   events,
@@ -39,8 +40,7 @@ export function SessionTimeline({
   onEventPress,
   maxItems,
 }: SessionTimelineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const displayEvents = maxItems ? events.slice(0, maxItems) : events;
 
@@ -152,7 +152,7 @@ export function SessionTimeline({
                       )}
                       {event.rating && (
                         <View style={styles.metaItem}>
-                          <Ionicons name="star" size={12} color="#FFB800" />
+                          <Ionicons name="star" size={12} color={palette.rating} />
                           <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                             {event.rating.toFixed(1)}
                           </ThemedText>
@@ -177,8 +177,7 @@ interface HorizontalTimelineProps {
 }
 
 export function HorizontalTimeline({ events, onEventPress }: HorizontalTimelineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <ScrollView

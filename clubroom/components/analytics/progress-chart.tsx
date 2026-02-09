@@ -2,9 +2,9 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SkillProgress } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const CHART_HEIGHT = 180;
 
@@ -14,11 +14,11 @@ interface ProgressChartProps {
   showLegend?: boolean;
 }
 
-const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4'];
+// Decorative: categorical chart colors (not themeable)
+const COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#E91E63', '#9C27B0', '#00BCD4'] as const;
 
 export function ProgressChart({ skills, title = 'Progress Over Time', showLegend = true }: ProgressChartProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Get all unique dates from all skills
   const allDates = new Set<string>();
@@ -151,8 +151,7 @@ interface SparklineProps {
 }
 
 export function Sparkline({ data, color, width = 60, height = 20 }: SparklineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const lineColor = color || palette.tint;
 
   if (data.length < 2) {

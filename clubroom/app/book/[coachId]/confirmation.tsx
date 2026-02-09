@@ -9,8 +9,8 @@ import * as Haptics from 'expo-haptics';
 import { BookingWizardHeader } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing  , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { useAuth } from '@/hooks/use-auth';
 import { bookingService } from '@/services/booking-service';
@@ -21,8 +21,7 @@ const logger = createLogger('ConfirmationScreen');
 
 export default function ConfirmationScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { draft, reset } = useBookingFlow();
   const { currentUser } = useAuth();
 
@@ -71,7 +70,7 @@ export default function ConfirmationScreen() {
           title: 'Booking Confirmed!',
           subtitle: `Session with ${draft.coachName || 'your coach'} is all set`,
           icon: 'checkmark-circle',
-          iconColor: '#10B981',
+          iconColor: palette.success,
           duration: 2500,
         });
 
@@ -134,9 +133,9 @@ export default function ConfirmationScreen() {
         </View>
 
         {error && (
-          <View style={[styles.errorBox, { backgroundColor: '#FEE2E2', borderColor: '#EF4444' }]}>
-            <Ionicons name="alert-circle" size={20} color="#DC2626" />
-            <ThemedText style={{ color: '#DC2626', flex: 1 }}>{error}</ThemedText>
+          <View style={[styles.errorBox, { backgroundColor: withAlpha(palette.error, 0.08), borderColor: palette.error }]}>
+            <Ionicons name="alert-circle" size={20} color={palette.error} />
+            <ThemedText style={{ color: palette.error, flex: 1 }}>{error}</ThemedText>
           </View>
         )}
       </View>
@@ -148,9 +147,9 @@ export default function ConfirmationScreen() {
           disabled={isCreating}
         >
           {isCreating ? (
-            <ActivityIndicator size="small" color={Colors.light.onPrimary} />
+            <ActivityIndicator size="small" color={palette.onPrimary} />
           ) : (
-            <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>View booking</ThemedText>
+            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>View booking</ThemedText>
           )}
         </Clickable>
         <Clickable

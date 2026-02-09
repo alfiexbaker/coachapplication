@@ -8,8 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { BookingWizardHeader, SummaryRow } from '@/components/ui/booking/booking-wizard';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useBookingFlow } from '@/context/booking-flow-context';
 import { coachService } from '@/services/coach-service';
 import type { Coach } from '@/services/coach-service';
@@ -22,8 +22,7 @@ const PLATFORM_FEE_PERCENT = 0.15; // 15% platform fee
 export default function ReviewScreen() {
   const { coachId } = useLocalSearchParams<{ coachId: string }>();
   const { draft, updateDraft } = useBookingFlow();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [coach, setCoach] = useState<Coach | null>(null);
   const [loading, setLoading] = useState(true);
@@ -180,7 +179,7 @@ export default function ReviewScreen() {
                     { backgroundColor: promoCode.trim() ? palette.tint : palette.border }
                   ]}
                 >
-                  <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '600' }}>Apply</ThemedText>
+                  <ThemedText style={{ color: palette.onPrimary, fontWeight: '600' }}>Apply</ThemedText>
                 </Pressable>
               </View>
               {promoError && (
@@ -218,8 +217,8 @@ export default function ReviewScreen() {
           }}
           style={[styles.cta, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="checkmark-circle" size={18} color={Colors.light.onPrimary} />
-          <ThemedText style={{ color: Colors.light.onPrimary, fontWeight: '700' }}>Pay £{total.toFixed(2)}</ThemedText>
+          <Ionicons name="checkmark-circle" size={18} color={palette.onPrimary} />
+          <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Pay £{total.toFixed(2)}</ThemedText>
         </Clickable>
       </View>
     </SafeAreaView>

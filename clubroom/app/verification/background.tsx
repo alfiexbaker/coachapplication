@@ -9,8 +9,8 @@ import { createLogger } from '@/utils/logger';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { VerificationStatus } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
 
@@ -22,28 +22,23 @@ const STEPS = [
   {
     id: 1,
     title: 'Provide Details',
-    description: 'Enter your personal information for the background check',
-  },
+    description: 'Enter your personal information for the background check' },
   {
     id: 2,
     title: 'Consent & ID Verification',
-    description: 'Confirm your identity and provide consent for the check',
-  },
+    description: 'Confirm your identity and provide consent for the check' },
   {
     id: 3,
     title: 'Review & Submit',
-    description: 'The check is processed by our trusted partner',
-  },
+    description: 'The check is processed by our trusted partner' },
   {
     id: 4,
     title: 'Receive Results',
-    description: 'Certificate issued upon successful completion',
-  },
+    description: 'Certificate issued upon successful completion' },
 ];
 
 export default function BackgroundCheckScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -197,7 +192,7 @@ export default function BackgroundCheckScreen() {
                   <View key={step.id} style={styles.stepRow}>
                     <View style={styles.stepIndicator}>
                       <View style={[styles.stepNumber, { backgroundColor: palette.tint }]}>
-                        <ThemedText style={styles.stepNumberText}>{step.id}</ThemedText>
+                        <ThemedText style={[styles.stepNumberText, { color: palette.onPrimary }]}>{step.id}</ThemedText>
                       </View>
                       {index < STEPS.length - 1 && (
                         <View style={[styles.stepLine, { backgroundColor: palette.border }]} />
@@ -245,46 +240,37 @@ export default function BackgroundCheckScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-  },
+    flex: 1 },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   backButton: {
     padding: Spacing.xs,
-    marginLeft: -Spacing.xs,
-  },
+    marginLeft: -Spacing.xs },
   statusCard: {
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.xl,
-  },
+    paddingVertical: Spacing.xl },
   statusIcon: {
     width: 80,
     height: 80,
     borderRadius: Radii['3xl'],
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   statusTitle: {
-    ...Typography.heading,
-  },
+    ...Typography.heading },
   statusText: {
     textAlign: 'center',
     ...Typography.bodySmall,
-    paddingHorizontal: Spacing.md,
-  },
+    paddingHorizontal: Spacing.md },
   expiryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,68 +278,51 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.pill,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   mockButton: {
     marginTop: Spacing.sm,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: Radii.button,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   infoCard: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   section: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   stepsContainer: {
-    gap: 0,
-  },
+    gap: 0 },
   stepRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   stepIndicator: {
     alignItems: 'center',
-    width: 32,
-  },
+    width: 32 },
   stepNumber: {
     width: 28,
     height: 28,
     borderRadius: Radii.lg,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   stepNumberText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   stepLine: {
     width: 2,
     flex: 1,
     minHeight: 24,
-    marginVertical: Spacing.xxs,
-  },
+    marginVertical: Spacing.xxs },
   stepContent: {
     flex: 1,
     paddingBottom: Spacing.md,
-    gap: Spacing.micro,
-  },
+    gap: Spacing.micro },
   requirements: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   requirementsList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   requirementRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
-});
+    gap: Spacing.sm } });

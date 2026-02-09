@@ -7,11 +7,11 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { schedulingRulesService, POLICY_TEMPLATES } from '@/services/scheduling-rules-service';
 import type { CancellationPolicy } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('SchedulingRulesModal');
 
@@ -57,8 +57,7 @@ interface OptionChipProps {
 }
 
 function OptionChip({ label, isSelected, onPress, compact }: OptionChipProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Clickable
@@ -99,8 +98,7 @@ export function SchedulingRulesModal({
   coachId,
   onSaved,
 }: SchedulingRulesModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -6,8 +6,7 @@ import {
   Linking,
   Alert,
   RefreshControl,
-  ActivityIndicator,
-} from 'react-native';
+  ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,8 +22,8 @@ import { EmergencyQuickCard } from '@/components/safety/EmergencyQuickCard';
 import { EmergencyContactCard } from '@/components/safety/EmergencyContactCard';
 import { MedicalAlertBadge } from '@/components/safety/MedicalAlertBadge';
 import { SafetyChecklist } from '@/components/safety/SafetyChecklist';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { safetyService, AthleteEmergencyQuickView } from '@/services/safety-service';
 import { rosterService } from '@/services/roster-service';
@@ -34,8 +33,7 @@ const logger = createLogger('EmergencyQuickAccessScreen');
 
 export default function EmergencyQuickAccessScreen() {
   const { athleteId } = useLocalSearchParams<{ athleteId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [emergencyData, setEmergencyData] = useState<AthleteEmergencyQuickView | null>(null);
@@ -102,8 +100,7 @@ export default function EmergencyQuickAccessScreen() {
             } catch {
               Alert.alert('Error', 'Failed to initiate call');
             }
-          },
-        },
+          } },
       ]
     );
   }, []);
@@ -130,8 +127,7 @@ export default function EmergencyQuickAccessScreen() {
             } catch {
               Alert.alert('Error', 'Failed to initiate call');
             }
-          },
-        },
+          } },
       ]
     );
   }, [emergencyData]);
@@ -364,7 +360,7 @@ export default function EmergencyQuickAccessScreen() {
                     onPress={handleCallDoctor}
                     style={[styles.callButton, { backgroundColor: palette.tint }]}
                   >
-                    <Ionicons name="call" size={18} color={Colors.light.onPrimary} />
+                    <Ionicons name="call" size={18} color={palette.onPrimary} />
                   </Clickable>
                 )}
               </View>
@@ -419,8 +415,7 @@ export default function EmergencyQuickAccessScreen() {
             month: 'short',
             year: 'numeric',
             hour: '2-digit',
-            minute: '2-digit',
-          })}
+            minute: '2-digit' })}
         </ThemedText>
 
         <View style={styles.bottomSpacer} />
@@ -431,142 +426,113 @@ export default function EmergencyQuickAccessScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   cachedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.xs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   cachedText: {
-    ...Typography.micro,
-  },
+    ...Typography.micro },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   loadingText: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   section: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   sectionIcon: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   contactCount: {
     marginLeft: 'auto',
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   alertsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   restrictionsBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
     padding: Spacing.sm,
     borderRadius: Radii.md,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   restrictionsLabel: {
     ...Typography.caption,
-    marginBottom: Spacing.micro,
-  },
+    marginBottom: Spacing.micro },
   restrictionsText: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   notesBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
     padding: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   notesText: {
     flex: 1,
-    ...Typography.small,
-  },
+    ...Typography.small },
   contactsList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   noContactsBox: {
     alignItems: 'center',
     gap: Spacing.xs,
-    padding: Spacing.lg,
-  },
+    padding: Spacing.lg },
   noContactsSubtext: {
     ...Typography.small,
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   doctorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   callButton: {
     width: 44,
     height: 44,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   consentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+    justifyContent: 'space-between' },
   consentBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   consentText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   lastUpdated: {
     textAlign: 'center',
     ...Typography.caption,
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   bottomSpacer: {
-    height: 40,
-  },
-});
+    height: 40 } });

@@ -9,14 +9,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import type { ClubBranding } from '@/services/club-service';
 
 // ============================================================================
 // PRESET COLORS
 // ============================================================================
 
+// Decorative: user-selectable brand color presets (not themeable)
 const PRESET_COLORS = [
   '#0F172A', // Ink
   '#1D4ED8', // Blue
@@ -26,7 +27,7 @@ const PRESET_COLORS = [
   '#EA580C', // Orange
   '#0891B2', // Teal
   '#CA8A04', // Gold
-];
+] as const;
 
 // ============================================================================
 // TYPES
@@ -50,7 +51,7 @@ function ColorPickerRow({
   label: string;
   value: string;
   onSelect: (color: string) => void;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   const [showCustom, setShowCustom] = useState(false);
   const [customHex, setCustomHex] = useState(value);
@@ -156,7 +157,7 @@ function LivePreviewCard({
   palette,
 }: {
   branding: ClubBranding;
-  palette: typeof Colors.light;
+  palette: ThemeColors;
 }) {
   return (
     <View style={styles.previewSection}>
@@ -180,11 +181,11 @@ function LivePreviewCard({
           ]}
         >
           {branding.coverPhotoUrl ? (
-            <ThemedText style={[styles.previewCoverText, { color: Colors.light.onPrimary }]}>
+            <ThemedText style={[styles.previewCoverText, { color: palette.onPrimary }]}>
               Cover Photo
             </ThemedText>
           ) : (
-            <Ionicons name="image-outline" size={Components.icon.xl} color={withAlpha(Colors.light.onPrimary, 0.5)} />
+            <Ionicons name="image-outline" size={Components.icon.xl} color={withAlpha(palette.onPrimary, 0.5)} />
           )}
         </View>
 
@@ -197,15 +198,15 @@ function LivePreviewCard({
             ]}
           >
             {branding.badgeUrl ? (
-              <ThemedText style={{ ...Typography.caption, color: Colors.light.onPrimary }}>Badge</ThemedText>
+              <ThemedText style={{ ...Typography.caption, color: palette.onPrimary }}>Badge</ThemedText>
             ) : (
-              <Ionicons name="shield-outline" size={Components.icon.md} color={Colors.light.onPrimary} />
+              <Ionicons name="shield-outline" size={Components.icon.md} color={palette.onPrimary} />
             )}
           </View>
           <View style={styles.previewTextContainer}>
             <ThemedText
               style={{
-                color: Colors.light.onPrimary,
+                color: palette.onPrimary,
                 ...Typography.heading,
               }}
               numberOfLines={1}
@@ -215,7 +216,7 @@ function LivePreviewCard({
             {branding.tagline ? (
               <ThemedText
                 style={{
-                  color: withAlpha(Colors.light.onPrimary, 0.7),
+                  color: withAlpha(palette.onPrimary, 0.7),
                   ...Typography.small,
                 }}
                 numberOfLines={1}
@@ -235,8 +236,7 @@ function LivePreviewCard({
 // ============================================================================
 
 export function BrandingEditor({ branding, onChange }: BrandingEditorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>

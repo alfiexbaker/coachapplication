@@ -9,12 +9,12 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { badgeService } from '@/services/badge-service';
 import { BadgeAward, BadgeDefinition } from '@/constants/types';
 import { createLogger } from '@/utils/logger';
 import { CelebrationOverlay, CelebrationOverlayRef } from '@/components/celebration-overlay';
+import { useTheme } from '@/hooks/useTheme';
 
 export const BADGE_REASONS = ['Leadership', 'Consistency', 'Technique', 'Mindset', 'Teamwork', 'Resilience'];
 
@@ -56,8 +56,7 @@ export function BadgeAwardModal({
   initialNote,
   onAwarded,
 }: BadgeAwardModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const insets = useSafeAreaInsets();
   const celebrationRef = useRef<CelebrationOverlayRef>(null);
 
@@ -136,7 +135,7 @@ export function BadgeAwardModal({
         title: 'Badge Awarded!',
         subtitle: `${selectedBadge?.label} sent to ${resolvedAthleteName}`,
         icon: 'ribbon',
-        iconColor: '#FFD700',
+        iconColor: '#FFD700', // Decorative: gold celebration color
         duration: 2500,
       });
 
@@ -262,7 +261,7 @@ export function BadgeAwardModal({
                           </ThemedText>
                           {isSelected && (
                             <View style={[styles.selectedCheck, { backgroundColor: palette.tint }]}>
-                              <Ionicons name="checkmark" size={12} color="#fff" />
+                              <Ionicons name="checkmark" size={12} color={palette.onPrimary} />
                             </View>
                           )}
                         </View>
@@ -295,7 +294,7 @@ export function BadgeAwardModal({
                         <ThemedText
                           style={[
                             styles.reasonText,
-                            { color: isSelected ? '#fff' : palette.text },
+                            { color: isSelected ? palette.onPrimary : palette.text },
                           ]}
                         >
                           {reason}

@@ -13,8 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii, Components , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import {
   getAllCoachesWithProfiles,
@@ -22,12 +21,12 @@ import {
   formatGBP,
 } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('FindCoachScreen');
 
 export function UserFindCoachScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const [postcode, setPostcode] = useState('');
 
@@ -149,7 +148,7 @@ export function UserFindCoachScreen() {
                           </ThemedText>
                         </View>
                         <View style={styles.metaItem}>
-                          <Ionicons name="star" size={14} color="#fbbf24" />
+                          <Ionicons name="star" size={14} color={palette.rating} />
                           <ThemedText style={[styles.metaText, { color: palette.muted }]}>
                             {coach.profile.rating.toFixed(1)} ({coach.profile.totalReviews})
                           </ThemedText>
@@ -194,7 +193,7 @@ export function UserFindCoachScreen() {
                         },
                       ]}
                     >
-                      <ThemedText style={styles.bookButtonText}>Book coach</ThemedText>
+                      <ThemedText style={[styles.bookButtonText, { color: palette.onPrimary }]}>Book coach</ThemedText>
                     </Clickable>
                   </View>
                 </SurfaceCard>
@@ -314,7 +313,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   bookButtonText: {
-    color: Colors.light.onPrimary,
     fontWeight: '700',
   },
   specialtyBadge: {

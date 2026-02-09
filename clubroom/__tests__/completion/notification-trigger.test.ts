@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Notification Trigger Tests — Post-Session Completion Flow
  *
@@ -17,12 +16,25 @@ import test, { describe, beforeEach } from 'node:test';
 // MOCK INFRASTRUCTURE
 // ============================================================================
 
+// Type for captured test notifications
+interface TestNotification {
+  id: string;
+  type: 'booking' | 'message' | 'review' | 'payment' | 'reminder' | 'badge';
+  title: string;
+  body: string;
+  recipientId?: string;
+  recipientRole?: 'coach' | 'parent';
+  deepLink?: string;
+  data?: Record<string, string>;
+  read: boolean;
+}
+
 // Capture notifications created by triggerNotification()
-let capturedNotifications: any[] = [];
+let capturedNotifications: TestNotification[] = [];
 
 // Mock notificationService.create to capture what triggerNotification sends
 const mockNotificationService = {
-  create: async (notification: any) => {
+  create: async (notification: TestNotification) => {
     capturedNotifications.push(notification);
     return [notification];
   },

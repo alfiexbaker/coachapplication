@@ -8,9 +8,9 @@
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme, ThemeColors } from '@/hooks/useTheme';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -41,7 +41,7 @@ export interface NextAvailableDisplayProps {
   nextAvailable: string;
 }
 
-type Palette = (typeof Colors)['light'];
+type Palette = ThemeColors;
 
 // -----------------------------------------------------------------------------
 // DistanceDisplay Component
@@ -51,8 +51,7 @@ export function DistanceDisplay({
   distanceMiles,
   iconSize = 14,
 }: DistanceDisplayProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.distanceContainer}>
@@ -72,8 +71,7 @@ export function LocationDisplay({
   city,
   iconSize = 14,
 }: LocationDisplayProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.locationContainer}>
@@ -90,8 +88,7 @@ export function LocationDisplay({
 // -----------------------------------------------------------------------------
 
 export function NextAvailableDisplay({ nextAvailable }: NextAvailableDisplayProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.availabilityContainer}>
@@ -118,8 +115,7 @@ export function MetaRow({
   pricePerHour,
   showDivider = true,
 }: MetaRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const hasDistance = distanceMiles !== undefined;
   const hasPrice = pricePerHour !== undefined;
@@ -160,8 +156,7 @@ export function CoachCardAvailability({
   city,
   variant = 'compact',
 }: CoachCardAvailabilityProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (variant === 'compact') {
     return (

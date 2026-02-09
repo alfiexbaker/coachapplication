@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Typography, Radii } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography, Radii } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 /* ---------- Types ---------- */
 
@@ -40,8 +40,7 @@ function polarToXY(index: number, total: number, normValue: number) {
 /* ---------- Component ---------- */
 
 export function SkillRadar({ skills }: SkillRadarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const numAxes = skills.length;
 
@@ -353,7 +352,6 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   calloutText: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
 });

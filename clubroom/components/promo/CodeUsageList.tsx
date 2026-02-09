@@ -3,10 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { promoService } from '@/services/promo-service';
 import type { PromoCodeUsage } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CodeUsageListProps {
   /** Array of usage records to display */
@@ -32,8 +32,7 @@ function UsageItem({
   showCode: boolean;
   showUser: boolean;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
@@ -88,8 +87,7 @@ export function CodeUsageList({
   showCode = false,
   showUser = true,
 }: CodeUsageListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const displayUsage = limit ? usage.slice(0, limit) : usage;
 
@@ -150,8 +148,7 @@ export function CodeUsageSummary({
   totalCreditsAwarded,
   loading = false,
 }: CodeUsageSummaryProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (loading) {
     return (

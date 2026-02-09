@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface BookingParentViewProps {
   onMessageCoach: () => void;
@@ -16,8 +16,7 @@ function BookingParentViewInner({
   onMessageCoach,
   onReportProblem,
 }: BookingParentViewProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.actions}>
@@ -31,9 +30,7 @@ function BookingParentViewInner({
       >
         <Ionicons name="chatbubble" size={20} color={palette.onPrimary} />
         <ThemedText
-          style={styles.primaryButtonText}
-          lightColor={Colors.light.onPrimary}
-          darkColor={Colors.dark.onPrimary}
+          style={[styles.primaryButtonText, { color: palette.onPrimary }]}
         >
           Message Coach
         </ThemedText>

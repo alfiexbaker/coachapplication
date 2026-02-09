@@ -5,8 +5,8 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { Attachment } from '@/constants/types';
 
 interface MessageComposerProps {
@@ -34,8 +34,7 @@ export function MessageComposer({
   replyingTo,
   onCancelReply,
 }: MessageComposerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const inputRef = useRef<TextInput>(null);
 
   const [text, setText] = useState('');
@@ -201,8 +200,7 @@ interface QuickActionsBarProps {
 }
 
 export function QuickActionsBar({ actions }: QuickActionsBarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.quickActionsContainer}>

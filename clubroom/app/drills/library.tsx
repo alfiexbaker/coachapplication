@@ -17,9 +17,9 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
 import { DrillList } from '@/components/drills';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Drill, DrillCategory } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
@@ -33,8 +33,7 @@ const logger = createLogger('DrillLibraryScreen');
  * Drill library screen for coaches to manage their drills.
  */
 export default function DrillLibraryScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State
@@ -153,7 +152,7 @@ export default function DrillLibraryScreen() {
           onPress={handleCreateDrill}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
+          <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
       </View>
 
@@ -187,14 +186,13 @@ export default function DrillLibraryScreen() {
                       styles.categoryChip,
                       {
                         backgroundColor: isSelected ? palette.tint : palette.surface,
-                        borderColor: isSelected ? palette.tint : palette.border,
-                      },
+                        borderColor: isSelected ? palette.tint : palette.border },
                     ]}
                   >
                     <ThemedText
                       style={[
                         styles.categoryChipText,
-                        { color: isSelected ? Colors.light.onPrimary : palette.text },
+                        { color: isSelected ? palette.onPrimary : palette.text },
                       ]}
                     >
                       All
@@ -208,7 +206,7 @@ export default function DrillLibraryScreen() {
                       <ThemedText
                         style={[
                           styles.categoryCountText,
-                          { color: isSelected ? Colors.light.onPrimary : palette.muted },
+                          { color: isSelected ? palette.onPrimary : palette.muted },
                         ]}
                       >
                         {count}
@@ -228,8 +226,7 @@ export default function DrillLibraryScreen() {
                     styles.categoryChip,
                     {
                       backgroundColor: isSelected ? withAlpha(info.color, 0.12) : palette.surface,
-                      borderColor: isSelected ? info.color : palette.border,
-                    },
+                      borderColor: isSelected ? info.color : palette.border },
                   ]}
                 >
                   <Ionicons
@@ -336,34 +333,28 @@ export default function DrillLibraryScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   searchContainer: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   searchInput: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -371,20 +362,16 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   searchPlaceholder: {
     flex: 1,
-    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-  },
+    ...Typography.body, fontSize: scaleFont(Typography.body.fontSize) },
   categoryContainer: {
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   categoryRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-  },
+    paddingHorizontal: Spacing.lg },
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -392,22 +379,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs + Spacing.xxs,
     paddingVertical: 8,
     borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   categoryChipText: {
-    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize),
-  },
+    ...Typography.smallSemiBold, fontSize: scaleFont(Typography.smallSemiBold.fontSize) },
   categoryCount: {
     minWidth: 20,
     height: 18,
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
-  },
+    paddingHorizontal: Spacing.xxs },
   categoryCountText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -415,27 +398,19 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
     padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   statItem: {
     alignItems: 'center',
-    flex: 1,
-  },
+    flex: 1 },
   statValue: {
-    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize),
-  },
+    ...Typography.title, fontSize: scaleFont(Typography.title.fontSize) },
   statLabel: {
     ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   statDivider: {
     width: 1,
-    height: 28,
-  },
+    height: 28 },
   scrollContent: {
-    paddingBottom: Spacing.xl,
-  },
+    paddingBottom: Spacing.xl },
   listContainer: {
-    paddingHorizontal: Spacing.lg,
-  },
-});
+    paddingHorizontal: Spacing.lg } });

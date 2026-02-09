@@ -6,8 +6,8 @@ import { Routes } from '@/navigation/routes';
 import { CardListItem } from '@/components/payment/card-list-item';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const MOCK_CARDS = [
   { number: '•••• •••• •••• 4242', brand: 'Visa', default: true },
@@ -15,8 +15,7 @@ const MOCK_CARDS = [
 ];
 
 export default function PaymentMethodsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: palette.background }} edges={['top']}>

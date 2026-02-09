@@ -3,9 +3,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography, Components } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, Components } from '@/constants/theme';
 import type { RetentionMetrics } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface RetentionCardProps {
   /** Retention metrics data */
@@ -28,8 +28,7 @@ export function RetentionCard({
   loading = false,
   onPress,
 }: RetentionCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getRetentionColor = (rate: number): string => {
     if (rate >= 90) return palette.success;

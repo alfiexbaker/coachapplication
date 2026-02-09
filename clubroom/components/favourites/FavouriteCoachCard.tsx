@@ -17,14 +17,14 @@ import { useRouter } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Colors, Radii, Spacing, Components , Typography } from '@/constants/theme';
+import { Radii, Spacing, Components, Typography } from '@/constants/theme';
 import type { FavouriteCoach } from '@/constants/types';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { FavouriteButton } from './FavouriteButton';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FavouriteCoachCardProps {
   /** The favourite coach data */
@@ -46,8 +46,7 @@ export function FavouriteCoachCard({
   toggleLoading = false,
   index = 0,
 }: FavouriteCoachCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const router = useRouter();
 
   const handlePress = useCallback(() => {

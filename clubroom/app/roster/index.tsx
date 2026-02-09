@@ -12,8 +12,8 @@ import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { AthleteRow } from '@/components/roster/athlete-row';
 import { AthleteFilters } from '@/components/roster/athlete-filters';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { rosterService, RosterFilters, RosterStats } from '@/services/roster-service';
 import type { RosterEntry } from '@/constants/types';
@@ -21,8 +21,7 @@ import type { RosterEntry } from '@/constants/types';
 const logger = createLogger('RosterScreen');
 
 export default function RosterScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [roster, setRoster] = useState<RosterEntry[]>([]);
@@ -158,18 +157,17 @@ export default function RosterScreen() {
           style={[
             styles.filterButton,
             {
-              backgroundColor: activeFiltersCount > 0 ? palette.tint : palette.surface,
-            },
+              backgroundColor: activeFiltersCount > 0 ? palette.tint : palette.surface },
           ]}
         >
           <Ionicons
             name="options-outline"
             size={20}
-            color={activeFiltersCount > 0 ? Colors.light.onPrimary : palette.text}
+            color={activeFiltersCount > 0 ? palette.onPrimary : palette.text}
           />
           {activeFiltersCount > 0 && (
-            <View style={styles.filterBadge}>
-              <ThemedText style={styles.filterBadgeText}>{activeFiltersCount}</ThemedText>
+            <View style={[styles.filterBadge, { backgroundColor: palette.surface }]}>
+              <ThemedText style={[styles.filterBadgeText, { color: palette.text }]}>{activeFiltersCount}</ThemedText>
             </View>
           )}
         </Clickable>
@@ -220,44 +218,36 @@ export default function RosterScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    flex: 1,
-  },
+    flex: 1 },
   subtitle: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.xs,
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   statCard: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   statLabel: {
     ...Typography.micro,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   searchSection: {
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
@@ -265,20 +255,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     height: 44,
     borderRadius: Radii.md,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   searchInput: {
     flex: 1,
-    ...Typography.body,
-  },
+    ...Typography.body },
   filterButton: {
     width: 44,
     height: 44,
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
+    position: 'relative' },
   filterBadge: {
     position: 'absolute',
     top: 4,
@@ -286,19 +273,12 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: Radii.sm,
-    backgroundColor: Colors.light.surface,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   filterBadgeText: {
-    ...Typography.micro,
-    color: Colors.light.text,
-  },
+    ...Typography.micro },
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
+    paddingBottom: Spacing.xl },
   separator: {
-    height: Spacing.sm,
-  },
-});
+    height: Spacing.sm } });

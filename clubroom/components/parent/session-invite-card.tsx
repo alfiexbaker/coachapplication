@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -6,8 +6,11 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { CoverImageHero } from '@/components/invite/cover-image-hero';
+import { AvatarStack } from '@/components/invite/avatar-stack';
+import { RsvpButtonGroup } from '@/components/invite/rsvp-button-group';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import type { ThemeColors } from '@/hooks/useTheme';
 import type { SessionInvite, TimeSlot } from '@/constants/types';
 import { DeclineReasonSheet, type DeclineReasonResult } from './decline-reason-sheet';
 import { MultiWeekInviteCard } from './multi-week-invite-card';
@@ -24,9 +27,11 @@ interface SessionInviteCardProps {
   slotTakenError?: string | null;
   /** Loading state during accept */
   acceptLoading?: boolean;
+  /** Facebook-style RSVP handler */
+  onRsvp?: (status: 'going' | 'maybe' | 'cant_go') => void;
 }
 
-function getStatusColors(palette: typeof Colors.light) {
+function getStatusColors(palette: ThemeColors) {
   return {
     PENDING: { bg: withAlpha(palette.warning, 0.12), text: palette.warning, icon: 'hourglass-outline' },
     ACCEPTED: { bg: withAlpha(palette.success, 0.12), text: palette.success, icon: 'checkmark-circle-outline' },
@@ -36,7 +41,7 @@ function getStatusColors(palette: typeof Colors.light) {
   } as Record<string, { bg: string; text: string; icon: string }>;
 }
 
-export function SessionInviteCard({
+function SessionInviteCardComponent({
   invite,
   onPress,
   onAccept,
@@ -46,9 +51,9 @@ export function SessionInviteCard({
   showSlotSelector = false,
   slotTakenError = null,
   acceptLoading = false,
+  onRsvp,
 }: SessionInviteCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
   const [showDeclineSheet, setShowDeclineSheet] = useState(false);
 
@@ -137,6 +142,11 @@ export function SessionInviteCard({
 
   return (
     <SurfaceCard style={styles.card} onPress={onPress} accessibilityLabel={`Session invite from ${invite.coachName}`}>
+      {/* Cover Image Hero (when available) */}
+      {invite.coverImageUrl && (
+        <CoverImageHero imageUrl={invite.coverImageUrl} sessionType={invite.sessionType} height={140} />
+      )}
+
       {/* Invitation Message Banner */}
       <View style={[styles.invitationBanner, { backgroundColor: withAlpha(palette.tint, 0.03) }]}>
         <Ionicons name="mail-outline" size={16} color={palette.tint} />
@@ -200,6 +210,17 @@ export function SessionInviteCard({
           For: {invite.athleteNames.join(', ')}
         </ThemedText>
       </View>
+
+      {/* Avatar Stack (RSVP social proof) */}
+      {invite.rsvpCounts && invite.rsvpCounts.going > 0 && (
+        <AvatarStack
+          attendees={(invite.rsvpResponses ?? [])
+            .filter((r) => r.status === 'going')
+            .map((r) => ({ id: r.userId, name: r.userName, photoUrl: r.userPhotoUrl }))}
+          goingCount={invite.rsvpCounts.going}
+          maxVisible={4}
+        />
+      )}
 
       {/* Divider */}
       <Divider />
@@ -286,8 +307,17 @@ export function SessionInviteCard({
         </ThemedText>
       )}
 
-      {/* Actions */}
-      {canRespond && onAccept && onDecline && (
+      {/* RSVP Buttons (Facebook-style Going/Maybe/Can't Go) */}
+      {(canRespond || status === 'MAYBE') && onRsvp && (
+        <RsvpButtonGroup
+          currentStatus={status === 'MAYBE' ? 'maybe' : null}
+          onRespond={onRsvp}
+          compact
+        />
+      )}
+
+      {/* Actions (traditional Accept/Decline — shown when no onRsvp) */}
+      {canRespond && onAccept && onDecline && !onRsvp && (
         <View style={styles.actionsRow}>
           <Clickable
             onPress={() => setShowDeclineSheet(true)}
@@ -351,6 +381,8 @@ export function SessionInviteCard({
   );
 }
 
+export const SessionInviteCard = memo(SessionInviteCardComponent);
+
 const styles = StyleSheet.create({
   card: {
     padding: Spacing.md,
@@ -376,7 +408,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   compactMeta: { ...Typography.caption },
-  invitationText: { ...Typography.bodySmall, lineHeight: 18 },
+  invitationText: { ...Typography.bodySmall },
   invitationBanner: {
     flexDirection: 'row',
     alignItems: 'center',

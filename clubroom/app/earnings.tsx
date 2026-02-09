@@ -18,8 +18,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { earningsService, type TransactionFilter } from '@/services/earnings';
 import type {
@@ -42,8 +42,7 @@ const FILTER_OPTIONS: FilterOption[] = [
 ];
 
 export default function EarningsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const insets = useSafeAreaInsets();
   const { currentUser } = useAuth();
 

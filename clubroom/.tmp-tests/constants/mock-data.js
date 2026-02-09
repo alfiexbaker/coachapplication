@@ -50,6 +50,7 @@ exports.togglePostReaction = togglePostReaction;
 exports.hasUserReacted = hasUserReacted;
 exports.getPinnedPosts = getPinnedPosts;
 exports.getAnnouncements = getAnnouncements;
+exports.getClubFeedPostById = getClubFeedPostById;
 exports.getClubSessions = getClubSessions;
 exports.getClubInvites = getClubInvites;
 // ===== SESSION MANAGEMENT DATA =====
@@ -3016,6 +3017,9 @@ function getPinnedPosts(clubId) {
 }
 function getAnnouncements(clubId) {
     return exports.clubFeedPosts.filter((post) => post.clubId === clubId && post.postType === 'announcement');
+}
+function getClubFeedPostById(postId) {
+    return exports.clubFeedPosts.find((p) => p.id === postId);
 }
 function getClubSessions(clubId) {
     return exports.clubSessions.filter((session) => session.clubId === clubId);

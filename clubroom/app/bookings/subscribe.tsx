@@ -10,10 +10,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SubscribeForm } from '@/components/recurring';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Typography, Radii } from '@/constants/theme';
+import { Spacing, Typography, Radii } from '@/constants/theme';
 import { CreateRecurringBookingParams } from '@/constants/types';
 import { recurringBookingService } from '@/services/recurring-booking-service';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { MOCK_USERS, MOCK_COACH_PROFILES, getChildrenForParent } from '@/constants/mock-data';
 import { createLogger } from '@/utils/logger';
@@ -52,8 +52,7 @@ function withAlpha(hexColor: string, alpha: number): string {
  * It handles coach selection and form submission.
  */
 export default function SubscribeScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const params = useLocalSearchParams<{ coachId?: string }>();
 

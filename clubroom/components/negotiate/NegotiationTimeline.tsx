@@ -2,8 +2,8 @@ import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import type {
   CounterOfferStatus,
   NegotiationHistory,
@@ -51,7 +51,7 @@ function formatTimeSlot(slot: TimeSlot): string {
 
 function getStatusIcon(
   type: TimelineEvent['type'],
-  palette: (typeof Colors)['light']
+  palette: ThemeColors
 ): { name: keyof typeof Ionicons.glyphMap; color: string } {
   switch (type) {
     case 'original':
@@ -73,8 +73,7 @@ export function NegotiationTimeline({
   negotiation,
   currentUserId,
 }: NegotiationTimelineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Build timeline events
   const events: TimelineEvent[] = [];

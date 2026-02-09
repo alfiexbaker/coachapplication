@@ -3,9 +3,9 @@ import { ScrollView, StyleSheet, TextInput, View, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { RatingStars } from './rating-stars';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
 import { Clickable } from '@/components/primitives/clickable';
+import { useTheme } from '@/hooks/useTheme';
 
 const MAX_REVIEW_LENGTH = 500;
 const MIN_REVIEW_LENGTH = 10;
@@ -16,8 +16,7 @@ interface ReviewFormProps {
 }
 
 export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
   const [categories, setCategories] = useState<Record<string, number>>({});
@@ -147,7 +146,7 @@ export function ReviewForm({ onSubmit, isCoachView }: ReviewFormProps) {
         ]}
       >
         <Ionicons name="send" size={18} color={palette.onPrimary} />
-        <ThemedText style={styles.submitText}>
+        <ThemedText style={[styles.submitText, { color: palette.onPrimary }]}>
           {submitting ? 'Submitting...' : 'Submit review'}
         </ThemedText>
       </Clickable>
@@ -200,5 +199,5 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: Radii.button,
   },
-  submitText: { ...Typography.subheading, color: Colors.light.onPrimary },
+  submitText: { ...Typography.subheading },
 });

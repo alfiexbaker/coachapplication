@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ScrollView, StyleSheet, View, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { ScrollView, StyleSheet, View, Pressable, Alert, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 
@@ -10,18 +10,20 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { LineupSelector } from '@/components/match/lineup-selector';
 import { AvailabilityResponse } from '@/components/match/availability-response';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import type { Match } from '@/constants/types';
 import { matchService } from '@/services/match-service';
 
 const logger = createLogger('MatchDetailScreen');
 
+// Decorative: match lineup selected status color
+const SELECTED_STATUS_COLOR = SELECTED_STATUS_COLOR;
+
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [match, setMatch] = useState<Match | null>(null);
@@ -72,8 +74,7 @@ export default function MatchDetailScreen() {
     try {
       const result = await matchService.setLineup({
         matchId: match.id,
-        lineup,
-      });
+        lineup });
       if (!result.success) {
         logger.error('Failed to set lineup:', result.error);
         Alert.alert('Error', 'Failed to set lineup. Please try again.');
@@ -100,8 +101,7 @@ export default function MatchDetailScreen() {
         athleteId: currentPlayerInfo.athleteId,
         parentId: currentPlayerInfo.parentId,
         status,
-        note,
-      });
+        note });
       if (!result.success) {
         logger.error('Failed to respond:', result.error);
         throw new Error(result.error.message);
@@ -141,8 +141,7 @@ export default function MatchDetailScreen() {
             } catch {
               Alert.alert('Error', 'Failed to record result.');
             }
-          },
-        },
+          } },
       ],
       'plain-text'
     );
@@ -169,8 +168,7 @@ export default function MatchDetailScreen() {
             } catch {
               Alert.alert('Error', 'Failed to cancel match.');
             }
-          },
-        },
+          } },
       ]
     );
   };
@@ -195,8 +193,7 @@ export default function MatchDetailScreen() {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric',
-  });
+    year: 'numeric' });
 
   const typeColor = matchService.getMatchTypeColor(match.matchType);
   const statusColor = matchService.getStatusColor(match.status);
@@ -404,8 +401,8 @@ export default function MatchDetailScreen() {
                   </View>
                   {match.status === 'LINEUP_SET' && (
                     <View style={styles.statItem}>
-                      <View style={[styles.statDot, { backgroundColor: '#7C3AED' }]} />
-                      <ThemedText type="title" style={{ color: '#7C3AED' }}>
+                      <View style={[styles.statDot, { backgroundColor: SELECTED_STATUS_COLOR }]} />
+                      <ThemedText type="title" style={{ color: SELECTED_STATUS_COLOR }}>
                         {availability.selected}
                       </ThemedText>
                       <ThemedText style={[styles.statLabel, { color: palette.muted }]}>
@@ -416,13 +413,13 @@ export default function MatchDetailScreen() {
                 </View>
 
                 {match.status === 'SCHEDULED' && availability.available > 0 && (
-                  <TouchableOpacity
+                  <Pressable
                     style={[styles.actionButton, { backgroundColor: palette.tint }]}
                     onPress={() => setShowLineupSelector(true)}
                   >
-                    <Ionicons name="people" size={20} color={Colors.light.onPrimary} />
-                    <ThemedText style={styles.actionButtonText}>Set Lineup</ThemedText>
-                  </TouchableOpacity>
+                    <Ionicons name="people" size={20} color={palette.onPrimary} />
+                    <ThemedText style={[styles.actionButtonText, { color: palette.onPrimary }]}>Set Lineup</ThemedText>
+                  </Pressable>
                 )}
               </SurfaceCard>
             </View>
@@ -479,7 +476,7 @@ export default function MatchDetailScreen() {
             <View style={styles.section}>
               <View style={styles.coachActions}>
                 {isComplete && !match.result && (
-                  <TouchableOpacity
+                  <Pressable
                     style={[styles.secondaryButton, { borderColor: palette.tint }]}
                     onPress={handleRecordResult}
                   >
@@ -487,10 +484,10 @@ export default function MatchDetailScreen() {
                     <ThemedText style={[styles.secondaryButtonText, { color: palette.tint }]}>
                       Record Result
                     </ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
                 {isUpcoming && !isCancelled && (
-                  <TouchableOpacity
+                  <Pressable
                     style={[styles.secondaryButton, { borderColor: palette.error }]}
                     onPress={handleCancelMatch}
                   >
@@ -498,7 +495,7 @@ export default function MatchDetailScreen() {
                     <ThemedText style={[styles.secondaryButtonText, { color: palette.error }]}>
                       Cancel Match
                     </ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 )}
               </View>
             </View>
@@ -513,139 +510,107 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   scrollView: {
-    flex: 1,
-  },
+    flex: 1 },
   scrollContent: {
-    paddingBottom: Spacing.xl * 2,
-  },
+    paddingBottom: Spacing.xl * 2 },
   headerCard: {
     margin: Spacing.md,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   badgeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   typeBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   typeBadgeText: {
     ...Typography.caption,
-    textTransform: 'uppercase',
-  },
+    textTransform: 'uppercase' },
   statusBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   statusBadgeText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   homeAwayBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xxs,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   homeAwayText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   title: {
     ...Typography.title,
-    marginTop: Spacing.xs,
-  },
+    marginTop: Spacing.xs },
   opponentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   vsText: {
-    ...Typography.bodySmall,
-  },
+    ...Typography.bodySmall },
   opponent: {
-    ...Typography.subheading,
-  },
+    ...Typography.subheading },
   resultContainer: {
     alignItems: 'center',
-    marginVertical: Spacing.sm,
-  },
+    marginVertical: Spacing.sm },
   resultBox: {
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: Radii.md,
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   resultScore: {
-    ...Typography.display,
-  },
+    ...Typography.display },
   resultLabel: {
     ...Typography.caption,
-    marginTop: Spacing.xxs,
-  },
+    marginTop: Spacing.xxs },
   detailsSection: {
     gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   detailText: {
     ...Typography.bodySmall,
-    flex: 1,
-  },
+    flex: 1 },
   addressText: {
     ...Typography.small,
-    marginTop: Spacing.micro,
-  },
+    marginTop: Spacing.micro },
   notesBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.sm,
     padding: Spacing.sm,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   notesText: {
     ...Typography.small,
     flex: 1,
-    fontStyle: 'italic',
-  },
+    fontStyle: 'italic' },
   section: {
     paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   sectionTitle: {
     ...Typography.subheading,
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   statsCard: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
+    justifyContent: 'space-around' },
   statItem: {
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   statDot: {
     width: 8,
     height: 8,
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   statLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -653,52 +618,39 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   actionButtonText: {
-    color: Colors.light.onPrimary,
-    ...Typography.bodySemiBold,
-  },
+    ...Typography.bodySemiBold },
   playersCard: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   playersList: {
-    gap: 0,
-  },
+    gap: 0 },
   playerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   playerAvatar: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   avatarText: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   playerInfo: {
-    flex: 1,
-  },
+    flex: 1 },
   playerPosition: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   statusPill: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   statusPillText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   coachActions: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   secondaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -706,9 +658,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   secondaryButtonText: {
-    ...Typography.bodySemiBold,
-  },
-});
+    ...Typography.bodySemiBold } });

@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { AttendeeList } from '@/components/event/AttendeeList';
 import { CheckInButton } from '@/components/event/CheckInButton';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
 import type {
   ClubEvent,
   EventRSVP,
@@ -18,7 +18,7 @@ import type {
   EventAttendanceStats,
   CheckInInput,
 } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
@@ -27,8 +27,7 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('EventAttendees');
 
 export default function EventAttendeesScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';

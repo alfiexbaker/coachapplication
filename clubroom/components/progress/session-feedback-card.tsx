@@ -5,9 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Chip } from '@/components/primitives/chip';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { SessionFeedback } from '@/services/progress-service';
+import { useTheme } from '@/hooks/useTheme';
 
 type SessionFeedbackCardProps = {
   feedback: SessionFeedback;
@@ -29,8 +29,7 @@ function formatDate(dateString: string): string {
 }
 
 function RatingStars({ rating, size = 14 }: { rating: number; size?: number }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.starsRow}>
@@ -39,7 +38,7 @@ function RatingStars({ rating, size = 14 }: { rating: number; size?: number }) {
           key={star}
           name={star <= rating ? 'star' : 'star-outline'}
           size={size}
-          color={star <= rating ? '#F59E0B' : palette.muted}
+          color={star <= rating ? palette.rating : palette.muted}
         />
       ))}
     </View>
@@ -52,8 +51,7 @@ export function SessionFeedbackCard({
   showCoachName = true,
   compact = false,
 }: SessionFeedbackCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getPerformanceLabel = (rating: number) => {
     switch (rating) {
@@ -277,8 +275,7 @@ export function FeedbackList({
   compact = false,
   emptyMessage = 'No session feedback yet',
 }: FeedbackListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (feedback.length === 0) {
     return (

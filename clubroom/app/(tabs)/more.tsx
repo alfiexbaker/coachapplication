@@ -4,14 +4,12 @@ import { UserFindCoachScreen } from '@/components/user/find-coach-screen';
 import { ParentDevelopmentScreen } from '@/components/parent/development-screen';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { ScreenHeader } from '@/components/primitives/screen-header';
 
 export default function MoreScreen() {
   const { currentUser } = useAuth();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Route to appropriate screen based on role
   switch (currentUser?.role) {

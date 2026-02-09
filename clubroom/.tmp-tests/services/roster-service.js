@@ -5,6 +5,9 @@
  * Handles coach athlete roster/directory management.
  * Provides athlete details, notes, and quick actions.
  *
+ * Extends BaseService<RosterEntry> for standardized CRUD, caching (Map-based,
+ * 30s TTL, O(1) getById), and storage operations.
+ *
  * API Integration Notes:
  * - GET /api/coaches/:id/roster - Get roster
  * - GET /api/coaches/:id/roster/:athleteId - Get detail
@@ -19,6 +22,9 @@ const api_client_1 = require("./api-client");
 const config_1 = require("@/constants/config");
 const storage_keys_1 = require("@/constants/storage-keys");
 const result_1 = require("@/types/result");
+const base_service_1 = require("./base-service");
+const logger_1 = require("@/utils/logger");
+const logger = (0, logger_1.createLogger)('RosterService');
 const USE_MOCK = config_1.api.useMock;
 // Mock roster data
 const MOCK_ROSTER = [
@@ -191,227 +197,177 @@ const MOCK_ROSTER = [
         notificationPreference: 'NONE',
     },
 ];
-let rosterCache = [...MOCK_ROSTER];
+// ============================================================================
+// REMOVAL HISTORY HELPERS
+// ============================================================================
 let removalHistoryCache = [];
 async function loadRemovalHistory() {
     try {
         return await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.ROSTER_REMOVAL_HISTORY, []);
     }
     catch (error) {
-        console.error('[RosterService] Failed to load removal history:', error);
+        logger.error('Failed to load removal history', error);
     }
     return [];
 }
 async function saveRemovalHistory(history) {
     try {
         await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.ROSTER_REMOVAL_HISTORY, history);
+        return (0, result_1.ok)(undefined);
     }
     catch (error) {
-        console.error('[RosterService] Failed to save removal history:', error);
+        logger.error('Failed to save removal history', error);
+        return (0, result_1.err)((0, result_1.storageError)(`Failed to save removal history: ${String(error)}`));
     }
 }
-async function loadFromStorage() {
-    try {
-        const stored = await api_client_1.apiClient.get(storage_keys_1.STORAGE_KEYS.ROSTER, null);
-        if (stored)
-            return stored;
+// ============================================================================
+// ROSTER SERVICE (extends BaseService)
+// ============================================================================
+class RosterServiceImpl extends base_service_1.BaseService {
+    constructor() {
+        super();
+        this.storageKey = storage_keys_1.STORAGE_KEYS.ROSTER;
+        this.entityName = 'RosterEntry';
+        this.useMock = USE_MOCK;
+        this.mockData = [...MOCK_ROSTER];
     }
-    catch (error) {
-        console.error('[RosterService] Failed to load from storage:', error);
-    }
-    return [...MOCK_ROSTER];
-}
-async function saveToStorage(roster) {
-    try {
-        await api_client_1.apiClient.set(storage_keys_1.STORAGE_KEYS.ROSTER, roster);
-    }
-    catch (error) {
-        console.error('[RosterService] Failed to save to storage:', error);
-    }
-}
-exports.rosterService = {
+    // --------------------------------------------------------------------------
+    // Query methods
+    // --------------------------------------------------------------------------
     /**
-     * Get full roster for a coach
+     * Get full roster for a coach, with optional filters and sorting.
      */
     async getRoster(coachId, filters) {
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            let filtered = rosterCache.filter((r) => r.coachId === coachId);
-            if (filters?.status) {
-                filtered = filtered.filter((r) => r.status === filters.status);
-            }
-            if (filters?.skillLevel) {
-                filtered = filtered.filter((r) => r.athleteSkillLevel === filters.skillLevel);
-            }
-            if (filters?.tags?.length) {
-                filtered = filtered.filter((r) => filters.tags.some((tag) => r.tags.includes(tag)));
-            }
-            if (filters?.search) {
-                const search = filters.search.toLowerCase();
-                filtered = filtered.filter((r) => r.athleteName.toLowerCase().includes(search) ||
-                    r.parentName.toLowerCase().includes(search));
-            }
-            return filtered.sort((a, b) => {
-                // Active first, then by name
-                if (a.status === 'ACTIVE' && b.status !== 'ACTIVE')
-                    return -1;
-                if (a.status !== 'ACTIVE' && b.status === 'ACTIVE')
-                    return 1;
-                return a.athleteName.localeCompare(b.athleteName);
-            });
+        const result = await this.getAll({ filter: { coachId } });
+        if (!result.success) {
+            logger.error('Failed to get roster', result.error);
+            return [];
         }
-        const params = new URLSearchParams();
-        if (filters?.status)
-            params.append('status', filters.status);
-        if (filters?.skillLevel)
-            params.append('level', filters.skillLevel);
-        if (filters?.tags?.length)
-            params.append('tags', filters.tags.join(','));
-        if (filters?.search)
-            params.append('q', filters.search);
-        const response = await fetch(`/api/coaches/${coachId}/roster?${params.toString()}`);
-        return response.json();
-    },
+        let filtered = result.data;
+        if (filters?.status) {
+            filtered = filtered.filter((r) => r.status === filters.status);
+        }
+        if (filters?.skillLevel) {
+            filtered = filtered.filter((r) => r.athleteSkillLevel === filters.skillLevel);
+        }
+        if (filters?.tags?.length) {
+            filtered = filtered.filter((r) => filters.tags.some((tag) => r.tags.includes(tag)));
+        }
+        if (filters?.search) {
+            const search = filters.search.toLowerCase();
+            filtered = filtered.filter((r) => r.athleteName.toLowerCase().includes(search) ||
+                r.parentName.toLowerCase().includes(search));
+        }
+        return filtered.sort((a, b) => {
+            // Active first, then by name
+            if (a.status === 'ACTIVE' && b.status !== 'ACTIVE')
+                return -1;
+            if (a.status !== 'ACTIVE' && b.status === 'ACTIVE')
+                return 1;
+            return a.athleteName.localeCompare(b.athleteName);
+        });
+    }
     /**
-     * Get single roster entry
+     * Get single roster entry by coach + athlete lookup.
      */
     async getRosterEntry(coachId, athleteId) {
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            return (rosterCache.find((r) => r.coachId === coachId && r.athleteId === athleteId) || null);
-        }
-        const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`);
-        if (!response.ok)
+        const result = await this.findOne({ coachId, athleteId });
+        if (!result.success) {
+            logger.error('Failed to get roster entry', result.error);
             return null;
-        return response.json();
-    },
+        }
+        return result.data;
+    }
+    // --------------------------------------------------------------------------
+    // Note methods
+    // --------------------------------------------------------------------------
     /**
      * Add note to athlete
      */
     async addNote(coachId, athleteId, content) {
         const note = {
-            id: `note_${Date.now()}`,
+            id: api_client_1.apiClient.generateId('note'),
             content,
             createdAt: new Date().toISOString(),
         };
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            const entry = rosterCache.find((r) => r.coachId === coachId && r.athleteId === athleteId);
-            if (entry) {
-                entry.notes.push(note);
-                await saveToStorage(rosterCache);
-            }
-            return note;
+        const data = await this.loadFromStorage();
+        const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
+        if (entry) {
+            entry.notes.push(note);
+            await this.saveToStorage(data);
         }
-        const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}/notes`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content }),
-        });
-        return response.json();
-    },
+        return note;
+    }
     /**
      * Update note
      */
     async updateNote(coachId, athleteId, noteId, content) {
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            const entry = rosterCache.find((r) => r.coachId === coachId && r.athleteId === athleteId);
-            if (entry) {
-                const note = entry.notes.find((n) => n.id === noteId);
-                if (note) {
-                    note.content = content;
-                    note.updatedAt = new Date().toISOString();
-                    await saveToStorage(rosterCache);
-                    return (0, result_1.ok)(note);
-                }
+        const data = await this.loadFromStorage();
+        const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
+        if (entry) {
+            const note = entry.notes.find((n) => n.id === noteId);
+            if (note) {
+                note.content = content;
+                note.updatedAt = new Date().toISOString();
+                await this.saveToStorage(data);
+                return (0, result_1.ok)(note);
             }
-            return (0, result_1.err)((0, result_1.notFound)('Note', noteId));
         }
-        const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}/notes/${noteId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content }),
-        });
-        return (0, result_1.ok)(await response.json());
-    },
+        return (0, result_1.err)((0, result_1.notFound)('Note', noteId));
+    }
     /**
      * Delete note
      */
     async deleteNote(coachId, athleteId, noteId) {
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            const entry = rosterCache.find((r) => r.coachId === coachId && r.athleteId === athleteId);
-            if (entry) {
-                entry.notes = entry.notes.filter((n) => n.id !== noteId);
-                await saveToStorage(rosterCache);
-            }
-            return;
+        const data = await this.loadFromStorage();
+        const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
+        if (entry) {
+            entry.notes = entry.notes.filter((n) => n.id !== noteId);
+            await this.saveToStorage(data);
         }
-        await fetch(`/api/coaches/${coachId}/roster/${athleteId}/notes/${noteId}`, {
-            method: 'DELETE',
-        });
-    },
+    }
+    // --------------------------------------------------------------------------
+    // Status / tags / focus updates
+    // --------------------------------------------------------------------------
     /**
      * Update athlete status
      */
     async updateStatus(coachId, athleteId, status) {
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            const entry = rosterCache.find((r) => r.coachId === coachId && r.athleteId === athleteId);
-            if (!entry)
-                return (0, result_1.err)((0, result_1.notFound)('Roster entry', athleteId));
-            entry.status = status;
-            await saveToStorage(rosterCache);
-            return (0, result_1.ok)(entry);
-        }
-        const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status }),
-        });
-        return (0, result_1.ok)(await response.json());
-    },
+        const data = await this.loadFromStorage();
+        const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
+        if (!entry)
+            return (0, result_1.err)((0, result_1.notFound)('Roster entry', athleteId));
+        entry.status = status;
+        await this.saveToStorage(data);
+        return (0, result_1.ok)(entry);
+    }
     /**
      * Update tags
      */
     async updateTags(coachId, athleteId, tags) {
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            const entry = rosterCache.find((r) => r.coachId === coachId && r.athleteId === athleteId);
-            if (!entry)
-                return (0, result_1.err)((0, result_1.notFound)('Roster entry', athleteId));
-            entry.tags = tags;
-            await saveToStorage(rosterCache);
-            return (0, result_1.ok)(entry);
-        }
-        const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tags }),
-        });
-        return (0, result_1.ok)(await response.json());
-    },
+        const data = await this.loadFromStorage();
+        const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
+        if (!entry)
+            return (0, result_1.err)((0, result_1.notFound)('Roster entry', athleteId));
+        entry.tags = tags;
+        await this.saveToStorage(data);
+        return (0, result_1.ok)(entry);
+    }
     /**
      * Update primary focus
      */
     async updatePrimaryFocus(coachId, athleteId, focus) {
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            const entry = rosterCache.find((r) => r.coachId === coachId && r.athleteId === athleteId);
-            if (!entry)
-                return (0, result_1.err)((0, result_1.notFound)('Roster entry', athleteId));
-            entry.primaryFocus = focus;
-            await saveToStorage(rosterCache);
-            return (0, result_1.ok)(entry);
-        }
-        const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ primaryFocus: focus }),
-        });
-        return (0, result_1.ok)(await response.json());
-    },
+        const data = await this.loadFromStorage();
+        const entry = data.find((r) => r.coachId === coachId && r.athleteId === athleteId);
+        if (!entry)
+            return (0, result_1.err)((0, result_1.notFound)('Roster entry', athleteId));
+        entry.primaryFocus = focus;
+        await this.saveToStorage(data);
+        return (0, result_1.ok)(entry);
+    }
+    // --------------------------------------------------------------------------
+    // Statistics & Tags
+    // --------------------------------------------------------------------------
     /**
      * Get roster statistics
      */
@@ -433,7 +389,7 @@ exports.rosterService = {
             totalRevenue,
             averageSessionsPerAthlete,
         };
-    },
+    }
     /**
      * Get all unique tags used in roster
      */
@@ -442,13 +398,16 @@ exports.rosterService = {
         const tags = new Set();
         roster.forEach((r) => r.tags.forEach((t) => tags.add(t)));
         return Array.from(tags).sort();
-    },
+    }
     /**
      * Get athletes by tag
      */
     async getByTag(coachId, tag) {
         return this.getRoster(coachId, { tags: [tag] });
-    },
+    }
+    // --------------------------------------------------------------------------
+    // Formatters (pure, no state)
+    // --------------------------------------------------------------------------
     /**
      * Format revenue for display
      */
@@ -458,7 +417,7 @@ exports.rosterService = {
             currency,
             minimumFractionDigits: 0,
         }).format(amount);
-    },
+    }
     /**
      * Format status for display
      */
@@ -470,7 +429,7 @@ exports.rosterService = {
             INACTIVE: 'Inactive',
         };
         return labels[status] || status;
-    },
+    }
     /**
      * Get status color
      */
@@ -482,91 +441,74 @@ exports.rosterService = {
             INACTIVE: '#6B7280',
         };
         return colors[status] || '#6B7280';
-    },
+    }
+    // --------------------------------------------------------------------------
+    // Removal / Archival
+    // --------------------------------------------------------------------------
     /**
      * Remove athlete from roster
      */
     async removeAthlete(coachId, athleteId, reason, options) {
         const archive = options?.archive ?? true; // Default to archiving
-        if (USE_MOCK) {
-            rosterCache = await loadFromStorage();
-            const entryIndex = rosterCache.findIndex((r) => r.coachId === coachId && r.athleteId === athleteId);
-            if (entryIndex === -1) {
-                return (0, result_1.err)((0, result_1.notFound)('Athlete', athleteId));
-            }
-            const entry = rosterCache[entryIndex];
-            // Create removal record
-            const removalRecord = {
-                id: `removal_${Date.now()}`,
-                coachId,
-                athleteId,
-                athleteName: entry.athleteName,
-                reason,
-                customReason: options?.customReason,
-                archived: archive,
-                removedAt: new Date().toISOString(),
-                previousStatus: entry.status,
-                totalSessions: entry.totalSessions,
-                totalRevenue: entry.totalRevenue,
-                originalEntry: archive ? entry : undefined,
-            };
-            // Remove from roster
-            rosterCache.splice(entryIndex, 1);
-            await saveToStorage(rosterCache);
-            // Save to removal history
-            removalHistoryCache = await loadRemovalHistory();
-            removalHistoryCache.unshift(removalRecord);
-            await saveRemovalHistory(removalHistoryCache);
-            return (0, result_1.ok)(removalRecord);
+        const data = await this.loadFromStorage();
+        const entryIndex = data.findIndex((r) => r.coachId === coachId && r.athleteId === athleteId);
+        if (entryIndex === -1) {
+            return (0, result_1.err)((0, result_1.notFound)('Athlete', athleteId));
         }
-        const response = await fetch(`/api/coaches/${coachId}/roster/${athleteId}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reason, customReason: options?.customReason, archive }),
-        });
-        return (0, result_1.ok)(await response.json());
-    },
+        const entry = data[entryIndex];
+        // Create removal record
+        const removalRecord = {
+            id: api_client_1.apiClient.generateId('removal'),
+            coachId,
+            athleteId,
+            athleteName: entry.athleteName,
+            reason,
+            customReason: options?.customReason,
+            archived: archive,
+            removedAt: new Date().toISOString(),
+            previousStatus: entry.status,
+            totalSessions: entry.totalSessions,
+            totalRevenue: entry.totalRevenue,
+            originalEntry: archive ? entry : undefined,
+        };
+        // Remove from roster
+        data.splice(entryIndex, 1);
+        await this.saveToStorage(data);
+        // Save to removal history
+        removalHistoryCache = await loadRemovalHistory();
+        removalHistoryCache.unshift(removalRecord);
+        await saveRemovalHistory(removalHistoryCache);
+        return (0, result_1.ok)(removalRecord);
+    }
     /**
      * Undo athlete removal (restore from archive)
      */
     async undoRemoval(coachId, removalId) {
-        if (USE_MOCK) {
-            removalHistoryCache = await loadRemovalHistory();
-            const recordIndex = removalHistoryCache.findIndex((r) => r.id === removalId && r.coachId === coachId);
-            if (recordIndex === -1) {
-                return (0, result_1.err)((0, result_1.notFound)('Removal record', removalId));
-            }
-            const record = removalHistoryCache[recordIndex];
-            if (!record.originalEntry) {
-                return (0, result_1.err)((0, result_1.validationError)('Cannot restore - athlete was permanently deleted'));
-            }
-            // Restore to roster
-            rosterCache = await loadFromStorage();
-            rosterCache.push(record.originalEntry);
-            await saveToStorage(rosterCache);
-            // Remove from removal history
-            removalHistoryCache.splice(recordIndex, 1);
-            await saveRemovalHistory(removalHistoryCache);
-            return (0, result_1.ok)(record.originalEntry);
-        }
-        const response = await fetch(`/api/coaches/${coachId}/roster/removed/${removalId}/undo`, {
-            method: 'POST',
-        });
-        if (!response.ok)
+        removalHistoryCache = await loadRemovalHistory();
+        const recordIndex = removalHistoryCache.findIndex((r) => r.id === removalId && r.coachId === coachId);
+        if (recordIndex === -1) {
             return (0, result_1.err)((0, result_1.notFound)('Removal record', removalId));
-        return (0, result_1.ok)(await response.json());
-    },
+        }
+        const record = removalHistoryCache[recordIndex];
+        if (!record.originalEntry) {
+            return (0, result_1.err)((0, result_1.validationError)('Cannot restore - athlete was permanently deleted'));
+        }
+        // Restore to roster
+        const data = await this.loadFromStorage();
+        data.push(record.originalEntry);
+        await this.saveToStorage(data);
+        // Remove from removal history
+        removalHistoryCache.splice(recordIndex, 1);
+        await saveRemovalHistory(removalHistoryCache);
+        return (0, result_1.ok)(record.originalEntry);
+    }
     /**
      * Get removal history for a coach
      */
     async getRemovalHistory(coachId) {
-        if (USE_MOCK) {
-            removalHistoryCache = await loadRemovalHistory();
-            return removalHistoryCache.filter((r) => r.coachId === coachId);
-        }
-        const response = await fetch(`/api/coaches/${coachId}/roster/removed`);
-        return response.json();
-    },
+        removalHistoryCache = await loadRemovalHistory();
+        return removalHistoryCache.filter((r) => r.coachId === coachId);
+    }
     /**
      * Format removal reason for display
      */
@@ -578,5 +520,6 @@ exports.rosterService = {
             OTHER: 'Other',
         };
         return labels[reason] || reason;
-    },
-};
+    }
+}
+exports.rosterService = new RosterServiceImpl();

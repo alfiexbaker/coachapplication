@@ -8,8 +8,8 @@ import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { EmergencyInfo, MedicalInfo, Consent, ConsentType } from '@/constants/types';
 import { safetyService } from '@/services/safety-service';
 import { createLogger } from '@/utils/logger';
@@ -25,8 +25,7 @@ type TagInputProps = {
 };
 
 function TagInput({ label, placeholder, items, onAdd, onRemove }: TagInputProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [inputValue, setInputValue] = useState('');
 
   const handleAdd = () => {
@@ -53,7 +52,7 @@ function TagInput({ label, placeholder, items, onAdd, onRemove }: TagInputProps)
           onPress={handleAdd}
           style={[styles.addTagButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
+          <Ionicons name="add" size={20} color={palette.onPrimary} />
         </Clickable>
       </View>
       {items.length > 0 && (
@@ -81,27 +80,21 @@ type ConsentToggleProps = {
 };
 
 function ConsentToggle({ consent, onToggle }: ConsentToggleProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const labels: Record<ConsentType, { title: string; description: string }> = {
     PHOTO: {
       title: 'Photography',
-      description: 'Allow photos to be taken during sessions',
-    },
+      description: 'Allow photos to be taken during sessions' },
     VIDEO: {
       title: 'Video Recording',
-      description: 'Allow video recording for training review',
-    },
+      description: 'Allow video recording for training review' },
     SOCIAL_MEDIA: {
       title: 'Social Media',
-      description: 'Allow use in club social media posts',
-    },
+      description: 'Allow use in club social media posts' },
     EMERGENCY_TREATMENT: {
       title: 'Emergency Treatment',
-      description: 'Authorize emergency medical treatment if parent unavailable',
-    },
-  };
+      description: 'Authorize emergency medical treatment if parent unavailable' } };
 
   const info = labels[consent.type];
 
@@ -120,17 +113,15 @@ function ConsentToggle({ consent, onToggle }: ConsentToggleProps) {
         style={[
           styles.toggle,
           {
-            backgroundColor: consent.granted ? palette.success : palette.border,
-          },
+            backgroundColor: consent.granted ? palette.success : palette.border },
         ]}
       >
         <View
           style={[
             styles.toggleKnob,
             {
-              backgroundColor: Colors.light.surface,
-              transform: [{ translateX: consent.granted ? 18 : 2 }],
-            },
+              backgroundColor: palette.surface,
+              transform: [{ translateX: consent.granted ? 18 : 2 }] },
           ]}
         />
       </View>
@@ -140,8 +131,7 @@ function ConsentToggle({ consent, onToggle }: ConsentToggleProps) {
 
 export default function MedicalInfoScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [, setInfo] = useState<EmergencyInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -193,8 +183,7 @@ export default function MedicalInfoScreen() {
               ...c,
               granted,
               grantedBy: granted ? 'Current User' : '',
-              grantedAt: granted ? new Date().toISOString() : undefined,
-            }
+              grantedAt: granted ? new Date().toISOString() : undefined }
           : c
       )
     );
@@ -214,8 +203,7 @@ export default function MedicalInfoScreen() {
         doctorPhone: doctorPhone || undefined,
         insuranceProvider: insuranceProvider || undefined,
         insuranceNumber: insuranceNumber || undefined,
-        notes: notes || undefined,
-      };
+        notes: notes || undefined };
 
       await safetyService.updateMedicalInfo(id, medicalUpdate);
 
@@ -378,72 +366,58 @@ export default function MedicalInfoScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-  },
+    flex: 1 },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   backButton: {
     padding: Spacing.xs,
-    marginLeft: -Spacing.xs,
-  },
+    marginLeft: -Spacing.xs },
   section: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   fieldContainer: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   fieldLabel: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    ...Typography.body,
-  },
+    ...Typography.body },
   textArea: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
     ...Typography.body,
     minHeight: 100,
-    textAlignVertical: 'top',
-  },
+    textAlignVertical: 'top' },
   tagInputRow: {
     flexDirection: 'row',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   tagInput: {
     flex: 1,
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    ...Typography.body,
-  },
+    ...Typography.body },
   addTagButton: {
     width: 44,
     height: 44,
     borderRadius: Radii.md,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   tagList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -451,26 +425,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   tagText: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   consentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
+    paddingVertical: Spacing.sm },
   toggle: {
     width: 48,
     height: 28,
     borderRadius: Radii.lg,
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   toggleKnob: {
     width: 24,
     height: 24,
-    borderRadius: Radii.md,
-  },
-});
+    borderRadius: Radii.md } });

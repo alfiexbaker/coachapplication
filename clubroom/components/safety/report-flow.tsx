@@ -18,11 +18,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { ModalStyles, ButtonStyles, InputStyles } from '@/constants/styles';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { reportService } from '@/services/report-service';
 import { useAuth } from '@/hooks/use-auth';
+import { useTheme } from '@/hooks/useTheme';
 
 type ReportType =
   | 'inappropriate'
@@ -52,8 +52,7 @@ export function ReportFlow({
   reportedUserId,
   context,
 }: ReportFlowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [selectedType, setSelectedType] = useState<ReportType | null>(null);
@@ -250,7 +249,7 @@ export function ReportFlow({
                 disabled={!selectedType || submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator color={Colors.light.surface} size="small" />
+                  <ActivityIndicator color={palette.surface} size="small" />
                 ) : (
                   <ThemedText style={ButtonStyles.primaryText}>
                     Submit Report

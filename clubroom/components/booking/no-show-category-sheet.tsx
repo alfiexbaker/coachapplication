@@ -13,9 +13,9 @@ import * as Haptics from 'expo-haptics';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { NoShowCategory } from '@/constants/session-types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface NoShowCategoryOption {
   key: NoShowCategory;
@@ -49,8 +49,7 @@ export function NoShowCategorySheet({
   onSubmit,
   athleteName,
 }: NoShowCategorySheetProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [selected, setSelected] = useState<NoShowCategory | null>(null);
   const [note, setNote] = useState('');
 
@@ -79,7 +78,7 @@ export function NoShowCategorySheet({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
-        style={styles.overlay}
+        style={[styles.overlay, { backgroundColor: withAlpha(palette.text, 0.4) }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={[styles.sheet, { backgroundColor: palette.surface }]}>
@@ -182,7 +181,6 @@ export function NoShowCategorySheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: withAlpha('#000000', 0.4),
     justifyContent: 'flex-end',
   },
   sheet: {

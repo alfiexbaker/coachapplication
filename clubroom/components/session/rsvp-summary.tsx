@@ -18,10 +18,9 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
-import { CardStyles } from '@/constants/styles';
+import { Spacing, Radii, Typography, Components, withAlpha } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { rsvpService } from '@/services/rsvp-service';
 import type { SessionRsvp } from '@/constants/types';
 
@@ -106,8 +105,7 @@ function ExpandableList({ title, names, color, icon, mutedColor }: ExpandableLis
 // ---------------------------------------------------------------------------
 
 export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [rsvps, setRsvps] = useState<SessionRsvp[]>([]);
   const [counts, setCounts] = useState({ going: 0, notGoing: 0, maybe: 0, pending: 0 });
   const [loading, setLoading] = useState(true);
@@ -174,7 +172,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
 
   if (loading) {
     return (
-      <View style={[CardStyles.base, styles.loadingContainer]}>
+      <View style={[styles.cardBase, styles.loadingContainer, { backgroundColor: palette.surface }]}>
         <ActivityIndicator size="small" color={palette.tint} />
       </View>
     );
@@ -182,7 +180,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
 
   if (total === 0) {
     return (
-      <View style={[CardStyles.base, styles.emptyContainer]}>
+      <View style={[styles.cardBase, styles.emptyContainer, { backgroundColor: palette.surface }]}>
         <Ionicons name="people-outline" size={32} color={palette.muted} />
         <ThemedText style={styles.emptyText}>No RSVPs yet</ThemedText>
       </View>
@@ -190,7 +188,7 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
   }
 
   return (
-    <View style={[CardStyles.base, styles.container]}>
+    <View style={[styles.cardBase, styles.container, { backgroundColor: palette.surface }]}>
       {/* Header */}
       <ThemedText style={styles.sectionTitle}>Attendance</ThemedText>
 
@@ -296,6 +294,10 @@ export function RSVPSummary({ sessionId }: RSVPSummaryProps) {
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
+  cardBase: {
+    borderRadius: Radii.card,
+    padding: Spacing.sm,
+  },
   container: {
     gap: Spacing.sm,
   },

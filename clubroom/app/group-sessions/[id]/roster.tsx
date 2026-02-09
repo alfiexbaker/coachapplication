@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Pressable, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,8 +12,8 @@ import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ParticipantCard } from '@/components/group/participant-card';
 import { Button } from '@/components/primitives/button';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { groupSessionService } from '@/services/group-session-service';
 import { injuryService } from '@/services/injury-service';
 import type { GroupSession, GroupRegistration, BodyPart, InjurySeverity } from '@/constants/types';
@@ -25,8 +25,7 @@ type AttendanceStatus = 'present' | 'absent' | 'late' | 'unmarked';
 
 export default function SessionRosterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [session, setSession] = useState<GroupSession | null>(null);
   const [roster, setRoster] = useState<GroupRegistration[]>([]);
@@ -234,9 +233,9 @@ export default function SessionRosterScreen() {
   ];
 
   const severityOptions: { value: InjurySeverity; label: string; color: string }[] = [
-    { value: 'MINOR', label: 'Minor', color: '#F59E0B' },
-    { value: 'MODERATE', label: 'Moderate', color: '#F97316' },
-    { value: 'SEVERE', label: 'Severe', color: '#EF4444' },
+    { value: 'MINOR', label: 'Minor', color: palette.warning },
+    { value: 'MODERATE', label: 'Moderate', color: '#F97316' }, // Decorative: orange severity, between warning and error
+    { value: 'SEVERE', label: 'Severe', color: palette.error },
   ];
 
   // Calculate roll call stats
@@ -304,13 +303,13 @@ export default function SessionRosterScreen() {
           </ThemedText>
         </View>
         {registeredCount > 0 && (
-          <TouchableOpacity
+          <Pressable
             style={[styles.rollCallButton, { backgroundColor: palette.success }]}
             onPress={startRollCall}
           >
             <Ionicons name="clipboard-outline" size={18} color={palette.onPrimary} />
             <ThemedText style={{ color: palette.onPrimary, ...Typography.bodySmallSemiBold }}>Roll Call</ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         )}
       </View>
 
@@ -405,14 +404,14 @@ export default function SessionRosterScreen() {
         <SafeAreaView style={[styles.rollCallContainer, { backgroundColor: palette.background }]} edges={['top']}>
           {/* Roll Call Header */}
           <View style={[styles.rollCallHeader, { borderBottomColor: palette.border }]}>
-            <TouchableOpacity onPress={() => setShowRollCall(false)}>
+            <Pressable onPress={() => setShowRollCall(false)}>
               <Ionicons name="close" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>Roll Call</ThemedText>
               <ThemedText style={{ color: palette.muted, ...Typography.small }}>{session?.title}</ThemedText>
             </View>
-            <TouchableOpacity
+            <Pressable
               style={[
                 styles.saveRollCallButton,
                 { backgroundColor: rollCallStats.unmarked === 0 ? palette.success : palette.border },
@@ -423,7 +422,7 @@ export default function SessionRosterScreen() {
               <ThemedText style={{ color: rollCallStats.unmarked === 0 ? palette.onPrimary : palette.muted, fontWeight: '600' }}>
                 Save
               </ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
 
           {/* Roll Call Stats */}
@@ -484,7 +483,7 @@ export default function SessionRosterScreen() {
                     </View>
                   </View>
                   <View style={styles.rollCallActions}>
-                    <TouchableOpacity
+                    <Pressable
                       style={[
                         styles.rollCallActionButton,
                         {
@@ -499,8 +498,8 @@ export default function SessionRosterScreen() {
                         size={20}
                         color={status === 'present' ? palette.onPrimary : palette.success}
                       />
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                    </Pressable>
+                    <Pressable
                       style={[
                         styles.rollCallActionButton,
                         {
@@ -515,8 +514,8 @@ export default function SessionRosterScreen() {
                         size={18}
                         color={status === 'late' ? palette.onPrimary : palette.warning}
                       />
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                    </Pressable>
+                    <Pressable
                       style={[
                         styles.rollCallActionButton,
                         {
@@ -531,8 +530,8 @@ export default function SessionRosterScreen() {
                         size={20}
                         color={status === 'absent' ? palette.onPrimary : palette.error}
                       />
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                    </Pressable>
+                    <Pressable
                       style={[
                         styles.injuryButton,
                         { backgroundColor: withAlpha(palette.error, 0.09), borderColor: withAlpha(palette.error, 0.19) },
@@ -540,7 +539,7 @@ export default function SessionRosterScreen() {
                       onPress={() => openInjuryReport(registration)}
                     >
                       <Ionicons name="medkit" size={16} color={palette.error} />
-                    </TouchableOpacity>
+                    </Pressable>
                   </View>
                 </Animated.View>
               );
@@ -550,7 +549,7 @@ export default function SessionRosterScreen() {
 
           {/* Quick Actions */}
           <View style={[styles.rollCallQuickActions, { borderTopColor: palette.border, backgroundColor: palette.background }]}>
-            <TouchableOpacity
+            <Pressable
               style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.success, 0.09) }]}
               onPress={() => {
                 const updated = { ...rollCallAttendance };
@@ -560,8 +559,8 @@ export default function SessionRosterScreen() {
             >
               <Ionicons name="checkmark-done" size={18} color={palette.success} />
               <ThemedText style={{ color: palette.success, ...Typography.smallSemiBold }}>All Present</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[styles.quickActionButton, { backgroundColor: withAlpha(palette.muted, 0.09) }]}
               onPress={() => {
                 const updated = { ...rollCallAttendance };
@@ -571,7 +570,7 @@ export default function SessionRosterScreen() {
             >
               <Ionicons name="refresh" size={18} color={palette.muted} />
               <ThemedText style={{ color: palette.muted, ...Typography.smallSemiBold }}>Reset</ThemedText>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </SafeAreaView>
       </Modal>
@@ -586,9 +585,9 @@ export default function SessionRosterScreen() {
         <SafeAreaView style={[styles.injuryModalContainer, { backgroundColor: palette.background }]} edges={['top']}>
           {/* Header */}
           <View style={[styles.injuryModalHeader, { borderBottomColor: palette.border }]}>
-            <TouchableOpacity onPress={() => setShowInjuryReport(false)}>
+            <Pressable onPress={() => setShowInjuryReport(false)}>
               <Ionicons name="close" size={24} color={palette.text} />
-            </TouchableOpacity>
+            </Pressable>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <ThemedText type="defaultSemiBold" style={{ ...Typography.heading }}>Report Injury</ThemedText>
               {selectedParticipant && (
@@ -606,7 +605,7 @@ export default function SessionRosterScreen() {
               <ThemedText type="defaultSemiBold" style={styles.injurySectionTitle}>Severity</ThemedText>
               <View style={styles.severityRow}>
                 {severityOptions.map(option => (
-                  <TouchableOpacity
+                  <Pressable
                     key={option.value}
                     style={[
                       styles.severityOption,
@@ -620,7 +619,7 @@ export default function SessionRosterScreen() {
                     <ThemedText style={{ color: injurySeverity === option.value ? palette.onPrimary : option.color, ...Typography.smallSemiBold }}>
                       {option.label}
                     </ThemedText>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             </View>
@@ -633,7 +632,7 @@ export default function SessionRosterScreen() {
                   <ThemedText style={[styles.categoryLabel, { color: palette.muted }]}>{category.label}</ThemedText>
                   <View style={styles.bodyPartGrid}>
                     {category.parts.map(({ part, label }) => (
-                      <TouchableOpacity
+                      <Pressable
                         key={part}
                         style={[
                           styles.bodyPartChip,
@@ -647,7 +646,7 @@ export default function SessionRosterScreen() {
                         <ThemedText style={{ color: injuryBodyPart === part ? palette.onPrimary : palette.text, ...Typography.caption }}>
                           {label}
                         </ThemedText>
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </View>
                 </View>

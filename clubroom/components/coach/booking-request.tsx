@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,8 +46,7 @@ export function BookingRequest({
   onSuggestAlternative,
   onDecline,
 }: BookingRequestProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.card}>
@@ -106,7 +105,7 @@ export function BookingRequest({
           ]}
         >
           <Ionicons name="checkmark" size={Components.icon.md} color={palette.onPrimary} />
-          <ThemedText style={styles.confirmLabel}>Confirm</ThemedText>
+          <ThemedText style={[styles.confirmLabel, { color: palette.onPrimary }]}>Confirm</ThemedText>
         </Pressable>
 
         <Pressable
@@ -157,7 +156,7 @@ function DetailRow({
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
-  palette: (typeof Colors)['light'];
+  palette: ReturnType<typeof useTheme>['colors'];
 }) {
   return (
     <View style={styles.detailRow}>
@@ -216,7 +215,6 @@ const styles = StyleSheet.create({
   },
   confirmLabel: {
     ...Typography.bodySemiBold,
-    color: Colors.light.onPrimary,
   },
   alternativeButton: {
     flex: 1,

@@ -1,8 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { Spacing, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface SectionHeaderProps {
   title: string;
@@ -11,8 +11,7 @@ export interface SectionHeaderProps {
 }
 
 export function SectionHeader({ title, subtitle, eyebrow }: SectionHeaderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.container}>

@@ -10,8 +10,8 @@ import { ThemedText } from '@/components/themed-text';
 import { MessageBubble } from '@/components/messaging/message-bubble';
 import { ChatInput } from '@/components/messaging/chat-input';
 import { TypingIndicator } from '@/components/messaging/typing-indicator';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { messagingService } from '@/services/messaging-service';
 import { ChatMessage, ChatThreadSummary } from '@/constants/types';
 import { Clickable } from '@/components/primitives/clickable';
@@ -19,8 +19,7 @@ import { Chip } from '@/components/primitives/chip';
 
 export default function ChatScreen() {
   const { threadId } = useLocalSearchParams<{ threadId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [thread, setThread] = useState<ChatThreadSummary | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [showSafetyBanner, setShowSafetyBanner] = useState(true);

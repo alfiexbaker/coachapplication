@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Accept Revert Tests
  *
@@ -67,9 +66,44 @@ type Result<T, E = ServiceError> =
 // MOCK INFRASTRUCTURE
 // ============================================================================
 
+interface MockNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  timeLabel: string;
+  read: boolean;
+}
+
+interface MockBookingData {
+  id: string;
+}
+
+interface CreateBookingParams {
+  coachId: string;
+  coachName: string;
+  athleteIds: string[];
+  athleteNames: string[];
+  bookedById: string;
+  bookedByName: string;
+  scheduledAt: string;
+  duration: number;
+  location: string;
+  service: string;
+  serviceType: string;
+  objectives?: string[];
+  price?: number;
+  notes?: string;
+  sessionInviteId?: string;
+}
+
+type BookingCreateResult =
+  | { success: true; data: MockBookingData }
+  | { success: false; data?: undefined; error: { code: string; message: string } };
+
 let invitesCache: SessionInvite[] = [];
-let mockNotifications: any[] = [];
-let bookingCreateResult: { success: boolean; data?: any; error?: { code: string; message: string } } = {
+let mockNotifications: MockNotification[] = [];
+let bookingCreateResult: BookingCreateResult = {
   success: true,
   data: { id: 'booking_123' },
 };
@@ -78,14 +112,14 @@ let releasedInviteIds: string[] = [];
 
 // Mock bookingService
 const bookingService = {
-  async createBooking(_params: any): Promise<typeof bookingCreateResult> {
+  async createBooking(_params: CreateBookingParams): Promise<BookingCreateResult> {
     return bookingCreateResult;
   },
 };
 
 // Mock notificationService
 const notificationService = {
-  async create(notification: any): Promise<any[]> {
+  async create(notification: MockNotification): Promise<MockNotification[]> {
     mockNotifications.push(notification);
     return mockNotifications;
   },

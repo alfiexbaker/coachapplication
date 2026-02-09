@@ -20,6 +20,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.apiClient = exports.ApiError = void 0;
+exports.apiFetch = apiFetch;
 const async_storage_1 = __importDefault(require("@react-native-async-storage/async-storage"));
 const logger_1 = require("@/utils/logger");
 const auth_service_1 = require("@/services/auth-service");

@@ -13,9 +13,9 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Spacing, Radii , withAlpha } from '@/constants/theme';
+import { Spacing, Radii , withAlpha } from '@/constants/theme';
 import type { BodyPart, BodyPartCategory } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme, type ThemeColors } from '@/hooks/useTheme';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
 
@@ -32,8 +32,7 @@ const CATEGORIES: { id: BodyPartCategory; label: string; icon: string }[] = [
 ];
 
 export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [expandedCategory, setExpandedCategory] = useState<BodyPartCategory | null>(
     selectedPart ? injuryService.getBodyPartCategory(selectedPart) : null
   );
@@ -79,7 +78,7 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
         </View>
         {selectedPart && (
           <View style={[styles.selectedLabel, { backgroundColor: palette.tint }]}>
-            <ThemedText style={styles.selectedLabelText}>
+            <ThemedText style={[styles.selectedLabelText, { color: palette.onPrimary }]}>
               {injuryService.getBodyPartLabel(selectedPart)}
             </ThemedText>
           </View>
@@ -178,7 +177,7 @@ export function BodyPartSelector({ selectedPart, onSelect }: BodyPartSelectorPro
 function getPartStyle(
   part: BodyPart,
   selectedPart: BodyPart | null,
-  palette: typeof Colors.light
+  palette: ThemeColors
 ): { backgroundColor: string; borderColor: string; borderWidth: number } {
   const isSelected = selectedPart === part;
   const isRelated =
@@ -307,7 +306,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.pill,
   },
   selectedLabelText: {
-    color: Colors.light.onPrimary,
+    // color set inline for dynamic theming
     fontSize: scaleFont(14),
     fontWeight: '600',
   },

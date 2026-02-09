@@ -10,8 +10,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { Badge } from '@/components/primitives/badge';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { VerificationStatus, VerificationItem } from '@/constants/types';
 import { verificationService } from '@/services/verification-service';
 
@@ -34,8 +34,7 @@ type CredentialCardProps = {
 };
 
 function CredentialCard({ credential, index }: CredentialCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const getStatusTone = () => {
     switch (credential.status) {
@@ -92,8 +91,7 @@ function CredentialCard({ credential, index }: CredentialCardProps) {
 }
 
 export default function CredentialsScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const [status, setStatus] = useState<VerificationStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -183,7 +181,7 @@ export default function CredentialsScreen() {
               onPress={() => setShowForm(true)}
               style={[styles.addButton, { backgroundColor: palette.tint }]}
             >
-              <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
+              <Ionicons name="add" size={20} color={palette.onPrimary} />
             </Clickable>
           )}
         </View>
@@ -227,16 +225,14 @@ export default function CredentialsScreen() {
                         borderColor:
                           selectedType === type.id ? palette.tint : palette.border,
                         backgroundColor:
-                          selectedType === type.id ? withAlpha(palette.tint, 0.03) : palette.card,
-                      },
+                          selectedType === type.id ? withAlpha(palette.tint, 0.03) : palette.card },
                     ]}
                   >
                     <View style={{ flex: 1 }}>
                       <ThemedText
                         style={{
                           fontWeight: selectedType === type.id ? '600' : '400',
-                          color: selectedType === type.id ? palette.tint : palette.text,
-                        }}
+                          color: selectedType === type.id ? palette.tint : palette.text }}
                       >
                         {type.label}
                       </ThemedText>
@@ -355,118 +351,95 @@ export default function CredentialsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    flex: 1,
-  },
+    flex: 1 },
   content: {
     padding: Spacing.lg,
-    gap: Spacing.lg,
-  },
+    gap: Spacing.lg },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   backButton: {
     padding: Spacing.xs,
-    marginLeft: -Spacing.xs,
-  },
+    marginLeft: -Spacing.xs },
   addButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   statsRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   statBox: {
     flex: 1,
     alignItems: 'center',
     padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   formCard: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   formHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   section: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   label: {
-    ...Typography.bodySmallSemiBold,
-  },
+    ...Typography.bodySmallSemiBold },
   typeList: {
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   typeItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.sm,
     borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   input: {
     borderWidth: 1.5,
     borderRadius: Radii.md,
     padding: Spacing.sm,
-    ...Typography.body,
-  },
+    ...Typography.body },
   uploadArea: {
     alignItems: 'center',
     gap: Spacing.sm,
     padding: Spacing.lg,
     borderRadius: Radii.md,
     borderWidth: 2,
-    borderStyle: 'dashed',
-  },
+    borderStyle: 'dashed' },
   uploadedRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.sm,
     borderRadius: Radii.md,
-    borderWidth: 1.5,
-  },
+    borderWidth: 1.5 },
   credentialsList: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   credentialCard: {
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   credentialHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   credentialIcon: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   expiryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    marginLeft: 52,
-  },
+    marginLeft: 52 },
   emptyCard: {
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.xl,
-  },
+    paddingVertical: Spacing.xl },
   emptyButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -475,17 +448,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     borderRadius: Radii.button,
     borderWidth: 1.5,
-    marginTop: Spacing.sm,
-  },
+    marginTop: Spacing.sm },
   infoBox: {
     flexDirection: 'row',
     gap: Spacing.sm,
     padding: Spacing.md,
     borderRadius: Radii.md,
-    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-  },
+    backgroundColor: 'rgba(0, 0, 0, 0.02)' },
   infoText: {
     flex: 1,
-    ...Typography.small,
-  },
-});
+    ...Typography.small } });

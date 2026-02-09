@@ -22,8 +22,8 @@ import { ThemedText } from '@/components/themed-text';
 import { FormInput, FormButton } from '@/components/forms';
 import { useForm } from '@/hooks/use-form';
 import { validators } from '@/utils/validation';
-import { Colors, Radii, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import CoachSignupScreen, { CoachSignupData } from './coach-signup-screen';
 import OnboardingScreen from './onboarding-screen';
@@ -36,8 +36,7 @@ interface LoginFormValues {
 }
 
 export default function LoginScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { login, error, availableUsers, registerCoach } = useAuth();
 
   const [screenMode, setScreenMode] = useState<ScreenMode>('login');
@@ -133,7 +132,7 @@ export default function LoginScreen() {
           </View>
 
           {error ? (
-            <ThemedText style={[styles.helper, { color: Colors[scheme].error }]}>{error}</ThemedText>
+            <ThemedText style={[styles.helper, { color: palette.error }]}>{error}</ThemedText>
           ) : (
             <ThemedText style={styles.helper}>Credentials are case-insensitive.</ThemedText>
           )}
@@ -153,7 +152,7 @@ export default function LoginScreen() {
           <View style={styles.signupCardContent}>
             <Ionicons name="person-add" size={24} color={palette.onPrimary} />
             <View style={styles.signupCardText}>
-              <ThemedText style={styles.signupTitle}>New to Clubroom?</ThemedText>
+              <ThemedText style={[styles.signupTitle, { color: palette.onPrimary }]}>New to Clubroom?</ThemedText>
               <ThemedText style={styles.signupSubtitle}>Create your free account</ThemedText>
             </View>
           </View>
@@ -243,7 +242,7 @@ const styles = StyleSheet.create({
   signupCardText: {
     gap: Spacing.micro,
   },
-  signupTitle: { ...Typography.subheading, color: Colors.light.onPrimary },
+  signupTitle: { ...Typography.subheading },
   signupSubtitle: { ...Typography.bodySmall, color: 'rgba(255,255,255,0.8)' },
   coachSignupCard: {
     padding: Spacing.lg,

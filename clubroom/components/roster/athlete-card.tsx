@@ -7,10 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import type { RosterEntry } from '@/constants/types';
 import type { Booking } from '@/constants/app-types';
+import { useTheme } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -56,8 +56,7 @@ interface AthleteCardProps {
 // ---------------------------------------------------------------------------
 
 function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const needsAttention =
     !athlete.lastSessionDate ||
@@ -83,7 +82,7 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
               </ThemedText>
             )}
             {needsAttention && (
-              <View style={[styles.attentionDot, { backgroundColor: palette.warning }]} />
+              <View style={[styles.attentionDot, { backgroundColor: palette.warning, borderColor: palette.surface }]} />
             )}
           </View>
 
@@ -137,7 +136,7 @@ function AthleteCardInner({ athlete, upcomingSession }: AthleteCardProps) {
                 router.push(Routes.rosterAthleteAddToSession(athlete.athleteId))
               }
             >
-              <Ionicons name="add" size={18} color={Colors.light.onPrimary} />
+              <Ionicons name="add" size={18} color={palette.onPrimary} />
             </Clickable>
             <Ionicons name="chevron-forward" size={20} color={palette.muted} />
           </View>
@@ -188,7 +187,6 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: Radii.sm,
     borderWidth: 2,
-    borderColor: Colors.light.surface,
   },
   athleteInfo: {
     flex: 1,

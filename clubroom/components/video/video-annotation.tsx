@@ -4,13 +4,14 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import type { VideoAnnotation, VideoAnnotationType } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 const logger = createLogger('VideoAnnotation');
 
+// Decorative: annotation type category colors (not themeable)
 const ANNOTATION_TYPES: { type: VideoAnnotationType; label: string; color: string; icon: string }[] = [
   { type: 'HIGHLIGHT', label: 'Highlight', color: '#4CAF50', icon: 'star' },
   { type: 'TECHNIQUE', label: 'Technique', color: '#2196F3', icon: 'football' },
@@ -32,8 +33,7 @@ export function AddAnnotationModal({
   currentTime,
   duration,
 }: AddAnnotationModalProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [timestamp] = useState(currentTime);
   const [label, setLabel] = useState('');
@@ -251,8 +251,7 @@ interface AnnotationBadgeProps {
 }
 
 export function AnnotationBadge({ annotation, onPress, compact = false }: AnnotationBadgeProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const typeConfig = ANNOTATION_TYPES.find((t) => t.type === annotation.type) || ANNOTATION_TYPES[0];
 
@@ -268,7 +267,7 @@ export function AnnotationBadge({ annotation, onPress, compact = false }: Annota
         onPress={onPress}
         style={[styles.compactBadge, { backgroundColor: typeConfig.color }]}
       >
-        <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={10} color="#fff" />
+        <Ionicons name={typeConfig.icon as keyof typeof Ionicons.glyphMap} size={10} color={palette.onPrimary} />
       </Clickable>
     );
   }
@@ -294,8 +293,7 @@ interface QuickAnnotationBarProps {
 }
 
 export function QuickAnnotationBar({ onAdd, disabled = false }: QuickAnnotationBarProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <View style={styles.quickBar}>

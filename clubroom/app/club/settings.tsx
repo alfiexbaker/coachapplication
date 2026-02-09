@@ -11,8 +11,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { clubService, type ClubMember } from '@/services/club-service';
 import { getClubById, getClubSquads, getClubInvites, getClubMembershipForUser } from '@/constants/mock-data';
@@ -32,8 +32,7 @@ interface InviteCodeItem {
 
 export default function ClubSettingsScreen() {
   const { clubId: paramClubId, section: paramSection } = useLocalSearchParams<{ clubId?: string; section?: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 
@@ -297,7 +296,7 @@ export default function ClubSettingsScreen() {
                 style={[styles.saveButton, { backgroundColor: palette.tint }]}
                 onPress={handleSaveDetails}
               >
-                <ThemedText style={styles.saveButtonText}>Save Changes</ThemedText>
+                <ThemedText style={[styles.saveButtonText, { color: palette.onPrimary }]}>Save Changes</ThemedText>
               </Clickable>
             </SurfaceCard>
           </Animated.View>
@@ -392,7 +391,7 @@ export default function ClubSettingsScreen() {
                   style={[styles.addButton, { backgroundColor: palette.tint }]}
                   onPress={handleCreateSquad}
                 >
-                  <Ionicons name="add" size={20} color={Colors.light.onPrimary} />
+                  <Ionicons name="add" size={20} color={palette.onPrimary} />
                 </Clickable>
               </View>
 
@@ -587,7 +586,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   saveButtonText: {
-    color: Colors.light.onPrimary,
     fontWeight: '600',
   },
   inviteRow: {

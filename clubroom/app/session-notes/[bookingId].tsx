@@ -6,8 +6,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { SessionNotesForm } from '@/components/session/session-notes-form';
 import { SessionNotesView } from '@/components/session/session-notes-view';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { Clickable } from '@/components/primitives/clickable';
 import { useSessionNote } from '@/hooks/use-session-note';
 import { SessionNoteFields } from '@/services/progress-service';
@@ -16,8 +16,7 @@ export default function SessionNotesScreen() {
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
   const { note, loading, saving, error, persist, refresh } = useSessionNote(bookingId);
   const [mode, setMode] = useState<'view' | 'edit'>(note ? 'view' : 'edit');
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   useEffect(() => {
     setMode(note ? 'view' : 'edit');

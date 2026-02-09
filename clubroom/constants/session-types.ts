@@ -404,7 +404,7 @@ export interface SessionInvite {
   notes?: string;
   priceUsd?: number;
   duration?: number; // Duration in minutes (from session template)
-  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED';
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED' | 'COUNTERED' | 'MAYBE';
   expiresAt: string;
   createdAt: string;
   respondedAt?: string;
@@ -422,6 +422,23 @@ export interface SessionInvite {
   weekSlots?: WeekAcceptance[]; // Per-week slots for multi-week invites
   acceptedWeeks?: string[]; // ISO date strings of accepted weeks
   declinedWeeks?: string[]; // ISO date strings of declined weeks
+  coverImageUrl?: string;
+  locationCoordinates?: { latitude: number; longitude: number };
+  shareableLink?: string;
+  rsvpCounts?: { going: number; maybe: number; cantGo: number };
+  rsvpResponses?: InviteRsvpResponse[];
+}
+
+export interface InviteRsvpResponse {
+  id: string;
+  inviteId: string;
+  userId: string;
+  userName: string;
+  userPhotoUrl?: string;
+  childId?: string;
+  childName?: string;
+  status: 'going' | 'maybe' | 'cant_go';
+  respondedAt: string;
 }
 
 // ============================================================================

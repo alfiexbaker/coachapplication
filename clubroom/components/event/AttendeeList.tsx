@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, withAlpha } from '@/constants/theme';
+import { Spacing, Radii, withAlpha } from '@/constants/theme';
 import type { EventRSVP, EventAttendance, EventAttendanceStats, RSVPStatus } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
 import { AttendeeCard } from './AttendeeCard';
@@ -34,8 +34,7 @@ export function AttendeeList({
   loading = false,
   emptyMessage = 'No attendees yet',
 }: AttendeeListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [filter, setFilter] = useState<FilterType>('ALL');
 
@@ -132,7 +131,7 @@ export function AttendeeList({
 
         {/* Capacity bar */}
         {capacity && (
-          <View style={styles.capacitySection}>
+          <View style={[styles.capacitySection, { borderTopColor: palette.border }]}>
             <View style={styles.capacityHeader}>
               <ThemedText style={[styles.capacityLabel, { color: palette.muted }]}>
                 Capacity
@@ -315,7 +314,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    // borderTopColor set inline for dynamic theming
   },
   capacityHeader: {
     flexDirection: 'row',

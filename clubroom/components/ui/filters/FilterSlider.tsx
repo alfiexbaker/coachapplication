@@ -10,8 +10,8 @@ import Slider from '@react-native-community/slider';
 
 import { ThemedText } from '@/components/themed-text';
 import { FilterChip } from './FilterChip';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface FilterSliderProps {
   /** Current value */
@@ -48,8 +48,7 @@ export function FilterSlider({
   presets,
   showValue = true,
 }: FilterSliderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const displayValue = formatValue
     ? formatValue(value)

@@ -1,10 +1,10 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface SessionRecapData {
   id: string;
@@ -26,8 +26,7 @@ export interface SessionRecapCardProps {
 }
 
 export function SessionRecapCard({ data, onLike, onComment, onPress }: SessionRecapCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -72,14 +71,14 @@ export function SessionRecapCard({ data, onLike, onComment, onPress }: SessionRe
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerAction} onPress={onLike}>
+        <Pressable style={styles.footerAction} onPress={onLike}>
           <Ionicons name="heart-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.likeCount}</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerAction} onPress={onComment}>
+        </Pressable>
+        <Pressable style={styles.footerAction} onPress={onComment}>
           <Ionicons name="chatbubble-outline" size={Components.icon.md} color={palette.muted} />
           <ThemedText style={[styles.footerCount, { color: palette.muted }]}>{data.commentCount}</ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </SurfaceCard>
   );

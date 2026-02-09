@@ -1,1472 +1,199 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { Routes } from '@/navigation/routes';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+/**
+ * CreateSessionInviteScreen — Multi-step wizard for creating session invites.
+ *
+ * Thin screen file that wires the useCreateInvite hook to step sub-components.
+ * All state, handlers, and data loading live in the hook.
+ * All step UI lives in components/invite/create-*-step.tsx.
+ */
 
-import { createLogger } from '@/utils/logger';
-import { SurfaceCard } from '@/components/primitives/surface-card';
+import React, { useCallback, useMemo } from 'react';
+import { StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+
+import { Row } from '@/components/primitives';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { DateTimeField } from '@/components/ui/primitives';
-import { SlotPicker } from '@/components/coach/slot-picker';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useAuth } from '@/hooks/use-auth';
-import { inviteService as sessionInviteService } from '@/services/invite';
-import { academyService } from '@/services/academy-service';
-import { rosterService } from '@/services/roster-service';
-import { groupSessionService } from '@/services/group-session';
-import { sessionTemplateService } from '@/services/session-template-service';
-import type { TimeSlot, Academy, SessionInvite, SessionInviteType, RosterEntry, GroupSession, SessionTemplate, AvailabilitySlot } from '@/constants/types';
+import { WizardStepIndicator } from '@/components/invite/wizard-step-indicator';
+import { WizardNavButtons } from '@/components/invite/wizard-nav-buttons';
+import { CreateAthleteStep } from '@/components/invite/create-athlete-step';
+import { CreateClubStep } from '@/components/invite/create-club-step';
+import { CreateModeStep } from '@/components/invite/create-mode-step';
+import { CreateExistingStep } from '@/components/invite/create-existing-step';
+import { CreateTypeStep } from '@/components/invite/create-type-step';
+import { CreateSlotsStep } from '@/components/invite/create-slots-step';
+import { CreateDetailsStep } from '@/components/invite/create-details-step';
+import { CreateConfirmStep } from '@/components/invite/create-confirm-step';
+import { useCreateInvite, type Step } from '@/hooks/use-create-invite';
+import { Spacing } from '@/constants/theme';
 
-const logger = createLogger('CreateSessionInviteScreen');
+// ============================================================================
+// STEP DISPLAY HELPERS
+// ============================================================================
 
-const FOCUSES = ['Dribbling', 'Passing', 'Finishing', 'Defending', 'Goalkeeping', 'Conditioning'];
+const DISPLAY_STEPS_NEW: readonly string[] = ['athlete', 'mode', 'type', 'slots', 'details', 'confirm'];
+const DISPLAY_STEPS_EXISTING: readonly string[] = ['athlete', 'mode', 'existing', 'confirm'];
 
-type Step = 'athlete' | 'club' | 'mode' | 'type' | 'slots' | 'details' | 'confirm' | 'existing';
-
-interface AthleteOption {
-  id: string;
-  name: string;
-  parentId: string;
-  parentName: string;
+function getIndicatorStep(step: Step): string {
+  return step === 'club' ? 'athlete' : step;
 }
 
+// ============================================================================
+// SCREEN
+// ============================================================================
+
 export default function CreateSessionInviteScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
-  const { currentUser } = useAuth();
+  const { state, handlers } = useCreateInvite();
+  const { colors } = state;
 
-  const [step, setStep] = useState<Step>('athlete');
-  const [athletes, setAthletes] = useState<AthleteOption[]>([]);
-  const [selectedAthletes, setSelectedAthletes] = useState<AthleteOption[]>([]);
-  const [selectedClub, setSelectedClub] = useState<Academy | null>(null);
-  const [myAcademies, setMyAcademies] = useState<Academy[]>([]);
-  const [sessionType, setSessionType] = useState('');
-  const [focus, setFocus] = useState('');
-  const [sessionInviteType, setSessionInviteType] = useState<SessionInviteType>('OPEN');
-  const [proposedSlots, setProposedSlots] = useState<TimeSlot[]>([]);
-  const [notes, setNotes] = useState('');
-  const [price, setPrice] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sentInvites, setSentInvites] = useState<SessionInvite[]>([]);
-  const [inviteMode, setInviteMode] = useState<'new' | 'existing'>('new');
-  const [existingSessions, setExistingSessions] = useState<GroupSession[]>([]);
-  const [selectedExistingSession, setSelectedExistingSession] = useState<GroupSession | null>(null);
+  const displaySteps = state.inviteMode === 'existing' ? DISPLAY_STEPS_EXISTING : DISPLAY_STEPS_NEW;
+  const indicatorStep = getIndicatorStep(state.step);
 
-  // Session template state
-  const [sessionTemplates, setSessionTemplates] = useState<SessionTemplate[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<SessionTemplate | null>(null);
+  const handleRemoveCoverImage = useCallback(() => {
+    handlers.setCoverImageUri(null);
+  }, [handlers]);
 
-  // Slot picker state (real availability)
-  const [selectedAvailabilitySlots, setSelectedAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
-
-  // Recurring invite state (Job 6.1)
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrenceWeeks, setRecurrenceWeeks] = useState(8);
-
-  // Fallback manual time slot form (when no availability data)
-  const [slotDate, setSlotDate] = useState('');
-  const [slotStartTime, setSlotStartTime] = useState('');
-  const [slotEndTime, setSlotEndTime] = useState('');
-  const [slotLocation, setSlotLocation] = useState('');
-
-  const loadAthletes = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const roster = await rosterService.getRoster(currentUser.id);
-      const athleteOptions = roster.map((entry: RosterEntry) => ({
-        id: entry.athleteId,
-        name: entry.athleteName,
-        parentId: entry.parentId,
-        parentName: entry.parentName,
-      }));
-      setAthletes(athleteOptions);
-    } catch (error) {
-      logger.error('Failed to load athletes', error);
-    }
-  }, [currentUser?.id]);
-
-  const loadAcademies = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const academies = await academyService.getUserAcademies(currentUser.id);
-      setMyAcademies(academies);
-      // Auto-select if only one academy
-      if (academies.length === 1) {
-        setSelectedClub(academies[0]);
-      }
-    } catch (error) {
-      logger.error('Failed to load academies', error);
-    }
-  }, [currentUser?.id]);
-
-  const loadSentInvites = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const invites = await sessionInviteService.getCoachInvites(currentUser.id);
-      setSentInvites(invites.slice(0, 5)); // Show latest 5
-    } catch (error) {
-      logger.error('Failed to load sent invites', error);
-    }
-  }, [currentUser?.id]);
-
-  const loadSessionTemplates = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const templates = await sessionTemplateService.getTemplates(currentUser.id);
-      setSessionTemplates(templates);
-    } catch (error) {
-      logger.error('Failed to load session templates', error);
-    }
-  }, [currentUser?.id]);
-
-  const loadExistingSessions = useCallback(async () => {
-    if (!currentUser?.id) return;
-    try {
-      const sessions = await groupSessionService.getCoachSessions(currentUser.id);
-      const now = new Date();
-      const upcoming = sessions.filter(
-        (s) =>
-          s.status === 'PUBLISHED' &&
-          s.schedule.some((sched) => new Date(sched.date) >= now)
-      );
-      setExistingSessions(upcoming);
-    } catch (error) {
-      logger.error('Failed to load existing sessions', error);
-    }
-  }, [currentUser?.id]);
-
-  // Load coach's academies, athletes, sent invites, existing sessions, and session templates
-  useEffect(() => {
-    if (currentUser?.id) {
-      loadAcademies();
-      loadAthletes();
-      loadSentInvites();
-      loadExistingSessions();
-      loadSessionTemplates();
-    }
-  }, [currentUser?.id, loadAcademies, loadAthletes, loadSentInvites, loadExistingSessions, loadSessionTemplates]);
-
-  const toggleAthlete = (athlete: AthleteOption) => {
-    const isSelected = selectedAthletes.some((a) => a.id === athlete.id);
-    if (isSelected) {
-      setSelectedAthletes(selectedAthletes.filter((a) => a.id !== athlete.id));
-    } else {
-      setSelectedAthletes([...selectedAthletes, athlete]);
-    }
-  };
-
-  const addTimeSlot = () => {
-    if (!slotDate || !slotStartTime || !slotEndTime) {
-      Alert.alert('Missing fields', 'Please fill in date, start time, and end time');
-      return;
-    }
-    const newSlot: TimeSlot = {
-      date: slotDate,
-      startTime: slotStartTime,
-      endTime: slotEndTime,
-      location: slotLocation || undefined,
-    };
-    setProposedSlots([...proposedSlots, newSlot]);
-    setSlotDate('');
-    setSlotStartTime('');
-    setSlotEndTime('');
-    setSlotLocation('');
-  };
-
-  const removeTimeSlot = (index: number) => {
-    setProposedSlots(proposedSlots.filter((_, i) => i !== index));
-  };
-
-  const canProceed = () => {
-    switch (step) {
+  const renderStep = useMemo(() => {
+    switch (state.step) {
       case 'athlete':
-        return selectedAthletes.length > 0;
+        return (
+          <CreateAthleteStep
+            athletes={state.athletes}
+            selectedAthletes={state.selectedAthletes}
+            sentInvites={state.sentInvites}
+            onToggleAthlete={handlers.toggleAthlete}
+            colors={colors}
+          />
+        );
       case 'club':
-        return true; // Club is optional
+        return (
+          <CreateClubStep
+            myAcademies={state.myAcademies}
+            selectedClub={state.selectedClub}
+            onSelectClub={handlers.setSelectedClub}
+            colors={colors}
+          />
+        );
       case 'mode':
-        return true; // Always can proceed - mode is pre-selected
-      case 'type':
-        return selectedTemplate !== null && focus;
-      case 'slots':
-        return selectedAvailabilitySlots.length > 0;
-      case 'details':
-        return true;
+        return (
+          <CreateModeStep
+            inviteMode={state.inviteMode}
+            existingSessionCount={state.existingSessions.length}
+            onSelectMode={handlers.setInviteMode}
+            colors={colors}
+          />
+        );
       case 'existing':
-        return selectedExistingSession !== null;
+        return (
+          <CreateExistingStep
+            existingSessions={state.existingSessions}
+            selectedSession={state.selectedExistingSession}
+            onSelectSession={handlers.setSelectedExistingSession}
+            colors={colors}
+          />
+        );
+      case 'type':
+        return (
+          <CreateTypeStep
+            sessionTemplates={state.sessionTemplates}
+            selectedTemplate={state.selectedTemplate}
+            focus={state.focus}
+            sessionInviteType={state.sessionInviteType}
+            price={state.price}
+            onSelectTemplate={handlers.setSelectedTemplate}
+            onSelectFocus={handlers.setFocus}
+            onSelectInviteType={handlers.setSessionInviteType}
+            colors={colors}
+          />
+        );
+      case 'slots':
+        return state.currentUserId ? (
+          <CreateSlotsStep
+            coachId={state.currentUserId}
+            selectedTemplate={state.selectedTemplate}
+            selectedSlots={state.selectedAvailabilitySlots}
+            onSelectionChange={handlers.setSelectedAvailabilitySlots}
+            colors={colors}
+          />
+        ) : null;
+      case 'details':
+        return (
+          <CreateDetailsStep
+            notes={state.notes}
+            price={state.price}
+            coverImageUri={state.coverImageUri}
+            onChangeNotes={handlers.setNotes}
+            onChangePrice={handlers.setPrice}
+            onPickCoverImage={handlers.pickCoverImage}
+            onRemoveCoverImage={handleRemoveCoverImage}
+            colors={colors}
+          />
+        );
+      case 'confirm':
+        return <CreateConfirmStep state={state} handlers={handlers} />;
       default:
-        return true;
+        return null;
     }
-  };
-
-  const nextStep = () => {
-    // Handle mode branching
-    if (step === 'mode') {
-      if (inviteMode === 'existing') {
-        setStep('existing');
-      } else {
-        setStep('type');
-      }
-      return;
-    }
-    // Existing session selected -> skip to confirm
-    if (step === 'existing') {
-      setStep('confirm');
-      return;
-    }
-
-    const steps: Step[] = ['athlete', 'club', 'mode', 'type', 'slots', 'details', 'confirm'];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex < steps.length - 1) {
-      // Skip club step if no academies
-      if (step === 'athlete' && myAcademies.length === 0) {
-        setStep('mode');
-      } else {
-        setStep(steps[currentIndex + 1]);
-      }
-    }
-  };
-
-  const prevStep = () => {
-    // Handle reverse from existing -> mode
-    if (step === 'existing') {
-      setStep('mode');
-      return;
-    }
-    // Handle reverse from confirm when we came from existing
-    if (step === 'confirm' && inviteMode === 'existing' && selectedExistingSession) {
-      setStep('existing');
-      return;
-    }
-
-    const steps: Step[] = ['athlete', 'club', 'mode', 'type', 'slots', 'details', 'confirm'];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex > 0) {
-      // Skip club step if no academies
-      if (step === 'mode' && myAcademies.length === 0) {
-        setStep('athlete');
-      } else {
-        setStep(steps[currentIndex - 1]);
-      }
-    } else {
-      router.back();
-    }
-  };
-
-  const submitInvite = async () => {
-    if (!currentUser) return;
-    setLoading(true);
-    try {
-      const parentId = selectedAthletes[0].parentId;
-      const parentName = selectedAthletes[0].parentName;
-
-      if (inviteMode === 'existing' && selectedExistingSession) {
-        // Build invite from existing session details
-        const session = selectedExistingSession;
-        const slots: TimeSlot[] = session.schedule.map((sched) => ({
-          date: sched.date,
-          startTime: sched.startTime,
-          endTime: sched.endTime,
-          location: session.location,
-        }));
-
-        await sessionInviteService.createInvite(
-          selectedAthletes.map((a) => a.id),
-          {
-            coachId: currentUser.id,
-            coachName: currentUser.name || 'Coach',
-            clubName: selectedClub?.name || session.clubName,
-            inviteType: sessionInviteType,
-            athleteNames: selectedAthletes.map((a) => a.name),
-            parentId,
-            parentName,
-            proposedSlots: slots,
-            sessionType: session.sessionType,
-            focus: session.focus?.[0] || 'General',
-            notes: notes || `You're invited to join "${session.title}"`,
-            priceUsd: session.pricePerParticipant,
-            expiresInDays: 7,
-            existingSessionId: session.id,
-          }
-        );
-      } else {
-        // Build proposed slots from availability picker
-        const slotsFromPicker: TimeSlot[] = selectedAvailabilitySlots.map((slot) => ({
-          date: slot.date,
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          location: slot.location || undefined,
-        }));
-
-        await sessionInviteService.createInvite(
-          selectedAthletes.map((a) => a.id),
-          {
-            coachId: currentUser.id,
-            coachName: currentUser.name || 'Coach',
-            clubName: selectedClub?.name,
-            inviteType: sessionInviteType,
-            athleteNames: selectedAthletes.map((a) => a.name),
-            parentId,
-            parentName,
-            proposedSlots: slotsFromPicker,
-            sessionType: selectedTemplate?.name || sessionType,
-            sessionTemplateId: selectedTemplate?.id,
-            duration: selectedTemplate?.duration,
-            focus,
-            notes: notes || undefined,
-            priceUsd: price ? parseFloat(price) : selectedTemplate?.defaultPrice,
-            expiresInDays: 7,
-            isRecurring: isRecurring || undefined,
-            recurrenceWeeks: isRecurring ? recurrenceWeeks : undefined,
-          }
-        );
-      }
-
-      Alert.alert('Invite Sent', 'Your session invite has been sent to the parent.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (error) {
-      logger.error('Failed to create invite', error);
-      Alert.alert('Error', 'Failed to send invite. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderStepIndicator = () => {
-    // Use simplified step display
-    const displaySteps: Step[] = inviteMode === 'existing'
-      ? ['athlete', 'mode', 'existing', 'confirm']
-      : ['athlete', 'mode', 'type', 'slots', 'details', 'confirm'];
-    // Map club step to athlete for indicator purposes
-    const currentStep = step === 'club' ? 'athlete' : step;
-    const currentIndex = displaySteps.indexOf(currentStep);
-
-    return (
-      <View style={styles.stepIndicator}>
-        {displaySteps.map((s, index) => (
-          <View key={s} style={styles.stepItem}>
-            <View
-              style={[
-                styles.stepDot,
-                {
-                  backgroundColor: index <= currentIndex ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              {index < currentIndex && <Ionicons name="checkmark" size={12} color={palette.onPrimary} />}
-            </View>
-            {index < displaySteps.length - 1 && (
-              <View
-                style={[
-                  styles.stepLine,
-                  { backgroundColor: index < currentIndex ? palette.tint : palette.border },
-                ]}
-              />
-            )}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  const renderClubStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Select Club/Academy
-      </ThemedText>
-      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-        Send this invite on behalf of your club or academy (optional)
-      </ThemedText>
-
-      {/* No club option */}
-      <Clickable
-        onPress={() => setSelectedClub(null)}
-        style={[
-          styles.clubItem,
-          {
-            backgroundColor: selectedClub === null ? withAlpha(palette.tint, 0.06) : palette.surface,
-            borderColor: selectedClub === null ? palette.tint : palette.border,
-          },
-        ]}
-      >
-        <View style={[styles.clubIcon, { backgroundColor: palette.border }]}>
-          <Ionicons name="person" size={20} color={palette.muted} />
-        </View>
-        <View style={styles.clubInfo}>
-          <ThemedText type="defaultSemiBold">Personal Invite</ThemedText>
-          <ThemedText style={[styles.clubSubtitle, { color: palette.muted }]}>
-            Send as yourself, not as a club
-          </ThemedText>
-        </View>
-        {selectedClub === null && (
-          <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
-        )}
-      </Clickable>
-
-      {/* Club options */}
-      {myAcademies.map((academy) => (
-        <Clickable
-          key={academy.id}
-          onPress={() => setSelectedClub(academy)}
-          style={[
-            styles.clubItem,
-            {
-              backgroundColor: selectedClub?.id === academy.id ? withAlpha(palette.tint, 0.06) : palette.surface,
-              borderColor: selectedClub?.id === academy.id ? palette.tint : palette.border,
-            },
-          ]}
-        >
-          <View style={[styles.clubIcon, { backgroundColor: academy.primaryColor || palette.tint }]}>
-            <ThemedText style={styles.clubIconText}>
-              {academy.name.charAt(0)}
-            </ThemedText>
-          </View>
-          <View style={styles.clubInfo}>
-            <ThemedText type="defaultSemiBold">{academy.name}</ThemedText>
-            <ThemedText style={[styles.clubSubtitle, { color: palette.muted }]}>
-              {academy.city}
-            </ThemedText>
-          </View>
-          {selectedClub?.id === academy.id && (
-            <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
-          )}
-        </Clickable>
-      ))}
-    </Animated.View>
-  );
-
-  const renderModeStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        How would you like to invite?
-      </ThemedText>
-      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-        Create a brand new session or invite to one you've already published
-      </ThemedText>
-
-      <Clickable
-        onPress={() => {
-          setInviteMode('new');
-          setSelectedExistingSession(null);
-        }}
-        style={[
-          styles.clubItem,
-          {
-            backgroundColor: inviteMode === 'new' ? withAlpha(palette.tint, 0.06) : palette.surface,
-            borderColor: inviteMode === 'new' ? palette.tint : palette.border,
-          },
-        ]}
-      >
-        <View style={[styles.clubIcon, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-          <Ionicons name="add-circle-outline" size={22} color={palette.tint} />
-        </View>
-        <View style={styles.clubInfo}>
-          <ThemedText type="defaultSemiBold">Create New Session</ThemedText>
-          <ThemedText style={[styles.clubSubtitle, { color: palette.muted }]}>
-            Set up session type, time slots, and details from scratch
-          </ThemedText>
-        </View>
-        {inviteMode === 'new' && (
-          <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
-        )}
-      </Clickable>
-
-      <Clickable
-        onPress={() => setInviteMode('existing')}
-        disabled={existingSessions.length === 0}
-        style={[
-          styles.clubItem,
-          {
-            backgroundColor: inviteMode === 'existing' ? withAlpha(palette.tint, 0.06) : palette.surface,
-            borderColor: inviteMode === 'existing' ? palette.tint : palette.border,
-            opacity: existingSessions.length === 0 ? 0.5 : 1,
-          },
-        ]}
-      >
-        <View style={[styles.clubIcon, { backgroundColor: withAlpha(palette.success, 0.09) }]}>
-          <Ionicons name="calendar-outline" size={22} color={palette.success} />
-        </View>
-        <View style={styles.clubInfo}>
-          <ThemedText type="defaultSemiBold">Invite to Existing Session</ThemedText>
-          <ThemedText style={[styles.clubSubtitle, { color: palette.muted }]}>
-            {existingSessions.length > 0
-              ? `${existingSessions.length} upcoming session${existingSessions.length !== 1 ? 's' : ''} available`
-              : 'No upcoming published sessions'}
-          </ThemedText>
-        </View>
-        {inviteMode === 'existing' && (
-          <Ionicons name="checkmark-circle" size={22} color={palette.tint} />
-        )}
-      </Clickable>
-    </Animated.View>
-  );
-
-  const renderExistingSessionStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Select a Session
-      </ThemedText>
-      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-        Choose an upcoming published session to invite athletes to
-      </ThemedText>
-
-      <View style={styles.athleteList}>
-        {existingSessions.map((session) => {
-          const isSelected = selectedExistingSession?.id === session.id;
-          const nextSchedule = session.schedule[0];
-          const spotsRemaining = session.maxParticipants - session.currentParticipants;
-
-          return (
-            <Clickable
-              key={session.id}
-              onPress={() => setSelectedExistingSession(session)}
-              style={[
-                styles.athleteItem,
-                {
-                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <View style={[styles.athleteAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <Ionicons name="football-outline" size={20} color={palette.tint} />
-              </View>
-              <View style={styles.athleteInfo}>
-                <ThemedText type="defaultSemiBold" numberOfLines={1}>{session.title}</ThemedText>
-                {nextSchedule && (
-                  <ThemedText style={[styles.parentName, { color: palette.muted }]}>
-                    {new Date(nextSchedule.date).toLocaleDateString('en-GB', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                    })}{' '}
-                    {nextSchedule.startTime}-{nextSchedule.endTime}
-                  </ThemedText>
-                )}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xxs }}>
-                  <ThemedText style={{ ...Typography.caption, color: palette.muted }}>
-                    {session.location}
-                  </ThemedText>
-                  <ThemedText
-                    style={{
-                      ...Typography.caption,
-                      color: spotsRemaining <= 2 ? palette.error : palette.success,
-                    }}
-                  >
-                    {spotsRemaining} spot{spotsRemaining !== 1 ? 's' : ''} left
-                  </ThemedText>
-                </View>
-              </View>
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    backgroundColor: isSelected ? palette.tint : 'transparent',
-                    borderColor: isSelected ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
-              </View>
-            </Clickable>
-          );
-        })}
-      </View>
-    </Animated.View>
-  );
-
-  const renderSentInvitesBanner = () => {
-    if (sentInvites.length === 0) return null;
-
-    const statusColors: Record<string, { bg: string; text: string }> = {
-      PENDING: { bg: '#FEF3C7', text: '#92400E' },
-      ACCEPTED: { bg: '#D1FAE5', text: '#065F46' },
-      DECLINED: { bg: '#FEE2E2', text: '#991B1B' },
-      EXPIRED: { bg: '#F3F4F6', text: '#6B7280' },
-      COUNTERED: { bg: '#DBEAFE', text: '#1E40AF' },
-    };
-
-    return (
-      <Animated.View entering={FadeInDown.springify()} style={styles.sentInvitesSection}>
-        <View style={styles.sectionHeader}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Recent Sent Invites
-          </ThemedText>
-          <Clickable onPress={() => router.push(Routes.SESSION_INVITES)}>
-            <ThemedText style={{ color: palette.tint, ...Typography.small }}>View All</ThemedText>
-          </Clickable>
-        </View>
-        {sentInvites.map((invite) => {
-          const statusConfig = statusColors[invite.status] || statusColors.PENDING;
-          return (
-            <Clickable
-              key={invite.id}
-              onPress={() => router.push(Routes.sessionInvite(invite.id))}
-              style={[styles.sentInviteItem, { backgroundColor: palette.surface, borderColor: palette.border }]}
-            >
-              <View style={styles.sentInviteInfo}>
-                <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                  {invite.athleteNames.join(', ')}
-                </ThemedText>
-                <ThemedText style={[styles.sentInviteMeta, { color: palette.muted }]}>
-                  {invite.sessionType} - {invite.focus}
-                </ThemedText>
-              </View>
-              <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-                <ThemedText style={[styles.statusText, { color: statusConfig.text }]}>
-                  {invite.status}
-                </ThemedText>
-              </View>
-            </Clickable>
-          );
-        })}
-      </Animated.View>
-    );
-  };
-
-  const renderAthleteStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Select Athletes
-      </ThemedText>
-      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-        Choose which athletes you want to invite to this session
-      </ThemedText>
-
-      <View style={styles.athleteList}>
-        {athletes.map((athlete) => {
-          const isSelected = selectedAthletes.some((a) => a.id === athlete.id);
-          return (
-            <Clickable
-              key={athlete.id}
-              onPress={() => toggleAthlete(athlete)}
-              style={[
-                styles.athleteItem,
-                {
-                  backgroundColor: isSelected ? withAlpha(palette.tint, 0.06) : palette.surface,
-                  borderColor: isSelected ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <View style={[styles.athleteAvatar, { backgroundColor: withAlpha(palette.tint, 0.09) }]}>
-                <ThemedText style={[styles.avatarText, { color: palette.tint }]}>
-                  {athlete.name.charAt(0)}
-                </ThemedText>
-              </View>
-              <View style={styles.athleteInfo}>
-                <ThemedText type="defaultSemiBold">{athlete.name}</ThemedText>
-                <ThemedText style={[styles.parentName, { color: palette.muted }]}>
-                  Parent: {athlete.parentName}
-                </ThemedText>
-              </View>
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    backgroundColor: isSelected ? palette.tint : 'transparent',
-                    borderColor: isSelected ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                {isSelected && <Ionicons name="checkmark" size={14} color={palette.onPrimary} />}
-              </View>
-            </Clickable>
-          );
-        })}
-      </View>
-    </Animated.View>
-  );
-
-  const INVITE_TYPE_OPTIONS: {
-    key: SessionInviteType;
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-  }[] = [
-    { key: 'OPEN', label: 'Open', icon: 'globe-outline' },
-    { key: 'CLOSED', label: 'Closed', icon: 'lock-closed-outline' },
-    { key: 'SQUAD_ONLY', label: 'Squad Only', icon: 'people-outline' },
-  ];
-
-  const renderTypeStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Session Details
-      </ThemedText>
-
-      {/* Session Template Picker */}
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Session Type</ThemedText>
-        <View style={styles.optionsRow}>
-          {sessionTemplates.map((tmpl) => {
-            const isSelected = selectedTemplate?.id === tmpl.id;
-            return (
-              <Clickable
-                key={tmpl.id}
-                onPress={() => {
-                  setSelectedTemplate(tmpl);
-                  setSessionType(tmpl.name);
-                  if (!price) setPrice(String(tmpl.defaultPrice));
-                }}
-                style={[
-                  styles.templateChip,
-                  {
-                    backgroundColor: isSelected ? palette.tint : palette.surface,
-                    borderColor: isSelected ? palette.tint : palette.border,
-                  },
-                ]}
-              >
-                <ThemedText
-                  style={{ color: isSelected ? palette.onPrimary : palette.text, ...Typography.smallSemiBold }}
-                  numberOfLines={1}
-                >
-                  {tmpl.name}
-                </ThemedText>
-                <View style={styles.templateMeta}>
-                  <ThemedText style={{ color: isSelected ? withAlpha(palette.onPrimary, 0.8) : palette.muted, ...Typography.micro }}>
-                    {tmpl.duration}m
-                  </ThemedText>
-                  <ThemedText style={{ color: isSelected ? withAlpha(palette.onPrimary, 0.8) : palette.muted, ...Typography.micro }}>
-                    {'\u00A3'}{tmpl.defaultPrice}
-                  </ThemedText>
-                </View>
-              </Clickable>
-            );
-          })}
-        </View>
-        {selectedTemplate && (
-          <View style={[styles.autoFillBanner, { backgroundColor: withAlpha(palette.success, 0.06) }]}>
-            <Ionicons name="sparkles" size={14} color={palette.success} />
-            <ThemedText style={[styles.autoFillText, { color: palette.success }]}>
-              {selectedTemplate.duration}min · {'\u00A3'}{selectedTemplate.defaultPrice}/session · Cap {selectedTemplate.capacity}
-            </ThemedText>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Focus Area</ThemedText>
-        <View style={styles.optionsRow}>
-          {FOCUSES.map((f) => (
-            <Clickable
-              key={f}
-              onPress={() => setFocus(f)}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: focus === f ? palette.tint : palette.surface,
-                  borderColor: focus === f ? palette.tint : palette.border,
-                },
-              ]}
-            >
-              <ThemedText style={{ color: focus === f ? palette.onPrimary : palette.text, ...Typography.small }}>
-                {f}
-              </ThemedText>
-            </Clickable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Invite Type</ThemedText>
-        <View style={styles.optionsRow}>
-          {INVITE_TYPE_OPTIONS.map((opt) => (
-            <Clickable
-              key={opt.key}
-              onPress={() => setSessionInviteType(opt.key)}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: sessionInviteType === opt.key ? palette.tint : palette.surface,
-                  borderColor: sessionInviteType === opt.key ? palette.tint : palette.border,
-                  flexDirection: 'row',
-                  gap: Spacing.xxs,
-                },
-              ]}
-            >
-              <Ionicons
-                name={opt.icon}
-                size={14}
-                color={sessionInviteType === opt.key ? palette.onPrimary : palette.text}
-              />
-              <ThemedText
-                style={{
-                  color: sessionInviteType === opt.key ? palette.onPrimary : palette.text,
-                  ...Typography.small,
-                }}
-              >
-                {opt.label}
-              </ThemedText>
-            </Clickable>
-          ))}
-        </View>
-      </View>
-    </Animated.View>
-  );
-
-  const renderSlotsStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Pick Time Slots
-      </ThemedText>
-      <ThemedText style={[styles.stepDescription, { color: palette.muted }]}>
-        Select up to 3 available times from your schedule
-      </ThemedText>
-
-      {currentUser?.id && (
-        <SlotPicker
-          coachId={currentUser.id}
-          sessionTemplateId={selectedTemplate?.id}
-          onSelectionChange={setSelectedAvailabilitySlots}
-        />
-      )}
-
-      {/* Selected slots summary */}
-      {selectedAvailabilitySlots.length > 0 && (
-        <View style={styles.slotsList}>
-          <ThemedText style={styles.formLabel}>Selected Slots</ThemedText>
-          {selectedAvailabilitySlots.map((slot, index) => (
-            <View
-              key={`${slot.date}_${slot.startTime}`}
-              style={[styles.slotItem, { backgroundColor: withAlpha(palette.tint, 0.06), borderColor: palette.tint }]}
-            >
-              <Ionicons name="checkmark-circle" size={20} color={palette.tint} />
-              <View style={styles.slotInfo}>
-                <ThemedText type="defaultSemiBold">
-                  {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </ThemedText>
-                <ThemedText style={{ color: palette.muted }}>
-                  {slot.startTime} – {slot.endTime}
-                  {slot.location && ` · ${slot.location}`}
-                </ThemedText>
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-    </Animated.View>
-  );
-
-  const renderDetailsStep = () => (
-    <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-      <ThemedText type="subtitle" style={styles.stepTitle}>
-        Additional Details
-      </ThemedText>
-
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Notes for Parent</ThemedText>
-        <TextInput
-          style={[styles.textArea, { color: palette.text, borderColor: palette.border }]}
-          placeholder="e.g., Looking forward to working on finishing skills..."
-          placeholderTextColor={palette.muted}
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          numberOfLines={4}
-        />
-      </View>
-
-      <View style={styles.formSection}>
-        <ThemedText style={styles.formLabel}>Price (optional)</ThemedText>
-        <TextInput
-          style={[styles.input, { color: palette.text, borderColor: palette.border }]}
-          placeholder="e.g., 50"
-          placeholderTextColor={palette.muted}
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-        />
-      </View>
-    </Animated.View>
-  );
-
-  const renderConfirmStep = () => {
-    const isExisting = inviteMode === 'existing' && selectedExistingSession;
-    const athleteDisplay = selectedAthletes.length === 1
-      ? selectedAthletes[0].name
-      : `${selectedAthletes.length} athletes`;
-    const clubDisplay = selectedClub ? ` to ${selectedClub.name}` : '';
-    const sessionLabel = isExisting ? selectedExistingSession.title : (selectedTemplate?.name || sessionType);
-    const invitePreview = `Coach ${currentUser?.name?.split(' ')[0] || 'You'} has invited ${athleteDisplay}${clubDisplay} - ${sessionLabel}`;
-
-    return (
-      <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
-        <ThemedText type="subtitle" style={styles.stepTitle}>
-          Review & Send
-        </ThemedText>
-
-        {/* Invite Preview Banner */}
-        <View style={[styles.invitePreviewBanner, { backgroundColor: withAlpha(palette.tint, 0.06) }]}>
-          <Ionicons name="mail-outline" size={18} color={palette.tint} />
-          <ThemedText style={[styles.invitePreviewText, { color: palette.text }]}>
-            {invitePreview}
-          </ThemedText>
-        </View>
-
-        <SurfaceCard style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Ionicons name="people-outline" size={18} color={palette.muted} />
-            <ThemedText>{selectedAthletes.map((a) => a.name).join(', ')}</ThemedText>
-          </View>
-          {(selectedClub || (isExisting && selectedExistingSession.clubName)) && (
-            <View style={styles.summaryRow}>
-              <Ionicons name="business-outline" size={18} color={palette.tint} />
-              <ThemedText style={{ color: palette.tint }}>
-                Invite to {selectedClub?.name || selectedExistingSession?.clubName}
-              </ThemedText>
-            </View>
-          )}
-
-          {isExisting ? (
-            <>
-              <View style={styles.summaryRow}>
-                <Ionicons name="football-outline" size={18} color={palette.muted} />
-                <ThemedText>{selectedExistingSession.title}</ThemedText>
-              </View>
-              {selectedExistingSession.schedule[0] && (
-                <View style={styles.summaryRow}>
-                  <Ionicons name="calendar-outline" size={18} color={palette.muted} />
-                  <ThemedText>
-                    {new Date(selectedExistingSession.schedule[0].date).toLocaleDateString('en-GB', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                    })}{' '}
-                    {selectedExistingSession.schedule[0].startTime}-{selectedExistingSession.schedule[0].endTime}
-                  </ThemedText>
-                </View>
-              )}
-              <View style={styles.summaryRow}>
-                <Ionicons name="location-outline" size={18} color={palette.muted} />
-                <ThemedText>{selectedExistingSession.location}</ThemedText>
-              </View>
-              <View style={styles.summaryRow}>
-                <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
-                <ThemedText>
-                  {selectedExistingSession.pricePerParticipant === 0
-                    ? 'Free'
-                    : `${selectedExistingSession.currency === 'GBP' ? '\u00A3' : '$'}${selectedExistingSession.pricePerParticipant}`}
-                </ThemedText>
-              </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.summaryRow}>
-                <Ionicons name="football-outline" size={18} color={palette.muted} />
-                <ThemedText>
-                  {selectedTemplate?.name || sessionType} · {focus}
-                </ThemedText>
-              </View>
-              {selectedTemplate && (
-                <View style={styles.summaryRow}>
-                  <Ionicons name="time-outline" size={18} color={palette.muted} />
-                  <ThemedText>{selectedTemplate.duration} minutes</ThemedText>
-                </View>
-              )}
-              <View style={styles.summaryRow}>
-                <Ionicons
-                  name={
-                    sessionInviteType === 'OPEN'
-                      ? 'globe-outline'
-                      : sessionInviteType === 'CLOSED'
-                      ? 'lock-closed-outline'
-                      : 'people-outline'
-                  }
-                  size={18}
-                  color={palette.muted}
-                />
-                <ThemedText>
-                  {sessionInviteType === 'OPEN'
-                    ? 'Open session'
-                    : sessionInviteType === 'CLOSED'
-                    ? 'Invite only (Closed)'
-                    : 'Squad members only'}
-                </ThemedText>
-              </View>
-              {selectedAvailabilitySlots.length > 0 ? (
-                selectedAvailabilitySlots.map((slot) => (
-                  <View key={`${slot.date}_${slot.startTime}`} style={styles.summaryRow}>
-                    <Ionicons name="calendar-outline" size={18} color={palette.muted} />
-                    <ThemedText>
-                      {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-GB', {
-                        weekday: 'short', day: 'numeric', month: 'short',
-                      })}{' '}
-                      {slot.startTime} – {slot.endTime}
-                      {slot.location && ` · ${slot.location}`}
-                    </ThemedText>
-                  </View>
-                ))
-              ) : (
-                <View style={styles.summaryRow}>
-                  <Ionicons name="calendar-outline" size={18} color={palette.muted} />
-                  <ThemedText>{proposedSlots.length} time slot(s) proposed</ThemedText>
-                </View>
-              )}
-              <View style={styles.summaryRow}>
-                <Ionicons name="pricetag-outline" size={18} color={palette.muted} />
-                <ThemedText>
-                  {'\u00A3'}{price || selectedTemplate?.defaultPrice || '0'}/session
-                </ThemedText>
-              </View>
-            </>
-          )}
-          {notes && (
-            <View style={styles.summaryRow}>
-              <Ionicons name="chatbubble-outline" size={18} color={palette.muted} />
-              <ThemedText numberOfLines={2}>{notes}</ThemedText>
-            </View>
-          )}
-        </SurfaceCard>
-
-        {/* Recurring Toggle (Job 6.1) */}
-        {inviteMode === 'new' && (
-          <SurfaceCard style={styles.recurringCard}>
-            <View style={styles.recurringRow}>
-              <View style={styles.recurringInfo}>
-                <ThemedText type="defaultSemiBold">Repeat Weekly</ThemedText>
-                <ThemedText style={[styles.recurringDesc, { color: palette.muted }]}>
-                  Create a recurring session on the same day each week
-                </ThemedText>
-              </View>
-              <Clickable
-                onPress={() => setIsRecurring(!isRecurring)}
-                style={[
-                  styles.toggleTrack,
-                  { backgroundColor: isRecurring ? palette.tint : palette.border },
-                ]}
-              >
-                <View style={[
-                  styles.toggleThumb,
-                  { transform: [{ translateX: isRecurring ? 20 : 0 }] },
-                ]} />
-              </Clickable>
-            </View>
-            {isRecurring && (
-              <View style={styles.recurringOptions}>
-                <ThemedText style={[styles.recurringLabel, { color: palette.muted }]}>For how long?</ThemedText>
-                <View style={styles.optionsRow}>
-                  {[4, 8, 12].map((weeks) => (
-                    <Clickable
-                      key={weeks}
-                      onPress={() => setRecurrenceWeeks(weeks)}
-                      style={[
-                        styles.optionChip,
-                        {
-                          backgroundColor: recurrenceWeeks === weeks ? palette.tint : palette.surface,
-                          borderColor: recurrenceWeeks === weeks ? palette.tint : palette.border,
-                        },
-                      ]}
-                    >
-                      <ThemedText
-                        style={{ color: recurrenceWeeks === weeks ? palette.onPrimary : palette.text, ...Typography.small }}
-                      >
-                        {weeks} weeks
-                      </ThemedText>
-                    </Clickable>
-                  ))}
-                </View>
-                <ThemedText style={[styles.recurringPreview, { color: palette.tint }]}>
-                  This will create {recurrenceWeeks} invites, one per week
-                </ThemedText>
-              </View>
-            )}
-          </SurfaceCard>
-        )}
-
-        <ThemedText style={[styles.disclaimer, { color: palette.muted }]}>
-          The parent will receive a notification and have 7 days to respond. You can cancel the
-          invite anytime before they respond.
-        </ThemedText>
-      </Animated.View>
-    );
-  };
+  }, [state, handlers, colors, handleRemoveCoverImage]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: palette.background }]} edges={['top']}>
-      <View style={styles.header}>
-        <Clickable onPress={prevStep} hitSlop={8}>
-          <Ionicons name="arrow-back" size={24} color={palette.text} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      {/* Header */}
+      <Row align="center" justify="between" paddingH="lg" paddingV="md">
+        <Clickable
+          onPress={handlers.prevStep}
+          hitSlop={8}
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </Clickable>
         <ThemedText type="title">Create Invite</ThemedText>
-        <View style={{ width: 24 }} />
-      </View>
+        <Clickable disabled style={{ width: 24 }}>
+          <ThemedText> </ThemedText>
+        </Clickable>
+      </Row>
 
-      {renderStepIndicator()}
+      {/* Step indicator */}
+      <WizardStepIndicator
+        steps={displaySteps}
+        currentStep={indicatorStep}
+        colors={colors}
+      />
 
+      {/* Step content */}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Show sent invites on first step */}
-        {step === 'athlete' && renderSentInvitesBanner()}
-
-        {step === 'athlete' && renderAthleteStep()}
-        {step === 'club' && renderClubStep()}
-        {step === 'mode' && renderModeStep()}
-        {step === 'type' && renderTypeStep()}
-        {step === 'slots' && renderSlotsStep()}
-        {step === 'details' && renderDetailsStep()}
-        {step === 'existing' && renderExistingSessionStep()}
-        {step === 'confirm' && renderConfirmStep()}
+        {renderStep}
       </ScrollView>
 
-      <View style={[styles.footer, { borderTopColor: palette.border }]}>
-        {step === 'confirm' ? (
-          <Clickable
-            onPress={submitInvite}
-            disabled={loading}
-            style={[styles.nextButton, { backgroundColor: palette.tint, opacity: loading ? 0.6 : 1 }]}
-          >
-            <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>
-              {loading ? 'Sending...' : 'Send Invite'}
-            </ThemedText>
-          </Clickable>
-        ) : (
-          <Clickable
-            onPress={nextStep}
-            disabled={!canProceed()}
-            style={[
-              styles.nextButton,
-              { backgroundColor: palette.tint, opacity: canProceed() ? 1 : 0.5 },
-            ]}
-          >
-            <ThemedText style={{ color: palette.onPrimary, fontWeight: '700' }}>Continue</ThemedText>
-            <Ionicons name="arrow-forward" size={18} color={palette.onPrimary} />
-          </Clickable>
-        )}
-      </View>
+      {/* Footer */}
+      <Row style={[styles.footer, { borderTopColor: colors.border }]}>
+        <WizardNavButtons
+          isConfirmStep={state.step === 'confirm'}
+          canProceed={handlers.canProceed()}
+          loading={state.loading}
+          onNext={handlers.nextStep}
+          onSubmit={handlers.submitInvite}
+          colors={colors}
+        />
+      </Row>
     </SafeAreaView>
   );
 }
+
+// ============================================================================
+// STYLES
+// ============================================================================
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  stepIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stepDot: {
-    width: 24,
-    height: 24,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepLine: {
-    width: 40,
-    height: 2,
-    marginHorizontal: Spacing.xxs,
-  },
   content: {
     padding: Spacing.lg,
     paddingTop: 0,
   },
-  stepContent: {
-    gap: Spacing.md,
-  },
-  stepTitle: {
-    ...Typography.title,
-  },
-  stepDescription: {
-    ...Typography.bodySmall,
-    marginBottom: Spacing.sm,
-  },
-  athleteList: {
-    gap: Spacing.sm,
-  },
-  athleteItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    gap: Spacing.md,
-  },
-  athleteAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    ...Typography.heading,
-  },
-  athleteInfo: {
-    flex: 1,
-  },
-  parentName: {
-    ...Typography.small,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: Radii.md,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  formSection: {
-    gap: Spacing.xs,
-  },
-  formLabel: {
-    ...Typography.bodySmallSemiBold,
-    marginBottom: Spacing.xxs,
-  },
-  optionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  optionChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  templateChip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    gap: Spacing.micro,
-    minWidth: 100,
-    alignItems: 'center',
-  },
-  templateMeta: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  autoFillBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.sm,
-  },
-  autoFillText: {
-    ...Typography.small,
-    fontWeight: '600',
-  },
-  addSlotCard: {
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  slotFormRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  slotInput: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  inputLabel: {
-    ...Typography.caption,
-  },
-  input: {
-    height: 44,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    paddingHorizontal: Spacing.md,
-    ...Typography.body,
-  },
-  textArea: {
-    height: 100,
-    borderWidth: 1,
-    borderRadius: Radii.md,
-    padding: Spacing.md,
-    ...Typography.body,
-    textAlignVertical: 'top',
-  },
-  addSlotButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.sm,
-    borderRadius: Radii.md,
-    marginTop: Spacing.xs,
-  },
-  slotsList: {
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  slotItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-  },
-  slotInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  summaryCard: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  disclaimer: {
-    ...Typography.small,
-    textAlign: 'center',
-    marginTop: Spacing.md,
-  },
   footer: {
     padding: Spacing.lg,
     borderTopWidth: 1,
-  },
-  nextButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  // Club step styles
-  clubItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1.5,
-    gap: Spacing.md,
-  },
-  clubIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clubIconText: {
-    ...Typography.heading,
-    color: Colors.light.onPrimary,
-  },
-  clubInfo: {
-    flex: 1,
-  },
-  clubSubtitle: {
-    ...Typography.small,
-    marginTop: Spacing.micro,
-  },
-  // Sent invites section
-  sentInvitesSection: {
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  sectionTitle: {
-    ...Typography.bodySmall,
-  },
-  sentInviteItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-    borderWidth: 1,
-    gap: Spacing.md,
-  },
-  sentInviteInfo: {
-    flex: 1,
-  },
-  sentInviteMeta: {
-    ...Typography.caption,
-    marginTop: Spacing.micro,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
-  statusText: {
-    ...Typography.micro,
-    textTransform: 'uppercase',
-  },
-  // Invite preview banner
-  invitePreviewBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.md,
-    borderRadius: Radii.md,
-  },
-  invitePreviewText: {
-    ...Typography.bodySmallSemiBold,
-    flex: 1,
-    lineHeight: 20,
-  },
-  // Recurring styles (Job 6.1)
-  recurringCard: {
-    padding: Spacing.md,
-    gap: Spacing.md,
-  },
-  recurringRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  recurringInfo: {
-    flex: 1,
-    gap: Spacing.micro,
-  },
-  recurringDesc: {
-    ...Typography.small,
-  },
-  toggleTrack: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-  },
-  recurringOptions: {
-    gap: Spacing.sm,
-  },
-  recurringLabel: {
-    ...Typography.smallSemiBold,
-  },
-  recurringPreview: {
-    ...Typography.small,
-    fontWeight: '600',
   },
 });

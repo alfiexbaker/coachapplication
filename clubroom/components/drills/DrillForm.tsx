@@ -19,11 +19,11 @@ import {
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Components , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Components, withAlpha } from '@/constants/theme';
 import type { DrillCategory, DrillDifficulty, CreateDrillInput } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { drillService } from '@/services/drill-service';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface DrillFormProps {
   /** Initial values for editing */
@@ -51,8 +51,7 @@ export function DrillForm({
   isSubmitting = false,
   submitLabel = 'Create Drill',
 }: DrillFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Form state
   const [title, setTitle] = useState(initialValues?.title ?? '');

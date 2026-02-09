@@ -13,10 +13,10 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/primitives/button';
 import { Clickable } from '@/components/primitives/clickable';
-import { Colors, Radii, Spacing , withAlpha } from '@/constants/theme';
+import { Radii, Spacing, withAlpha } from '@/constants/theme';
 import type { GroupType } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { scaleFont } from '@/utils/scale';
+import { useTheme } from '@/hooks/useTheme';
 
 interface CreateGroupFormProps {
   onSubmit: (data: CreateGroupFormData) => void;
@@ -66,8 +66,7 @@ const GROUP_TYPE_OPTIONS: GroupTypeOption[] = [
 ];
 
 export function CreateGroupForm({ onSubmit, onCancel, loading = false }: CreateGroupFormProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');

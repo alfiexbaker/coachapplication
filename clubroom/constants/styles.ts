@@ -2,23 +2,25 @@
  * Centralized Style Library
  *
  * Provides pre-built, reusable style patterns to ensure consistency across the app.
- * Import and spread these styles instead of recreating them in each component.
+ * Color-dependent styles are factory functions that accept `colors` from useTheme().
  *
  * Usage:
- *   import { CommonStyles, CardStyles, ListStyles } from '@/constants/styles';
+ *   import { LayoutStyles, createCardStyles } from '@/constants/styles';
+ *   import { useTheme } from '@/hooks/useTheme';
  *
- *   const styles = StyleSheet.create({
- *     card: { ...CardStyles.base },
- *     row: { ...CommonStyles.row },
- *   });
+ *   const { colors } = useTheme();
+ *   const CardStyles = createCardStyles(colors);
+ *
+ *   <View style={[CardStyles.base, Shadows[scheme].card]} />
  */
 
 import { withAlpha } from '@/constants/theme';
-import { StyleSheet, TextStyle } from 'react-native';
-import { Colors, Spacing, Radii, Typography, Components, Shadows } from './theme';
+import { StyleSheet, TextStyle, ViewStyle } from 'react-native';
+import { Spacing, Radii, Typography, Components } from './theme';
+import type { ThemeColors } from '@/hooks/useTheme';
 
 // ============================================================================
-// LAYOUT PATTERNS
+// LAYOUT PATTERNS (static — no color dependencies)
 // ============================================================================
 
 export const LayoutStyles = StyleSheet.create({
@@ -61,53 +63,50 @@ export const LayoutStyles = StyleSheet.create({
 // CARD STYLES
 // ============================================================================
 
-export const CardStyles = StyleSheet.create({
-  // Base card - use for all cards
+export const createCardStyles = (colors: ThemeColors) => ({
+  // Base card (apply Shadows[scheme].card dynamically)
   base: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
-    ...Shadows.light.card,
-  },
+  } as ViewStyle,
 
-  // Compact card - less padding
+  // Compact card (apply Shadows[scheme].subtle dynamically)
   compact: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radii.card,
     padding: Spacing.xs,
-    ...Shadows.light.subtle,
-  },
+  } as ViewStyle,
 
-  // Bordered card - no shadow, just border
+  // Bordered card — no shadow, just border
   bordered: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
+    borderColor: colors.border,
+  } as ViewStyle,
 
-  // Flat card - no shadow or border
+  // Flat card — no shadow or border
   flat: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
-  },
+  } as ViewStyle,
 
-  // Interactive card - pressable
+  // Interactive card — pressable (apply Shadows[scheme].card dynamically)
   interactive: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
-    ...Shadows.light.card,
-  },
+  } as ViewStyle,
 });
 
 // ============================================================================
 // LIST ITEM STYLES
 // ============================================================================
 
-export const ListStyles = StyleSheet.create({
+export const createListStyles = (colors: ThemeColors) => ({
   // Standard list item
   item: {
     flexDirection: 'row',
@@ -116,7 +115,7 @@ export const ListStyles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     minHeight: Components.listItem.standard,
-  },
+  } as ViewStyle,
 
   // Compact list item
   itemCompact: {
@@ -126,7 +125,7 @@ export const ListStyles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: Spacing.xs,
     minHeight: Components.listItem.compact,
-  },
+  } as ViewStyle,
 
   // Large list item
   itemLarge: {
@@ -136,13 +135,13 @@ export const ListStyles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.sm,
     minHeight: Components.listItem.large,
-  },
+  } as ViewStyle,
 
   // Item content wrapper
   itemContent: {
     flex: 1,
     gap: 2,
-  },
+  } as ViewStyle,
 
   // Item with border bottom
   itemBordered: {
@@ -151,22 +150,22 @@ export const ListStyles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
+    borderBottomColor: colors.border,
+  } as ViewStyle,
 
   // Separator
   separator: {
     height: 1,
-    backgroundColor: Colors.light.border,
-  },
+    backgroundColor: colors.border,
+  } as ViewStyle,
 });
 
 // ============================================================================
 // BUTTON STYLES
 // ============================================================================
 
-export const ButtonStyles = StyleSheet.create({
-  // Primary button - filled
+export const createButtonStyles = (colors: ThemeColors) => ({
+  // Primary button — filled
   primary: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -175,15 +174,15 @@ export const ButtonStyles = StyleSheet.create({
     height: Components.button.height,
     paddingHorizontal: Spacing.md,
     borderRadius: Components.button.borderRadius,
-    backgroundColor: Colors.light.tint,
-  },
+    backgroundColor: colors.tint,
+  } as ViewStyle,
   primaryText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-  },
+  } as TextStyle,
 
-  // Secondary button - outlined
+  // Secondary button — outlined
   secondary: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -193,16 +192,16 @@ export const ButtonStyles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     borderRadius: Components.button.borderRadius,
     borderWidth: 1.5,
-    borderColor: Colors.light.tint,
+    borderColor: colors.tint,
     backgroundColor: 'transparent',
-  },
+  } as ViewStyle,
   secondaryText: {
-    color: Colors.light.tint,
+    color: colors.tint,
     fontSize: 16,
     fontWeight: '600',
-  },
+  } as TextStyle,
 
-  // Ghost button - no background
+  // Ghost button — no background
   ghost: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,12 +209,12 @@ export const ButtonStyles = StyleSheet.create({
     gap: Spacing.xs,
     height: Components.button.height,
     paddingHorizontal: Spacing.sm,
-  },
+  } as ViewStyle,
   ghostText: {
-    color: Colors.light.tint,
+    color: colors.tint,
     fontSize: 15,
     fontWeight: '600',
-  },
+  } as TextStyle,
 
   // Compact button
   compact: {
@@ -226,11 +225,11 @@ export const ButtonStyles = StyleSheet.create({
     height: Components.buttonCompact.height,
     paddingHorizontal: Spacing.sm,
     borderRadius: Components.buttonCompact.borderRadius,
-  },
+  } as ViewStyle,
   compactText: {
     fontSize: 13,
     fontWeight: '600',
-  },
+  } as TextStyle,
 
   // Icon button
   icon: {
@@ -239,61 +238,61 @@ export const ButtonStyles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
+  } as ViewStyle,
   iconSmall: {
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
+  } as ViewStyle,
 
   // Full width button
   fullWidth: {
     width: '100%',
-  },
+  } as ViewStyle,
 });
 
 // ============================================================================
 // BADGE & CHIP STYLES
 // ============================================================================
 
-export const BadgeStyles = StyleSheet.create({
+export const createBadgeStyles = (colors: ThemeColors) => ({
   // Standard badge
   badge: {
     paddingHorizontal: Spacing.xs,
     paddingVertical: 4,
     borderRadius: Radii.sm,
-  },
+  } as ViewStyle,
   badgeText: {
     fontSize: 12,
     fontWeight: '600',
-  },
+  } as TextStyle,
 
   // Pill badge
   pill: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: Radii.pill,
-  },
+  } as ViewStyle,
   pillText: {
     fontSize: 12,
     fontWeight: '600',
-  },
+  } as TextStyle,
 
   // Status badges
   statusSuccess: {
-    backgroundColor: withAlpha(Colors.light.success, 0.09),
-  },
+    backgroundColor: withAlpha(colors.success, 0.09),
+  } as ViewStyle,
   statusWarning: {
-    backgroundColor: withAlpha(Colors.light.warning, 0.09),
-  },
+    backgroundColor: withAlpha(colors.warning, 0.09),
+  } as ViewStyle,
   statusError: {
-    backgroundColor: withAlpha(Colors.light.error, 0.09),
-  },
+    backgroundColor: withAlpha(colors.error, 0.09),
+  } as ViewStyle,
   statusNeutral: {
-    backgroundColor: Colors.light.border,
-  },
+    backgroundColor: colors.border,
+  } as ViewStyle,
 
   // Chip (selectable)
   chip: {
@@ -304,78 +303,78 @@ export const BadgeStyles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
     borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
+    borderColor: colors.border,
+  } as ViewStyle,
   chipActive: {
-    backgroundColor: withAlpha(Colors.light.tint, 0.06),
-    borderColor: Colors.light.tint,
-  },
+    backgroundColor: withAlpha(colors.tint, 0.06),
+    borderColor: colors.tint,
+  } as ViewStyle,
   chipText: {
     fontSize: 13,
     fontWeight: '600',
-  },
+  } as TextStyle,
 });
 
 // ============================================================================
 // AVATAR STYLES
 // ============================================================================
 
-export const AvatarStyles = StyleSheet.create({
+export const createAvatarStyles = (colors: ThemeColors) => ({
   // Sizes
   sm: {
     width: Components.avatar.sm,
     height: Components.avatar.sm,
     borderRadius: Components.avatar.sm / 2,
-  },
+  } as ViewStyle,
   md: {
     width: Components.avatar.md,
     height: Components.avatar.md,
     borderRadius: Components.avatar.md / 2,
-  },
+  } as ViewStyle,
   lg: {
     width: Components.avatar.lg,
     height: Components.avatar.lg,
     borderRadius: Components.avatar.lg / 2,
-  },
+  } as ViewStyle,
   xl: {
     width: Components.avatar.xl,
     height: Components.avatar.xl,
     borderRadius: Components.avatar.xl / 2,
-  },
+  } as ViewStyle,
 
   // Placeholder (initials)
   placeholder: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: withAlpha(Colors.light.tint, 0.09),
-  },
+    backgroundColor: withAlpha(colors.tint, 0.09),
+  } as ViewStyle,
   placeholderText: {
-    color: Colors.light.tint,
+    color: colors.tint,
     fontWeight: '600',
-  },
+  } as TextStyle,
 });
 
 // ============================================================================
 // INPUT STYLES
 // ============================================================================
 
-export const InputStyles = StyleSheet.create({
+export const createInputStyles = (colors: ThemeColors) => ({
   // Standard input
   input: {
     height: Components.input.height,
     borderRadius: Components.input.borderRadius,
     paddingHorizontal: Components.input.paddingHorizontal,
     borderWidth: 1,
-    borderColor: Colors.light.border,
-    backgroundColor: Colors.light.surface,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     fontSize: 16,
-    color: Colors.light.text,
-  },
+    color: colors.text,
+  } as TextStyle,
 
   // Input with icon
   inputWithIcon: {
     paddingLeft: 44,
-  },
+  } as ViewStyle,
 
   // Multiline input
   multiline: {
@@ -383,44 +382,44 @@ export const InputStyles = StyleSheet.create({
     minHeight: 100,
     paddingVertical: Spacing.sm,
     textAlignVertical: 'top',
-  },
+  } as TextStyle,
 
   // Input container (for icons)
   container: {
     position: 'relative',
-  },
+  } as ViewStyle,
   iconLeft: {
     position: 'absolute',
     left: Spacing.sm,
     top: '50%',
     marginTop: -10,
     zIndex: 1,
-  },
+  } as ViewStyle,
 
   // Label
   label: {
     fontSize: 13,
     fontWeight: '500',
-    color: Colors.light.muted,
+    color: colors.muted,
     marginBottom: 6,
-  },
+  } as TextStyle,
 
   // Error state
   error: {
-    borderColor: Colors.light.error,
-  },
+    borderColor: colors.error,
+  } as ViewStyle,
   errorText: {
     fontSize: 12,
-    color: Colors.light.error,
+    color: colors.error,
     marginTop: 4,
-  },
+  } as TextStyle,
 });
 
 // ============================================================================
 // TYPOGRAPHY STYLES
 // ============================================================================
 
-export const TextStyles = StyleSheet.create({
+export const createTextStyles = (colors: ThemeColors) => ({
   // Headings
   display: Typography.display as TextStyle,
   title: Typography.title as TextStyle,
@@ -435,26 +434,26 @@ export const TextStyles = StyleSheet.create({
   micro: Typography.micro as TextStyle,
 
   // Colors
-  muted: { color: Colors.light.muted },
-  success: { color: Colors.light.success },
-  warning: { color: Colors.light.warning },
-  error: { color: Colors.light.error },
-  tint: { color: Colors.light.tint },
+  muted: { color: colors.muted } as TextStyle,
+  success: { color: colors.success } as TextStyle,
+  warning: { color: colors.warning } as TextStyle,
+  error: { color: colors.error } as TextStyle,
+  tint: { color: colors.tint } as TextStyle,
 
   // Alignment
-  center: { textAlign: 'center' },
-  right: { textAlign: 'right' },
+  center: { textAlign: 'center' } as TextStyle,
+  right: { textAlign: 'right' } as TextStyle,
 });
 
 // ============================================================================
 // SECTION STYLES
 // ============================================================================
 
-export const SectionStyles = StyleSheet.create({
+export const createSectionStyles = (colors: ThemeColors) => ({
   // Page section
   section: {
     gap: Spacing.sm,
-  },
+  } as ViewStyle,
 
   // Section header
   header: {
@@ -462,58 +461,58 @@ export const SectionStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.sm,
-  },
+  } as ViewStyle,
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
     letterSpacing: -0.2,
-  },
+  } as TextStyle,
   headerAction: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.light.tint,
-  },
+    color: colors.tint,
+  } as TextStyle,
 
   // Content padding
   paddedContent: {
     paddingHorizontal: Spacing.sm,
-  },
+  } as ViewStyle,
 });
 
 // ============================================================================
 // MODAL STYLES
 // ============================================================================
 
-export const ModalStyles = StyleSheet.create({
+export const createModalStyles = (colors: ThemeColors) => ({
   // Overlay
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
-  },
+  } as ViewStyle,
   overlayCenter: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.md,
-  },
+  } as ViewStyle,
 
   // Container
   container: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: Radii.xl,
     borderTopRightRadius: Radii.xl,
     padding: Spacing.lg,
     paddingBottom: Spacing.xl + 20, // Safe area
-  },
+  } as ViewStyle,
   containerCenter: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: Radii.card,
     padding: Spacing.lg,
     maxWidth: Components.modal.maxWidth,
     width: '100%',
-  },
+  } as ViewStyle,
 
   // Header
   header: {
@@ -521,98 +520,98 @@ export const ModalStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
-  },
+  } as ViewStyle,
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-  },
+  } as TextStyle,
 
   // Handle
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: Colors.light.border,
+    backgroundColor: colors.border,
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: Spacing.sm,
-  },
+  } as ViewStyle,
 });
 
 // ============================================================================
 // EMPTY STATE STYLES
 // ============================================================================
 
-export const EmptyStateStyles = StyleSheet.create({
+export const createEmptyStateStyles = (colors: ThemeColors) => ({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: Spacing.xl,
     gap: Spacing.md,
-  },
+  } as ViewStyle,
   icon: {
     width: 64,
     height: 64,
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.border,
+    backgroundColor: colors.border,
     marginBottom: Spacing.xs,
-  },
+  } as ViewStyle,
   title: {
     fontSize: 17,
     fontWeight: '600',
     textAlign: 'center',
-  },
+  } as TextStyle,
   message: {
     fontSize: 14,
-    color: Colors.light.muted,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
-  },
+  } as TextStyle,
 });
 
 // ============================================================================
 // STAT DISPLAY STYLES
 // ============================================================================
 
-export const StatStyles = StyleSheet.create({
+export const createStatStyles = (colors: ThemeColors) => ({
   // Stat card
   card: {
     alignItems: 'center',
     padding: Spacing.sm,
     gap: 4,
-  },
+  } as ViewStyle,
   value: {
     fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.5,
-  },
+  } as TextStyle,
   label: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.light.muted,
-  },
+    color: colors.muted,
+  } as TextStyle,
 
   // Stat row
   row: {
     flexDirection: 'row',
     gap: Spacing.sm,
-  },
+  } as ViewStyle,
 
   // Inline stat
   inline: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
+  } as ViewStyle,
   inlineValue: {
     fontSize: 15,
     fontWeight: '600',
-  },
+  } as TextStyle,
   inlineLabel: {
     fontSize: 13,
-    color: Colors.light.muted,
-  },
+    color: colors.muted,
+  } as TextStyle,
 });
 
 // ============================================================================
@@ -628,14 +627,17 @@ export const withOpacity = (color: string, opacity: number): string => {
 };
 
 /**
- * Get status color
+ * Get status color (pass colors from useTheme())
  */
-export const getStatusColor = (status: 'success' | 'warning' | 'error' | 'neutral'): string => {
+export const getStatusColor = (
+  status: 'success' | 'warning' | 'error' | 'neutral',
+  colors: ThemeColors,
+): string => {
   switch (status) {
-    case 'success': return Colors.light.success;
-    case 'warning': return Colors.light.warning;
-    case 'error': return Colors.light.error;
-    default: return Colors.light.muted;
+    case 'success': return colors.success;
+    case 'warning': return colors.warning;
+    case 'error': return colors.error;
+    default: return colors.muted;
   }
 };
 
@@ -651,33 +653,39 @@ export const formatPrice = (amount: number): string => {
 // COMMON STYLE PATTERNS (ready-to-use combinations)
 // ============================================================================
 
-export const CommonPatterns = {
-  // Card with header and content
-  cardWithHeader: {
-    card: CardStyles.base,
-    header: { ...LayoutStyles.rowBetween, marginBottom: Spacing.sm },
-    content: { gap: Spacing.xs },
-  },
+export const createCommonPatterns = (colors: ThemeColors) => {
+  const CardStyles = createCardStyles(colors);
+  const ListStyles = createListStyles(colors);
+  const InputStyles = createInputStyles(colors);
 
-  // List with items
-  list: {
-    container: { gap: Spacing.xs },
-    item: ListStyles.item,
-    separator: ListStyles.separator,
-  },
+  return {
+    // Card with header and content
+    cardWithHeader: {
+      card: CardStyles.base,
+      header: { ...LayoutStyles.rowBetween, marginBottom: Spacing.sm },
+      content: { gap: Spacing.xs },
+    },
 
-  // Form field
-  formField: {
-    container: { gap: 6 },
-    label: InputStyles.label,
-    input: InputStyles.input,
-    error: InputStyles.errorText,
-  },
+    // List with items
+    list: {
+      container: { gap: Spacing.xs },
+      item: ListStyles.item,
+      separator: ListStyles.separator,
+    },
 
-  // Page layout
-  page: {
-    container: { flex: 1, backgroundColor: Colors.light.background },
-    content: { padding: Spacing.sm, gap: Spacing.md },
-    section: { gap: Spacing.sm },
-  },
+    // Form field
+    formField: {
+      container: { gap: 6 },
+      label: InputStyles.label,
+      input: InputStyles.input,
+      error: InputStyles.errorText,
+    },
+
+    // Page layout
+    page: {
+      container: { flex: 1, backgroundColor: colors.background } as ViewStyle,
+      content: { padding: Spacing.sm, gap: Spacing.md } as ViewStyle,
+      section: { gap: Spacing.sm } as ViewStyle,
+    },
+  };
 };

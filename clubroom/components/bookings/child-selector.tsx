@@ -2,9 +2,9 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { User } from '@/constants/app-types';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ChildSelectorProps {
   children: User[];
@@ -14,8 +14,7 @@ interface ChildSelectorProps {
 }
 
 export function ChildSelector({ children, selectedChildId, onSelectChild, autoSelected }: ChildSelectorProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // If only one child (auto-selected), show simple banner
   if (autoSelected && children.length === 1) {

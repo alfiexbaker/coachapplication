@@ -13,8 +13,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { PageContainer } from '@/components/primitives/page-container';
 import { PageHeader } from '@/components/primitives/page-header';
-import { Colors, Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,8 +56,7 @@ export function BulkMessage({
   recipients = [],
   isSending = false,
 }: BulkMessageProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [screen, setScreen] = useState<ScreenState>('compose');
   const [scope, setScope] = useState<RecipientScope>('squad');

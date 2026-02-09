@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface Athlete {
   id: string;
@@ -30,8 +30,7 @@ export function AthletePicker({
   selfId,
   selfName = 'Myself',
 }: AthletePickerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const toggleSelection = (id: string) => {
     if (selectedIds.includes(id)) {

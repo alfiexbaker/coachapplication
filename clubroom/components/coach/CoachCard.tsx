@@ -18,13 +18,13 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Colors, Spacing, Radii, Components, Typography } from '@/constants/theme';
+import { Spacing, Radii, Components, Typography } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Divider } from '@/components/ui/primitives/Divider';
 import { Button } from '@/components/primitives/button';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -81,7 +81,7 @@ interface FavouriteVariantProps extends BaseCoachCardProps {
 
 export type CoachCardProps = CompactVariantProps | DiscoveryVariantProps | FavouriteVariantProps;
 
-type Palette = (typeof Colors)['light'];
+type Palette = ReturnType<typeof useTheme>['colors'];
 
 // -----------------------------------------------------------------------------
 // Sub-components
@@ -170,8 +170,7 @@ function CompactCard({
   onPress,
   index = 0,
 }: CompactVariantProps & { palette: Palette }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const primaryFocus = coach.footballFocuses?.[0] || coach.specialties?.[0];
 
   const formatPrice = () => {
@@ -302,8 +301,7 @@ function DiscoveryCard({
   isFavourited = false,
   index = 0,
 }: DiscoveryVariantProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleFavourite = () => {
     onToggleFavourite?.(coach.id);
@@ -325,7 +323,7 @@ function DiscoveryCard({
             />
             {coach.trialAvailable && (
               <View style={[discoveryStyles.trialBadge, { backgroundColor: palette.success }]}>
-                <ThemedText style={discoveryStyles.trialText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+                <ThemedText style={[discoveryStyles.trialText, { color: palette.onPrimary }]}>
                   TRIAL
                 </ThemedText>
               </View>
@@ -433,7 +431,7 @@ function DiscoveryCard({
               },
             ]}
           >
-            <ThemedText style={discoveryStyles.bookButtonText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+            <ThemedText style={[discoveryStyles.bookButtonText, { color: palette.onPrimary }]}>
               Book Now
             </ThemedText>
           </Pressable>
@@ -580,8 +578,7 @@ function FavouriteCard({
   isFavourite = true,
   index = 0,
 }: FavouriteVariantProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const formatPrice = () => {
     if (coach.pricePerHour) return `£${coach.pricePerHour}`;
@@ -745,8 +742,7 @@ const favouriteStyles = StyleSheet.create({
 // -----------------------------------------------------------------------------
 
 export function CoachCard(props: CoachCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const variant = props.variant || 'compact';
 
   switch (variant) {

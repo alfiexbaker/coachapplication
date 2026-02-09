@@ -36,7 +36,8 @@ import { multiWeekBookingService } from '../multi-week-booking-service';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { Result, ServiceError } from '@/types/result';
-import { ok, err, serviceError } from '@/types/result';
+import { ok, err, serviceError, storageError } from '@/types/result';
+import { emitTyped, ServiceEvents } from '@/services/event-bus';
 
 const logger = createLogger('SessionInviteService');
 
@@ -69,6 +70,8 @@ export interface CreateInviteInput {
   existingSessionId?: string; // When inviting to an existing group session
   isRecurring?: boolean;
   recurrenceWeeks?: number;
+  coverImageUrl?: string;
+  locationCoordinates?: { latitude: number; longitude: number };
 }
 
 export interface RespondToInviteInput {
@@ -95,20 +98,20 @@ const MOCK_INVITES: SessionInvite[] = [
     parentId: 'parent_1',
     parentName: 'Sarah Baker',
     proposedSlots: [
-      { date: '2026-01-15', startTime: '16:00', endTime: '17:00', location: 'Hackney Marshes' },
-      { date: '2026-01-17', startTime: '16:00', endTime: '17:00', location: 'Hackney Marshes' },
+      { date: '2026-02-16', startTime: '16:00', endTime: '17:00', location: 'Hackney Marshes' },
+      { date: '2026-02-20', startTime: '15:00', endTime: '16:00', location: 'Hackney Marshes' },
     ],
     sessionType: '1:1 Coaching',
     focus: 'Finishing',
     notes: 'Great progress last session! Ready to work on weak foot finishing.',
     priceUsd: 60,
     status: 'PENDING',
-    expiresAt: '2026-01-14T23:59:59Z',
-    createdAt: '2026-01-10T10:00:00Z',
+    expiresAt: '2026-02-28T23:59:59Z',
+    createdAt: '2026-02-08T10:00:00Z',
   },
   {
     id: 'inv_2',
-    coachId: 'coach_2',
+    coachId: 'coach2',
     coachName: 'Emma Williams',
     coachPhotoUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
     clubName: 'Victoria Park FC',
@@ -117,15 +120,15 @@ const MOCK_INVITES: SessionInvite[] = [
     parentId: 'parent_1',
     parentName: 'Sarah Baker',
     proposedSlots: [
-      { date: '2026-01-20', startTime: '10:00', endTime: '11:00', location: 'Victoria Park' },
+      { date: '2026-02-17', startTime: '17:00', endTime: '18:00', location: 'Victoria Park' },
     ],
     sessionType: '1:1 Coaching',
     focus: 'Goalkeeping',
     notes: 'Trial session to assess current level.',
     priceUsd: 50,
     status: 'PENDING',
-    expiresAt: '2026-01-18T23:59:59Z',
-    createdAt: '2026-01-10T14:30:00Z',
+    expiresAt: '2026-02-28T23:59:59Z',
+    createdAt: '2026-02-08T14:30:00Z',
   },
   {
     id: 'inv_3',
@@ -137,15 +140,15 @@ const MOCK_INVITES: SessionInvite[] = [
     parentId: 'parent_2',
     parentName: 'Mike Wilson',
     proposedSlots: [
-      { date: '2026-01-12', startTime: '15:00', endTime: '16:00', location: 'Hackney Marshes' },
+      { date: '2026-02-21', startTime: '09:00', endTime: '10:00', location: 'Hackney Marshes' },
     ],
     sessionType: '1:1 Coaching',
     focus: 'Dribbling',
     priceUsd: 60,
     status: 'ACCEPTED',
-    expiresAt: '2026-01-11T23:59:59Z',
-    createdAt: '2026-01-08T09:00:00Z',
-    respondedAt: '2026-01-08T12:00:00Z',
+    expiresAt: '2026-02-28T23:59:59Z',
+    createdAt: '2026-02-08T09:00:00Z',
+    respondedAt: '2026-02-08T12:00:00Z',
   },
 ];
 
@@ -165,11 +168,13 @@ export async function loadFromStorage(): Promise<SessionInvite[]> {
   return [...MOCK_INVITES];
 }
 
-export async function saveToStorage(invites: SessionInvite[]): Promise<void> {
+export async function saveToStorage(invites: SessionInvite[]): Promise<Result<void, ServiceError>> {
   try {
     await apiClient.set(STORAGE_KEYS.SESSION_INVITES, invites);
+    return ok(undefined);
   } catch (error) {
     logger.error('Failed to save to storage', error);
+    return err(storageError(`Failed to save session invites: ${String(error)}`));
   }
 }
 
@@ -288,7 +293,7 @@ export const sessionInviteService = {
     expiresAt.setDate(expiresAt.getDate() + (input.expiresInDays || 7));
 
     const newInvite: SessionInvite = {
-      id: `inv_${Date.now()}`,
+      id: apiClient.generateId('inv'),
       coachId: input.coachId,
       coachName: input.coachName,
       coachPhotoUrl: input.coachPhotoUrl,
@@ -312,6 +317,9 @@ export const sessionInviteService = {
       groupId: input.groupId,
       isRecurring: input.isRecurring,
       recurrenceWeeks: input.recurrenceWeeks,
+      coverImageUrl: input.coverImageUrl,
+      locationCoordinates: input.locationCoordinates,
+      rsvpCounts: { going: 0, maybe: 0, cantGo: 0 },
     };
 
     // Generate weekSlots for recurring invites
@@ -367,7 +375,7 @@ export const sessionInviteService = {
       const clubDisplay = input.clubName ? ` to ${input.clubName}` : '';
 
       const notification: NotificationItem = {
-        id: `notif_${Date.now()}`,
+        id: apiClient.generateId('notif'),
         type: 'booking',
         title: 'New Session Invite',
         body: `Coach ${coachFirstName} has invited ${athleteDisplay}${clubDisplay} - ${input.sessionType}`,
@@ -427,6 +435,108 @@ export const sessionInviteService = {
 
       const invite = invitesCache[index];
 
+      // Create notification for coach based on response
+      const athleteNames = invite.athleteNames.join(', ');
+      const notification: NotificationItem = {
+        id: apiClient.generateId('notif'),
+        type: 'booking',
+        title: '',
+        body: '',
+        timeLabel: 'Just now',
+        read: false,
+      };
+
+      if (input.response === 'ACCEPTED') {
+        // CRITICAL FIX: Attempt booking creation FIRST, before changing invite status.
+        // If booking fails, the invite stays unchanged (no orphaned ACCEPTED status).
+        if (!input.selectedSlot) {
+          return err(serviceError('VALIDATION', 'A selected slot is required to accept an invite'));
+        }
+
+        const scheduledAt = `${input.selectedSlot.date}T${input.selectedSlot.startTime}:00`;
+        const endTime = input.selectedSlot.endTime;
+        const startTime = input.selectedSlot.startTime;
+
+        // Calculate duration in minutes from start and end time
+        const [startHour, startMin] = startTime.split(':').map(Number);
+        const [endHour, endMin] = endTime.split(':').map(Number);
+        const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+
+        const bookingResult = await bookingService.createBooking({
+          coachId: invite.coachId,
+          coachName: invite.coachName,
+          athleteIds: [invite.athleteIds[0]], // Primary athlete
+          athleteNames: [invite.athleteNames[0]],
+          bookedById: invite.parentId,
+          bookedByName: invite.parentName,
+          scheduledAt,
+          duration: durationMinutes > 0 ? durationMinutes : 60,
+          location: input.selectedSlot.location || 'Coach preferred location',
+          service: invite.sessionType,
+          serviceType: invite.sessionType,
+          objectives: invite.focus ? [invite.focus] : [],
+          price: invite.priceUsd,
+          notes: invite.notes,
+          sessionInviteId: invite.id, // Link booking to invite
+          skipAvailabilityValidation: true, // Coach already validated when creating the invite
+        });
+
+        if (!bookingResult.success) {
+          // Booking failed — do NOT change invite status. Return error to caller.
+          const reason = bookingResult.error?.message ?? 'Booking creation failed';
+          logger.error('Booking creation failed during invite acceptance', { inviteId: invite.id, reason });
+
+          emitTyped(ServiceEvents.INVITE_BOOKING_FAILED, {
+            inviteId: invite.id,
+            coachId: invite.coachId,
+            parentId: invite.parentId,
+            reason,
+          });
+
+          return err(serviceError('CONFLICT', reason));
+        }
+
+        // Booking succeeded — NOW set invite to ACCEPTED with bookingId
+        invitesCache[index] = {
+          ...invite,
+          status: 'ACCEPTED',
+          respondedAt: new Date().toISOString(),
+          selectedSlot: input.selectedSlot,
+          bookingId: bookingResult.data.id,
+        };
+        await saveToStorage(invitesCache);
+
+        logger.info('Booking created successfully from invite', { bookingId: bookingResult.data.id, inviteId: invite.id });
+
+        emitTyped(ServiceEvents.INVITE_ACCEPTED, {
+          inviteId: invite.id,
+          bookingId: bookingResult.data.id,
+          coachId: invite.coachId,
+          parentId: invite.parentId,
+          athleteIds: invite.athleteIds,
+          selectedSlot: {
+            date: input.selectedSlot.date,
+            startTime: input.selectedSlot.startTime,
+            endTime: input.selectedSlot.endTime,
+            location: input.selectedSlot.location,
+          },
+        });
+
+        notification.title = 'Invite Accepted!';
+        notification.body = `${invite.parentName} accepted your invite for ${athleteNames}. Session confirmed for ${
+          new Date(input.selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
+            ` at ${input.selectedSlot.startTime}`
+        }.`;
+
+        await notificationService.create(notification);
+
+        // Release all holds for this invite (accepted slot becomes a booking, others freed)
+        await inviteHoldService.releaseHoldsForInvite(invite.id);
+
+        return ok(invitesCache[index]);
+      }
+
+      // DECLINED and COUNTERED: set status immediately (existing behavior)
       invitesCache[index] = {
         ...invite,
         status: input.response,
@@ -438,97 +548,7 @@ export const sessionInviteService = {
 
       await saveToStorage(invitesCache);
 
-      // Create notification for coach based on response
-      const athleteNames = invite.athleteNames.join(', ');
-      const notification: NotificationItem = {
-        id: `notif_${Date.now()}`,
-        type: 'booking',
-        title: '',
-        body: '',
-        timeLabel: 'Just now',
-        read: false,
-      };
-
-      if (input.response === 'ACCEPTED') {
-        // CRITICAL: Validate slot is still available before creating booking
-        if (input.selectedSlot) {
-          const slotDate = input.selectedSlot.date;
-          const slotStart = input.selectedSlot.startTime;
-          const slots = await availabilityService.getAvailableSlots(
-            invite.coachId, slotDate, slotDate, invite.duration || 60
-          );
-          const matchingSlot = slots.find(
-            (s) => s.date === slotDate && s.startTime === slotStart
-          );
-
-          if (matchingSlot && !matchingSlot.isAvailable) {
-            // Slot is taken — revert invite status back to PENDING
-            invitesCache[index] = { ...invite, status: 'PENDING' };
-            await saveToStorage(invitesCache);
-
-            // Release holds since we're reverting
-            // Return remaining available proposed slots
-            const remainingSlots = invite.proposedSlots.filter(
-              (ps) => !(ps.date === slotDate && ps.startTime === slotStart)
-            );
-
-            return err(serviceError(
-              'CONFLICT',
-              `This time slot is no longer available.${remainingSlots.length > 0 ? ' Please pick another time.' : ' All proposed times have been taken.'}`
-            ));
-          }
-        }
-
-        notification.title = 'Invite Accepted!';
-        notification.body = `${invite.parentName} accepted your invite for ${athleteNames}. Session confirmed for ${
-          input.selectedSlot
-            ? new Date(input.selectedSlot.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
-              ` at ${input.selectedSlot.startTime}`
-            : 'the selected time'
-        }.`;
-
-        // CRITICAL: Create the actual booking via bookingService
-        if (input.selectedSlot) {
-          const scheduledAt = `${input.selectedSlot.date}T${input.selectedSlot.startTime}:00`;
-          const endTime = input.selectedSlot.endTime;
-          const startTime = input.selectedSlot.startTime;
-
-          // Calculate duration in minutes from start and end time
-          const [startHour, startMin] = startTime.split(':').map(Number);
-          const [endHour, endMin] = endTime.split(':').map(Number);
-          const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
-
-          const bookingResult = await bookingService.createBooking({
-            coachId: invite.coachId,
-            coachName: invite.coachName,
-            athleteIds: [invite.athleteIds[0]], // Primary athlete
-            athleteNames: [invite.athleteNames[0]],
-            bookedById: invite.parentId,
-            bookedByName: invite.parentName,
-            scheduledAt,
-            duration: durationMinutes > 0 ? durationMinutes : 60,
-            location: input.selectedSlot.location || 'Coach preferred location',
-            service: invite.sessionType,
-            serviceType: invite.sessionType,
-            objectives: invite.focus ? [invite.focus] : [],
-            price: invite.priceUsd,
-            notes: invite.notes,
-            sessionInviteId: invite.id, // Link booking to invite
-          });
-
-          if (bookingResult.success && bookingResult.data) {
-            // Link booking back to invite (bidirectional)
-            invitesCache[index].bookingId = bookingResult.data.id;
-            await saveToStorage(invitesCache);
-            logger.info('Booking created successfully', { bookingId: bookingResult.data.id });
-          } else if (!bookingResult.success) {
-            logger.error('Failed to create booking', { error: bookingResult.error?.message });
-          }
-        }
-
-        // Release all holds for this invite (accepted slot becomes a booking, others freed)
-        await inviteHoldService.releaseHoldsForInvite(invite.id);
-      } else if (input.response === 'DECLINED') {
+      if (input.response === 'DECLINED') {
         notification.title = 'Invite Declined';
         notification.body = `${invite.parentName} declined your session invite for ${athleteNames}.`;
         // Release all holds
@@ -694,29 +714,9 @@ export const sessionInviteService = {
         return err(serviceError('NOT_FOUND', `Invite not found: ${inviteId}`));
       }
 
-      invitesCache[index] = {
-        ...invitesCache[index],
-        status: 'ACCEPTED',
-        selectedSlot,
-        respondedAt: new Date().toISOString(),
-      };
-
-      await saveToStorage(invitesCache);
-
-      // Create notification for parent
       const invite = invitesCache[index];
-      const notification: NotificationItem = {
-        id: `notif_${Date.now()}`,
-        type: 'booking',
-        title: 'Counter Proposal Accepted!',
-        body: `Coach ${invite.coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
-        timeLabel: 'Just now',
-        read: false,
-      };
 
-      await notificationService.create(notification);
-
-      // CRITICAL: Create the actual booking when counter-proposal is accepted
+      // CRITICAL FIX: Create booking FIRST, before changing invite status.
       const scheduledAt = `${selectedSlot.date}T${selectedSlot.startTime}:00`;
       const endTime = selectedSlot.endTime;
       const startTime = selectedSlot.startTime;
@@ -742,16 +742,62 @@ export const sessionInviteService = {
         price: invite.priceUsd,
         notes: invite.notes,
         sessionInviteId: invite.id, // Link booking to invite
+        skipAvailabilityValidation: true, // Counter-proposal accepted by coach, skip validation
       });
 
-      if (bookingResult.success && bookingResult.data) {
-        // Link booking back to invite (bidirectional)
-        invitesCache[index].bookingId = bookingResult.data.id;
-        await saveToStorage(invitesCache);
-        logger.info('Booking created from counter-proposal', { bookingId: bookingResult.data.id });
-      } else if (!bookingResult.success) {
-        logger.error('Failed to create booking from counter-proposal', { error: bookingResult.error?.message });
+      if (!bookingResult.success) {
+        // Booking failed — do NOT change invite status
+        const reason = bookingResult.error?.message ?? 'Booking creation failed';
+        logger.error('Booking creation failed during counter-proposal acceptance', { inviteId, reason });
+
+        emitTyped(ServiceEvents.INVITE_BOOKING_FAILED, {
+          inviteId,
+          coachId: invite.coachId,
+          parentId: invite.parentId,
+          reason,
+        });
+
+        return err(serviceError('CONFLICT', reason));
       }
+
+      // Booking succeeded — NOW set invite to ACCEPTED with bookingId
+      invitesCache[index] = {
+        ...invite,
+        status: 'ACCEPTED',
+        selectedSlot,
+        respondedAt: new Date().toISOString(),
+        bookingId: bookingResult.data.id,
+      };
+
+      await saveToStorage(invitesCache);
+
+      logger.info('Booking created from counter-proposal', { bookingId: bookingResult.data.id, inviteId });
+
+      emitTyped(ServiceEvents.INVITE_ACCEPTED, {
+        inviteId,
+        bookingId: bookingResult.data.id,
+        coachId: invite.coachId,
+        parentId: invite.parentId,
+        athleteIds: invite.athleteIds,
+        selectedSlot: {
+          date: selectedSlot.date,
+          startTime: selectedSlot.startTime,
+          endTime: selectedSlot.endTime,
+          location: selectedSlot.location,
+        },
+      });
+
+      // Create notification for parent
+      const notification: NotificationItem = {
+        id: apiClient.generateId('notif'),
+        type: 'booking',
+        title: 'Counter Proposal Accepted!',
+        body: `Coach ${invite.coachName.split(' ')[0]} accepted your proposed time. Session confirmed!`,
+        timeLabel: 'Just now',
+        read: false,
+      };
+
+      await notificationService.create(notification);
 
       return ok(invitesCache[index]);
     }
@@ -972,7 +1018,7 @@ export const sessionInviteService = {
     // Notify coach
     const athleteNames = invite.athleteNames.join(', ');
     const notification: NotificationItem = {
-      id: `notif_${Date.now()}`,
+      id: apiClient.generateId('notif'),
       type: 'booking',
       title: 'Recurring Invite Accepted!',
       body: `${invite.parentName} accepted ${acceptedWeeks.length} of ${weekAcceptances.length} weeks for ${athleteNames}.`,

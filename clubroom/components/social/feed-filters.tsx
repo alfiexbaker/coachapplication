@@ -2,7 +2,7 @@ import React from 'react';
 import {
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   View,
 } from 'react-native';
 import { router, type Href } from 'expo-router';
@@ -10,9 +10,9 @@ import { Routes } from '@/navigation/routes';
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import type { Club } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -53,8 +53,7 @@ const FEED_FILTERS: { key: FeedFilter; label: string; icon: string }[] = [
 // ─── Filter Tabs ────────────────────────────────────────────────
 
 function FeedFiltersInner({ activeFilter, onFilterChange }: FeedFiltersProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <ScrollView
@@ -64,7 +63,7 @@ function FeedFiltersInner({ activeFilter, onFilterChange }: FeedFiltersProps) {
       contentContainerStyle={styles.filterContainer}
     >
       {FEED_FILTERS.map((filter) => (
-        <TouchableOpacity
+        <Pressable
           key={filter.key}
           style={[
             styles.filterTab,
@@ -84,7 +83,7 @@ function FeedFiltersInner({ activeFilter, onFilterChange }: FeedFiltersProps) {
           >
             {filter.label}
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       ))}
     </ScrollView>
   );
@@ -93,15 +92,14 @@ function FeedFiltersInner({ activeFilter, onFilterChange }: FeedFiltersProps) {
 // ─── Club Hub Card ──────────────────────────────────────────────
 
 function ClubHubCardInner({ clubs }: ClubHubCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (clubs.length === 0) return null;
 
   return (
     <View style={styles.clubsRow}>
       {clubs.slice(0, 3).map((club) => (
-        <TouchableOpacity
+        <Pressable
           key={club.id}
           style={[
             styles.clubPill,
@@ -112,17 +110,17 @@ function ClubHubCardInner({ clubs }: ClubHubCardProps) {
           }
         >
           <View style={[styles.clubPillIcon, { backgroundColor: palette.tint }]}>
-            <ThemedText style={styles.clubPillIconText}>
+            <ThemedText style={[styles.clubPillIconText, { color: palette.onPrimary }]}>
               {club.badge?.slice(0, 2) || club.name.slice(0, 2).toUpperCase()}
             </ThemedText>
           </View>
           <ThemedText style={styles.clubPillName} numberOfLines={1}>
             {club.name}
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       ))}
       {clubs.length > 3 && (
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.clubPill,
             { backgroundColor: palette.surface, borderColor: palette.border },
@@ -132,7 +130,7 @@ function ClubHubCardInner({ clubs }: ClubHubCardProps) {
           <ThemedText style={[styles.clubPillMore, { color: palette.muted }]}>
             +{clubs.length - 3} more
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );
@@ -141,8 +139,7 @@ function ClubHubCardInner({ clubs }: ClubHubCardProps) {
 // ─── Empty Feed State ───────────────────────────────────────────
 
 function EmptyFeedStateInner({ hasClubs, filter, isCoach }: EmptyFeedStateProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (!hasClubs) {
     return (
@@ -159,7 +156,7 @@ function EmptyFeedStateInner({ hasClubs, filter, isCoach }: EmptyFeedStateProps)
             : 'Join a club or follow coaches to see updates here'}
         </ThemedText>
         <View style={styles.emptyStateActions}>
-          <TouchableOpacity
+          <Pressable
             style={[styles.emptyStateButton, { backgroundColor: palette.tint }]}
             onPress={() => router.push(Routes.CLUB_HUB)}
           >
@@ -167,8 +164,8 @@ function EmptyFeedStateInner({ hasClubs, filter, isCoach }: EmptyFeedStateProps)
             <ThemedText style={[styles.emptyButtonLabel, { color: palette.onPrimary }]}>
               Join Club
             </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={[styles.emptyStateButtonOutline, { borderColor: palette.border }]}
             onPress={() =>
               router.push(isCoach ? '/club/create' : ('/(tabs)/more' as Href))
@@ -182,7 +179,7 @@ function EmptyFeedStateInner({ hasClubs, filter, isCoach }: EmptyFeedStateProps)
             <ThemedText style={styles.emptyButtonLabel}>
               {isCoach ? 'Create Club' : 'Find Coach'}
             </ThemedText>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
     );
@@ -245,15 +242,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   clubPillIconText: {
-    color: Colors.light.onPrimary,
     ...Typography.micro,
     fontSize: 9,
     letterSpacing: 0,
     textTransform: 'none',
   },
   clubPillName: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   clubPillMore: {
     ...Typography.small,

@@ -4,8 +4,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
 interface CreateEventDetailsStepProps {
@@ -27,8 +27,7 @@ function CreateEventDetailsStepInner({
   meetingLink,
   onFieldChange,
 }: CreateEventDetailsStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={styles.stepContent}>
@@ -79,7 +78,7 @@ function CreateEventDetailsStepInner({
           <View
             style={[
               styles.toggleHandle,
-              { transform: [{ translateX: isVirtual ? 18 : Spacing.micro }] },
+              { backgroundColor: palette.surface, transform: [{ translateX: isVirtual ? 18 : Spacing.micro }] },
             ]}
           />
         </View>
@@ -182,6 +181,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: Radii.md,
-    backgroundColor: Colors.light.surface,
+    // backgroundColor set inline for dynamic theming
   },
 });

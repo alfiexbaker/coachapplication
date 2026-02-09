@@ -16,8 +16,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography, Components , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, Components , withAlpha, Shadows } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { CoachMarkerPill } from './coach-marker';
 
 // ---------------------------------------------------------------------------
@@ -69,8 +69,7 @@ export function MapViewPlaceholder({
   onGpsPress,
   savedCoachIds = [],
 }: MapViewPlaceholderProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
 
   const data = coaches.length > 0 ? coaches : MOCK_MAP_COACHES;
@@ -159,7 +158,7 @@ export function MapViewPlaceholder({
 
         {/* User location dot */}
         <View style={[styles.userDot, { backgroundColor: palette.tint }]}>
-          <View style={styles.userDotInner} />
+          <View style={[styles.userDotInner, { backgroundColor: palette.surface }]} />
         </View>
 
         {/* Coach price pill markers */}
@@ -195,11 +194,12 @@ export function MapViewPlaceholder({
             {
               backgroundColor: palette.tint,
               opacity: pressed ? 0.85 : 1,
+              ...Shadows[scheme].card,
             },
           ]}
         >
           <Ionicons name="search" size={Components.icon.sm} color={palette.onPrimary} />
-          <ThemedText style={styles.searchAreaText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+          <ThemedText style={[styles.searchAreaText, { color: palette.onPrimary }]}>
             Search this area
           </ThemedText>
         </Pressable>
@@ -215,6 +215,7 @@ export function MapViewPlaceholder({
               backgroundColor: palette.surface,
               borderColor: palette.border,
               opacity: pressed ? 0.85 : 1,
+              ...Shadows[scheme].card,
             },
           ]}
         >
@@ -307,7 +308,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: Radii.pill,
-    backgroundColor: Colors.light.surface,
   },
   markerContainer: {
     position: 'absolute',
@@ -323,15 +323,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: Radii.pill,
-    shadowColor: '#000000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
   },
   searchAreaText: {
-    ...Typography.small,
-    fontWeight: '600',
+    ...Typography.smallSemiBold,
   },
   gpsButton: {
     position: 'absolute',
@@ -343,11 +337,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   infoNote: {
     flexDirection: 'row',

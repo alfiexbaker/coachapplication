@@ -1,8 +1,8 @@
 import { ScrollView, StyleSheet, Pressable, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii , Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii , Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 interface Child {
   childId: string;
@@ -17,8 +17,7 @@ interface ChildSwitcherProps {
 }
 
 export function ChildSwitcher({ childrenList, selectedId, onSelect, showAll = true }: ChildSwitcherProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const renderPill = (id: string | null, label: string) => {
     const isActive = selectedId === id;

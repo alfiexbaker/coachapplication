@@ -6,10 +6,7 @@
  */
 
 import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Ionicons } from '@expo/vector-icons';import { useTheme } from '@/hooks/useTheme';
 
 interface MessageStatusProps {
   status: 'sent' | 'delivered' | 'seen' | 'pending';
@@ -18,8 +15,7 @@ interface MessageStatusProps {
 const ICON_SIZE = 14;
 
 export function MessageStatus({ status }: MessageStatusProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   if (status === 'pending') {
     return (
@@ -38,7 +34,7 @@ export function MessageStatus({ status }: MessageStatusProps) {
   }
 
   // delivered = double check (muted), seen = double check (tint/blue)
-  const checkColor = status === 'seen' ? '#3B82F6' : palette.muted;
+  const checkColor = status === 'seen' ? palette.info : palette.muted;
 
   return (
     <View style={styles.doubleCheckContainer}>

@@ -19,9 +19,9 @@ import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { InjuryCard } from '@/components/health';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import type { Injury, InjuryStats } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { injuryService } from '@/services/injury-service';
 import { scaleFont } from '@/utils/scale';
@@ -33,8 +33,7 @@ const logger = createLogger('HealthDashboardScreen');
  * Health Dashboard Screen showing injury overview and active injuries.
  */
 export default function HealthDashboardScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   // State
@@ -119,7 +118,7 @@ export default function HealthDashboardScreen() {
           onPress={handleLogInjury}
           style={[styles.addButton, { backgroundColor: palette.tint }]}
         >
-          <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
+          <Ionicons name="add" size={24} color={palette.onPrimary} />
         </Clickable>
       </View>
 
@@ -310,186 +309,144 @@ export default function HealthDashboardScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
+    paddingBottom: Spacing.xl },
   statusCard: {
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   healthyState: {
     alignItems: 'center',
-    padding: Spacing.md,
-  },
+    padding: Spacing.md },
   healthyIcon: {
     width: 80,
     height: 80,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   healthyTitle: {
-    marginBottom: Spacing.xxs,
-  },
+    marginBottom: Spacing.xxs },
   healthyText: {
     textAlign: 'center',
-    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize),
-  },
+    ...Typography.bodySmall, fontSize: scaleFont(Typography.bodySmall.fontSize) },
   statusContent: {
-    padding: Spacing.sm,
-  },
+    padding: Spacing.sm },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-  },
+    justifyContent: 'space-around' },
   statusItem: {
     alignItems: 'center',
-    flex: 1,
-  },
+    flex: 1 },
   statusIcon: {
     width: 44,
     height: 44,
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   statusValue: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   statusLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   statusDivider: {
     width: 1,
-    height: 50,
-  },
+    height: 50 },
   actionsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
+    marginBottom: Spacing.lg },
   actionCard: {
     padding: Spacing.md,
     borderRadius: Radii.lg,
     borderWidth: 1,
     alignItems: 'center',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   actionIcon: {
     width: 44,
     height: 44,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   actionLabel: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   injuriesSection: {
-    marginBottom: Spacing.lg,
-  },
+    marginBottom: Spacing.lg },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   seeAllText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   statsCard: {
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   statsTitle: {
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: Spacing.md,
-  },
+    marginBottom: Spacing.md },
   statsItem: {
-    alignItems: 'center',
-  },
+    alignItems: 'center' },
   statsValue: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   statsLabel: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   commonParts: {
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.05)',
-    paddingTop: Spacing.md,
-  },
+    paddingTop: Spacing.md },
   commonPartsLabel: {
     ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-    marginBottom: Spacing.xs,
-  },
+    marginBottom: Spacing.xs },
   commonPartsList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   commonPartBadge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
-    borderRadius: Radii.pill,
-  },
+    borderRadius: Radii.pill },
   commonPartText: {
-    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize),
-  },
+    ...Typography.caption, fontSize: scaleFont(Typography.caption.fontSize) },
   emptyState: {
     alignItems: 'center',
     paddingVertical: Spacing['3xl'],
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   emptyIcon: {
     width: 96,
     height: 96,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   emptyTitle: {
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   emptyText: {
     textAlign: 'center',
     ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
     lineHeight: scaleFont(22),
-    maxWidth: 280,
-  },
+    maxWidth: 280 },
   emptyButton: {
-    marginTop: Spacing.sm,
-  },
-});
+    marginTop: Spacing.sm } });

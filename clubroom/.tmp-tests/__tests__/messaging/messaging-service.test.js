@@ -1,5 +1,4 @@
 "use strict";
-// @ts-nocheck
 /**
  * Messaging Service Tests
  *
@@ -417,7 +416,8 @@ let messagingService;
 (0, node_test_1.describe)('MessagingService - Mark Read', () => {
     (0, node_test_1.default)('markThreadRead() sets unread count to 0', async () => {
         const beforeThread = await messagingService.getThread('thread_1');
-        node_assert_1.default.ok(beforeThread?.unreadCount > 0);
+        node_assert_1.default.ok(beforeThread);
+        node_assert_1.default.ok(beforeThread.unreadCount > 0);
         await messagingService.markThreadRead('thread_1');
         const afterThread = await messagingService.getThread('thread_1');
         node_assert_1.default.strictEqual(afterThread?.unreadCount, 0);

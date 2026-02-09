@@ -9,11 +9,11 @@ import { EventCard } from '@/components/event/event-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { Button } from '@/components/primitives/button';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
 import { createLogger } from '@/utils/logger';
 import { toDateStr } from '@/utils/format';
 import type { ClubEvent } from '@/constants/types';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { eventService } from '@/services/event-service';
 import { scaleFont } from '@/utils/scale';
@@ -23,8 +23,7 @@ const logger = createLogger('EventsListScreen');
 type EventFilter = 'upcoming' | 'past' | 'all';
 
 export default function EventsListScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const isCoach = currentUser?.role === 'COACH';
 
@@ -125,7 +124,7 @@ export default function EventsListScreen() {
             onPress={() => router.push(Routes.EVENTS_CREATE)}
             style={[styles.addButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="add" size={24} color={Colors.light.onPrimary} />
+            <Ionicons name="add" size={24} color={palette.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -140,14 +139,13 @@ export default function EventsListScreen() {
               styles.filterTab,
               {
                 backgroundColor: filter === f ? palette.tint : 'transparent',
-                borderColor: filter === f ? palette.tint : palette.border,
-              },
+                borderColor: filter === f ? palette.tint : palette.border },
             ]}
           >
             <ThemedText
               style={[
                 styles.filterTabText,
-                { color: filter === f ? Colors.light.onPrimary : palette.text },
+                { color: filter === f ? palette.onPrimary : palette.text },
               ]}
             >
               {f === 'upcoming' ? 'Upcoming' : f === 'past' ? 'Past' : 'All'}
@@ -174,73 +172,58 @@ export default function EventsListScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
+    paddingVertical: Spacing.md },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize),
-  },
+    ...Typography.display, fontSize: scaleFont(Typography.display.fontSize) },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
-    gap: Spacing.xs,
-  },
+    gap: Spacing.xs },
   filterTab: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: Radii.pill,
-    borderWidth: 1,
-  },
+    borderWidth: 1 },
   filterTabText: {
-    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize),
-  },
+    ...Typography.bodySmallSemiBold, fontSize: scaleFont(Typography.bodySmallSemiBold.fontSize) },
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
+    paddingBottom: Spacing.xl },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing['3xl'],
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   emptyIcon: {
     width: 96,
     height: 96,
     borderRadius: Radii['3xl'],
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
+    marginBottom: Spacing.sm },
   emptyTitle: {
-    textAlign: 'center',
-  },
+    textAlign: 'center' },
   emptyText: {
     textAlign: 'center',
     ...Typography.body, fontSize: scaleFont(Typography.body.fontSize),
-    lineHeight: scaleFont(22),
-  },
+    lineHeight: scaleFont(22) },
   emptyButton: {
-    marginTop: Spacing.sm,
-  },
-});
+    marginTop: Spacing.sm } });

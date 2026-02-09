@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii, Components, Typography  , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Components, Typography, withAlpha } from '@/constants/theme';
+import { useTheme, ThemeColors } from '@/hooks/useTheme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,7 +48,7 @@ interface StatTileProps {
   iconColor: string;
   value: string;
   label: string;
-  palette: (typeof Colors)['light'];
+  palette: ThemeColors;
 }
 
 function StatTile({ icon, iconColor, value, label, palette }: StatTileProps) {
@@ -77,8 +77,7 @@ export function ProfileAnalytics({
   enquiries,
   bookings,
 }: ProfileAnalyticsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const rate = conversionRate(profileViews, bookings);
 

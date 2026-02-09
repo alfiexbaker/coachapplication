@@ -1,14 +1,14 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Routes } from '@/navigation/routes';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography, withAlpha } from '@/constants/theme';
 import { matchService } from '@/services/match-service';
 import type { Match } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface MatchesPanelProps {
   matches: Match[];
@@ -18,8 +18,7 @@ export interface MatchesPanelProps {
 }
 
 export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: MatchesPanelProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const handleCreateMatch = () => {
     if (onCreateMatch) {
@@ -48,13 +47,13 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
           <Ionicons name="trophy" size={20} color={palette.tint} />
           <ThemedText type="defaultSemiBold">Upcoming Matches</ThemedText>
         </View>
-        <TouchableOpacity
+        <Pressable
           style={styles.viewAllButton}
           onPress={handleViewAll}
         >
           <ThemedText style={[styles.viewAllText, { color: palette.tint }]}>View All</ThemedText>
           <Ionicons name="chevron-forward" size={16} color={palette.tint} />
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <View style={styles.matchesList}>
@@ -68,7 +67,7 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
           const typeColor = matchService.getMatchTypeColor(match.matchType);
 
           return (
-            <TouchableOpacity
+            <Pressable
               key={match.id}
               style={[styles.matchItem, { borderColor: palette.border }]}
               onPress={() => router.push(Routes.match(match.id))}
@@ -87,13 +86,13 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
                 </ThemedText>
               </View>
               <Ionicons name="chevron-forward" size={18} color={palette.muted} />
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </View>
 
       {isCoach && (
-        <TouchableOpacity
+        <Pressable
           style={[styles.createMatchButton, { borderColor: palette.tint }]}
           onPress={handleCreateMatch}
         >
@@ -101,7 +100,7 @@ export function MatchesPanel({ matches, isCoach, onCreateMatch, onViewAll }: Mat
           <ThemedText style={[styles.createMatchText, { color: palette.tint }]}>
             Create Match
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </SurfaceCard>
   );

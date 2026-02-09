@@ -2,8 +2,8 @@ import { View, StyleSheet, Pressable, type StyleProp, type ViewStyle } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Typography, Spacing} from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Typography, Spacing} from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { scaleFont } from '@/utils/scale';
 
 // Web-compatible clickable wrapper using Pressable
@@ -49,8 +49,7 @@ export function QuickActions({
   pendingInvites = 0,
   showCoachActions = true,
 }: QuickActionsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   // Quick Actions for Users/Parents - Discover, Find Coach, Groups
   // Invites are now shown inline as "Action Required" section above the bookings list
@@ -155,5 +154,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.xxs,
   },
-  badgeText: { ...Typography.micro, color: Colors.light.onPrimary },
+  badgeText: { ...Typography.micro },
 });

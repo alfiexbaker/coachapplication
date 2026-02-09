@@ -11,8 +11,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { videoService } from '@/services/video-service';
 import type { SessionVideo } from '@/constants/types';
@@ -22,14 +22,12 @@ const logger = createLogger('VideosScreen');
 function VideoCard({
   video,
   index,
-  onPress,
-}: {
+  onPress }: {
   video: SessionVideo;
   index: number;
   onPress: () => void;
 }) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const visibilityIcon =
     video.visibility === 'PRIVATE'
@@ -48,12 +46,12 @@ function VideoCard({
             resizeMode="cover"
           />
           <View style={styles.durationBadge}>
-            <ThemedText style={styles.durationText}>
+            <ThemedText style={[styles.durationText, { color: palette.onPrimary }]}>
               {videoService.formatDuration(video.duration)}
             </ThemedText>
           </View>
           <View style={[styles.playButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
-            <Ionicons name="play" size={24} color={Colors.light.onPrimary} />
+            <Ionicons name="play" size={24} color={palette.onPrimary} />
           </View>
         </View>
 
@@ -85,8 +83,7 @@ function VideoCard({
             <ThemedText style={[styles.metaText, { color: palette.muted }]}>
               {new Date(video.createdAt).toLocaleDateString('en-GB', {
                 day: 'numeric',
-                month: 'short',
-              })}
+                month: 'short' })}
             </ThemedText>
           </View>
 
@@ -111,8 +108,7 @@ function VideoCard({
 }
 
 export default function VideosScreen() {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
 
   const [videos, setVideos] = useState<SessionVideo[]>([]);
@@ -120,8 +116,7 @@ export default function VideosScreen() {
   const [stats, setStats] = useState({
     totalVideos: 0,
     totalViews: 0,
-    sharedCount: 0,
-  });
+    sharedCount: 0 });
 
   const isCoach = currentUser?.role === 'COACH';
 
@@ -159,7 +154,7 @@ export default function VideosScreen() {
             onPress={() => router.push(Routes.VIDEOS_UPLOAD)}
             style={[styles.uploadButton, { backgroundColor: palette.tint }]}
           >
-            <Ionicons name="cloud-upload-outline" size={20} color={Colors.light.onPrimary} />
+            <Ionicons name="cloud-upload-outline" size={20} color={palette.onPrimary} />
           </Clickable>
         )}
       </View>
@@ -229,62 +224,49 @@ export default function VideosScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+    flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   headerTitle: {
-    flex: 1,
-  },
+    flex: 1 },
   uploadButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   statsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-  },
+    paddingBottom: Spacing.md },
   statCard: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: Spacing.sm,
-    borderRadius: Radii.md,
-  },
+    borderRadius: Radii.md },
   statValue: {
-    ...Typography.title,
-  },
+    ...Typography.title },
   statLabel: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   content: {
     padding: Spacing.lg,
-    paddingTop: 0,
-  },
+    paddingTop: 0 },
   list: {
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   videoCard: {
     padding: 0,
-    overflow: 'hidden',
-  },
+    overflow: 'hidden' },
   thumbnailContainer: {
     position: 'relative',
-    height: 180,
-  },
+    height: 180 },
   thumbnail: {
     width: '100%',
-    height: '100%',
-  },
+    height: '100%' },
   durationBadge: {
     position: 'absolute',
     bottom: Spacing.xs,
@@ -292,12 +274,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.75)',
     paddingHorizontal: Spacing.xxs,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.xs,
-  },
+    borderRadius: Radii.xs },
   durationText: {
-    color: Colors.light.onPrimary,
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   playButton: {
     position: 'absolute',
     top: '50%',
@@ -308,48 +287,36 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: Radii.xl,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
+    justifyContent: 'center' },
   videoInfo: {
     padding: Spacing.md,
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
+    gap: Spacing.sm },
   title: {
     flex: 1,
-    ...Typography.body,
-  },
+    ...Typography.body },
   athletes: {
-    ...Typography.small,
-  },
+    ...Typography.small },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-  },
+    gap: Spacing.md },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
-  },
+    gap: Spacing.xxs },
   metaText: {
-    ...Typography.caption,
-  },
+    ...Typography.caption },
   tagsRow: {
     flexDirection: 'row',
     gap: Spacing.xxs,
-    marginTop: Spacing.xxs,
-  },
+    marginTop: Spacing.xxs },
   tag: {
     paddingHorizontal: 8,
     paddingVertical: Spacing.micro,
-    borderRadius: Radii.sm,
-  },
+    borderRadius: Radii.sm },
   tagText: {
-    ...Typography.caption,
-  },
-});
+    ...Typography.caption } });

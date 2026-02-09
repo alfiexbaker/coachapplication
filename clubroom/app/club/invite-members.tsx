@@ -9,8 +9,8 @@ import { SurfaceCard } from '@/components/primitives/surface-card';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { useToast } from '@/components/ui/toast';
-import { Colors, Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/use-auth';
 import { bookings, getUserById, getClubById } from '@/constants/mock-data';
 import type { ClubRole } from '@/constants/types';
@@ -32,8 +32,7 @@ type InviteTab = 'past-sessions' | 'manual';
 
 export default function InviteMembersScreen() {
   const { clubId } = useLocalSearchParams<{ clubId: string }>();
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
 
@@ -182,12 +181,12 @@ export default function InviteMembersScreen() {
           <Ionicons
             name="people-outline"
             size={18}
-            color={activeTab === 'past-sessions' ? Colors.light.onPrimary : palette.text}
+            color={activeTab === 'past-sessions' ? palette.onPrimary : palette.text}
           />
           <ThemedText
             style={[
               styles.tabText,
-              { color: activeTab === 'past-sessions' ? Colors.light.onPrimary : palette.text },
+              { color: activeTab === 'past-sessions' ? palette.onPrimary : palette.text },
             ]}
           >
             Past Sessions
@@ -203,12 +202,12 @@ export default function InviteMembersScreen() {
           <Ionicons
             name="mail-outline"
             size={18}
-            color={activeTab === 'manual' ? Colors.light.onPrimary : palette.text}
+            color={activeTab === 'manual' ? palette.onPrimary : palette.text}
           />
           <ThemedText
             style={[
               styles.tabText,
-              { color: activeTab === 'manual' ? Colors.light.onPrimary : palette.text },
+              { color: activeTab === 'manual' ? palette.onPrimary : palette.text },
             ]}
           >
             Manual
@@ -338,7 +337,7 @@ export default function InviteMembersScreen() {
                           ]}
                         >
                           {selectedUsers.has(user.userId) && (
-                            <Ionicons name="checkmark" size={14} color={Colors.light.onPrimary} />
+                            <Ionicons name="checkmark" size={14} color={palette.onPrimary} />
                           )}
                         </View>
                         <View style={[styles.avatar, { backgroundColor: withAlpha(palette.tint, 0.12) }]}>
@@ -400,7 +399,7 @@ export default function InviteMembersScreen() {
                 style={[styles.sendButton, { backgroundColor: palette.tint }]}
                 onPress={handleManualInvite}
               >
-                <Ionicons name="send" size={18} color={Colors.light.onPrimary} />
+                <Ionicons name="send" size={18} color={palette.onPrimary} />
               </Clickable>
             </View>
           </SurfaceCard>
@@ -416,11 +415,11 @@ export default function InviteMembersScreen() {
             disabled={isInviting}
           >
             {isInviting ? (
-              <ThemedText style={styles.inviteButtonText}>Sending...</ThemedText>
+              <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>Sending...</ThemedText>
             ) : (
               <>
-                <Ionicons name="paper-plane" size={18} color={Colors.light.onPrimary} />
-                <ThemedText style={styles.inviteButtonText}>
+                <Ionicons name="paper-plane" size={18} color={palette.onPrimary} />
+                <ThemedText style={[styles.inviteButtonText, { color: palette.onPrimary }]}>
                   Invite {selectedUsers.size} User{selectedUsers.size !== 1 ? 's' : ''}
                 </ThemedText>
               </>
@@ -621,7 +620,6 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
   },
   inviteButtonText: {
-    color: Colors.light.onPrimary,
     ...Typography.subheading,
   },
 });

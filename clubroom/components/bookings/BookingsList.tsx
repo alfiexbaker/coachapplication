@@ -7,9 +7,9 @@ import { UnifiedBookingCard } from '@/components/bookings/UnifiedBookingCard';
 import { SeriesBookingGroup } from '@/components/bookings/series-booking-group';
 import { SessionOfferingCard } from '@/components/sessions/session-offering-card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Colors, Spacing, Radii , Typography, withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
 import { BookingSummary, SessionOffering } from '@/constants/types';
+import { useTheme } from '@/hooks/useTheme';
 
 export type TimeFilter = 'upcoming' | 'past';
 
@@ -38,8 +38,7 @@ export function BookingsList({
   onFindCoachPress,
   onCreateSessionPress,
 }: BookingsListProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const isCoach = userRole === 'COACH';
 

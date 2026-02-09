@@ -20,8 +20,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Colors, Radii, Shadows, Spacing } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Shadows, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -65,8 +65,7 @@ export function SurfaceCard({
   onPress,
   ...rest
 }: SurfaceCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette, scheme } = useTheme();
   const baseShadow = Shadows[scheme].card;
   const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
   const scale = useSharedValue(1);

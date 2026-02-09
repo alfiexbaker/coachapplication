@@ -26,8 +26,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Spacing, Radii, Typography, Shadows, Components  , withAlpha } from '@/constants/theme';
-import { ModalStyles } from '@/constants/styles';
+import { Spacing, Radii, Typography, Shadows, Components, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
+import { createModalStyles } from '@/constants/styles';
 import { schedulingRulesService } from '@/services/scheduling-rules-service';
 import { cancellationService } from '@/services/cancellation-service';
 import { apiClient } from '@/services/api-client';
@@ -98,43 +99,56 @@ function formatSessionDate(isoString: string): string {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function SessionInfoCard({ booking }: { booking: Booking }) {
+interface SubComponentColors {
+  text: string;
+  tint: string;
+  background: string;
+  surface: string;
+  border: string;
+  muted: string;
+  success: string;
+  warning: string;
+  error: string;
+  icon: string;
+}
+
+function SessionInfoCard({ booking, colors, scheme }: { booking: Booking; colors: SubComponentColors; scheme: 'light' | 'dark' }) {
   const sessionDate = booking.scheduledAt || booking.start || '';
   return (
-    <View style={styles.sessionCard}>
+    <View style={[styles.sessionCard, Shadows[scheme].card, { backgroundColor: colors.surface }]}>
       <View style={styles.sessionCardRow}>
-        <Ionicons name="football-outline" size={18} color={Colors.light.tint} />
+        <Ionicons name="football-outline" size={18} color={colors.tint} />
         <View style={styles.sessionCardInfo}>
-          <ThemedText style={styles.sessionCardTitle} numberOfLines={1}>
+          <ThemedText style={[styles.sessionCardTitle, { color: colors.text }]} numberOfLines={1}>
             {booking.service || 'Coaching Session'}
           </ThemedText>
-          <ThemedText style={styles.sessionCardMeta}>
+          <ThemedText style={[styles.sessionCardMeta, { color: colors.muted }]}>
             {sessionDate ? formatSessionDate(sessionDate) : 'Date not set'}
           </ThemedText>
           {booking.location || booking.locationLabel ? (
-            <ThemedText style={styles.sessionCardMeta} numberOfLines={1}>
+            <ThemedText style={[styles.sessionCardMeta, { color: colors.muted }]} numberOfLines={1}>
               {booking.locationLabel || booking.location}
             </ThemedText>
           ) : null}
         </View>
       </View>
-      <View style={styles.sessionCardDetails}>
+      <View style={[styles.sessionCardDetails, { borderTopColor: colors.border }]}>
         <View style={styles.sessionDetailItem}>
-          <Ionicons name="person-outline" size={14} color={Colors.light.muted} />
-          <ThemedText style={styles.sessionDetailText} numberOfLines={1}>
+          <Ionicons name="person-outline" size={14} color={colors.muted} />
+          <ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>
             {booking.coachName || 'Coach'}
           </ThemedText>
         </View>
         <View style={styles.sessionDetailItem}>
-          <Ionicons name="people-outline" size={14} color={Colors.light.muted} />
-          <ThemedText style={styles.sessionDetailText} numberOfLines={1}>
+          <Ionicons name="people-outline" size={14} color={colors.muted} />
+          <ThemedText style={[styles.sessionDetailText, { color: colors.muted }]} numberOfLines={1}>
             {booking.athleteName || 'Athlete'}
           </ThemedText>
         </View>
         {booking.duration ? (
           <View style={styles.sessionDetailItem}>
-            <Ionicons name="time-outline" size={14} color={Colors.light.muted} />
-            <ThemedText style={styles.sessionDetailText}>
+            <Ionicons name="time-outline" size={14} color={colors.muted} />
+            <ThemedText style={[styles.sessionDetailText, { color: colors.muted }]}>
               {booking.duration} mins
             </ThemedText>
           </View>
@@ -144,15 +158,15 @@ function SessionInfoCard({ booking }: { booking: Booking }) {
   );
 }
 
-function RefundBanner({ calculation }: { calculation: RefundCalculation }) {
+function RefundBanner({ calculation, colors }: { calculation: RefundCalculation; colors: SubComponentColors }) {
   const isFullRefund = calculation.refundPercentage === 100;
   const isNoRefund = calculation.refundPercentage === 0;
 
   const bannerColor = isFullRefund
-    ? Colors.light.success
+    ? colors.success
     : isNoRefund
-      ? Colors.light.error
-      : Colors.light.warning;
+      ? colors.error
+      : colors.warning;
 
   return (
     <View style={[styles.refundBanner, { backgroundColor: withAlpha(bannerColor, 0.07) }]}>
@@ -170,10 +184,10 @@ function RefundBanner({ calculation }: { calculation: RefundCalculation }) {
               : `${calculation.refundPercentage}% refund`}
         </ThemedText>
       </View>
-      <ThemedText style={styles.refundExplanation}>{calculation.explanation}</ThemedText>
+      <ThemedText style={[styles.refundExplanation, { color: colors.muted }]}>{calculation.explanation}</ThemedText>
       {calculation.netRefundAmount > 0 && (
-        <View style={styles.refundAmountRow}>
-          <ThemedText style={styles.refundAmountLabel}>You will receive</ThemedText>
+        <View style={[styles.refundAmountRow, { borderTopColor: colors.border }]}>
+          <ThemedText style={[styles.refundAmountLabel, { color: colors.text }]}>You will receive</ThemedText>
           <ThemedText style={[styles.refundAmount, { color: bannerColor }]}>
             {'\u00A3'}{calculation.netRefundAmount.toFixed(2)}
           </ThemedText>
@@ -187,14 +201,20 @@ function ReasonCard({
   option,
   selected,
   onPress,
+  colors,
 }: {
   option: ReasonOption;
   selected: boolean;
   onPress: () => void;
+  colors: SubComponentColors;
 }) {
   return (
     <Pressable
-      style={[styles.reasonCard, selected ? styles.reasonCardSelected : undefined]}
+      style={[
+        styles.reasonCard,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        selected ? { borderColor: colors.tint, backgroundColor: withAlpha(colors.tint, 0.03) } : undefined,
+      ]}
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
@@ -202,12 +222,19 @@ function ReasonCard({
       <Ionicons
         name={option.icon}
         size={18}
-        color={selected ? Colors.light.tint : Colors.light.muted}
+        color={selected ? colors.tint : colors.muted}
       />
-      <ThemedText style={[styles.reasonLabel, selected ? styles.reasonLabelSelected : undefined]} numberOfLines={1}>
+      <ThemedText
+        style={[
+          styles.reasonLabel,
+          { color: colors.text },
+          selected ? { ...Typography.bodySemiBold, color: colors.tint } : undefined,
+        ]}
+        numberOfLines={1}
+      >
         {option.label}
       </ThemedText>
-      {selected && <Ionicons name="checkmark" size={16} color={Colors.light.tint} />}
+      {selected && <Ionicons name="checkmark" size={16} color={colors.tint} />}
     </Pressable>
   );
 }
@@ -224,6 +251,9 @@ export default function CancelFlow({
   userRole,
   onCancelled,
 }: CancelFlowProps) {
+  const { colors, scheme } = useTheme();
+  const ModalStyles = createModalStyles(colors);
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [reason, setReason] = useState<CancellationReason | null>(null);
@@ -358,21 +388,21 @@ export default function CancelFlow({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
+      <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
         {/* Handle bar */}
         <View style={ModalStyles.handle} />
 
         {/* Header */}
         <View style={styles.modalHeader}>
-          <ThemedText style={styles.modalTitle}>Cancel session</ThemedText>
-          <Pressable onPress={onClose} style={styles.closeButton} hitSlop={12}>
-            <Ionicons name="close" size={22} color={Colors.light.text} />
+          <ThemedText style={[styles.modalTitle, { color: colors.text }]}>Cancel session</ThemedText>
+          <Pressable onPress={onClose} style={[styles.closeButton, { backgroundColor: colors.surface }]} hitSlop={12}>
+            <Ionicons name="close" size={22} color={colors.text} />
           </Pressable>
         </View>
 
         {loading ? (
           <View style={styles.loadingArea}>
-            <ActivityIndicator size="large" color={Colors.light.text} />
+            <ActivityIndicator size="large" color={colors.text} />
           </View>
         ) : (
           <ScrollView
@@ -382,12 +412,12 @@ export default function CancelFlow({
             keyboardShouldPersistTaps="handled"
           >
             {/* Session info card */}
-            <SessionInfoCard booking={booking} />
+            <SessionInfoCard booking={booking} colors={colors} scheme={scheme} />
 
             {/* Time context */}
             <View style={styles.timeContext}>
-              <Ionicons name="time-outline" size={16} color={Colors.light.muted} />
-              <ThemedText style={styles.timeContextText}>
+              <Ionicons name="time-outline" size={16} color={colors.muted} />
+              <ThemedText style={[styles.timeContextText, { color: colors.muted }]}>
                 {hoursUntil < 1
                   ? 'Less than 1 hour until session'
                   : hoursUntil < 24
@@ -397,13 +427,13 @@ export default function CancelFlow({
             </View>
 
             {/* Refund banner (only for parent cancellations) */}
-            {!isCoachCancelling && refundCalc && <RefundBanner calculation={refundCalc} />}
+            {!isCoachCancelling && refundCalc && <RefundBanner calculation={refundCalc} colors={colors} />}
 
             {/* Coach cancellation warning */}
             {isCoachCancelling && (
-              <View style={styles.coachNote}>
-                <Ionicons name="information-circle-outline" size={18} color={Colors.light.warning} />
-                <ThemedText style={styles.coachNoteText}>
+              <View style={[styles.coachNote, { backgroundColor: withAlpha(colors.warning, 0.07) }]}>
+                <Ionicons name="information-circle-outline" size={18} color={colors.warning} />
+                <ThemedText style={[styles.coachNoteText, { color: colors.muted }]}>
                   Cancelling as a coach will issue a full refund to the parent. Frequent
                   cancellations may affect your profile rating.
                 </ThemedText>
@@ -411,7 +441,7 @@ export default function CancelFlow({
             )}
 
             {/* Reason selection */}
-            <ThemedText style={styles.sectionLabel}>
+            <ThemedText style={[styles.sectionLabel, { color: colors.text }]}>
               Why are you cancelling?{isCoachCancelling ? ' (required)' : ''}
             </ThemedText>
             <View style={styles.reasonsGrid}>
@@ -421,18 +451,19 @@ export default function CancelFlow({
                   option={opt}
                   selected={reason === opt.key}
                   onPress={() => setReason(opt.key)}
+                  colors={colors}
                 />
               ))}
             </View>
 
             {/* Optional note */}
-            <ThemedText style={styles.sectionLabel}>Add a note (optional)</ThemedText>
+            <ThemedText style={[styles.sectionLabel, { color: colors.text }]}>Add a note (optional)</ThemedText>
             <TextInput
-              style={styles.noteInput}
+              style={[styles.noteInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
               value={note}
               onChangeText={setNote}
               placeholder="Any additional details..."
-              placeholderTextColor={Colors.light.border}
+              placeholderTextColor={colors.border}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -440,21 +471,22 @@ export default function CancelFlow({
 
             {/* Action buttons */}
             <View style={styles.buttonsRow}>
-              <Pressable style={styles.keepButton} onPress={onClose}>
-                <ThemedText style={styles.keepButtonText}>Keep Session</ThemedText>
+              <Pressable style={[styles.keepButton, { backgroundColor: colors.surface, borderColor: colors.border }]} onPress={onClose}>
+                <ThemedText style={[styles.keepButtonText, { color: colors.text }]}>Keep Session</ThemedText>
               </Pressable>
               <Pressable
                 style={[
                   styles.confirmButton,
+                  { backgroundColor: colors.error },
                   (!canConfirm || submitting) ? styles.confirmButtonDisabled : undefined,
                 ]}
                 onPress={handleConfirm}
                 disabled={!canConfirm || submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color={Colors.light.surface} />
+                  <ActivityIndicator size="small" color={colors.surface} />
                 ) : (
-                  <ThemedText style={styles.confirmButtonText}>Confirm Cancel</ThemedText>
+                  <ThemedText style={[styles.confirmButtonText, { color: colors.surface }]}>Confirm Cancel</ThemedText>
                 )}
               </Pressable>
             </View>
@@ -474,7 +506,6 @@ export default function CancelFlow({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: Colors.light.background,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -485,13 +516,11 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     ...Typography.title,
-    color: Colors.light.text,
   },
   closeButton: {
     width: 36,
     height: 36,
     borderRadius: Radii.xl,
-    backgroundColor: Colors.light.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -509,10 +538,8 @@ const styles = StyleSheet.create({
 
   // Session info card
   sessionCard: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.card,
     padding: Spacing.sm,
-    ...Shadows.light.card,
     marginBottom: Spacing.sm,
   },
   sessionCardRow: {
@@ -526,11 +553,9 @@ const styles = StyleSheet.create({
   },
   sessionCardTitle: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
   },
   sessionCardMeta: {
     ...Typography.small,
-    color: Colors.light.muted,
     marginTop: Spacing.micro,
   },
   sessionCardDetails: {
@@ -539,7 +564,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingTop: Spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.light.border,
   },
   sessionDetailItem: {
     flexDirection: 'row',
@@ -548,7 +572,6 @@ const styles = StyleSheet.create({
   },
   sessionDetailText: {
     ...Typography.caption,
-    color: Colors.light.muted,
   },
 
   // Time context
@@ -560,7 +583,6 @@ const styles = StyleSheet.create({
   },
   timeContextText: {
     ...Typography.small,
-    color: Colors.light.muted,
   },
 
   // Refund banner
@@ -580,7 +602,6 @@ const styles = StyleSheet.create({
   },
   refundExplanation: {
     ...Typography.small,
-    color: Colors.light.muted,
     marginBottom: Spacing.xs,
   },
   refundAmountRow: {
@@ -589,11 +610,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: Spacing.xs,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.light.border,
   },
   refundAmountLabel: {
     ...Typography.body,
-    color: Colors.light.text,
   },
   refundAmount: {
     ...Typography.heading,
@@ -603,7 +622,6 @@ const styles = StyleSheet.create({
   coachNote: {
     flexDirection: 'row',
     gap: Spacing.xs,
-    backgroundColor: withAlpha(Colors.light.warning, 0.07),
     borderRadius: Radii.card,
     padding: Spacing.sm,
     marginBottom: Spacing.md,
@@ -611,13 +629,11 @@ const styles = StyleSheet.create({
   coachNoteText: {
     flex: 1,
     ...Typography.small,
-    color: Colors.light.muted,
   },
 
   // Reasons
   sectionLabel: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
     marginBottom: Spacing.xs,
   },
   reasonsGrid: {
@@ -628,37 +644,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.md,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
     borderWidth: 1.5,
-    borderColor: Colors.light.border,
-  },
-  reasonCardSelected: {
-    borderColor: Colors.light.tint,
-    backgroundColor: withAlpha(Colors.light.tint, 0.03),
   },
   reasonLabel: {
     flex: 1,
     ...Typography.body,
-    color: Colors.light.text,
-  },
-  reasonLabelSelected: {
-    ...Typography.bodySemiBold,
-    color: Colors.light.tint,
   },
 
   // Note input
   noteInput: {
-    backgroundColor: Colors.light.surface,
     borderRadius: Radii.md,
     borderWidth: 1,
-    borderColor: Colors.light.border,
     padding: Spacing.sm,
     minHeight: 80,
     ...Typography.body,
-    color: Colors.light.text,
     marginBottom: Spacing.md,
   },
 
@@ -671,21 +673,17 @@ const styles = StyleSheet.create({
     flex: 1,
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,
-    backgroundColor: Colors.light.surface,
     borderWidth: 1.5,
-    borderColor: Colors.light.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   keepButtonText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.text,
   },
   confirmButton: {
     flex: 1,
     height: Components.button.height,
     borderRadius: Components.button.borderRadius,
-    backgroundColor: Colors.light.error,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -694,7 +692,6 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     ...Typography.bodySemiBold,
-    color: Colors.light.surface,
   },
 
   bottomSpacer: {

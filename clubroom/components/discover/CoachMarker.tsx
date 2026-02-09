@@ -15,8 +15,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii , Typography, Spacing} from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii , Typography, Spacing} from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { CoachProfile } from '@/constants/types';
 
 interface CoachMarkerProps {
@@ -42,8 +42,7 @@ export function CoachMarker({
   showPrice = false,
   showRating = true,
 }: CoachMarkerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const scale = useSharedValue(1);
   const dimensions = SIZE_MAP[size];
 
@@ -180,8 +179,7 @@ interface ClusterMarkerProps {
 }
 
 export function ClusterMarker({ count, onPress }: ClusterMarkerProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <Pressable
@@ -196,7 +194,7 @@ export function ClusterMarker({ count, onPress }: ClusterMarkerProps) {
         },
       ]}
     >
-      <ThemedText style={styles.clusterText} lightColor={Colors.light.onPrimary} darkColor={Colors.light.onPrimary}>
+      <ThemedText style={[styles.clusterText, { color: palette.onPrimary }]}>
         {count}
       </ThemedText>
     </Pressable>
@@ -261,7 +259,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#000000', // Decorative: standard shadow base
     shadowOpacity: 0.2,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },

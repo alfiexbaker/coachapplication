@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, Pressable, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { SurfaceCard } from '@/components/primitives/surface-card';
 import { ThemedText } from '@/components/themed-text';
-import { Colors, Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Radii, Spacing, Typography , withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { Match, MatchPlayer } from '@/constants/types';
 
 interface AvailabilityResponseProps {
@@ -21,8 +21,7 @@ export function AvailabilityResponse({
   onRespond,
   isLoading,
 }: AvailabilityResponseProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const [note, setNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
@@ -56,13 +55,13 @@ export function AvailabilityResponse({
     return (
       <SurfaceCard
         style={styles.card}
-        outlineGradient={isReserve ? [Colors.light.warning, withAlpha(Colors.light.warning, 0.67)] : [Colors.light.success, withAlpha(Colors.light.success, 0.67)]}
+        outlineGradient={isReserve ? [palette.warning, withAlpha(palette.warning, 0.67)] : [palette.success, withAlpha(palette.success, 0.67)]}
       >
         <View style={styles.selectionHeader}>
           <View
             style={[
               styles.iconCircle,
-              { backgroundColor: isReserve ? Colors.light.warning : Colors.light.success }
+              { backgroundColor: isReserve ? palette.warning : palette.success }
             ]}
           >
             <Ionicons
@@ -164,7 +163,7 @@ export function AvailabilityResponse({
         </ThemedText>
 
         {/* Option to change response */}
-        <TouchableOpacity
+        <Pressable
           style={[styles.changeButton, { borderColor: palette.border }]}
           onPress={() => {
             Alert.alert(
@@ -183,7 +182,7 @@ export function AvailabilityResponse({
           <ThemedText style={[styles.changeButtonText, { color: palette.muted }]}>
             Change Response
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </SurfaceCard>
     );
   }
@@ -252,16 +251,16 @@ export function AvailabilityResponse({
       )}
 
       <View style={styles.responseButtons}>
-        <TouchableOpacity
+        <Pressable
           style={[styles.responseButton, styles.availableButton, { backgroundColor: palette.success }]}
           onPress={() => handleResponse('AVAILABLE')}
           disabled={isLoading}
         >
           <Ionicons name="checkmark-circle" size={22} color={palette.onSuccess} />
           <ThemedText style={[styles.responseButtonText, { color: palette.onSuccess }]}>Available</ThemedText>
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.responseButton,
             styles.unavailableButton,
@@ -283,11 +282,11 @@ export function AvailabilityResponse({
           >
             {showNoteInput ? 'Confirm Unavailable' : 'Unavailable'}
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {showNoteInput && (
-        <TouchableOpacity
+        <Pressable
           style={styles.cancelNoteButton}
           onPress={() => {
             setShowNoteInput(false);
@@ -297,7 +296,7 @@ export function AvailabilityResponse({
           <ThemedText style={[styles.cancelNoteText, { color: palette.muted }]}>
             Cancel
           </ThemedText>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </SurfaceCard>
   );

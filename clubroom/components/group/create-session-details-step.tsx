@@ -5,8 +5,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Clickable } from '@/components/primitives/clickable';
 import { ThemedText } from '@/components/themed-text';
 import { InlineSquadSelector } from '@/components/squad/squad-picker';
-import { Colors, Spacing, Radii, Typography } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 import type { GroupSession, FootballObjective } from '@/constants/types';
 
 const SKILL_LEVELS: { key: GroupSession['skillLevel']; label: string }[] = [
@@ -52,8 +52,7 @@ function CreateSessionDetailsStepInner({
   selectedSquadIds,
   onFieldChange,
 }: CreateSessionDetailsStepProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const toggleFocus = (f: FootballObjective) => {
     if (focus.includes(f)) {
@@ -147,7 +146,7 @@ function CreateSessionDetailsStepInner({
               <ThemedText
                 style={[
                   styles.chipText,
-                  { color: skillLevel === level.key ? Colors.light.onPrimary : palette.text },
+                  { color: skillLevel === level.key ? palette.onPrimary : palette.text },
                 ]}
               >
                 {level.label}
@@ -173,7 +172,7 @@ function CreateSessionDetailsStepInner({
               ]}
             >
               <ThemedText
-                style={[styles.chipText, { color: focus.includes(f) ? Colors.light.onPrimary : palette.text }]}
+                style={[styles.chipText, { color: focus.includes(f) ? palette.onPrimary : palette.text }]}
               >
                 {f}
               </ThemedText>

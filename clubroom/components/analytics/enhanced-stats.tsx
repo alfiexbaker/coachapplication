@@ -4,8 +4,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/themed-text';
 import { SurfaceCard } from '@/components/primitives/surface-card';
-import { Colors, Spacing, Radii , Typography , withAlpha } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Spacing, Radii, Typography, withAlpha } from '@/constants/theme';
+import { useTheme } from '@/hooks/useTheme';
 
 
 // Mini sparkline chart component
@@ -24,8 +24,7 @@ export function MiniSparkline({
   height = 24,
   showDots = false,
 }: SparklineProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const lineColor = color || palette.tint;
 
   if (data.length < 2) {
@@ -95,8 +94,7 @@ export function EnhancedStatCard({
   variant = 'default',
   delay = 0,
 }: EnhancedStatCardProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   const trendColor = trend
     ? trend.value > 0
@@ -232,8 +230,7 @@ interface StatsRowProps {
 }
 
 export function StatsRow({ stats }: StatsRowProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.statsRowCard}>
@@ -314,8 +311,7 @@ export function ProgressMetric({
   color,
   showPercentage = true,
 }: ProgressMetricProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
   const accentColor = color || palette.tint;
   const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
 
@@ -375,8 +371,7 @@ interface MetricsSummaryProps {
 }
 
 export function MetricsSummary({ title, metrics, highlight }: MetricsSummaryProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.metricsSummaryCard}>
@@ -469,8 +464,7 @@ interface EmptyMetricsProps {
 }
 
 export function EmptyMetrics({ icon = 'analytics-outline', title, description, action }: EmptyMetricsProps) {
-  const scheme = useColorScheme() ?? 'light';
-  const palette = Colors[scheme];
+  const { colors: palette } = useTheme();
 
   return (
     <SurfaceCard style={styles.emptyMetrics}>
